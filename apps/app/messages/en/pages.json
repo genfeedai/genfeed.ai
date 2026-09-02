@@ -596,7 +596,10 @@
   },
   "library": {
     "inspector": {
-      "type": "Type"
+      "empty": "Select one asset to inspect it.",
+      "surface": "Library",
+      "type": "Type",
+      "untitled": "Untitled asset"
     },
     "otherAssets": "Other assets",
     "sidebar": {

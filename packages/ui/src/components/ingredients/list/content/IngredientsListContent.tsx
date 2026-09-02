@@ -1,6 +1,7 @@
 'use client';
 
 import { EMPTY_STATES } from '@genfeedai/constants';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import {
   ButtonVariant,
   ComponentSize,
@@ -24,19 +25,13 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
-import {
-  getIsInspectorDocked,
-  subscribeInspectorDocked,
-} from '@ui/ingredients/inspector/inspector-viewport.util';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
-import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import { Eye, Film, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const previewUrl = getIngredientPreviewUrl(ingredient);
@@ -429,8 +424,9 @@ export default function IngredientsListContent({
   ]);
 
   /**
-   * The rail inspects one asset. A multi-selection is a bulk action, so it
-   * stays closed rather than picking an arbitrary member to describe.
+   * The workspace rail inspects one asset. A multi-selection is a bulk action,
+   * so it publishes nothing rather than picking an arbitrary member to
+   * describe.
    */
   const inspectedIngredient = useMemo(() => {
     if (selectedIngredientIds.length !== 1) {
@@ -445,70 +441,43 @@ export default function IngredientsListContent({
   }, [filteredIngredients, selectedIngredientIds]);
 
   /**
-   * Dock the inspector beside the grid where there is room for both, and show
-   * the same rail as a sheet where there is not. A docked rail that is merely
-   * hidden below `lg` leaves a narrow viewport with no way to read the asset it
-   * just selected.
+   * The grid owns the selection, the workspace shell owns the inspector.
+   * Publishing into the shared asset selection is the whole handoff: the
+   * library surface adapter reads it back and renders the inspector as a rail
+   * pane, so the canvas never carries a second inspector of its own.
    */
-  const isInspectorDocked = useSyncExternalStore(
-    subscribeInspectorDocked,
-    getIsInspectorDocked,
-    () => false,
-  );
+  const { setSelectedAsset } = useAssetSelection();
 
-  /** Closing the inspector is the same gesture as dropping the selection. */
-  const handleInspectorOpenChange = useCallback(
-    (isOpen: boolean) => {
-      if (!isOpen) {
-        onSelectionChange([]);
-      }
-    },
-    [onSelectionChange],
-  );
+  useEffect(() => {
+    setSelectedAsset(inspectedIngredient);
+  }, [inspectedIngredient, setSelectedAsset]);
+
+  // Leaving the library drops the selection so the composer stops citing an
+  // asset the operator can no longer see.
+  useEffect(() => () => setSelectedAsset(null), [setSelectedAsset]);
 
   return (
-    <div className="flex min-w-0 flex-1 overflow-hidden">
-      <div
-        className={`flex-1 min-w-0 overflow-hidden ${
-          isAudioCategory
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
-            : ''
-        }`}
-      >
-        {hasFilteredEmptyState ? (
-          <CardEmptyContent
-            label={EMPTY_STATES.RESULTS_FOUND}
-            description="Try adjusting your filters or search terms."
-            action={{
-              label: 'Clear Filters',
-              onClick: onClearFilters,
-              variant: ButtonVariant.SECONDARY,
-            }}
-            className="w-full max-w-lg"
-          />
-        ) : (
-          content
-        )}
-      </div>
-
-      {inspectedIngredient && isInspectorDocked ? (
-        <IngredientInspectorRail ingredient={inspectedIngredient} />
-      ) : null}
-
-      {inspectedIngredient && !isInspectorDocked ? (
-        <ContextInspector
-          isOpen
-          onOpenChange={handleInspectorOpenChange}
-          title={inspectedIngredient.metadataLabel || 'Untitled asset'}
-          width="md"
-        >
-          <IngredientInspectorRail
-            className="w-full border-l-0 px-5 py-5"
-            hasHeading={false}
-            ingredient={inspectedIngredient}
-          />
-        </ContextInspector>
-      ) : null}
+    <div
+      className={`flex-1 min-w-0 overflow-hidden ${
+        isAudioCategory
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
+          : ''
+      }`}
+    >
+      {hasFilteredEmptyState ? (
+        <CardEmptyContent
+          label={EMPTY_STATES.RESULTS_FOUND}
+          description="Try adjusting your filters or search terms."
+          action={{
+            label: 'Clear Filters',
+            onClick: onClearFilters,
+            variant: ButtonVariant.SECONDARY,
+          }}
+          className="w-full max-w-lg"
+        />
+      ) : (
+        content
+      )}
     </div>
   );
 }

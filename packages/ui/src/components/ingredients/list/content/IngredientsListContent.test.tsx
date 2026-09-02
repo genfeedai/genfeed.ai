@@ -5,6 +5,17 @@ import IngredientsListContent from '@ui/ingredients/list/content/IngredientsList
 import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const { setSelectedAsset } = vi.hoisted(() => ({
+  setSelectedAsset: vi.fn(),
+}));
+
+// The grid hands its single selection to the shared asset selection, and the
+// library surface adapter renders the rail from there. Stubbing the context is
+// what lets this test assert the handoff instead of the rail's markup.
+vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
+  useAssetSelection: () => ({ setSelectedAsset }),
+}));
+
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
     <img alt={alt} src={src} />
@@ -49,29 +60,13 @@ const baseIngredient = {
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
 
-/**
- * The inspector reads the viewport through `matchMedia`, so a test picks its
- * presentation by answering that query rather than by asserting on a class.
- */
-function mockInspectorViewport(isDocked: boolean): void {
-  vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query: string) =>
-      ({
-        addEventListener: vi.fn(),
-        matches: isDocked,
-        media: query,
-        removeEventListener: vi.fn(),
-      }) as unknown as MediaQueryList,
-  );
-}
-
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
 ) {
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
-  render(
+  const { unmount } = render(
     <IngredientsListContent
       type="avatars"
       scope={PageScope.ORGANIZATION}
@@ -110,7 +105,7 @@ function renderContent(
     />,
   );
 
-  return { onOpenIngredientModal, onOpenLightbox };
+  return { onOpenIngredientModal, onOpenLightbox, unmount };
 }
 
 const videoIngredient = {
@@ -249,50 +244,39 @@ describe('IngredientsListContent', () => {
   });
 });
 
-describe('IngredientsListContent inspector', () => {
+describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    setSelectedAsset.mockClear();
   });
 
-  it('docks the rail beside the grid on a wide viewport', () => {
-    mockInspectorViewport(true);
-
+  it('publishes a single selection for the workspace rail', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
-    expect(screen.getByLabelText('Asset details')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
   });
 
-  it('presents the same rail as a sheet on a narrow viewport', () => {
-    mockInspectorViewport(false);
+  it('publishes nothing for a multi-selection', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
 
-    renderContent({ selectedIngredientIds: [baseIngredient.id] });
-
-    const dialog = screen.getByRole('dialog');
-
-    expect(within(dialog).getByLabelText('Asset details')).toBeInTheDocument();
-    expect(within(dialog).getByText('Avatar Source')).toBeInTheDocument();
+    expect(setSelectedAsset).toHaveBeenCalledWith(null);
+    expect(setSelectedAsset).not.toHaveBeenCalledWith(baseIngredient);
   });
 
-  it('drops the selection when the sheet is dismissed', () => {
-    mockInspectorViewport(false);
-
-    const onSelectionChange = vi.fn();
-    renderContent({
-      onSelectionChange,
+  it('clears the published asset when the library unmounts', () => {
+    const { unmount } = renderContent({
       selectedIngredientIds: [baseIngredient.id],
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    setSelectedAsset.mockClear();
+    unmount();
 
-    expect(onSelectionChange).toHaveBeenCalledWith([]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(null);
   });
 
-  it('shows no inspector for a multi-selection', () => {
-    mockInspectorViewport(true);
-
-    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+  it('renders no inspector of its own', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
     expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
