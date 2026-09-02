@@ -820,6 +820,11 @@
     "noPreview": "No preview",
     "videoBadge": "Video"
   },
+  "libraryRetry": {
+    "genericFailureReason": "Generation failed.",
+    "retry": "Retry",
+    "retryAriaLabel": "Retry generation"
+  },
   "articleDetail": {
     "loadingTitle": "Loading article…"
   },

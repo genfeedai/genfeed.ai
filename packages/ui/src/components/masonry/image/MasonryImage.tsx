@@ -6,6 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
@@ -99,6 +100,7 @@ export default function MasonryImage({
 
   const isProcessing = image.status === IngredientStatus.PROCESSING;
   const isFailed = image.status === IngredientStatus.FAILED;
+  const failureReason = getIngredientFailureReason(image);
 
   const currentImageUrl = image.ingredientUrl ?? '';
   // A still-processing asset has no generated URL yet — that is not an error,
@@ -210,6 +212,8 @@ export default function MasonryImage({
         isLoading={isLoading}
         imageError={imageError}
         isProcessing={isProcessing}
+        isFailed={isFailed}
+        failureReason={failureReason}
         isFleetNsfwLocked={isFleetNsfwLocked}
         isSquare={isSquare}
         aspectRatioStyle={aspectRatioStyle}
@@ -218,6 +222,7 @@ export default function MasonryImage({
         handleImageError={handleImageError}
         handleContentClick={handleContentClick}
         onRefresh={onRefresh}
+        onReprompt={onReprompt}
       />
 
       {shouldShowBadges && (

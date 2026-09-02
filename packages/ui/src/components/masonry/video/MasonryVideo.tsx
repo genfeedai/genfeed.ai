@@ -3,6 +3,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
+import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
@@ -56,6 +57,7 @@ export default function MasonryVideo({
     videoRef,
     isHovered,
     isProcessing,
+    isFailed,
     isUnavailable,
     isFleetNsfwLocked,
     isInteractionBlocked,
@@ -94,6 +96,8 @@ export default function MasonryVideo({
     onHoverChange,
   });
 
+  const failureReason = getIngredientFailureReason(video);
+
   const content = (
     <div
       onMouseEnter={() => !isInteractionBlocked && handleMouseHover(true)}
@@ -124,6 +128,8 @@ export default function MasonryVideo({
           metadata={metadata}
           isUnavailable={isUnavailable}
           isProcessing={isProcessing}
+          isFailed={isFailed}
+          failureReason={failureReason}
           isFleetNsfwLocked={isFleetNsfwLocked}
           isDragEnabled={isDragEnabled}
           hasUpdateParent={!!onUpdateParent}
@@ -136,6 +142,7 @@ export default function MasonryVideo({
           onClickIngredient={onClickIngredient}
           onRefresh={onRefresh}
           onImageLoad={onImageLoad}
+          onReprompt={onReprompt}
         />
       </div>
 

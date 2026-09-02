@@ -413,4 +413,43 @@ describe('IngredientsListContent generation ledger columns', () => {
 
     expect(screen.getAllByText('—')).toHaveLength(2);
   });
+
+  it('offers a retry action next to the status chip for a FAILED asset', () => {
+    const onReprompt = vi.fn();
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt,
+      viewMode: 'list',
+    });
+
+    const retryButton = screen.getByRole('button', {
+      name: 'Retry generation',
+    });
+    fireEvent.click(retryButton);
+
+    expect(onReprompt).toHaveBeenCalledWith(failedIngredient);
+  });
+
+  it('does not offer a retry action for a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer a retry action when onReprompt is not provided', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt: undefined,
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
 });

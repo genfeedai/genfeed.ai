@@ -85,6 +85,12 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientStatus } from '@genfeedai/enums';
 import type { IImage } from '@genfeedai/interfaces';
@@ -310,5 +316,70 @@ describe('MasonryImage', () => {
     // The placeholder finishing its load must NOT be reported as a success.
     fireEvent.load(screen.getByRole('img'));
     expect(handleImageLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the failure reason and a Retry control for a FAILED asset when onReprompt is provided', () => {
+    const onReprompt = vi.fn();
+
+    render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          generationError: 'Provider rejected the prompt.',
+          status: IngredientStatus.FAILED,
+        }}
+        onReprompt={onReprompt}
+      />,
+    );
+
+    const overlay = screen.getByTestId('asset-failure-overlay-img-123');
+    expect(overlay).toHaveTextContent('Provider rejected the prompt.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry generation' }));
+
+    expect(onReprompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'img-123',
+        status: IngredientStatus.FAILED,
+      }),
+    );
+  });
+
+  it('renders only the failure reason for a FAILED asset when onReprompt is not provided', () => {
+    render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          generationError: 'Provider rejected the prompt.',
+          status: IngredientStatus.FAILED,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('asset-failure-reason-img-123'),
+    ).toHaveTextContent('Provider rejected the prompt.');
+    expect(
+      screen.queryByTestId('asset-failure-overlay-img-123'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders neither the failure reason nor Retry for a non-failed asset', () => {
+    const onReprompt = vi.fn();
+
+    render(<MasonryImage image={mockImage} onReprompt={onReprompt} />);
+
+    expect(
+      screen.queryByTestId('asset-failure-overlay-img-123'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('asset-failure-reason-img-123'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
   });
 });

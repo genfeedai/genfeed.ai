@@ -3,6 +3,7 @@
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import {
+  ButtonSize,
   ButtonVariant,
   ComponentSize,
   categoryToString,
@@ -19,6 +20,7 @@ import {
   getIngredientModelLabel,
   getIngredientProviderLabel,
   getIngredientSizeLabel,
+  isFailedIngredient,
 } from '@genfeedai/utils/media/ingredient-ledger.util';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import {
@@ -35,8 +37,9 @@ import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import { Eye, Film, ImageIcon } from 'lucide-react';
+import { Eye, Film, ImageIcon, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -177,6 +180,7 @@ export default function IngredientsListContent({
   onReprompt,
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
+  const translateRetry = useTranslations('common.libraryRetry');
   const isAudioCategory =
     singularType === IngredientCategory.MUSIC ||
     singularType === IngredientCategory.VOICE;
@@ -319,24 +323,36 @@ export default function IngredientsListContent({
         header: 'Status',
         key: 'status',
         render: (ingredient: IIngredient) => (
-          <DropdownStatus
-            entity={ingredient}
-            onStatusChange={(_newStatus, updatedIngredient) => {
-              if (updatedIngredient) {
-                onSetIngredients((prev) =>
-                  prev.map((ing: IIngredient) =>
-                    ing.id === ingredient.id
-                      ? (updatedIngredient as IIngredient)
-                      : ing,
-                  ),
-                );
-              }
-            }}
-          />
+          <div className="flex items-center gap-1.5">
+            <DropdownStatus
+              entity={ingredient}
+              onStatusChange={(_newStatus, updatedIngredient) => {
+                if (updatedIngredient) {
+                  onSetIngredients((prev) =>
+                    prev.map((ing: IIngredient) =>
+                      ing.id === ingredient.id
+                        ? (updatedIngredient as IIngredient)
+                        : ing,
+                    ),
+                  );
+                }
+              }}
+            />
+            {isFailedIngredient(ingredient) && onReprompt && (
+              <Button
+                label={translateRetry('retry')}
+                ariaLabel={translateRetry('retryAriaLabel')}
+                icon={<RefreshCw className="size-3.5" />}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.XS}
+                onClick={() => onReprompt(ingredient)}
+              />
+            )}
+          </div>
         ),
       },
     ],
-    [onSetIngredients],
+    [onSetIngredients, onReprompt, translateRetry],
   );
 
   const handleMediaClick = useCallback(
