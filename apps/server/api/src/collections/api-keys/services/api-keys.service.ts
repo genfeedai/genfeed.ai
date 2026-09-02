@@ -298,6 +298,25 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
+   * Re-read a previously authenticated key by id. Telegram caches `apiKeyId`
+   * after `/connect` and must drop the chat identity when the row is revoked
+   * or expired — without storing the plaintext secret.
+   */
+  async findActiveById(id: string): Promise<ApiKeyDocument | null> {
+    const now = new Date();
+    const matches = await this.delegate.findMany({
+      take: 1,
+      where: {
+        id,
+        isRevoked: false,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
+
+    return (matches[0] as ApiKeyDocument | undefined) ?? null;
+  }
+
+  /**
    * Update last used timestamp and increment usage count
    */
   async updateLastUsed(keyId: string, ip?: string): Promise<void> {

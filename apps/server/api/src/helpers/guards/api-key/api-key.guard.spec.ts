@@ -133,6 +133,18 @@ describe('ApiKeyAuthGuard', () => {
       );
     });
 
+    it('rejects a revoked key because findByKey only returns active rows', async () => {
+      request = buildMockRequest({ ...request });
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(null);
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(
+        new UnauthorizedException('Invalid or expired API key'),
+      );
+      expect(apiKeysService.findByKey).toHaveBeenCalledWith('gf_test_abc123');
+      expect(apiKeysService.updateLastUsed).not.toHaveBeenCalled();
+    });
+
     it('should throw UnauthorizedException for IP not allowed', async () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);

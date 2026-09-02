@@ -8,10 +8,7 @@ import '@mcp/instrument';
 bootstrap({ app: 'mcp' });
 
 import process from 'node:process';
-import {
-  requestPresentsApiKeyInUrl,
-  URL_API_CREDENTIAL_REJECTION,
-} from '@libs/auth/url-credentials';
+import { rejectMcpRequestIfApiKeyInUrl } from '@libs/auth/url-credentials';
 import {
   getGenfeedCorsOptions,
   shouldAllowLocalCorsOrigins,
@@ -103,16 +100,9 @@ async function main(): Promise<void> {
     res: Response,
     next: NextFunction,
   ) => {
-    if (requestPresentsApiKeyInUrl(req)) {
-      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
-      res.status(401).json({
-        error: {
-          code: -32001,
-          message: URL_API_CREDENTIAL_REJECTION,
-        },
-        id: null,
-        jsonrpc: '2.0',
-      });
+    if (
+      rejectMcpRequestIfApiKeyInUrl(req, res, getMcpWwwAuthenticateHeader())
+    ) {
       return;
     }
 

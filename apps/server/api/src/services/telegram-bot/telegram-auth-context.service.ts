@@ -31,6 +31,57 @@ export class TelegramAuthContextService {
     return this.chatAuthContexts.get(chatId) ?? this.defaultAuthContext;
   }
 
+  /**
+   * Re-check a cached API-key chat identity against `findActiveById` so a
+   * revoked or expired key cannot keep running workflows until `/connect`.
+   */
+  async resolveLiveAuthContext(
+    chatId: number,
+  ): Promise<ChatAuthContext | null> {
+    const cached = this.resolveAuthContext(chatId);
+    if (!cached) {
+      return null;
+    }
+
+    if (cached.authType !== 'api_key' || !cached.apiKeyId) {
+      return cached;
+    }
+
+    if (!this.apiKeysService) {
+      this.dropApiKeyContext(chatId, cached.apiKeyId);
+      return null;
+    }
+
+    const live = await this.apiKeysService.findActiveById(cached.apiKeyId);
+    if (!live) {
+      this.dropApiKeyContext(chatId, cached.apiKeyId);
+      return null;
+    }
+
+    const next: ChatAuthContext = {
+      apiKeyId: live.id,
+      authType: 'api_key',
+      organizationId: live.organizationId,
+      scopes: live.scopes ?? [],
+      userId: live.userId,
+    };
+
+    if (this.chatAuthContexts.has(chatId)) {
+      this.chatAuthContexts.set(chatId, next);
+    } else {
+      this.defaultAuthContext = next;
+    }
+
+    return next;
+  }
+
+  private dropApiKeyContext(chatId: number, apiKeyId: string): void {
+    this.chatAuthContexts.delete(chatId);
+    if (this.defaultAuthContext?.apiKeyId === apiKeyId) {
+      this.defaultAuthContext = null;
+    }
+  }
+
   /** Attach a verified API-key identity to a private Telegram chat. */
   async handleConnect(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;

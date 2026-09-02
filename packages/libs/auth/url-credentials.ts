@@ -16,6 +16,15 @@ const CREDENTIAL_QUERY_KEYS = new Set(['access_token', 'api_key', 'apikey']);
 export const URL_API_CREDENTIAL_REJECTION =
   'API credentials must be sent in the Authorization header';
 
+export const MCP_URL_API_KEY_JSONRPC = {
+  error: {
+    code: -32001,
+    message: URL_API_CREDENTIAL_REJECTION,
+  },
+  id: null,
+  jsonrpc: '2.0',
+} as const;
+
 export interface UrlCredentialRequest {
   originalUrl?: string;
   params?: Record<string, unknown>;
@@ -26,6 +35,31 @@ export interface UrlCredentialRequest {
 
 export function isUserIssuedApiKeyMaterial(value: string): boolean {
   return API_KEY_VALUE_PATTERN.test(value.trim());
+}
+
+export interface McpUrlCredentialResponse {
+  json: (body: unknown) => unknown;
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => { json: (body: unknown) => unknown };
+}
+
+/**
+ * Streamable HTTP `/mcp` and other JSON-RPC MCP entry points share this
+ * rejection so a `gf_` key in the URL never reaches authenticateRequest.
+ * Returns true when the response has already been written.
+ */
+export function rejectMcpRequestIfApiKeyInUrl(
+  request: UrlCredentialRequest,
+  response: McpUrlCredentialResponse,
+  wwwAuthenticate: string,
+): boolean {
+  if (!requestPresentsApiKeyInUrl(request)) {
+    return false;
+  }
+
+  response.setHeader('WWW-Authenticate', wwwAuthenticate);
+  response.status(401).json(MCP_URL_API_KEY_JSONRPC);
+  return true;
 }
 
 export function requestPresentsApiKeyInUrl(

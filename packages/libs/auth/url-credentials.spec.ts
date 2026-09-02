@@ -1,6 +1,10 @@
+import { describe, expect, it, vi } from 'vitest';
 import {
   isUserIssuedApiKeyMaterial,
+  MCP_URL_API_KEY_JSONRPC,
+  rejectMcpRequestIfApiKeyInUrl,
   requestPresentsApiKeyInUrl,
+  URL_API_CREDENTIAL_REJECTION,
 } from './url-credentials';
 
 describe('url-credentials', () => {
@@ -80,6 +84,56 @@ describe('url-credentials', () => {
       expect(requestPresentsApiKeyInUrl({ path: '/v1/posts', query: {} })).toBe(
         false,
       );
+    });
+  });
+
+  describe('rejectMcpRequestIfApiKeyInUrl', () => {
+    function createResponse(): {
+      json: ReturnType<typeof vi.fn>;
+      setHeader: ReturnType<typeof vi.fn>;
+      status: ReturnType<typeof vi.fn>;
+    } {
+      const json = vi.fn();
+      const setHeader = vi.fn();
+      const status = vi.fn().mockReturnValue({ json });
+      return { json, setHeader, status };
+    }
+
+    it('writes the Streamable HTTP JSON-RPC 401 when a gf_ key is in the query', () => {
+      const response = createResponse();
+
+      expect(
+        rejectMcpRequestIfApiKeyInUrl(
+          { path: '/mcp', query: { api_key: 'gf_live_abc' } },
+          response,
+          'Bearer realm="mcp"',
+        ),
+      ).toBe(true);
+
+      expect(response.setHeader).toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        'Bearer realm="mcp"',
+      );
+      expect(response.status).toHaveBeenCalledWith(401);
+      expect(response.json).toHaveBeenCalledWith(MCP_URL_API_KEY_JSONRPC);
+      expect(MCP_URL_API_KEY_JSONRPC.error.message).toBe(
+        URL_API_CREDENTIAL_REJECTION,
+      );
+    });
+
+    it('does not write a response when the key is only in Authorization', () => {
+      const response = createResponse();
+
+      expect(
+        rejectMcpRequestIfApiKeyInUrl(
+          { path: '/mcp', query: {} },
+          response,
+          'Bearer realm="mcp"',
+        ),
+      ).toBe(false);
+
+      expect(response.setHeader).not.toHaveBeenCalled();
+      expect(response.status).not.toHaveBeenCalled();
     });
   });
 });
