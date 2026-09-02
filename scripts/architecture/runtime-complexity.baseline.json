@@ -186,7 +186,7 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 219,
+    "actual": 218,
     "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-batch.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
@@ -216,7 +216,7 @@
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 455,
+    "actual": 454,
     "file": "apps/server/server/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
@@ -246,7 +246,7 @@
     "symbol": "AgentMediaAssetGenerationService.generateImage"
   },
   {
-    "actual": 1330,
+    "actual": 1333,
     "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/server/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"
@@ -286,6 +286,12 @@
     "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"
+  },
+  {
+    "actual": 1087,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts"
   },
   {
     "actual": 253,
