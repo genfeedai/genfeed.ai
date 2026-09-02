@@ -2089,14 +2089,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.controller.spec.ts",
-      "fingerprint": "fa30726e3761ce5f6034",
-      "message": "Argument of type '{ content: string; source: string; threadId: string; }' is not assignable to parameter of type 'AgentChatBodyDto'.   Types of property 'source' are incompatible.     Type 'string' is not assignable to type '\"agent\" | \"proactive\" | \"onboarding\" | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 1,
       "file": "apps/server/api/src/services/content-engine/content-engine.controller.spec.ts",
