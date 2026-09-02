@@ -19,6 +19,7 @@ import { MAX_EXECUTION_NODES } from '@server/collections/workflows/services/work
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 import {
   type WorkflowNodeClaimLease,
+  WorkflowNodeClaimLeaseLostError,
   WorkflowNodeClaimService,
 } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
@@ -488,18 +489,19 @@ export class WorkflowNodeGraphRunnerService {
     claimed: ClaimedGraphNode,
   ): Promise<GraphNodeStep> {
     try {
-      const executeNode = () =>
+      const executeNode = (signal?: AbortSignal) =>
         this.runtimeService.executeSingleNode(
           node,
           inputs,
           state.workflow,
           state.executionId,
+          signal,
         );
       const initialResult =
         this.nodeClaimService && claimed.durableLease
           ? await this.nodeClaimService.runWithLeaseHeartbeat(
               claimed.durableLease,
-              executeNode,
+              (signal) => executeNode(signal),
             )
           : await executeNode();
       const settled = await this.settleNodeContinuation(
@@ -727,11 +729,23 @@ export class WorkflowNodeGraphRunnerService {
     error: unknown,
   ): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // When the incoming error already IS a lease-lost signal (raised by
+    // `runWithLeaseHeartbeat` or by an earlier `complete()` call in this same
+    // pass), this worker no longer owns the claim row: another worker's
+    // `tryClaim` already reclaimed it. Writing to it again with our stale
+    // `leaseOwnerId` would match 0 rows and throw a second time, escaping
+    // before the node is ever recorded as failed (#4307) — skip it and let
+    // the new owner settle that row's terminal state instead.
+    const isLeaseLost = error instanceof WorkflowNodeClaimLeaseLostError;
     completeNodeClaim(this.nodeClaims, claimed.claim.key, {
       error: errorMessage,
       status: 'failed',
     });
-    if (this.nodeClaimService && state.workflow.organizationId) {
+    if (
+      !isLeaseLost &&
+      this.nodeClaimService &&
+      state.workflow.organizationId
+    ) {
       await this.nodeClaimService.complete({
         error: errorMessage,
         executionId: state.executionId,

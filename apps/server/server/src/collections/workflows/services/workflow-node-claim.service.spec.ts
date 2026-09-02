@@ -489,6 +489,80 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     }
   });
 
+  it('aborts the operation and rejects once repeated heartbeat failures exceed the lease window (#4307)', async () => {
+    vi.useFakeTimers();
+    try {
+      workflowNodeClaim.updateMany.mockRejectedValue(new Error('db blip'));
+      let finishOperation!: () => void;
+      let capturedSignal: AbortSignal | undefined;
+      const operation = new Promise<void>((resolve) => {
+        finishOperation = resolve;
+      });
+      const running = service.runWithLeaseHeartbeat(
+        {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+        },
+        (signal) => {
+          capturedSignal = signal;
+          return operation;
+        },
+      );
+
+      // Three heartbeat ticks (10 min each) exhaust the 30-minute lease
+      // window with every renewal failing.
+      await vi.advanceTimersByTimeAsync(WORKFLOW_NODE_CLAIM_LEASE_MS);
+
+      expect(capturedSignal?.aborted).toBe(true);
+      finishOperation();
+
+      await expect(running).rejects.toThrow(
+        'Workflow node claim lease lost for exec-1/publish',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the lease when a single heartbeat failure is followed by a successful renewal before expiry (#4307)', async () => {
+    vi.useFakeTimers();
+    try {
+      workflowNodeClaim.updateMany
+        .mockRejectedValueOnce(new Error('db blip'))
+        .mockResolvedValue({ count: 1 });
+      let finishOperation!: (value: string) => void;
+      let capturedSignal: AbortSignal | undefined;
+      const operation = new Promise<string>((resolve) => {
+        finishOperation = resolve;
+      });
+      const running = service.runWithLeaseHeartbeat(
+        {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+        },
+        (signal) => {
+          capturedSignal = signal;
+          return operation;
+        },
+      );
+
+      // First heartbeat fails transiently, well inside the lease window.
+      await vi.advanceTimersByTimeAsync(WORKFLOW_NODE_CLAIM_HEARTBEAT_MS);
+      // Second heartbeat succeeds and resets the lease clock.
+      await vi.advanceTimersByTimeAsync(WORKFLOW_NODE_CLAIM_HEARTBEAT_MS);
+
+      expect(capturedSignal?.aborted).toBe(false);
+      finishOperation('done');
+      await expect(running).resolves.toBe('done');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('completes a claim with terminal status and output', async () => {
     workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
 
