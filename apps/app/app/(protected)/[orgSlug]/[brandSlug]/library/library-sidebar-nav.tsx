@@ -46,7 +46,6 @@ import {
   getLibraryFolderOwnerId,
   getLibraryFolderScope,
 } from './library-folder-scope';
-import { formatStorageBytes } from './library-storage.util';
 
 /**
  * The folder axis is orthogonal to type and shelf, so every destination that
@@ -280,17 +279,6 @@ export default function LibrarySidebarNav() {
             </ul>
           </div>
         </div>
-
-        {summary ? (
-          <div className="px-4 py-3">
-            <div className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              {translate('storageLabel')}
-            </div>
-            <div className="mt-0.5 text-sm font-medium tabular-nums text-foreground/72">
-              {formatStorageBytes(summary.storageBytes)}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <LazyModalFolder

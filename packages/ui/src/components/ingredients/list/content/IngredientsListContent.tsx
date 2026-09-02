@@ -237,6 +237,17 @@ export default function IngredientsListContent({
     [onOpenIngredientModal, onOpenLightbox, scope],
   );
 
+  const handleToggleSelection = useCallback(
+    (ingredient: IIngredient) => {
+      onSelectionChange(
+        selectedIngredientIds.includes(ingredient.id)
+          ? selectedIngredientIds.filter((id) => id !== ingredient.id)
+          : [...selectedIngredientIds, ingredient.id],
+      );
+    },
+    [onSelectionChange, selectedIngredientIds],
+  );
+
   const handleViewIngredient = useCallback(
     (ingredient: IIngredient) => {
       if (singularType === IngredientCategory.AVATAR) {
@@ -335,6 +346,7 @@ export default function IngredientsListContent({
               }
               onPublishIngredient={onPublishIngredient}
               onClickIngredient={handleMediaClick}
+              onToggleSelection={handleToggleSelection}
               onScopeChange={onScopeChange}
               onConvertToVideo={onConvertToVideo}
               onCopyPrompt={onCopyPrompt}
@@ -380,6 +392,7 @@ export default function IngredientsListContent({
     filteredIngredients,
     formatFilter,
     handleMediaClick,
+    handleToggleSelection,
     isActionsEnabled,
     isDragEnabled,
     isAudioCategory,

@@ -600,8 +600,7 @@
     },
     "otherAssets": "Other assets",
     "sidebar": {
-      "shelvesGroup": "Shelves",
-      "storageLabel": "Storage"
+      "shelvesGroup": "Shelves"
     }
   },
   "onboarding": {

@@ -76,6 +76,8 @@ export interface IngredientsMediaGridProps {
   onRefresh: () => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onClickIngredient: (ingredient: IIngredient) => void;
+  /** Toggle this asset in the surrounding surface's selection set. */
+  onToggleSelection?: (ingredient: IIngredient) => void;
   isPortraiting: boolean;
   isGeneratingCaptions: boolean;
   isMirroring?: boolean;

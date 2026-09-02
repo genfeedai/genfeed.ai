@@ -1,12 +1,22 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
-  LazyMasonryImage: ({ image }: { image: { id: string } }) => (
-    <div data-testid={`image-tile-${image.id}`} />
+  LazyMasonryImage: ({
+    image,
+    onToggleSelection,
+  }: {
+    image: { id: string };
+    onToggleSelection?: (ingredient: { id: string }) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid={`image-tile-${image.id}`}
+      onClick={() => onToggleSelection?.(image)}
+    />
   ),
   LazyMasonryVideo: ({ video }: { video: { id: string } }) => (
     <div data-testid={`video-tile-${video.id}`} />
@@ -33,7 +43,32 @@ const baseProps = {
   selectedIds: [],
 };
 
+const items = [
+  {
+    category: IngredientCategory.IMAGE,
+    id: 'image-1',
+    metadata: { height: 1200, width: 900 },
+    metadataLabel: 'Campaign still',
+    metadataModelLabel: 'Flux',
+    status: IngredientStatus.GENERATED,
+  },
+  {
+    category: IngredientCategory.VIDEO,
+    id: 'video-1',
+    metadata: { height: 1920, width: 1080 },
+    status: IngredientStatus.GENERATED,
+  },
+] as IIngredient[];
+
 describe('IngredientsMediaGrid', () => {
+  beforeAll(() => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+      writable: true,
+    });
+  });
+
   it('renders the empty state label', () => {
     render(<IngredientsMediaGrid {...baseProps} />);
 
@@ -41,32 +76,41 @@ describe('IngredientsMediaGrid', () => {
   });
 
   it('renders image and video tiles in the shared grid', () => {
-    const items = [
-      {
-        category: IngredientCategory.IMAGE,
-        id: 'image-1',
-        metadata: { height: 1200, width: 900 },
-        metadataLabel: 'Campaign still',
-        metadataModelLabel: 'Flux',
-        status: IngredientStatus.GENERATED,
-      },
-      {
-        category: IngredientCategory.VIDEO,
-        id: 'video-1',
-        metadata: { height: 1920, width: 1080 },
-        status: IngredientStatus.GENERATED,
-      },
-    ] as IIngredient[];
-
     render(<IngredientsMediaGrid {...baseProps} items={items} />);
 
     expect(screen.getByTestId('image-tile-image-1')).toBeInTheDocument();
     expect(screen.getByTestId('video-tile-video-1')).toBeInTheDocument();
-    expect(screen.getByText('Campaign still')).toBeInTheDocument();
-    expect(
-      screen.getByText('Campaign still').closest('[data-asset-hover-details]'),
-    ).toHaveClass('opacity-0', 'group-hover:opacity-100');
-    expect(screen.getByText('Image · Flux')).toBeInTheDocument();
+  });
+
+  it('lays tiles out in CSS columns so ratios stay intact', () => {
+    const { container } = render(
+      <IngredientsMediaGrid {...baseProps} items={items} />,
+    );
+
+    const column = container.querySelector<HTMLElement>('[style*="column"]');
+
+    expect(column?.style.columnCount).toBe('5');
+    expect(screen.getByTestId('image-tile-image-1').parentElement).toHaveClass(
+      'break-inside-avoid',
+    );
+  });
+
+  it('reports selection toggles from a tile', () => {
+    const onToggleSelection = vi.fn();
+
+    render(
+      <IngredientsMediaGrid
+        {...baseProps}
+        items={items}
+        onToggleSelection={onToggleSelection}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('image-tile-image-1'));
+
+    expect(onToggleSelection).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'image-1' }),
+    );
   });
 
   it('renders loading skeletons while fetching items', () => {

@@ -39,10 +39,6 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/masonry/shared/MasonryBadgeOverlay', () => ({
-  default: () => <div data-testid="badge-overlay" />,
-}));
-
 vi.mock('@ui/masonry/shared/MasonryBrandLogo', () => ({
   default: () => <div data-testid="brand-logo" />,
 }));

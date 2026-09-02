@@ -8,9 +8,9 @@ import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
-import MasonryBadgeOverlay from '@ui/masonry/shared/MasonryBadgeOverlay';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import MasonrySelectionToggle from '@ui/masonry/shared/MasonrySelectionToggle';
 import {
   createDownloadHandler,
   useMasonryHover,
@@ -32,10 +32,10 @@ export default function MasonryImage({
   isContainerHovered = true,
   availableTags,
   isLoadingTags,
-  evaluationScore,
   onShareIngredient,
   onVoteIngredient,
   onClickIngredient,
+  onToggleSelection,
   onDeleteIngredient,
   onPublishIngredient,
   onToggleFavorite,
@@ -155,9 +155,15 @@ export default function MasonryImage({
   const metadata = image?.metadata as IMetadata;
   const currentIntrinsicImage =
     intrinsicImage?.url === currentImageUrl ? intrinsicImage : null;
-  const aspectRatioStyle = currentIntrinsicImage
+  const resolvedAspectRatioStyle = currentIntrinsicImage
     ? getAspectRatioStyle(isSquare, currentIntrinsicImage)
     : getAspectRatioStyle(isSquare, metadata);
+  // An unsized tile collapses inside a masonry column and letterboxes the
+  // image against `object-contain`. Reserve a portrait slot until the natural
+  // dimensions arrive, then the real ratio takes over and fills exactly.
+  const aspectRatioStyle =
+    resolvedAspectRatioStyle ??
+    (isSquare ? undefined : { aspectRatio: '4 / 5' });
   const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
   const useDragDrop = isDragEnabled && onUpdateParent;
@@ -215,18 +221,19 @@ export default function MasonryImage({
       />
 
       {shouldShowBadges && (
-        <>
-          <MasonryBadgeOverlay
-            ingredient={image}
-            evaluationScore={evaluationScore}
-            isPublicGallery={isPublicGallery}
-          />
-          <MasonryBrandLogo
-            ingredient={image}
-            isPublicGallery={isPublicGallery}
-            isPublicProfile={isPublicProfile}
-          />
-        </>
+        <MasonryBrandLogo
+          ingredient={image}
+          isPublicGallery={isPublicGallery}
+          isPublicProfile={isPublicProfile}
+        />
+      )}
+
+      {isActionsEnabled && onToggleSelection && (
+        <MasonrySelectionToggle
+          ingredient={image}
+          isSelected={isSelected}
+          onToggleSelection={onToggleSelection}
+        />
       )}
 
       <MasonryImageActionsBar
