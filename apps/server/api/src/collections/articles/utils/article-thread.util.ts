@@ -82,8 +82,9 @@ export function buildTwitterThreadTweets(params: {
   articleUrl?: string;
 }): TwitterThreadResponse['tweets'] {
   const content = params.content
-    .replace(/<[^>]+>/g, '') // Strip HTML tags
-    .replace(/\n+/g, '\n') // Normalize newlines
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '')
+    .replace(/\n+/g, '\n')
     .trim();
 
   // Split by double newlines (paragraphs) or by sentences if no paragraphs

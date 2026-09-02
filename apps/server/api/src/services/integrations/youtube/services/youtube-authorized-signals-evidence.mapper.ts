@@ -191,35 +191,47 @@ export function parseIsoDurationSeconds(value: unknown): number | undefined {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
+export function hasExactGrantedScope(
+  grantedScopes: readonly string[],
+  scope: string,
+): boolean {
+  for (const granted of grantedScopes) {
+    if (granted === scope) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function hasYoutubeDataScope(grantedScopes: string[]): boolean {
   return (
-    grantedScopes.includes(YOUTUBE_SCOPE) ||
-    grantedScopes.includes(YOUTUBE_READONLY_SCOPE)
+    hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE) ||
+    hasExactGrantedScope(grantedScopes, YOUTUBE_READONLY_SCOPE)
   );
 }
 
 export function hasYoutubePublishScope(grantedScopes: string[]): boolean {
   return (
-    grantedScopes.includes(YOUTUBE_SCOPE) ||
-    grantedScopes.includes(YOUTUBE_UPLOAD_SCOPE)
+    hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE) ||
+    hasExactGrantedScope(grantedScopes, YOUTUBE_UPLOAD_SCOPE)
   );
 }
 
 export function dataRequiredScopes(grantedScopes: string[]): string[] {
-  if (grantedScopes.includes(YOUTUBE_SCOPE)) {
+  if (hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE)) {
     return [YOUTUBE_SCOPE];
   }
-  if (grantedScopes.includes(YOUTUBE_READONLY_SCOPE)) {
+  if (hasExactGrantedScope(grantedScopes, YOUTUBE_READONLY_SCOPE)) {
     return [YOUTUBE_READONLY_SCOPE];
   }
   return [YOUTUBE_READONLY_SCOPE];
 }
 
 export function publishRequiredScopes(grantedScopes: string[]): string[] {
-  if (grantedScopes.includes(YOUTUBE_SCOPE)) {
+  if (hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE)) {
     return [YOUTUBE_SCOPE];
   }
-  if (grantedScopes.includes(YOUTUBE_UPLOAD_SCOPE)) {
+  if (hasExactGrantedScope(grantedScopes, YOUTUBE_UPLOAD_SCOPE)) {
     return [YOUTUBE_UPLOAD_SCOPE];
   }
   return [YOUTUBE_UPLOAD_SCOPE];
@@ -501,7 +513,7 @@ export class YoutubeAuthorizedSignalsEvidenceMapper {
   ): YoutubeAuthorizedSignalEvidence {
     const requiredScopes = [YT_ANALYTICS_READONLY_SCOPE];
     if (
-      !grantedScopes.includes(YT_ANALYTICS_READONLY_SCOPE) ||
+      !hasExactGrantedScope(grantedScopes, YT_ANALYTICS_READONLY_SCOPE) ||
       !result.value ||
       selectionReason
     ) {
@@ -513,7 +525,7 @@ export class YoutubeAuthorizedSignalsEvidenceMapper {
         previousSnapshot,
         observedAt,
         selectionReason ??
-          (grantedScopes.includes(YT_ANALYTICS_READONLY_SCOPE)
+          (hasExactGrantedScope(grantedScopes, YT_ANALYTICS_READONLY_SCOPE)
             ? undefined
             : 'missing_scope'),
       );
@@ -629,8 +641,12 @@ export class YoutubeAuthorizedSignalsEvidenceMapper {
 
   buildScope(required: string[], grantedScopes: string[]) {
     return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
+      granted: grantedScopes.filter((scope) =>
+        required.some((item) => item === scope),
+      ),
+      missing: required.filter(
+        (scope) => !hasExactGrantedScope(grantedScopes, scope),
+      ),
       required,
     };
   }

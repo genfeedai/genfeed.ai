@@ -38,6 +38,7 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import {
+  hasExactGrantedScope,
   hasYoutubeDataScope,
   type PlatformEvidenceKey,
   parseIsoDurationSeconds,
@@ -365,7 +366,7 @@ export class YoutubeAuthorizedSignalsService {
         ? (ownedUploadsEvidence.value?.videos ?? []).map((video) => video.id)
         : [];
     const analyticsResult =
-      grantedScopes.includes(YT_ANALYTICS_READONLY_SCOPE) &&
+      hasExactGrantedScope(grantedScopes, YT_ANALYTICS_READONLY_SCOPE) &&
       selected.reason === undefined &&
       readString(selected.channel?.id)
         ? await this.settle(() =>

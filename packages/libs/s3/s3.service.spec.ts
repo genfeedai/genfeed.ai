@@ -100,6 +100,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.download).toHaveBeenCalledWith(
         'images/photo.jpg',
         '/tmp/photo.jpg',
+        '/tmp',
       );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });

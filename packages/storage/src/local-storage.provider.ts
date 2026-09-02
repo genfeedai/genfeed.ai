@@ -81,10 +81,19 @@ export class LocalStorageProvider implements StorageProvider {
     return filePath;
   }
 
-  async download(filePath: string, localPath: string): Promise<void> {
+  async download(
+    filePath: string,
+    localPath: string,
+    localRoot: string,
+  ): Promise<void> {
     const fullPath = await this.resolvePath(filePath);
-    await fs.mkdir(path.dirname(localPath), { recursive: true });
-    await fs.copyFile(fullPath, localPath);
+    const containedLocalPath = await resolveContainedPathWithoutSymlinks(
+      localRoot,
+      localPath,
+      (message) => new Error(message),
+    );
+    await fs.mkdir(path.dirname(containedLocalPath), { recursive: true });
+    await fs.copyFile(fullPath, containedLocalPath);
   }
 
   getUrl(filePath: string): string {

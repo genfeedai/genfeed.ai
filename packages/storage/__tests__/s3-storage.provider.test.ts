@@ -253,7 +253,7 @@ describe('S3StorageProvider', () => {
       const provider = new S3StorageProvider({ bucket: 'b' });
       const target = path.join(scratchDir, 'nested/dir/out.png');
 
-      await provider.download('images/out.png', target);
+      await provider.download('images/out.png', target, scratchDir);
 
       const [command] = mockSend.mock.calls[0] as [
         { params: Record<string, unknown> },
@@ -265,12 +265,25 @@ describe('S3StorageProvider', () => {
       expect(await fs.readFile(target, 'utf8')).toBe('object-bytes');
     });
 
+    it('rejects a destination that escapes the caller-owned root', async () => {
+      const provider = new S3StorageProvider({ bucket: 'b' });
+
+      await expect(
+        provider.download('images/out.png', '/etc/passwd', scratchDir),
+      ).rejects.toThrow(/must stay within/);
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
     it('throws on empty response body', async () => {
       mockSend.mockResolvedValue({ Body: undefined });
       const provider = new S3StorageProvider({ bucket: 'b' });
 
       await expect(
-        provider.download('images/out.png', path.join(scratchDir, 'x.png')),
+        provider.download(
+          'images/out.png',
+          path.join(scratchDir, 'x.png'),
+          scratchDir,
+        ),
       ).rejects.toThrow('Empty response body');
     });
   });

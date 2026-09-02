@@ -104,9 +104,9 @@ describe('ThreadsCallbackService', () => {
       createSignedRequest('provider-user'),
     );
 
-    expect(service.getDataDeletionStatus(response.confirmation_code)).toContain(
-      'Threads data deletion completed at',
-    );
+    const status = service.getDataDeletionStatus(response.confirmation_code);
+    expect(status).toContain('Threads data deletion completed at');
+    expect(status).not.toContain(response.confirmation_code);
     expect(() => service.getDataDeletionStatus('forged')).toThrow(
       NotFoundException,
     );

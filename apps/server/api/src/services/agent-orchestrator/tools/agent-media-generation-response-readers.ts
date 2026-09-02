@@ -1,8 +1,6 @@
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import type { JsonApiResult } from '@genfeedai/interfaces';
 
-const AWS_S3_PUBLIC_HOST_PATTERN =
-  /(?:^|\.)s3(?:[.-][a-z0-9-]+)*\.amazonaws\.com(?:\.cn)?$/i;
 const LOCAL_ASSET_PATH_PREFIX = '/local/';
 const PRIVATE_ASSET_QUERY_PARAMETER_PATTERN =
   /^(?:awsaccesskeyid|signature|x-amz-(?:credential|security-token|signature))$/i;
@@ -108,6 +106,32 @@ export function readUsableCdnAssetUrl(
     : undefined;
 }
 
+export function isAwsS3PublicHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  const chinaSuffix = '.amazonaws.com.cn';
+  const commercialSuffix = '.amazonaws.com';
+  const suffix = host.endsWith(chinaSuffix)
+    ? chinaSuffix
+    : host.endsWith(commercialSuffix)
+      ? commercialSuffix
+      : undefined;
+  if (!suffix) {
+    return false;
+  }
+
+  const rest = host.slice(0, -suffix.length);
+  if (rest.length === 0) {
+    return false;
+  }
+
+  for (const label of rest.split('.')) {
+    if (label === 's3' || (label.startsWith('s3-') && label.length > 3)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isUsableAssetUrl(
   candidate: string,
   ingredientsEndpoint: string,
@@ -132,7 +156,7 @@ function isUsableAssetUrl(
       assetUrl.protocol === 'https:' ||
       (assetUrl.protocol === 'http:' && isConfiguredOrigin);
     const isTrustedStorageOrigin =
-      isConfiguredOrigin || AWS_S3_PUBLIC_HOST_PATTERN.test(assetUrl.hostname);
+      isConfiguredOrigin || isAwsS3PublicHost(assetUrl.hostname);
     const hasAssetPath = assetUrl.pathname !== '/';
     const hasNoEmbeddedCredentials = !assetUrl.username && !assetUrl.password;
     const hasNoPrivateQueryParameters = Array.from(

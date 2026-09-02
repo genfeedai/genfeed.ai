@@ -66,12 +66,20 @@ function getFileType(key: string): string {
   return 'file';
 }
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function normalizeCdnUrl(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) {
     return undefined;
   }
-  return trimmed.replace(/\/+$/, '');
+  return stripTrailingSlashes(trimmed);
 }
 
 export class S3StorageProvider implements StorageProvider {
@@ -132,7 +140,10 @@ export class S3StorageProvider implements StorageProvider {
     );
     const fileStats = await stat(containedLocalPath);
     const resolvedContentType = contentType ?? mimeFromPath(containedLocalPath);
-    const fileStream = createReadStream(containedLocalPath);
+    const fileStream = createReadStream(
+      /* lgtm[js/path-injection] contained via resolveContainedPathWithoutSymlinks */
+      containedLocalPath,
+    );
 
     try {
       const upload = new Upload({
@@ -152,8 +163,17 @@ export class S3StorageProvider implements StorageProvider {
     }
   }
 
-  async download(filePath: string, localPath: string): Promise<void> {
+  async download(
+    filePath: string,
+    localPath: string,
+    localRoot: string,
+  ): Promise<void> {
     const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
+    const containedLocalPath = await resolveContainedPathWithoutSymlinks(
+      localRoot,
+      localPath,
+      createStorageError,
+    );
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: safeFilePath,
@@ -166,8 +186,14 @@ export class S3StorageProvider implements StorageProvider {
       );
     }
 
-    await mkdir(path.dirname(localPath), { recursive: true });
-    await pipeline(response.Body as Readable, createWriteStream(localPath));
+    await mkdir(path.dirname(containedLocalPath), { recursive: true });
+    await pipeline(
+      response.Body as Readable,
+      createWriteStream(
+        /* lgtm[js/path-injection] contained via resolveContainedPathWithoutSymlinks */
+        containedLocalPath,
+      ),
+    );
   }
 
   getUrl(filePath: string): string {

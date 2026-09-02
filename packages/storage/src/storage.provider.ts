@@ -56,8 +56,8 @@ export interface StorageProvider {
     localRoot: string,
     contentType?: string,
   ): Promise<string>;
-  /** Download a stored object to a local filesystem path. */
-  download(path: string, localPath: string): Promise<void>;
+  /** Download a stored object to a path contained beneath the caller-owned local root. */
+  download(path: string, localPath: string, localRoot: string): Promise<void>;
   getUrl(path: string): string;
   delete(path: string): Promise<void>;
   list(prefix: string, options?: ListOptions): Promise<FileEntry[]>;

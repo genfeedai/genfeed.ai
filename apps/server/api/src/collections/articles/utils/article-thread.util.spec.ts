@@ -55,6 +55,17 @@ describe('article-thread.util', () => {
       expect(tweets[1].content).toBe('Hi there');
     });
 
+    it('drops leftover angle brackets after incomplete HTML tags', () => {
+      const tweets = buildTwitterThreadTweets({
+        content: '<p>Hi<script there',
+        label: 'Title',
+        summary: '',
+      });
+
+      expect(tweets[1].content).toBe('Hiscript there');
+      expect(tweets[1].content).not.toContain('<');
+    });
+
     it('splits a paragraph longer than the limit into sentence-sized tweets', () => {
       const sentenceA = `${'a'.repeat(199)}.`; // 200 chars, ends with a period
       const sentenceB = `${'b'.repeat(199)}.`; // 200 chars

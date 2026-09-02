@@ -75,14 +75,18 @@ describe('LocalStorageProvider', () => {
       await provider.upload(Buffer.from('stored'), 'datasets/d1/img.png');
       const target = path.join(scratchDir, 'nested/dir/img.png');
 
-      await provider.download('datasets/d1/img.png', target);
+      await provider.download('datasets/d1/img.png', target, scratchDir);
 
       expect(await fs.readFile(target, 'utf8')).toBe('stored');
     });
 
     it('throws when the stored file does not exist', async () => {
       await expect(
-        provider.download('missing/file.png', path.join(scratchDir, 'x.png')),
+        provider.download(
+          'missing/file.png',
+          path.join(scratchDir, 'x.png'),
+          scratchDir,
+        ),
       ).rejects.toThrow();
     });
   });

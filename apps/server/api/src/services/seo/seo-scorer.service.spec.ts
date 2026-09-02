@@ -13,7 +13,11 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 import { SeoScorerService } from './seo-scorer.service';
 import type { SeoScorableContent } from './seo-scorer.types';
-import { assembleScorecard, buildSeoChecks } from './seo-scorer.util';
+import {
+  assembleScorecard,
+  buildSeoChecks,
+  parseSeoHtml,
+} from './seo-scorer.util';
 import {
   computeKeywordDensity,
   countWords,
@@ -30,6 +34,28 @@ function check(checks: ReturnType<typeof buildSeoChecks>, id: string) {
 }
 
 // ─── Pure text helpers ─────────────────────────────────────────────────────
+
+describe('parseSeoHtml href schemes', () => {
+  it('marks javascript, data, and vbscript hrefs as malformed', () => {
+    const parsed = parseSeoHtml(`
+      <a href="https://example.com/ok">ok</a>
+      <a href="javascript:alert(1)">js</a>
+      <a href="DATA:text/html,hi">data</a>
+      <a href="vbscript:msgbox(1)">vb</a>
+      <a href="#section">fragment</a>
+    `);
+
+    const byText = Object.fromEntries(
+      parsed.links.map((link) => [link.text, link]),
+    );
+    expect(byText.ok?.isWellFormed).toBe(true);
+    expect(byText.js?.isWellFormed).toBe(false);
+    expect(byText.data?.isWellFormed).toBe(false);
+    expect(byText.vb?.isWellFormed).toBe(false);
+    expect(byText.fragment?.isWellFormed).toBe(true);
+    expect(byText.fragment?.isInternal).toBe(false);
+  });
+});
 
 describe('seo-scorer.util text helpers', () => {
   it('countWords counts whitespace-separated tokens', () => {
