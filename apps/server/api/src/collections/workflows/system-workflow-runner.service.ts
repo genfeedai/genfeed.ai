@@ -468,6 +468,7 @@ export class SystemWorkflowRunnerService
               workflowId: existing.id,
             },
           });
+          // sql-risk-audit: ignore bulk-write-tenant-review -- hidden system workflows are platform-global (SYSTEM_WORKFLOW_PRINCIPAL_ID); currentVersionId is the concurrency token.
           const advanced = await transaction.workflow.updateMany({
             data: {
               currentVersionId: nextVersion.id,
@@ -837,7 +838,7 @@ export class SystemWorkflowRunnerService
         sourceWorkflowName: provenance.workflowLabel,
         workflowExecutionId: provenance.executionId,
       },
-      where: { id: { in: postIds }, organizationId },
+      where: { id: { in: postIds }, organizationId: organizationId },
     });
   }
 

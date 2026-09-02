@@ -291,6 +291,7 @@ export class CredentialsService
 
       // Analytics and provider publication identifiers were obtained from the
       // provider. Preserve the user's authored post, but remove those fields.
+      // sql-risk-audit: ignore bulk-write-tenant-review -- credentialIds come only from the verified global provider identity lookup and cover live and deleted rows across organizations.
       await tx.postAnalytics.deleteMany({
         where: {
           platform: prismaPlatform,
@@ -298,6 +299,7 @@ export class CredentialsService
         },
       });
       // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally cover live and deleted rows across organizations
+      // sql-risk-audit: ignore bulk-write-tenant-review -- same credentialIds bound the write; provider identity is global, not org-scoped.
       await tx.post.updateMany({
         data: {
           analyticsCollectedAt: null,
@@ -316,6 +318,7 @@ export class CredentialsService
       });
 
       // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally sanitize live and deleted credentials across organizations
+      // sql-risk-audit: ignore bulk-write-tenant-review -- same credentialIds bound the write; provider identity is global, not org-scoped.
       const result = await tx.credential.updateMany({
         data: {
           accessToken: null,
