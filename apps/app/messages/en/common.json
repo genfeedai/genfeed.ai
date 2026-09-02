@@ -1022,5 +1022,11 @@
       "targetResolutionLabel": "Target resolution",
       "upscaleModelLabel": "Upscale model"
     }
+  },
+  "previews": {
+    "approximatePreview": "Approximate preview",
+    "emptyCaption": "No caption yet",
+    "firstComment": "First comment",
+    "mediaAlt": "Post media"
   }
 }

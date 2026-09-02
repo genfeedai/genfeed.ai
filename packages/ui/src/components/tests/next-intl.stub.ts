@@ -97,6 +97,12 @@ const UI_TEST_MESSAGES = {
       title: 'Provider contract',
       versionLabel: 'Version:',
     },
+    previews: {
+      approximatePreview: 'Approximate preview',
+      emptyCaption: 'No caption yet',
+      firstComment: 'First comment',
+      mediaAlt: 'Post media',
+    },
   },
   agent: {
     composerToolbar: {
