@@ -132,8 +132,10 @@ curl https://api.genfeed.ai/v1/posts \
   -H "Authorization: Bearer $GENFEED_API_KEY"
 ```
 
-The request resolves to the key's user and organization, so every tenant-scoped
-read and write behaves exactly as it would for that user in the app.
+The request authenticates as the key's user and organization for tenancy.
+Authorization is the key's explicit scopes — never the issuer's org-admin
+role. Present the key only in the `Authorization` header; a key in the URL
+path or query string is rejected.
 
 The same key authenticates the hosted MCP server at `https://mcp.genfeed.ai/mcp`.
 MCP OAuth tokens issued through a browser consent flow are bound to the MCP

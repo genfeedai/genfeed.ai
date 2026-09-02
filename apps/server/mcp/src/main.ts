@@ -9,6 +9,10 @@ bootstrap({ app: 'mcp' });
 
 import process from 'node:process';
 import {
+  requestPresentsApiKeyInUrl,
+  URL_API_CREDENTIAL_REJECTION,
+} from '@libs/auth/url-credentials';
+import {
   getGenfeedCorsOptions,
   shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
@@ -99,6 +103,19 @@ async function main(): Promise<void> {
     res: Response,
     next: NextFunction,
   ) => {
+    if (requestPresentsApiKeyInUrl(req)) {
+      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
+      res.status(401).json({
+        error: {
+          code: -32001,
+          message: URL_API_CREDENTIAL_REJECTION,
+        },
+        id: null,
+        jsonrpc: '2.0',
+      });
+      return;
+    }
+
     const token = authService.extractBearerToken(req.headers.authorization);
 
     // Per-caller request cap (sliding window), keyed by hashed token when

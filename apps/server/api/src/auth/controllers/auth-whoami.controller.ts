@@ -4,6 +4,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 
@@ -41,20 +42,26 @@ export class AuthWhoamiController {
       : '';
     const authUserId = user?.id || '';
 
-    const role = await this.resolveOrganizationRole({
+    const isApiKey = user?.isApiKey === true;
+    const scopes = Array.isArray(user?.scopes) ? user.scopes : [];
+    const membershipRole = await this.resolveOrganizationRole({
       organizationId: contextOrganizationId,
       userId: contextUserId,
     });
+    const role =
+      isApiKey && !hasExplicitApiKeyAdminScope(scopes)
+        ? this.withoutImplicitAdminRole(membershipRole)
+        : membershipRole;
 
     return {
       data: {
-        isApiKey: user?.isApiKey || false,
+        isApiKey,
         organization: {
           id: user?.organizationId || '',
           name: '',
         },
         role,
-        scopes: user?.scopes || ['*'],
+        scopes,
         user: {
           authUserId,
           email: user?.emailAddresses?.[0]?.emailAddress || user?.email || '',
@@ -65,6 +72,22 @@ export class AuthWhoamiController {
         },
       },
     };
+  }
+
+  /**
+   * API keys must not advertise the issuer's org-admin membership as their
+   * own role. Strip owner/admin/superadmin so downstream MCP tool gating
+   * cannot treat a content-scoped key as an admin credential.
+   */
+  private withoutImplicitAdminRole(role: string): string {
+    if (
+      role === MemberRole.OWNER ||
+      role === MemberRole.ADMIN ||
+      role === 'superadmin'
+    ) {
+      return '';
+    }
+    return role;
   }
 
   /**

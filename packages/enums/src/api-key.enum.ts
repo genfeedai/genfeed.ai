@@ -38,3 +38,10 @@ export enum ApiKeyScope {
   ANALYTICS_READ = 'analytics:read',
   ADMIN = 'admin',
 }
+
+/** True only when the key was explicitly granted the privileged `admin` scope. */
+export function hasExplicitApiKeyAdminScope(
+  scopes: readonly string[] | undefined,
+): boolean {
+  return Array.isArray(scopes) && scopes.includes(ApiKeyScope.ADMIN);
+}

@@ -166,7 +166,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.role).toBe('');
     });
 
-    it('resolves the role for an API key whose user has a membership', async () => {
+    it('does not inherit org-admin membership for an API key without an admin scope', async () => {
       mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });
 
       const result = await controller.whoami(
@@ -174,18 +174,29 @@ describe('AuthWhoamiController', () => {
           id: 'apikey_123',
           isApiKey: true,
           organizationId: 'org_def',
+          scopes: ['videos:read'],
           userId: 'user_789',
         }),
       );
 
-      expect(mockMembersService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(result.data.role).toBe('');
+      expect(result.data.scopes).toEqual(['videos:read']);
+    });
+
+    it('keeps membership role for an API key that was explicitly granted admin', async () => {
+      mockMembersService.findOne.mockResolvedValue({ role: { key: 'owner' } });
+
+      const result = await controller.whoami(
+        buildReq({
+          id: 'apikey_123',
+          isApiKey: true,
           organizationId: 'org_def',
+          scopes: ['admin'],
           userId: 'user_789',
         }),
-        expect.any(Array),
       );
-      expect(result.data.role).toBe('admin');
+
+      expect(result.data.role).toBe('owner');
     });
 
     it('should handle missing identity gracefully', async () => {
@@ -200,7 +211,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.isApiKey).toBe(false);
       expect(result.data.organization.id).toBe('');
       expect(result.data.organization.name).toBe('');
-      expect(result.data.scopes).toEqual(['*']);
+      expect(result.data.scopes).toEqual([]);
       expect(result.data.user.id).toBe('');
     });
 
@@ -274,7 +285,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.isApiKey).toBe(false);
       expect(result.data.organization.id).toBe('');
       expect(result.data.organization.name).toBe('');
-      expect(result.data.scopes).toEqual(['*']);
+      expect(result.data.scopes).toEqual([]);
       expect(result.data.user.email).toBe('');
       expect(result.data.user.id).toBe('');
       expect(result.data.user.authUserId).toBe('');
@@ -287,7 +298,7 @@ describe('AuthWhoamiController', () => {
       const result = await controller.whoami(req);
 
       expect(result.data.isApiKey).toBe(false);
-      expect(result.data.scopes).toEqual(['*']);
+      expect(result.data.scopes).toEqual([]);
     });
 
     it('should return an empty database user id for an unsupported legacy id', async () => {
@@ -326,7 +337,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.name).toBe('Alice');
     });
 
-    it('should return default scopes as ["*"] when not provided', async () => {
+    it('returns no scopes when the identity does not grant any', async () => {
       const req = buildReq({
         id: 'user_123',
         organizationId: 'org_123',
@@ -334,7 +345,7 @@ describe('AuthWhoamiController', () => {
 
       const result = await controller.whoami(req);
 
-      expect(result.data.scopes).toEqual(['*']);
+      expect(result.data.scopes).toEqual([]);
     });
   });
 });

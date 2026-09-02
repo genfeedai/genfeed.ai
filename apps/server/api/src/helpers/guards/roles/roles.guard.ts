@@ -6,6 +6,7 @@ import {
   ROLES_KEY,
   SKIP_ROLES_KEY,
 } from '@api/helpers/decorators/roles/roles.decorator';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -177,12 +178,13 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    const hasRequiredRole = orgLevelRoles.includes(memberRole);
+    const effectiveRole = resolveApiKeyEffectiveMemberRole(user, memberRole);
+    const hasRequiredRole = orgLevelRoles.includes(effectiveRole);
 
     if (!hasRequiredRole) {
       throw new HttpException(
         {
-          detail: `Required roles: ${orgLevelRoles.join(', ')}. Your role: ${memberRole}`,
+          detail: `Required roles: ${orgLevelRoles.join(', ')}. Your role: ${effectiveRole}`,
           title: 'Roles - Forbidden',
         },
         HttpStatus.FORBIDDEN,

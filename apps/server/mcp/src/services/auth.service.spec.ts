@@ -79,6 +79,7 @@ describe('AuthService (MCP)', () => {
           isApiKey: true,
           organization: { id: 'org-123' },
           role: 'admin',
+          scopes: ['videos:read'],
           user: { id: 'user-456' },
         }),
       );
@@ -94,11 +95,77 @@ describe('AuthService (MCP)', () => {
         timeout: 5000,
       });
       expect(result).toMatchObject({
+        isApiKey: true,
         organizationId: 'org-123',
-        role: 'admin',
+        role: 'user',
         userId: 'user-456',
         valid: true,
       });
+    });
+
+    it('does not treat an owner-issued API key as MCP admin without an admin scope', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          isApiKey: true,
+          organization: { id: 'org-123' },
+          role: 'owner',
+          scopes: ['videos:read', 'posts:draft'],
+          user: { id: 'user-456' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.role).toBe('user');
+    });
+
+    it('grants the MCP admin tier only when the API key has an explicit admin scope', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          isApiKey: true,
+          organization: { id: 'org-123' },
+          role: 'owner',
+          scopes: ['admin'],
+          user: { id: 'user-456' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.role).toBe('admin');
+    });
+
+    it('does not cache gf_ API keys so revocation takes effect immediately', async () => {
+      mockHttpService.get
+        .mockReturnValueOnce(
+          whoamiResponse({
+            isApiKey: true,
+            organization: { id: 'org-123' },
+            role: 'user',
+            user: { id: 'user-456' },
+          }),
+        )
+        .mockReturnValueOnce(throwError(() => ({ response: { status: 401 } })));
+
+      const first = await service.authenticateRequest(apiKey);
+      expect(first.valid).toBe(true);
+
+      const second = await service.authenticateRequest(apiKey);
+      expect(second.valid).toBe(false);
+      expect(mockHttpService.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('caches successful Better Auth session resolutions', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          isApiKey: false,
+          organization: { id: 'org-789' },
+          role: 'creator',
+          user: { id: 'user-123' },
+        }),
+      );
+
+      await service.authenticateRequest(jwtToken);
+      await service.authenticateRequest(jwtToken);
+      expect(mockHttpService.get).toHaveBeenCalledTimes(1);
     });
 
     it('resolves identity for a Better Auth JWT via the same whoami endpoint', async () => {
@@ -165,17 +232,33 @@ describe('AuthService (MCP)', () => {
       expect(result.role).toBe('user');
     });
 
-    it('preserves the superadmin tier', async () => {
+    it('preserves the superadmin tier for session tokens', async () => {
       mockHttpService.get.mockReturnValue(
         whoamiResponse({
+          isApiKey: false,
           organization: { id: 'o' },
           role: 'superadmin',
           user: { id: 'u' },
         }),
       );
 
-      const result = await service.authenticateRequest(apiKey);
+      const result = await service.authenticateRequest(jwtToken);
       expect(result.role).toBe('superadmin');
+    });
+
+    it('does not let a gf_ key inherit superadmin from the issuer', async () => {
+      mockHttpService.get.mockReturnValue(
+        whoamiResponse({
+          isApiKey: true,
+          organization: { id: 'o' },
+          role: 'superadmin',
+          scopes: ['videos:read'],
+          user: { id: 'u' },
+        }),
+      );
+
+      const result = await service.authenticateRequest(apiKey);
+      expect(result.role).toBe('user');
     });
 
     it('keeps an empty-role (no membership) caller authenticated at the user tier', async () => {

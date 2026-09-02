@@ -365,4 +365,30 @@ describe('ApiKeysService', () => {
       ).toBe(false);
     });
   });
+
+  describe('findByKey revocation', () => {
+    it('only looks up keys that are not revoked', async () => {
+      const service = Object.create(
+        ApiKeysService.prototype,
+      ) as ApiKeysService & {
+        delegate: { findMany: MockFn; update: MockFn };
+      };
+      service.delegate = {
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn(),
+      };
+      service.computeFingerprint = ApiKeysService.prototype.computeFingerprint;
+      service.verifyApiKey = vi.fn();
+
+      const result = await service.findByKey('gf_test_plain');
+
+      expect(result).toBeNull();
+      expect(service.delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isRevoked: false }),
+        }),
+      );
+      expect(service.verifyApiKey).not.toHaveBeenCalled();
+    });
+  });
 });

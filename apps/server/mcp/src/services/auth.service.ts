@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import {
+  hasExplicitApiKeyAdminScope,
+  MCP_ACTION_ORIGIN_PROOF_HEADER,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -15,6 +18,7 @@ export interface AuthResult {
   userId?: string;
   organizationId?: string;
   role?: McpRole;
+  isApiKey?: boolean;
   error?: string;
 }
 
@@ -64,13 +68,16 @@ export class AuthService {
         return { error: 'Invalid token format', valid: false };
       }
 
-      // Only successful resolutions are cached (never failures — a fixed token
-      // must take effect immediately), keyed by a hash so raw tokens never sit
-      // in memory as map keys.
+      // Only successful session-token resolutions are cached (never failures —
+      // a fixed token must take effect immediately). User-issued `gf_` API keys
+      // are never cached: revocation must take effect on the next MCP request.
+      const isUserIssuedApiKey = bearerToken.startsWith('gf_');
       const cacheKey = createHash('sha256').update(bearerToken).digest('hex');
-      const cached = this.cacheGet(cacheKey);
-      if (cached) {
-        return cached;
+      if (!isUserIssuedApiKey) {
+        const cached = this.cacheGet(cacheKey);
+        if (cached) {
+          return cached;
+        }
       }
 
       const baseUrl = resolveApiBaseUrl(
@@ -108,13 +115,21 @@ export class AuthService {
           };
         }
 
+        const isApiKey = data.isApiKey === true || isUserIssuedApiKey;
         const result: AuthResult = {
+          isApiKey,
           organizationId,
-          role: this.resolveRole(data.role),
+          role: this.resolveRole(
+            data.role,
+            isApiKey,
+            Array.isArray(data.scopes) ? data.scopes : [],
+          ),
           userId,
           valid: true,
         };
-        this.cacheSet(cacheKey, result);
+        if (!isUserIssuedApiKey) {
+          this.cacheSet(cacheKey, result);
+        }
         return result;
       }
 
@@ -144,6 +159,9 @@ export class AuthService {
    * gating. `owner` is the highest org role, so it must satisfy `admin`-gated
    * tools (otherwise org owners are denied every admin MCP tool).
    *
+   * API keys never inherit that membership mapping. A `gf_` key stays on the
+   * `user` tier unless it was explicitly granted the privileged `admin` scope.
+   *
    * Anything unrecognised — including an empty string, which whoami returns when
    * the caller has no active membership (a removed member, or self-hosted
    * single-tenant where memberships aren't modelled) — maps to the `user` tier.
@@ -151,7 +169,14 @@ export class AuthService {
    * permitting user-tier tools; the API independently re-enforces membership on
    * the actual calls, so a no-membership caller cannot mutate another org.
    */
-  private resolveRole(role?: string): McpRole {
+  private resolveRole(
+    role: string | undefined,
+    isApiKey: boolean,
+    scopes: readonly string[],
+  ): McpRole {
+    if (isApiKey && !hasExplicitApiKeyAdminScope(scopes)) {
+      return 'user';
+    }
     if (role === 'superadmin') return 'superadmin';
     if (role === 'owner' || role === 'admin') return 'admin';
     return 'user';

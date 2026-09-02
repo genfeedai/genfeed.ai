@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ApiKeyCategory, ApiKeyScope } from '../src/api-key.enum';
+import {
+  ApiKeyCategory,
+  ApiKeyScope,
+  hasExplicitApiKeyAdminScope,
+} from '../src/api-key.enum';
 
 describe('api-key.enum', () => {
   describe('ApiKeyCategory', () => {
@@ -49,6 +53,20 @@ describe('api-key.enum', () => {
       expect(ApiKeyScope.POSTS_PUBLISH).toBe('posts:publish');
       expect(ApiKeyScope.ANALYTICS_READ).toBe('analytics:read');
       expect(ApiKeyScope.ADMIN).toBe('admin');
+    });
+  });
+
+  describe('hasExplicitApiKeyAdminScope', () => {
+    it('is true only for an explicit admin grant', () => {
+      expect(hasExplicitApiKeyAdminScope(['admin'])).toBe(true);
+      expect(hasExplicitApiKeyAdminScope(['videos:read', 'admin'])).toBe(true);
+    });
+
+    it('does not treat wildcards, empty, or content scopes as admin', () => {
+      expect(hasExplicitApiKeyAdminScope(undefined)).toBe(false);
+      expect(hasExplicitApiKeyAdminScope([])).toBe(false);
+      expect(hasExplicitApiKeyAdminScope(['*'])).toBe(false);
+      expect(hasExplicitApiKeyAdminScope(['videos:read'])).toBe(false);
     });
   });
 });
