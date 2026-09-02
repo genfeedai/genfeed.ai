@@ -1,11 +1,52 @@
+import type {
+  AgentArtifactReference,
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/interfaces';
+import { Inject, Injectable } from '@nestjs/common';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+
+interface AgentTransferActor {
+  organizationId: string;
+  userId: string;
+}
+
+interface CreateAgentTransferInput {
+  artifactReferences?: AgentArtifactReference[];
+  artifactVersionPinIds?: string[];
+  content: string;
+  deliveryMode: string;
+  destinationBrandId?: string;
+  destinationThreadId?: string;
+  destinationTitle?: string;
+  explicitUserIntent?: boolean;
+  idempotencyKey: string;
+  parentCorrelationId?: string;
+  selectedContext?: Record<string, unknown>;
+  sourceActionId?: string;
+  sourceThreadId: string;
+}
+
+interface AgentTransfersServiceLike {
+  create(
+    input: CreateAgentTransferInput,
+    actor: AgentTransferActor,
+  ): Promise<unknown>;
+  discoverConversations(
+    actor: AgentTransferActor,
+    sourceThreadId: string,
+    query?: string,
+    limit?: number,
+  ): Promise<unknown[]>;
+}
 
 @Injectable()
 export class AgentTransferToolHandler {
-  constructor(private readonly internalApi: AgentToolInternalApiService) {}
+  constructor(
+    @Inject('AGENT_TRANSFERS_SERVICE')
+    private readonly transfersService: AgentTransfersServiceLike,
+  ) {}
 
   async listConversations(
     params: Record<string, unknown>,
@@ -16,15 +57,14 @@ export class AgentTransferToolHandler {
     }
     const query =
       typeof params.query === 'string' && params.query.trim()
-        ? `&q=${encodeURIComponent(params.query.trim())}`
-        : '';
-    const data = await this.internalApi.callInternalApi(
-      'GET',
-      `/agent/transfers/conversations?sourceThreadId=${encodeURIComponent(ctx.threadId)}${query}`,
-      undefined,
-      ctx,
+        ? params.query.trim()
+        : undefined;
+    const conversations = await this.transfersService.discoverConversations(
+      this.actor(ctx),
+      ctx.threadId,
+      query,
     );
-    return { creditsUsed: 0, data, success: true };
+    return { creditsUsed: 0, data: { conversations }, success: true };
   }
 
   async transfer(
@@ -48,10 +88,18 @@ export class AgentTransferToolHandler {
     }
 
     const payload = {
-      ...params,
+      artifactReferences: this.readArtifactReferences(
+        params.artifactReferences,
+      ),
+      artifactVersionPinIds: this.readStringArray(params.artifactVersionPinIds),
       content,
       deliveryMode,
+      destinationBrandId: readOptionalString(params.destinationBrandId),
+      destinationThreadId: readOptionalString(params.destinationThreadId),
+      destinationTitle: readOptionalString(params.destinationTitle),
       idempotencyKey,
+      parentCorrelationId: readOptionalString(params.parentCorrelationId),
+      selectedContext: this.readSelectedContext(params.selectedContext),
       sourceThreadId: ctx.threadId,
     };
     if (
@@ -93,24 +141,53 @@ export class AgentTransferToolHandler {
       };
     }
 
-    const data = await this.internalApi.callInternalApi(
-      'POST',
-      '/agent/transfers',
+    const transfer = await this.transfersService.create(
       {
         ...payload,
         explicitUserIntent: deliveryMode === 'SEND_AND_RUN',
         ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
       },
-      ctx,
+      this.actor(ctx),
     );
-    return { creditsUsed: 0, data, success: true };
+    return { creditsUsed: 0, data: { transfer }, success: true };
+  }
+
+  private actor(ctx: ToolExecutionContext): AgentTransferActor {
+    return { organizationId: ctx.organizationId, userId: ctx.userId };
   }
 
   private failure(error: string): AgentToolResult {
     return { creditsUsed: 0, error, success: false };
   }
 
+  private readArtifactReferences(
+    value: unknown,
+  ): AgentArtifactReference[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+    return value.filter(
+      (entry): entry is AgentArtifactReference =>
+        typeof entry === 'object' && entry !== null,
+    );
+  }
+
+  private readSelectedContext(
+    value: unknown,
+  ): Record<string, unknown> | undefined {
+    return typeof value === 'object' && value !== null
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
   private readString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private readStringArray(value: unknown): string[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+    return value.filter((entry): entry is string => typeof entry === 'string');
   }
 }

@@ -3,6 +3,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   History,
   LayoutGrid,
+  LayoutTemplate,
   Megaphone,
   Rocket,
   Users,
@@ -13,7 +14,7 @@ import {
  * Automation module nav — grouped by usage (same pattern as Analytics / Settings).
  *
  * - Home: Overview
- * - Workflows: pipelines + run history
+ * - Workflows: pipelines + templates + run history
  * - Agents: roster, autopilot, programs
  *
  * Outreach / reply drip / author replies live in Messages.
@@ -38,17 +39,23 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [
       APP_ROUTES.AUTOMATION.WORKFLOWS,
       APP_ROUTES.AUTOMATION.WORKFLOWS_NEW,
-      APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
     ],
     outline: Workflow,
     solid: Workflow,
   },
   {
     group: 'Workflows',
-    href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
+    href: APP_ROUTES.AUTOMATION.TEMPLATES,
+    label: 'Templates',
+    matchPaths: [APP_ROUTES.AUTOMATION.TEMPLATES],
+    outline: LayoutTemplate,
+    solid: LayoutTemplate,
+  },
+  {
+    group: 'Workflows',
+    href: APP_ROUTES.AUTOMATION.RUNS,
     label: 'Runs',
     matchPaths: [
-      APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
       APP_ROUTES.AUTOMATION.RUNS,
       APP_ROUTES.AUTOMATION.CONTENT_RUNS,
     ],

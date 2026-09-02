@@ -80,6 +80,8 @@ export interface IBatchItem {
   sourceWorkflowName?: string;
   workflowExecutionId?: string;
   type?: 'content' | 'engagement';
+  /** Quote/repost/reply distinction for an engagement item, when known. */
+  engagementAction?: string;
   targetPostId?: string;
   targetPostUrl?: string;
   targetAuthor?: string;

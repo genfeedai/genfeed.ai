@@ -1,7 +1,7 @@
+import { Platform } from '@genfeedai/enums';
 import { AgentProactiveToolHandler } from '@server/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { BatchItemStatus, Platform } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 const context: ToolExecutionContext = {
@@ -27,7 +27,6 @@ describe('AgentProactiveToolHandler', () => {
     };
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
-      {} as never,
       {} as never,
       undefined,
       undefined,
@@ -63,7 +62,6 @@ describe('AgentProactiveToolHandler', () => {
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
       {} as never,
-      {} as never,
       twitterService as never,
     );
 
@@ -82,7 +80,6 @@ describe('AgentProactiveToolHandler', () => {
   it('fails closed when the X integration is unavailable', async () => {
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
-      {} as never,
       {} as never,
       undefined,
       undefined,
@@ -105,62 +102,61 @@ describe('AgentProactiveToolHandler', () => {
     });
   });
 
-  it('drafts an engagement reply with enum status and parsed platform', async () => {
-    const createBatch = vi.fn().mockResolvedValue({ id: 'batch-1' });
-    const cancelBatch = vi.fn();
-    const callInternalApi = vi.fn().mockResolvedValue({});
+  it('drafts an engagement reply directly into the manual review queue', async () => {
+    const createManualReviewBatch = vi
+      .fn()
+      .mockResolvedValue({ id: 'batch-1' });
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
       {} as never,
-      { callInternalApi } as never,
       undefined,
-      { cancelBatch, createBatch } as never,
+      { createManualReviewBatch } as never,
     );
 
     const result = await handler.draftEngagementReply(
       {
         platform: 'x',
         replyContent: 'Nice take',
+        targetAuthor: 'someone',
+        targetPostContent: 'Original post',
         targetPostId: '123',
+        targetPostUrl: 'https://x.com/someone/status/123',
       },
       context,
     );
 
     expect(result.success).toBe(true);
-    expect(createBatch).toHaveBeenCalledWith(
+    expect(result.data).toMatchObject({ batchId: 'batch-1' });
+    expect(createManualReviewBatch).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
-        platforms: [Platform.TWITTER],
+        items: [
+          expect.objectContaining({
+            caption: 'Nice take',
+            format: 'post',
+            platform: Platform.TWITTER,
+            targetAuthor: 'someone',
+            targetPostContent: 'Original post',
+            targetPostId: '123',
+            targetPostUrl: 'https://x.com/someone/status/123',
+            type: 'engagement',
+          }),
+        ],
       }),
       context.userId,
       context.organizationId,
     );
-    expect(callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/batches/batch-1/items',
-      expect.objectContaining({
-        platform: Platform.TWITTER,
-        status: BatchItemStatus.PENDING,
-        targetPostId: '123',
-        type: 'engagement',
-      }),
-      context,
-    );
-    expect(cancelBatch).not.toHaveBeenCalled();
   });
 
-  it('does not swallow add-item failures for engagement replies', async () => {
-    const createBatch = vi.fn().mockResolvedValue({ id: 'batch-1' });
-    const cancelBatch = vi.fn().mockResolvedValue({});
-    const callInternalApi = vi
+  it('does not swallow failures from the manual review batch call', async () => {
+    const createManualReviewBatch = vi
       .fn()
-      .mockRejectedValue(new Error('add item failed'));
+      .mockRejectedValue(new Error('batch creation failed'));
     const handler = new AgentProactiveToolHandler(
       { error: vi.fn() } as never,
       {} as never,
-      { callInternalApi } as never,
       undefined,
-      { cancelBatch, createBatch } as never,
+      { createManualReviewBatch } as never,
     );
 
     const result = await handler.draftEngagementReply(
@@ -174,9 +170,8 @@ describe('AgentProactiveToolHandler', () => {
 
     expect(result).toEqual({
       creditsUsed: 0,
-      error: 'add item failed',
+      error: 'batch creation failed',
       success: false,
     });
-    expect(cancelBatch).toHaveBeenCalledWith('batch-1', context.organizationId);
   });
 });

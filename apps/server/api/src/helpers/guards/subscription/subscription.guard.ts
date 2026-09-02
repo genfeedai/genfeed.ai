@@ -1,4 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
@@ -13,9 +12,10 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
-interface AuthenticatedRequest extends Omit<Request, 'user'> {
+export interface SubscriptionGuardRequest extends Omit<Request, 'user'> {
   user?: User;
 }
 
@@ -24,7 +24,16 @@ export class SubscriptionGuard implements CanActivate {
   constructor(private readonly loggerService: LoggerService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    return this.assertActive(
+      context.switchToHttp().getRequest<SubscriptionGuardRequest>(),
+    );
+  }
+
+  /**
+   * Explicit-input subscription check. Shared by the HTTP guard adapter above
+   * and by the in-process agent generation gateway.
+   */
+  assertActive(request: SubscriptionGuardRequest): boolean {
     const user = request.user;
 
     if (!user) {

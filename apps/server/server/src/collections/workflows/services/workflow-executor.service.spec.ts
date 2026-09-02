@@ -498,6 +498,145 @@ describe('WorkflowExecutorService', () => {
     });
   });
 
+  it('surfaces the original failure when failure bookkeeping cannot write', async () => {
+    const executableWorkflow: ExecutableWorkflow = {
+      edges: [],
+      id: 'workflow-bookkeeping',
+      lockedNodeIds: [],
+      nodes: [
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'publish-node',
+          label: 'Publish',
+        }),
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+      versionId: WORKFLOW_VERSION_ID,
+    };
+
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: {},
+      currentVersion: currentVersion({ nodes: [] }),
+      id: 'workflow-bookkeeping',
+      label: 'Failing workflow',
+      metadata: {},
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    executionsService.findOne.mockResolvedValue(null);
+    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+      executableWorkflow,
+    );
+    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+    executionsService.createExecution.mockResolvedValue({
+      id: 'execution-bookkeeping',
+    });
+    executionsService.startExecution.mockRejectedValue(
+      new Error('Replicate rejected the prompt'),
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-bookkeeping',
+      metadata: {},
+    });
+    prisma.workflow.update.mockRejectedValue(
+      new Error('No record was found for an update'),
+    );
+
+    await expect(
+      service.executeManualWorkflow('workflow-bookkeeping', 'user-1', 'org-1'),
+    ).rejects.toThrow('Replicate rejected the prompt');
+  });
+
+  it('leaves the shared system-workflow mirror untouched on a system action', async () => {
+    // The hidden system mirror is owned by the system principal, but every
+    // caller executes it with its own organizationId on the runtime document.
+    // Tenant-scoped bookkeeping against that row matches nothing (Prisma
+    // P2025) and would fail the run before any node output reached the user.
+    const executableWorkflow: ExecutableWorkflow = {
+      edges: [],
+      id: 'system-workflow-mirror',
+      lockedNodeIds: [],
+      nodes: [
+        createExecutableActionNode({
+          actionId: 'content.pipeline.generate-image',
+          id: 'generate-node',
+          label: 'Generate',
+        }),
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+      versionId: WORKFLOW_VERSION_ID,
+    };
+
+    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+      executableWorkflow,
+    );
+    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+    executionsService.findOne.mockResolvedValue(null);
+    executionsService.createExecution.mockResolvedValue({
+      id: 'execution-sys',
+    });
+    executionsService.startExecution.mockResolvedValue({ id: 'execution-sys' });
+    executionsService.updateExecutionProgress.mockResolvedValue({
+      id: 'execution-sys',
+      progress: 100,
+    });
+    executionsService.updateNodeResult.mockResolvedValue({
+      id: 'execution-sys',
+      progress: 100,
+    });
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-sys',
+      metadata: {},
+    });
+    engineAdapter.executeWorkflow.mockImplementation(
+      async (workflow: ExecutableWorkflow) => {
+        const nodeResult: NodeExecutionResult = {
+          completedAt: new Date(),
+          creditsUsed: 0,
+          nodeId: 'generate-node',
+          output: { ingredientId: 'ingredient-1' },
+          retryCount: 0,
+          startedAt: new Date(),
+          status: 'completed',
+        };
+        return {
+          completedAt: new Date(),
+          nodeResults: new Map([['generate-node', nodeResult]]),
+          runId: 'execution-sys',
+          startedAt: new Date(),
+          status: 'completed' as const,
+          totalCreditsUsed: 0,
+          workflowId: workflow.id,
+        };
+      },
+    );
+
+    const result = await service.executeManualWorkflowDocument(
+      {
+        config: {},
+        currentVersion: currentVersion({ nodes: [] }),
+        edges: [],
+        id: 'system-workflow-mirror',
+        inputVariables: [],
+        label: 'System image generation',
+        metadata: {},
+        nodes: [],
+        // The mirror row itself belongs to the system principal.
+        organizationId: 'system-principal',
+        userId: 'system-principal',
+      } as never,
+      'user-1',
+      'org-1',
+      {},
+      { canonicalId: 'generate-image', isSystemAction: true },
+    );
+
+    expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+  });
+
   it('executes a 1-node text generation through the live Run path and records a node result', async () => {
     const workflowDoc = {
       config: {},

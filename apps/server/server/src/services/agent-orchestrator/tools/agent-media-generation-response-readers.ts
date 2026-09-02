@@ -1,3 +1,4 @@
+import type { JsonApiResult } from '@genfeedai/interfaces';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 
 const AWS_S3_PUBLIC_HOST_PATTERN =
@@ -41,6 +42,16 @@ export function readArticleResource(
   }
 
   return isPlainMediaResponseRecord(payload) ? payload : undefined;
+}
+
+/**
+ * Adapt a typed JSON:API payload from the in-process generation gateway to the
+ * loose record shape every reader in this file consumes.
+ */
+export function toMediaResponseRecord(
+  response: JsonApiResult,
+): Record<string, unknown> {
+  return isPlainMediaResponseRecord(response) ? response : { data: null };
 }
 
 export function readMediaAssetUrl(

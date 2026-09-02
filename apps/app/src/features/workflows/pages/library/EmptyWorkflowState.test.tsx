@@ -29,7 +29,7 @@ describe('EmptyWorkflowState', () => {
       screen.getByRole('link', { name: 'Browse Templates' }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/automation/workflows/templates',
+      '/moonrise-org/moonrise-studio/automation/templates',
     );
     expect(
       screen.getByRole('link', { name: 'Create Workflow' }),

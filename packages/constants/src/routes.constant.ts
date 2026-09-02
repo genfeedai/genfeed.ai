@@ -127,6 +127,7 @@ export const APP_ROUTES = {
     OVERVIEW: '/automation/overview',
     ROOT: '/automation',
     RUNS: '/automation/runs',
+    TEMPLATES: '/automation/templates',
     /** @deprecated Skill configuration lives at APP_ROUTES.SETTINGS.SKILLS. */
     SKILLS: '/automation/skills',
     /**
@@ -155,9 +156,7 @@ export const APP_ROUTES = {
     AUTHOR_REPLIES: '/messages/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automation/workflows',
-    WORKFLOWS_EXECUTIONS: '/automation/workflows/executions',
     WORKFLOWS_NEW: '/automation/workflows/new',
-    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
   },
   DISCOVERY: {
     ADS: '/discovery/ads',

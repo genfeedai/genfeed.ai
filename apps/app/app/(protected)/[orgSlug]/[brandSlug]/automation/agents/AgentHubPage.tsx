@@ -304,7 +304,7 @@ export default function AgentHubPage() {
         const service = await getService();
         const result = await service.runWorkflow(selectedStrategy.id, input);
         const executionPath = href(
-          `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${result.executionId}`,
+          `${APP_ROUTES.AUTOMATION.RUNS}/${result.executionId}`,
         );
         notificationsService.success(
           `Workflow started (${result.status}). Opening execution…`,

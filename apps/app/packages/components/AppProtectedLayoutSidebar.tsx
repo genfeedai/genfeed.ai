@@ -183,7 +183,7 @@ export default function AppProtectedLayoutSidebar({
         active: isAutomationRoute,
         currentApp,
         items: automationMenuItems,
-        sectionLabel: APP_DISPLAY_LABELS.automation,
+        sectionLabel: undefined,
         showOrgSwitcher: true,
       },
       {

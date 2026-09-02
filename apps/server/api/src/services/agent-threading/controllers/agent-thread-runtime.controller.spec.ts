@@ -1,10 +1,10 @@
+import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { UsersService } from '@server/collections/users/services/users.service';
 import type { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
 import type { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
-import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
 import { Effect } from 'effect';
 
 vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
@@ -123,7 +123,6 @@ describe('Threading AgentThreadRuntimeController', () => {
           organizationId,
           userId,
         }),
-        authToken: undefined,
         organizationId,
         userId,
       },
@@ -131,7 +130,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     expect(usersService.findOne).not.toHaveBeenCalled();
   });
 
-  it('forwards the Bearer token so generate media can call POST /v1/images', async () => {
+  it('passes confirm_generate_media through with the resolved principal', async () => {
     agentOrchestratorService.handleThreadUiAction.mockResolvedValue({
       creditsRemaining: 50,
       creditsUsed: 0,
@@ -151,13 +150,11 @@ describe('Threading AgentThreadRuntimeController', () => {
         payload: { generationType: 'image', prompt: 'a rocket' },
       },
       mockUser,
-      'Bearer session-jwt',
     );
 
     expect(agentOrchestratorService.handleThreadUiAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'confirm_generate_media' }),
       expect.objectContaining({
-        authToken: 'session-jwt',
         organizationId,
         userId,
       }),

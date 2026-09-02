@@ -114,9 +114,7 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    const executionsPath = brandPath(
-      APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
-    );
+    const executionsPath = brandPath(APP_ROUTES.AUTOMATION.RUNS);
 
     await authenticatedPage.goto(executionsPath, {
       waitUntil: 'domcontentloaded',
@@ -148,7 +146,7 @@ test.describe('Workflows', () => {
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 

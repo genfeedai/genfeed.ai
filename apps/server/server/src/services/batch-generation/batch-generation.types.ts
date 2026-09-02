@@ -28,6 +28,15 @@ export interface BatchItemFull extends BatchItem {
   mediaUrl?: string;
   error?: string;
   assigneeId?: string | null;
+  /** Distinguishes an engagement-reply item from a generated content item. */
+  type?: 'content' | 'engagement';
+  /** Quote/repost/reply distinction for an engagement item, when known. */
+  engagementAction?: string;
+  /** External (platform-native) ID of the post an engagement reply answers. */
+  targetPostId?: string;
+  targetPostUrl?: string;
+  targetAuthor?: string;
+  targetPostContent?: string;
   reviewDecision: ReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: string;

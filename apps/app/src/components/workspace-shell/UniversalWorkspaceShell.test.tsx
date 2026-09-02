@@ -1573,9 +1573,9 @@ describe('UniversalWorkspaceShell', () => {
     ['/acme/moonrise/automation/workflows/new'],
     ['/acme/moonrise/automation/workflows/workflow-1'],
     ['/acme/moonrise/automation/workflows'],
-    ['/acme/moonrise/automation/workflows/templates'],
-    ['/acme/moonrise/automation/workflows/executions'],
-    ['/acme/moonrise/automation/workflows/executions/run-1'],
+    ['/acme/moonrise/automation/templates'],
+    ['/acme/moonrise/automation/runs'],
+    ['/acme/moonrise/automation/runs/run-1'],
   ])('renders the workflow inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();
@@ -1597,7 +1597,6 @@ describe('UniversalWorkspaceShell', () => {
 
   it.each([
     ['/acme/moonrise/automation'],
-    ['/acme/moonrise/automation/runs'],
     ['/acme/moonrise/settings/skills'],
     ['/acme/moonrise/automation/library'],
     ['/acme/moonrise/automation/agents'],

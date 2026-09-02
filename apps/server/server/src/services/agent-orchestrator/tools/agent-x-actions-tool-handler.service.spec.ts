@@ -1,8 +1,8 @@
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import { BatchItemStatus, Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentXActionsToolHandler', () => {
@@ -36,20 +36,14 @@ describe('AgentXActionsToolHandler', () => {
       ),
     };
 
-    const internalApi = {
-      callInternalApi: vi.fn().mockResolvedValue({}),
-    };
-
     const batchGenerationService = {
-      cancelBatch: vi.fn().mockResolvedValue({}),
-      createBatch: vi.fn().mockResolvedValue({ id: 'batch-1' }),
+      createManualReviewBatch: vi.fn().mockResolvedValue({ id: 'batch-1' }),
     };
 
     const handler = new AgentXActionsToolHandler(
       loggerService,
       twitterService as never,
       credentialsService as never,
-      internalApi as never,
       batchGenerationService as never,
     );
 
@@ -57,7 +51,6 @@ describe('AgentXActionsToolHandler', () => {
       batchGenerationService,
       credentialsService,
       handler,
-      internalApi,
       loggerService,
       twitterService,
     };
@@ -251,7 +244,7 @@ describe('AgentXActionsToolHandler', () => {
   });
 
   it('drafts a quote for review', async () => {
-    const { batchGenerationService, handler, internalApi } = createHandler();
+    const { batchGenerationService, handler } = createHandler();
 
     const result = await handler.execute(
       AgentToolName.DRAFT_X_QUOTE,
@@ -265,30 +258,26 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.requiresConfirmation).toBe(true);
-    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
-        platforms: [Platform.TWITTER],
+        items: [
+          expect.objectContaining({
+            engagementAction: 'quote',
+            platform: Platform.TWITTER,
+            targetAuthor: 'someone',
+            targetPostId: '1234567890',
+            type: 'engagement',
+          }),
+        ],
       }),
       ctx.userId,
       ctx.organizationId,
     );
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/batches/batch-1/items',
-      expect.objectContaining({
-        engagementAction: 'quote',
-        platform: Platform.TWITTER,
-        status: BatchItemStatus.PENDING,
-        targetPostId: '1234567890',
-        type: 'engagement',
-      }),
-      ctx,
-    );
   });
 
   it('drafts a repost for review', async () => {
-    const { handler, internalApi } = createHandler();
+    const { batchGenerationService, handler } = createHandler();
 
     const result = await handler.execute(
       AgentToolName.DRAFT_X_REPOST,
@@ -298,22 +287,27 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.action).toBe('repost');
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/batches/batch-1/items',
+    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        engagementAction: 'repost',
-        platform: Platform.TWITTER,
-        status: BatchItemStatus.PENDING,
-        targetPostId: '55555',
+        items: [
+          expect.objectContaining({
+            engagementAction: 'repost',
+            platform: Platform.TWITTER,
+            targetPostId: '55555',
+            type: 'engagement',
+          }),
+        ],
       }),
-      ctx,
+      ctx.userId,
+      ctx.organizationId,
     );
   });
 
   it('returns the add-item error instead of a silent success', async () => {
-    const { batchGenerationService, handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockRejectedValue(new Error('add item failed'));
+    const { batchGenerationService, handler } = createHandler();
+    batchGenerationService.createManualReviewBatch.mockRejectedValue(
+      new Error('add item failed'),
+    );
 
     const result = await handler.execute(
       AgentToolName.DRAFT_X_QUOTE,
@@ -326,9 +320,5 @@ describe('AgentXActionsToolHandler', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('add item failed');
-    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
-      'batch-1',
-      ctx.organizationId,
-    );
   });
 });

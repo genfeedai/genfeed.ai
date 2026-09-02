@@ -1,6 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import { normalizeAgentAppHref } from './normalize-agent-app-href';
+
+const IMAGE_ID = testId('image');
 
 describe('normalizeAgentAppHref', () => {
   it('returns undefined for empty hrefs', () => {
@@ -30,6 +33,18 @@ describe('normalizeAgentAppHref', () => {
     );
     expect(normalizeAgentAppHref('/acme/~/review')).toBe(
       `/acme/~${APP_ROUTES.PUBLISHING.REVIEW}`,
+    );
+  });
+
+  it('rewrites retired gallery asset paths to canonical Library deep links', () => {
+    expect(normalizeAgentAppHref(`/g/image/${IMAGE_ID}`)).toBe(
+      `/library/images?asset=${IMAGE_ID}`,
+    );
+    expect(normalizeAgentAppHref('/g/video/video-123#details')).toBe(
+      '/library/videos?asset=video-123#details',
+    );
+    expect(normalizeAgentAppHref('/acme/launch/g/voice/voice-123')).toBe(
+      '/acme/launch/library/voices?asset=voice-123',
     );
   });
 

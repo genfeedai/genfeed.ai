@@ -23,8 +23,8 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('batch content')
   ) {
     return targetId
-      ? `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${targetId}`
-      : APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS;
+      ? `${APP_ROUTES.AUTOMATION.RUNS}/${targetId}`
+      : APP_ROUTES.AUTOMATION.RUNS;
   }
 
   if (resultType === 'article' || label.includes('article')) {

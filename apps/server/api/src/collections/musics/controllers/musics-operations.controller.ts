@@ -1,8 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -12,10 +9,21 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ActivitySource, ModelCategory } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -29,6 +37,7 @@ export class MusicsOperationsController {
 
   @Post()
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
+  @UseInterceptors(CreditsInterceptor)
   @Credits({
     description: 'Music generation',
     source: ActivitySource.MUSIC_GENERATION,

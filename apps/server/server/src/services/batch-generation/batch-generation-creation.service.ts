@@ -1,3 +1,17 @@
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+  PostVisibility,
+  parsePlatform,
+  ReviewDecision,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { PostCreateInput } from '@server/collections/posts/services/posts.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -19,20 +33,6 @@ import { CreateManualReviewBatchDto } from '@server/services/batch-generation/dt
 import type { ContentMixConfig } from '@server/services/batch-generation/schemas/batch.schema';
 import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BatchItemStatus,
-  BatchStatus,
-  ContentFormat,
-  PostVisibility,
-  parsePlatform,
-  ReviewDecision,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class BatchGenerationCreationService {
@@ -388,6 +388,12 @@ export class BatchGenerationCreationService {
           sourceWorkflowId: reviewItem.sourceWorkflowId,
           sourceWorkflowName: reviewItem.sourceWorkflowName,
           status: BatchItemStatus.COMPLETED,
+          engagementAction: reviewItem.engagementAction,
+          targetAuthor: reviewItem.targetAuthor,
+          targetPostContent: reviewItem.targetPostContent,
+          targetPostId: reviewItem.targetPostId,
+          targetPostUrl: reviewItem.targetPostUrl,
+          type: reviewItem.type,
           variantId: reviewItem.variantId,
           workflowExecutionId: reviewItem.workflowExecutionId,
         });

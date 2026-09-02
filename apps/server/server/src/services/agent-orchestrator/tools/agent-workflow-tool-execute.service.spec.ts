@@ -32,6 +32,7 @@ describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
       {} as never,
       workflowSchedulerService as never,
       {} as never,
+      {} as never,
     );
   });
 
@@ -178,8 +179,12 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
   const workflowExecutorService = {
     executeManualWorkflow: vi.fn(),
   };
-  const internalApi = {
-    callInternalApi: vi.fn(),
+  const workflowExecutionsService = {
+    findAll: vi.fn(),
+    findOne: vi.fn(),
+  };
+  const youtubeLongFormWorkflowService = {
+    runAuthenticated: vi.fn(),
   };
   const ctx = {
     organizationId: 'org-1',
@@ -194,7 +199,8 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
       workflowsService as never,
       workflowExecutorService as never,
       {} as never,
-      internalApi as never,
+      workflowExecutionsService as never,
+      youtubeLongFormWorkflowService as never,
     );
   });
 
@@ -310,23 +316,17 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
   });
 
   it('executes the code-owned YouTube workflow by canonical ID for Agent and MCP', async () => {
-    internalApi.callInternalApi.mockResolvedValue({
-      data: {
-        attributes: {
-          content: 'Long-form result',
-          contentId: 'article-1',
-          executionId: 'execution-1',
-          outputType: 'x-article',
-          sourceArtifactId: 'artifact-1',
-        },
-        id: 'article-1',
-        type: 'public-youtube-long-form-tool',
-      },
+    youtubeLongFormWorkflowService.runAuthenticated.mockResolvedValue({
+      content: 'Long-form result',
+      contentId: 'article-1',
+      executionId: 'execution-1',
+      outputType: 'x-article',
+      sourceArtifactId: 'artifact-1',
+      summary: 'Summary text',
+      title: 'Video title',
+      videoId: 'video-1',
+      youtubeUrl: 'https://youtu.be/video-1',
     });
-    const agentContext = {
-      ...ctx,
-      authToken: 'agent-or-mcp-token',
-    } as ToolExecutionContext;
 
     const result = await handler.executeWorkflow(
       {
@@ -336,18 +336,18 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
         },
         workflowId: 'youtube-to-long-form-text',
       },
-      agentContext,
+      ctx,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/youtube-long-form',
-      {
-        outputType: 'x-article',
-        youtubeUrl: 'https://youtu.be/video-1',
-      },
-      agentContext,
-    );
+    expect(
+      youtubeLongFormWorkflowService.runAuthenticated,
+    ).toHaveBeenCalledWith({
+      brandId: ctx.brandId,
+      organizationId: 'org-1',
+      outputType: 'x-article',
+      userId: 'user-1',
+      youtubeUrl: 'https://youtu.be/video-1',
+    });
     expect(workflowsService.findOne).not.toHaveBeenCalled();
     expect(
       workflowExecutorService.executeManualWorkflow,
@@ -363,11 +363,35 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
           id: 'article-1',
           outputType: 'x-article',
           sourceArtifactId: 'artifact-1',
+          summary: 'Summary text',
+          title: 'Video title',
+          videoId: 'video-1',
+          youtubeUrl: 'https://youtu.be/video-1',
         },
         status: 'COMPLETED',
       },
       success: true,
     });
+  });
+
+  it('rejects the YouTube workflow when required inputs are missing', async () => {
+    const result = await handler.executeWorkflow(
+      {
+        variables: { youtubeUrl: 'https://youtu.be/video-1' },
+        workflowId: 'youtube-to-long-form-text',
+      },
+      ctx,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error:
+        'youtubeUrl and outputType are required. Use get_workflow_inputs to discover expected variables.',
+      success: false,
+    });
+    expect(
+      youtubeLongFormWorkflowService.runAuthenticated,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns workflow inputs for the org-scoped workflow only', async () => {
@@ -448,6 +472,123 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
         workflowName: 'YouTube to long-form text',
       },
       success: true,
+    });
+  });
+});
+
+describe('AgentWorkflowToolExecuteService listWorkflowRuns / getWorkflowRun', () => {
+  const workflowExecutionsService = {
+    findAll: vi.fn(),
+    findOne: vi.fn(),
+  };
+  const ctx = {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as ToolExecutionContext;
+
+  let handler: AgentWorkflowToolExecuteService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    handler = new AgentWorkflowToolExecuteService(
+      {} as never,
+      {} as never,
+      {} as never,
+      workflowExecutionsService as never,
+      {} as never,
+    );
+  });
+
+  it('lists workflow runs scoped to the caller organization, converting offset to page', async () => {
+    workflowExecutionsService.findAll.mockResolvedValue({
+      docs: [{ id: 'run-1', status: 'COMPLETED' }],
+    });
+
+    const result = await handler.listWorkflowRuns(
+      { limit: 10, offset: 20, status: 'COMPLETED', workflowId: 'wf-1' },
+      ctx,
+    );
+
+    expect(workflowExecutionsService.findAll).toHaveBeenCalledWith(
+      {
+        orderBy: { createdAt: -1 },
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'COMPLETED',
+          workflowId: 'wf-1',
+        },
+      },
+      { limit: 10, page: 3 },
+    );
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: { count: 1, runs: [{ id: 'run-1', status: 'COMPLETED' }] },
+      success: true,
+    });
+  });
+
+  it('defaults to page 1 and limit 20 with no filters', async () => {
+    workflowExecutionsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await handler.listWorkflowRuns({}, ctx);
+
+    expect(workflowExecutionsService.findAll).toHaveBeenCalledWith(
+      {
+        orderBy: { createdAt: -1 },
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      },
+      { limit: 20, page: 1 },
+    );
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: { count: 0, runs: [] },
+      success: true,
+    });
+  });
+
+  it('returns a workflow run scoped to the caller organization', async () => {
+    workflowExecutionsService.findOne.mockResolvedValue({
+      id: 'run-1',
+      status: 'COMPLETED',
+    });
+
+    const result = await handler.getWorkflowRun({ runId: 'run-1' }, ctx);
+
+    expect(workflowExecutionsService.findOne).toHaveBeenCalledWith({
+      id: 'run-1',
+      organizationId: 'org-1',
+    });
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: { run: { id: 'run-1', status: 'COMPLETED' } },
+      success: true,
+    });
+  });
+
+  it('requires a runId', async () => {
+    const result = await handler.getWorkflowRun({}, ctx);
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'runId is required',
+      success: false,
+    });
+    expect(workflowExecutionsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('returns an error when the run is missing or belongs to another organization', async () => {
+    workflowExecutionsService.findOne.mockResolvedValue(null);
+
+    const result = await handler.getWorkflowRun({ runId: 'run-2' }, ctx);
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'Workflow run run-2 not found',
+      success: false,
     });
   });
 });

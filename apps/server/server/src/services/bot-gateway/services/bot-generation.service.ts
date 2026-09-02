@@ -21,7 +21,6 @@ import {
   BOT_MEDIA_GENERATION_DISPATCHER,
   type BotMediaGenerationDispatcher,
 } from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
-import type { Request } from 'express';
 
 interface GenerationResult {
   ingredientId: string;
@@ -85,7 +84,6 @@ export class BotGenerationService {
     command: BotCommandType,
     prompt: string,
     callbackContext: IBotCallbackContext,
-    request: Request,
   ): Promise<GenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -103,7 +101,6 @@ export class BotGenerationService {
         await this.storeCallbackContext(ingredientId, callbackContext);
       },
       prompt,
-      request,
       user: resolvedUser,
     });
 

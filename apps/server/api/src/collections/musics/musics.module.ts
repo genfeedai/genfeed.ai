@@ -35,7 +35,7 @@ import { MusicsService } from '@server/collections/musics/services/musics.servic
     MusicsOperationsController,
     MusicsUploadController,
   ],
-  exports: [MusicsService],
+  exports: [MusicGenerationService, MusicsService],
   imports: [
     ActivitiesModule,
     BrandsCoreModule,

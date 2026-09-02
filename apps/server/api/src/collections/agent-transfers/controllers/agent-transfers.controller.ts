@@ -1,8 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -17,7 +15,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Post,
   Query,
@@ -25,6 +22,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import type { Request } from 'express';
 
 @ApiTags('Agent Transfers')
@@ -118,12 +117,10 @@ export class AgentTransfersController {
     @Req() req: Request,
     @Body() body: CreateAgentTransferDto,
     @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
   ) {
     try {
       const transfer = await this.agentTransfersService.create(body, {
         ...this.actor(user),
-        authToken: authorization?.replace('Bearer ', ''),
       });
       return serializeSingle(
         req,
@@ -146,12 +143,10 @@ export class AgentTransfersController {
     @Req() req: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Headers('authorization') authorization?: string,
   ) {
     try {
       const transfer = await this.agentTransfersService.retry(id, {
         ...this.actor(user),
-        authToken: authorization?.replace('Bearer ', ''),
       });
       return serializeSingle(
         req,

@@ -15,7 +15,7 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
  *
  * Covers: /automation/campaigns (Programs), /automation/campaigns/new,
  *         /messages/outreach, /messages/outreach/new, /automation/runs,
- *         /automation/autopilot, /workflows, /workflows/new, /workflows/templates
+ *         /automation/autopilot, /automation/workflows, /automation/workflows/new, /automation/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -140,19 +140,16 @@ test.describe('Agents — Sub-Sections', () => {
     ).toBeVisible();
   });
 
-  test('workflows/templates shows template gallery', async ({
+  test('automation/templates shows template gallery', async ({
     authenticatedPage,
   }) => {
     await mockWorkflowCrud(authenticatedPage, []);
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.TEMPLATES), {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
       /automation\/workflows\/templates/,

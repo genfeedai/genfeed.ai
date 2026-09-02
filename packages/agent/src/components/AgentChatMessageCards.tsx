@@ -4,6 +4,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
+import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -337,19 +338,30 @@ export function ContentPreviewCard({
       )}
       {action.ctas && action.ctas.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {action.ctas.map((cta) =>
-            cta.href ? (
+          {action.ctas.map((cta) => {
+            if (!cta.href) {
+              return null;
+            }
+
+            const href = normalizeAgentAppHref(cta.href) ?? cta.href;
+            const label =
+              href.includes('/library/') &&
+              cta.label.toLowerCase().includes('gallery')
+                ? 'View in Library'
+                : cta.label;
+
+            return (
               <a
                 key={`${action.id}-content-preview-cta-${cta.label}`}
-                href={cta.href}
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
-                {cta.label}
+                {label}
               </a>
-            ) : null,
-          )}
+            );
+          })}
         </div>
       )}
     </div>

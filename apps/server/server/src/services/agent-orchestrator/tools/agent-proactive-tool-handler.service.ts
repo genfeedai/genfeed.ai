@@ -1,31 +1,24 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
-import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import {
-  buildSingleDayBatchDto,
-  createBatchThenAddItem,
-} from '@server/services/agent-orchestrator/tools/create-batch-then-add-item';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { mapTwitterApiError } from '@server/services/integrations/twitter/utils/twitter-api-error.util';
-import { buildTwitterStatusUrl } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
-import {
-  BatchItemStatus,
-  parsePlatform,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+import { parsePlatform, TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { CreateManualReviewBatchDto } from '@server/services/batch-generation/dto/create-manual-review-batch.dto';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { mapTwitterApiError } from '@server/services/integrations/twitter/utils/twitter-api-error.util';
+import { buildTwitterStatusUrl } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
  * Extracted from AgentToolExecutorService per #519.
- * Includes discover_engagements / draft_engagement_reply via AgentToolInternalApiService.
- * X search is wired through TwitterService so discovery never silently returns empty
- * for a missing trends endpoint (#2663).
+ * discover_engagements is wired through TwitterService so X discovery never silently
+ * returns empty for a missing trends endpoint (#2663). draft_engagement_reply lands
+ * the drafted reply directly in the human review queue via
+ * BatchGenerationService.createManualReviewBatch — no HTTP loopback.
  */
 @Injectable()
 export class AgentProactiveToolHandler {
@@ -34,7 +27,6 @@ export class AgentProactiveToolHandler {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
-    private readonly internalApi: AgentToolInternalApiService,
     @Optional() private readonly twitterService?: TwitterService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
@@ -247,7 +239,7 @@ export class AgentProactiveToolHandler {
 
   async discoverEngagements(
     params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
+    _ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const keywords = params.keywords as string[];
     const platform = params.platform as string;
@@ -310,44 +302,13 @@ export class AgentProactiveToolHandler {
       }
     }
 
-    try {
-      const response = await this.internalApi.callInternalApi(
-        'GET',
-        `/v1/trends/search?q=${encodeURIComponent(query)}&platform=${platform}&limit=${limit}`,
-        undefined,
-        ctx,
-      );
-
-      const results = (response.results ?? response.data ?? []) as Record<
-        string,
-        unknown
-      >[];
-
-      return {
-        creditsUsed: 1,
-        data: {
-          count: results.length,
-          platform,
-          posts: results
-            .slice(0, limit)
-            .map((post: Record<string, unknown>) => ({
-              author: post.author ?? post.username,
-              content: post.content ?? post.text,
-              engagement: post.engagement ?? post.likes,
-              id: String(post.id ?? post.externalId),
-              url: post.url,
-            })),
-          query,
-        },
-        success: true,
-      };
-    } catch {
-      return {
-        creditsUsed: 0,
-        error: `Engagement discovery is not configured for platform "${platform}".`,
-        success: false,
-      };
-    }
+    // No trends-search endpoint exists for non-X platforms yet — report the
+    // gap instead of round-tripping through a route that was never built.
+    return {
+      creditsUsed: 0,
+      error: `Engagement discovery is not configured for platform "${platform}".`,
+      success: false,
+    };
   }
 
   private resolveTwitterService(): TwitterService | undefined {
@@ -394,46 +355,51 @@ export class AgentProactiveToolHandler {
       };
     }
 
-    const result = await createBatchThenAddItem(
-      {
-        batchGenerationService: this.batchGenerationService,
-        internalApi: this.internalApi,
-        logger: this.loggerService,
-      },
-      {
-        batchDto: buildSingleDayBatchDto(brandId, platform),
-        ctx,
-        item: {
+    const dto: CreateManualReviewBatchDto = {
+      brandId,
+      items: [
+        {
           caption: replyContent,
+          format: 'post',
           platform,
-          status: BatchItemStatus.PENDING,
           targetAuthor: readOptionalString(params.targetAuthor),
           targetPostContent: readOptionalString(params.targetPostContent),
           targetPostId,
           targetPostUrl: readOptionalString(params.targetPostUrl),
           type: 'engagement',
         },
-      },
-    );
+      ],
+    };
 
-    if (!result.success) {
+    try {
+      const batch = await this.batchGenerationService.createManualReviewBatch(
+        dto,
+        ctx.userId,
+        ctx.organizationId,
+      );
+
+      return {
+        creditsUsed: 1,
+        data: {
+          batchId: batch.id,
+          message:
+            'Reply draft is ready for review. Nothing posts until you approve it.',
+          platform,
+          targetPostId,
+        },
+        success: true,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.loggerService.error(
+        `${this.constructorName} draftEngagementReply failed`,
+        { error: message, targetPostId },
+      );
       return {
         creditsUsed: 0,
-        error: result.error,
+        error: message,
         success: false,
       };
     }
-
-    return {
-      creditsUsed: 1,
-      data: {
-        batchId: result.batchId,
-        message:
-          'Reply draft is ready for review. Nothing posts until you approve it.',
-        platform,
-        targetPostId,
-      },
-      success: true,
-    };
   }
 }

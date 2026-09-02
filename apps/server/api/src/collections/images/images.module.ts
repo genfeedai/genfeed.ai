@@ -75,7 +75,12 @@ import { HiggsFieldService } from '@server/services/integrations/higgsfield/higg
     ImagesUpscaleController,
     ImagesUploadsController,
   ],
-  exports: [ImageGenerationService, ImagesCoreModule],
+  exports: [
+    ImageGenerationService,
+    ImageReframeService,
+    ImageUpscaleService,
+    ImagesCoreModule,
+  ],
   imports: [
     ImagesCoreModule,
     BrandsCoreModule,

@@ -215,11 +215,9 @@ export function WorkflowSurfaceInspector({
         )
       : null;
   const executionHref =
-    selection.workflowBaseHref && execution
+    selection.runsBaseHref && execution
       ? appendWorkflowThread(
-          `${selection.workflowBaseHref}/executions/${encodeURIComponent(
-            execution.id,
-          )}`,
+          `${selection.runsBaseHref}/${encodeURIComponent(execution.id)}`,
           threadId,
         )
       : null;
@@ -272,7 +270,7 @@ export function WorkflowSurfaceInspector({
   );
 
   const resumeExecution = useCallback(async (): Promise<void> => {
-    if (!workflowId || !execution || !selection.workflowBaseHref) {
+    if (!workflowId || !execution || !selection.runsBaseHref) {
       return;
     }
 
@@ -289,9 +287,7 @@ export function WorkflowSurfaceInspector({
       );
       push(
         appendWorkflowThread(
-          `${selection.workflowBaseHref}/executions/${encodeURIComponent(
-            resumed.runId,
-          )}`,
+          `${selection.runsBaseHref}/${encodeURIComponent(resumed.runId)}`,
           threadId,
         ),
       );
@@ -314,7 +310,7 @@ export function WorkflowSurfaceInspector({
     execution,
     getService,
     push,
-    selection.workflowBaseHref,
+    selection.runsBaseHref,
     threadId,
     workflowId,
   ]);

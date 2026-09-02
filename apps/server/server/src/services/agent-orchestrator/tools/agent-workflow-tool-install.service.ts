@@ -551,7 +551,7 @@ export class AgentWorkflowToolInstallService {
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
+              href: APP_ROUTES.AUTOMATION.RUNS,
               label: 'Open executions',
             },
           ],
@@ -743,7 +743,7 @@ export class AgentWorkflowToolInstallService {
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
+              href: APP_ROUTES.AUTOMATION.RUNS,
               label: 'Open executions',
             },
           ],

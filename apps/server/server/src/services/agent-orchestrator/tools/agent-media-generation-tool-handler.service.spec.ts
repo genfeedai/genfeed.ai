@@ -12,8 +12,18 @@ function createHandler() {
   const contentGeneratorService = {
     generateContent: vi.fn(),
   };
-  const internalApi = {
-    callInternalApi: vi.fn(),
+  const newslettersService = {
+    generateDraft: vi.fn(),
+  };
+  const gateway = {
+    generateArticle: vi.fn(),
+    generateAvatarVideo: vi.fn(),
+    generateImage: vi.fn(),
+    generateMusic: vi.fn(),
+    generateVideo: vi.fn(),
+    generateVoice: vi.fn(),
+    reframeImage: vi.fn(),
+    upscaleImage: vi.fn(),
   };
   const onboardingHandler = {
     checkOnboardingStatus: vi.fn().mockResolvedValue({ nextActions: [] }),
@@ -22,14 +32,15 @@ function createHandler() {
   const logger = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
-      internalApi as never,
       aiActionsService as never,
       contentGeneratorService as never,
+      newslettersService as never,
+      gateway as never,
     ),
     new AgentMediaAssetGenerationService(
       logger as never,
       { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-      internalApi as never,
+      gateway as never,
       onboardingHandler as never,
     ),
     new AgentMediaBatchGenerationService(
@@ -42,8 +53,9 @@ function createHandler() {
   return {
     aiActionsService,
     contentGeneratorService,
+    gateway,
     handler,
-    internalApi,
+    newslettersService,
     onboardingHandler,
   };
 }
@@ -215,16 +227,12 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('generates a durable newsletter and emits reader metadata', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
-      data: {
-        attributes: {
-          content: '## Weekly signal\n\nThe important update.',
-          label: 'The founder briefing',
-          summary: 'The useful parts in three minutes.',
-        },
-        id: 'newsletter-1',
-      },
+    const { handler, newslettersService } = createHandler();
+    newslettersService.generateDraft.mockResolvedValue({
+      content: '## Weekly signal\n\nThe important update.',
+      id: 'newsletter-1',
+      label: 'The founder briefing',
+      summary: 'The useful parts in three minutes.',
     });
 
     const result = await handler.generateContent(
@@ -232,11 +240,13 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/newsletters/generate-draft',
+    expect(newslettersService.generateDraft).toHaveBeenCalledWith(
       expect.objectContaining({ topic: 'AI content systems' }),
-      context,
+      {
+        brandId: 'brand-1',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
     );
     expect(result.nextActions?.[0]).toMatchObject({
       contentFormat: 'newsletter',
@@ -249,8 +259,8 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('emits the generated article body as a text preview', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({
       data: {
         attributes: {
           content: '# Durable agents\n\nMake the output observable.',
@@ -273,30 +283,28 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
   });
 
-  it('generates standard articles through POST /v1/articles/generations', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({ data: [] });
+  it('generates standard articles through the generation gateway', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
 
     await handler.generateContent(
       { topic: 'agent architecture', type: 'article' },
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/articles/generations',
-      expect.objectContaining({
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         count: 1,
         prompt: 'agent architecture',
         type: 'standard',
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('generates long-form X articles with the x-article generation type', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({ data: [] });
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
 
     await handler.generateContent(
       {
@@ -308,25 +316,23 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/articles/generations',
-      expect.objectContaining({
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         generateHeaderImage: true,
         prompt: 'agent evaluation',
         targetWordCount: 3000,
         tone: 'analytical',
         type: 'x-article',
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('reads the first resource when the route answers with a collection', async () => {
-    const { handler, internalApi } = createHandler();
+    const { gateway, handler } = createHandler();
     // `type: 'standard'` is serialized as a JSON:API collection, so the handler
     // has to unwrap `data[0]` rather than `data`.
-    internalApi.callInternalApi.mockResolvedValue({
+    gateway.generateArticle.mockResolvedValue({
       data: [
         {
           attributes: {
@@ -354,8 +360,8 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
 
 describe('AgentMediaGenerationToolHandler generateImage', () => {
   it('accepts confirmed image generation without synchronously waiting for the provider', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: { attributes: { status: 'PROCESSING' }, id: 'ingredient-queued' },
     });
 
@@ -364,12 +370,10 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/images',
-      expect.objectContaining({ waitForCompletion: false }),
-      context,
-    );
+    expect(gateway.generateImage).toHaveBeenCalledWith({
+      body: expect.objectContaining({ waitForCompletion: false }),
+      principal: context,
+    });
     expect(result).toMatchObject({
       data: { id: 'ingredient-queued', status: 'processing' },
       success: true,
@@ -383,8 +387,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('does not claim success with a blank preview when generation errors', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockRejectedValue(
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockRejectedValue(
       new Error('Polling timed out after 180s'),
     );
 
@@ -405,8 +409,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('does not claim success when the API returns no CDN URL', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: { attributes: {}, id: 'ingredient-1' },
     });
 
@@ -420,8 +424,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('does not expose a completed image result from outside the configured CDN', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl: 'https://private-provider.example/output.png',
@@ -458,8 +462,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('recovers a configured CDN URL from s3Key when no explicit URL exists', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           s3Key: 'images/output.png',
@@ -492,8 +496,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       'https://bucket.s3.eu-west-1.amazonaws.com/images/output.png',
     ],
   ])('accepts %s as a usable completed image result', async (_label, url) => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: { cdnUrl: url, status: 'GENERATED' },
         id: 'ingredient-1',
@@ -513,8 +517,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('rejects a presigned S3 asset URL as a private generation result', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl:
@@ -539,8 +543,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
   });
 
   it('forwards the thread scope brandId to POST /v1/images', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl: 'https://cdn.example.com/logo.png',
@@ -551,21 +555,19 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
 
     await handler.generateImage({ prompt: 'red apple' }, context);
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/images',
-      expect.objectContaining({
+    expect(gateway.generateImage).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         autoSelectModel: true,
         brandId: 'brand-1',
         text: expect.any(String),
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('forwards the requested output count to POST /v1/images', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl: 'https://cdn.example.com/logo.png',
@@ -579,20 +581,18 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/images',
-      expect.objectContaining({
+    expect(gateway.generateImage).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         outputs: 3,
         text: expect.any(String),
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('returns a content preview only when a CDN URL is present', async () => {
-    const { handler, internalApi, onboardingHandler } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler, onboardingHandler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl: 'https://cdn.example.com/logo.png',
@@ -618,8 +618,8 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
 
 describe('AgentMediaGenerationToolHandler generateVideo', () => {
   it('accepts confirmed video generation without synchronously waiting for the provider', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
       data: { attributes: { status: 'processing' }, id: 'video-queued' },
     });
 
@@ -628,12 +628,10 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/videos',
-      expect.objectContaining({ waitForCompletion: false }),
-      context,
-    );
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({ waitForCompletion: false }),
+      principal: context,
+    });
     expect(result.nextActions?.[0]).toMatchObject({
       assetId: 'video-queued',
       assetKind: 'video',
@@ -642,8 +640,8 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
   });
 
   it('forwards the thread scope brandId to POST /v1/videos', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
       data: {
         attributes: {
           cdnUrl: 'https://cdn.example.com/clip.mp4',
@@ -654,21 +652,19 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
 
     await handler.generateVideo({ prompt: 'red apple' }, context);
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/videos',
-      expect.objectContaining({
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         autoSelectModel: true,
         brandId: 'brand-1',
         text: expect.any(String),
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('forwards model-native video controls shared by Agent and MCP', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
       data: { attributes: { status: 'processing' }, id: 'video-queued' },
     });
 
@@ -684,23 +680,21 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/videos',
-      expect.objectContaining({
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         endFrame: 'end-frame-1',
         model: 'minimax/h3',
         references: ['image-reference-1'],
         resolution: '2K',
         videoReferences: ['video-reference-1', 'video-reference-2'],
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('preserves avatar provider payloads and attachment ownership', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
       data: {
         attributes: { cdnUrl: 'https://cdn.example.com/avatar.mp4' },
         id: 'video-avatar-1',
@@ -712,24 +706,22 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       { ...context, attachmentUrls: ['https://cdn.example.com/avatar.png'] },
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/videos',
-      expect.objectContaining({
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         audioUrl: 'https://cdn.example.com/voice.mp3',
         brandId: 'brand-1',
         model: 'kwaivgi/kling-avatar-v2',
         references: ['https://cdn.example.com/avatar.png'],
       }),
-      expect.objectContaining({ organizationId: 'organization-1' }),
-    );
+      principal: context,
+    });
   });
 });
 
 describe('AgentMediaGenerationToolHandler direct asset families', () => {
   it.each([
     {
-      endpoint: '/images/image-1/reframe',
+      method: 'reframeImage' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
         handler.reframeImage(
           { aspectRatio: '9:16', imageId: 'image-1' },
@@ -747,7 +739,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
       },
     },
     {
-      endpoint: '/v1/images',
+      method: 'generateImage' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
         handler.upscaleImage(
           { imageUrl: 'https://cdn.example.com/source.png' },
@@ -765,7 +757,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
       },
     },
     {
-      endpoint: '/v1/musics',
+      method: 'generateMusic' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
         handler.generateMusic(
           { duration: 20, text: 'bright synthwave' },
@@ -783,7 +775,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
       },
     },
     {
-      endpoint: '/v1/voices/generate',
+      method: 'generateVoice' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
         handler.generateVoice(
           { text: 'Voice line', voiceId: 'voice-profile-1' },
@@ -801,7 +793,7 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
       },
     },
     {
-      endpoint: '/v1/videos/avatar',
+      method: 'generateAvatarVideo' as const,
       invoke: (handler: AgentMediaGenerationToolHandler) =>
         handler.generateAsIdentity({ text: 'Identity line' }, context),
       response: { data: { attributes: {}, id: 'identity-video-1' } },
@@ -811,18 +803,18 @@ describe('AgentMediaGenerationToolHandler direct asset families', () => {
       },
     },
   ])(
-    'preserves the $endpoint payload/result contract',
-    async ({ endpoint, invoke, response, result }) => {
-      const { handler, internalApi } = createHandler();
-      internalApi.callInternalApi.mockResolvedValue(response);
+    'preserves the $method payload/result contract',
+    async ({ invoke, method, response, result }) => {
+      const { gateway, handler } = createHandler();
+      gateway[method].mockResolvedValue(response);
 
       const output = await invoke(handler);
 
-      expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-        'POST',
-        endpoint,
-        expect.any(Object),
-        context,
+      expect(gateway[method]).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.any(Object),
+          principal: context,
+        }),
       );
       expect(output.success).toBe(true);
       expect(output.data).toMatchObject(result.data);

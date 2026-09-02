@@ -18,7 +18,6 @@ import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot
 import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
 import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
 import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
-import type { Request } from 'express';
 
 @Injectable()
 export class BotGatewayService {
@@ -75,7 +74,6 @@ export class BotGatewayService {
   async handleInteraction(
     platform: CredentialPlatform,
     body: unknown,
-    request: Request,
   ): Promise<IBotResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -107,7 +105,7 @@ export class BotGatewayService {
     switch (message.command) {
       case BotCommandType.PROMPT_IMAGE:
       case BotCommandType.PROMPT_VIDEO:
-        return this.handleGenerationCommand(message, request);
+        return this.handleGenerationCommand(message);
 
       case BotCommandType.SET_BRAND:
         return this.handleSetBrandCommand(message);
@@ -128,7 +126,6 @@ export class BotGatewayService {
    */
   private async handleGenerationCommand(
     message: IBotMessage,
-    request: Request,
   ): Promise<IBotResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -171,7 +168,6 @@ export class BotGatewayService {
         message.command,
         message.prompt,
         callbackContext,
-        request,
       );
 
       this.loggerService.log(`${url} generation triggered`, {

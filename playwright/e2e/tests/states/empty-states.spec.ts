@@ -146,7 +146,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/executions**');
-    const route = `${ORG_BRAND}/automation/workflows/executions`;
+    const route = `${ORG_BRAND}/automation/runs`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

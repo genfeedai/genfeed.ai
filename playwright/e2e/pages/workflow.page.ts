@@ -119,14 +119,12 @@ export class WorkflowPage {
       .first();
     this.navTemplates = page
       .locator(
-        'a[href*="/automation/workflows/templates"],' +
-          ' [data-testid="nav-templates"]',
+        'a[href*="/automation/templates"],' + ' [data-testid="nav-templates"]',
       )
       .first();
     this.navExecutions = page
       .locator(
-        'a[href*="/automation/workflows/executions"],' +
-          ' [data-testid="nav-executions"]',
+        'a[href*="/automation/runs"],' + ' [data-testid="nav-executions"]',
       )
       .first();
 

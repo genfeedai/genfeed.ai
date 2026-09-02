@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { UsersService } from '@server/collections/users/services/users.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
-import type { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ApiKeyScope } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { UsersService } from '@server/collections/users/services/users.service';
+import type { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { Request } from 'express';
 
 const request = {} as Request;
@@ -39,7 +39,6 @@ describe('AgentToolsController publishing scopes', () => {
         },
         apiKeyUser([ApiKeyScope.POSTS_CREATE]),
         request,
-        'Bearer gf_test',
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
@@ -62,7 +61,6 @@ describe('AgentToolsController publishing scopes', () => {
           { parameters },
           apiKeyUser([ApiKeyScope.POSTS_CREATE]),
           request,
-          'Bearer gf_test',
         ),
       ).rejects.toMatchObject({
         response: expect.objectContaining({
@@ -86,7 +84,6 @@ describe('AgentToolsController publishing scopes', () => {
         },
         apiKeyUser([ApiKeyScope.POSTS_DRAFT]),
         request,
-        'Bearer gf_test',
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
@@ -116,7 +113,6 @@ describe('AgentToolsController publishing scopes', () => {
       },
       apiKeyUser([]),
       request,
-      'Bearer gf_test',
     );
 
     expect(executor.executeTool).toHaveBeenCalledWith(

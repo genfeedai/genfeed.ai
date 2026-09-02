@@ -1,13 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateAvatarVideoDto } from '@server/collections/videos/dto/create-avatar-video.dto';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ActivitySource } from '@genfeedai/enums';
@@ -21,12 +17,19 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateAvatarVideoDto } from '@server/collections/videos/dto/create-avatar-video.dto';
+import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
 @UseGuards(SubscriptionGuard, CreditsGuard)
+@UseInterceptors(CreditsInterceptor)
 export class AvatarVideoController {
   constructor(
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,

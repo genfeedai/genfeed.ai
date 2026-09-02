@@ -165,7 +165,6 @@ export class AgentOrchestratorUiActionBrandIdentityService {
         toolPayload,
         {
           apiKeyContext: input.params.context.apiKeyContext,
-          authToken: input.params.context.authToken,
           brandId: input.scope.brandId,
           confirmationOrigin: 'thread-ui-action',
           generationPriority: input.params.context.generationPriority,

@@ -55,7 +55,7 @@ import { resolveModelByokProvider } from '@server/services/byok/byok-provider-ma
 import type { Request } from 'express';
 
 // Type for authenticated request with user data
-interface AuthenticatedRequest extends Omit<Request, 'user'> {
+export interface CreditsGuardRequest extends Omit<Request, 'user'> {
   user?: AuthenticatedUser;
   creditsConfig?: ReservationCreditsConfig & {
     amount: number;
@@ -108,6 +108,23 @@ export class CreditsGuard implements CanActivate {
         [context.getHandler(), context.getClass()],
       ) === true;
 
+    return this.admit(
+      context.switchToHttp().getRequest<CreditsGuardRequest>(),
+      creditsConfig,
+      shouldDeferModelResolution,
+    );
+  }
+
+  /**
+   * Explicit-input credits admission. The HTTP adapter above resolves the
+   * decorator metadata; the in-process agent generation gateway passes the same
+   * inputs directly so both share one enforcement path.
+   */
+  async admit(
+    request: CreditsGuardRequest,
+    creditsConfig: CreditsConfig | undefined,
+    shouldDeferModelResolution = false,
+  ): Promise<boolean> {
     this.loggerService.debug('Credits guard: metadata check', {
       hasCreditsConfig: !!creditsConfig,
       shouldDeferModelResolution,
@@ -117,7 +134,6 @@ export class CreditsGuard implements CanActivate {
       return true; // No credits required for this endpoint
     }
 
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
 
     if (!user) {
