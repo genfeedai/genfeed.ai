@@ -120,18 +120,6 @@
     "symbol": "ClipGenerationDispatchService.retryFailedClips"
   },
   {
-    "actual": 162,
-    "file": "apps/server/server/src/collections/credits/services/credits.utils.service.ts",
-    "metric": "method-lines",
-    "symbol": "CreditsUtilsService.addOrganizationCreditsWithExpiration"
-  },
-  {
-    "actual": 197,
-    "file": "apps/server/server/src/collections/credits/services/credits.utils.service.ts",
-    "metric": "method-lines",
-    "symbol": "CreditsUtilsService.deductCreditsFromOrganization"
-  },
-  {
     "actual": 1059,
     "file": "apps/server/server/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
