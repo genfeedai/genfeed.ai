@@ -405,54 +405,6 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
-      permanent: true,
-      source: APP_ROUTES.DISCOVERY.DISCOVERY,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.OVERVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.DISCOVERY,
-      ),
-    },
-    // Retired Socials peer — same TrendsList surface as Overview.
-    {
-      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
-      permanent: true,
-      source: APP_ROUTES.DISCOVERY.SOCIALS,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.OVERVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.SOCIALS,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.DISCOVERY.OVERVIEW,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.DISCOVERY.SOCIALS,
-      ),
-    },
-    {
       destination: APP_ROUTES.LIBRARY.ASSETS,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,

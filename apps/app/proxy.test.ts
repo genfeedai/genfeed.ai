@@ -1408,13 +1408,13 @@ describe('proxy', () => {
     // `/~/discovery` mirrors the brand tree in full, so a brandless org keeps the
     // requested surface instead of collapsing onto the org overview.
     const adsResponse = await proxy(
-      makeSignedInRequest('/discovery/ads/meta'),
+      makeSignedInRequest('/discovery/ads'),
       {} as never,
     );
 
     expect(adsResponse.status).toBe(307);
     expect(adsResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/discovery/ads/meta',
+      'http://localhost:3000/acme/~/discovery/ads',
     );
   });
 
