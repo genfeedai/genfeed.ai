@@ -128,7 +128,7 @@
   "scripts": {
     "build": "tsc --build && tsc-alias -p tsconfig.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
+    "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts --maxWorkers=2",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
   "sideEffects": [
