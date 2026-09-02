@@ -144,12 +144,6 @@
     "symbol": "apps/server/server/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts"
   },
   {
-    "actual": 170,
-    "file": "apps/server/server/src/collections/post-groups/services/post-group-persistence.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostGroupPersistenceService.createPostGroup"
-  },
-  {
     "actual": 1020,
     "file": "apps/server/server/src/collections/posts/services/post-analytics.service.ts",
     "metric": "file-lines",
