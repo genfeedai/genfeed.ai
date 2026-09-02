@@ -592,7 +592,14 @@ function resolveDisposition({
 }) {
   if (included.length === 0) return 'not-applicable';
   if (failedSurfaces.length > 0) return 'infrastructure-failed';
-  if (baseline.mode !== 'enforcement') return 'observation-only';
+  if (baseline.mode !== 'enforcement') {
+    // Observation evidence needs a measurement. A full-suite run skips both
+    // changed shards and a no-test diff instruments nothing; neither observes
+    // changed-code coverage, so neither counts toward `observation.requiredRuns`.
+    return measurement.totals.lines.measured === 0
+      ? 'unmeasured'
+      : 'observation-only';
+  }
   // Enforcement leaves the "nothing was instrumented" case to the ratchet:
   // with `treatUnmeasuredAsUncovered` on, an entirely unmeasured diff scores 0%
   // and is caught, rather than passing on an empty denominator.
@@ -633,6 +640,8 @@ const DISPOSITION_NOTE = {
     'No executable first-party lines changed under the reviewed exclusion policy.',
   'observation-only':
     'Observation mode: reported for review only. This job cannot fail the pull request.',
+  unmeasured:
+    'No changed line was instrumented: the changed-test shards were skipped or pulled in no test file. This run is not an observation.',
   reported: 'Changed-code coverage meets the adopted ratchet.',
   'below-ratchet': 'Changed-code coverage fell below the adopted ratchet.',
   'infrastructure-failed':
