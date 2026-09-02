@@ -1,9 +1,9 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
 
 const mockCredential = (overrides: Record<string, unknown> = {}) => ({
   id: 'test-object-id',

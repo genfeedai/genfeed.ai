@@ -1,4 +1,3 @@
-import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
 import {
   BotCommandType,
   BotInteractionType,
@@ -9,6 +8,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
 import { of } from 'rxjs';
 
 const makeUpdate = (text?: string, chatId = '12345', fromId = '99') => ({

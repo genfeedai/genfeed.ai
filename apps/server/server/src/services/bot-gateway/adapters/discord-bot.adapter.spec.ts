@@ -2,7 +2,6 @@
  * @fileoverview Tests for DiscordBotAdapter
  */
 
-import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
 import {
   BotCommandType,
   BotInteractionType,
@@ -13,6 +12,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
 import { of } from 'rxjs';
 
 describe('DiscordBotAdapter', () => {
