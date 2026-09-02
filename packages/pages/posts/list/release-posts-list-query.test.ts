@@ -16,6 +16,7 @@ describe('release-posts-list-query', () => {
       buildReleasePostsListQueryKey({
         brandId: 'brand-1',
         contentTypes: [PostCategory.TEXT, PostCategory.VIDEO],
+        credentialIds: ['credential-2', 'credential-1'],
         currentPage: 3,
         executionStates: [TargetExecutionState.FAILED],
         organizationId: 'org-1',
@@ -37,6 +38,7 @@ describe('release-posts-list-query', () => {
       'launch',
       'scheduledDate: 1',
       3,
+      'credential-2,credential-1',
     ]);
   });
 

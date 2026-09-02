@@ -15,16 +15,33 @@ describe('ReleasePostsList', () => {
     expect(source).not.toContain('findBrandPostsPage');
   });
 
-  it('renders target lifecycle and links to the canonical editor', () => {
-    expect(source).toContain('target.executionState');
-    expect(source).toContain('getPublishingPostHref(target.id)');
+  it('renders the rail row component instead of inline per-target JSX', () => {
+    expect(source).toContain('ReleaseRailRow');
+    expect(source).toContain('browserTimezone={browserTimezone}');
+    expect(source).not.toContain('target.executionState');
+    expect(source).not.toContain('buildSourcePostVariationsHref');
   });
 
-  it('offers a target-specific variation action beside published navigation', () => {
-    expect(source).toContain('buildSourcePostVariationsHref');
-    expect(source).toContain('postId: target.id');
-    expect(source).toContain('target.executionState === TargetState.PUBLISHED');
-    expect(source).toContain('generateVariationsAria');
+  it('wires the rail segments control into the filters toolbar', () => {
+    expect(source).toContain('ReleaseRailSegments');
+    expect(source).toContain('deriveRailSegment');
+    expect(source).toContain('applyRailSegment');
+    expect(source).toContain('viewNode=');
+  });
+
+  it('wires account chips filtering by credentialIds', () => {
+    expect(source).toContain('ReleaseRailAccounts');
+    expect(source).toContain('credentialIds');
+    expect(source).toContain('handleAccountToggle');
+    expect(source).toContain('PUBLISHING_POSTS_QUERY_KEYS.ACCOUNT');
+  });
+
+  it('wires keyboard navigation across the rail rows', () => {
+    expect(source).toContain('useRailKeys');
+    expect(source).toContain('registerItem');
+    expect(source).toContain('activeIndex');
+    expect(source).toContain('onOpen');
+    expect(source).toContain('onRefresh');
   });
 
   it('streams without required initial data and keeps loading inside the data region', () => {
@@ -35,6 +52,7 @@ describe('ReleasePostsList', () => {
 
   it('resolves user-visible copy through the host pages catalog', () => {
     expect(source).toContain("useTranslations('pages.posts.list')");
+    expect(source).toContain("useTranslations('pages.posts.list.rail')");
     expect(source).not.toContain('const POSTS_LOAD_ERROR');
     expect(source).not.toContain('function viewCopy');
   });

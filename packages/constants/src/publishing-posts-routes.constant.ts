@@ -1,6 +1,7 @@
 import { APP_ROUTES } from './routes.constant';
 
 export const PUBLISHING_POSTS_QUERY_KEYS = {
+  ACCOUNT: 'account',
   PUBLICATION_STATE: 'publicationState',
   STATUS: 'status',
 } as const;
