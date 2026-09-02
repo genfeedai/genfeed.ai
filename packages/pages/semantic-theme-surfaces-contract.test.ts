@@ -142,14 +142,17 @@ describe('page semantic theme surfaces', () => {
     expect(source).toContain('text-white');
   });
 
-  it('uses semantic borders in the trends summary while preserving media canvases', () => {
-    const source = readPage('trends/list/trends-list.tsx');
+  it('uses semantic borders in the Desk surfaces while preserving media canvases', () => {
+    const sourcesMenu = readPage('trends/desk/desk-sources-menu.tsx');
+    const lightTable = readPage('trends/desk/desk-light-table-view.tsx');
 
-    expect(source).toContain('border-border');
-    expect(source).toContain('divide-border');
-    expect(source).not.toContain('border-white');
-    expect(source).not.toContain('divide-white');
-    expect(source).toContain('aspect-video overflow-hidden bg-black');
+    expect(sourcesMenu).toContain('border-border');
+    expect(sourcesMenu).toContain('divide-border');
+    expect(sourcesMenu).not.toContain('border-white');
+    expect(sourcesMenu).not.toContain('divide-white');
+    expect(lightTable).toContain(
+      'aspect-video w-full overflow-hidden bg-black',
+    );
   });
 
   it('uses a semantic checkbox boundary in the follow-source picker', () => {
