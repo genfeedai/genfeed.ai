@@ -41,6 +41,7 @@ export class WorkflowExecutionFinalizerService {
     finalStatus: WorkflowExecutionStatus;
     result: ExecutionRunResult;
     completedAt: Date;
+    skipWorkflowStatusUpdate?: boolean;
     workflowStatus: WorkflowStatus;
   }): Promise<CompletedExecution> {
     // Credits and the failed node ride on the same terminal UPDATE as status
@@ -63,13 +64,18 @@ export class WorkflowExecutionFinalizerService {
       },
     );
 
-    await this.prisma.workflow.update({
-      data: {
-        completedAt: input.completedAt,
-        status: input.workflowStatus,
-      },
-      where: { id: input.workflowId },
-    });
+    // System actions share one immutable system-workflow mirror across tenants;
+    // stamping terminal state on it would let concurrent tenant runs overwrite
+    // each other's status on a definition none of them owns.
+    if (!input.skipWorkflowStatusUpdate) {
+      await this.prisma.workflow.update({
+        data: {
+          completedAt: input.completedAt,
+          status: input.workflowStatus,
+        },
+        where: { id: input.workflowId },
+      });
+    }
 
     await this.notifyScheduledFailure(input, completedExecution);
 
