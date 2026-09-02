@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowTrigger } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -8,6 +9,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Optional,
 } from '@nestjs/common';
 import type { SystemWorkflowCatalogListItem } from '@server/collections/workflows/services/system-workflow-catalog.service';
@@ -19,6 +21,10 @@ import { MarketplaceInstallService } from '@server/marketplace-integration/marke
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
+  persistPendingToolConfirmation,
+  verifyPendingToolConfirmation,
+} from '@server/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
+import {
   resolveWorkflowBrand,
   tokenizeWorkflowBootstrapText,
 } from '@server/services/agent-orchestrator/tools/agent-workflow-tool.helpers';
@@ -29,6 +35,7 @@ import type {
   RecurringTaskContentType,
 } from '@server/services/agent-orchestrator/tools/agent-workflow-tool.types';
 import { AgentWorkflowToolCreateService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
+import { CacheService } from '@server/services/cache/cache.service';
 
 /**
  * Catalog + official-workflow install tools.
@@ -46,6 +53,9 @@ export class AgentWorkflowToolInstallService {
     private readonly marketplaceApiClient?: MarketplaceApiClient,
     @Optional()
     private readonly marketplaceInstallService?: MarketplaceInstallService,
+    @Optional()
+    @Inject(CacheService)
+    private readonly cacheService?: CacheService,
   ) {}
 
   /**
@@ -139,9 +149,48 @@ export class AgentWorkflowToolInstallService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const confirmed = params.confirmed === true;
+    // Confirmation is a server-owned fact: a model-supplied `confirmed`
+    // parameter is stripped upstream in AgentToolConfirmationService, so the
+    // only trustworthy signal that the operator actually clicked the install
+    // card is `ctx.confirmationOrigin`, set exclusively by the card-button
+    // resume path in AgentOrchestratorUiActionConfirmedToolService.
+    const confirmed = ctx.confirmationOrigin === 'thread-ui-action';
     const schedule = readOptionalString(params.schedule);
     const timezone = readOptionalString(params.timezone) ?? 'UTC';
+
+    if (confirmed) {
+      const sourceActionId = readOptionalString(params.sourceActionId);
+      if (!sourceActionId) {
+        return {
+          creditsUsed: 0,
+          error: 'sourceActionId is required to confirm a workflow install.',
+          success: false,
+        };
+      }
+      if (!this.cacheService) {
+        throw new InternalServerErrorException(
+          'Workflow install confirmation persistence is unavailable.',
+        );
+      }
+      const isVerifiedConfirmation = await verifyPendingToolConfirmation(
+        this.cacheService,
+        {
+          organizationId: ctx.organizationId,
+          sourceActionId,
+          threadId: ctx.threadId ?? '',
+          toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+        },
+      );
+      if (!isVerifiedConfirmation) {
+        return {
+          creditsUsed: 0,
+          error:
+            'sourceActionId does not match a persisted workflow install confirmation.',
+          success: false,
+        };
+      }
+    }
+
     const source = await this.resolveInstallSource(params, ctx.organizationId);
 
     if (!source) {
@@ -159,9 +208,10 @@ export class AgentWorkflowToolInstallService {
     }
 
     if (!confirmed) {
-      return this.buildOfficialInstallConfirmation(
+      return await this.buildOfficialInstallConfirmation(
         source,
         params,
+        ctx,
         schedule,
         timezone,
       );
@@ -262,6 +312,33 @@ export class AgentWorkflowToolInstallService {
     timezone: string,
   ): Promise<AgentToolResult> {
     if (!confirmed) {
+      if (!this.cacheService) {
+        throw new InternalServerErrorException(
+          'Workflow install confirmation persistence is unavailable.',
+        );
+      }
+      const sourceActionId = `workflow-bootstrap-preview-generated-${randomUUID()}`;
+      await persistPendingToolConfirmation(this.cacheService, {
+        organizationId: ctx.organizationId,
+        sourceActionId,
+        threadId: ctx.threadId ?? '',
+        toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      });
+      const confirmationPayload = {
+        contentType: this.inferBootstrapContentType(params),
+        label:
+          typeof params.label === 'string' && params.label.trim()
+            ? params.label
+            : undefined,
+        prompt:
+          typeof params.prompt === 'string' && params.prompt.trim()
+            ? params.prompt
+            : undefined,
+        schedule,
+        sourceActionId,
+        timezone,
+      };
+
       return {
         creditsUsed: 0,
         data: {
@@ -270,9 +347,16 @@ export class AgentWorkflowToolInstallService {
         },
         nextActions: [
           {
+            ctas: [
+              {
+                action: 'confirm_install_official_workflow',
+                label: 'Confirm generate',
+                payload: confirmationPayload,
+              },
+            ],
             description:
-              'No strong official workflow match was found. Reply to confirm and I will generate an org-owned workflow instead.',
-            id: `workflow-bootstrap-preview-generated-${Date.now()}`,
+              'No strong official workflow match was found. Confirm and I will generate an org-owned workflow instead.',
+            id: sourceActionId,
             scheduleSummary: schedule
               ? formatRecurringSchedule(schedule, timezone)
               : undefined,
@@ -336,12 +420,26 @@ export class AgentWorkflowToolInstallService {
     };
   }
 
-  private buildOfficialInstallConfirmation(
+  private async buildOfficialInstallConfirmation(
     source: OfficialWorkflowSource,
     params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
     schedule: string | undefined,
     timezone: string,
-  ): AgentToolResult {
+  ): Promise<AgentToolResult> {
+    if (!this.cacheService) {
+      throw new InternalServerErrorException(
+        'Workflow install confirmation persistence is unavailable.',
+      );
+    }
+    const sourceActionId = `workflow-bootstrap-preview-${source.kind}-${randomUUID()}`;
+    await persistPendingToolConfirmation(this.cacheService, {
+      organizationId: ctx.organizationId,
+      sourceActionId,
+      threadId: ctx.threadId ?? '',
+      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+    });
+
     const marketplaceUrl = this.buildMarketplaceListingUrl(source.slug);
     const confirmationPayload = {
       brandId:
@@ -358,6 +456,7 @@ export class AgentWorkflowToolInstallService {
           ? params.prompt
           : undefined,
       schedule,
+      sourceActionId,
       sourceDescription: source.description,
       sourceId: source.id,
       sourceName: source.name,
@@ -397,7 +496,7 @@ export class AgentWorkflowToolInstallService {
               ],
           description:
             'Confirm to install this workflow into your organization, then apply your requested schedule and context.',
-          id: `workflow-bootstrap-preview-${source.kind}-${source.id}`,
+          id: sourceActionId,
           scheduleSummary: schedule
             ? formatRecurringSchedule(schedule, timezone)
             : undefined,

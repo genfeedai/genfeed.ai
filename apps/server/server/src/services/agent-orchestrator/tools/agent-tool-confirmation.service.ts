@@ -45,44 +45,45 @@ export class AgentToolConfirmationService {
     input: PrepareAgentToolCallInput,
   ): Promise<PreparedAgentToolCall> {
     const transition = this.readCampaignTransition(input.toolName);
-    if (!transition) {
-      return { parameters: input.parameters };
+    if (transition) {
+      const confirmedIntent = await this.resolveConfirmedCampaignIntent(
+        transition,
+        input.currentOperatorMessage,
+        input.organizationId,
+        input.threadId,
+      );
+      if (confirmedIntent) {
+        return {
+          confirmationContext: {
+            confirmationOrigin: 'thread-ui-action',
+            sourceActionId: confirmedIntent.sourceActionId,
+          },
+          parameters: {
+            campaignId: confirmedIntent.campaignId,
+            confirmed: true,
+            sourceActionId: confirmedIntent.sourceActionId,
+          },
+        };
+      }
     }
 
-    const confirmedIntent = await this.resolveConfirmedCampaignIntent(
-      transition,
-      input.currentOperatorMessage,
-      input.organizationId,
-      input.threadId,
-    );
-    if (confirmedIntent) {
-      return {
-        confirmationContext: {
-          confirmationOrigin: 'thread-ui-action',
-          sourceActionId: confirmedIntent.sourceActionId,
-        },
-        parameters: {
-          campaignId: confirmedIntent.campaignId,
-          confirmed: true,
-          sourceActionId: confirmedIntent.sourceActionId,
-        },
-      };
-    }
-
+    // Confirmation is a server-owned fact for every tool, not only campaign
+    // transitions: `confirmed`/`sourceActionId` are model-facing parameters
+    // the operator never actually approved, so they are stripped here
+    // before dispatch regardless of tool. Tools that need a card decide
+    // "is this confirmed" from `ctx.confirmationOrigin`, set only by the
+    // trusted card-button resume path (never by this stripped-out claim).
     const hasClaimedConfirmation =
       input.parameters.confirmed === true ||
       input.parameters.sourceActionId !== undefined;
     if (hasClaimedConfirmation) {
-      this.loggerService.warn(
-        'Rejected untrusted campaign confirmation proof',
-        {
-          campaignId: input.parameters.campaignId,
-          organizationId: input.organizationId,
-          threadId: input.threadId,
-          toolName: input.toolName,
-          userId: input.userId,
-        },
-      );
+      this.loggerService.warn('Rejected untrusted tool confirmation proof', {
+        campaignId: input.parameters.campaignId,
+        organizationId: input.organizationId,
+        threadId: input.threadId,
+        toolName: input.toolName,
+        userId: input.userId,
+      });
     }
     const {
       confirmed: _untrustedConfirmed,

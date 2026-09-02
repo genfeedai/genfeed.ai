@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { evaluateAgentAutoPublishPolicies } from '@api-types/contracts/agent-auto-publish.contract';
 import {
   type AgentPublishPolicyResult,
@@ -18,20 +18,23 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type {
-  AgentPublishIdempotencyInput,
-  AgentPublishTargetPayload,
-  AgentToolResult,
-  AgentUiAction,
-  PublishConfirmedContentInput,
-  ScheduleCanonicalPostInput,
+import {
+  type AgentPublishIdempotencyInput,
+  type AgentPublishTargetPayload,
+  AgentToolName,
+  type AgentToolResult,
+  type AgentUiAction,
+  type PublishConfirmedContentInput,
+  type ScheduleCanonicalPostInput,
 } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
   HttpException,
+  Inject,
   Injectable,
+  InternalServerErrorException,
   Optional,
 } from '@nestjs/common';
 import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
@@ -58,6 +61,11 @@ import {
 } from '@server/services/agent-orchestrator/tools/agent-schedule-error.util';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  persistPendingToolConfirmation,
+  verifyPendingToolConfirmation,
+} from '@server/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
+import { CacheService } from '@server/services/cache/cache.service';
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
@@ -95,6 +103,9 @@ export class AgentPublishToolHandler {
     private readonly agentStrategiesService?: AgentStrategiesService,
     @Optional()
     private readonly agentPublishAuditsService?: AgentPublishAuditsService,
+    @Optional()
+    @Inject(CacheService)
+    private readonly cacheService?: CacheService,
   ) {}
 
   async scheduleCanonicalPost(
@@ -634,6 +645,7 @@ export class AgentPublishToolHandler {
     defaultPlatforms?: string[];
     description: string;
     scheduledAt?: string;
+    sourceActionId: string;
     targets: AgentUiAction['targets'];
     title: string;
     visibility: PostVisibility;
@@ -651,7 +663,7 @@ export class AgentPublishToolHandler {
         availablePlatforms: params.availablePlatforms,
       },
       description: params.description,
-      id: `publish-post-${Date.now()}`,
+      id: params.sourceActionId,
       platforms: selectedPlatforms,
       requiresConfirmation: true,
       scheduledAt: params.scheduledAt,
@@ -735,6 +747,19 @@ export class AgentPublishToolHandler {
       visibility: params.visibility,
     });
 
+    if (!this.cacheService) {
+      throw new InternalServerErrorException(
+        'Publish confirmation persistence is unavailable.',
+      );
+    }
+    const sourceActionId = `publish-post-${randomUUID()}`;
+    await persistPendingToolConfirmation(this.cacheService, {
+      organizationId: ctx.organizationId,
+      sourceActionId,
+      threadId: ctx.threadId ?? '',
+      toolName: AgentToolName.CREATE_POST,
+    });
+
     return {
       creditsUsed: 0,
       data: {
@@ -752,6 +777,7 @@ export class AgentPublishToolHandler {
               ? 'Review the caption, schedule, and platforms before confirming.'
               : 'Review the caption and platforms before confirming.',
           scheduledAt: params.scheduledAt,
+          sourceActionId,
           targets,
           title:
             params.scheduledAt != null
@@ -840,7 +866,14 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      if (params.confirmed !== true) {
+      // Confirmation is a server-owned fact: a model-supplied `confirmed`
+      // parameter is stripped upstream in AgentToolConfirmationService, so
+      // the only trustworthy signal that the operator actually clicked the
+      // publish card is `ctx.confirmationOrigin`, set exclusively by the
+      // card-button resume path in
+      // AgentOrchestratorUiActionConfirmedToolService.
+      const isCardConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
+      if (!isCardConfirmed) {
         const policy = evaluateAgentAutoPublishPolicies({
           autonomyMode: ctx.autonomyMode,
           brandAutoPublishEnabled: false,
@@ -898,6 +931,32 @@ export class AgentPublishToolHandler {
             'sourceActionId is required to publish confirmed content safely.',
           success: false,
         };
+      }
+      // Only a resumed publish card needs its sourceActionId verified
+      // against a persisted confirmation — an auto-publish-permitted call
+      // never showed a card, so there is nothing pending to match against.
+      if (isCardConfirmed) {
+        if (!this.cacheService) {
+          throw new InternalServerErrorException(
+            'Publish confirmation persistence is unavailable.',
+          );
+        }
+        const isVerifiedConfirmation = await verifyPendingToolConfirmation(
+          this.cacheService,
+          {
+            organizationId: ctx.organizationId,
+            sourceActionId,
+            threadId: ctx.threadId ?? '',
+            toolName: AgentToolName.CREATE_POST,
+          },
+        );
+        if (!isVerifiedConfirmation) {
+          return {
+            creditsUsed: 0,
+            error: 'sourceActionId does not match a persisted publish card.',
+            success: false,
+          };
+        }
       }
 
       const postingSetId = readOptionalString(params.postingSetId);

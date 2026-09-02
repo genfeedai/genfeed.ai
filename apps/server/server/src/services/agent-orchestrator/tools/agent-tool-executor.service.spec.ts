@@ -902,6 +902,12 @@ describe('AgentToolExecutorService', () => {
     const agentPublishAuditsService = {
       createAudit: vi.fn().mockResolvedValue({ id: 'audit-1' }),
     };
+    const publishCacheService = {
+      acquireLock: vi.fn(),
+      get: vi.fn().mockResolvedValue(null),
+      releaseLock: vi.fn(),
+      set: vi.fn().mockResolvedValue(true),
+    };
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
       postsService as never,
@@ -913,6 +919,7 @@ describe('AgentToolExecutorService', () => {
       creditsUtilsService as never,
       agentStrategiesService as never,
       agentPublishAuditsService as never,
+      publishCacheService as never,
     );
     const instagramInspirationHandler =
       new AgentInstagramInspirationToolHandler(
@@ -995,6 +1002,12 @@ describe('AgentToolExecutorService', () => {
       brandsService as never,
       workflowGenerationService as never,
     );
+    const workflowInstallCacheService = {
+      acquireLock: vi.fn(),
+      get: vi.fn().mockResolvedValue(null),
+      releaseLock: vi.fn(),
+      set: vi.fn().mockResolvedValue(true),
+    };
     const workflowHandler = new AgentWorkflowToolHandler(
       new AgentWorkflowToolInstallService(
         configService as never,
@@ -1004,6 +1017,7 @@ describe('AgentToolExecutorService', () => {
         workflowCreateService,
         marketplaceApiClient as never,
         marketplaceInstallService as never,
+        workflowInstallCacheService as never,
       ),
       workflowCreateService,
       new AgentWorkflowToolExecuteService(
@@ -1127,6 +1141,7 @@ describe('AgentToolExecutorService', () => {
       postGroupsService,
       postRepurposeService,
       postsService,
+      publishCacheService,
       recurringWorkflowId,
       service,
       streamPublisher,
@@ -1136,6 +1151,7 @@ describe('AgentToolExecutorService', () => {
       voicesService,
       workflowExecutorService,
       workflowGenerationService,
+      workflowInstallCacheService,
       workflowsService,
       xActionsHandler,
     };
@@ -2189,6 +2205,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService,
       postGroupsService,
       postsService,
+      publishCacheService,
       service,
     } = createService();
 
@@ -2207,17 +2224,23 @@ describe('AgentToolExecutorService', () => {
         platform: 'youtube',
       },
     ]);
+    publishCacheService.get.mockResolvedValueOnce({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-1',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    });
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
       {
         caption: 'Published from chat',
-        confirmed: true,
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin', 'youtube'],
         sourceActionId: 'publish-card-1',
       },
       {
         ...scopedContext(testId('brandvideo')),
+        confirmationOrigin: 'thread-ui-action',
         runId: testId('run'),
         strategyId: testId('strategy'),
       },
@@ -2279,6 +2302,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService,
       postGroupsService,
       postsService,
+      publishCacheService,
       service,
     } = createService();
 
@@ -2306,16 +2330,23 @@ describe('AgentToolExecutorService', () => {
       }),
     );
 
+    publishCacheService.get.mockResolvedValueOnce({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-blocked',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    });
+
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
       {
-        confirmed: true,
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin'],
         sourceActionId: 'publish-card-blocked',
       },
       {
         ...scopedContext(testId('brandvideo')),
+        confirmationOrigin: 'thread-ui-action',
         strategyId: testId('strategy'),
       },
     );
@@ -2368,6 +2399,7 @@ describe('AgentToolExecutorService', () => {
       credentialsService,
       ingredientsService,
       postGroupsService,
+      publishCacheService,
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
@@ -2395,17 +2427,25 @@ describe('AgentToolExecutorService', () => {
       ],
     });
     const expectedScheduledAt = new Date('2026-07-18T09:00').toISOString();
+    publishCacheService.get.mockResolvedValueOnce({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-scheduled',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    });
 
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
       {
-        confirmed: true,
         contentId: testId('ingredientvideo'),
         platforms: ['instagram'],
         scheduledAt: '2026-07-18T09:00',
         sourceActionId: 'publish-card-scheduled',
       },
-      scopedContext(testId('brandvideo')),
+      {
+        ...scopedContext(testId('brandvideo')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result.success).toBe(true);
@@ -2438,6 +2478,7 @@ describe('AgentToolExecutorService', () => {
       credentialsService,
       ingredientsService,
       postGroupsService,
+      publishCacheService,
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
@@ -2465,15 +2506,29 @@ describe('AgentToolExecutorService', () => {
     });
     const parameters = {
       caption: 'Retry-safe caption',
-      confirmed: true,
       contentId: testId('ingredientvideo'),
       platforms: ['linkedin'],
       sourceActionId: 'publish-card-retry',
     };
-    const context = scopedContext(testId('brandvideo'));
+    const context: ToolExecutionContext = {
+      ...scopedContext(testId('brandvideo')),
+      confirmationOrigin: 'thread-ui-action',
+    };
+    publishCacheService.get.mockImplementation(async () => ({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-retry',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    }));
 
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    publishCacheService.get.mockResolvedValueOnce({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-distinct',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    });
     await service.executeTool(
       AgentToolName.CREATE_POST,
       { ...parameters, sourceActionId: 'publish-card-distinct' },
@@ -2508,11 +2563,13 @@ describe('AgentToolExecutorService', () => {
     ]);
     const parameters = {
       caption: 'Deterministic fallback',
-      confirmed: true,
       contentId: testId('ingredientvideo'),
       platforms: ['linkedin'],
     };
-    const context = scopedContext(testId('brandvideo'));
+    const context: ToolExecutionContext = {
+      ...scopedContext(testId('brandvideo')),
+      confirmationOrigin: 'thread-ui-action',
+    };
 
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
@@ -2536,6 +2593,7 @@ describe('AgentToolExecutorService', () => {
       credentialsService,
       ingredientsService,
       postGroupsService,
+      publishCacheService,
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
@@ -2550,15 +2608,24 @@ describe('AgentToolExecutorService', () => {
       },
     ]);
 
+    publishCacheService.get.mockResolvedValueOnce({
+      organizationId: testId('org'),
+      sourceActionId: 'publish-card-missing',
+      threadId: testId('thread'),
+      toolName: AgentToolName.CREATE_POST,
+    });
+
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
       {
-        confirmed: true,
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin', 'instagram'],
         sourceActionId: 'publish-card-missing',
       },
-      scopedContext(testId('brandvideo')),
+      {
+        ...scopedContext(testId('brandvideo')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -2584,11 +2651,13 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_POST,
       {
         caption: 'Must not publish',
-        confirmed: true,
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin'],
       },
-      scopedContext(testId('brandvideo')),
+      {
+        ...scopedContext(testId('brandvideo')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -5508,7 +5577,7 @@ describe('AgentToolExecutorService', () => {
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
-  it('installs the confirmed official seeded template into automations', async () => {
+  it('ignores a forged confirmed flag from the model and still returns an install confirmation card', async () => {
     const { service, workflowsService } = createService();
 
     workflowsService.findOne.mockResolvedValue({
@@ -5538,9 +5607,68 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
+    // A model-supplied `confirmed: true` is not `ctx.confirmationOrigin`, so
+    // the install must still stop at a confirmation card rather than
+    // creating the workflow from an unverified claim.
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+    expect(result.requiresConfirmation).toBe(true);
+    expect(result.nextActions?.[0]).toMatchObject({
+      ctas: [
+        expect.objectContaining({
+          action: 'confirm_install_official_workflow',
+          label: 'Confirm install',
+        }),
+      ],
+      title: 'Install official workflow?',
+      type: 'workflow_created_card',
+    });
+  });
+
+  it('installs the confirmed official seeded template into automations when the card confirmation is verified', async () => {
+    const { service, workflowInstallCacheService, workflowsService } =
+      createService();
+    const organizationId = testId('org2');
+    const userId = testId('user');
+    const sourceActionId = 'workflow-install-source-action-1';
+
+    workflowInstallCacheService.get.mockResolvedValueOnce({
+      organizationId,
+      sourceActionId,
+      threadId: '',
+      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+    });
+    workflowsService.findOne.mockResolvedValue({
+      id: 'wf-official-1',
+      brandId: null,
+      isDeleted: false,
+      label: 'Social Media Video Series',
+      metadata: {},
+      organizationId,
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      {
+        label: 'Weekly LinkedIn Workflow',
+        prompt: 'Set me up with a weekly LinkedIn workflow',
+        schedule: '0 9 * * 1',
+        sourceActionId,
+        sourceId: 'social-media-video-series',
+        sourceName: 'Social Media Video Series',
+        sourceType: 'seeded-template',
+        timezone: 'Europe/Malta',
+      },
+      {
+        confirmationOrigin: 'thread-ui-action',
+        organizationId,
+        userId,
+      },
+    );
+
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      testId('user'),
-      testId('org2'),
+      userId,
+      organizationId,
       expect.objectContaining({
         isScheduleEnabled: true,
         schedule: '0 9 * * 1',
@@ -5558,6 +5686,36 @@ describe('AgentToolExecutorService', () => {
       href: `/automation/workflows/${result.data?.id}`,
       label: 'Open workflow',
     });
+  });
+
+  it('rejects an install confirmation whose sourceActionId does not match a pending confirmation', async () => {
+    const { service, workflowInstallCacheService, workflowsService } =
+      createService();
+    const organizationId = testId('org2');
+    const userId = testId('user');
+
+    workflowInstallCacheService.get.mockResolvedValueOnce(null);
+
+    const result = await service.executeTool(
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      {
+        sourceActionId: 'unknown-source-action',
+        sourceId: 'social-media-video-series',
+        sourceName: 'Social Media Video Series',
+        sourceType: 'seeded-template',
+      },
+      {
+        confirmationOrigin: 'thread-ui-action',
+        organizationId,
+        userId,
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      'sourceActionId does not match a persisted workflow install confirmation.',
+    );
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
   it('prefers the brand default voice when preparing voice clone recommendations', async () => {
@@ -5718,7 +5876,11 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('returns purchase CTA only for paid official marketplace workflows', async () => {
-    const { marketplaceApiClient, service } = createService();
+    const { marketplaceApiClient, service, workflowInstallCacheService } =
+      createService();
+    const organizationId = testId('org2');
+    const userId = testId('user');
+    const sourceActionId = 'workflow-install-marketplace-action-1';
 
     marketplaceApiClient.getListing.mockResolvedValue({
       id: 'listing-1',
@@ -5731,12 +5893,18 @@ describe('AgentToolExecutorService', () => {
       owned: false,
       purchase: null,
     });
+    workflowInstallCacheService.get.mockResolvedValueOnce({
+      organizationId,
+      sourceActionId,
+      threadId: '',
+      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+    });
 
     const result = await service.executeTool(
       AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       {
-        confirmed: true,
         prompt: 'Install the official LinkedIn workflow',
+        sourceActionId,
         sourceDescription: 'Official LinkedIn workflow',
         sourceId: 'listing-1',
         sourceName: 'Official LinkedIn Workflow',
@@ -5744,8 +5912,9 @@ describe('AgentToolExecutorService', () => {
         sourceType: 'marketplace-listing',
       },
       {
-        organizationId: testId('org2'),
-        userId: testId('user'),
+        confirmationOrigin: 'thread-ui-action',
+        organizationId,
+        userId,
       },
     );
 
