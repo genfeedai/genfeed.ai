@@ -21,6 +21,12 @@ vi.mock('./release-engagement-rules', () => ({
   default: () => <div>Automation</div>,
 }));
 
+vi.mock('@ui/previews/TargetPreview', () => ({
+  default: ({ target }: { target: IChannelTarget }) => (
+    <div data-testid="target-preview">{target.id}</div>
+  ),
+}));
+
 vi.mock('@ui/primitives/sheet', () => ({
   Sheet: ({ children }: { children: React.ReactNode }) => children,
   SheetContent: ({ children }: { children: React.ReactNode }) => (
@@ -305,6 +311,53 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.getByText('This post has no channel targets.'),
     ).toBeInTheDocument();
+  });
+
+  it('toggles a target live preview without affecting its siblings', () => {
+    renderDrawer({
+      targets: [
+        target(),
+        target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
+      ],
+    });
+
+    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Preview Instagram target' }),
+    );
+
+    expect(screen.getByTestId('target-preview')).toHaveTextContent('target-1');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Hide Instagram target' }),
+    );
+
+    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+  });
+
+  it('resets the open preview when the drawer is pointed at a different release', () => {
+    const { view } = renderDrawer();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Preview Instagram target' }),
+    );
+    expect(screen.getByTestId('target-preview')).toBeInTheDocument();
+
+    view.rerender(
+      <ReleaseDetailDrawer
+        error={null}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        reconnectHref="/acme-org/acme-creator/settings/social"
+        release={release({ id: 'release-2' })}
+      />,
+    );
+
+    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
   });
 
   it('exposes stable action identifiers for the page to key pending state on', () => {

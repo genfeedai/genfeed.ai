@@ -6,7 +6,7 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
+import TargetPreview from '@ui/previews/TargetPreview';
 import { ImageIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -14,7 +14,7 @@ import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
 import {
-  buildReviewItemPreviewTarget,
+  buildReviewItemTargetPreview,
   formatReviewItemStatus,
 } from './review-item.helpers';
 import type { ReviewPanelItem } from './review-panel.types';
@@ -75,6 +75,7 @@ export default function ReviewDetailPanel({
     item.caption?.trim() ||
     item.prompt?.trim() ||
     'No caption generated for this item yet.';
+  const targetPreview = buildReviewItemTargetPreview(item);
 
   return (
     // Flat inspector surface — no outer card wrapping nested cards.
@@ -86,7 +87,7 @@ export default function ReviewDetailPanel({
           <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Preview
           </p>
-          <PlatformPreview target={buildReviewItemPreviewTarget(item)} />
+          {targetPreview ? <TargetPreview {...targetPreview} /> : null}
           {item.status === BatchItemStatus.FAILED && item.error ? (
             <p className="text-xs leading-5 text-destructive">{item.error}</p>
           ) : null}

@@ -5,7 +5,7 @@ import type { IBatchItem } from '@genfeedai/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
+import TargetPreview from '@ui/previews/TargetPreview';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -14,10 +14,11 @@ import {
 } from '@ui/primitives/popover';
 import { ArrowUpRight, PanelRightOpen } from 'lucide-react';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { buildReviewItemPreviewTarget } from './review-item.helpers';
+import { buildReviewItemTargetPreview } from './review-item.helpers';
 
 interface ReviewPostHoverPreviewProps {
   children: ReactNode;
@@ -37,8 +38,9 @@ export default function ReviewPostHoverPreview({
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.publishing.review.preview');
 
-  const previewTarget = buildReviewItemPreviewTarget(item);
+  const targetPreview = buildReviewItemTargetPreview(item);
   const postDetailHref = item.postId
     ? href(getPublishingPostHref(item.postId))
     : null;
@@ -111,11 +113,14 @@ export default function ReviewPostHoverPreview({
         side="right"
         sideOffset={10}
       >
-        <PlatformPreview
-          className="max-h-[28rem] overflow-y-auto"
-          emptyMessage="No preview available for this draft."
-          target={previewTarget}
-        />
+        {targetPreview ? (
+          <TargetPreview
+            {...targetPreview}
+            className="max-h-[28rem] overflow-y-auto"
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground">{translate('empty')}</p>
+        )}
         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
           <Button
             className="h-7 gap-1 px-2 text-xs"

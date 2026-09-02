@@ -2,7 +2,7 @@ import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildReviewItemPreviewTarget,
+  buildReviewItemTargetPreview,
   formatReviewItemStatus,
   getReviewItemBadgeStatus,
   getReviewItemTitle,
@@ -77,20 +77,22 @@ describe('review-item.helpers', () => {
     ).toBe(false);
   });
 
-  it('builds a preview target from the stored platform and media', () => {
-    const target = buildReviewItemPreviewTarget({
+  it('builds a target preview from the stored platform and media', () => {
+    const preview = buildReviewItemTargetPreview({
       ...baseItem,
       mediaUrl: 'https://cdn.example.com/media.jpg',
     });
 
-    expect(target.platform).toBe('twitter');
-    expect(target.caption).toBe('Ship it');
-    expect(target.title).toBe('Ship it');
-    expect(target.media).toEqual([
+    expect(preview?.target.platform).toBe('twitter');
+    expect(preview?.credential.platform).toBe('twitter');
+    expect(preview?.release.baseContent).toBe('Ship it');
+    expect(preview?.target.settings.caption).toBe('Ship it');
+    expect(preview?.release.title).toBe('Ship it');
+    expect(preview?.release.media).toEqual([
       {
-        id: 'item-1-media',
+        assetId: 'item-1-media',
         kind: 'image',
-        thumbnailUrl: 'https://cdn.example.com/media.jpg',
+        order: 0,
         url: 'https://cdn.example.com/media.jpg',
       },
     ]);
@@ -98,29 +100,50 @@ describe('review-item.helpers', () => {
 
   it('maps video-like formats onto preview media kinds', () => {
     const withFormat = (format: ContentFormat) =>
-      buildReviewItemPreviewTarget({
+      buildReviewItemTargetPreview({
         ...baseItem,
         format,
         mediaUrl: 'https://cdn.example.com/media.mp4',
       });
 
-    expect(withFormat(ContentFormat.REEL).media[0]?.kind).toBe('short_video');
-    expect(withFormat(ContentFormat.VIDEO).media[0]?.kind).toBe('video');
-    expect(withFormat(ContentFormat.CAROUSEL).media[0]?.kind).toBe('carousel');
-    expect(withFormat(ContentFormat.STORY).media[0]?.kind).toBe('image');
+    expect(withFormat(ContentFormat.REEL)?.release.media[0]?.kind).toBe(
+      'short_video',
+    );
+    expect(withFormat(ContentFormat.VIDEO)?.release.media[0]?.kind).toBe(
+      'video',
+    );
+    expect(withFormat(ContentFormat.CAROUSEL)?.release.media[0]?.kind).toBe(
+      'carousel',
+    );
+    expect(withFormat(ContentFormat.STORY)?.release.media[0]?.kind).toBe(
+      'image',
+    );
   });
 
-  it('falls back to the prompt caption and an unknown platform', () => {
-    const target = buildReviewItemPreviewTarget({
+  it('falls back to the prompt caption when there is no caption', () => {
+    const preview = buildReviewItemTargetPreview({
       ...baseItem,
       caption: '',
-      platform: undefined,
       prompt: 'Prompt text',
     });
 
-    expect(target.platform).toBe('unknown');
-    expect(target.caption).toBe('Prompt text');
-    expect(target.media).toEqual([]);
+    expect(preview?.release.baseContent).toBe('Prompt text');
+    expect(preview?.release.media).toEqual([]);
+  });
+
+  it('returns null when the platform cannot be resolved', () => {
+    expect(
+      buildReviewItemTargetPreview({
+        ...baseItem,
+        platform: undefined,
+      }),
+    ).toBeNull();
+    expect(
+      buildReviewItemTargetPreview({
+        ...baseItem,
+        platform: 'not-a-real-platform',
+      }),
+    ).toBeNull();
   });
 
   it('maps badge status tokens without overriding product labels', () => {

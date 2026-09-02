@@ -571,6 +571,9 @@
         "variant": "Variant",
         "workflow": "Workflow",
         "workflowRun": "Workflow run"
+      },
+      "preview": {
+        "empty": "No preview available for this draft."
       }
     }
   },

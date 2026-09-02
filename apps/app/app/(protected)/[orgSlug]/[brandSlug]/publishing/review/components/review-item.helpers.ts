@@ -1,7 +1,17 @@
-import type { ChannelMediaKind } from '@api-types/contracts';
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
-import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview';
+import {
+  BatchItemStatus,
+  ContentFormat,
+  PostVisibility,
+  parsePlatform,
+  ReleaseTargetSource,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
+  TargetExecutionState,
+  TargetValidationState,
+} from '@genfeedai/enums';
+import type { IBatchItem, IReleaseMediaReference } from '@genfeedai/interfaces';
+import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 
 import {
   isApproved,
@@ -71,7 +81,7 @@ export function isReviewItemSelectable(item: IBatchItem): boolean {
   return isReadyToReview(item);
 }
 
-function resolveReviewItemMediaKind(item: IBatchItem): ChannelMediaKind {
+function resolveReviewItemMediaKind(item: IBatchItem): string {
   const format = String(item.format ?? '').toLowerCase();
   if (format === ContentFormat.REEL || format.includes('reel')) {
     return 'short_video';
@@ -85,29 +95,86 @@ function resolveReviewItemMediaKind(item: IBatchItem): ChannelMediaKind {
   return 'image';
 }
 
+function buildReviewItemMedia(item: IBatchItem): IReleaseMediaReference[] {
+  if (!item.mediaUrl) {
+    return [];
+  }
+
+  return [
+    {
+      assetId: `${item.id}-media`,
+      kind: resolveReviewItemMediaKind(item),
+      order: 0,
+      url: item.mediaUrl,
+    },
+  ];
+}
+
 /**
  * One preview contract for every review surface (hover card, Context rail).
- * Prefer the stored platform and never invent one — PlatformPreview
- * canonicalises aliases and falls back to its generic renderer.
+ * Prefer the stored platform and never invent one — an unresolvable platform
+ * returns `null` so callers can skip rendering a preview entirely.
+ *
+ * The fabricated `IChannelTarget` fields below (validation/execution/analytics
+ * state, retry count, ordering, ...) are never read by any preview renderer —
+ * only `settings.caption`, `platform`, and `attachments` are — so they carry
+ * inert defaults purely to satisfy the shared contract's type.
  */
-export function buildReviewItemPreviewTarget(
+export function buildReviewItemTargetPreview(
   item: IBatchItem,
-): PlatformPreviewTarget {
+): TargetPreviewProps | null {
+  const platform = parsePlatform(item.platform);
+  if (!platform) {
+    return null;
+  }
+
   const title = getReviewItemTitle(item);
+  const caption = item.caption?.trim() || item.prompt?.trim() || title;
 
   return {
-    caption: item.caption?.trim() || item.prompt?.trim() || title,
-    media: item.mediaUrl
-      ? [
-          {
-            id: `${item.id}-media`,
-            kind: resolveReviewItemMediaKind(item),
-            thumbnailUrl: item.mediaUrl,
-            url: item.mediaUrl,
-          },
-        ]
-      : [],
-    platform: item.platform?.trim() || 'unknown',
-    title,
+    credential: {
+      externalAvatar: null,
+      externalHandle: undefined,
+      externalName: undefined,
+      label: undefined,
+      platform,
+    },
+    release: {
+      attachments: [],
+      baseContent: caption,
+      media: buildReviewItemMedia(item),
+      title,
+    },
+    target: {
+      analytics: {
+        collection: {
+          capability: TargetAnalyticsCapability.UNSUPPORTED,
+          error: null,
+          freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+          lastCollectedAt: null,
+          requestedAt: null,
+          state: TargetAnalyticsCollectionState.PENDING,
+        },
+        snapshot: null,
+        state: 'unavailable',
+      },
+      attachments: [],
+      createdAt: item.createdAt,
+      credentialId: '',
+      executionState: TargetExecutionState.DRAFT,
+      id: `${item.id}-target`,
+      isDeleted: false,
+      order: 0,
+      platform,
+      releaseId: item.batchId,
+      retryCount: 0,
+      settings: { caption },
+      source: ReleaseTargetSource.MANUAL,
+      timezone: 'UTC',
+      updatedAt: item.createdAt,
+      validationIssues: [],
+      validationState: TargetValidationState.PENDING,
+      visibility: PostVisibility.PUBLIC,
+    },
   };
 }

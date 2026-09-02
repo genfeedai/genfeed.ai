@@ -12,6 +12,7 @@ import {
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
 import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar.props';
+import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -22,7 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { Repeat2 } from 'lucide-react';
+import { Eye, EyeOff, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReleaseAnalyticsTable from './release-analytics-table';
@@ -124,6 +125,7 @@ export default function ReleaseDetailDrawer({
 }: ReleaseDetailDrawerProps): React.JSX.Element {
   const [releaseDate, setReleaseDate] = useState('');
   const [targetDates, setTargetDates] = useState<Record<string, string>>({});
+  const [previewTargetId, setPreviewTargetId] = useState<string | null>(null);
 
   // Re-seed whenever the drawer is pointed at a different release, or the same
   // release comes back from the server with new instants after a mutation.
@@ -134,6 +136,7 @@ export default function ReleaseDetailDrawer({
         : '',
     );
     setTargetDates(seedTargetDates(release));
+    setPreviewTargetId(null);
   }, [release]);
 
   const isPending = pendingAction !== null;
@@ -256,6 +259,7 @@ export default function ReleaseDetailDrawer({
                 const rescheduleAction = targetRescheduleAction(target.id);
                 const retryAction = targetRetryAction(target.id);
                 const inputLabel = `${targetLabel(target)} time`;
+                const isPreviewOpen = previewTargetId === target.id;
 
                 return (
                   <article
@@ -273,7 +277,35 @@ export default function ReleaseDetailDrawer({
                         {validation.label}
                       </Badge>
                       <Badge variant="secondary">{target.source}</Badge>
+                      <Button
+                        ariaLabel={`${isPreviewOpen ? 'Hide' : 'Preview'} ${targetLabel(target)} target`}
+                        className="ml-auto"
+                        icon={
+                          isPreviewOpen ? (
+                            <EyeOff className="size-3.5" />
+                          ) : (
+                            <Eye className="size-3.5" />
+                          )
+                        }
+                        label={isPreviewOpen ? 'Hide preview' : 'Preview'}
+                        onClick={() =>
+                          setPreviewTargetId(isPreviewOpen ? null : target.id)
+                        }
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.SECONDARY}
+                      />
                     </div>
+
+                    {isPreviewOpen && release ? (
+                      <TargetPreview
+                        className="max-w-sm"
+                        credential={
+                          target.credential ?? { platform: target.platform }
+                        }
+                        release={release}
+                        target={target}
+                      />
+                    ) : null}
 
                     {target.validationIssues.length > 0 ? (
                       <ol className="space-y-1 text-xs text-muted-foreground">
