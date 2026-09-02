@@ -559,7 +559,7 @@ describe('WorkflowExecutorService', () => {
       lockedNodeIds: [],
       nodes: [
         createExecutableActionNode({
-          actionId: 'generate-image',
+          actionId: 'content.pipeline.generate-image',
           id: 'generate-node',
           label: 'Generate',
         }),
