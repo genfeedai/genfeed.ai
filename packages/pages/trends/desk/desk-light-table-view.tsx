@@ -89,7 +89,7 @@ function DeskLightCard({
               'absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white' /* design-system-allow-content-color */
             }
           >
-            Video
+            {translateCard('videoBadge')}
           </span>
         ) : null}
         <div
@@ -125,9 +125,15 @@ function DeskLightCard({
         <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-foreground/60">
           <span className="inline-flex items-center gap-1">
             <Zap className="size-3" />
-            {formatCompactNumber(item.velocity)}/h
+            {translateCard('velocityPerHour', {
+              value: formatCompactNumber(item.velocity),
+            })}
           </span>
-          <span>{formatCompactNumber(item.engagement)} engagement</span>
+          <span>
+            {translateCard('engagementCount', {
+              value: formatCompactNumber(item.engagement),
+            })}
+          </span>
         </div>
 
         <div

@@ -415,16 +415,16 @@ export default function ReleasePostsList({
       {data.releases.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
           <span className="flex items-center gap-1">
-            <Kbd>j</Kbd>
-            <Kbd>k</Kbd>
+            <Kbd>{translateRail('keys.jKey')}</Kbd>
+            <Kbd>{translateRail('keys.kKey')}</Kbd>
             {translateRail('keys.next')}
           </span>
           <span className="flex items-center gap-1">
-            <Kbd>Enter</Kbd>
+            <Kbd>{translateRail('keys.enterKey')}</Kbd>
             {translateRail('keys.open')}
           </span>
           <span className="flex items-center gap-1">
-            <Kbd>r</Kbd>
+            <Kbd>{translateRail('keys.rKey')}</Kbd>
             {translateRail('keys.refresh')}
           </span>
         </div>

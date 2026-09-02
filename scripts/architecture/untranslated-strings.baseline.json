@@ -395,7 +395,6 @@
     "packages/pages/trainings/list/components/TrainingsErrorState.tsx": 1,
     "packages/pages/trainings/list/trainings-list.tsx": 1,
     "packages/pages/trends/list/components/HookRemixModal.tsx": 6,
-    "packages/pages/trends/list/trends-list.tsx": 8,
     "packages/pages/trends/platform-detail/components/trends-platform-related-sections.tsx": 6,
     "packages/pages/trends/platform-detail/trends-platform-detail.tsx": 6,
     "packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx": 7,
