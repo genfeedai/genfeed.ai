@@ -42,9 +42,7 @@ describe('YouTubePreview', () => {
       />,
     );
 
-    expect(
-      screen.getAllByText('How Genfeed ships previews').length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('How Genfeed ships previews')).toBeInTheDocument();
   });
 
   it('renders media at the YouTube 16:9 aspect', () => {

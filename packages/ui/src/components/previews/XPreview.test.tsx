@@ -42,7 +42,7 @@ describe('XPreview', () => {
     );
 
     expect(screen.getByText(`${'x'.repeat(280)}...`)).toBeInTheDocument();
-    expect(screen.getByText('300/280')).toBeInTheDocument();
+    expect(screen.getByText('280/280')).toBeInTheDocument();
   });
 
   it('renders media at the X 16:9 aspect', () => {

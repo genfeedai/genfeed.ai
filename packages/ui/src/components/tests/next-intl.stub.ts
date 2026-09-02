@@ -69,13 +69,6 @@ const UI_TEST_MESSAGES = {
       fit: 'Fit',
       fitBoard: 'Fit board',
       loading: 'Loading… {count} so far',
-      noPreview: 'No preview',
-      videoBadge: 'Video',
-    },
-    selectionActions: {
-      count: '{count} selected',
-      download: 'Download',
-      merge: 'Merge',
     },
     libraryRetry: {
       genericFailureReason: 'Generation failed.',

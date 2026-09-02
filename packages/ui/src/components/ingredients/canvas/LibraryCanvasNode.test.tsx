@@ -6,11 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { LibraryCanvasNode } from './LibraryCanvasNode';
 import type { LibraryCanvasNodeProps } from './library-canvas.types';
 
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
-});
-
 vi.mock('next/image', () => ({
   default: ({
     alt = '',

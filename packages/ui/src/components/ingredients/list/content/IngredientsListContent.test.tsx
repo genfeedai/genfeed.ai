@@ -18,11 +18,6 @@ const { setSelectedAsset } = vi.hoisted(() => ({
 // The grid hands its single selection to the shared asset selection, and the
 // library surface adapter renders the rail from there. Stubbing the context is
 // what lets this test assert the handoff instead of the rail's markup.
-vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
-});
-
 vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
   useAssetSelection: () => ({ setSelectedAsset }),
 }));
@@ -53,9 +48,7 @@ vi.mock('next/dynamic', () => ({
     }: {
       ingredients: IIngredient[];
     }) {
-      return (
-        <div data-testid="library-canvas">{(ingredients ?? []).length}</div>
-      );
+      return <div data-testid="library-canvas">{ingredients.length}</div>;
     }
 
     return LibraryCanvasStub;
@@ -362,8 +355,7 @@ describe('IngredientsListContent generation ledger columns', () => {
       .map((header) => header.textContent);
 
     // The first header is the selectable checkbox column, owned by AppTable
-    // itself — the ledger contract is the remaining columns, ending in the
-    // unlabeled actions header.
+    // itself — the ledger contract is the remaining seven.
     expect(headers.slice(1)).toEqual([
       '',
       'Asset',
@@ -372,7 +364,6 @@ describe('IngredientsListContent generation ledger columns', () => {
       'Size',
       'Created',
       'Status',
-      '',
     ]);
   });
 
