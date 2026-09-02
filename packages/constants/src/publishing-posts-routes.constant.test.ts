@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createPublishingPostsFilterRoute,
   PUBLISHING_POSTS_QUERY_KEYS,
+  parsePublishingPostsViewMode,
 } from './publishing-posts-routes.constant';
 import { APP_ROUTES } from './routes.constant';
 
@@ -38,5 +39,22 @@ describe('publishing-posts-routes.constant', () => {
     ).toBe(
       `${APP_ROUTES.PUBLISHING.POSTS}?${PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE}=not-posted&${PUBLISHING_POSTS_QUERY_KEYS.STATUS}=needs%20review`,
     );
+  });
+});
+
+describe('parsePublishingPostsViewMode', () => {
+  it.each(['list', 'board'] as const)('accepts the %s view', (view) => {
+    expect(parsePublishingPostsViewMode(view)).toBe(view);
+  });
+
+  it('falls back to list for a missing value', () => {
+    expect(parsePublishingPostsViewMode(undefined)).toBe('list');
+    expect(parsePublishingPostsViewMode(null)).toBe('list');
+  });
+
+  it('falls back to list for an unknown value', () => {
+    expect(parsePublishingPostsViewMode('grid')).toBe('list');
+    expect(parsePublishingPostsViewMode('kanban')).toBe('list');
+    expect(parsePublishingPostsViewMode('')).toBe('list');
   });
 });

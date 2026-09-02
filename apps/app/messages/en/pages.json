@@ -512,6 +512,10 @@
           "description": "Posts already live on at least one destination platform.",
           "title": "Posted"
         }
+      },
+      "viewToggle": {
+        "board": "Board",
+        "list": "List"
       }
     }
   },
