@@ -9,6 +9,7 @@ import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 interface PlatformHeat {
@@ -65,6 +66,7 @@ export default function DeskHeatStrip({
   publishingHref: string;
   summary: TrendsSummary;
 }) {
+  const translateCard = useTranslations('common.trends.card');
   const heat = useMemo(
     () => buildPlatformHeat(items, summary),
     [items, summary],
@@ -112,7 +114,10 @@ export default function DeskHeatStrip({
             <span className="text-foreground/45">{count}</span>
             {topVelocity > 0 ? (
               <span className="text-foreground/45">
-                · {formatCompactNumber(topVelocity)}/h
+                ·{' '}
+                {translateCard('velocityPerHour', {
+                  value: formatCompactNumber(topVelocity),
+                })}
               </span>
             ) : null}
           </Button>

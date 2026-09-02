@@ -1,5 +1,5 @@
 import type { IReleaseGroup } from '@genfeedai/interfaces';
-import type { ReleaseRailSegment } from '@pages/posts/rail/release-rail-segments';
+import type { ReleaseRailSegment } from '@pages/posts/rail/release-rail-segments.helpers';
 
 export interface ReleaseRailSegmentsProps {
   counts?: Partial<Record<ReleaseRailSegment, number>>;
