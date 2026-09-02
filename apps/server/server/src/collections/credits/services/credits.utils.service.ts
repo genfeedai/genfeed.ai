@@ -30,6 +30,34 @@ import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.u
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
+type DeductCreditsCoreInput = {
+  creditsToDeduct: number;
+  description: string;
+  options: IDeductCreditsOptions | undefined;
+  organizationId: string;
+  source: ActivitySource;
+  url: string;
+  userId: string;
+};
+
+type AddCreditsCoreInput = {
+  creditsToAdd: number;
+  description: string;
+  expiresAt: Date;
+  options: IAddCreditsOptions | undefined;
+  organizationId: string;
+  source: string;
+};
+
+type CreditDeductionResult = {
+  newBalance: number;
+  wasApplied: boolean;
+};
+
+type CreditAdditionResult = CreditDeductionResult & {
+  currentBalance: number;
+};
+
 /**
  * Metered credits utility service — the real ledger, bound when
  * `usesMeteredCredits()` is true (SaaS cloud or licensed self-host). The
@@ -109,124 +137,21 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core deduction logic always runs inside the required serializable transaction.
-      const deductCore = async (tx?: PrismaTransactionClient) => {
-        if (options?.idempotencyKey) {
-          const idempotencyWhere = {
-            idempotencyKey: options.idempotencyKey,
-            isDeleted: false,
-          };
-          const findExistingByIdempotencyKey = () => {
-            if (tx) {
-              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              return tx.creditTransaction.findFirst({
-                where: idempotencyWhere,
-              });
-            }
-            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-            return this.prisma.creditTransaction.findFirst({
-              where: idempotencyWhere,
-            });
-          };
-          const existingByIdempotencyKey = await findExistingByIdempotencyKey();
-          if (existingByIdempotencyKey) {
-            return {
-              newBalance: existingByIdempotencyKey.balanceAfter ?? 0,
-              wasApplied: false,
-            };
-          }
-        }
-
-        if (options?.referenceId && options.referenceType) {
-          const existingTransaction = tx
-            ? await tx.creditTransaction.findFirst({
-                where: scopedWhere(organizationId, {
-                  category: CreditTransactionCategory.DEDUCT,
-                  referenceId: options.referenceId,
-                  referenceType: options.referenceType,
-                }),
-              })
-            : await this.creditTransactionsService.findOne(
-                scopedWhere(organizationId, {
-                  category: CreditTransactionCategory.DEDUCT,
-                  referenceId: options.referenceId,
-                  referenceType: options.referenceType,
-                }),
-              );
-
-          if (existingTransaction) {
-            this.loggerService.log(
-              `${url} credit deduction already recorded for reference`,
-              {
-                organizationId,
-                referenceId: options.referenceId,
-                referenceType: options.referenceType,
-              },
-            );
-            return {
-              newBalance: await this.getOrganizationCreditsBalance(
-                organizationId,
-                tx,
-              ),
-              wasApplied: false,
-            };
-          }
-        }
-
-        const currentBalance = await this.getOrganizationCreditsBalance(
-          organizationId,
-          tx,
-        );
-        const maxOverdraftCredits = Math.max(
-          0,
-          options?.maxOverdraftCredits || 0,
-        );
-        const account =
-          await this.billingAccountsService.resolveForOrganization(
-            organizationId,
-          );
-        const snapshot = await this.creditBalanceService.applyDelta(
-          organizationId,
-          {
-            balanceDelta: -creditsToDeduct,
-            billingAccountId: account.id,
-            maxOverdraftCredits,
-          },
-          tx,
-        );
-        const newBalance = snapshot.available;
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.DEDUCT,
-          creditsToDeduct,
-          currentBalance,
-          newBalance,
-          source,
-          description,
-          undefined,
-          tx,
-          {
-            actorUserId: userId,
-            billingAccountId: account.id,
-            ...(options?.idempotencyKey
-              ? { idempotencyKey: options.idempotencyKey }
-              : {}),
-            ...(options?.metadata ? { metadata: options.metadata } : {}),
-            ...(options?.referenceId
-              ? { referenceId: options.referenceId }
-              : {}),
-            ...(options?.referenceType
-              ? { referenceType: options.referenceType }
-              : {}),
-          },
-        );
-
-        return { newBalance, wasApplied: true };
-      };
-
       const { newBalance, wasApplied } =
         await this.transactionUtil.runInTransaction(
-          (tx) => deductCore(tx),
+          (tx) =>
+            this.deductCreditsCore(
+              {
+                creditsToDeduct,
+                description,
+                options,
+                organizationId,
+                source,
+                url,
+                userId,
+              },
+              tx,
+            ),
           CreditsUtilsService.BALANCE_TX_OPTIONS,
         );
 
@@ -277,6 +202,111 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
       throw error;
     }
+  }
+
+  private async deductCreditsCore(
+    input: DeductCreditsCoreInput,
+    tx?: PrismaTransactionClient,
+  ): Promise<CreditDeductionResult> {
+    const existingByIdempotencyKey = input.options?.idempotencyKey
+      ? await this.findTransactionByIdempotencyKey(
+          input.options.idempotencyKey,
+          tx,
+        )
+      : null;
+    if (existingByIdempotencyKey) {
+      return {
+        newBalance: existingByIdempotencyKey.balanceAfter ?? 0,
+        wasApplied: false,
+      };
+    }
+
+    if (input.options?.referenceId && input.options.referenceType) {
+      const existingTransaction = tx
+        ? await tx.creditTransaction.findFirst({
+            where: scopedWhere(input.organizationId, {
+              category: CreditTransactionCategory.DEDUCT,
+              referenceId: input.options.referenceId,
+              referenceType: input.options.referenceType,
+            }),
+          })
+        : await this.creditTransactionsService.findOne(
+            scopedWhere(input.organizationId, {
+              category: CreditTransactionCategory.DEDUCT,
+              referenceId: input.options.referenceId,
+              referenceType: input.options.referenceType,
+            }),
+          );
+
+      if (existingTransaction) {
+        this.loggerService.log(
+          `${input.url} credit deduction already recorded for reference`,
+          {
+            organizationId: input.organizationId,
+            referenceId: input.options.referenceId,
+            referenceType: input.options.referenceType,
+          },
+        );
+        return {
+          newBalance: await this.getOrganizationCreditsBalance(
+            input.organizationId,
+            tx,
+          ),
+          wasApplied: false,
+        };
+      }
+    }
+
+    const currentBalance = await this.getOrganizationCreditsBalance(
+      input.organizationId,
+      tx,
+    );
+    const maxOverdraftCredits = Math.max(
+      0,
+      input.options?.maxOverdraftCredits || 0,
+    );
+    const account = await this.billingAccountsService.resolveForOrganization(
+      input.organizationId,
+    );
+    const snapshot = await this.creditBalanceService.applyDelta(
+      input.organizationId,
+      {
+        balanceDelta: -input.creditsToDeduct,
+        billingAccountId: account.id,
+        maxOverdraftCredits,
+      },
+      tx,
+    );
+    const newBalance = snapshot.available;
+    await this.creditTransactionsService.createTransactionEntry(
+      input.organizationId,
+      CreditTransactionCategory.DEDUCT,
+      input.creditsToDeduct,
+      currentBalance,
+      newBalance,
+      input.source,
+      input.description,
+      undefined,
+      tx,
+      {
+        actorUserId: input.userId,
+        billingAccountId: account.id,
+        ...(input.options?.idempotencyKey
+          ? { idempotencyKey: input.options.idempotencyKey }
+          : {}),
+        ...(input.options?.metadata
+          ? { metadata: input.options.metadata }
+          : {}),
+        ...(input.options?.referenceId
+          ? { referenceId: input.options.referenceId }
+          : {}),
+        ...(input.options?.referenceType
+          ? { referenceType: input.options.referenceType }
+          : {}),
+      },
+    );
+
+    return { newBalance, wasApplied: true };
   }
 
   async checkOrganizationCreditsAvailable(
@@ -378,97 +408,20 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core add logic always runs inside the required serializable transaction.
-      const addCore = async (tx?: PrismaTransactionClient) => {
-        if (options?.idempotencyKey) {
-          const idempotencyWhere = {
-            idempotencyKey: options.idempotencyKey,
-            isDeleted: false,
-          };
-          const findExistingByIdempotencyKey = () => {
-            if (tx) {
-              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              return tx.creditTransaction.findFirst({
-                where: idempotencyWhere,
-              });
-            }
-            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-            return this.prisma.creditTransaction.findFirst({
-              where: idempotencyWhere,
-            });
-          };
-          const existing = await findExistingByIdempotencyKey();
-          if (existing) {
-            return {
-              currentBalance: existing.balanceAfter ?? 0,
-              newBalance: existing.balanceAfter ?? 0,
-              wasApplied: false,
-            };
-          }
-        }
-
-        const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
-        const currentBalance = wallet.available;
-
-        const newBalance = currentBalance + creditsToAdd;
-        const transactionOptions =
-          options?.idempotencyKey ||
-          options?.referenceId ||
-          options?.referenceType ||
-          options?.metadata
-            ? {
-                ...(options.idempotencyKey
-                  ? { idempotencyKey: options.idempotencyKey }
-                  : {}),
-                ...(options.metadata ? { metadata: options.metadata } : {}),
-                ...(options.referenceId
-                  ? { referenceId: options.referenceId }
-                  : {}),
-                ...(options.referenceType
-                  ? { referenceType: options.referenceType }
-                  : {}),
-              }
-            : undefined;
-
-        await this.creditBalanceService.updateBalance(
-          organizationId,
-          newBalance,
-          wallet.billingAccountId,
-          tx,
-        );
-        if (transactionOptions) {
-          await this.creditTransactionsService.createTransactionEntry(
-            organizationId,
-            CreditTransactionCategory.ADD,
-            creditsToAdd,
-            currentBalance,
-            newBalance,
-            source,
-            description,
-            expiresAt,
-            tx,
-            transactionOptions,
-          );
-        } else {
-          await this.creditTransactionsService.createTransactionEntry(
-            organizationId,
-            CreditTransactionCategory.ADD,
-            creditsToAdd,
-            currentBalance,
-            newBalance,
-            source,
-            description,
-            expiresAt,
-            tx,
-          );
-        }
-
-        return { currentBalance, newBalance, wasApplied: true };
-      };
-
       const { currentBalance, newBalance, wasApplied } =
         await this.transactionUtil.runInTransaction(
-          (tx) => addCore(tx),
+          (tx) =>
+            this.addCreditsCore(
+              {
+                creditsToAdd,
+                description,
+                expiresAt,
+                options,
+                organizationId,
+                source,
+              },
+              tx,
+            ),
           CreditsUtilsService.BALANCE_TX_OPTIONS,
         );
 
@@ -511,6 +464,95 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
       throw error;
     }
+  }
+
+  private async addCreditsCore(
+    input: AddCreditsCoreInput,
+    tx?: PrismaTransactionClient,
+  ): Promise<CreditAdditionResult> {
+    const existing = input.options?.idempotencyKey
+      ? await this.findTransactionByIdempotencyKey(
+          input.options.idempotencyKey,
+          tx,
+        )
+      : null;
+    if (existing) {
+      return {
+        currentBalance: existing.balanceAfter ?? 0,
+        newBalance: existing.balanceAfter ?? 0,
+        wasApplied: false,
+      };
+    }
+
+    const wallet = await this.getBillingWalletSnapshot(
+      input.organizationId,
+      tx,
+    );
+    const currentBalance = wallet.available;
+    const newBalance = currentBalance + input.creditsToAdd;
+    const transactionOptions =
+      input.options?.idempotencyKey ||
+      input.options?.referenceId ||
+      input.options?.referenceType ||
+      input.options?.metadata
+        ? {
+            ...(input.options.idempotencyKey
+              ? { idempotencyKey: input.options.idempotencyKey }
+              : {}),
+            ...(input.options.metadata
+              ? { metadata: input.options.metadata }
+              : {}),
+            ...(input.options.referenceId
+              ? { referenceId: input.options.referenceId }
+              : {}),
+            ...(input.options.referenceType
+              ? { referenceType: input.options.referenceType }
+              : {}),
+          }
+        : undefined;
+
+    await this.creditBalanceService.updateBalance(
+      input.organizationId,
+      newBalance,
+      wallet.billingAccountId,
+      tx,
+    );
+    const transactionArgs = [
+      input.organizationId,
+      CreditTransactionCategory.ADD,
+      input.creditsToAdd,
+      currentBalance,
+      newBalance,
+      input.source,
+      input.description,
+      input.expiresAt,
+      tx,
+    ] as const;
+    if (transactionOptions) {
+      await this.creditTransactionsService.createTransactionEntry(
+        ...transactionArgs,
+        transactionOptions,
+      );
+    } else {
+      await this.creditTransactionsService.createTransactionEntry(
+        ...transactionArgs,
+      );
+    }
+
+    return { currentBalance, newBalance, wasApplied: true };
+  }
+
+  private findTransactionByIdempotencyKey(
+    idempotencyKey: string,
+    tx?: PrismaTransactionClient,
+  ) {
+    const where = { idempotencyKey, isDeleted: false };
+    if (tx) {
+      // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+      return tx.creditTransaction.findFirst({ where });
+    }
+    // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+    return this.prisma.creditTransaction.findFirst({ where });
   }
 
   async refundOrganizationCredits(
