@@ -34,6 +34,19 @@ export interface AgentChatRegistryRow {
 
 const CACHE_TTL_MS = 30_000;
 
+function toDomainLifecycle(value: string): ModelLifecycle {
+  switch (value) {
+    case ModelLifecycle.RECOMMENDED:
+      return ModelLifecycle.RECOMMENDED;
+    case ModelLifecycle.LEGACY:
+      return ModelLifecycle.LEGACY;
+    case ModelLifecycle.RETIRED:
+      return ModelLifecycle.RETIRED;
+    default:
+      return ModelLifecycle.AVAILABLE;
+  }
+}
+
 @Injectable()
 export class AgentChatModelRegistryService implements OnModuleInit {
   private readonly context = { service: AgentChatModelRegistryService.name };
@@ -89,7 +102,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         label: row.label,
         provider: row.provider,
         succeededBy: row.succeededBy,
-        lifecycle: row.lifecycle,
+        lifecycle: toDomainLifecycle(row.lifecycle),
         reviewStatus: row.reviewStatus,
       });
     }

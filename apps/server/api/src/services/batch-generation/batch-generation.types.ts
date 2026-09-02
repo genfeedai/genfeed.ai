@@ -125,7 +125,7 @@ export type BatchItemTypedRow = {
   isDeleted?: boolean;
 };
 
-export type BatchWithConfig = Batch & {
+export type BatchWithConfig = Omit<Batch, 'config' | 'items'> & {
   batchItems?: BatchItemTypedRow[];
   config: BatchConfig;
   items: BatchItemFull[];
