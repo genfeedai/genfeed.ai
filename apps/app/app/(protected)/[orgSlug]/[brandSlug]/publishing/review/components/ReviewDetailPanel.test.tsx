@@ -73,25 +73,24 @@ describe('ReviewDetailPanel', () => {
       mediaUrl: 'https://cdn.example.com/media.jpg',
     });
 
-    // Outer section ("Platform preview") plus the platform-specific article.
+    expect(screen.getByText('Preview')).toBeInTheDocument();
     expect(
-      screen.getAllByLabelText(/platform preview$/i).length,
-    ).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Ship the review rail')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('platform-preview-media-item-1-media'),
+      screen.getByLabelText('twitter platform preview'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Ship the review rail')).toBeInTheDocument();
+    expect(screen.getByTestId('preview-media')).toBeInTheDocument();
   });
 
-  it('falls back to the approximate preview when no platform is stored', () => {
+  it('skips the platform renderer when no platform is stored', () => {
     renderPanel({
       ...baseItem,
       platform: undefined,
     });
 
+    expect(screen.getByText('Preview')).toBeInTheDocument();
     expect(
-      screen.getAllByText('Approximate preview').length,
-    ).toBeGreaterThanOrEqual(1);
+      screen.queryByLabelText(/platform preview$/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('No media on this draft yet')).toBeInTheDocument();
   });
 });
