@@ -44,21 +44,3 @@ export const DEFAULT_ENGAGEMENT_TRIGGER_DATA: Partial<EngagementTriggerNodeData>
     threshold: 100,
     type: 'engagementTrigger',
   };
-
-export const engagementTriggerNodeDefinition = {
-  category: 'trigger' as const,
-  defaultData: DEFAULT_ENGAGEMENT_TRIGGER_DATA,
-  description: 'Start workflow when engagement metrics hit a threshold',
-  icon: 'BarChart2',
-  inputs: [],
-  label: 'Engagement Trigger',
-  outputs: [
-    { id: 'postId', label: 'Post ID', type: 'text' },
-    { id: 'postUrl', label: 'Post URL', type: 'text' },
-    { id: 'metricType', label: 'Metric Type', type: 'text' },
-    { id: 'currentValue', label: 'Current Value', type: 'number' },
-    { id: 'threshold', label: 'Threshold', type: 'number' },
-    { id: 'platform', label: 'Platform', type: 'text' },
-  ],
-  type: 'engagementTrigger',
-};

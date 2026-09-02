@@ -57,21 +57,3 @@ export const DEFAULT_TREND_VIDEO_INSPIRATION_DATA: Partial<TrendVideoInspiration
     style: null,
     trendId: null,
   };
-
-export const trendVideoInspirationNodeDefinition = {
-  category: 'ai' as const,
-  defaultData: DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
-  description: 'Extract generation prompt from trending video',
-  icon: 'Sparkles',
-  inputs: [{ id: 'trendId', label: 'Trend ID', optional: true, type: 'text' }],
-  label: 'Trend Video Inspiration',
-  outputs: [
-    { id: 'prompt', label: 'Prompt', type: 'text' },
-    { id: 'hashtags', label: 'Hashtags', type: 'text[]' },
-    { id: 'soundId', label: 'Sound ID', type: 'text' },
-    { id: 'duration', label: 'Duration (s)', type: 'number' },
-    { id: 'aspectRatio', label: 'Aspect Ratio', type: 'text' },
-    { id: 'style', label: 'Style', type: 'text' },
-  ],
-  type: 'trendVideoInspiration',
-};

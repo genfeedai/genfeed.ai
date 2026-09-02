@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ReportDeliveryExecutor } from '../../engine/executors/saas/report-delivery-executor';
 import { SocialReadExecutor } from '../../engine/executors/saas/social-read-executor';
 import { DEFAULT_CREDIT_COSTS } from '../../engine/utils/credit-calculator';
-import { SAAS_NODE_DEFINITIONS } from './saas-definitions';
+import { ACTION_NODE_DEFINITIONS } from './action-node-definitions';
 
 const REQUIRED_PALETTE_NODES = ['socialRead', 'reportDelivery'] as const;
 
@@ -16,11 +16,13 @@ const PALETTE_EXECUTORS = {
 } as const;
 
 describe('palette parity (#2664)', () => {
-  it('exposes socialRead and reportDelivery in the SaaS registry', () => {
+  it('exposes socialRead and reportDelivery in the generated catalog', () => {
     for (const type of REQUIRED_PALETTE_NODES) {
-      expect(SAAS_NODE_DEFINITIONS[type], type).toBeDefined();
-      expect(SAAS_NODE_DEFINITIONS[type].label.length).toBeGreaterThan(0);
-      expect(SAAS_NODE_DEFINITIONS[type].description.length).toBeGreaterThan(0);
+      expect(ACTION_NODE_DEFINITIONS[type], type).toBeDefined();
+      expect(ACTION_NODE_DEFINITIONS[type].label.length).toBeGreaterThan(0);
+      expect(ACTION_NODE_DEFINITIONS[type].description.length).toBeGreaterThan(
+        0,
+      );
     }
   });
 
@@ -35,8 +37,8 @@ describe('palette parity (#2664)', () => {
   });
 
   it('keeps socialRead as input and reportDelivery as output', () => {
-    expect(SAAS_NODE_DEFINITIONS.socialRead.category).toBe('input');
-    expect(SAAS_NODE_DEFINITIONS.reportDelivery.category).toBe('output');
+    expect(ACTION_NODE_DEFINITIONS.socialRead.category).toBe('input');
+    expect(ACTION_NODE_DEFINITIONS.reportDelivery.category).toBe('output');
   });
 
   it('pairs every required palette node with an executor class and cost', () => {

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_KEYWORD_TRIGGER_DATA,
-  keywordTriggerNodeDefinition,
-} from './keyword-trigger';
+import { DEFAULT_KEYWORD_TRIGGER_DATA } from './keyword-trigger';
 
 describe('keyword-trigger node', () => {
   describe('DEFAULT_KEYWORD_TRIGGER_DATA', () => {
@@ -39,38 +36,6 @@ describe('keyword-trigger node', () => {
       expect(DEFAULT_KEYWORD_TRIGGER_DATA.lastPostId).toBeNull();
       expect(DEFAULT_KEYWORD_TRIGGER_DATA.lastTriggeredAt).toBeNull();
       expect(DEFAULT_KEYWORD_TRIGGER_DATA.lastMatchedKeyword).toBeNull();
-    });
-  });
-
-  describe('keywordTriggerNodeDefinition', () => {
-    it('should have type keywordTrigger', () => {
-      expect(keywordTriggerNodeDefinition.type).toBe('keywordTrigger');
-    });
-
-    it('should be in trigger category', () => {
-      expect(keywordTriggerNodeDefinition.category).toBe('trigger');
-    });
-
-    it('should have label Keyword Trigger', () => {
-      expect(keywordTriggerNodeDefinition.label).toBe('Keyword Trigger');
-    });
-
-    it('should have no inputs (trigger node)', () => {
-      expect(keywordTriggerNodeDefinition.inputs).toEqual([]);
-    });
-
-    it('should output post details and matched keyword', () => {
-      const outputIds = keywordTriggerNodeDefinition.outputs.map((o) => o.id);
-      expect(outputIds).toContain('postId');
-      expect(outputIds).toContain('text');
-      expect(outputIds).toContain('matchedKeyword');
-      expect(outputIds).toContain('platform');
-    });
-
-    it('should reference default data', () => {
-      expect(keywordTriggerNodeDefinition.defaultData).toBe(
-        DEFAULT_KEYWORD_TRIGGER_DATA,
-      );
     });
   });
 });

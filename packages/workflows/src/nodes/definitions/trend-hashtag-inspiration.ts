@@ -47,19 +47,3 @@ export const DEFAULT_TREND_HASHTAG_INSPIRATION_DATA: Partial<TrendHashtagInspira
     sourceHashtag: null,
     status: 'idle',
   };
-
-export const trendHashtagInspirationNodeDefinition = {
-  category: 'ai' as const,
-  defaultData: DEFAULT_TREND_HASHTAG_INSPIRATION_DATA,
-  description: 'Generate content idea from trending hashtag',
-  icon: 'Hash',
-  inputs: [{ id: 'hashtag', label: 'Hashtag', optional: true, type: 'text' }],
-  label: 'Trend Hashtag Inspiration',
-  outputs: [
-    { id: 'prompt', label: 'Prompt', type: 'text' },
-    { id: 'hashtags', label: 'Hashtags', type: 'text[]' },
-    { id: 'contentType', label: 'Content Type', type: 'text' },
-    { id: 'platform', label: 'Best Platform', type: 'text' },
-  ],
-  type: 'trendHashtagInspiration',
-};

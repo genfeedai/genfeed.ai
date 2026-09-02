@@ -316,6 +316,26 @@ describe('check-product-workflow-boundary', () => {
     expect(result.violations).toHaveLength(1);
   });
 
+  it('rejects a hand-written product node inventory in packages/workflows', () => {
+    writeFixture(
+      'packages/workflows/src/nodes/registry/saas-definitions.ts',
+      `
+        export const SAAS_NODE_DEFINITIONS = {
+          brand: { label: 'Brand' },
+        };
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual([
+      expect.objectContaining({
+        ruleId: 'hand-written-product-node-inventory',
+      }),
+    ]);
+    expect(result.violations).toHaveLength(1);
+  });
+
   it('rejects the dormant MCP direct workflow execution client', () => {
     writeFixture(
       'apps/server/mcp/src/services/client/workflow.client.ts',

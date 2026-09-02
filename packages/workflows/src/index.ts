@@ -1,5 +1,4 @@
 export * from './contracts';
-export * from './extensions/registry';
 export * from './extensions/types';
 export * from './generation';
 

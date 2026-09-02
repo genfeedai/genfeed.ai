@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_ENGAGEMENT_TRIGGER_DATA,
-  engagementTriggerNodeDefinition,
-} from './engagement-trigger';
+import { DEFAULT_ENGAGEMENT_TRIGGER_DATA } from './engagement-trigger';
 
 describe('engagement-trigger node', () => {
   describe('DEFAULT_ENGAGEMENT_TRIGGER_DATA', () => {
@@ -38,44 +35,6 @@ describe('engagement-trigger node', () => {
       expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastCheckedPostId).toBeNull();
       expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastTriggeredAt).toBeNull();
       expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastMetricValue).toBeNull();
-    });
-  });
-
-  describe('engagementTriggerNodeDefinition', () => {
-    it('should have type engagementTrigger', () => {
-      expect(engagementTriggerNodeDefinition.type).toBe('engagementTrigger');
-    });
-
-    it('should be in trigger category', () => {
-      expect(engagementTriggerNodeDefinition.category).toBe('trigger');
-    });
-
-    it('should have label Engagement Trigger', () => {
-      expect(engagementTriggerNodeDefinition.label).toBe('Engagement Trigger');
-    });
-
-    it('should have no inputs (trigger node)', () => {
-      expect(engagementTriggerNodeDefinition.inputs).toEqual([]);
-    });
-
-    it('should output postId, postUrl, metricType, currentValue, threshold, and platform', () => {
-      const outputIds = engagementTriggerNodeDefinition.outputs.map(
-        (o) => o.id,
-      );
-      expect(outputIds).toEqual([
-        'postId',
-        'postUrl',
-        'metricType',
-        'currentValue',
-        'threshold',
-        'platform',
-      ]);
-    });
-
-    it('should reference default data', () => {
-      expect(engagementTriggerNodeDefinition.defaultData).toBe(
-        DEFAULT_ENGAGEMENT_TRIGGER_DATA,
-      );
     });
   });
 });

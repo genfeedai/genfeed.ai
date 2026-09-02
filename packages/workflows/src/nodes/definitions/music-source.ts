@@ -56,22 +56,3 @@ export const DEFAULT_MUSIC_SOURCE_DATA: Partial<MusicSourceNodeData> = {
   trendPlatform: null,
   uploadUrl: null,
 };
-
-export const musicSourceNodeDefinition = {
-  category: 'input' as const,
-  defaultData: DEFAULT_MUSIC_SOURCE_DATA,
-  description: 'Resolve music from trends, library, upload, or AI generation',
-  icon: 'Music',
-  inputs: [
-    { id: 'uploadUrl', label: 'Upload URL', required: false, type: 'text' },
-    { id: 'generatePrompt', label: 'AI Prompt', required: false, type: 'text' },
-  ],
-  label: 'Music Source',
-  outputs: [
-    { id: 'musicUrl', label: 'Music URL', type: 'text' },
-    { id: 'duration', label: 'Duration (s)', type: 'number' },
-    { id: 'tempo', label: 'Tempo (BPM)', type: 'number' },
-    { id: 'title', label: 'Title', type: 'text' },
-  ],
-  type: 'musicSource',
-};

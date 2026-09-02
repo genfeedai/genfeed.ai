@@ -22,14 +22,16 @@ describe('workflow SaaS node React Flow mapping', () => {
     expect(workflowSaaSNodeTypes.genfeedAction).toBe(GenfeedActionNode);
   });
 
-  it('covers the generic SaaS nodes implemented in the engine', () => {
-    expect(Object.keys(workflowSaaSNodeDefinitions).sort()).toEqual([
-      'genfeedAction',
-      'talkingHeadScript',
-      'trendHashtagInspiration',
-      'trendSoundInspiration',
-      'trendVideoInspiration',
-    ]);
+  it('covers the action envelope plus every workflow-visible catalog action', () => {
+    expect(Object.keys(workflowSaaSNodeDefinitions)).toEqual(
+      expect.arrayContaining([
+        'genfeedAction',
+        'talkingHeadScript',
+        'trendHashtagInspiration',
+        'socialRead',
+        'publish',
+      ]),
+    );
   });
 
   it('spreads workflow SaaS node types into the package nodeTypes map', () => {

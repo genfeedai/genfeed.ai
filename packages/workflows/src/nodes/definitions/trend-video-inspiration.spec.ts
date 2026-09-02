@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
-  trendVideoInspirationNodeDefinition,
-} from './trend-video-inspiration';
+import { DEFAULT_TREND_VIDEO_INSPIRATION_DATA } from './trend-video-inspiration';
 
 describe('trend-video-inspiration node', () => {
   describe('DEFAULT_TREND_VIDEO_INSPIRATION_DATA', () => {
@@ -53,50 +50,6 @@ describe('trend-video-inspiration node', () => {
       expect(DEFAULT_TREND_VIDEO_INSPIRATION_DATA.sourceTrendTitle).toBeNull();
       expect(DEFAULT_TREND_VIDEO_INSPIRATION_DATA.sourceTrendUrl).toBeNull();
       expect(DEFAULT_TREND_VIDEO_INSPIRATION_DATA.trendId).toBeNull();
-    });
-  });
-
-  describe('trendVideoInspirationNodeDefinition', () => {
-    it('should have type trendVideoInspiration', () => {
-      expect(trendVideoInspirationNodeDefinition.type).toBe(
-        'trendVideoInspiration',
-      );
-    });
-
-    it('should be in ai category', () => {
-      expect(trendVideoInspirationNodeDefinition.category).toBe('ai');
-    });
-
-    it('should have label Trend Video Inspiration', () => {
-      expect(trendVideoInspirationNodeDefinition.label).toBe(
-        'Trend Video Inspiration',
-      );
-    });
-
-    it('should have optional trendId input', () => {
-      expect(trendVideoInspirationNodeDefinition.inputs).toHaveLength(1);
-      expect(trendVideoInspirationNodeDefinition.inputs[0].id).toBe('trendId');
-      expect(trendVideoInspirationNodeDefinition.inputs[0].optional).toBe(true);
-    });
-
-    it('should output prompt, hashtags, soundId, duration, aspectRatio, and style', () => {
-      const outputIds = trendVideoInspirationNodeDefinition.outputs.map(
-        (o) => o.id,
-      );
-      expect(outputIds).toEqual([
-        'prompt',
-        'hashtags',
-        'soundId',
-        'duration',
-        'aspectRatio',
-        'style',
-      ]);
-    });
-
-    it('should reference default data', () => {
-      expect(trendVideoInspirationNodeDefinition.defaultData).toBe(
-        DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
-      );
     });
   });
 });

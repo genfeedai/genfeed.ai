@@ -21,6 +21,7 @@ const DEFAULT_INCLUDE_GLOBS = [
   'packages/cli/src/**/*.ts',
   'packages/client/src/**/*.ts',
   'packages/services/**/*.ts',
+  'packages/workflows/src/**/*.{ts,tsx}',
 ];
 
 const DEFAULT_IGNORE_GLOBS = [
@@ -305,6 +306,17 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       /outputSchema\s*:\s*(?:ANY_SCHEMA\b|\{\s*\})/s.test(source),
     message:
       'Registered product actions require concrete JSON-schema input and output contracts; empty internal-action placeholders are retired.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'hand-written-product-node-inventory',
+    matches: (file, source) =>
+      file.startsWith('packages/workflows/') &&
+      (/\bSAAS_NODE_DEFINITIONS\b/.test(source) ||
+        /\bDEFAULT_WORKFLOW_GENERATION_NODE_TYPES\b/.test(source) ||
+        /\bNODE_CATEGORY_MAP\b/.test(source)),
+    message:
+      'Action-backed workflow node metadata must be generated from the action catalog; do not reintroduce a hand-written product node inventory in packages/workflows.',
   },
   {
     exceptionAllowed: false,

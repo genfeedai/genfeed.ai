@@ -1,3 +1,4 @@
+import { YOUTUBE_LONG_FORM_WORKFLOW_ID } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -183,8 +184,9 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
     findAll: vi.fn(),
     findOne: vi.fn(),
   };
-  const youtubeLongFormWorkflowService = {
-    runAuthenticated: vi.fn(),
+  const systemWorkflowRunner = {
+    getWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   const ctx = {
     organizationId: 'org-1',
@@ -200,7 +202,7 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
       workflowExecutorService as never,
       {} as never,
       workflowExecutionsService as never,
-      youtubeLongFormWorkflowService as never,
+      systemWorkflowRunner as never,
     );
   });
 
@@ -315,17 +317,33 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
     });
   });
 
-  it('executes the code-owned YouTube workflow by canonical ID for Agent and MCP', async () => {
-    youtubeLongFormWorkflowService.runAuthenticated.mockResolvedValue({
+  it('executes a hidden system workflow through the shared runner, not a workflow-ID special case', async () => {
+    const longFormResult = {
       content: 'Long-form result',
       contentId: 'article-1',
-      executionId: 'execution-1',
       outputType: 'x-article',
       sourceArtifactId: 'artifact-1',
       summary: 'Summary text',
       title: 'Video title',
       videoId: 'video-1',
       youtubeUrl: 'https://youtu.be/video-1',
+    };
+    systemWorkflowRunner.getWorkflow.mockReturnValue({
+      canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+      definition: {
+        inputVariables: [
+          { key: 'youtubeUrl', required: true },
+          { defaultValue: 'article', key: 'outputType', required: true },
+          { defaultValue: 'account', key: 'persistence', required: true },
+          { defaultValue: 'ttl', key: 'retentionPolicy', required: true },
+          { key: 'brandId', required: false },
+        ],
+      },
+      label: 'YouTube to Long-form Text',
+    });
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
+      provenance: { executionId: 'execution-1' },
+      result: longFormResult,
     });
 
     const result = await handler.executeWorkflow(
@@ -334,19 +352,24 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
           outputType: 'x-article',
           youtubeUrl: 'https://youtu.be/video-1',
         },
-        workflowId: 'youtube-to-long-form-text',
+        workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
       },
       ctx,
     );
 
-    expect(
-      youtubeLongFormWorkflowService.runAuthenticated,
-    ).toHaveBeenCalledWith({
-      brandId: ctx.brandId,
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+      actionType: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+      canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+      inputValues: {
+        outputType: 'x-article',
+        persistence: 'account',
+        retentionPolicy: 'ttl',
+        youtubeUrl: 'https://youtu.be/video-1',
+      },
+      metadata: { origin: 'agent' },
       organizationId: 'org-1',
-      outputType: 'x-article',
+      source: 'AgentWorkflowToolExecuteService.executeWorkflow',
       userId: 'user-1',
-      youtubeUrl: 'https://youtu.be/video-1',
     });
     expect(workflowsService.findOne).not.toHaveBeenCalled();
     expect(
@@ -356,29 +379,29 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
       creditsUsed: 0,
       data: {
         id: 'execution-1',
-        result: {
-          content: 'Long-form result',
-          contentId: 'article-1',
-          executionId: 'execution-1',
-          id: 'article-1',
-          outputType: 'x-article',
-          sourceArtifactId: 'artifact-1',
-          summary: 'Summary text',
-          title: 'Video title',
-          videoId: 'video-1',
-          youtubeUrl: 'https://youtu.be/video-1',
-        },
+        result: longFormResult,
         status: 'COMPLETED',
       },
       success: true,
     });
   });
 
-  it('rejects the YouTube workflow when required inputs are missing', async () => {
+  it('rejects a hidden system workflow when required inputs are missing', async () => {
+    systemWorkflowRunner.getWorkflow.mockReturnValue({
+      canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+      definition: {
+        inputVariables: [
+          { key: 'youtubeUrl', required: true },
+          { defaultValue: 'article', key: 'outputType', required: true },
+        ],
+      },
+      label: 'YouTube to Long-form Text',
+    });
+
     const result = await handler.executeWorkflow(
       {
-        variables: { youtubeUrl: 'https://youtu.be/video-1' },
-        workflowId: 'youtube-to-long-form-text',
+        variables: {},
+        workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
       },
       ctx,
     );
@@ -386,12 +409,10 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
     expect(result).toEqual({
       creditsUsed: 0,
       error:
-        'youtubeUrl and outputType are required. Use get_workflow_inputs to discover expected variables.',
+        'Missing required workflow inputs: youtubeUrl. Use get_workflow_inputs to discover expected variables.',
       success: false,
     });
-    expect(
-      youtubeLongFormWorkflowService.runAuthenticated,
-    ).not.toHaveBeenCalled();
+    expect(systemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
   });
 
   it('returns workflow inputs for the org-scoped workflow only', async () => {
@@ -432,9 +453,41 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
     });
   });
 
-  it('describes the code-owned YouTube workflow without a customer Workflow row', async () => {
+  it('describes a hidden system workflow from its registered input contract', async () => {
+    systemWorkflowRunner.getWorkflow.mockReturnValue({
+      canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+      definition: {
+        inputVariables: [
+          {
+            description: 'Public YouTube video URL with spoken audio.',
+            key: 'youtubeUrl',
+            label: 'YouTube URL',
+            required: true,
+            type: 'url',
+          },
+          {
+            defaultValue: 'article',
+            description: 'Long-form output format to persist.',
+            key: 'outputType',
+            label: 'Output format',
+            required: true,
+            type: 'enum',
+            validation: {
+              options: [
+                'article',
+                'linkedin-article',
+                'x-article',
+                'newsletter',
+              ],
+            },
+          },
+        ],
+      },
+      label: 'YouTube to Long-form Text',
+    });
+
     const result = await handler.getWorkflowInputs(
-      { workflowId: 'youtube-to-long-form-text' },
+      { workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID },
       ctx,
     );
 
@@ -468,8 +521,8 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
             },
           },
         ],
-        workflowId: 'youtube-to-long-form-text',
-        workflowName: 'YouTube to long-form text',
+        workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+        workflowName: 'YouTube to Long-form Text',
       },
       success: true,
     });

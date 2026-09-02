@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_TREND_TRIGGER_DATA,
-  trendTriggerNodeDefinition,
-} from './trend-trigger';
+import { DEFAULT_TREND_TRIGGER_DATA } from './trend-trigger';
 
 describe('trend-trigger node', () => {
   describe('DEFAULT_TREND_TRIGGER_DATA', () => {
@@ -39,52 +36,6 @@ describe('trend-trigger node', () => {
       expect(DEFAULT_TREND_TRIGGER_DATA.lastTriggeredAt).toBeNull();
       expect(DEFAULT_TREND_TRIGGER_DATA.lastTrendId).toBeNull();
       expect(DEFAULT_TREND_TRIGGER_DATA.lastTrendTopic).toBeNull();
-    });
-  });
-
-  describe('trendTriggerNodeDefinition', () => {
-    it('should have type trendTrigger', () => {
-      expect(trendTriggerNodeDefinition.type).toBe('trendTrigger');
-    });
-
-    it('should be in trigger category', () => {
-      expect(trendTriggerNodeDefinition.category).toBe('trigger');
-    });
-
-    it('should have label Trend Trigger', () => {
-      expect(trendTriggerNodeDefinition.label).toBe('Trend Trigger');
-    });
-
-    it('should accept optional keyword and platform inputs', () => {
-      expect(trendTriggerNodeDefinition.inputs).toEqual([
-        {
-          id: 'keywords',
-          label: 'Keywords',
-          multiple: true,
-          required: false,
-          type: 'text',
-        },
-        { id: 'platform', label: 'Platform', required: false, type: 'text' },
-      ]);
-    });
-
-    it('should output trendId, topic, platform, viralScore, hashtags, videoUrl, soundId', () => {
-      const outputIds = trendTriggerNodeDefinition.outputs.map((o) => o.id);
-      expect(outputIds).toEqual([
-        'trendId',
-        'topic',
-        'platform',
-        'viralScore',
-        'hashtags',
-        'videoUrl',
-        'soundId',
-      ]);
-    });
-
-    it('should reference default data', () => {
-      expect(trendTriggerNodeDefinition.defaultData).toBe(
-        DEFAULT_TREND_TRIGGER_DATA,
-      );
     });
   });
 });

@@ -50,22 +50,3 @@ export const DEFAULT_SOCIAL_READ_DATA: Partial<SocialReadNodeData> = {
   type: 'socialRead',
   username: '',
 };
-
-export const socialReadNodeDefinition = {
-  category: 'input' as const,
-  defaultData: DEFAULT_SOCIAL_READ_DATA,
-  description: 'Get recent posts, mentions, or search results from X',
-  icon: 'Search',
-  inputs: [
-    { id: 'brand', label: 'Brand', required: false, type: 'brand' },
-    { id: 'query', label: 'Search', required: false, type: 'text' },
-    { id: 'username', label: 'Username', required: false, type: 'text' },
-  ],
-  label: 'Read posts',
-  outputs: [
-    { id: 'posts', label: 'Posts', type: 'text' },
-    { id: 'summary', label: 'Summary', type: 'text' },
-    { id: 'count', label: 'Count', type: 'number' },
-  ],
-  type: 'socialRead',
-};

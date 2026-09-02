@@ -21,7 +21,7 @@ describe('node-registry-adapter', () => {
 
   it('allows image input to connect into canonical imageGen', () => {
     expect(
-      validateConnection('input-image', 'image', 'imageGen', 'images'),
+      validateConnection('input-image', 'image', 'imageGen', 'image'),
     ).toBe(true);
   });
 
@@ -48,27 +48,22 @@ describe('node-registry-adapter', () => {
     });
   });
 
-  it('exposes talking-head script generation to the workflow builder and agent graph generator', () => {
+  it('exposes talking-head script generation from the action catalog', () => {
     const definition = getNodeDefinition('talkingHeadScript');
 
-    expect(definition).toMatchObject({
-      category: 'processing',
-      inputs: {
-        brandVoice: { required: false, type: 'text' },
-        clipCount: { required: false, type: 'number' },
-        durationSeconds: { required: false, type: 'number' },
-        harnessContext: { required: false, type: 'any' },
-        productContext: { required: true, type: 'text' },
-        wordsPerSecond: { required: false, type: 'number' },
-      },
-      outputs: {
-        clipCount: { type: 'number' },
-        fullText: { type: 'text' },
-        script: { type: 'any' },
-        segments: { type: 'any' },
-        totalWordCount: { type: 'number' },
-      },
-      type: 'talkingHeadScript',
-    });
+    expect(definition?.category).toBe('ai');
+    expect(definition?.type).toBe('talkingHeadScript');
+    expect(Object.keys(definition?.inputs ?? {})).toEqual(
+      expect.arrayContaining([
+        'productContext',
+        'brandVoice',
+        'durationSeconds',
+        'clipCount',
+        'wordsPerSecond',
+      ]),
+    );
+    expect(Object.keys(definition?.outputs ?? {})).toEqual(
+      expect.arrayContaining(['script', 'segments', 'fullText']),
+    );
   });
 });

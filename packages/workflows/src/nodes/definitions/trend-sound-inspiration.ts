@@ -40,20 +40,3 @@ export const DEFAULT_TREND_SOUND_INSPIRATION_DATA: Partial<TrendSoundInspiration
     status: 'idle',
     usageCount: null,
   };
-
-export const trendSoundInspirationNodeDefinition = {
-  category: 'inspiration' as const,
-  defaultData: DEFAULT_TREND_SOUND_INSPIRATION_DATA,
-  description: 'Get trending TikTok sound for content',
-  icon: 'Music',
-  inputs: [],
-  label: 'Trend Sound Inspiration',
-  outputs: [
-    { id: 'soundId', label: 'Sound ID', type: 'text' },
-    { id: 'soundName', label: 'Sound Name', type: 'text' },
-    { id: 'soundUrl', label: 'Sound URL', type: 'text' },
-    { id: 'duration', label: 'Duration (s)', type: 'number' },
-    { id: 'usageCount', label: 'Usage Count', type: 'number' },
-  ],
-  type: 'trendSoundInspiration',
-};

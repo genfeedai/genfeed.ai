@@ -13,7 +13,7 @@ import type {
 import { sleep } from '@genfeedai/helpers';
 import {
   buildWorkflowGenerationMessages,
-  DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
+  buildWorkflowGenerationNodeTypes,
   parseWorkflowGenerationResponse,
 } from '@genfeedai/workflows/generation';
 import type { DesktopConfigService } from './config.service';
@@ -299,7 +299,7 @@ export class DesktopGenerationService {
   ): Promise<IDesktopWorkflowGenerationResult> {
     const config = await this.providerService.requireProviderConfig();
     const messages = buildWorkflowGenerationMessages({
-      availableNodeTypes: DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
+      availableNodeTypes: buildWorkflowGenerationNodeTypes(),
       description: params.description,
       targetPlatforms: params.targetPlatforms,
     });

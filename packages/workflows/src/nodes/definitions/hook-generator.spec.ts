@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_HOOK_GENERATOR_DATA,
-  hookGeneratorNodeDefinition,
-} from './hook-generator';
+import { DEFAULT_HOOK_GENERATOR_DATA } from './hook-generator';
 
 describe('hook-generator node', () => {
   describe('DEFAULT_HOOK_GENERATOR_DATA', () => {
@@ -44,47 +41,6 @@ describe('hook-generator node', () => {
     it('should default output arrays to empty', () => {
       expect(DEFAULT_HOOK_GENERATOR_DATA.outputHashtags).toEqual([]);
       expect(DEFAULT_HOOK_GENERATOR_DATA.outputSlidePrompts).toEqual([]);
-    });
-  });
-
-  describe('hookGeneratorNodeDefinition', () => {
-    it('should have type hookGenerator', () => {
-      expect(hookGeneratorNodeDefinition.type).toBe('hookGenerator');
-    });
-
-    it('should be in saas category', () => {
-      expect(hookGeneratorNodeDefinition.category).toBe('saas');
-    });
-
-    it('should have label Hook Generator', () => {
-      expect(hookGeneratorNodeDefinition.label).toBe('Hook Generator');
-    });
-
-    it('should have optional trendData and brand inputs', () => {
-      const trendInput = hookGeneratorNodeDefinition.inputs.find(
-        (i) => i.id === 'trendData',
-      );
-      const brandInput = hookGeneratorNodeDefinition.inputs.find(
-        (i) => i.id === 'brand',
-      );
-      expect(trendInput?.required).toBe(false);
-      expect(brandInput?.required).toBe(false);
-    });
-
-    it('should output hookText, captionHook, hashtags, and slidePrompts', () => {
-      const outputIds = hookGeneratorNodeDefinition.outputs.map((o) => o.id);
-      expect(outputIds).toEqual([
-        'hookText',
-        'captionHook',
-        'hashtags',
-        'slidePrompts',
-      ]);
-    });
-
-    it('should reference default data', () => {
-      expect(hookGeneratorNodeDefinition.defaultData).toBe(
-        DEFAULT_HOOK_GENERATOR_DATA,
-      );
     });
   });
 });

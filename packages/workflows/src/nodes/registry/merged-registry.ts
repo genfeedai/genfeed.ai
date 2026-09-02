@@ -4,66 +4,79 @@ import {
   type NodeCategory,
   type NodeDefinition,
 } from '@genfeedai/types/nodes';
+import { isEngineNativeNodeType } from '../../engine/utils/action-node';
 import type { ExtendedNodeCategory } from '../types';
-import {
-  isSaaSNode,
-  SAAS_NODE_DEFINITIONS,
-  type SaaSNodeDefinition,
-  type SaaSNodeType,
-} from './saas-definitions';
+import { ACTION_NODE_DEFINITIONS } from './action-node-definitions';
+import type { CatalogNodeDefinition } from './catalog-node-definition';
+import { ENGINE_NATIVE_NODE_DEFINITIONS } from './engine-native-definitions';
 
 export type {
+  CatalogNodeDefinition,
   CoreNodeType,
   NodeCategory,
   NodeDefinition,
-  SaaSNodeDefinition,
-  SaaSNodeType,
 };
-export { CORE_NODE_DEFINITIONS, isSaaSNode, SAAS_NODE_DEFINITIONS };
+
+export type MergedNodeDefinition = NodeDefinition | CatalogNodeDefinition;
+
+const ENGINE_NATIVE_CORE_DEFINITIONS = Object.fromEntries(
+  Object.entries(CORE_NODE_DEFINITIONS).filter(([type]) =>
+    isEngineNativeNodeType(type),
+  ),
+) as Partial<Record<CoreNodeType, NodeDefinition>>;
+
+export { ACTION_NODE_DEFINITIONS, CORE_NODE_DEFINITIONS };
 
 /**
- * Extended node type - union of core and SaaS node types
- */
-export type ExtendedNodeType = CoreNodeType | SaaSNodeType;
-
-/**
- * Extended node category - union of core and SaaS categories
- */
-export type { ExtendedNodeCategory };
-
-/**
- * Check if a node type is a core node
+ * Check if a node type is a core engine-native definition from @genfeedai/types.
  */
 export function isCoreNode(type: string): type is CoreNodeType {
-  return type in CORE_NODE_DEFINITIONS;
+  return type in ENGINE_NATIVE_CORE_DEFINITIONS;
+}
+
+export function isCatalogActionNode(type: string): boolean {
+  return type in ACTION_NODE_DEFINITIONS;
+}
+
+export function isEngineNativeCatalogNode(type: string): boolean {
+  return type in ENGINE_NATIVE_NODE_DEFINITIONS;
 }
 
 /**
- * Check if a node type is valid (either core or SaaS)
+ * Check if a node type is valid (engine-native or catalog-generated).
  */
-export function isValidNodeType(type: string): type is ExtendedNodeType {
-  return isCoreNode(type) || isSaaSNode(type);
+export function isValidNodeType(type: string): boolean {
+  return (
+    isCoreNode(type) ||
+    isEngineNativeCatalogNode(type) ||
+    isCatalogActionNode(type)
+  );
 }
 
 export function getNodeDefinition(
   type: string,
-): NodeDefinition | SaaSNodeDefinition | undefined {
-  if (isCoreNode(type)) {
-    return CORE_NODE_DEFINITIONS[type as CoreNodeType];
+): MergedNodeDefinition | undefined {
+  if (isEngineNativeCatalogNode(type)) {
+    return ENGINE_NATIVE_NODE_DEFINITIONS[type];
   }
-  if (isSaaSNode(type)) {
-    return SAAS_NODE_DEFINITIONS[type];
+  if (isCatalogActionNode(type)) {
+    return ACTION_NODE_DEFINITIONS[type];
+  }
+  if (isCoreNode(type)) {
+    return ENGINE_NATIVE_CORE_DEFINITIONS[type as CoreNodeType];
   }
   return undefined;
 }
 
 /**
- * Merged node definitions - combines core and SaaS nodes
+ * Merged node definitions: engine-native hand-authored entries plus
+ * action-backed nodes generated from ALL_ACTIONS.
  */
-export const NODE_DEFINITIONS = {
-  ...CORE_NODE_DEFINITIONS,
-  ...SAAS_NODE_DEFINITIONS,
-} as const;
+export const NODE_DEFINITIONS: Record<string, MergedNodeDefinition> = {
+  ...ENGINE_NATIVE_CORE_DEFINITIONS,
+  ...ENGINE_NATIVE_NODE_DEFINITIONS,
+  ...ACTION_NODE_DEFINITIONS,
+};
 
 /** Valid extended categories */
 const EXTENDED_CATEGORIES: readonly ExtendedNodeCategory[] = [
@@ -83,21 +96,14 @@ const EXTENDED_CATEGORIES: readonly ExtendedNodeCategory[] = [
  */
 export function getNodesByExtendedCategory(): Record<
   ExtendedNodeCategory,
-  (NodeDefinition | SaaSNodeDefinition)[]
+  MergedNodeDefinition[]
 > {
   const categories = Object.fromEntries(
-    EXTENDED_CATEGORIES.map((cat) => [cat, []]),
-  ) as unknown as Record<
-    ExtendedNodeCategory,
-    (NodeDefinition | SaaSNodeDefinition)[]
-  >;
+    EXTENDED_CATEGORIES.map((category) => [category, []]),
+  ) as Record<ExtendedNodeCategory, MergedNodeDefinition[]>;
 
-  for (const def of Object.values(CORE_NODE_DEFINITIONS)) {
-    categories[def.category as ExtendedNodeCategory]?.push(def);
-  }
-
-  for (const def of Object.values(SAAS_NODE_DEFINITIONS)) {
-    categories[def.category as ExtendedNodeCategory]?.push(def);
+  for (const definition of Object.values(NODE_DEFINITIONS)) {
+    categories[definition.category as ExtendedNodeCategory]?.push(definition);
   }
 
   return categories;
@@ -106,9 +112,6 @@ export function getNodesByExtendedCategory(): Record<
 /**
  * Get all extended node types
  */
-export function getAllNodeTypes(): ExtendedNodeType[] {
-  return [
-    ...(Object.keys(CORE_NODE_DEFINITIONS) as CoreNodeType[]),
-    ...(Object.keys(SAAS_NODE_DEFINITIONS) as SaaSNodeType[]),
-  ];
+export function getAllNodeTypes(): string[] {
+  return Object.keys(NODE_DEFINITIONS);
 }

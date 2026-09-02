@@ -3,31 +3,34 @@ import {
   getAllNodeTypes,
   getNodeDefinition,
   getNodesByExtendedCategory,
+  isCatalogActionNode,
   isCoreNode,
   isValidNodeType,
   NODE_DEFINITIONS,
 } from './merged-registry';
 
 describe('isCoreNode', () => {
-  it('false for saas nodes', () => {
+  it('false for catalog action nodes', () => {
     expect(isCoreNode('brand')).toBe(false);
   });
 });
 
 describe('isValidNodeType', () => {
-  it('true for saas', () => expect(isValidNodeType('brand')).toBe(true));
+  it('true for catalog actions', () =>
+    expect(isValidNodeType('brand')).toBe(true));
   it('false for unknown', () => expect(isValidNodeType('xxx')).toBe(false));
 });
 
 describe('getNodeDefinition', () => {
-  it('saas node', () => {
-    expect(getNodeDefinition('brand')?.label).toBe('Brand');
+  it('catalog action node', () => {
+    expect(getNodeDefinition('brand')?.label).toBe('Read Brand');
   });
   it('unknown', () => expect(getNodeDefinition('xxx')).toBeUndefined());
 });
 
 describe('NODE_DEFINITIONS', () => {
-  it('has brand', () => expect(NODE_DEFINITIONS.brand).toBeDefined());
+  it('has brand from the action catalog', () =>
+    expect(NODE_DEFINITIONS.brand).toBeDefined());
 });
 
 describe('getNodesByExtendedCategory', () => {
@@ -38,9 +41,16 @@ describe('getNodesByExtendedCategory', () => {
 });
 
 describe('getAllNodeTypes', () => {
-  it('includes saas types', () => {
+  it('includes catalog action types', () => {
     const types = getAllNodeTypes();
     expect(types).toContain('brand');
     expect(types.length).toBeGreaterThan(5);
   });
+});
+
+describe('isCatalogActionNode', () => {
+  it('true for workflow-visible actions', () =>
+    expect(isCatalogActionNode('publish')).toBe(true));
+  it('false for engine-native triggers', () =>
+    expect(isCatalogActionNode('commentTrigger')).toBe(false));
 });

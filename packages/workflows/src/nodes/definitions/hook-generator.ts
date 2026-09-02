@@ -85,26 +85,3 @@ export const DEFAULT_HOOK_GENERATOR_DATA: Partial<HookGeneratorNodeData> = {
   toneStyle: 'storytelling',
   type: 'hookGenerator',
 };
-
-/**
- * Hook Generator node definition for registry
- */
-export const hookGeneratorNodeDefinition = {
-  category: 'saas' as const,
-  defaultData: DEFAULT_HOOK_GENERATOR_DATA,
-  description:
-    'Generate viral hooks for TikTok slideshows using proven engagement formulas',
-  icon: 'Zap',
-  inputs: [
-    { id: 'trendData', label: 'Trend Data', required: false, type: 'text' },
-    { id: 'brand', label: 'Brand', required: false, type: 'brand' },
-  ],
-  label: 'Hook Generator',
-  outputs: [
-    { id: 'hookText', label: 'Hook Text', type: 'text' },
-    { id: 'captionHook', label: 'Caption Hook', type: 'text' },
-    { id: 'hashtags', label: 'Hashtags', type: 'text[]' },
-    { id: 'slidePrompts', label: 'Slide Prompts', type: 'text[]' },
-  ],
-  type: 'hookGenerator',
-};

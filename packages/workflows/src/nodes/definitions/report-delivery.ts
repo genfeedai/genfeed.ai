@@ -33,21 +33,3 @@ export const DEFAULT_REPORT_DELIVERY_DATA: Partial<ReportDeliveryNodeData> = {
   subject: '',
   type: 'reportDelivery',
 };
-
-export const reportDeliveryNodeDefinition = {
-  category: 'output' as const,
-  defaultData: DEFAULT_REPORT_DELIVERY_DATA,
-  description: 'Send results privately by notification or email',
-  icon: 'Bell',
-  inputs: [
-    { id: 'content', label: 'Content', required: true, type: 'text' },
-    { id: 'subject', label: 'Subject', required: false, type: 'text' },
-    { id: 'html', label: 'Email body', required: false, type: 'text' },
-  ],
-  label: 'Send report',
-  outputs: [
-    { id: 'delivered', label: 'Sent', type: 'text' },
-    { id: 'destination', label: 'Sent to', type: 'text' },
-  ],
-  type: 'reportDelivery',
-};

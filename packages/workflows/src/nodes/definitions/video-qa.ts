@@ -27,20 +27,3 @@ export const DEFAULT_VIDEO_QA_DATA: Partial<VideoQaNodeData> = {
   report: null,
   status: 'idle',
 };
-
-export const videoQaNodeDefinition = {
-  category: 'processing' as const,
-  defaultData: DEFAULT_VIDEO_QA_DATA,
-  description:
-    'Inspect video conformance and optionally compare representative frames with canonical character and product references.',
-  icon: 'ShieldCheck',
-  inputs: [{ id: 'video', label: 'Video', required: true, type: 'video' }],
-  label: 'Video QA',
-  outputs: [
-    { id: 'passed', label: 'Passed', type: 'text' },
-    { id: 'report', label: 'QA Report', type: 'text' },
-    { id: 'continuityQa', label: 'Continuity Findings', type: 'text' },
-    { id: 'video', label: 'Video', type: 'video' },
-  ],
-  type: 'videoQa',
-};

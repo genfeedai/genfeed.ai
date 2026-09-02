@@ -1,14 +1,11 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import type { WorkflowInputVariable } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import {
-  YOUTUBE_LONG_FORM_OUTPUT_TYPES,
-  YOUTUBE_LONG_FORM_WORKFLOW_ID,
-  type YoutubeLongFormOutputType,
-  YoutubeLongFormWorkflowService,
-} from '@api/collections/workflows/services/youtube-long-form-workflow.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
+import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
@@ -21,7 +18,7 @@ import {
 } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 /**
  * List / inspect / duplicate / schedule / run / execute workflow tools.
@@ -33,7 +30,8 @@ export class AgentWorkflowToolExecuteService {
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
-    private readonly youtubeLongFormWorkflowService: YoutubeLongFormWorkflowService,
+    @Inject(SYSTEM_WORKFLOW_RUNNER)
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
 
   async listWorkflows(
@@ -293,41 +291,41 @@ export class AgentWorkflowToolExecuteService {
       (params.variables as Record<string, unknown> | undefined) ??
       {};
 
-    if (workflowId === YOUTUBE_LONG_FORM_WORKFLOW_ID) {
-      const youtubeUrl = readOptionalString(inputValues.youtubeUrl);
-      const rawOutputType = readOptionalString(inputValues.outputType);
-      const outputType =
-        rawOutputType &&
-        (YOUTUBE_LONG_FORM_OUTPUT_TYPES as readonly string[]).includes(
-          rawOutputType,
-        )
-          ? (rawOutputType as YoutubeLongFormOutputType)
-          : undefined;
-
-      if (!youtubeUrl || !outputType) {
+    const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
+    if (systemWorkflow) {
+      const mergedInputValues = this.mergeSystemWorkflowInputs(
+        systemWorkflow.definition.inputVariables ?? [],
+        inputValues,
+        ctx.brandId,
+      );
+      const missingKeys = this.missingRequiredInputKeys(
+        systemWorkflow.definition.inputVariables ?? [],
+        mergedInputValues,
+      );
+      if (missingKeys.length > 0) {
         return {
           creditsUsed: 0,
-          error:
-            'youtubeUrl and outputType are required. Use get_workflow_inputs to discover expected variables.',
+          error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
           success: false,
         };
       }
 
-      const result = await this.youtubeLongFormWorkflowService.runAuthenticated(
-        {
-          brandId: ctx.brandId,
+      const { provenance, result } =
+        await this.systemWorkflowRunner.runWorkflow({
+          actionType: workflowId,
+          canonicalId: workflowId,
+          inputValues: mergedInputValues,
+          metadata: { origin: 'agent' },
           organizationId: ctx.organizationId,
-          outputType,
+          source: 'AgentWorkflowToolExecuteService.executeWorkflow',
           userId: ctx.userId,
-          youtubeUrl,
-        },
-      );
+        });
 
       return {
         creditsUsed: 0,
         data: {
-          id: result.executionId,
-          result: { ...result, id: result.contentId },
+          id: provenance.executionId,
+          result,
           status: WorkflowExecutionStatus.COMPLETED,
         },
         success: true,
@@ -395,31 +393,16 @@ export class AgentWorkflowToolExecuteService {
   ): Promise<AgentToolResult> {
     const workflowId = params.workflowId as string;
 
-    if (workflowId === YOUTUBE_LONG_FORM_WORKFLOW_ID) {
+    const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
+    if (systemWorkflow) {
       return {
         creditsUsed: 0,
         data: {
-          inputs: [
-            {
-              defaultValue: null,
-              description: 'Public YouTube video URL with spoken audio.',
-              key: 'youtubeUrl',
-              label: 'YouTube URL',
-              required: true,
-              type: 'url',
-            },
-            {
-              defaultValue: 'article',
-              description: 'Long-form output format to persist.',
-              key: 'outputType',
-              label: 'Output format',
-              required: true,
-              type: 'enum',
-              validation: { options: [...YOUTUBE_LONG_FORM_OUTPUT_TYPES] },
-            },
-          ],
-          workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
-          workflowName: 'YouTube to long-form text',
+          inputs: this.mapWorkflowInputVariables(
+            systemWorkflow.definition.inputVariables ?? [],
+          ),
+          workflowId: systemWorkflow.canonicalId,
+          workflowName: systemWorkflow.label,
         },
         success: true,
       };
@@ -438,14 +421,9 @@ export class AgentWorkflowToolExecuteService {
       };
     }
 
-    const inputs = (workflow.inputVariables ?? []).map((v) => ({
-      defaultValue: v.defaultValue ?? null,
-      description: v.description ?? null,
-      key: v.key,
-      label: v.label,
-      required: v.required ?? false,
-      type: v.type,
-    }));
+    const inputs = this.mapWorkflowInputVariables(
+      workflow.inputVariables ?? [],
+    );
 
     return {
       creditsUsed: 0,
@@ -459,6 +437,47 @@ export class AgentWorkflowToolExecuteService {
       },
       success: true,
     };
+  }
+
+  private mergeSystemWorkflowInputs(
+    inputVariables: WorkflowInputVariable[],
+    inputValues: Record<string, unknown>,
+    brandId: string | undefined,
+  ): Record<string, unknown> {
+    const merged: Record<string, unknown> = { ...inputValues };
+    for (const variable of inputVariables) {
+      if (
+        merged[variable.key] === undefined &&
+        variable.defaultValue !== undefined
+      ) {
+        merged[variable.key] = variable.defaultValue;
+      }
+    }
+    if (brandId && merged.brandId === undefined) {
+      merged.brandId = brandId;
+    }
+    return merged;
+  }
+
+  private missingRequiredInputKeys(
+    inputVariables: WorkflowInputVariable[],
+    inputValues: Record<string, unknown>,
+  ): string[] {
+    return inputVariables
+      .filter((variable) => variable.required && !(variable.key in inputValues))
+      .map((variable) => variable.key);
+  }
+
+  private mapWorkflowInputVariables(inputVariables: WorkflowInputVariable[]) {
+    return inputVariables.map((variable) => ({
+      defaultValue: variable.defaultValue ?? null,
+      description: variable.description ?? null,
+      key: variable.key,
+      label: variable.label,
+      required: variable.required ?? false,
+      type: variable.type,
+      ...(variable.validation ? { validation: variable.validation } : {}),
+    }));
   }
 
   private mapWorkflowForTool(

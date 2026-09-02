@@ -9,9 +9,9 @@ import type {
   NodeDefinition as ModernNodeDefinition,
 } from '@genfeedai/types/nodes';
 import {
+  type CatalogNodeDefinition,
   getWorkflowActionIdForNodeType,
   NODE_DEFINITIONS as MERGED_DEFINITIONS,
-  type SaaSNodeDefinition,
 } from '@genfeedai/workflows/nodes';
 
 export type { RegistryNodeDefinition as NodeDefinition };
@@ -24,7 +24,7 @@ export type { RegistryNodeDefinition as NodeDefinition };
  * Maps a modern HandleDefinition to a registry NodePort
  */
 function handleToPort(
-  handle: HandleDefinition | SaaSNodeDefinition['inputs'][number],
+  handle: HandleDefinition | CatalogNodeDefinition['inputs'][number],
 ): NodePort {
   const handleType = String(handle.type);
 
@@ -40,11 +40,11 @@ function handleToPort(
 }
 
 /**
- * Converts a modern NodeDefinition or SaaSNodeDefinition to registry format
+ * Converts a modern NodeDefinition or catalog node definition to registry format
  */
 function modernToRegistryDefinition(
   type: string,
-  def: ModernNodeDefinition | SaaSNodeDefinition,
+  def: ModernNodeDefinition | CatalogNodeDefinition,
 ): RegistryNodeDefinition {
   const inputs: Record<string, NodePort> = {};
   const outputs: Record<string, NodePort> = {};
@@ -97,7 +97,7 @@ function buildUnifiedRegistry(): Record<string, RegistryNodeDefinition> {
     }
     unified[type] = modernToRegistryDefinition(
       type,
-      def as ModernNodeDefinition | SaaSNodeDefinition,
+      def as ModernNodeDefinition | CatalogNodeDefinition,
     );
   }
 
