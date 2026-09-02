@@ -2,7 +2,7 @@
 name: shared-package-message-catalogs
 description: Shared packages consume the host app next-intl catalog; do not hoist copy into COPY consts
 type: project
-last_verified: 2026-08-14
+last_verified: 2026-08-28
 ---
 
 # Shared packages consume the host app catalog
@@ -36,7 +36,10 @@ string from the ratchet; it is not translatable.
    `apps/app/tests/next-intl.stub.ts`.
 
 English (`en`) remains the sole production language. `en-XA` is the
-pseudo-locale only. Do not add a second real locale here.
+pseudo-locale only. Do not add a second real locale. Epic #2497 stays
+Deferred until it is explicitly undeferred. If a second locale is later
+prioritized, the candidates are `fr` and `es`. Do not treat those as
+in-progress work.
 
 ## Forbidden
 
