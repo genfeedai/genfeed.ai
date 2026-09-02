@@ -150,6 +150,42 @@ vi.mock('../../../[brandSlug]/publishing/publishing-layout-content', () => ({
   ),
 }));
 
+vi.mock(
+  '../../../[brandSlug]/publishing/calendar/content-calendar-page',
+  () => ({
+    default: ({ campaignId }: { campaignId?: string }) => (
+      <div data-campaign-id={campaignId} data-testid="campaign-calendar-page" />
+    ),
+  }),
+);
+
+vi.mock('@pages/campaigns', () => ({
+  CampaignDetailOverview: ({ campaignId }: { campaignId: string }) => (
+    <div data-campaign-id={campaignId} data-testid="campaign-overview" />
+  ),
+  CampaignDetailShell: ({
+    campaignId,
+    children,
+    section,
+  }: {
+    campaignId: string;
+    children?: ReactNode;
+    section: string;
+  }) => (
+    <section
+      data-campaign-id={campaignId}
+      data-section={section}
+      data-testid="campaign-detail-shell"
+    >
+      {children}
+    </section>
+  ),
+  CampaignFormPage: ({ campaignId }: { campaignId?: string }) => (
+    <div data-campaign-id={campaignId} data-testid="campaign-form-page" />
+  ),
+  CampaignsListPage: () => <div data-testid="campaigns-list-page" />,
+}));
+
 const { default: OrgRootAppPage } = await import('./page');
 
 describe('OrgRootAppPage', () => {
@@ -302,6 +338,60 @@ describe('OrgRootAppPage', () => {
       });
     },
   );
+
+  it('renders org-scoped Publish Campaigns', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['campaigns'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
+    expect(screen.getByTestId('campaigns-list-page')).toBeInTheDocument();
+  });
+
+  it('renders an org-scoped campaign detail without leaking Automate Programs', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['campaigns', 'cmp-1'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('campaign-detail-shell')).toHaveAttribute(
+      'data-campaign-id',
+      'cmp-1',
+    );
+    expect(screen.getByTestId('campaign-overview')).toBeInTheDocument();
+  });
+
+  it('filters org campaign content through the posts desk', async () => {
+    const searchParams = Promise.resolve({ page: '1' });
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['campaigns', 'cmp-1', 'content'],
+      }),
+      searchParams,
+    });
+
+    render(element);
+
+    expect(renderPostsListPageMock).toHaveBeenCalledWith({
+      campaignId: 'cmp-1',
+      scope: PageScope.ORGANIZATION,
+      searchParams,
+    });
+    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
+  });
 
   it.each(['pending', 'processing', 'published', 'scheduled', 'failed'])(
     'returns not found for the retired org /publishing/%s route',

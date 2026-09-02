@@ -10,7 +10,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
  *
  * - Agent Programs: `APP_ROUTES.AUTOMATION.CAMPAIGNS` (UI label Programs)
  * - Outreach sequences: `APP_ROUTES.MESSAGES.OUTREACH`
- * - Legacy `/publishing/campaigns` → Automation Programs
+ * - Publish Campaigns: `APP_ROUTES.PUBLISHING.CAMPAIGNS`
  * - Legacy `/publishing/outreach-campaigns` and `/automation/outreach-campaigns` → Messages
  *
  * Sidebar nav item hrefs are org/brand-prefixed at render time by
@@ -161,7 +161,7 @@ test.describe('Automation & Messages surfaces', () => {
   });
 
   test.describe('Legacy redirects', () => {
-    test('/publishing/campaigns redirects to Automation Programs', async ({
+    test('/publishing/campaigns stays on Publish Campaigns', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(`${ORG_BRAND}/publishing/campaigns`, {
@@ -169,7 +169,7 @@ test.describe('Automation & Messages surfaces', () => {
       });
 
       await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.AUTOMATION.CAMPAIGNS}$`),
+        new RegExp(`${ORG_BRAND}${APP_ROUTES.PUBLISHING.CAMPAIGNS}$`),
       );
     });
 

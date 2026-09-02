@@ -37,6 +37,7 @@ export * from './platform-publish-scopes.constant';
 export * from './platform-settings.constant';
 export * from './platforms.constant';
 export * from './post-quick-actions.constant';
+export * from './publishing-campaigns-routes.constant';
 export * from './publishing-posts-routes.constant';
 export * from './routes.constant';
 export * from './self-hosted-models.constant';

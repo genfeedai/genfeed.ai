@@ -2,7 +2,27 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { ContentCampaignStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+
+function toOptionalBoolean({ value }: { value: unknown }): unknown {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  if (value === 'true' || value === true) {
+    return true;
+  }
+  if (value === 'false' || value === false) {
+    return false;
+  }
+  return value;
+}
 
 /**
  * `brandId`, `page`, `limit` and `sort` are inherited from {@link BaseQueryDto}.
@@ -10,6 +30,16 @@ import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
  */
 export class CampaignsQueryDto extends BaseQueryDto {
   static readonly [FORBID_NON_WHITELISTED] = true;
+
+  @ApiProperty({
+    description:
+      'Include archived campaigns when no status filter is set. Default lists hide archived rows.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(toOptionalBoolean)
+  @IsBoolean()
+  includeArchived?: boolean;
 
   @ApiProperty({
     description: 'Filter campaigns by lifecycle status',

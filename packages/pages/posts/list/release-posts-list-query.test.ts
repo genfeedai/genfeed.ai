@@ -15,6 +15,7 @@ describe('release-posts-list-query', () => {
     expect(
       buildReleasePostsListQueryKey({
         brandId: 'brand-1',
+        campaignId: 'cmp_spring',
         contentTypes: [PostCategory.TEXT, PostCategory.VIDEO],
         credentialIds: ['credential-2', 'credential-1'],
         currentPage: 3,
@@ -31,6 +32,7 @@ describe('release-posts-list-query', () => {
       PageScope.PUBLISHING,
       'org-1',
       'brand-1',
+      'cmp_spring',
       `${PostCategory.TEXT},${PostCategory.VIDEO}`,
       'posted',
       TargetExecutionState.FAILED,

@@ -27,7 +27,11 @@ export class CampaignsService {
     const limit = query.limit ?? DEFAULT_LIMIT;
     const where = scopedWhere(organizationId, {
       ...(query.brandId ? { brandId: query.brandId } : {}),
-      ...(query.status ? { status: query.status } : {}),
+      ...(query.status
+        ? { status: query.status }
+        : query.includeArchived
+          ? {}
+          : { status: { not: ContentCampaignStatus.ARCHIVED } }),
       ...(query.userId ? { userId: query.userId } : {}),
     });
 

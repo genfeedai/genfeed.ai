@@ -34,6 +34,7 @@ export interface ReleasePostsPageData {
 }
 
 export interface LoadReleasePostsPageDataOptions {
+  campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
   currentPage: number;
@@ -47,6 +48,7 @@ export interface LoadReleasePostsPageDataOptions {
 
 export const loadReleasePostsPageData = cache(
   async ({
+    campaignId,
     contentTypes,
     credentialIds,
     currentPage,
@@ -83,6 +85,7 @@ export const loadReleasePostsPageData = cache(
         bootstrap.brandId
           ? { brandId: bootstrap.brandId }
           : {}),
+        ...(campaignId ? { campaignId } : {}),
         ...(contentTypes?.length ? { contentType: contentTypes } : {}),
         ...(credentialIds?.length ? { credentialId: credentialIds } : {}),
         ...(executionStates?.length ? { executionState: executionStates } : {}),

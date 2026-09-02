@@ -266,13 +266,11 @@ export const APP_ROUTES = {
   PUBLISHING: {
     CALENDAR: '/publishing/calendar',
     /**
-     * @deprecated Agent Programs live at APP_ROUTES.AUTOMATION.CAMPAIGNS.
-     * Legacy `/publishing/campaigns` permanently redirects there.
-     * Future marketer content Campaigns reclaim this Publishing prefix (P1).
+     * Publish content Campaigns — named, dated, cross-platform programs.
+     * Distinct from Automate Programs (`APP_ROUTES.AUTOMATION.CAMPAIGNS`).
      */
-    CAMPAIGNS: '/automation/campaigns',
-    /** @deprecated Use APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW. */
-    CAMPAIGNS_NEW: '/automation/campaigns/new',
+    CAMPAIGNS: '/publishing/campaigns',
+    CAMPAIGNS_NEW: '/publishing/campaigns/new',
     /**
      * Content library: articles, newsletters, and other non-post content
      * types. Post lifecycle lives at POSTS; this is the type-aware library.

@@ -501,11 +501,7 @@ const config = createAppNextConfig({
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),
     ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     ...appHomeRedirects(APP_ROUTES.PUBLISHING.ROOT),
-    // Agent Programs stay under Automation. Outreach / reply drip moved to Messages.
-    ...legacyPathRedirects(
-      '/publishing/campaigns',
-      APP_ROUTES.AUTOMATION.CAMPAIGNS,
-    ),
+    // Outreach / reply drip moved to Messages. Publish Campaigns are a real desk.
     ...legacyPathRedirects(
       '/publishing/outreach-campaigns',
       APP_ROUTES.MESSAGES.OUTREACH,

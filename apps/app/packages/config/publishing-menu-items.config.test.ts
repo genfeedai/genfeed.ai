@@ -7,13 +7,14 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Content → Review → Calendar bar', () => {
+  it('is a flat Overview → Posts → Content → Review → Calendar → Campaigns bar', () => {
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
       'Content',
       'Review',
       'Calendar',
+      'Campaigns',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
@@ -21,6 +22,7 @@ describe('PUBLISHING_MENU_ITEMS', () => {
       APP_ROUTES.PUBLISHING.CONTENT,
       APP_ROUTES.PUBLISHING.REVIEW,
       APP_ROUTES.PUBLISHING.CALENDAR,
+      APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
       '/publishing',
@@ -71,12 +73,12 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     const hrefs = PUBLISHING_MENU_ITEMS.map((item) => item.href);
     const labels = PUBLISHING_MENU_ITEMS.map((item) => item.label);
 
-    expect(hrefs).not.toContain('/publishing/campaigns');
+    expect(hrefs).toContain('/publishing/campaigns');
     expect(hrefs).not.toContain('/automation/campaigns');
     expect(hrefs).not.toContain('/publishing/outreach-campaigns');
     expect(hrefs).not.toContain(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS);
     expect(hrefs).not.toContain('/publishing/remix');
-    expect(labels).not.toContain('Campaigns');
+    expect(labels).toContain('Campaigns');
     expect(labels).not.toContain('Outreach');
     expect(labels).not.toContain('Newsletters');
     expect(labels).not.toContain('Remix');

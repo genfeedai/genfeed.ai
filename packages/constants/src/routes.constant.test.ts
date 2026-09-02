@@ -92,6 +92,17 @@ describe('routes.constant', () => {
     expect('NEWSLETTERS' in APP_ROUTES.PUBLISHING).toBe(false);
   });
 
+  it('reclaims Publish Campaigns without moving Automate Programs', () => {
+    expect(APP_ROUTES.PUBLISHING.CAMPAIGNS).toBe('/publishing/campaigns');
+    expect(APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW).toBe(
+      '/publishing/campaigns/new',
+    );
+    expect(APP_ROUTES.AUTOMATION.CAMPAIGNS).toBe('/automation/campaigns');
+    expect(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW).toBe(
+      '/automation/campaigns/new',
+    );
+  });
+
   it('does not keep a /automation/strategies route', () => {
     expect('STRATEGIES' in APP_ROUTES.AUTOMATION).toBe(false);
     expect(APP_ROUTES.AUTOMATION.AUTOPILOT).toBe('/automation/autopilot');

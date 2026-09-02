@@ -16,6 +16,7 @@ export type ReleasePostsSort =
 
 export interface ReleasePostsListQueryKeyInput {
   brandId?: string | null;
+  campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
   currentPage: number;
@@ -30,6 +31,7 @@ export interface ReleasePostsListQueryKeyInput {
 
 export function buildReleasePostsListQueryKey({
   brandId,
+  campaignId,
   contentTypes,
   credentialIds,
   currentPage,
@@ -46,6 +48,7 @@ export function buildReleasePostsListQueryKey({
     scope,
     organizationId,
     brandId,
+    campaignId,
     contentTypes?.join(','),
     publicationState,
     executionStates?.join(','),

@@ -151,6 +151,18 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('keeps Publish Campaigns nested under Publishing', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/campaigns/cmp-1')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Campaign',
+      parentHref: '/publishing/campaigns',
+      parentLabel: 'Campaigns',
+      rootLabel: 'Publishing',
+    });
+  });
+
   it('keeps the content desk breadcrumb nested under Posts for /acme/moonrise/publishing/posts/post-1', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/post-1')
@@ -306,9 +318,11 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publishing/calendar',
+      '/acme/moonrise/publishing/campaigns',
       '/acme/moonrise/publishing/content',
       '/acme/moonrise/publishing/posts',
       '/acme/moonrise/publishing/review',
+      '/acme/~/publishing/campaigns',
       '/acme/~/publishing/posts',
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',

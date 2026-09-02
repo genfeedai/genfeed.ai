@@ -81,6 +81,44 @@ describe('CampaignsService', () => {
     expect(result.totalDocs).toBe(1);
   });
 
+  it('hides archived campaigns from the default list', async () => {
+    asMock(prisma.campaign.findMany).mockResolvedValue([]);
+    asMock(prisma.campaign.count).mockResolvedValue(0);
+
+    await service.list(ORG_ID, {
+      isDeleted: false,
+      limit: 10,
+      page: 1,
+      sort: 'createdAt: -1',
+    });
+
+    expect(asMock(prisma.campaign.findMany).mock.calls[0][0].where).toEqual({
+      isDeleted: false,
+      organizationId: ORG_ID,
+      status: { not: ContentCampaignStatus.ARCHIVED },
+    });
+  });
+
+  it('includes archived campaigns when the desk asks for them', async () => {
+    asMock(prisma.campaign.findMany).mockResolvedValue([
+      campaignRow({ status: ContentCampaignStatus.ARCHIVED }),
+    ]);
+    asMock(prisma.campaign.count).mockResolvedValue(1);
+
+    await service.list(ORG_ID, {
+      includeArchived: true,
+      isDeleted: false,
+      limit: 10,
+      page: 1,
+      sort: 'createdAt: -1',
+    });
+
+    expect(asMock(prisma.campaign.findMany).mock.calls[0][0].where).toEqual({
+      isDeleted: false,
+      organizationId: ORG_ID,
+    });
+  });
+
   it('never reads a campaign owned by another organization', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(null);
 
