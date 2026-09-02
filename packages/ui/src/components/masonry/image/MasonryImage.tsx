@@ -6,11 +6,12 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
-import MasonryBadgeOverlay from '@ui/masonry/shared/MasonryBadgeOverlay';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import MasonrySelectionToggle from '@ui/masonry/shared/MasonrySelectionToggle';
 import {
   createDownloadHandler,
   useMasonryHover,
@@ -32,10 +33,10 @@ export default function MasonryImage({
   isContainerHovered = true,
   availableTags,
   isLoadingTags,
-  evaluationScore,
   onShareIngredient,
   onVoteIngredient,
   onClickIngredient,
+  onToggleSelection,
   onDeleteIngredient,
   onPublishIngredient,
   onToggleFavorite,
@@ -99,6 +100,7 @@ export default function MasonryImage({
 
   const isProcessing = image.status === IngredientStatus.PROCESSING;
   const isFailed = image.status === IngredientStatus.FAILED;
+  const failureReason = getIngredientFailureReason(image);
 
   const currentImageUrl = image.ingredientUrl ?? '';
   // A still-processing asset has no generated URL yet — that is not an error,
@@ -155,9 +157,15 @@ export default function MasonryImage({
   const metadata = image?.metadata as IMetadata;
   const currentIntrinsicImage =
     intrinsicImage?.url === currentImageUrl ? intrinsicImage : null;
-  const aspectRatioStyle = currentIntrinsicImage
+  const resolvedAspectRatioStyle = currentIntrinsicImage
     ? getAspectRatioStyle(isSquare, currentIntrinsicImage)
     : getAspectRatioStyle(isSquare, metadata);
+  // An unsized tile collapses inside a masonry column and letterboxes the
+  // image against `object-contain`. Reserve a portrait slot until the natural
+  // dimensions arrive, then the real ratio takes over and fills exactly.
+  const aspectRatioStyle =
+    resolvedAspectRatioStyle ??
+    (isSquare ? undefined : { aspectRatio: '4 / 5' });
   const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
   const useDragDrop = isDragEnabled && onUpdateParent;
@@ -204,6 +212,8 @@ export default function MasonryImage({
         isLoading={isLoading}
         imageError={imageError}
         isProcessing={isProcessing}
+        isFailed={isFailed}
+        failureReason={failureReason}
         isFleetNsfwLocked={isFleetNsfwLocked}
         isSquare={isSquare}
         aspectRatioStyle={aspectRatioStyle}
@@ -212,21 +222,23 @@ export default function MasonryImage({
         handleImageError={handleImageError}
         handleContentClick={handleContentClick}
         onRefresh={onRefresh}
+        onReprompt={onReprompt}
       />
 
       {shouldShowBadges && (
-        <>
-          <MasonryBadgeOverlay
-            ingredient={image}
-            evaluationScore={evaluationScore}
-            isPublicGallery={isPublicGallery}
-          />
-          <MasonryBrandLogo
-            ingredient={image}
-            isPublicGallery={isPublicGallery}
-            isPublicProfile={isPublicProfile}
-          />
-        </>
+        <MasonryBrandLogo
+          ingredient={image}
+          isPublicGallery={isPublicGallery}
+          isPublicProfile={isPublicProfile}
+        />
+      )}
+
+      {isActionsEnabled && onToggleSelection && (
+        <MasonrySelectionToggle
+          ingredient={image}
+          isSelected={isSelected}
+          onToggleSelection={onToggleSelection}
+        />
       )}
 
       <MasonryImageActionsBar

@@ -190,9 +190,7 @@ export function buildSaveAdInput(
   };
 }
 
-export function useAdsResearchPageClient(
-  initialPlatform: AdsResearchPlatform | 'all',
-) {
+export function useAdsResearchPageClient() {
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.adsResearch');
   const savedSourceLabel = translate('swipeFile.sourceLabel');
@@ -213,9 +211,8 @@ export function useAdsResearchPageClient(
   const [platform, setPlatform] = useResearchSearchParamState<
     AdsResearchPlatform | 'all'
   >({
-    allowedValues:
-      initialPlatform === 'all' ? PLATFORM_VALUES : [initialPlatform],
-    defaultValue: initialPlatform,
+    allowedValues: PLATFORM_VALUES,
+    defaultValue: 'all',
     key: 'platform',
   });
   const [channel, setChannel] = useResearchSearchParamState<AdsChannel>({
@@ -289,8 +286,7 @@ export function useAdsResearchPageClient(
     setFiltersVisibility(isVisible ? 'visible' : 'hidden');
 
   const brandLabel = getBrandLabel(selectedBrand);
-  const effectivePlatform =
-    initialPlatform === 'all' ? platform : initialPlatform;
+  const effectivePlatform = platform;
   const showChannelFilter = effectivePlatform === 'google';
 
   useEffect(() => {

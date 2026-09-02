@@ -453,6 +453,37 @@
       "loadError": "Posts could not be loaded. Refresh to try again.",
       "noCopy": "No post copy yet.",
       "postCount": "{count, plural, one {# post} other {# posts}}",
+      "rail": {
+        "accounts": {
+          "ariaToggle": "Toggle {account}",
+          "label": "Connected accounts",
+          "needsReconnect": "Reconnect needed"
+        },
+        "keys": {
+          "legend": "Keyboard shortcuts",
+          "next": "Next / previous",
+          "open": "Open",
+          "previous": "Previous",
+          "refresh": "Refresh"
+        },
+        "nextAt": "Next at {time}",
+        "noMedia": "No media",
+        "open": "Open post",
+        "outcome": {
+          "failed": "{count, plural, one {# failed} other {# failed}}",
+          "pending": "{count, plural, one {# pending} other {# pending}}",
+          "published": "{count, plural, one {# published} other {# published}}"
+        },
+        "overflow": "+{count}",
+        "segments": {
+          "all": "All",
+          "draft": "Draft",
+          "failed": "Failed",
+          "published": "Published",
+          "publishing": "Publishing",
+          "scheduled": "Scheduled"
+        }
+      },
       "toolbar": {
         "failed": "Failed",
         "notPosted": "Not posted",
@@ -596,12 +627,14 @@
   },
   "library": {
     "inspector": {
-      "type": "Type"
+      "empty": "Select one asset to inspect it.",
+      "surface": "Library",
+      "type": "Type",
+      "untitled": "Untitled asset"
     },
     "otherAssets": "Other assets",
     "sidebar": {
-      "shelvesGroup": "Shelves",
-      "storageLabel": "Storage"
+      "shelvesGroup": "Shelves"
     }
   },
   "onboarding": {

@@ -291,7 +291,7 @@ export default function TrendsPlatformDetail({
                           finding.reference,
                         )}
                         item={item}
-                        onSelect={
+                        onSelectAction={
                           surface?.isEmbedded
                             ? surface.selectFinding
                             : undefined

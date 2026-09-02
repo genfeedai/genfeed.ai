@@ -10,6 +10,7 @@ export default function IngredientsListHeader({
   isMerging,
   onClearSelection,
   onBulkDelete,
+  onDownload,
   onMerge,
   onPublishCampaign,
 }: IngredientsListHeaderProps) {
@@ -21,6 +22,7 @@ export default function IngredientsListHeader({
       isMerging={isMerging}
       onClear={onClearSelection}
       onBulkDelete={onBulkDelete}
+      onDownload={onDownload}
       onMerge={onMerge}
       onPublishCampaign={onPublishCampaign}
     />

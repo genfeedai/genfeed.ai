@@ -1,4 +1,5 @@
 import type { ExecutableNode } from '../../types';
+import { deriveWorkflowActionIdempotencyKey } from '../../utils/idempotency';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -20,8 +21,6 @@ export interface SendDmConfig {
   recipientId?: string;
   /** DM text */
   text?: string;
-  /** Stable idempotency key for retry-safe external actions */
-  idempotencyKey?: string;
   /** Optional media URL to attach */
   mediaUrl?: string;
 }
@@ -129,9 +128,11 @@ export class SendDmExecutor extends BaseExecutor {
       inputs,
       'conversationId',
     );
-    const idempotencyKey =
-      this.getConfigOrInputString(node, inputs, 'idempotencyKey') ??
-      `workflow:${context.runId}:${node.id}`;
+    const idempotencyKey = deriveWorkflowActionIdempotencyKey({
+      actionId: this.nodeType,
+      executionId: context.executionId,
+      nodeId: node.id,
+    });
 
     const result = await this.sender({
       brandId: node.config.brandId as string | undefined,

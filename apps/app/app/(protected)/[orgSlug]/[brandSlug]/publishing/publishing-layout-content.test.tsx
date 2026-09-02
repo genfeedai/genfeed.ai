@@ -55,7 +55,7 @@ describe('PublishingLayoutContent', () => {
     brandMock.label = 'Acme Creator';
     openAgentComposerMock.mockReset();
     openModalMock.mockReset();
-    usePathnameMock.mockReturnValue('/publishing/scheduled');
+    usePathnameMock.mockReturnValue('/publishing/posts');
     useRouterMock.mockReturnValue({ refresh: vi.fn() });
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams('platform=youtube'),

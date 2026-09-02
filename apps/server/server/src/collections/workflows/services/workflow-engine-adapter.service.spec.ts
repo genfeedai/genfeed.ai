@@ -451,7 +451,9 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       });
 
-      const result = await socialAdapter.executeWorkflow(workflow);
+      const result = await socialAdapter.executeWorkflow(workflow, {
+        executionId: 'execution-1',
+      });
 
       expect(socialInboxService.postReply).toHaveBeenCalledWith(
         {
@@ -461,7 +463,7 @@ describe('WorkflowEngineAdapterService', () => {
         },
         'conversation-1',
         expect.objectContaining({
-          idempotencyKey: expect.stringMatching(/^workflow:[^:]+:reply-node$/),
+          idempotencyKey: 'workflow:execution-1:reply-node',
           text: 'Thanks for watching',
           workflowRunId: expect.any(String),
         }),
@@ -506,7 +508,9 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       });
 
-      const result = await socialAdapter.executeWorkflow(workflow);
+      const result = await socialAdapter.executeWorkflow(workflow, {
+        executionId: 'execution-1',
+      });
 
       expect(socialInboxService.sendDm).toHaveBeenCalledWith(
         {
@@ -516,7 +520,7 @@ describe('WorkflowEngineAdapterService', () => {
         },
         'conversation-1',
         expect.objectContaining({
-          idempotencyKey: expect.stringMatching(/^workflow:[^:]+:dm-node$/),
+          idempotencyKey: 'workflow:execution-1:dm-node',
           recipientId: 'recipient-1',
           text: 'Thanks for reaching out',
           workflowRunId: expect.any(String),
@@ -567,7 +571,9 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       });
 
-      const result = await socialAdapter.executeWorkflow(workflow);
+      const result = await socialAdapter.executeWorkflow(workflow, {
+        executionId: 'execution-1',
+      });
 
       expect(result.status).toBe('failed');
       expect(result.error).toBe('Social inbox action service is not available');

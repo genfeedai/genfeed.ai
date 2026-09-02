@@ -173,11 +173,11 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it('uses canonical route breadcrumbs without discarding sidebar groups', () => {
-    pathnameState.value = '/acme/brand/library/moodboard';
+    pathnameState.value = '/acme/brand/library/starred';
 
     render(
       <SidebarNavigationProvider
-        breadcrumb={{ leafLabel: 'Moodboard', rootLabel: 'Library' }}
+        breadcrumb={{ leafLabel: 'Starred', rootLabel: 'Library' }}
         items={[
           { group: 'Assets', href: '/library/images', label: 'Images' },
           { group: 'Assets', href: '/library/videos', label: 'Videos' },
@@ -188,7 +188,7 @@ describe('SidebarNavigationProvider', () => {
     );
 
     expect(
-      screen.getByText('Assets|none|Library|Moodboard|canonical|1'),
+      screen.getByText('Assets|none|Library|Starred|canonical|1'),
     ).toBeInTheDocument();
   });
 

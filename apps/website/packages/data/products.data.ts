@@ -588,7 +588,7 @@ export const products: Product[] = [
       recommended: 'pro',
       why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
-    relatedProducts: ['publishing', 'workflows'],
+    relatedProducts: ['publishing', 'workflows', 'hire-agents'],
     slug: 'studio',
     tagline: 'AI content creation workspace',
     targetAudience: [
@@ -722,105 +722,6 @@ export const products: Product[] = [
         example:
           'Nightly cron → content workflow runs → outputs are rated → approved assets move to publishing automatically',
         title: 'Scheduled Autonomous Runs',
-      },
-    ],
-  },
-  {
-    benefits: [
-      {
-        problem: 'No clear visibility into content performance',
-        solution:
-          'Unified analytics dashboard showing engagement, views, and performance across all platforms',
-      },
-      {
-        problem: "Missing trending topics until they're oversaturated",
-        solution:
-          'Monitor trending topics across major platforms to create timely content',
-      },
-      {
-        problem: 'Unsure which content formats work best',
-        solution:
-          'Performance insights show which formats and topics resonate with your audience',
-      },
-      {
-        problem: 'Manually checking multiple platform analytics',
-        solution:
-          'One dashboard with aggregated metrics from all your social accounts',
-      },
-    ],
-    category: 'Analytics',
-    cta: 'Get Intelligence',
-    description:
-      'Track social media trends, analyze what performs best, and monitor your content performance across platforms. Make data-driven decisions about your content strategy.',
-    features: [
-      {
-        description:
-          'Discover trending topics across X, TikTok, Instagram, and YouTube.',
-        icon: '',
-        title: 'Trend Monitoring',
-      },
-      {
-        description:
-          'Track engagement metrics, views, and performance across all platforms.',
-        icon: '',
-        title: 'Performance Analytics',
-      },
-      {
-        description:
-          'Analyze which content formats and topics perform best for your audience.',
-        icon: '',
-        title: 'Content Insights',
-      },
-      {
-        description:
-          'Monitor accounts and topics relevant to your niche for inspiration.',
-        icon: '',
-        title: 'Watchlist',
-      },
-    ],
-    headline: 'Content Analytics & Performance Insights',
-    icon: '',
-    integrations: [
-      'X/Twitter Analytics',
-      'TikTok Analytics',
-      'Instagram Insights',
-      'YouTube Analytics',
-      'Google Analytics',
-    ],
-    name: 'Analytics',
-    pricing: {
-      recommended: 'scale',
-      why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
-    },
-    relatedProducts: ['studio', 'publishing', 'hire-agents'],
-    seoTitle: 'Analytics: Trends & Content Performance',
-    slug: 'intelligence',
-    tagline: 'Track trends, analyze performance, optimize content',
-    targetAudience: [
-      'Marketers tracking ROI',
-      'Content creators optimizing strategy',
-      'Agencies reporting to clients',
-      'Brands measuring campaign performance',
-      'Founders tracking growth metrics',
-    ],
-    useCases: [
-      {
-        description: 'Create content based on real-time social trends',
-        example:
-          'Intelligence alerts you to trending topic → Generate content → Post before competitors',
-        title: 'Trend-Based Content',
-      },
-      {
-        description: 'Double down on what works, cut what does not work',
-        example:
-          'Video format A gets 10x engagement → AI recommends creating more → Revenue increases 3x',
-        title: 'Performance Optimization',
-      },
-      {
-        description: 'Monitor engagement and optimize strategy',
-        example:
-          'Track performance trends → Identify top-performing content → Create similar content',
-        title: 'Performance Tracking',
       },
     ],
   },

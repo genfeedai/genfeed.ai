@@ -33,7 +33,7 @@ describe('workspace shell URL restoration', () => {
   it.each([
     '/acme/moonrise/analytics',
     '/acme/moonrise/publishing/posts/post-1',
-    '/acme/moonrise/library/moodboard',
+    '/acme/moonrise/library/starred',
     '/acme/moonrise/messages',
     '/acme/~/messages',
     '/acme/~/discovery/overview',

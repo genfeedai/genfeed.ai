@@ -180,8 +180,8 @@ describe('runCheckProductRouteInventory', () => {
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 22,
       issues: [],
-      protectedPageCount: 235,
-      protectedRouteCount: 241,
+      protectedPageCount: 231,
+      protectedRouteCount: 234,
       publicRouteCount: 75,
       websitePublicRouteCount: 53,
     });

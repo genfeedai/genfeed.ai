@@ -7,6 +7,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -22,7 +23,6 @@ import type {
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type OutputEntry = {
   ingredient: IIngredient;

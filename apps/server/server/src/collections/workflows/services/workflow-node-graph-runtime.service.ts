@@ -190,6 +190,7 @@ export class WorkflowNodeGraphRuntimeService {
     inputs: Map<string, unknown>,
     workflow: ExecutableWorkflow,
     executionId: string,
+    signal?: AbortSignal,
   ): Promise<NodeExecutionResult> {
     const startedAt = new Date();
     const singleNodeWorkflow: ExecutableWorkflow = {
@@ -224,7 +225,11 @@ export class WorkflowNodeGraphRuntimeService {
     singleNodeWorkflow.edges = virtualEdges;
     const result = await this.engineAdapter.executeWorkflow(
       singleNodeWorkflow,
-      { executionId, maxRetries: 3 },
+      {
+        abortSignal: signal,
+        executionId,
+        maxRetries: 3,
+      },
     );
     return (
       result.nodeResults.get(node.id) ?? {

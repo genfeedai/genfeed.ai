@@ -1,12 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
 import type {
   GeneratePostVariationsParams,
   PostVariationResponseMeta,
   PostVariationVoiceMode,
 } from '@api/collections/posts/services/source-post-variation.types';
+import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
+import { sourcePostVariationCredits } from '@genfeedai/constants';
+import { scopedWhere } from '@genfeedai/server';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
+import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import type { PostDocument } from '@server/collections/posts/post.schema';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   describeVariationRejections,
   filterSourcePostVariations,
@@ -17,14 +25,6 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@server/shared/utils/query-cache/query-cache.util';
-import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
-import { sourcePostVariationCredits } from '@genfeedai/constants';
-import { scopedWhere } from '@genfeedai/server';
-import {
-  BadGatewayException,
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
 
 const SOURCE_CONTEXT_CHUNK_SIZE = 480;
 const MAX_SOURCE_CONTEXT_CHUNKS = 8;
@@ -112,46 +112,7 @@ export class PostVariationService {
       );
     }
 
-    await Promise.all(
-      postIds.map(async (postId, index) => {
-        const variantId = `${groupId}:${index + 1}/${actualCount}`;
-        const update = await this.prisma.post.updateMany({
-          data: {
-            generationId: groupId,
-            groupId,
-            order: index,
-            originalPostId:
-              params.source.kind === 'owned-post' ? params.source.id : null,
-            source: `${SOURCE_VARIATION_WORKFLOW}:${params.source.kind}`,
-            sourceActionId: params.source.id,
-            sourceWorkflowId: groupId,
-            variantId,
-          },
-          where: scopedWhere(params.organizationId, {
-            brandId: params.brandId,
-            id: postId,
-          }),
-        });
-        if (update.count !== 1) {
-          throw new NotFoundException('Post', postId);
-        }
-
-        if (params.source.kind === 'trend-reference') {
-          await this.trendReferenceCorpusService.recordPostRemixLineage({
-            brandId: params.brandId,
-            generatedBy: SOURCE_VARIATION_WORKFLOW,
-            metadata: {
-              sourceReferenceIds: [params.source.id],
-              trendId: params.source.trendId,
-            },
-            organizationId: params.organizationId,
-            platforms: [params.platform],
-            postId,
-            prompt,
-          });
-        }
-      }),
-    );
+    await this.persistVariations(params, postIds, groupId, actualCount, prompt);
 
     // The direct prisma.post.updateMany writes bypass BaseService, so bust the
     // post collection/query caches (plus the public `posts` tag) explicitly.
@@ -197,6 +158,55 @@ export class PostVariationService {
       },
       posts,
     };
+  }
+
+  private async persistVariations(
+    params: GeneratePostVariationsParams,
+    postIds: string[],
+    groupId: string,
+    actualCount: number,
+    prompt: string,
+  ): Promise<void> {
+    await Promise.all(
+      postIds.map(async (postId, index) => {
+        const variantId = `${groupId}:${index + 1}/${actualCount}`;
+        const update = await this.prisma.post.updateMany({
+          data: {
+            generationId: groupId,
+            groupId,
+            order: index,
+            originalPostId:
+              params.source.kind === 'owned-post' ? params.source.id : null,
+            source: `${SOURCE_VARIATION_WORKFLOW}:${params.source.kind}`,
+            sourceActionId: params.source.id,
+            sourceWorkflowId: groupId,
+            variantId,
+          },
+          where: scopedWhere(params.organizationId, {
+            brandId: params.brandId,
+            id: postId,
+          }),
+        });
+        if (update.count !== 1) {
+          throw new NotFoundException('Post', postId);
+        }
+
+        if (params.source.kind === 'trend-reference') {
+          await this.trendReferenceCorpusService.recordPostRemixLineage({
+            brandId: params.brandId,
+            generatedBy: SOURCE_VARIATION_WORKFLOW,
+            metadata: {
+              sourceReferenceIds: [params.source.id],
+              trendId: params.source.trendId,
+            },
+            organizationId: params.organizationId,
+            platforms: [params.platform],
+            postId,
+            prompt,
+          });
+        }
+      }),
+    );
   }
 
   private async resolveVoiceMode(

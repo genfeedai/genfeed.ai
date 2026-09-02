@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createPublishingPostsFilterRoute } from './publishing-posts-routes.constant';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
@@ -175,8 +176,11 @@ describe('routes.constant', () => {
     expect(createPlatformHomeRoute('instagram')).toBe('/platforms/instagram');
     expect(createPlatformHomeRoute('google_ads')).toBe('/platforms/google_ads');
     expect(
-      withPlatformQuery(APP_ROUTES.PUBLISHING.SCHEDULED, 'instagram'),
-    ).toBe('/publishing/scheduled?platform=instagram');
+      withPlatformQuery(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+        'instagram',
+      ),
+    ).toBe('/publishing/posts?publicationState=not-posted&platform=instagram');
     expect(
       withPlatformQuery(
         `${APP_ROUTES.PUBLISHING.POSTS}?status=draft`,

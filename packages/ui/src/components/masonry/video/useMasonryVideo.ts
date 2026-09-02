@@ -280,6 +280,7 @@ export function useMasonryVideo({
     videoRef,
     isHovered,
     isProcessing,
+    isFailed,
     isUnavailable,
     isFleetNsfwLocked,
     isInteractionBlocked,

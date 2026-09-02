@@ -4,5 +4,5 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 export const generateMetadata = createPageMetadata('Ads Intelligence');
 
 export default function DiscoveryAdsPage() {
-  return <AdsResearchPageClient initialPlatform="all" />;
+  return <AdsResearchPageClient />;
 }

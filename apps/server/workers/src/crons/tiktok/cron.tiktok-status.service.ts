@@ -5,7 +5,11 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { IChannelTargetError } from '@genfeedai/interfaces';
-import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
+import {
+  type PublishResult,
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -25,6 +29,7 @@ import {
   buildTiktokStatusSweepDefinition,
   TIKTOK_STATUS_ACTION_IDS,
 } from '@workers/crons/tiktok/tiktok-status-workflow-definition';
+import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {
@@ -84,6 +89,7 @@ export class CronTiktokStatusService implements OnModuleInit {
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
+    private readonly scheduledPostWorkflowService: ScheduledPostWorkflowService,
   ) {}
 
   onModuleInit(): void {
@@ -426,7 +432,7 @@ export class CronTiktokStatusService implements OnModuleInit {
     transitionInput: Record<string, unknown>,
     provenance: SystemWorkflowProvenance,
   ): Promise<boolean> {
-    return this.persistStatusTransition(
+    const transitioned = await this.persistStatusTransition(
       {
         detail,
         organizationId: post.organizationId,
@@ -438,6 +444,29 @@ export class CronTiktokStatusService implements OnModuleInit {
       provenance,
       post,
     );
+
+    // The transition guard (SchedulerPublishStateService, PUBLISHING ->
+    // PUBLISHED via a Serializable transaction) only reports `transitioned`
+    // once per post: a stale or repeat transition returns false. That makes
+    // it the idempotency marker for finalize - no separate "already
+    // finalized" flag is needed.
+    if (outcome === 'published' && transitioned) {
+      const result: PublishResult = {
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: String(transitionInput.externalPostId ?? ''),
+        isProviderDraft: false,
+        platform: CredentialPlatform.TIKTOK,
+        success: true,
+        url: String(transitionInput.postUrl ?? ''),
+      };
+      await this.scheduledPostWorkflowService.finalizePublishedPost(
+        post,
+        result,
+        'CronTiktokStatusService.applyStatusTransition',
+      );
+    }
+
+    return transitioned;
   }
 
   private async executeStatusReconciliation(

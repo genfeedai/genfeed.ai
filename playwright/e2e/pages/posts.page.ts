@@ -1,4 +1,7 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { brandPath } from '../utils/app-chrome';
@@ -95,14 +98,20 @@ export class PostsPage {
         `a[href$="${APP_ROUTES.PUBLISHING.ROOT}"], a[href$="${APP_ROUTES.PUBLISHING.OVERVIEW}"], a[href$="${APP_ROUTES.PUBLISHING.POSTS}"], [role="tab"]:has-text("Drafts")`,
       )
       .first();
+    const notPostedFilterPath = createPublishingPostsFilterRoute({
+      publicationState: 'not-posted',
+    });
+    const postedFilterPath = createPublishingPostsFilterRoute({
+      publicationState: 'posted',
+    });
     this.scheduledTab = page
       .locator(
-        `a[href$="${APP_ROUTES.PUBLISHING.SCHEDULED}"], a[href*="${APP_ROUTES.PUBLISHING.SCHEDULED}"], [role="tab"]:has-text("Scheduled")`,
+        `a[href$="${notPostedFilterPath}"], a[href*="${notPostedFilterPath}"], [role="tab"]:has-text("Scheduled")`,
       )
       .first();
     this.publishedTab = page
       .locator(
-        `a[href$="${APP_ROUTES.PUBLISHING.PUBLISHED}"], a[href*="${APP_ROUTES.PUBLISHING.PUBLISHED}"], [role="tab"]:has-text("Published")`,
+        `a[href$="${postedFilterPath}"], a[href*="${postedFilterPath}"], [role="tab"]:has-text("Published")`,
       )
       .first();
     this.engageTab = page
@@ -251,12 +260,20 @@ export class PostsPage {
   }
 
   async gotoScheduled(): Promise<void> {
-    await this.page.goto(brandPath(APP_ROUTES.PUBLISHING.SCHEDULED));
+    await this.page.goto(
+      brandPath(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      ),
+    );
     await this.waitForPageLoad();
   }
 
   async gotoPublished(): Promise<void> {
-    await this.page.goto(brandPath(APP_ROUTES.PUBLISHING.PUBLISHED));
+    await this.page.goto(
+      brandPath(
+        createPublishingPostsFilterRoute({ publicationState: 'posted' }),
+      ),
+    );
     await this.waitForPageLoad();
   }
 
@@ -391,11 +408,15 @@ export class PostsPage {
   }
 
   async assertOnScheduledTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/publishing\/scheduled(?:\?|$)/);
+    await expect(this.page).toHaveURL(
+      /\/publishing\/posts\?publicationState=not-posted(?:&|$)/,
+    );
   }
 
   async assertOnPublishedTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/publishing\/published(?:\?|$)/);
+    await expect(this.page).toHaveURL(
+      /\/publishing\/posts\?publicationState=posted(?:&|$)/,
+    );
   }
 
   async assertOnEngageTab(): Promise<void> {

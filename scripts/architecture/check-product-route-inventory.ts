@@ -82,10 +82,7 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/studio/edit/:id',
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',
-  '/:orgSlug/~/publishing/pending',
-  '/:orgSlug/~/publishing/processing',
-  '/:orgSlug/~/publishing/published',
-  '/:orgSlug/~/publishing/scheduled',
+  '/:orgSlug/~/publishing/posts',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([

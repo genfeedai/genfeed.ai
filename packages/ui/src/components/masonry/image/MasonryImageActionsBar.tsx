@@ -210,11 +210,11 @@ export default function MasonryImageActionsBar({
   return (
     <div
       className={cn(
-        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 focus-within:pointer-events-auto',
+        'absolute top-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 focus-within:pointer-events-auto',
         showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <div className="flex items-end justify-end gap-2">
+      <div className="flex items-start justify-end gap-2">
         <div className="flex-shrink-0 flex items-center gap-2">
           {onVoteIngredient ? (
             <VoteButton image={image} onVote={onVoteIngredient} />

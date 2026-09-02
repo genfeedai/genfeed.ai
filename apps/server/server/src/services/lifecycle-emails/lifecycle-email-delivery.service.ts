@@ -30,6 +30,15 @@ const DELIVERY_STATUS = {
   SKIPPED: 'skipped',
 } as const;
 
+// Every status a delivery can never leave once reached. A finalize replay
+// (BullMQ retry against a terminal job) must not overwrite the row that
+// already recorded why the delivery stopped.
+const TERMINAL_DELIVERY_STATUSES = new Set<string>([
+  DELIVERY_STATUS.SENT,
+  DELIVERY_STATUS.CANCELED,
+  DELIVERY_STATUS.SKIPPED,
+]);
+
 type UserEmailTarget = {
   id: string;
   email: string | null;
@@ -212,10 +221,7 @@ export class LifecycleEmailDeliveryService {
       return { delivered: false };
     }
     if (state.skipReason) {
-      if (
-        state.skipReason !== 'already sent' &&
-        state.skipReason !== 'canceled'
-      ) {
+      if (!TERMINAL_DELIVERY_STATUSES.has(state.delivery.status)) {
         await this.markDeliverySkipped(state.delivery.id, state.skipReason);
       }
       return { delivered: false, skipped: state.skipReason };

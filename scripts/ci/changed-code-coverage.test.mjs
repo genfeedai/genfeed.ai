@@ -410,6 +410,34 @@ test('a failed surface rejects the measurement instead of publishing a pass', ()
   assert.equal(built.normalized.disposition, 'infrastructure-failed');
 });
 
+test('observation mode with nothing measured is unmeasured, not an observation', () => {
+  // #1849 counts each observation-only report toward `observation.requiredRuns`.
+  // A full-suite run skips both changed shards, so the diff has measurable
+  // files but no surface instrumented any of them. Publishing that as
+  // `observation-only` padded the evidence with empty reports: PRs #4265,
+  // #4295 and #4296 each counted with zero measured lines.
+  const skipped = report({
+    changedFiles: [['apps/app/a.ts', [1, 2]]],
+    surfaces: [
+      surface('app', 'skipped', null),
+      surface('api', 'skipped', null),
+    ],
+  });
+
+  assert.equal(skipped.normalized.totals.lines.measured, 0);
+  assert.equal(skipped.normalized.disposition, 'unmeasured');
+  assert.match(formatSummary(skipped), /not an observation/);
+
+  // A clean run whose changed graph pulled in no test file is the same
+  // absence of evidence, not a 0% observation.
+  const noTests = report({
+    changedFiles: [['apps/app/a.ts', [1, 2]]],
+    surfaces: [surface('app', 'success', null)],
+  });
+
+  assert.equal(noTests.normalized.disposition, 'unmeasured');
+});
+
 test('a diff with no measurable file is not-applicable', () => {
   const built = report({
     changedFiles: [
@@ -782,6 +810,26 @@ function ciJob(name) {
   const end = rest.search(/\n {2}[a-z][a-z0-9-]*:\n/);
   return end === -1 ? rest : rest.slice(0, end);
 }
+
+test('a shard cancelled before its clock started stages no latency', () => {
+  // The staging step runs under `if: always()`, so a shard cancelled during
+  // its build never reaches "Mark test start" and `COVERAGE_STARTED` is empty.
+  // Bash arithmetic then yields the raw epoch: PR #4265 published a
+  // 1,788,299,408-second surface latency against a 20-minute budget.
+  for (const name of ['test-app-changed', 'test-api-changed']) {
+    const job = ciJob(name);
+    assert.equal(
+      (job.match(/> coverage-shard\/seconds/g) ?? []).length,
+      1,
+      `${name} stages shard latency exactly once`,
+    );
+    assert.match(
+      job,
+      /if \[ -n "\$\{COVERAGE_STARTED:-\}" \]; then\n\s+echo "\$\(\( \$\(date \+%s\) - COVERAGE_STARTED \)\)" > coverage-shard\/seconds\n\s+fi/,
+      `${name} must stage latency only after the test clock started`,
+    );
+  }
+});
 
 test('coverage rides the changed-test shards as mergeable blobs on pull requests only', () => {
   // #1969: the standalone coverage matrix re-ran the same `--changed`

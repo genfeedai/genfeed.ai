@@ -59,6 +59,7 @@ function createHarness() {
 async function finalize(
   registeredActions: Map<string, RegisteredAction>,
   executionState: TargetExecutionState,
+  deliveryOverrides: Record<string, unknown> = {},
 ) {
   const action = registeredActions.get(SCHEDULED_POST_ACTION_IDS.FINALIZE);
   if (!action) {
@@ -87,6 +88,7 @@ async function finalize(
         platform: 'tiktok',
         success: true,
         url: '',
+        ...deliveryOverrides,
       },
       request,
     },
@@ -125,5 +127,16 @@ describe('ScheduledPostWorkflowService', () => {
       expect.objectContaining({ id: 'post-1' }),
       'ScheduledPostWorkflowService.finalize',
     );
+  });
+
+  it('does not announce or repeat a published provider draft', async () => {
+    const harness = createHarness();
+
+    await finalize(harness.registeredActions, TargetExecutionState.PUBLISHED, {
+      isProviderDraft: true,
+    });
+
+    expect(harness.activitiesService.create).not.toHaveBeenCalled();
+    expect(harness.repeatScheduler.scheduleNextRepeat).not.toHaveBeenCalled();
   });
 });

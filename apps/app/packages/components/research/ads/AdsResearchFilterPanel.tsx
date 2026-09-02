@@ -27,17 +27,6 @@ const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchViewSource }> = [
   { label: 'Saved', value: 'saved' },
 ];
 
-const PLATFORM_OPTIONS: Array<{
-  label: string;
-  value: AdsResearchPlatform | 'all';
-}> = [
-  { label: 'All Platforms', value: 'all' },
-  { label: 'Meta Ads', value: 'meta' },
-  { label: 'Google / YouTube Ads', value: 'google' },
-  { label: 'TikTok Ads', value: 'tiktok' },
-  { label: 'X Ads', value: 'x' },
-];
-
 const GOOGLE_CHANNEL_OPTIONS: Array<{ label: string; value: AdsChannel }> = [
   { label: 'All Inventory', value: 'all' },
   { label: 'Search', value: 'search' },
@@ -122,10 +111,8 @@ type AdsResearchFilterPanelProps = {
   credentialOptions: CredentialOption[];
   effectivePlatform: AdsResearchPlatform | 'all';
   industry: string;
-  initialPlatform: AdsResearchPlatform | 'all';
   loginCustomerId: string;
   metric: AdsResearchMetric;
-  platform: AdsResearchPlatform | 'all';
   showChannelFilter: boolean;
   source: AdsResearchViewSource;
   timeframe: AdsResearchTimeframe;
@@ -135,7 +122,6 @@ type AdsResearchFilterPanelProps = {
   onIndustryChange: (value: string) => void;
   onLoginCustomerIdChange: (value: string) => void;
   onMetricChange: (value: AdsResearchMetric) => void;
-  onPlatformChange: (value: AdsResearchPlatform | 'all') => void;
   onSourceChange: (value: AdsResearchViewSource) => void;
   onTimeframeChange: (value: AdsResearchTimeframe) => void;
 };
@@ -148,10 +134,8 @@ export function AdsResearchFilterPanel({
   credentialOptions,
   effectivePlatform,
   industry,
-  initialPlatform,
   loginCustomerId,
   metric,
-  platform,
   showChannelFilter,
   source,
   timeframe,
@@ -161,7 +145,6 @@ export function AdsResearchFilterPanel({
   onIndustryChange,
   onLoginCustomerIdChange,
   onMetricChange,
-  onPlatformChange,
   onSourceChange,
   onTimeframeChange,
 }: AdsResearchFilterPanelProps) {
@@ -174,16 +157,6 @@ export function AdsResearchFilterPanel({
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
-      {initialPlatform === 'all' && (
-        <FilterSelect
-          label="Platform"
-          options={PLATFORM_OPTIONS}
-          value={platform}
-          onChange={(value) =>
-            onPlatformChange((value || 'all') as AdsResearchPlatform | 'all')
-          }
-        />
-      )}
       <FilterSelect
         label="Source"
         options={sourceOptions}

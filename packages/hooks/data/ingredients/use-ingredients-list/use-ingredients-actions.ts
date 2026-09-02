@@ -16,12 +16,15 @@ import {
 import type {
   IFilters,
   IFolder,
+  IImage,
   IIngredient,
   IMediaEventData,
+  IVideo,
 } from '@genfeedai/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
@@ -97,6 +100,10 @@ export function useIngredientsActions({
     VideosService.getInstance(token),
   );
 
+  const getImagesService = useAuthedService((token: string) =>
+    ImagesService.getInstance(token),
+  );
+
   const [isMerging, setIsMerging] = useState(false);
   const [selectedIngredientIds, setSelectedIngredientIds] = useState<string[]>(
     [],
@@ -151,6 +158,75 @@ export function useIngredientsActions({
     [confirmDeleteIngredient, openConfirm],
   );
 
+  const handleRepromptIngredient = useCallback(
+    async (ingredient: IIngredient) => {
+      const promptText =
+        ingredient.text?.trim() || ingredient.promptText?.trim();
+
+      if (!promptText) {
+        notificationsService.warning(
+          'No prompt available to reprompt this ingredient',
+        );
+        return;
+      }
+
+      const isImageCategory = ingredient.category === IngredientCategory.IMAGE;
+      const isVideoCategory = ingredient.category === IngredientCategory.VIDEO;
+
+      if (!isImageCategory && !isVideoCategory) {
+        notificationsService.warning(
+          'Reprompt is only available for images and videos',
+        );
+        return;
+      }
+
+      const format = ingredient.format ?? ingredient.ingredientFormat;
+      const width = ingredient.width ?? ingredient.metadataWidth;
+      const height = ingredient.height ?? ingredient.metadataHeight;
+      const model = ingredient.modelUsed ?? undefined;
+      const url = isImageCategory ? 'POST /images' : 'POST /videos';
+
+      try {
+        if (isImageCategory) {
+          const payload: Partial<IImage> = {
+            category: ingredient.category,
+            format,
+            height,
+            model,
+            text: promptText,
+            width,
+          };
+          const service = await getImagesService();
+          await service.post(payload);
+        } else {
+          const payload: Partial<IVideo> = {
+            category: ingredient.category,
+            format,
+            height,
+            model,
+            text: promptText,
+            width,
+          };
+          const service = await getVideosService();
+          await service.post(payload);
+        }
+
+        logger.info(`${url} success - reprompt`);
+        notificationsService.success('Reprompt started');
+        findAllIngredientsByCategory(true);
+      } catch (error) {
+        logger.error(`${url} failed`, error);
+        notificationsService.error('Failed to reprompt ingredient');
+      }
+    },
+    [
+      findAllIngredientsByCategory,
+      getImagesService,
+      getVideosService,
+      notificationsService,
+    ],
+  );
+
   const {
     handlers,
     loadingStates,
@@ -163,6 +239,7 @@ export function useIngredientsActions({
     onPublishIngredient: (ingredient: IIngredient) =>
       openIngredientModal(ModalEnum.POST, ingredient),
     onRefresh: () => findAllIngredientsByCategory(true),
+    onReprompt: handleRepromptIngredient,
     onSeeDetails: (ingredient: IIngredient) => {
       openGlobalIngredientOverlay(ingredient, handleClose);
     },

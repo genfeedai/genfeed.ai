@@ -228,7 +228,7 @@ describe('PlatformHomePage', () => {
     expect(screen.getByText('Healthy')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Queue' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/publishing/scheduled?platform=instagram',
+      '/acme/moonrise/publishing/posts?publicationState=not-posted&platform=instagram',
     );
     expect(screen.getByRole('link', { name: 'Open Create' })).toHaveAttribute(
       'href',

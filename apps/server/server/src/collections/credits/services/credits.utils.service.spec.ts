@@ -255,9 +255,34 @@ describe('CreditsUtilsService', () => {
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
       expect(eventEmitter.emit).not.toHaveBeenCalled();
       expect(websocketService.emit).not.toHaveBeenCalled();
+    });
+
+    // #4310: a reaper-driven retry of a deduction (same idempotency key)
+    // replays this branch after the original attempt already committed the
+    // balance/ledger write. The access-bootstrap cache must still be
+    // invalidated on every replay so a stale cache can't outlive the retry —
+    // only the websocket/activity emits are replay-guarded.
+    it('invalidates the access-bootstrap cache on a replayed deduction without re-emitting balance events', async () => {
+      const service = buildService();
+      txCreditTransactionFindFirst.mockResolvedValue({
+        balanceAfter: 60,
+        organizationId: 'org_original',
+      });
+
+      await service.deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        40,
+        'referral reversal',
+        undefined,
+        { idempotencyKey: 'referral-reward-reversal:reward_1:4000' },
+      );
+
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith('org_1');
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(websocketService.emit).not.toHaveBeenCalled();
     });
   });
 
@@ -361,11 +386,47 @@ describe('CreditsUtilsService', () => {
       expect(
         creditTransactionsService.createTransactionEntry,
       ).not.toHaveBeenCalled();
-      expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
       expect(websocketService.emit).not.toHaveBeenCalled();
+    });
+
+    // #4310: a reaper-driven retry of a referral-reward grant (same
+    // idempotency key) replays this branch after the original attempt
+    // already committed the balance/ledger write but crashed before the
+    // post-transaction side effects ran. hasEverHadCredits and the
+    // access-bootstrap cache must still be brought up to date on the
+    // *caller's* organizationId on every replay — only the websocket balance
+    // emit is replay-guarded, since that event already fired once.
+    it('writes hasEverHadCredits and invalidates the access-bootstrap cache on a replayed grant', async () => {
+      const service = buildService();
+      txCreditTransactionFindFirst.mockResolvedValue({
+        balanceAfter: 150,
+        organizationId: 'org_original',
+      });
+      organizationSettingsService.findOne.mockResolvedValue({
+        hasEverHadCredits: false,
+        id: 'settings_fallback',
+      });
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_fallback',
+        50,
+        'credits-referral',
+        'referral reward',
+        new Date('2027-01-01T00:00:00Z'),
+        { idempotencyKey: 'referral-reward-grant:reward_1' },
+      );
+
+      expect(organizationSettingsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: 'org_fallback' }),
+      );
+      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+        'settings_fallback',
+        { hasEverHadCredits: true },
+      );
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith('org_fallback');
+      expect(websocketService.emit).not.toHaveBeenCalled();
     });
   });
 

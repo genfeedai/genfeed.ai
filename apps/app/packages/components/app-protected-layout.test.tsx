@@ -229,7 +229,7 @@ vi.mock('@app-config/menu-items.config', () => ({
 vi.mock('@app-config/discovery-menu-items.config', () => ({
   DISCOVERY_MENU_ITEMS: [
     { href: '/discovery/overview', label: 'Overview' },
-    { href: '/discovery/following', label: 'Following' },
+    { href: '/discovery/overview?source=following', label: 'Following' },
     { href: '/discovery/ads', label: 'Ads' },
   ],
 }));
@@ -906,10 +906,9 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/org-123/brand-123/discovery/following', 'Discovery', 'Following'],
+    ['/org-123/brand-123/discovery/ads', 'Discovery', 'Ads'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
-    ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
     ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
     [
@@ -1450,7 +1449,7 @@ describe('AppProtectedLayout', () => {
         currentApp: 'discovery',
         items: [
           { href: '/discovery/overview', label: 'Overview' },
-          { href: '/discovery/following', label: 'Following' },
+          { href: '/discovery/overview?source=following', label: 'Following' },
           { href: '/discovery/ads', label: 'Ads' },
         ],
         sectionLabel: 'Discovery',

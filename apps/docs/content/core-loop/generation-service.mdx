@@ -64,8 +64,8 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 | Tool metadata      | `packages/actions/src/registry/source/index.ts`, `packages/actions/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
 | Agent dispatch     | `apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
 | Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
-| Skill execution    | `apps/server/api/src/services/skill-executor/*`                                               | Runs content skills such as `image-generation` and records Content Runs                  |
-| Provider access    | `apps/server/api/src/services/byok/*`                                                         | Resolves organization BYOK keys before hosted fallback                                   |
+| Skill execution    | `apps/server/server/src/services/skill-executor/*`                                            | Runs content skills such as `image-generation` through immutable canonical workflows     |
+| Provider access    | `apps/server/server/src/services/byok/*`                                                      | Resolves organization BYOK keys before hosted fallback                                   |
 | Provider adapters  | `apps/server/api/src/services/integrations/*`                                                | Call Replicate, fal.ai, Leonardo, ElevenLabs, OpenRouter, and related provider surfaces   |
 | Registry/discovery | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`                   | Creates reviewed Replicate catalog candidates without auto-activation                    |
 
@@ -79,29 +79,36 @@ flowchart LR
   D --> E["Provider access\nBYOK or hosted"]
   E --> F["Reviewed model catalog"]
   F --> G["Provider adapter\nReplicate / fal.ai / Leonardo / ElevenLabs"]
-  G --> H["Generated ingredient\npreview card / content run"]
+  G --> H["Generated ingredient\npreview card / workflow execution"]
 ```
 
 ## Representative V1 End-to-End Path
 
-The representative media verification path for v1 is in:
+Two specs carry the representative media verification path:
 
-- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
+- [`apps/server/server/src/services/skill-executor/skill-executor.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/skill-executor/skill-executor.service.spec.ts) covers workflow dispatch
+- [`apps/server/server/src/services/skill-executor/handlers/image-generation.handler.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/skill-executor/handlers/image-generation.handler.spec.ts) covers the representative image path
 
-The test uses mocked provider services so it can run in CI without live credentials, but it keeps the production service wiring:
+Both use mocked provider services so they run in CI without live credentials, but they keep the production service wiring.
 
-- `SkillExecutorService` loads and validates the `image-generation` skill
-- a Content Run is created, marked running, and completed
-- the representative image path routes through `ImageGenerationHandler`
-- organization BYOK resolution selects fal.ai for the active organization
-- the fal.ai provider call receives the resolved server-side key and normalized image parameters
-- the completed run records `source: byok`, output metadata, and a generated variant
+`SkillWorkflowService` owns dispatch:
 
-Run it with:
+- every reviewed skill action and its immutable canonical workflow are registered on `SystemWorkflowRunner`
+- executing a skill runs the selected canonical workflow and returns its `WorkflowExecution` provenance
+- a slug outside the reviewed action catalog is rejected
+
+`ImageGenerationHandler` owns the representative image path:
+
+- organization BYOK resolution selects the provider for the active organization
+- fal.ai, Leonardo, and Replicate model routing each receive the resolved server-side key and normalized image parameters
+- a configured managed key routes generation through managed inference instead
+- a provider capacity error fails over between Replicate and fal.ai rather than failing the draft
+
+Run them with:
 
 ```bash
-cd apps/server/api
-TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor/stable-provider-path.spec.ts
+cd apps/server/server
+TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor
 ```
 
 This keeps the v1 proof end-to-end at the application boundary without making CI depend on external provider availability.

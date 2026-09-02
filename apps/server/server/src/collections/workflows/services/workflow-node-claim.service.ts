@@ -33,6 +33,27 @@ export type DurableNodeClaimOutcome =
     };
 
 /**
+ * Thrown when a durable node claim's owner-scoped write (renew or complete)
+ * discovers this worker no longer owns the lease — another worker reclaimed
+ * the stale-running row. Callers use `instanceof` to skip a redundant
+ * stale-owner write instead of letting the error escape uncaught (#4307).
+ */
+export class WorkflowNodeClaimLeaseLostError extends Error {
+  public readonly executionId: string;
+  public readonly nodeId: string;
+
+  constructor(lease: Pick<WorkflowNodeClaimLease, 'executionId' | 'nodeId'>) {
+    super(
+      `Workflow node claim lease lost for ${lease.executionId}/${lease.nodeId}`,
+    );
+    this.name = 'WorkflowNodeClaimLeaseLostError';
+    this.executionId = lease.executionId;
+    this.nodeId = lease.nodeId;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
  * Durable (executionId, nodeId) claims for workflow side-effect nodes (#2359).
  *
  * Insert-before-dispatch: first writer wins. A Prisma P2002 on the unique
@@ -181,9 +202,7 @@ export class WorkflowNodeClaimService {
       },
     });
     if (params.leaseOwnerId && completed.count !== 1) {
-      throw new Error(
-        `Workflow node claim lease lost for ${params.executionId}/${params.nodeId}`,
-      );
+      throw new WorkflowNodeClaimLeaseLostError(params);
     }
   }
 
@@ -201,27 +220,53 @@ export class WorkflowNodeClaimService {
     return renewed.count === 1;
   }
 
+  /**
+   * Runs `operation` while periodically renewing the durable node-claim
+   * lease. A single renewal failure is tolerated (transient DB blip) as
+   * long as a later renewal succeeds before the lease's own expiry would
+   * have elapsed; once that window closes with no successful renewal, the
+   * lease is considered lost, `operation`'s `AbortSignal` is aborted, and
+   * this rejects with {@link WorkflowNodeClaimLeaseLostError} once
+   * `operation` settles (#4307).
+   */
   async runWithLeaseHeartbeat<Result>(
     lease: WorkflowNodeClaimLease,
-    operation: () => Promise<Result>,
+    operation: (signal: AbortSignal) => Promise<Result>,
   ): Promise<Result> {
     let isLeaseLost = false;
+    let lastRenewedAt = Date.now();
     let renewal: Promise<void> | undefined;
+    const abortController = new AbortController();
+    const markLeaseLost = () => {
+      if (isLeaseLost) {
+        return;
+      }
+      isLeaseLost = true;
+      abortController.abort();
+    };
     const heartbeat = setInterval(() => {
       if (renewal || isLeaseLost) {
         return;
       }
       renewal = this.renewLease(lease)
         .then((renewed) => {
-          if (!renewed) {
-            isLeaseLost = true;
+          if (renewed) {
+            lastRenewedAt = Date.now();
+            return;
           }
+          // The owner-scoped update matched no row: another worker already
+          // reclaimed this node. This is definitive, unlike a transient
+          // renewal failure below, so the lease is lost immediately.
+          markLeaseLost();
         })
         .catch((error: unknown) => {
           this.logger.warn('Workflow node claim heartbeat failed', {
             ...lease,
             error: error instanceof Error ? error.message : String(error),
           });
+          if (Date.now() - lastRenewedAt >= WORKFLOW_NODE_CLAIM_LEASE_MS) {
+            markLeaseLost();
+          }
         })
         .finally(() => {
           renewal = undefined;
@@ -229,12 +274,10 @@ export class WorkflowNodeClaimService {
     }, WORKFLOW_NODE_CLAIM_HEARTBEAT_MS);
 
     try {
-      const result = await operation();
+      const result = await operation(abortController.signal);
       await renewal;
       if (isLeaseLost) {
-        throw new Error(
-          `Workflow node claim lease lost for ${lease.executionId}/${lease.nodeId}`,
-        );
+        throw new WorkflowNodeClaimLeaseLostError(lease);
       }
       return result;
     } finally {

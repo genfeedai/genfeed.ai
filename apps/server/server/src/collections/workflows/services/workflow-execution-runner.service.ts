@@ -108,44 +108,58 @@ export class WorkflowExecutionRunnerService {
       workflowDoc.brandId,
     );
 
-    const result = await this.graphRunner.executeNodeGraph(
-      executableWorkflow,
-      triggerEvent,
-      executionId,
-      {
-        baselineEstimatedDurationMs:
-          this.progressService.extractEstimatedDurationMs(
-            existingExecution?.metadata,
-          ),
-        nodeOutputCache: jobData.nodeOutputCache,
-        startedAt: existingExecution?.startedAt ?? new Date(),
-        workflowLabel,
-      },
-    );
-    const finalStatus = this.finalizer.mapRunResultToExecutionStatus(result);
-    await this.finalizeResumedExecution({
-      executionId,
-      finalStatus,
-      isSystemAction: existingExecution?.metadata?.isSystemAction === true,
-      result,
-      triggerEvent,
-      workflowId,
-      workflowLabel,
-    });
-
-    return {
-      completedAt: result.completedAt,
-      error: result.error,
-      executionId,
-      nodeResults: this.graphService.buildNodeSummaries(
+    const resumeStartedAt = existingExecution?.startedAt ?? new Date();
+    try {
+      const result = await this.graphRunner.executeNodeGraph(
+        executableWorkflow,
+        triggerEvent,
+        executionId,
+        {
+          baselineEstimatedDurationMs:
+            this.progressService.extractEstimatedDurationMs(
+              existingExecution?.metadata,
+            ),
+          nodeOutputCache: jobData.nodeOutputCache,
+          startedAt: resumeStartedAt,
+          workflowLabel,
+        },
+      );
+      const finalStatus = this.finalizer.mapRunResultToExecutionStatus(result);
+      await this.finalizeResumedExecution({
+        executionId,
+        finalStatus,
+        isSystemAction: existingExecution?.metadata?.isSystemAction === true,
         result,
-        executableWorkflow.nodes,
-      ),
-      startedAt: new Date(),
-      status: finalStatus,
-      totalCreditsUsed: result.totalCreditsUsed,
-      workflowId,
-    };
+        triggerEvent,
+        workflowId,
+        workflowLabel,
+      });
+
+      return {
+        completedAt: result.completedAt,
+        error: result.error,
+        executionId,
+        nodeResults: this.graphService.buildNodeSummaries(
+          result,
+          executableWorkflow.nodes,
+        ),
+        startedAt: new Date(),
+        status: finalStatus,
+        totalCreditsUsed: result.totalCreditsUsed,
+        workflowId,
+      };
+    } catch (error) {
+      return this.failResumedExecution({
+        emitSharedEvents: executableWorkflow.emitSharedEvents,
+        error,
+        executionId,
+        organizationId: jobData.organizationId,
+        startedAt: resumeStartedAt,
+        userId: triggerEvent.userId,
+        workflowId,
+        workflowLabel,
+      });
+    }
   }
 
   async executeWorkflowDocument(
@@ -575,6 +589,71 @@ export class WorkflowExecutionRunnerService {
       workflowId: input.workflowId,
       workflowLabel: input.workflowLabel,
     });
+  }
+
+  /**
+   * A delay-resumed execution has no `PreparedWorkflowExecution` (it never
+   * re-enters `prepareExecution`), so this mirrors `failRun`'s terminal-state
+   * side effects directly from the job data instead. Unlike `executeWorkflowDocument`,
+   * this never rethrows: the BullMQ delay-resume processor awaits a resolved
+   * `WorkflowExecutionResult` (see `failUnavailablePinnedExecution`), and an
+   * uncaught throw here is exactly what stranded the execution `running`
+   * forever (#4307).
+   */
+  private async failResumedExecution(input: {
+    emitSharedEvents?: boolean;
+    error: unknown;
+    executionId: string;
+    organizationId: string;
+    startedAt: Date;
+    userId: string;
+    workflowId: string;
+    workflowLabel: string;
+  }): Promise<WorkflowExecutionResult> {
+    const errorMessage =
+      input.error instanceof Error ? input.error.message : String(input.error);
+    this.logger.error(`${this.logContext} delay-resumed execution failed`, {
+      error: errorMessage,
+      executionId: input.executionId,
+      workflowId: input.workflowId,
+    });
+    const failedExecution = await this.executionsService.completeExecution(
+      input.executionId,
+      errorMessage,
+    );
+    await this.prisma.workflow.update({
+      data: { status: WorkflowStatus.FAILED },
+      where: scopedWhere(input.organizationId, { id: input.workflowId }),
+    });
+    if (input.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflowId, 'error', {
+        error: errorMessage,
+        executionId: input.executionId,
+      });
+    }
+    await this.progressService.publishWorkflowTaskUpdate({
+      error: errorMessage,
+      eta: this.progressService.extractEtaFromMetadata(
+        failedExecution?.metadata,
+      ),
+      executionId: input.executionId,
+      progress: 100,
+      resultId: input.executionId,
+      status: 'failed',
+      userId: input.userId,
+      workflowId: input.workflowId,
+      workflowLabel: input.workflowLabel,
+    });
+    return {
+      completedAt: new Date(),
+      error: errorMessage,
+      executionId: input.executionId,
+      nodeResults: [],
+      startedAt: input.startedAt,
+      status: WorkflowExecutionStatus.FAILED,
+      totalCreditsUsed: 0,
+      workflowId: input.workflowId,
+    };
   }
 
   private readPersistedAgentScope(

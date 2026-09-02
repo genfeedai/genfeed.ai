@@ -1,3 +1,4 @@
+import { createPublishingPostsFilterRoute } from '@genfeedai/constants';
 import { Platform, PostStatus } from '@genfeedai/enums';
 import * as PostsHelper from '@helpers/content/posts.helper';
 import { describe, expect, it } from 'vitest';
@@ -47,60 +48,75 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    // No status → Posts library. Draft/scheduled → Drafts pipeline list.
+    // No status → Posts library. Every lifecycle state is a query-param
+    // filter on that same route — never a dedicated path.
     expect(PostsHelper.getPublishingPostsHref()).toBe('/publishing/posts');
     expect(
       PostsHelper.getPublishingPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/publishing/scheduled');
+    ).toBe('/publishing/posts?publicationState=not-posted');
     expect(PostsHelper.getPublishingPostsHref({ status: 'scheduled' })).toBe(
-      '/publishing/scheduled',
+      '/publishing/posts?publicationState=not-posted',
     );
     expect(
       PostsHelper.getPublishingPostsHref({
         platform: Platform.YOUTUBE,
         status: 'public',
       }),
-    ).toBe('/publishing/published?platform=youtube');
+    ).toBe('/publishing/posts?publicationState=posted&platform=youtube');
     expect(
       PostsHelper.getPublishingPostsHref({ status: PostStatus.FAILED }),
-    ).toBe('/publishing/failed');
+    ).toBe('/publishing/posts?status=failed');
     expect(
       PostsHelper.getPublishingPostsHref({ status: PostStatus.PENDING }),
-    ).toBe('/publishing/pending');
+    ).toBe('/publishing/posts?status=pending');
     expect(
       PostsHelper.getPublishingPostsHref({ status: PostStatus.PROCESSING }),
-    ).toBe('/publishing/processing');
+    ).toBe('/publishing/posts?status=processing');
     expect(PostsHelper.getPublishingPostHref('post-1')).toBe(
       '/publishing/posts/post-1',
     );
   });
 
-  it('should infer publisher status from canonical post paths', () => {
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/scheduled'),
-    ).toBe('scheduled');
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname(
-        '/acme/brand/publishing/published?platform=youtube',
-      ),
-    ).toBe('public');
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname('/publishing'),
-    ).toBeNull();
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/posts'),
-    ).toBeNull();
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/failed'),
-    ).toBe(PostStatus.FAILED);
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/pending'),
-    ).toBe(PostStatus.PENDING);
-    expect(
-      PostsHelper.getPublishingPostsStatusFromPathname(
-        '/publishing/processing',
-      ),
-    ).toBe(PostStatus.PROCESSING);
+  describe('getPublishingPostsStatusPath', () => {
+    it('maps published/public status onto the posted filter route', () => {
+      expect(PostsHelper.getPublishingPostsStatusPath(PostStatus.PUBLIC)).toBe(
+        createPublishingPostsFilterRoute({ publicationState: 'posted' }),
+      );
+    });
+
+    it('maps scheduled and draft statuses onto the not-posted filter route', () => {
+      expect(
+        PostsHelper.getPublishingPostsStatusPath(PostStatus.SCHEDULED),
+      ).toBe(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      );
+      expect(PostsHelper.getPublishingPostsStatusPath(PostStatus.DRAFT)).toBe(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      );
+    });
+
+    it('maps failed/pending/processing statuses onto a status filter route', () => {
+      expect(PostsHelper.getPublishingPostsStatusPath(PostStatus.FAILED)).toBe(
+        createPublishingPostsFilterRoute({ status: PostStatus.FAILED }),
+      );
+      expect(PostsHelper.getPublishingPostsStatusPath(PostStatus.PENDING)).toBe(
+        createPublishingPostsFilterRoute({ status: PostStatus.PENDING }),
+      );
+      expect(
+        PostsHelper.getPublishingPostsStatusPath(PostStatus.PROCESSING),
+      ).toBe(
+        createPublishingPostsFilterRoute({ status: PostStatus.PROCESSING }),
+      );
+    });
+
+    it('defaults an unrecognized or missing status to the not-posted filter route', () => {
+      expect(PostsHelper.getPublishingPostsStatusPath(null)).toBe(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      );
+      expect(PostsHelper.getPublishingPostsStatusPath('bogus')).toBe(
+        createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      );
+    });
   });
 
   it('should get post platform tabs', () => {

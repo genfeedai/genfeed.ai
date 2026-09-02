@@ -180,8 +180,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/messages/outreach': 'Outreach sequences',
   '/:orgSlug/:brandSlug/messages/outreach/new': 'New outreach sequence',
   '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
-  '/:orgSlug/:brandSlug/discovery/:platform': ':platform',
-  '/:orgSlug/~/discovery/:platform': ':platform',
   '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
   '/:orgSlug/:brandSlug/settings/usage': 'Cost & Usage',
@@ -234,14 +232,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/discovery/ads/google': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/meta': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/tiktok': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/x': 'Ads',
-  '/:orgSlug/~/discovery/ads/google': 'Ads',
-  '/:orgSlug/~/discovery/ads/meta': 'Ads',
-  '/:orgSlug/~/discovery/ads/tiktok': 'Ads',
-  '/:orgSlug/~/discovery/ads/x': 'Ads',
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Team',
@@ -525,18 +515,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(
-    [
-      '/:orgSlug/~/discovery/overview',
-      '/:orgSlug/~/discovery/discovery',
-      '/:orgSlug/~/discovery/following',
-      '/:orgSlug/~/discovery/socials',
-      '/:orgSlug/~/discovery/ads',
-      '/:orgSlug/~/discovery/ads/google',
-      '/:orgSlug/~/discovery/ads/meta',
-      '/:orgSlug/~/discovery/ads/tiktok',
-      '/:orgSlug/~/discovery/ads/x',
-      '/:orgSlug/~/discovery/:platform',
-    ],
+    ['/:orgSlug/~/discovery/overview', '/:orgSlug/~/discovery/ads'],
     {
       adapter: { key: 'discovery', status: 'embedded' },
       fallback: '/:orgSlug/~/discovery/overview',
@@ -623,10 +602,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/publishing',
       '/:orgSlug/~/publishing/overview',
-      '/:orgSlug/~/publishing/pending',
-      '/:orgSlug/~/publishing/processing',
-      '/:orgSlug/~/publishing/published',
-      '/:orgSlug/~/publishing/scheduled',
+      '/:orgSlug/~/publishing/posts',
     ],
     {
       fallback: '/:orgSlug/~/publishing/overview',
@@ -745,15 +721,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discovery/overview',
-      '/:orgSlug/:brandSlug/discovery/discovery',
-      '/:orgSlug/:brandSlug/discovery/following',
-      '/:orgSlug/:brandSlug/discovery/socials',
       '/:orgSlug/:brandSlug/discovery/ads',
-      '/:orgSlug/:brandSlug/discovery/ads/google',
-      '/:orgSlug/:brandSlug/discovery/ads/meta',
-      '/:orgSlug/:brandSlug/discovery/ads/tiktok',
-      '/:orgSlug/:brandSlug/discovery/ads/x',
-      '/:orgSlug/:brandSlug/discovery/:platform',
     ],
     {
       adapter: { key: 'discovery', status: 'embedded' },
@@ -832,7 +800,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/voices',
       '/:orgSlug/:brandSlug/library/music',
       '/:orgSlug/:brandSlug/library/captions',
-      '/:orgSlug/:brandSlug/library/moodboard',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/library',
@@ -851,12 +818,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing/posts',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
       '/:orgSlug/:brandSlug/publishing/calendar',
-      '/:orgSlug/:brandSlug/publishing/failed',
-      '/:orgSlug/:brandSlug/publishing/pending',
-      '/:orgSlug/:brandSlug/publishing/processing',
-      '/:orgSlug/:brandSlug/publishing/published',
+      '/:orgSlug/:brandSlug/publishing/content',
       '/:orgSlug/:brandSlug/publishing/review',
-      '/:orgSlug/:brandSlug/publishing/scheduled',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/publishing/overview',

@@ -757,8 +757,12 @@ jobs:
           mkdir -p coverage-shard
           # Seconds cover the shard's full test+coverage wall clock: the
           # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
           echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
           shopt -s nullglob
           reports=(apps/app/.vitest-reports/blob-*.json)
@@ -821,7 +825,10 @@ jobs:
           if [ "$WITH_COVERAGE" = "true" ]; then
             # Shards emit mergeable Vitest blobs. LCOV is finalized once in
             # Changed Coverage Report after every successful shard arrives.
-            COVERAGE_ARGS=(--coverage --reporter=default --reporter=blob)
+            # Pass the same explicit flags the app lane uses: a bare --coverage
+            # left the API shards reporting `All files | 0 | 0 | 0 | 0`, so the
+            # merge job had nothing to turn into LCOV and failed the report.
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob)
           fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
@@ -843,8 +850,12 @@ jobs:
           mkdir -p coverage-shard
           # Seconds cover the shard's full test+coverage wall clock: the
           # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
           echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
           shopt -s nullglob
           reports=(apps/server/api/.vitest-reports/blob-*.json)

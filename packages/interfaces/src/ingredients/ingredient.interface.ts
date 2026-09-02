@@ -103,6 +103,16 @@ export interface IIngredient extends IBaseEntity {
   contentRating?: string;
   campaign?: string;
   evaluation?: IEvaluation | null;
+  /**
+   * Generation ledger, serialized from the row that produced the asset. A
+   * FAILED asset carries the provider's reason in `generationError`; the
+   * Library list surfaces it instead of a bare red chip.
+   */
+  generationError?: string | null;
+  generationCompletedAt?: string | null;
+  modelUsed?: string | null;
+  fileSize?: number | null;
+  mimeType?: string | null;
 }
 
 export interface IVideoCaption {

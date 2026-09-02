@@ -4,5 +4,6 @@ export enum ViewType {
   CALENDAR = 'calendar',
   GRID = 'grid',
   MASONRY = 'masonry',
+  CANVAS = 'canvas',
   TABLE = 'table',
 }

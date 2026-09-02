@@ -577,29 +577,6 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects retired /discovery/socials to /discovery/overview', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
-      permanent: true,
-      source: APP_ROUTES.DISCOVERY.SOCIALS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.OVERVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.DISCOVERY.SOCIALS,
-      ),
-    });
-  });
-
   it('redirects /studio to the generate playground', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(

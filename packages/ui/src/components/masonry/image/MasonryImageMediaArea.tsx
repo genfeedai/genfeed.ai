@@ -1,12 +1,13 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IImage, IMetadata } from '@genfeedai/interfaces';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import type { MouseEvent, SyntheticEvent } from 'react';
 
 const BLUR_PLACEHOLDER =
@@ -19,6 +20,8 @@ type MasonryImageMediaAreaProps = {
   isLoading: boolean;
   imageError: boolean;
   isProcessing: boolean;
+  isFailed: boolean;
+  failureReason: string | null;
   isFleetNsfwLocked: boolean;
   isSquare: boolean;
   aspectRatioStyle: React.CSSProperties | undefined;
@@ -27,6 +30,7 @@ type MasonryImageMediaAreaProps = {
   handleImageError: () => void;
   handleContentClick: (e: MouseEvent<HTMLElement>) => void;
   onRefresh?: () => void;
+  onReprompt?: (image: IImage) => void;
 };
 
 export default function MasonryImageMediaArea({
@@ -35,6 +39,8 @@ export default function MasonryImageMediaArea({
   isLoading,
   imageError,
   isProcessing,
+  isFailed,
+  failureReason,
   isFleetNsfwLocked,
   isSquare,
   aspectRatioStyle,
@@ -43,7 +49,9 @@ export default function MasonryImageMediaArea({
   handleImageError,
   handleContentClick,
   onRefresh,
+  onReprompt,
 }: MasonryImageMediaAreaProps): React.ReactElement {
+  const translate = useTranslations('common.libraryRetry');
   const mediaState = imageError
     ? 'fallback'
     : isProcessing
@@ -105,7 +113,7 @@ export default function MasonryImageMediaArea({
           height={Math.max(1, metadata?.height || 1920)}
           className={cn(
             'size-full transition-opacity duration-300',
-            (isProcessing || isFleetNsfwLocked) && 'blur-sm',
+            (isProcessing || isFailed || isFleetNsfwLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',
           )}
@@ -157,6 +165,49 @@ export default function MasonryImageMediaArea({
               className="scale-110"
             />
           </div>
+        </div>
+      )}
+
+      {isFailed && onReprompt && (
+        <div
+          className={
+            'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/45 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+          }
+          data-testid={`asset-failure-overlay-${image.id}`}
+        >
+          <p
+            className={
+              'line-clamp-2 text-xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          >
+            {failureReason ?? translate('genericFailureReason')}
+          </p>
+          <div
+            role="presentation"
+            className="pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              onClick={() => onReprompt(image)}
+              label={translate('retry')}
+              ariaLabel={translate('retryAriaLabel')}
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+            />
+          </div>
+        </div>
+      )}
+
+      {isFailed && !onReprompt && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-secondary/90 px-3 py-2 text-center text-xs font-medium text-foreground/70 shadow-dropdown"
+          data-testid={`asset-failure-reason-${image.id}`}
+          role="status"
+        >
+          <span className="line-clamp-2">
+            {failureReason ?? translate('genericFailureReason')}
+          </span>
         </div>
       )}
     </>

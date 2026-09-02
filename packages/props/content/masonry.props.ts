@@ -17,12 +17,12 @@ export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   isDragEnabled?: boolean;
   availableTags?: ITag[];
   isLoadingTags?: boolean;
-  /** Quality evaluation score (0-100) */
-  evaluationScore?: number;
   /** True if cursor is inside masonry grid. Used by items to react to container-level mouse leave */
   isContainerHovered?: boolean;
   onHoverChange?: (isHovered: boolean) => void;
   onClickIngredient?: (ingredient: T) => void;
+  /** Toggle this asset in the surrounding surface's selection set. */
+  onToggleSelection?: (ingredient: T) => void;
   onVoteIngredient?: (ingredient: T) => void;
   onDeleteIngredient?: (ingredient: T) => void;
   onPublishIngredient?: (ingredient: T) => void;
@@ -75,11 +75,4 @@ export interface MasonryProps {
     lg?: number;
     xl?: number;
   };
-}
-
-export interface MasonryBadgeOverlayProps {
-  ingredient: IIngredient;
-  evaluationScore?: number;
-  isPublicGallery?: boolean;
-  className?: string;
 }

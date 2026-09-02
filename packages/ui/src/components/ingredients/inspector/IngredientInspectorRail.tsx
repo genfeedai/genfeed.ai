@@ -105,7 +105,6 @@ function InspectorNote({
  */
 export default function IngredientInspectorRail({
   className,
-  hasHeading = true,
   ingredient,
 }: IngredientInspectorRailProps) {
   const translate = useTranslations('pages.library.inspector');
@@ -120,14 +119,14 @@ export default function IngredientInspectorRail({
     <aside
       aria-label="Asset details"
       className={cn(
-        'flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-foreground/8 px-4 py-4 scrollbar-thin',
+        'flex min-w-0 flex-col gap-4 overflow-y-auto px-4 py-4 scrollbar-thin',
         className,
       )}
     >
       {previewUrl ? (
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-foreground/4">
           <Image
-            alt={ingredient.metadataLabel || 'Asset preview'}
+            alt={ingredient.metadataLabel || translate('untitled')}
             className="object-cover"
             fill
             sizes="(min-width: 1024px) 288px, 90vw"
@@ -136,24 +135,20 @@ export default function IngredientInspectorRail({
         </div>
       ) : null}
 
-      {hasHeading || shelf ? (
-        <div className="flex flex-col gap-2">
-          {hasHeading ? (
-            <h3 className="truncate text-sm font-semibold text-foreground">
-              {ingredient.metadataLabel || 'Untitled asset'}
-            </h3>
-          ) : null}
-          {shelf ? (
-            <Badge
-              className="w-fit"
-              size={ComponentSize.SM}
-              variant={SHELF_VARIANTS[shelf]}
-            >
-              {LIBRARY_SHELF_LABELS[shelf]}
-            </Badge>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-2">
+        <h3 className="truncate text-sm font-semibold text-foreground">
+          {ingredient.metadataLabel || translate('untitled')}
+        </h3>
+        {shelf ? (
+          <Badge
+            className="w-fit"
+            size={ComponentSize.SM}
+            variant={SHELF_VARIANTS[shelf]}
+          >
+            {LIBRARY_SHELF_LABELS[shelf]}
+          </Badge>
+        ) : null}
+      </div>
 
       <dl className="flex flex-col divide-y divide-foreground/6">
         <div className="flex items-baseline justify-between gap-3 py-1.5">

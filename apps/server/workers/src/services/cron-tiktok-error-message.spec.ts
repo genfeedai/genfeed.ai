@@ -23,6 +23,7 @@ describe('TikTok status error messages', () => {
       {} as never,
       {} as never,
       schedulerPublishStateService as never,
+      {} as never,
     );
     const checkPostStatus = (
       service as unknown as {

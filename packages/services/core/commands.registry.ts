@@ -114,15 +114,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/library/moodboard`);
+        navigate(`${brandPath}/library/assets?view=canvas`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
       description: 'Arrange all your generated assets on one canvas',
       icon: LayoutGrid,
-      id: 'nav-moodboard',
+      id: 'nav-library-canvas',
       keywords: ['mood', 'board', 'moodboard', 'canvas', 'gallery', 'assets'],
-      label: 'Go to Mood Board',
+      label: 'Go to Library Canvas',
       priority: 9,
       shortcut: ['⌘', '7'],
     },

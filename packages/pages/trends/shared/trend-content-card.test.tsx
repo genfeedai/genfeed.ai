@@ -184,7 +184,7 @@ describe('TrendContentCard', () => {
           platform: 'tiktok',
           sourceReferenceId: undefined,
         }}
-        onSelect={vi.fn()}
+        onSelectAction={vi.fn()}
       />,
     );
 

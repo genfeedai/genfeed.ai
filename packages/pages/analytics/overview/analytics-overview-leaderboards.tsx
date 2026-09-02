@@ -1,6 +1,9 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -189,7 +192,9 @@ export default function AnalyticsOverviewLeaderboards({
             variant: ButtonVariant.DEFAULT,
           }}
           secondaryAction={{
-            href: APP_ROUTES.PUBLISHING.PUBLISHED,
+            href: createPublishingPostsFilterRoute({
+              publicationState: 'posted',
+            }),
             label: 'Browse published posts',
             variant: ButtonVariant.SECONDARY,
           }}

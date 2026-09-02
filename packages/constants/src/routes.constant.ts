@@ -160,39 +160,12 @@ export const APP_ROUTES = {
   },
   DISCOVERY: {
     ADS: '/discovery/ads',
-    ADS_GOOGLE: '/discovery/ads/google',
-    ADS_META: '/discovery/ads/meta',
-    ADS_TIKTOK: '/discovery/ads/tiktok',
-    ADS_X: '/discovery/ads/x',
-    /**
-     * @deprecated Use OVERVIEW. Bare `/discovery/discovery` permanently redirects
-     * to `/discovery/overview` (same pattern as workspace/analytics/automation).
-     */
-    DISCOVERY: '/discovery/discovery',
-    FOLLOWING: '/discovery/following',
     /**
      * Canonical Discovery home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
      */
     OVERVIEW: '/discovery/overview',
-    /**
-     * Platform feeds. Served by the dynamic `/discovery/[platform]` route, but
-     * enumerated here because they are real menu destinations — same reason
-     * `ADS_*` are spelled out rather than built from a segment.
-     */
-    PLATFORM_INSTAGRAM: '/discovery/instagram',
-    PLATFORM_LINKEDIN: '/discovery/linkedin',
-    PLATFORM_PINTEREST: '/discovery/pinterest',
-    PLATFORM_REDDIT: '/discovery/reddit',
-    PLATFORM_TIKTOK: '/discovery/tiktok',
-    PLATFORM_TWITTER: '/discovery/twitter',
-    PLATFORM_YOUTUBE: '/discovery/youtube',
     ROOT: '/discovery',
-    /**
-     * @deprecated Same TrendsList as OVERVIEW. Permanently redirects to
-     * `/discovery/overview` — keep for deep-link compatibility only.
-     */
-    SOCIALS: '/discovery/socials',
   },
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
@@ -228,7 +201,6 @@ export const APP_ROUTES = {
     IMAGES: '/library/images',
     /** @deprecated Use ASSETS. Retained for legacy deep-link redirects. */
     INGREDIENTS: '/library/ingredients',
-    MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
     /** @deprecated Use ASSETS. The tile-grid Overview held no assets. */
     OVERVIEW: '/library/overview',
@@ -293,10 +265,6 @@ export const APP_ROUTES = {
   },
   PUBLISHING: {
     CALENDAR: '/publishing/calendar',
-    /** Posts whose latest publication attempt failed. */
-    FAILED: '/publishing/failed',
-    /** Posts queued to enter the publishing pipeline. */
-    PENDING: '/publishing/pending',
     /**
      * @deprecated Agent Programs live at APP_ROUTES.AUTOMATION.CAMPAIGNS.
      * Legacy `/publishing/campaigns` permanently redirects there.
@@ -305,6 +273,11 @@ export const APP_ROUTES = {
     CAMPAIGNS: '/automation/campaigns',
     /** @deprecated Use APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW. */
     CAMPAIGNS_NEW: '/automation/campaigns/new',
+    /**
+     * Content library: articles, newsletters, and other non-post content
+     * types. Post lifecycle lives at POSTS; this is the type-aware library.
+     */
+    CONTENT: '/publishing/content',
     /**
      * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
      * Legacy `/publishing/outreach-campaigns` permanently redirects there.
@@ -319,15 +292,15 @@ export const APP_ROUTES = {
      */
     OVERVIEW: '/publishing/overview',
     /**
-     * Canonical content library + type-aware editor.
+     * Canonical Posts list + type-aware editor. Every post lifecycle state
+     * (draft, scheduled, pending, processing, published, failed) is a query
+     * param filter on this single route — see
+     * `createPublishingPostsFilterRoute` — never a dedicated path.
      * - List: `/publishing/posts`
      * - Editor: `/publishing/posts/:id` (social post today; article/newsletter
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
-    /** Posts currently being sent to destination platforms. */
-    PROCESSING: '/publishing/processing',
-    PUBLISHED: '/publishing/published',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a
@@ -336,8 +309,6 @@ export const APP_ROUTES = {
     REMIX: '/publishing/remix',
     REVIEW: '/publishing/review',
     ROOT: '/publishing',
-    /** Pipeline shortcut: drafts + scheduled + in-progress (not live). */
-    SCHEDULED: '/publishing/scheduled',
   },
   SETTINGS: {
     AGENT_DEFAULTS: '/settings/agent-defaults',

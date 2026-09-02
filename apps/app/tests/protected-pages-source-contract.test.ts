@@ -52,7 +52,6 @@ describe('protected app route source contracts', () => {
   // without nearby tests after the contract was introduced. Remove each path
   // from this set once a sibling page test exists for it.
   const KNOWN_MISSING_PAGE_TESTS = new Set([
-    'app/(protected)/[orgSlug]/[brandSlug]/library/moodboard/page.tsx',
     'app/(protected)/[orgSlug]/[brandSlug]/studio/fastlane/page.tsx',
   ]);
 

@@ -7,6 +7,7 @@ import { PostReplyExecutor, type ReplyPublisher } from './post-reply-executor';
 function makeInput(
   config: Record<string, unknown>,
   inputData?: Record<string, unknown>,
+  contextOverrides: Partial<ExecutionContext> = {},
 ): ExecutorInput {
   const node: ExecutableNode = {
     config,
@@ -22,10 +23,13 @@ function makeInput(
     }
   }
   const context: ExecutionContext = {
+    executionId: 'execution-1',
     organizationId: 'org-1',
     runId: 'run-1',
     userId: 'user-1',
     workflowId: 'wf-1',
+    workflowVersionId: 'wf-version-1',
+    ...contextOverrides,
   };
   return { context, inputs, node };
 }
@@ -122,9 +126,32 @@ describe('PostReplyExecutor', () => {
     expect(mockPublisher).toHaveBeenCalledWith(
       expect.objectContaining({
         conversationId: 'conversation-1',
-        idempotencyKey: 'workflow:run-1:reply-1',
+        idempotencyKey: 'workflow:execution-1:reply-1',
         workflowRunId: 'run-1',
       }),
+    );
+  });
+
+  it('reuses the execution and node key across resume run ids', async () => {
+    const config = {
+      platform: 'twitter',
+      postId: 'post-1',
+      text: 'Reply',
+    };
+
+    await executor.execute(
+      makeInput(config, undefined, { runId: 'run-original' }),
+    );
+    await executor.execute(
+      makeInput(config, undefined, { runId: 'run-resumed' }),
+    );
+
+    expect(mockPublisher).toHaveBeenCalledTimes(2);
+    expect(mockPublisher.mock.calls[0]?.[0].idempotencyKey).toBe(
+      'workflow:execution-1:reply-1',
+    );
+    expect(mockPublisher.mock.calls[1]?.[0].idempotencyKey).toBe(
+      'workflow:execution-1:reply-1',
     );
   });
 

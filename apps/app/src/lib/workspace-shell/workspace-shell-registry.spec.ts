@@ -84,14 +84,13 @@ describe('workspace shell trusted registry', () => {
   it.each([
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/acme/~/automation', 'Automation', 'Overview'],
-    ['/acme/moonrise/discovery/following', 'Discovery', 'Following'],
-    ['/acme/moonrise/discovery/instagram', 'Discovery', 'Instagram'],
+    ['/acme/moonrise/discovery/overview', 'Discovery', 'Overview'],
+    ['/acme/moonrise/discovery/ads', 'Discovery', 'Ads'],
     ['/acme/moonrise/platforms/instagram', 'Platforms', 'Instagram'],
     ['/acme/moonrise', 'Workspace', 'Overview'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
-    ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/clips/project-1', 'Studio', 'Project'],
     ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
@@ -140,20 +139,6 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
-  it.each([
-    ['/acme/moonrise/discovery/ads/google', 'Google'],
-    ['/acme/moonrise/discovery/ads/meta', 'Meta'],
-  ] as const)(
-    'keeps Ads in the breadcrumb hierarchy for %s',
-    (pathname, leafLabel) => {
-      expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
-        leafLabel,
-        parentLabel: 'Ads',
-        rootLabel: 'Discovery',
-      });
-    },
-  );
-
   it('nests agent detail under Team', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/agents/agent-1')
@@ -181,7 +166,7 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     ['/:orgSlug/:brandSlug/publishing/calendar', 'canvas'],
-    ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
+    ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
@@ -309,7 +294,7 @@ describe('workspace shell trusted registry', () => {
 
   it('preserves visual-data and control-plane families from route retirement', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/discovery/ads/meta'),
+      resolveWorkspaceShellRoute('/acme/moonrise/discovery/ads'),
     ).toMatchObject({ productClass: 'visual-data' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
@@ -321,12 +306,10 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publishing/calendar',
-      '/acme/moonrise/publishing/pending',
+      '/acme/moonrise/publishing/content',
       '/acme/moonrise/publishing/posts',
-      '/acme/moonrise/publishing/processing',
       '/acme/moonrise/publishing/review',
-      '/acme/~/publishing/pending',
-      '/acme/~/publishing/processing',
+      '/acme/~/publishing/posts',
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
@@ -563,9 +546,7 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('registers Discovery as an embedded adapter with its canonical fallback', () => {
-    const route = resolveWorkspaceShellRoute(
-      '/acme/moonrise/discovery/ads/google',
-    );
+    const route = resolveWorkspaceShellRoute('/acme/moonrise/discovery/ads');
 
     expect(route).toMatchObject({
       adapter: { key: 'discovery', status: 'embedded' },
