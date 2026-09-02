@@ -97,6 +97,7 @@ describe('AnalyticsService', () => {
     },
     brand: {
       count: vi.fn(),
+      findFirst: vi.fn(),
       groupBy: vi.fn(),
     },
     organization: {
@@ -125,6 +126,7 @@ describe('AnalyticsService', () => {
     // Default: $queryRaw returns empty array unless overridden
     mockPrismaService.$queryRaw.mockResolvedValue([]);
     mockPrismaService.brand.groupBy.mockResolvedValue([]);
+    mockPrismaService.brand.findFirst.mockResolvedValue(null);
     mockPrismaService.organization.count.mockResolvedValue(0);
     mockPrismaService.brand.count.mockResolvedValue(0);
 
@@ -537,6 +539,22 @@ describe('AnalyticsService', () => {
       expect(capturedQueries[0].sql).not.toContain(brandId);
       expect(capturedQueries[0].values).toContain(brandId);
     });
+
+    it('should parameterize organization filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const organizationId = "org-filter-'1";
+
+      await service.getPlatformComparison(
+        '2025-01-01',
+        '2025-01-31',
+        undefined,
+        organizationId,
+      );
+
+      expect(capturedQueries[0].sql).toContain('AND "organizationId" = ?');
+      expect(capturedQueries[0].sql).not.toContain(organizationId);
+      expect(capturedQueries[0].values).toContain(organizationId);
+    });
   });
 
   // ==========================================================================
@@ -641,6 +659,26 @@ describe('AnalyticsService', () => {
         expect(query.values).toContain(brandId);
       }
     });
+
+    it('should parameterize organization filters in current and previous windows', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+      const organizationId = "org-filter-'1";
+
+      await service.getGrowthTrends(
+        '2025-01-01',
+        '2025-01-31',
+        AnalyticsMetric.VIEWS,
+        undefined,
+        organizationId,
+      );
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('AND "organizationId" = ?');
+        expect(query.sql).not.toContain(organizationId);
+        expect(query.values).toContain(organizationId);
+      }
+    });
   });
 
   // ==========================================================================
@@ -703,6 +741,42 @@ describe('AnalyticsService', () => {
       expect(capturedQueries[0].sql).not.toContain(brandId);
       expect(capturedQueries[0].values).toContain(brandId);
       expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
+    });
+
+    it('should parameterize organization filters', async () => {
+      const capturedQueries = captureQueryRawCalls();
+      const organizationId = "org-filter-'1";
+
+      await service.getEngagementBreakdown(
+        '2025-01-01',
+        '2025-01-31',
+        undefined,
+        undefined,
+        organizationId,
+      );
+
+      expect(capturedQueries[0].sql).toContain('AND "organizationId" = ?');
+      expect(capturedQueries[0].sql).not.toContain(organizationId);
+      expect(capturedQueries[0].values).toContain(organizationId);
+    });
+  });
+
+  describe('assertBrandInScope', () => {
+    it('looks up the brand inside the authorized organization', async () => {
+      mockPrismaService.brand.findFirst.mockResolvedValueOnce({
+        id: 'brand-1',
+      });
+
+      await service.assertBrandInScope('brand-1', 'org-1');
+
+      expect(mockPrismaService.brand.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          id: 'brand-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
     });
   });
 

@@ -2,6 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import {
+  buildAnalyticsCacheKey,
+  resolveAnalyticsTenantScope,
+} from '@api/endpoints/analytics/analytics-tenant-scope';
+import {
   AdminBrandsQueryDto,
   AdminOrgsQueryDto,
   LeaderboardQueryDto,
@@ -13,7 +17,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   AnalyticSerializer,
@@ -26,7 +29,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Controller,
-  ForbiddenException,
   Get,
   Query,
   Req,
@@ -52,8 +54,7 @@ export class AnalyticsAdminController {
   @Get()
   @RolesDecorator('superadmin')
   @Cache({
-    keyGenerator: (req) =>
-      `analytics:super-admin:${req.user?.id ?? 'anonymous'}`,
+    keyGenerator: (req) => buildAnalyticsCacheKey('super-admin', req),
     tags: ['analytics', 'super-admin'],
     ttl: 300,
   })
@@ -76,7 +77,12 @@ export class AnalyticsAdminController {
   @RolesDecorator('superadmin')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:leaderboard:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.sort || 'engagement'}:${req.query?.limit || '10'}`,
+      buildAnalyticsCacheKey('leaderboard', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.sort || 'engagement',
+        req.query?.limit || '10',
+      ]),
     tags: ['analytics', 'super-admin', 'leaderboard'],
     ttl: 300,
   })
@@ -105,7 +111,13 @@ export class AnalyticsAdminController {
   @RolesDecorator('superadmin')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:orgs:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.page || '1'}:${req.query?.limit || '20'}:${req.query?.sort || 'engagement'}`,
+      buildAnalyticsCacheKey('orgs', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.page || '1',
+        req.query?.limit || '20',
+        req.query?.sort || 'engagement',
+      ]),
     tags: ['analytics', 'super-admin', 'organizations'],
     ttl: 300,
   })
@@ -133,7 +145,12 @@ export class AnalyticsAdminController {
   @Get('brands/leaderboard')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:brands-leaderboard:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.sort || 'engagement'}:${req.query?.limit || '10'}`,
+      buildAnalyticsCacheKey('brands-leaderboard', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.sort || 'engagement',
+        req.query?.limit || '10',
+      ]),
     tags: ['analytics', 'brands-leaderboard'],
     ttl: 300,
   })
@@ -147,7 +164,7 @@ export class AnalyticsAdminController {
     @Query() query: LeaderboardQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
 
     const data = await this.entityLeaderboardService.getBrandsLeaderboard(
@@ -163,7 +180,13 @@ export class AnalyticsAdminController {
   @Get('brands')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:brands:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.page || '1'}:${req.query?.limit || '20'}:${req.query?.sort || 'engagement'}`,
+      buildAnalyticsCacheKey('brands', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.page || '1',
+        req.query?.limit || '20',
+        req.query?.sort || 'engagement',
+      ]),
     tags: ['analytics', 'brands'],
     ttl: 300,
   })
@@ -177,7 +200,7 @@ export class AnalyticsAdminController {
     @Query() query: AdminBrandsQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
 
     const data = await this.entityLeaderboardService.getBrandsWithStats(
@@ -191,17 +214,10 @@ export class AnalyticsAdminController {
     return serializeSingle(req, AnalyticsBrandStatsSerializer, data);
   }
 
-  private getScopedOrganizationId(user: User): string | undefined {
-    if (getIsSuperAdmin(user)) {
-      return undefined;
-    }
-
-    if (!user.organizationId) {
-      throw new ForbiddenException(
-        'You must be part of an organization to access analytics',
-      );
-    }
-
-    return user.organizationId;
+  private getScopedOrganizationId(
+    user: User,
+    request?: ExpressRequest,
+  ): string | undefined {
+    return resolveAnalyticsTenantScope(user, request).organizationId;
   }
 }

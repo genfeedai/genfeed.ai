@@ -25,6 +25,7 @@ import {
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
+import { throwAnalyticsTenantForbidden } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -91,6 +92,40 @@ export class OrganizationsRelationshipsController {
     organizationId: string,
     user: User,
   ): Promise<void> {
+    if (await this.hasOrganizationAccess(request, organizationId, user)) {
+      return;
+    }
+
+    throw new HttpException(
+      {
+        detail: 'Access denied to this organization',
+        title: 'Forbidden',
+      },
+      HttpStatus.FORBIDDEN,
+    );
+  }
+
+  private async assertAnalyticsOrganizationAccess(
+    request: Request,
+    organizationId: string,
+    user: User,
+    brandId?: string,
+  ): Promise<void> {
+    if (!(await this.hasOrganizationAccess(request, organizationId, user))) {
+      throwAnalyticsTenantForbidden();
+    }
+
+    await this.analyticsAggregationService.assertBrandInScope(
+      brandId,
+      organizationId,
+    );
+  }
+
+  private async hasOrganizationAccess(
+    request: Request,
+    organizationId: string,
+    user: User,
+  ): Promise<boolean> {
     const [member, isOwner] = await Promise.all([
       this.membersService.findOne({
         isActive: true,
@@ -103,15 +138,7 @@ export class OrganizationsRelationshipsController {
       }),
     ]);
 
-    if (!isOwner && !member && !getIsSuperAdmin(user, request)) {
-      throw new HttpException(
-        {
-          detail: 'Access denied to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    return Boolean(isOwner || member || getIsSuperAdmin(user, request));
   }
 
   @Get(':organizationId/analytics')
@@ -127,11 +154,17 @@ export class OrganizationsRelationshipsController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Query() query: AnalyticsQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Get analytics using the aggregation service
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
+    await this.assertAnalyticsOrganizationAccess(
+      request,
+      organizationId,
+      user,
+      brandId,
+    );
 
     const metrics = await this.analyticsAggregationService.getOverviewMetrics(
       organizationId,
@@ -176,12 +209,18 @@ export class OrganizationsRelationshipsController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Query() query: TimeSeriesQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Get time series data with platform breakdown
     const startDate = query.startDate;
     const endDate = query.endDate;
     const groupBy = query.groupBy || 'day';
     const brandId = query.brandId;
+    await this.assertAnalyticsOrganizationAccess(
+      request,
+      organizationId,
+      user,
+      brandId,
+    );
 
     const timeSeriesData =
       await this.analyticsAggregationService.getTimeSeriesDataWithPlatforms(
@@ -212,11 +251,17 @@ export class OrganizationsRelationshipsController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Query() query: AnalyticsQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Get platform comparison data
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
+    await this.assertAnalyticsOrganizationAccess(
+      request,
+      organizationId,
+      user,
+      brandId,
+    );
 
     const platformData =
       await this.analyticsAggregationService.getPlatformComparison(
@@ -243,11 +288,17 @@ export class OrganizationsRelationshipsController {
     @Param('organizationId') organizationId: string,
     @Param('platform') platform: string,
     @Query() query: AnalyticsQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Get platform-specific analytics
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
+    await this.assertAnalyticsOrganizationAccess(
+      request,
+      organizationId,
+      user,
+      brandId,
+    );
 
     const metrics = await this.analyticsAggregationService.getPlatformAnalytics(
       organizationId,
@@ -276,13 +327,19 @@ export class OrganizationsRelationshipsController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Query() query: TopContentQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Get top content data
     const limit = query.limit || 10;
     const metric = query.metric || 'views';
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
+    await this.assertAnalyticsOrganizationAccess(
+      request,
+      organizationId,
+      user,
+      brandId,
+    );
 
     const topContent =
       await this.analyticsAggregationService.getTopPerformingContent(
