@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
+import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
 
 interface OAuthPlatformFormProps {
   platform: string;
@@ -54,12 +55,15 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
   const resolveReturnTo = useCallback(() => {
     if (returnToParam) {
-      return returnToParam;
+      return resolveSameOriginReturnTo(returnToParam, DEFAULT_RETURN_PATH);
     }
     try {
-      return sessionStorage.getItem(OAUTH_RETURN_TO_STORAGE_KEY);
+      return resolveSameOriginReturnTo(
+        sessionStorage.getItem(OAUTH_RETURN_TO_STORAGE_KEY),
+        DEFAULT_RETURN_PATH,
+      );
     } catch {
-      return null;
+      return DEFAULT_RETURN_PATH;
     }
   }, [returnToParam]);
 
@@ -79,7 +83,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       hasVerified.current = true;
 
       const url = `POST /services/${platform}/verify`;
-      const returnTo = resolveReturnTo() || DEFAULT_RETURN_PATH;
+      const returnTo = resolveReturnTo();
       let callbackSubmitted = false;
 
       try {
@@ -200,10 +204,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
                 <Button onClick={retry}>{translate('actions.retry')}</Button>
               )}
               <Button asChild variant={ButtonVariant.LINK} withWrapper={false}>
-                <Link
-                  href={resolveReturnTo() || DEFAULT_RETURN_PATH}
-                  onClick={clearStoredReturnTo}
-                >
+                <Link href={resolveReturnTo()} onClick={clearStoredReturnTo}>
                   {translate('actions.back')}
                 </Link>
               </Button>

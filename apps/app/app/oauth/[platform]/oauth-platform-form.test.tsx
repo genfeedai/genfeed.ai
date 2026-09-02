@@ -113,6 +113,28 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
   });
 
+  it('rejects an off-origin return_to and redirects to the default path', async () => {
+    mocks.searchParams = new URLSearchParams({
+      code: 'code-1',
+      return_to: '//evil.com',
+      state: 'state-1',
+    });
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        state: 'state-1',
+      });
+    });
+
+    expect(mocks.push).toHaveBeenCalledWith('/settings/api-keys');
+    expect(mocks.push).not.toHaveBeenCalledWith(
+      expect.stringContaining('evil.com'),
+    );
+  });
+
   it('forwards the X Ads OAuth 1.0a request token and verifier', async () => {
     mocks.searchParams = new URLSearchParams({
       oauth_token: 'request-token',
