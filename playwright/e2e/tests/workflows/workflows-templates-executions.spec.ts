@@ -46,7 +46,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('templates gallery renders the template cards', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -67,7 +67,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('templates can be filtered by category tabs', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -90,7 +90,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('using a template navigates to the template deep link', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -107,9 +107,7 @@ test.describe('Workflow templates & executions interactions', () => {
       await authenticatedPage.waitForTimeout(400);
     }
 
-    expect(authenticatedPage.url()).toContain(
-      '/automation/workflows/templates',
-    );
+    expect(authenticatedPage.url()).toContain('/automation/templates');
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
@@ -120,7 +118,7 @@ test.describe('Workflow templates & executions interactions', () => {
     const template = testWorkflowTemplates[0];
 
     await authenticatedPage.goto(
-      `/automation/workflows/templates?template=${template.id}`,
+      `/automation/templates?template=${template.id}`,
       { waitUntil: 'domcontentloaded' },
     );
 
@@ -135,7 +133,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('executions history renders the runs table', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -153,7 +151,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('execution rows expose View Details deep links', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -173,7 +171,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('executions list pagination controls are interactive', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -193,7 +191,7 @@ test.describe('Workflow templates & executions interactions', () => {
   test('opening an execution from the list navigates to a detail view', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -220,15 +218,12 @@ test.describe('Workflow templates & executions interactions', () => {
   }) => {
     const execution = testWorkflowExecutions[0];
 
-    await authenticatedPage.goto(
-      `/automation/workflows/executions/${execution.id}`,
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(`/automation/runs/${execution.id}`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/automation/workflows/executions/${execution.id}$`),
+      new RegExp(`/automation/runs/${execution.id}$`),
     );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -238,12 +233,9 @@ test.describe('Workflow templates & executions interactions', () => {
   test('execution detail route renders for the generic mock id', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/mock-id`,
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(`${APP_ROUTES.AUTOMATION.RUNS}/mock-id`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
       /\/automation\/workflows\/executions\/mock-id$/,
@@ -260,7 +252,7 @@ test.describe('Workflow templates & executions interactions', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -278,7 +270,7 @@ test.describe('Workflow templates & executions interactions', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 

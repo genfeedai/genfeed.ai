@@ -5,17 +5,19 @@ import {
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import {
   YOUTUBE_LONG_FORM_OUTPUT_TYPES,
   YOUTUBE_LONG_FORM_WORKFLOW_ID,
+  type YoutubeLongFormOutputType,
+  YoutubeLongFormWorkflowService,
 } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { computeNextRunAtOrThrow } from '@server/collections/workflows/utils/cron-schedule.util';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import {
   readOptionalNumber,
   readOptionalString,
@@ -30,7 +32,8 @@ export class AgentWorkflowToolExecuteService {
     private readonly workflowsService: WorkflowsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
-    private readonly internalApi: AgentToolInternalApiService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
+    private readonly youtubeLongFormWorkflowService: YoutubeLongFormWorkflowService,
   ) {}
 
   async listWorkflows(
@@ -216,31 +219,31 @@ export class AgentWorkflowToolExecuteService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const query = new URLSearchParams();
     const workflowId = readOptionalString(params.workflowId);
     const status = readOptionalString(params.status);
     const trigger = readOptionalString(params.trigger);
     const limit = readOptionalNumber(params.limit) ?? 20;
     const offset = readOptionalNumber(params.offset) ?? 0;
+    const page = offset > 0 ? Math.floor(offset / limit) + 1 : 1;
 
-    query.set('limit', String(limit));
-    query.set('offset', String(offset));
-    if (workflowId) query.set('workflowId', workflowId);
-    if (status) query.set('status', status);
-    if (trigger) query.set('trigger', trigger);
+    const where: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+    };
+    if (workflowId) where.workflowId = workflowId;
+    if (status) where.status = status;
+    if (trigger) where.trigger = trigger;
 
-    const response = await this.internalApi.callInternalApi(
-      'GET',
-      `/v1/workflow-executions?${query.toString()}`,
-      undefined,
-      ctx,
+    const result = await this.workflowExecutionsService.findAll(
+      { orderBy: { createdAt: -1 }, where },
+      { limit, page },
     );
 
     return {
       creditsUsed: 0,
       data: {
-        count: Array.isArray(response.data) ? response.data.length : 0,
-        runs: response.data ?? [],
+        count: result.docs?.length ?? 0,
+        runs: result.docs ?? [],
       },
       success: true,
     };
@@ -259,18 +262,22 @@ export class AgentWorkflowToolExecuteService {
       };
     }
 
-    const response = await this.internalApi.callInternalApi(
-      'GET',
-      `/v1/workflow-executions/${encodeURIComponent(runId)}`,
-      undefined,
-      ctx,
-    );
+    const run = await this.workflowExecutionsService.findOne({
+      id: runId,
+      organizationId: ctx.organizationId,
+    });
+
+    if (!run) {
+      return {
+        creditsUsed: 0,
+        error: `Workflow run ${runId} not found`,
+        success: false,
+      };
+    }
 
     return {
       creditsUsed: 0,
-      data: {
-        run: response.data ?? response,
-      },
+      data: { run },
       success: true,
     };
   }
@@ -287,21 +294,40 @@ export class AgentWorkflowToolExecuteService {
       {};
 
     if (workflowId === YOUTUBE_LONG_FORM_WORKFLOW_ID) {
-      const response = await this.internalApi.callInternalApi(
-        'POST',
-        '/v1/youtube-long-form',
-        inputValues,
-        ctx,
+      const youtubeUrl = readOptionalString(inputValues.youtubeUrl);
+      const rawOutputType = readOptionalString(inputValues.outputType);
+      const outputType =
+        rawOutputType &&
+        (YOUTUBE_LONG_FORM_OUTPUT_TYPES as readonly string[]).includes(
+          rawOutputType,
+        )
+          ? (rawOutputType as YoutubeLongFormOutputType)
+          : undefined;
+
+      if (!youtubeUrl || !outputType) {
+        return {
+          creditsUsed: 0,
+          error:
+            'youtubeUrl and outputType are required. Use get_workflow_inputs to discover expected variables.',
+          success: false,
+        };
+      }
+
+      const result = await this.youtubeLongFormWorkflowService.runAuthenticated(
+        {
+          brandId: ctx.brandId,
+          organizationId: ctx.organizationId,
+          outputType,
+          userId: ctx.userId,
+          youtubeUrl,
+        },
       );
-      const resource = this.readRecord(response.data);
-      const attributes = this.readRecord(resource.attributes);
-      const executionId = readOptionalString(attributes.executionId);
 
       return {
         creditsUsed: 0,
         data: {
-          id: executionId ?? readOptionalString(resource.id),
-          result: { ...attributes, id: readOptionalString(resource.id) },
+          id: result.executionId,
+          result: { ...result, id: result.contentId },
           status: WorkflowExecutionStatus.COMPLETED,
         },
         success: true,
@@ -458,11 +484,5 @@ export class AgentWorkflowToolExecuteService {
       timezone: workflow.timezone,
       updatedAt: workflow.updatedAt,
     };
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
   }
 }

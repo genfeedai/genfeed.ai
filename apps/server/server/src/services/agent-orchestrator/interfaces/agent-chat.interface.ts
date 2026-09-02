@@ -79,7 +79,6 @@ export interface AgentTurnAcknowledgement {
 
 export interface AgentChatContext {
   apiKeyContext?: ApiKeyPublishingContext;
-  authToken?: string;
   /** Queue-owned turns await execution so BullMQ retains the durable lease. */
   executionMode?: 'background';
   /** Campaign ID — when set, enables campaign coordination features */

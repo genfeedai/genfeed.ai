@@ -57,7 +57,6 @@ const MAX_TRANSFER_DEPTH = 3;
 const MAX_SELECTED_CONTEXT_BYTES = 16_000;
 
 type TransferActor = {
-  authToken?: string;
   organizationId: string;
   userId: string;
 };
@@ -417,7 +416,6 @@ export class AgentTransfersService {
           transferId,
         },
         {
-          authToken: actor.authToken,
           organizationId: actor.organizationId,
           userId: actor.userId,
         } satisfies AgentChatContext,

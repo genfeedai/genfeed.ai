@@ -149,10 +149,13 @@ export function useAgentThreadList({
       );
       const apiIds = new Set(renderableData.map((item) => item.id));
 
-      // Always keep the open thread visible even when the list filter (status
-      // or brand timing) would drop it — e.g. archived deep link before the
-      // view flips, or a brand-scoped upsert that landed before the API page.
-      const activeThread =
+      // Keep the open thread visible while the list filter is still catching up
+      // with it — an archived deep link before the view auto-flips, or a
+      // brand-scoped upsert that landed before the API page. An explicit
+      // Recent/Archived pick is not a timing gap: honour it and let the open
+      // thread drop out of the list it does not belong to, so an archived
+      // thread never renders inside Recent.
+      const openThread =
         currentActiveId && !apiIds.has(currentActiveId)
           ? (renderableCurrent.find((t) => t.id === currentActiveId) ??
             current.find(
@@ -162,6 +165,11 @@ export function useAgentThreadList({
                 matchesBrandScope(t),
             ) ??
             null)
+          : null;
+      const activeThread =
+        openThread &&
+        (userPinnedViewRef.current == null || openThread.status === viewStatus)
+          ? openThread
           : null;
 
       const RECENT_THRESHOLD_MS = 15_000;
@@ -318,10 +326,20 @@ export function useAgentThreadList({
     prevActiveIdRef.current = activeThreadId;
   }, [activeThreadId, isActive, threads, loadThreads, viewStatus]);
 
-  // Deep-linking into an archived thread must not leave the sidebar on Active
-  // ("No threads"). Only auto-enter archived when the operator has not pinned
-  // a list view (Recent/Archived menu) for this open thread.
+  // The sidebar view follows the open thread in both directions: deep-linking
+  // into an archived thread must not leave it on Recent ("No threads"), and
+  // opening an active thread afterwards must not strand it on Archived with no
+  // way back. Opening a different thread clears the manual pin first, so the
+  // Recent/Archived menu only wins for the thread it was chosen on — that reset
+  // lives in this effect rather than a sibling so it is guaranteed to run
+  // before the view decision it gates.
+  const previousActiveForViewRef = useRef(activeThreadId);
   useEffect(() => {
+    if (previousActiveForViewRef.current !== activeThreadId) {
+      previousActiveForViewRef.current = activeThreadId;
+      userPinnedViewRef.current = null;
+    }
+
     if (!isActive || !activeThreadId || !activeThreadStatus) {
       return;
     }
@@ -330,23 +348,10 @@ export function useAgentThreadList({
       return;
     }
 
-    if (
-      activeThreadStatus === AgentThreadStatus.ARCHIVED &&
-      viewStatus !== AgentThreadStatus.ARCHIVED
-    ) {
-      setViewStatus(AgentThreadStatus.ARCHIVED);
+    if (activeThreadStatus !== viewStatus) {
+      setViewStatus(activeThreadStatus);
     }
   }, [activeThreadId, activeThreadStatus, isActive, viewStatus]);
-
-  // New open thread clears the manual pin so a deep link can auto-switch again.
-  const previousActiveForViewRef = useRef(activeThreadId);
-  useEffect(() => {
-    if (previousActiveForViewRef.current === activeThreadId) {
-      return;
-    }
-    previousActiveForViewRef.current = activeThreadId;
-    userPinnedViewRef.current = null;
-  }, [activeThreadId]);
 
   const handleSelect = useCallback(
     async (thread: AgentThread) => {

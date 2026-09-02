@@ -1,7 +1,50 @@
 import {
   APP_ROUTES,
+  createLibraryAssetRoute,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/constants';
+import { IngredientCategory } from '@genfeedai/enums';
+
+const LEGACY_GALLERY_CATEGORY: Readonly<Record<string, IngredientCategory>> = {
+  audio: IngredientCategory.AUDIO,
+  avatar: IngredientCategory.AVATAR,
+  gif: IngredientCategory.GIF,
+  image: IngredientCategory.IMAGE,
+  music: IngredientCategory.MUSIC,
+  video: IngredientCategory.VIDEO,
+  voice: IngredientCategory.VOICE,
+};
+
+function appendHrefSuffix(route: string, suffix: string): string {
+  if (suffix.startsWith('?') && route.includes('?')) {
+    return `${route}&${suffix.slice(1)}`;
+  }
+
+  return `${route}${suffix}`;
+}
+
+function normalizeLegacyGalleryHref(
+  path: string,
+  suffix: string,
+): string | undefined {
+  const match = path.match(/^(\/[^/]+\/[^/]+)?\/g\/([^/]+)(?:\/([^/]+))?$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const [, scope = '', mediaType, assetId] = match;
+  const category = mediaType
+    ? LEGACY_GALLERY_CATEGORY[mediaType.toLowerCase()]
+    : undefined;
+  if (!category) {
+    return undefined;
+  }
+
+  return appendHrefSuffix(
+    `${scope}${createLibraryAssetRoute(category, assetId)}`,
+    suffix,
+  );
+}
 
 /**
  * Normalize dead internal agent CTA paths so brand-scoped links do not 404.
@@ -18,6 +61,11 @@ export function normalizeAgentAppHref(
   const queryIndex = trimmed.search(/[?#]/);
   const path = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
   const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
+
+  const libraryHref = normalizeLegacyGalleryHref(path, suffix);
+  if (libraryHref) {
+    return libraryHref;
+  }
 
   // Bare legacy paths
   if (path === '/review') {

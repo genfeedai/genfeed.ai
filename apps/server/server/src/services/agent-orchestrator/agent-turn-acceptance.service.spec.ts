@@ -81,7 +81,6 @@ describe('AgentTurnAcceptanceService', () => {
       },
       {
         apiKeyContext: { isApiKey: false, scopes: [] },
-        authToken: 'session-token',
         organizationId: 'org-1',
         userId: 'user-1',
       },

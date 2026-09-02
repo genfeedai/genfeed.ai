@@ -13,11 +13,17 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { from, Observable, throwError } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 
-type DeferredCreditsConfig = CreditsConfig & {
+export type DeferredCreditsConfig = CreditsConfig & {
   deferred?: boolean;
   maxOverdraftCredits?: number;
   reservationId?: string;
 };
+
+export interface CreditsInterceptorRequest {
+  body?: unknown;
+  creditsConfig?: DeferredCreditsConfig;
+  user?: AuthenticatedUser;
+}
 
 @Injectable()
 export class CreditsInterceptor implements NestInterceptor {
@@ -28,118 +34,137 @@ export class CreditsInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest();
-    const initialCreditsConfig: DeferredCreditsConfig | undefined =
-      request.creditsConfig;
+    const request = context
+      .switchToHttp()
+      .getRequest<CreditsInterceptorRequest>();
 
-    if (!initialCreditsConfig) {
+    if (!request.creditsConfig || !request.user) {
       return next.handle(); // No credits to deduct
     }
 
-    const user = request.user;
-    if (!user) {
-      return next.handle();
+    return next.handle().pipe(
+      mergeMap((response: unknown) => this.settle(request, response)),
+      catchError((error: unknown) =>
+        from(this.release(request)).pipe(
+          mergeMap(() => throwError(() => error)),
+        ),
+      ),
+    );
+  }
+
+  /**
+   * Explicit-input settlement of a successful billable call. Shared by the HTTP
+   * interceptor adapter above and by the in-process agent generation gateway.
+   * Returns the response untouched so it can be piped.
+   */
+  async settle(
+    request: CreditsInterceptorRequest,
+    response: unknown,
+  ): Promise<unknown> {
+    const identity = request.user;
+    if (!identity) {
+      return response;
     }
 
-    const identity: AuthenticatedUser = user;
+    const currentCreditsConfig = request.creditsConfig;
 
-    return next.handle().pipe(
-      mergeMap(async (response: unknown) => {
-        const currentCreditsConfig: DeferredCreditsConfig | undefined =
-          request.creditsConfig;
+    if (
+      !currentCreditsConfig ||
+      currentCreditsConfig.amount === undefined ||
+      currentCreditsConfig.deferred === true ||
+      (currentCreditsConfig.amount ?? 0) <= 0
+    ) {
+      if (
+        currentCreditsConfig?.reservationId &&
+        currentCreditsConfig.deferred !== true
+      ) {
+        await this.releaseReservation(
+          currentCreditsConfig.reservationId,
+          identity.organizationId,
+        );
+      }
+      this.loggerService.debug(
+        'Credits deduction skipped: no finalized credits config',
+        {
+          organizationId: identity.organizationId,
+        },
+      );
+      return response;
+    }
 
-        if (
-          !currentCreditsConfig ||
-          currentCreditsConfig.amount === undefined ||
-          currentCreditsConfig.deferred === true ||
-          (currentCreditsConfig.amount ?? 0) <= 0
-        ) {
-          if (
-            currentCreditsConfig?.reservationId &&
-            currentCreditsConfig.deferred !== true
-          ) {
-            await this.releaseReservation(
-              currentCreditsConfig.reservationId,
-              identity.organizationId,
-            );
-          }
-          this.loggerService.debug(
-            'Credits deduction skipped: no finalized credits config',
-            {
-              organizationId: identity.organizationId,
-            },
-          );
-          return response;
-        }
-
-        if (currentCreditsConfig.isByokBypass) {
-          await this.creditDeductionQueueService.queueByokUsage({
-            amount: currentCreditsConfig.amount || 0,
-            description: currentCreditsConfig.description,
-            organizationId: identity.organizationId,
-            source: currentCreditsConfig.source || ActivitySource.SCRIPT,
-            type: 'record-byok-usage',
-          });
-        } else {
-          const sourceActionId = this.readSourceActionId(request.body);
-          const settlementAssetId = this.readResponseAssetId(response);
-          if (sourceActionId && !settlementAssetId) {
-            if (currentCreditsConfig.reservationId) {
-              await this.releaseReservation(
-                currentCreditsConfig.reservationId,
-                identity.organizationId,
-              );
-            }
-            this.loggerService.warn(
-              'Confirmed media returned no persisted asset; credits not queued',
-              {
-                organizationId: identity.organizationId,
-                sourceActionId,
-              },
-            );
-            return response;
-          }
-          await this.creditDeductionQueueService.queueDeduction({
-            amount: currentCreditsConfig.amount || 0,
-            description: currentCreditsConfig.description,
-            maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
-            metadata: currentCreditsConfig.pricingMetadata
-              ? { ...currentCreditsConfig.pricingMetadata }
-              : undefined,
-            ...(sourceActionId
-              ? {
-                  idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,
-                  referenceId: settlementAssetId,
-                  referenceType: 'agent-media:generation',
-                  settlementAssetId,
-                }
-              : {}),
-            ...(currentCreditsConfig.reservationId
-              ? { reservationId: currentCreditsConfig.reservationId }
-              : {}),
-            organizationId: identity.organizationId,
-            source: currentCreditsConfig.source || ActivitySource.SCRIPT,
-            type: 'deduct-credits',
-            userId: identity.userId,
-          });
-        }
-
-        this.loggerService.log('Credit deduction job queued', {
-          amount: currentCreditsConfig.amount || 0,
-          description: currentCreditsConfig.description,
-          isByokBypass: currentCreditsConfig.isByokBypass,
-          userId: user.id,
-        });
-        return response;
-      }),
-      catchError((error: unknown) =>
-        from(
-          this.releaseFailedReservation(
-            request.creditsConfig,
+    if (currentCreditsConfig.isByokBypass) {
+      await this.creditDeductionQueueService.queueByokUsage({
+        amount: currentCreditsConfig.amount || 0,
+        description: currentCreditsConfig.description,
+        organizationId: identity.organizationId,
+        source: currentCreditsConfig.source || ActivitySource.SCRIPT,
+        type: 'record-byok-usage',
+      });
+    } else {
+      const sourceActionId = this.readSourceActionId(request.body);
+      const settlementAssetId = this.readResponseAssetId(response);
+      if (sourceActionId && !settlementAssetId) {
+        if (currentCreditsConfig.reservationId) {
+          await this.releaseReservation(
+            currentCreditsConfig.reservationId,
             identity.organizationId,
-          ),
-        ).pipe(mergeMap(() => throwError(() => error))),
-      ),
+          );
+        }
+        this.loggerService.warn(
+          'Confirmed media returned no persisted asset; credits not queued',
+          {
+            organizationId: identity.organizationId,
+            sourceActionId,
+          },
+        );
+        return response;
+      }
+      await this.creditDeductionQueueService.queueDeduction({
+        amount: currentCreditsConfig.amount || 0,
+        description: currentCreditsConfig.description,
+        maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
+        metadata: currentCreditsConfig.pricingMetadata
+          ? { ...currentCreditsConfig.pricingMetadata }
+          : undefined,
+        ...(sourceActionId
+          ? {
+              idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,
+              referenceId: settlementAssetId,
+              referenceType: 'agent-media:generation',
+              settlementAssetId,
+            }
+          : {}),
+        ...(currentCreditsConfig.reservationId
+          ? { reservationId: currentCreditsConfig.reservationId }
+          : {}),
+        organizationId: identity.organizationId,
+        source: currentCreditsConfig.source || ActivitySource.SCRIPT,
+        type: 'deduct-credits',
+        userId: identity.userId,
+      });
+    }
+
+    this.loggerService.log('Credit deduction job queued', {
+      amount: currentCreditsConfig.amount || 0,
+      description: currentCreditsConfig.description,
+      isByokBypass: currentCreditsConfig.isByokBypass,
+      userId: identity.id,
+    });
+    return response;
+  }
+
+  /**
+   * Explicit-input release of the reservation held for a failed billable call.
+   */
+  async release(request: CreditsInterceptorRequest): Promise<void> {
+    const identity = request.user;
+    if (!identity) {
+      return;
+    }
+
+    await this.releaseFailedReservation(
+      request.creditsConfig,
+      identity.organizationId,
     );
   }
 

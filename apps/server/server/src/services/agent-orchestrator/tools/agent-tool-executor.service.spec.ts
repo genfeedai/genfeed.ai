@@ -49,7 +49,6 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolCreateService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -58,7 +57,6 @@ import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestr
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { Effect } from 'effect';
-import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
   const createWorkflowRunner = () => {
@@ -147,11 +145,6 @@ describe('AgentToolExecutorService', () => {
       get: vi.fn().mockReturnValue('http://localhost:3010'),
     };
 
-    const httpService = {
-      delete: vi.fn(),
-      get: vi.fn(),
-      post: vi.fn(),
-    };
     const postsService = {
       create: vi.fn(),
       findAll: vi.fn(),
@@ -410,6 +403,13 @@ describe('AgentToolExecutorService', () => {
         status: 'queued',
       }),
     };
+    const workflowExecutionsService = {
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      findOne: vi.fn().mockResolvedValue(null),
+    };
+    const youtubeLongFormWorkflowService = {
+      runAuthenticated: vi.fn(),
+    };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
     };
@@ -444,6 +444,12 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const contentGeneratorService = {} as never;
+    const newslettersService = {
+      generateDraft: vi.fn(),
+    };
+    const videosService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
     const creditsUtilsService = {
       addOrganizationCreditsWithExpiration: vi
         .fn()
@@ -948,10 +954,16 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
     );
     const trendsHandler = new AgentTrendsToolHandler(trendsService as never);
-    const internalApi = new AgentToolInternalApiService(
-      configService as never,
-      httpService as never,
-    );
+    const generationGateway = {
+      generateArticle: vi.fn(),
+      generateAvatarVideo: vi.fn(),
+      generateImage: vi.fn(),
+      generateMusic: vi.fn(),
+      generateVideo: vi.fn(),
+      generateVoice: vi.fn(),
+      reframeImage: vi.fn(),
+      upscaleImage: vi.fn(),
+    };
     const twitterService = {
       getTweetById: vi.fn(),
       getUserTimelineByUsername: vi.fn(),
@@ -962,7 +974,6 @@ describe('AgentToolExecutorService', () => {
     const proactiveHandler = new AgentProactiveToolHandler(
       loggerService,
       postsService as never,
-      internalApi,
       twitterService as never,
       batchGenerationService as never,
     );
@@ -970,21 +981,22 @@ describe('AgentToolExecutorService', () => {
       loggerService,
       twitterService as never,
       credentialsService as never,
-      internalApi,
       batchGenerationService as never,
     );
     const onboardingHandler = new AgentOnboardingToolHandler(
       loggerService,
+      configService as never,
       brandsService as never,
       postsService as never,
       creditsUtilsService as never,
       contentGeneratorService as never,
-      internalApi,
+      generationGateway as never,
       credentialsService as never,
       imagesService as never,
       organizationsService as never,
       organizationSettingsService as never,
       usersService as never,
+      videosService as never,
       streamPublisher as never,
     );
     const analyticsHandler = new AgentAnalyticsToolHandler(
@@ -1024,19 +1036,21 @@ describe('AgentToolExecutorService', () => {
         workflowsService as never,
         workflowExecutorService as never,
         workflowSchedulerService as never,
-        internalApi,
+        workflowExecutionsService as never,
+        youtubeLongFormWorkflowService as never,
       ),
     );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(
       new AgentMediaTextGenerationService(
-        internalApi,
         aiActionsService as never,
         contentGeneratorService as never,
+        newslettersService as never,
+        generationGateway as never,
       ),
       new AgentMediaAssetGenerationService(
         loggerService,
         configService as never,
-        internalApi,
+        generationGateway as never,
         onboardingHandler,
         contentQualityScorerService as never,
       ),
@@ -1124,13 +1138,12 @@ describe('AgentToolExecutorService', () => {
       articlesService,
       credentialsService,
       creditsUtilsService,
-      httpService,
+      generationGateway,
       imagesService,
       ingredientsService,
       workflowSchedulerService,
       instagramInspirationHandler,
       instagramInspirationService,
-      internalApi,
       marketplaceApiClient,
       marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
@@ -1148,7 +1161,9 @@ describe('AgentToolExecutorService', () => {
       trendsService,
       twitterService,
       usersService,
+      videosService,
       voicesService,
+      workflowExecutionsService,
       workflowExecutorService,
       workflowGenerationService,
       workflowInstallCacheService,
@@ -3201,7 +3216,7 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('recovers a suffixed create after a post-create failure without duplicating the brand', async () => {
-    const { brandsService, internalApi, service } = createService();
+    const { brandsService, service, videosService } = createService();
     const sourceActionId =
       'brand-identity-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const createdBrand = {
@@ -3227,7 +3242,7 @@ describe('AgentToolExecutorService', () => {
       created = true;
       return createdBrand;
     });
-    vi.spyOn(internalApi, 'callInternalFindOne')
+    vi.spyOn(videosService, 'findOne')
       .mockRejectedValueOnce(new Error('post-create dependency failed'))
       .mockResolvedValue(null);
     const parameters = {
@@ -4664,7 +4679,7 @@ describe('AgentToolExecutorService', () => {
             href: `/genfeed-ai/genfeed/automation/workflows/${recurringWorkflowId}`,
           }),
           expect.objectContaining({
-            href: '/genfeed-ai/genfeed/automation/workflows/executions',
+            href: '/genfeed-ai/genfeed/automation/runs',
           }),
         ],
         type: 'workflow_created_card',
@@ -5084,11 +5099,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should return an incomplete result when generate_image endpoint fails', async () => {
-    const { internalApi, loggerService, service } = createService();
+    const { generationGateway, loggerService, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockRejectedValue(
-      new Error('timeout'),
-    );
+    generationGateway.generateImage.mockRejectedValue(new Error('timeout'));
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_IMAGE,
@@ -5113,16 +5126,14 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should normalize generate_image prompt from description when prompt is missing', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    const callInternalApiSpy = vi
-      .spyOn(internalApi, 'callInternalApi')
-      .mockResolvedValue({
-        data: {
-          attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
-          id: 'img-123',
-        },
-      });
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
+        id: 'img-123',
+      },
+    });
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_IMAGE,
@@ -5139,21 +5150,20 @@ describe('AgentToolExecutorService', () => {
         id: 'img-123',
       }),
     );
-    expect(callInternalApiSpy).toHaveBeenCalledWith(
-      'POST',
-      '/v1/images',
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: 'podcast host portrait',
-        text: 'podcast host portrait',
+        body: expect.objectContaining({
+          prompt: 'podcast host portrait',
+          text: 'podcast host portrait',
+        }),
       }),
-      expect.any(Object),
     );
   });
 
   it('should read generate_image id from a root response envelope', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+    generationGateway.generateImage.mockResolvedValue({
       cdnUrl: 'https://cdn.example.test/img-root-123.png',
       id: 'img-root-123',
     });
@@ -5180,9 +5190,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should prefer voice audioUrl from the response envelope', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+    generationGateway.generateVoice.mockResolvedValue({
       data: {
         audioUrl: 'https://cdn.example.test/voice-123.mp3',
         id: 'voice-123',
@@ -5354,10 +5364,16 @@ describe('AgentToolExecutorService', () => {
       workflowsService,
     } = createService();
 
-    const internalApiWithoutScorer = new AgentToolInternalApiService(
-      { get: vi.fn().mockReturnValue('http://localhost:3010') } as never,
-      {} as never,
-    );
+    const generationGatewayWithoutScorer = {
+      generateArticle: vi.fn(),
+      generateAvatarVideo: vi.fn(),
+      generateImage: vi.fn(),
+      generateMusic: vi.fn(),
+      generateVideo: vi.fn(),
+      generateVoice: vi.fn(),
+      reframeImage: vi.fn(),
+      upscaleImage: vi.fn(),
+    };
     const publishHandlerWithoutScorer = new AgentPublishToolHandler(
       {} as never,
       postsService as never,
@@ -5368,16 +5384,18 @@ describe('AgentToolExecutorService', () => {
     );
     const onboardingWithoutScorer = new AgentOnboardingToolHandler(
       loggerService,
+      { get: vi.fn().mockReturnValue('http://localhost:3010') } as never,
       brandsService as never,
       postsService as never,
       {} as never,
       {} as never,
-      internalApiWithoutScorer,
+      generationGatewayWithoutScorer as never,
       credentialsService as never,
       imagesService as never,
       organizationsService as never,
       { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
+      undefined,
       undefined,
     );
     const systemWorkflowRunner = createWorkflowRunner();
@@ -5402,7 +5420,6 @@ describe('AgentToolExecutorService', () => {
         loggerService,
         {} as never,
         credentialsService as never,
-        internalApiWithoutScorer,
         undefined,
       ),
       new AgentBrandInterviewToolHandler(undefined),
@@ -5419,7 +5436,6 @@ describe('AgentToolExecutorService', () => {
       new AgentProactiveToolHandler(
         loggerService,
         postsService as never,
-        internalApiWithoutScorer,
         {} as never,
         undefined,
       ),
@@ -5464,19 +5480,21 @@ describe('AgentToolExecutorService', () => {
           workflowsService as never,
           { findOne: vi.fn() } as never,
           { updateSchedule: vi.fn() } as never,
-          internalApiWithoutScorer,
+          { findAll: vi.fn(), findOne: vi.fn() } as never,
+          { runAuthenticated: vi.fn() } as never,
         ),
       ),
       new AgentMediaGenerationToolHandler(
         new AgentMediaTextGenerationService(
-          internalApiWithoutScorer,
           aiActionsService as never,
           {} as never,
+          {} as never,
+          generationGatewayWithoutScorer as never,
         ),
         new AgentMediaAssetGenerationService(
           loggerService,
           { get: vi.fn() } as never,
-          internalApiWithoutScorer,
+          generationGatewayWithoutScorer as never,
           onboardingWithoutScorer,
           undefined, // contentQualityScorerService intentionally absent
         ),
@@ -6199,7 +6217,7 @@ describe('AgentToolExecutorService', () => {
         timezone: 'UTC',
         workflowId: 'wf-copy-1',
       },
-      { ...CTX, authToken: 'token-1' },
+      CTX,
     );
 
     expect(result.success).toBe(true);
@@ -6244,15 +6262,11 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('list_workflow_runs returns scoped run history from the existing executions endpoint', async () => {
-    const { httpService, service } = createService();
-    httpService.get.mockReturnValue(
-      of({
-        data: {
-          data: [{ id: 'run-1', attributes: { status: 'completed' } }],
-        },
-      }),
-    );
+  it('list_workflow_runs returns scoped run history from the workflow executions service', async () => {
+    const { service, workflowExecutionsService } = createService();
+    workflowExecutionsService.findAll.mockResolvedValue({
+      docs: [{ id: 'run-1', attributes: { status: 'completed' } }],
+    });
 
     const result = await service.executeTool(
       AgentToolName.LIST_WORKFLOW_RUNS,
@@ -6262,25 +6276,26 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(result.data.count).toBe(1);
-    expect(httpService.get).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/workflow-executions?limit=5&offset=0&workflowId=wf-1&status=completed',
+    expect(workflowExecutionsService.findAll).toHaveBeenCalledWith(
       {
-        headers: {
-          'Content-Type': 'application/json',
+        orderBy: { createdAt: -1 },
+        where: {
+          isDeleted: false,
+          organizationId: CTX.organizationId,
+          status: 'completed',
+          workflowId: 'wf-1',
         },
       },
+      { limit: 5, page: 1 },
     );
   });
 
-  it('get_workflow_run returns one workflow run from the existing executions endpoint', async () => {
-    const { httpService, service } = createService();
-    httpService.get.mockReturnValue(
-      of({
-        data: {
-          data: { id: 'run-1', attributes: { progress: 100 } },
-        },
-      }),
-    );
+  it('get_workflow_run returns one workflow run from the workflow executions service', async () => {
+    const { service, workflowExecutionsService } = createService();
+    workflowExecutionsService.findOne.mockResolvedValue({
+      id: 'run-1',
+      attributes: { progress: 100 },
+    });
 
     const result = await service.executeTool(
       AgentToolName.GET_WORKFLOW_RUN,
@@ -6293,14 +6308,10 @@ describe('AgentToolExecutorService', () => {
       id: 'run-1',
       attributes: { progress: 100 },
     });
-    expect(httpService.get).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/workflow-executions/run-1',
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
+    expect(workflowExecutionsService.findOne).toHaveBeenCalledWith({
+      id: 'run-1',
+      organizationId: CTX.organizationId,
+    });
   });
 
   it('get_workflow_inputs returns input variable definitions', async () => {

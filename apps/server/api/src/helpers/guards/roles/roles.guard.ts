@@ -1,5 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import {
@@ -7,8 +5,6 @@ import {
   SKIP_ROLES_KEY,
 } from '@api/helpers/decorators/roles/roles.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { PopulateBuilder } from '@server/shared/utils/populate/populate.util';
 import { MemberRole } from '@genfeedai/enums';
 import {
   CanActivate,
@@ -18,7 +14,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { PopulateBuilder } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
+
+export interface RolesGuardRequest extends Omit<Request, 'user'> {
+  user?: User;
+}
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -36,7 +40,22 @@ export class RolesGuard implements CanActivate {
       this.reflector.get<boolean>(SKIP_ROLES_KEY, context.getHandler()) ===
       true;
 
-    const req = context.switchToHttp().getRequest<Request & { user?: User }>();
+    return this.assertRoles(
+      context.switchToHttp().getRequest<RolesGuardRequest>(),
+      requiredRoles,
+      skipRoles,
+    );
+  }
+
+  /**
+   * Explicit-input role check. Shared by the HTTP guard adapter above and by the
+   * in-process agent generation gateway, which has no Reflector metadata.
+   */
+  async assertRoles(
+    req: RolesGuardRequest,
+    requiredRoles: (string | MemberRole)[] | undefined,
+    skipRoles = false,
+  ): Promise<boolean> {
     const user = req.user;
 
     if (!user) {
@@ -185,7 +204,7 @@ export class RolesGuard implements CanActivate {
    * organization first.
    */
   private extractOrganizationId(
-    req: Request,
+    req: RolesGuardRequest,
     user: AuthenticatedUser,
   ): string | null {
     const metadataOrganization = this.normalizeOrganizationId(
@@ -205,7 +224,7 @@ export class RolesGuard implements CanActivate {
     return this.resolveFirstExplicitOrganizationId(explicitOrganizationValues);
   }
 
-  private extractExplicitOrganizationValues(req: Request): unknown[] {
+  private extractExplicitOrganizationValues(req: RolesGuardRequest): unknown[] {
     const params = req.params as unknown as Record<string, unknown>;
     const body = req.body as Record<string, unknown> | undefined;
 

@@ -1,5 +1,13 @@
+import {
+  ContentIntelligencePlatform,
+  formatPlatformLabel,
+} from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { Inject, Injectable } from '@nestjs/common';
 import { GenerateContentDto } from '@server/collections/content-intelligence/dto/generate-content.dto';
 import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import { GenerateNewsletterDraftDto } from '@server/collections/newsletters/dto/generate-newsletter-draft.dto';
+import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
 import {
   type AiActionResult,
   AiActionsService,
@@ -9,19 +17,16 @@ import {
   type ExecuteAiActionDto,
 } from '@server/endpoints/ai-actions/dto/ai-action.dto';
 import {
+  AGENT_GENERATION_GATEWAY,
+  type IAgentGenerationGateway,
+} from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import {
   isPlainMediaResponseRecord,
   readArticleResource,
-  readMediaResponseString,
+  toMediaResponseRecord,
 } from '@server/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import {
-  ContentIntelligencePlatform,
-  formatPlatformLabel,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
 
 const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {
   'adapt-platform': AiActionType.ADAPT_PLATFORM,
@@ -54,9 +59,11 @@ function splitThreadSegments(content: string): string[] {
 @Injectable()
 export class AgentMediaTextGenerationService {
   constructor(
-    private readonly internalApi: AgentToolInternalApiService,
     private readonly aiActionsService: AiActionsService,
     private readonly contentGeneratorService: ContentGeneratorService,
+    private readonly newslettersService: NewslettersService,
+    @Inject(AGENT_GENERATION_GATEWAY)
+    private readonly generationGateway: IAgentGenerationGateway,
   ) {}
 
   async aiAction(
@@ -114,26 +121,26 @@ export class AgentMediaTextGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/newsletters/generate-draft',
-      {
-        angle: readOptionalString(params.angle),
-        instructions: readOptionalString(params.instructions),
-        topic:
-          readOptionalString(params.topic) ??
-          readOptionalString(params.prompt) ??
-          '',
-      },
-      ctx,
-    );
-    const newsletterId = readMediaResponseString(response, 'id');
-    const content = readMediaResponseString(response, 'content') ?? '';
+    const dto: GenerateNewsletterDraftDto = {
+      angle: readOptionalString(params.angle),
+      instructions: readOptionalString(params.instructions),
+      topic:
+        readOptionalString(params.topic) ??
+        readOptionalString(params.prompt) ??
+        '',
+    };
+    const newsletter = await this.newslettersService.generateDraft(dto, {
+      brandId: ctx.brandId ?? '',
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    const newsletterId = readOptionalString(newsletter.id);
+    const content = readOptionalString(newsletter.content) ?? '';
     const subject =
-      readMediaResponseString(response, 'label') ??
-      readMediaResponseString(response, 'topic') ??
+      readOptionalString(newsletter.label) ??
+      readOptionalString(newsletter.topic) ??
       'Newsletter draft';
-    const preheader = readMediaResponseString(response, 'summary');
+    const preheader = readOptionalString(newsletter.summary);
 
     return {
       creditsUsed: 2,
@@ -170,33 +177,37 @@ export class AgentMediaTextGenerationService {
   ): Promise<AgentToolResult> {
     const articleType =
       normalizedType === 'x-article' ? 'x-article' : 'standard';
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/articles/generations',
-      {
-        count: articleType === 'standard' ? 1 : undefined,
-        generateHeaderImage:
-          articleType === 'x-article'
-            ? Boolean(params.generateHeaderImage ?? true)
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateArticle({
+        body: {
+          count: articleType === 'standard' ? 1 : undefined,
+          generateHeaderImage:
+            articleType === 'x-article'
+              ? Boolean(params.generateHeaderImage ?? true)
+              : undefined,
+          keywords: Array.isArray(params.keywords)
+            ? (params.keywords as string[])
             : undefined,
-        keywords: Array.isArray(params.keywords)
-          ? (params.keywords as string[])
-          : undefined,
-        ...(ctx.generationModelOverride
-          ? { model: ctx.generationModelOverride }
-          : {}),
-        prompt: (params.topic as string) || (params.prompt as string) || '',
-        targetWordCount:
-          articleType === 'x-article'
-            ? (params.targetWordCount as number | undefined)
-            : undefined,
-        tone:
-          articleType === 'x-article'
-            ? (params.tone as string | undefined)
-            : undefined,
-        type: articleType,
-      },
-      ctx,
+          ...(ctx.generationModelOverride
+            ? { model: ctx.generationModelOverride }
+            : {}),
+          prompt: (params.topic as string) || (params.prompt as string) || '',
+          targetWordCount:
+            articleType === 'x-article'
+              ? (params.targetWordCount as number | undefined)
+              : undefined,
+          tone:
+            articleType === 'x-article'
+              ? (params.tone as string | undefined)
+              : undefined,
+          type: articleType,
+        },
+        principal: {
+          brandId: ctx.brandId,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        },
+      }),
     );
     const resource = readArticleResource(response);
     const attributes = isPlainMediaResponseRecord(resource?.attributes)
@@ -208,7 +219,7 @@ export class AgentMediaTextGenerationService {
     const articleTitle = readOptionalString(attributes.label) ?? '';
 
     return {
-      creditsUsed: 2,
+      creditsUsed: 0,
       data: {
         articleId,
         content: articleContent,
@@ -216,6 +227,7 @@ export class AgentMediaTextGenerationService {
         title: articleTitle,
         type: articleType,
       },
+      isBillingDelegated: true,
       nextActions: articleId
         ? [
             {

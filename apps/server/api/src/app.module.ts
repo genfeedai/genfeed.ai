@@ -124,7 +124,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { RequestContextModule } from '@api/common/request-context.module';
 import { AdminModule } from '@api/endpoints/admin/admin.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
@@ -244,6 +244,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     }),
     SharedModule,
     PrismaModule,
+    RequestContextModule,
     EventEmitterModule.forRoot({
       // Delimiter for nested events (e.g., 'video.created')
       delimiter: '.',
@@ -516,8 +517,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
   ],
   providers: [
     OrgPrefixMiddleware,
-    RequestContextMiddleware,
-    RequestContextCacheService,
     ApiKeyAuthGuard,
     BetterAuthGuard,
     {

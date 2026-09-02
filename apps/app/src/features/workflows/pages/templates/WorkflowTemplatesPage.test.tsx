@@ -116,7 +116,7 @@ describe('WorkflowTemplatesPage', () => {
     expect(screen.getByText('Daily digest')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Use Template' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
+      '/demo/FUDNEWS/automation/templates?template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.queryByTestId('templates-skeleton')).toBeNull();

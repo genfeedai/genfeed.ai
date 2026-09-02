@@ -3,10 +3,13 @@ import {
   OAuthConnectCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const IMAGE_ID = testId('image');
 
 const action = {
   id: 'connect-twitter',
@@ -183,5 +186,26 @@ describe('ContentPreviewCard', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();
+  });
+
+  it('repairs retired gallery CTAs from persisted image conversations', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          ctas: [
+            {
+              href: `/g/image/${IMAGE_ID}`,
+              label: 'View in gallery',
+            },
+          ],
+          id: 'legacy-image-output',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'View in Library' }),
+    ).toHaveAttribute('href', `/library/images?asset=${IMAGE_ID}`);
   });
 });

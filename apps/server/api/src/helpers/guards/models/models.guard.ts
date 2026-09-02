@@ -1,9 +1,3 @@
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import {
-  isFalDestination,
-  isReplicateDestination,
-  isReplicateVersionId,
-} from '@server/collections/models/utils/model-key.util';
 import { readRequestOrganizationId } from '@api/helpers/utils/request/read-request-organization-id.util';
 import type { ModelCategory } from '@genfeedai/enums';
 import {
@@ -13,6 +7,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { AuthenticatedRequest } from '@server/auth/interfaces/authenticated-user.interface';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import {
+  isFalDestination,
+  isReplicateDestination,
+  isReplicateVersionId,
+} from '@server/collections/models/utils/model-key.util';
 
 export interface ModelValidationOptions {
   category: ModelCategory;
@@ -21,6 +22,11 @@ export interface ModelValidationOptions {
 
 export const ValidateModel =
   Reflector.createDecorator<ModelValidationOptions>();
+
+export interface ModelsGuardRequest extends AuthenticatedRequest {
+  body?: Record<string, unknown>;
+  selectedModel?: unknown;
+}
 
 @Injectable()
 export class ModelsGuard implements CanActivate {
@@ -32,15 +38,25 @@ export class ModelsGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const options = this.reflector.get(ValidateModel, context.getHandler());
 
+    return this.validate(context.switchToHttp().getRequest(), options);
+  }
+
+  /**
+   * Explicit-input model allowlist validation. Shared by the HTTP guard adapter
+   * above and by the in-process agent generation gateway.
+   */
+  async validate(
+    request: ModelsGuardRequest,
+    options: ModelValidationOptions | undefined,
+  ): Promise<boolean> {
     if (!options) {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
     const fieldName = options.fieldName || 'model';
     const modelKey = request.body?.[fieldName];
 
-    if (!modelKey) {
+    if (typeof modelKey !== 'string' || !modelKey) {
       return true;
     }
 

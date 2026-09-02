@@ -457,6 +457,110 @@ describe('useAgentThreadList', () => {
     expect(result.current.isArchivedView).toBe(false);
   });
 
+  it('returns to Recent when an active thread is opened after an archived one', async () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'archived-open',
+      threads: [
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const apiService = makeApiService({
+      getThreadsEffect: vi.fn((params?: { status?: string }) =>
+        Effect.succeed(
+          params?.status === AgentThreadStatus.ARCHIVED
+            ? [
+                makeThread('archived-open', {
+                  brandId: 'brand-1',
+                  status: AgentThreadStatus.ARCHIVED,
+                }),
+              ]
+            : [
+                makeThread('active-1', {
+                  brandId: 'brand-1',
+                  status: AgentThreadStatus.ACTIVE,
+                }),
+              ],
+        ),
+      ),
+    });
+
+    const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ARCHIVED),
+    );
+
+    act(() => {
+      useAgentChatStore.setState({
+        activeThreadId: 'active-1',
+        threads: [
+          makeThread('active-1', {
+            brandId: 'brand-1',
+            status: AgentThreadStatus.ACTIVE,
+          }),
+        ],
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ACTIVE),
+    );
+    expect(result.current.isArchivedView).toBe(false);
+  });
+
+  it('keeps an archived open thread out of a pinned Recent list', async () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'archived-open',
+      threads: [
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const apiService = makeApiService({
+      getThreadsEffect: vi.fn((params?: { status?: string }) =>
+        Effect.succeed(
+          params?.status === AgentThreadStatus.ARCHIVED
+            ? [
+                makeThread('archived-open', {
+                  brandId: 'brand-1',
+                  status: AgentThreadStatus.ARCHIVED,
+                }),
+              ]
+            : [
+                makeThread('active-1', {
+                  brandId: 'brand-1',
+                  status: AgentThreadStatus.ACTIVE,
+                }),
+              ],
+        ),
+      ),
+    });
+
+    const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ARCHIVED),
+    );
+
+    act(() => {
+      result.current.handleToggleView();
+    });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ACTIVE),
+    );
+    await waitFor(() =>
+      expect(result.current.threads.map((t) => t.id)).toEqual(['active-1']),
+    );
+  });
+
   it('shows a store upsert title immediately without refetching conversations', async () => {
     const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
     const apiService = makeApiService({ getThreadsEffect });

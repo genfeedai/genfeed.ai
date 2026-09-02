@@ -158,6 +158,12 @@ export class BatchGenerationSummaryService {
             sourceWorkflowId: item.sourceWorkflowId,
             sourceWorkflowName: item.sourceWorkflowName,
             status: item.status,
+            engagementAction: item.engagementAction,
+            targetAuthor: item.targetAuthor,
+            targetPostContent: item.targetPostContent,
+            targetPostId: item.targetPostId,
+            targetPostUrl: item.targetPostUrl,
+            type: item.type,
             versionPinId:
               item.versionPinId ?? linkedPost?.reviewVersionPinId ?? undefined,
             variantId: item.variantId,

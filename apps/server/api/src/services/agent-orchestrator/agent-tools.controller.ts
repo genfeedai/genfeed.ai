@@ -8,7 +8,6 @@ import {
   Body,
   Controller,
   ForbiddenException,
-  Headers,
   Param,
   Post,
   Req,
@@ -31,7 +30,7 @@ interface ExecuteToolBody {
   context?: Partial<
     Omit<
       ToolExecutionContext,
-      'userId' | 'organizationId' | 'authToken' | 'confirmationOrigin'
+      'userId' | 'organizationId' | 'confirmationOrigin'
     >
   >;
 }
@@ -54,7 +53,6 @@ export class AgentToolsController {
     @Body() body: ExecuteToolBody,
     @CurrentUser() user: User,
     @Req() request: Request,
-    @Headers('authorization') authorization?: string,
   ) {
     assertApiKeyAgentPublishingScope(user, name, body.parameters ?? {});
 
@@ -83,7 +81,6 @@ export class AgentToolsController {
 
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const authToken = authorization?.replace('Bearer ', '');
       const clientContext = {
         ...(body.context ?? {}),
       } as Partial<ToolExecutionContext>;
@@ -92,7 +89,6 @@ export class AgentToolsController {
       const context: ToolExecutionContext = {
         ...clientContext,
         apiKeyContext: user,
-        authToken,
         organizationId,
         userId,
       };

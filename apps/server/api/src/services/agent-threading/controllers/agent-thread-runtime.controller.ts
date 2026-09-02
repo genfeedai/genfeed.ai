@@ -7,7 +7,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Post,
   Query,
@@ -198,12 +197,10 @@ export class AgentThreadRuntimeController {
       payload?: Record<string, unknown>;
     },
     @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const authToken = authorization?.replace('Bearer ', '');
 
       return await this.agentOrchestratorService.handleThreadUiAction(
         {
@@ -215,7 +212,6 @@ export class AgentThreadRuntimeController {
         },
         {
           apiKeyContext: user,
-          authToken,
           organizationId,
           userId,
         },

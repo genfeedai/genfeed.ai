@@ -38,6 +38,7 @@ type PreparedWorkflowExecution = {
   executableWorkflow: ExecutableWorkflow;
   executionId: string;
   initialEta: ReturnType<typeof applyWorkflowEtaProgress>;
+  isSystemAction: boolean;
   keepsWorkflowActive: boolean;
   organizationId: string;
   startedAt: Date;
@@ -127,6 +128,7 @@ export class WorkflowExecutionRunnerService {
       await this.finalizeResumedExecution({
         executionId,
         finalStatus,
+        isSystemAction: existingExecution?.metadata?.isSystemAction === true,
         result,
         triggerEvent,
         workflowId,
@@ -221,10 +223,17 @@ export class WorkflowExecutionRunnerService {
         (input.workflowDoc as unknown as { id: string }).id,
     );
     const startedAt = new Date();
+    // A system action executes the hidden system-workflow mirror, a single
+    // immutable row owned by the system principal and shared by every tenant.
+    // The runtime document it is handed carries the *caller's* organizationId,
+    // so tenant-scoped bookkeeping writes can never match that row — and they
+    // should not: per-run state belongs on the execution record, not on a
+    // definition other tenants are executing concurrently.
+    const isSystemAction = input.metadata?.isSystemAction === true;
     const keepsWorkflowActive =
       input.trigger === WorkflowExecutionTrigger.SCHEDULED ||
       input.trigger === WorkflowExecutionTrigger.EVENT ||
-      input.metadata?.isSystemAction === true;
+      isSystemAction;
     let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
       input.workflowDoc,
     );
@@ -274,6 +283,7 @@ export class WorkflowExecutionRunnerService {
       executableWorkflow,
       executionId,
       initialEta,
+      isSystemAction,
       keepsWorkflowActive,
       organizationId: input.event.organizationId,
       startedAt,
@@ -297,20 +307,22 @@ export class WorkflowExecutionRunnerService {
       workflowId: prepared.workflowId,
       workflowLabel: prepared.workflowLabel,
     });
-    await this.prisma.workflow.update({
-      data: {
-        ...(trigger !== WorkflowExecutionTrigger.SCHEDULED && {
-          executionCount: { increment: 1 },
+    if (!prepared.isSystemAction) {
+      await this.prisma.workflow.update({
+        data: {
+          ...(trigger !== WorkflowExecutionTrigger.SCHEDULED && {
+            executionCount: { increment: 1 },
+          }),
+          lastExecutedAt: new Date(),
+          status: prepared.keepsWorkflowActive
+            ? WorkflowStatus.ACTIVE
+            : WorkflowStatus.RUNNING,
+        },
+        where: scopedWhere(prepared.organizationId, {
+          id: prepared.workflowId,
         }),
-        lastExecutedAt: new Date(),
-        status: prepared.keepsWorkflowActive
-          ? WorkflowStatus.ACTIVE
-          : WorkflowStatus.RUNNING,
-      },
-      where: scopedWhere(prepared.organizationId, {
-        id: prepared.workflowId,
-      }),
-    });
+      });
+    }
     if (prepared.executableWorkflow.emitSharedEvents !== false) {
       await this.progressService.emitEvent(prepared.workflowId, 'started', {
         executionId: prepared.executionId,
@@ -340,6 +352,7 @@ export class WorkflowExecutionRunnerService {
       executionId: prepared.executionId,
       finalStatus,
       result,
+      skipWorkflowStatusUpdate: prepared.isSystemAction,
       workflowId: prepared.workflowId,
       workflowStatus: prepared.keepsWorkflowActive
         ? WorkflowStatus.ACTIVE
@@ -420,16 +433,28 @@ export class WorkflowExecutionRunnerService {
       prepared.executionId,
       errorMessage,
     );
-    await this.prisma.workflow.update({
-      data: {
-        status: prepared.keepsWorkflowActive
-          ? WorkflowStatus.ACTIVE
-          : WorkflowStatus.FAILED,
-      },
-      where: scopedWhere(prepared.organizationId, {
-        id: prepared.workflowId,
-      }),
-    });
+    if (!prepared.isSystemAction) {
+      // Bookkeeping must never replace the failure the caller is about to see:
+      // a throw here would surface as the run's error and hide the real cause.
+      try {
+        await this.prisma.workflow.update({
+          data: {
+            status: prepared.keepsWorkflowActive
+              ? WorkflowStatus.ACTIVE
+              : WorkflowStatus.FAILED,
+          },
+          where: scopedWhere(prepared.organizationId, {
+            id: prepared.workflowId,
+          }),
+        });
+      } catch (bookkeepingError: unknown) {
+        this.logger.error(
+          `Failed to mark workflow ${prepared.workflowId} failed after execution ${prepared.executionId}`,
+          bookkeepingError,
+          this.logContext,
+        );
+      }
+    }
     if (prepared.executableWorkflow.emitSharedEvents !== false) {
       await this.progressService.emitEvent(prepared.workflowId, 'error', {
         error: errorMessage,
@@ -512,6 +537,7 @@ export class WorkflowExecutionRunnerService {
   private async finalizeResumedExecution(input: {
     executionId: string;
     finalStatus: WorkflowExecutionStatus;
+    isSystemAction: boolean;
     result: ExecutionRunResult;
     triggerEvent: TriggerEvent;
     workflowId: string;
@@ -525,6 +551,7 @@ export class WorkflowExecutionRunnerService {
       executionId: input.executionId,
       finalStatus: input.finalStatus,
       result: input.result,
+      skipWorkflowStatusUpdate: input.isSystemAction,
       workflowId: input.workflowId,
       workflowStatus:
         input.finalStatus === WorkflowExecutionStatus.COMPLETED

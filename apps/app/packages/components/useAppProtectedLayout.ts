@@ -108,7 +108,6 @@ export function useAppProtectedLayout(
   // so it does not steal vertical space under fixed chrome.
   const suppressShellLowCreditsBanner =
     /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS ||
     pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);

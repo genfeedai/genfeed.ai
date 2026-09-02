@@ -1,9 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { ImagesModule } from '@api/collections/images/images.module';
-import { VideosModule } from '@api/collections/videos/videos.module';
-import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
+import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { BotGatewayController } from '@api/services/bot-gateway/bot-gateway.controller';
 import { BotMediaGenerationDispatcherService } from '@api/services/bot-gateway/bot-media-generation-dispatcher.service';
 import { ConfigModule } from '@libs/config/config.module';
@@ -22,13 +20,11 @@ import { BotUserResolverService } from '@server/services/bot-gateway/services/bo
   exports: [BotGatewayService, BotGenerationService],
   imports: [
     ConfigModule,
+    AgentGenerationGatewayModule,
     BrandsModule,
     CredentialsCoreModule,
     CreditsModule,
-    CreditDeductionModule,
     HttpModule,
-    ImagesModule,
-    VideosModule,
   ],
   providers: [
     BotGatewayService,
