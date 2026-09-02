@@ -20,6 +20,9 @@ export async function collectUpcomingInvoiceLines(input: {
   upcomingInvoice: Stripe.Invoice;
 }): Promise<UpcomingInvoicePreview> {
   const { context, logger, stripe, upcomingInvoice } = input;
+  if (!upcomingInvoice.lines.has_more) {
+    return upcomingInvoice;
+  }
   const lines: Stripe.InvoiceLineItem[] = [...upcomingInvoice.lines.data];
   let hasMore = upcomingInvoice.lines.has_more;
   let pagesFetched = 0;
