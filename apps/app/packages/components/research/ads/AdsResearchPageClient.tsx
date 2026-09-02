@@ -38,6 +38,7 @@ import {
   useAdsResearchPageClient,
 } from './useAdsResearchPageClient';
 import { useAdsResearchWatchlist } from './useAdsResearchWatchlist';
+import XAdsDsaNotice from './XAdsDsaNotice';
 
 const SORT_OPTIONS = [
   { label: 'Score (High → Low)', value: 'score' },
@@ -67,11 +68,7 @@ function CompactStat({
   );
 }
 
-export default function AdsResearchPageClient({
-  initialPlatform = 'all',
-}: {
-  initialPlatform?: AdsResearchPlatform | 'all';
-}) {
+export default function AdsResearchPageClient() {
   const translate = useTranslations('pages.adsResearch');
   const {
     adAccounts,
@@ -91,7 +88,6 @@ export default function AdsResearchPageClient({
     launchPrepResult,
     metric,
     openBrandRemix,
-    platform,
     refetch,
     results,
     resultsError,
@@ -130,7 +126,7 @@ export default function AdsResearchPageClient({
     workflowResult,
     viewType,
     setViewType,
-  } = useAdsResearchPageClient(initialPlatform);
+  } = useAdsResearchPageClient();
   // Called after the research hook so the ads queries keep their identity;
   // the watchlist is an independent concern layered on the same page.
   const watchlist = useAdsResearchWatchlist();
@@ -196,36 +192,17 @@ export default function AdsResearchPageClient({
         isSetupEmpty
           ? undefined
           : {
-              activeTab: initialPlatform,
+              activeTab: effectivePlatform,
               fullWidth: false,
               items: [
-                {
-                  href: APP_ROUTES.DISCOVERY.ADS,
-                  id: 'all',
-                  label: 'Overview',
-                  matchMode: 'exact',
-                },
-                {
-                  href: APP_ROUTES.DISCOVERY.ADS_META,
-                  id: 'meta',
-                  label: 'Meta',
-                },
-                {
-                  href: APP_ROUTES.DISCOVERY.ADS_GOOGLE,
-                  id: 'google',
-                  label: 'Google + YouTube',
-                },
-                {
-                  href: APP_ROUTES.DISCOVERY.ADS_TIKTOK,
-                  id: 'tiktok',
-                  label: 'TikTok',
-                },
-                {
-                  href: APP_ROUTES.DISCOVERY.ADS_X,
-                  id: 'x',
-                  label: 'X',
-                },
+                { id: 'all', label: 'Overview' },
+                { id: 'meta', label: 'Meta' },
+                { id: 'google', label: 'Google + YouTube' },
+                { id: 'tiktok', label: 'TikTok' },
+                { id: 'x', label: 'X' },
               ],
+              onTabChange: (value) =>
+                setPlatform(value as AdsResearchPlatform | 'all'),
               variant: 'default',
             }
       }
@@ -366,10 +343,8 @@ export default function AdsResearchPageClient({
               credentialOptions={credentialOptions}
               effectivePlatform={effectivePlatform}
               industry={industry}
-              initialPlatform={initialPlatform}
               loginCustomerId={loginCustomerId}
               metric={metric}
-              platform={platform}
               showChannelFilter={showChannelFilter}
               source={source}
               timeframe={timeframe}
@@ -379,11 +354,12 @@ export default function AdsResearchPageClient({
               onIndustryChange={setIndustry}
               onLoginCustomerIdChange={setLoginCustomerId}
               onMetricChange={setMetric}
-              onPlatformChange={setPlatform}
               onSourceChange={setSource}
               onTimeframeChange={setTimeframe}
             />
           ) : null}
+
+          {effectivePlatform === 'x' ? <XAdsDsaNotice /> : null}
 
           {showConnectStrip ? (
             <Alert type={AlertCategory.INFO} className="mb-4">
