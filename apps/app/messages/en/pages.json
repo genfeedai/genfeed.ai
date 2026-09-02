@@ -431,6 +431,28 @@
     "unresolved": "Unresolved checks"
   },
   "posts": {
+    "board": {
+      "bulk": {
+        "clearSelection": "Clear selection",
+        "delete": "Delete",
+        "scheduleNextSlot": "Schedule at next slot",
+        "scheduleNextSlotError": "Couldn't schedule that release at the next available slot",
+        "selectedCount": "{count, plural, one {# selected} other {# selected}}"
+      },
+      "columns": {
+        "draft": "Draft",
+        "failed": "Failed",
+        "published": "Published",
+        "review": "Awaiting review",
+        "reviewLink": "Open review queue",
+        "scheduled": "Scheduled"
+      },
+      "dropBlocked": "That release can't be moved right now",
+      "dropMissingSchedule": "That release has no scheduled date to move to",
+      "dropRefused": "That column can't be changed by dragging a card",
+      "loadError": "We couldn't load the release board",
+      "refresh": "Refresh"
+    },
     "desk": {
       "loadErrorBody": "The content desk could not reach posts, articles, or newsletters. Try again, or return to Posts and open the item from the list.",
       "loadErrorTitle": "Could not load content",
@@ -516,6 +538,10 @@
           "description": "Posts already live on at least one destination platform.",
           "title": "Posted"
         }
+      },
+      "viewToggle": {
+        "board": "Board",
+        "list": "List"
       }
     }
   },

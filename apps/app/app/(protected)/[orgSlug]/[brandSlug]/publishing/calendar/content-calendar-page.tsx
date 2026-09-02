@@ -24,6 +24,17 @@ import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
+import CalendarRepublishDialog, {
+  CALENDAR_MOVE_ACTION,
+  CALENDAR_REPUBLISH_ACTION,
+} from '@pages/posts/shared/calendar-republish-dialog';
+import {
+  isReleaseDragConfirmRequired,
+  isReleaseDraggable,
+  releaseScheduledInstant,
+  releaseStatusBadge,
+  releaseTargets,
+} from '@pages/posts/shared/release-status.helpers';
 import type {
   CalendarEventAction,
   CalendarEventBadge,
@@ -74,10 +85,6 @@ import {
   CALENDAR_SLOT_EVENT_COLOR,
   getContentCalendarEventColor,
 } from './calendar-item-color.helper';
-import CalendarRepublishDialog, {
-  CALENDAR_MOVE_ACTION,
-  CALENDAR_REPUBLISH_ACTION,
-} from './calendar-republish-dialog';
 import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -88,13 +95,6 @@ import ReleaseDetailDrawer, {
   targetRescheduleAction,
   targetRetryAction,
 } from './release-detail-drawer';
-import {
-  isReleaseDragConfirmRequired,
-  isReleaseDraggable,
-  releaseScheduledInstant,
-  releaseStatusBadge,
-  releaseTargets,
-} from './release-status.helpers';
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;

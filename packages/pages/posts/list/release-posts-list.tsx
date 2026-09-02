@@ -5,6 +5,8 @@ import {
   APP_ROUTES,
   ITEMS_PER_PAGE,
   PUBLISHING_POSTS_QUERY_KEYS,
+  type PublishingPostsViewMode,
+  parsePublishingPostsViewMode,
 } from '@genfeedai/constants';
 import {
   PageScope,
@@ -12,6 +14,7 @@ import {
   PostStatus,
   type TargetExecutionState,
   TargetExecutionState as TargetState,
+  ViewType,
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import {
@@ -22,6 +25,8 @@ import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
+import ReleaseBoard from '@pages/posts/board/release-board';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
@@ -38,7 +43,9 @@ import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Kbd } from '@ui/primitives/kbd';
+import { Kanban, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -103,6 +110,17 @@ function deriveRailSegment(
   });
 }
 
+/** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
+const VIEW_MODE_TO_VIEW_TYPE: Record<PublishingPostsViewMode, ViewType> = {
+  board: ViewType.KANBAN,
+  list: ViewType.LIST,
+};
+
+const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
+  [ViewType.KANBAN]: 'board',
+  [ViewType.LIST]: 'list',
+};
+
 export default function ReleasePostsList({
   contentTypes,
   credentialIds,
@@ -132,6 +150,11 @@ export default function ReleasePostsList({
   const [toolbarSearchValue, setToolbarSearchValue] = useState(search);
   const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
+  const viewMode = parsePublishingPostsViewMode(
+    searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW),
+  );
+  const { getStoredView, storeView } =
+    usePublishingPostsViewPreference(brandId);
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
@@ -254,9 +277,37 @@ export default function ReleasePostsList({
     [replaceSearchParams],
   );
 
+  const handleViewModeChange = useCallback(
+    (nextMode: PublishingPostsViewMode) => {
+      storeView(nextMode);
+      replaceSearchParams((params) => {
+        if (nextMode === 'list') {
+          params.delete(PUBLISHING_POSTS_QUERY_KEYS.VIEW);
+        } else {
+          params.set(PUBLISHING_POSTS_QUERY_KEYS.VIEW, nextMode);
+        }
+      });
+    },
+    [replaceSearchParams, storeView],
+  );
+
   useEffect(() => {
     setToolbarSearchValue(search);
   }, [search]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per mount to seed the URL from the brand's last choice; the toggle and handleViewModeChange own every change after that.
+  useEffect(() => {
+    if (searchParams?.has(PUBLISHING_POSTS_QUERY_KEYS.VIEW)) {
+      return;
+    }
+    const storedView = getStoredView();
+    if (!storedView || storedView === 'list') {
+      return;
+    }
+    replaceSearchParams((params) => {
+      params.set(PUBLISHING_POSTS_QUERY_KEYS.VIEW, storedView);
+    });
+  }, []);
 
   useEffect(() => {
     if (toolbarSearchValue === search) {
@@ -311,7 +362,26 @@ export default function ReleasePostsList({
   ]);
 
   useEffect(() => {
-    setViewToggleNode(null);
+    setViewToggleNode(
+      <ViewToggle
+        activeView={VIEW_MODE_TO_VIEW_TYPE[viewMode]}
+        onChange={(nextView) =>
+          handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
+        }
+        options={[
+          {
+            icon: <Rows3 className="size-3.5 shrink-0" />,
+            label: translate('viewToggle.list'),
+            type: ViewType.LIST,
+          },
+          {
+            icon: <Kanban className="size-3.5 shrink-0" />,
+            label: translate('viewToggle.board'),
+            type: ViewType.KANBAN,
+          },
+        ]}
+      />,
+    );
     setRefresh(() => () => {
       void refetch();
     });
@@ -319,7 +389,14 @@ export default function ReleasePostsList({
       setRefresh(() => () => {});
       setViewToggleNode(null);
     };
-  }, [refetch, setRefresh, setViewToggleNode]);
+  }, [
+    handleViewModeChange,
+    refetch,
+    setRefresh,
+    setViewToggleNode,
+    translate,
+    viewMode,
+  ]);
 
   useEffect(() => {
     if (
@@ -389,7 +466,15 @@ export default function ReleasePostsList({
         </p>
       ) : null}
 
-      {isLoading && data.releases.length === 0 ? (
+      {viewMode === 'board' ? (
+        <ReleaseBoard
+          browserTimezone={browserTimezone}
+          isLoading={isLoading}
+          loadError={!!error}
+          onRefetch={() => void refetch()}
+          releases={data.releases}
+        />
+      ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
         <CardEmpty
@@ -412,7 +497,7 @@ export default function ReleasePostsList({
         </div>
       )}
 
-      {data.releases.length > 0 ? (
+      {viewMode === 'list' && data.releases.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
           <span className="flex items-center gap-1">
             <Kbd>{translateRail('keys.jKey')}</Kbd>
