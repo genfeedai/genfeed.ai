@@ -1,4 +1,5 @@
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
+import type { UpdateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   PostCategory,
@@ -22,7 +23,11 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
-import type { SchedulerPostGroup } from '@server/collections/post-groups/services/post-group.types';
+import type {
+  SchedulerPostGroup,
+  SchedulerPostTarget,
+  SchedulerTx,
+} from '@server/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
@@ -48,6 +53,14 @@ const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.PAUSED,
   TargetExecutionState.FAILED,
 ]);
+
+type ReleaseTargetUpdateContext = {
+  currentTargets: readonly SchedulerPostTarget[];
+  groupId: string;
+  input: UpdateReleaseGroupInput;
+  organizationId: string;
+  userId: string;
+};
 
 function publishingCapabilityForReleaseStatus(
   status: ReleaseStatus,
@@ -440,46 +453,13 @@ export class PostGroupsService {
         });
       }
 
-      const targetUpdate: PostLifecycleMutation = {};
-      if (input.baseContent !== undefined) {
-        targetUpdate.description = input.baseContent;
-      }
-      if (input.scheduledDate !== undefined) {
-        targetUpdate.scheduledDate = this.contractService.toDate(
-          input.scheduledDate,
-        );
-      }
-      if (input.timezone !== undefined) {
-        targetUpdate.timezone = input.timezone;
-      }
-      if (input.status !== undefined) {
-        const nextState = this.contractService.toTargetState(input.status);
-        for (const target of currentTargets) {
-          if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
-            continue;
-          }
-          await this.postLifecycleService.transition(
-            {
-              actorId: userId,
-              groupId: existing.id,
-              mutation: targetUpdate,
-              nextState,
-              organizationId,
-              postId: target.id,
-              reason: 'Release lifecycle updated',
-            },
-            tx,
-          );
-        }
-      } else if (Object.keys(targetUpdate).length > 0) {
-        await tx.post.updateMany({
-          data: targetUpdate,
-          where: scopedWhere(organizationId, {
-            groupId: existing.id,
-            targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-          }),
-        });
-      }
+      await this.applyReleaseTargetUpdates(tx, {
+        currentTargets,
+        groupId: existing.id,
+        input,
+        organizationId,
+        userId,
+      });
 
       const targets = await this.persistenceService.getTargets(
         tx,
@@ -514,6 +494,54 @@ export class PostGroupsService {
       );
     }
     return release;
+  }
+
+  private async applyReleaseTargetUpdates(
+    tx: SchedulerTx,
+    context: ReleaseTargetUpdateContext,
+  ): Promise<void> {
+    const targetUpdate: PostLifecycleMutation = {};
+    if (context.input.baseContent !== undefined) {
+      targetUpdate.description = context.input.baseContent;
+    }
+    if (context.input.scheduledDate !== undefined) {
+      targetUpdate.scheduledDate = this.contractService.toDate(
+        context.input.scheduledDate,
+      );
+    }
+    if (context.input.timezone !== undefined) {
+      targetUpdate.timezone = context.input.timezone;
+    }
+    if (context.input.status !== undefined) {
+      const nextState = this.contractService.toTargetState(
+        context.input.status,
+      );
+      for (const target of context.currentTargets) {
+        if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+          continue;
+        }
+        await this.postLifecycleService.transition(
+          {
+            actorId: context.userId,
+            groupId: context.groupId,
+            mutation: targetUpdate,
+            nextState,
+            organizationId: context.organizationId,
+            postId: target.id,
+            reason: 'Release lifecycle updated',
+          },
+          tx,
+        );
+      }
+    } else if (Object.keys(targetUpdate).length > 0) {
+      await tx.post.updateMany({
+        data: targetUpdate,
+        where: scopedWhere(context.organizationId, {
+          groupId: context.groupId,
+          targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
+        }),
+      });
+    }
   }
 
   /**
