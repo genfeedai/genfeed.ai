@@ -372,7 +372,7 @@ export class AgentMediaAssetGenerationService {
       }),
     );
     return this.buildSimpleAssetResult({
-      billingDelegated: false,
+      billingDelegated: true,
       description: 'Image upscaled',
       endpoint: 'image',
       idPrefix: 'image-upscale',
