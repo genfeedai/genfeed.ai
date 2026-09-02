@@ -36,6 +36,7 @@ import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marke
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
+import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -127,6 +128,7 @@ import { CacheService } from '@server/services/cache/cache.service';
     AiActionsModule,
     AdsResearchModule,
     AgentStreamPublisherModule,
+    AgentGenerationGatewayModule,
     AnalyticsModule,
     ArticlesModule,
     BatchGenerationModule,

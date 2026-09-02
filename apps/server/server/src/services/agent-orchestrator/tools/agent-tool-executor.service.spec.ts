@@ -945,6 +945,15 @@ describe('AgentToolExecutorService', () => {
       configService as never,
       httpService as never,
     );
+    const generationGateway = {
+      generateAvatarVideo: vi.fn(),
+      generateImage: vi.fn(),
+      generateMusic: vi.fn(),
+      generateVideo: vi.fn(),
+      generateVoice: vi.fn(),
+      reframeImage: vi.fn(),
+      upscaleImage: vi.fn(),
+    };
     const twitterService = {
       getTweetById: vi.fn(),
       getUserTimelineByUsername: vi.fn(),
@@ -1022,7 +1031,7 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaAssetGenerationService(
         loggerService,
         configService as never,
-        internalApi,
+        generationGateway as never,
         onboardingHandler,
         contentQualityScorerService as never,
       ),
@@ -1110,6 +1119,7 @@ describe('AgentToolExecutorService', () => {
       articlesService,
       credentialsService,
       creditsUtilsService,
+      generationGateway,
       httpService,
       imagesService,
       ingredientsService,
@@ -5015,11 +5025,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should return an incomplete result when generate_image endpoint fails', async () => {
-    const { internalApi, loggerService, service } = createService();
+    const { generationGateway, loggerService, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockRejectedValue(
-      new Error('timeout'),
-    );
+    generationGateway.generateImage.mockRejectedValue(new Error('timeout'));
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_IMAGE,
@@ -5044,16 +5052,14 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should normalize generate_image prompt from description when prompt is missing', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    const callInternalApiSpy = vi
-      .spyOn(internalApi, 'callInternalApi')
-      .mockResolvedValue({
-        data: {
-          attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
-          id: 'img-123',
-        },
-      });
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.test/img-123.png' },
+        id: 'img-123',
+      },
+    });
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_IMAGE,
@@ -5070,21 +5076,20 @@ describe('AgentToolExecutorService', () => {
         id: 'img-123',
       }),
     );
-    expect(callInternalApiSpy).toHaveBeenCalledWith(
-      'POST',
-      '/v1/images',
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: 'podcast host portrait',
-        text: 'podcast host portrait',
+        body: expect.objectContaining({
+          prompt: 'podcast host portrait',
+          text: 'podcast host portrait',
+        }),
       }),
-      expect.any(Object),
     );
   });
 
   it('should read generate_image id from a root response envelope', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+    generationGateway.generateImage.mockResolvedValue({
       cdnUrl: 'https://cdn.example.test/img-root-123.png',
       id: 'img-root-123',
     });
@@ -5111,9 +5116,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should prefer voice audioUrl from the response envelope', async () => {
-    const { internalApi, service } = createService();
+    const { generationGateway, service } = createService();
 
-    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
+    generationGateway.generateVoice.mockResolvedValue({
       data: {
         audioUrl: 'https://cdn.example.test/voice-123.mp3',
         id: 'voice-123',
@@ -5289,6 +5294,15 @@ describe('AgentToolExecutorService', () => {
       { get: vi.fn().mockReturnValue('http://localhost:3010') } as never,
       {} as never,
     );
+    const generationGatewayWithoutScorer = {
+      generateAvatarVideo: vi.fn(),
+      generateImage: vi.fn(),
+      generateMusic: vi.fn(),
+      generateVideo: vi.fn(),
+      generateVoice: vi.fn(),
+      reframeImage: vi.fn(),
+      upscaleImage: vi.fn(),
+    };
     const publishHandlerWithoutScorer = new AgentPublishToolHandler(
       {} as never,
       postsService as never,
@@ -5407,7 +5421,7 @@ describe('AgentToolExecutorService', () => {
         new AgentMediaAssetGenerationService(
           loggerService,
           { get: vi.fn() } as never,
-          internalApiWithoutScorer,
+          generationGatewayWithoutScorer as never,
           onboardingWithoutScorer,
           undefined, // contentQualityScorerService intentionally absent
         ),

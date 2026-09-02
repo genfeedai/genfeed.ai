@@ -3,18 +3,23 @@ import { RouterPriority, Status } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@server/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
+  AGENT_GENERATION_GATEWAY,
+  type AgentGenerationPrincipal,
+  type IAgentGenerationGateway,
+} from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import {
   readMediaAssetUrl,
   readMediaResponseString,
   readUsableCdnAssetUrl,
+  toMediaResponseRecord,
 } from '@server/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { AgentOnboardingToolHandler } from '@server/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { ContentQualityScorerService } from '@server/services/content-quality/content-quality-scorer.service';
 import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 
@@ -23,7 +28,8 @@ export class AgentMediaAssetGenerationService {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
-    private readonly internalApi: AgentToolInternalApiService,
+    @Inject(AGENT_GENERATION_GATEWAY)
+    private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingHandler: AgentOnboardingToolHandler,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
@@ -34,6 +40,18 @@ export class AgentMediaAssetGenerationService {
     @Optional()
     private readonly personasService?: PersonasService,
   ) {}
+
+  /**
+   * Tool context is the agent's principal: the signed-in user the turn runs as,
+   * inside the organization the run was validated against.
+   */
+  private toPrincipal(ctx: ToolExecutionContext): AgentGenerationPrincipal {
+    return {
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    };
+  }
 
   private readStringArray(value: unknown, max: number): string[] {
     if (!Array.isArray(value)) {
@@ -203,11 +221,11 @@ export class AgentMediaAssetGenerationService {
 
     let response: Record<string, unknown>;
     try {
-      response = await this.internalApi.callInternalApi(
-        'POST',
-        '/v1/images',
-        body,
-        ctx,
+      response = toMediaResponseRecord(
+        await this.generationGateway.generateImage({
+          body,
+          principal: this.toPrincipal(ctx),
+        }),
       );
     } catch (error) {
       // Timeout/hard failure must not produce a successful empty preview card.
@@ -294,22 +312,23 @@ export class AgentMediaAssetGenerationService {
     const imageId = String(params.imageId || '');
     const aspectRatio = String(params.aspectRatio || '1:1');
     const dimensions = this.aspectRatioToDimensions(aspectRatio);
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      `/images/${imageId}/reframe`,
-      {
-        format:
-          aspectRatio === '1:1'
-            ? 'square'
-            : aspectRatio === '9:16' || aspectRatio === '3:4'
-              ? 'portrait'
-              : 'landscape',
-        height: dimensions.height,
-        text: `Reframe to ${aspectRatio}`,
-        waitForCompletion: true,
-        width: dimensions.width,
-      },
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.reframeImage({
+        body: {
+          format:
+            aspectRatio === '1:1'
+              ? 'square'
+              : aspectRatio === '9:16' || aspectRatio === '3:4'
+                ? 'portrait'
+                : 'landscape',
+          height: dimensions.height,
+          text: `Reframe to ${aspectRatio}`,
+          waitForCompletion: true,
+          width: dimensions.width,
+        },
+        principal: this.toPrincipal(ctx),
+        resourceId: imageId,
+      }),
     );
     const id = readMediaResponseString(response, 'id');
     const cdnUrl = readMediaAssetUrl(
@@ -340,17 +359,17 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/images',
-      {
-        model: 'replicate-topaz-video-upscale',
-        prompt: 'upscale',
-        referenceImages: [params.imageUrl as string],
-        text: 'upscale',
-        waitForCompletion: true,
-      },
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateImage({
+        body: {
+          model: 'replicate-topaz-video-upscale',
+          prompt: 'upscale',
+          referenceImages: [params.imageUrl as string],
+          text: 'upscale',
+          waitForCompletion: true,
+        },
+        principal: this.toPrincipal(ctx),
+      }),
     );
     return this.buildSimpleAssetResult({
       billingDelegated: false,
@@ -412,11 +431,11 @@ export class AgentMediaAssetGenerationService {
         typeof params.resolution === 'string' ? params.resolution : undefined,
       videoReferences: this.readStringArray(params.videoReferences, 10),
     });
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/videos',
-      body,
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateVideo({
+        body,
+        principal: this.toPrincipal(ctx),
+      }),
     );
     const id = readMediaResponseString(response, 'id');
     const cdnUrl = readMediaAssetUrl(
@@ -465,18 +484,18 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/musics',
-      {
-        autoSelectModel: true,
-        duration: (params.duration as number) || 10,
-        text: params.text as string,
-        waitForCompletion: true,
-        ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
-        ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-      },
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateMusic({
+        body: {
+          autoSelectModel: true,
+          duration: (params.duration as number) || 10,
+          text: params.text as string,
+          waitForCompletion: true,
+          ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
+          ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+        },
+        principal: this.toPrincipal(ctx),
+      }),
     );
     return this.buildSimpleAssetResult({
       billingDelegated: true,
@@ -492,16 +511,16 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/voices/generate',
-      {
-        text: params.text as string,
-        voiceId: params.voiceId as string,
-        waitForCompletion: false,
-        ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
-      },
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateVoice({
+        body: {
+          text: params.text as string,
+          voiceId: params.voiceId as string,
+          waitForCompletion: false,
+          ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
+        },
+        principal: this.toPrincipal(ctx),
+      }),
     );
     const id = readMediaResponseString(response, 'id');
     const cdnUrl =
@@ -540,11 +559,11 @@ export class AgentMediaAssetGenerationService {
     if (!text) {
       return { creditsUsed: 0, error: 'text is required', success: false };
     }
-    const response = await this.internalApi.callInternalApi(
-      'POST',
-      '/v1/videos/avatar',
-      { text, useIdentity: true },
-      ctx,
+    const response = toMediaResponseRecord(
+      await this.generationGateway.generateAvatarVideo({
+        body: { text, useIdentity: true },
+        principal: this.toPrincipal(ctx),
+      }),
     );
     const id = readMediaResponseString(response, 'id');
 
