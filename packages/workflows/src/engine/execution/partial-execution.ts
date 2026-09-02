@@ -1,4 +1,5 @@
 import type { ExecutableEdge, ExecutableNode } from '../types';
+import { topologicalSort } from './topological-sort';
 
 export interface PartialExecutionPlan {
   nodesToExecute: string[];
@@ -29,57 +30,6 @@ function buildDependencyGraph(
   }
 
   return dependencies;
-}
-
-function topologicalSort(
-  nodeIds: string[],
-  dependencies: Map<string, string[]>,
-): string[] {
-  const inDegree = new Map<string, number>();
-  const adjList = new Map<string, string[]>();
-
-  for (const nodeId of nodeIds) {
-    inDegree.set(nodeId, 0);
-    adjList.set(nodeId, []);
-  }
-
-  for (const nodeId of nodeIds) {
-    const deps = dependencies.get(nodeId) ?? [];
-    for (const dep of deps) {
-      if (nodeIds.includes(dep)) {
-        inDegree.set(nodeId, (inDegree.get(nodeId) ?? 0) + 1);
-        const adj = adjList.get(dep) ?? [];
-        adj.push(nodeId);
-        adjList.set(dep, adj);
-      }
-    }
-  }
-
-  const queue: string[] = [];
-  for (const [nodeId, degree] of inDegree) {
-    if (degree === 0) {
-      queue.push(nodeId);
-    }
-  }
-
-  const result: string[] = [];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
-      continue;
-    }
-    result.push(current);
-
-    for (const neighbor of adjList.get(current) ?? []) {
-      const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) {
-        queue.push(neighbor);
-      }
-    }
-  }
-
-  return result;
 }
 
 function findAllDependencies(
@@ -187,7 +137,7 @@ export function planPartialExecution(
     }
   }
 
-  const executionOrder = topologicalSort(selectedNodeIds, dependencies);
+  const executionOrder = topologicalSort(nodes, edges, selectedNodeIds);
 
   return {
     errors,

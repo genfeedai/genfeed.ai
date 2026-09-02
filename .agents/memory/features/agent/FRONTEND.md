@@ -13,7 +13,7 @@ packages/agent/src/
 │   ├── AgentChatMessage.tsx        Message rendering
 │   ├── AgentToolCallDisplay.tsx    Tool status cards
 │   ├── AgentStreamingMessage.tsx   Streaming bubble
-│   ├── AgentRunWorkspace.tsx       Activity feed
+│   ├── AgentActivityFeed.tsx       Activity feed
 │   ├── AgentInputRequestOverlay.tsx  User input modal
 │   ├── AgentChatInput.tsx          Message input + mentions
 │   ├── *Card.tsx                   30+ action cards
@@ -179,7 +179,7 @@ Collapsible card: status icon (checkmark/X/spinner) + tool label from `TOOL_LABE
 ### AgentStreamingMessage
 Real-time streaming content with animated cursor and reasoning display.
 
-### AgentRunWorkspace
+### AgentActivityFeed
 Activity feed: timestamped work events with status colors (emerald=completed, red=failed, amber=pending). Active tool calls in expandable sections.
 
 ### AgentInputRequestOverlay

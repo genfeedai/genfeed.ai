@@ -8,7 +8,6 @@ import type {
 } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
-  ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
   ExecutionRunResult,
@@ -192,55 +191,10 @@ export class WorkflowNodeGraphRuntimeService {
     executionId: string,
     signal?: AbortSignal,
   ): Promise<NodeExecutionResult> {
-    const startedAt = new Date();
-    const singleNodeWorkflow: ExecutableWorkflow = {
-      edges: [],
-      id: workflow.id,
-      lockedNodeIds: [],
-      nodes: [{ ...node, cachedOutput: undefined, isLocked: false }],
-      organizationId: workflow.organizationId,
-      userId: workflow.userId,
-      versionId: workflow.versionId,
-    };
-    const virtualEdges: ExecutableEdge[] = [];
-    for (const [key, value] of inputs) {
-      const virtualNodeId = `__input_${key}`;
-      singleNodeWorkflow.nodes.unshift({
-        cachedOutput: value,
-        config: { inputKey: key, inputType: 'json' },
-        id: virtualNodeId,
-        inputs: [],
-        isLocked: true,
-        label: `Input: ${key}`,
-        type: 'workflowInput',
-      });
-      singleNodeWorkflow.lockedNodeIds.push(virtualNodeId);
-      virtualEdges.push({
-        id: `${virtualNodeId}-${node.id}`,
-        source: virtualNodeId,
-        target: node.id,
-        targetHandle: key,
-      });
-    }
-    singleNodeWorkflow.edges = virtualEdges;
-    const result = await this.engineAdapter.executeWorkflow(
-      singleNodeWorkflow,
-      {
-        abortSignal: signal,
-        executionId,
-        maxRetries: 3,
-      },
-    );
-    return (
-      result.nodeResults.get(node.id) ?? {
-        completedAt: new Date(),
-        creditsUsed: result.totalCreditsUsed,
-        error: result.error,
-        nodeId: node.id,
-        retryCount: 0,
-        startedAt,
-        status: result.status === 'completed' ? 'completed' : 'failed',
-      }
-    );
+    return this.engineAdapter.executeNode(node, inputs, workflow, {
+      abortSignal: signal,
+      executionId,
+      maxRetries: 3,
+    });
   }
 }

@@ -1,25 +1,6 @@
 import type { RetryConfig } from '../types';
 import { DEFAULT_RETRY_CONFIG } from '../types';
-
-const RETRYABLE_PATTERNS = [
-  'network',
-  'timeout',
-  'econnreset',
-  'rate limit',
-  '429',
-  'too many requests',
-  '503',
-  '502',
-  'service unavailable',
-];
-
-const NON_RETRYABLE_PATTERNS = [
-  'invalid',
-  'unauthorized',
-  'forbidden',
-  'not found',
-  'validation',
-];
+import { isTypedRetryableError } from './execution-error';
 
 export function calculateRetryDelay(
   attemptNumber: number,
@@ -35,21 +16,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isRetryableError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return true;
-  }
-
-  const message = error.message.toLowerCase();
-
-  if (RETRYABLE_PATTERNS.some((pattern) => message.includes(pattern))) {
-    return true;
-  }
-
-  if (NON_RETRYABLE_PATTERNS.some((pattern) => message.includes(pattern))) {
-    return false;
-  }
-
-  return true;
+  return isTypedRetryableError(error);
 }
 
 export async function withRetry<T>(

@@ -40,6 +40,7 @@ import {
 import { canExecuteNode, planPartialExecution } from './partial-execution';
 import { analyzeForResume, createCacheFromRun } from './resume-handler';
 import { withRetry } from './retry-handler';
+import { topologicalSort } from './topological-sort';
 
 export type NodeExecutor = (
   node: ExecutableNode,
@@ -231,7 +232,7 @@ export class WorkflowEngine {
       }
     } else {
       nodesToExecute = workflow.nodes.map((n) => n.id);
-      executionOrder = this.topologicalSort(workflow);
+      executionOrder = topologicalSort(workflow.nodes, workflow.edges);
 
       if (options.respectLocks !== false) {
         for (const nodeId of workflow.lockedNodeIds) {
@@ -388,7 +389,7 @@ export class WorkflowEngine {
 
           inFlight.set(
             nodeId,
-            this.executeNode(node, inputs, context, options).then((result) => ({
+            this.runNode(node, inputs, context, options).then((result) => ({
               node,
               nodeId,
               result,
@@ -569,7 +570,31 @@ export class WorkflowEngine {
     });
   }
 
-  private async executeNode(
+  async executeNode(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    workflow: Pick<
+      ExecutableWorkflow,
+      'id' | 'organizationId' | 'userId' | 'versionId'
+    >,
+    options: EngineExecutionOptions = {},
+  ): Promise<NodeExecutionResult> {
+    const context: ExecutionContext = {
+      abortSignal: options.abortSignal,
+      evaluateVideoPilot: options.evaluateVideoPilot,
+      executionId: options.executionId,
+      organizationId: workflow.organizationId,
+      runId: options.executionId ?? uuidv4(),
+      userId: workflow.userId,
+      videoGenerationLineage: options.videoGenerationLineage,
+      videoPilotAcceptance: options.videoPilotAcceptance,
+      workflowId: workflow.id,
+      workflowVersionId: workflow.versionId,
+    };
+    return this.runNode(node, inputs, context, options);
+  }
+
+  private async runNode(
     node: ExecutableNode,
     inputs: Map<string, unknown>,
     context: ExecutionContext,
@@ -787,51 +812,6 @@ export class WorkflowEngine {
       handle,
       Array.isArray(existing) ? [...existing, value] : [existing, value],
     );
-  }
-
-  private topologicalSort(workflow: ExecutableWorkflow): string[] {
-    const inDegree = new Map<string, number>();
-    const adjList = new Map<string, string[]>();
-
-    for (const node of workflow.nodes) {
-      inDegree.set(node.id, 0);
-      adjList.set(node.id, []);
-    }
-
-    for (const edge of workflow.edges) {
-      inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
-      const adj = adjList.get(edge.source) ?? [];
-      adj.push(edge.target);
-      adjList.set(edge.source, adj);
-    }
-
-    const queue: string[] = [];
-    for (const [nodeId, degree] of inDegree) {
-      if (degree === 0) {
-        queue.push(nodeId);
-      }
-    }
-
-    const result: string[] = [];
-    let queueHead = 0;
-    while (queueHead < queue.length) {
-      const current = queue[queueHead];
-      queueHead += 1;
-      if (!current) {
-        continue;
-      }
-      result.push(current);
-
-      for (const neighbor of adjList.get(current) ?? []) {
-        const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-        inDegree.set(neighbor, newDegree);
-        if (newDegree === 0) {
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    return result;
   }
 
   estimateCredits(nodes: ExecutableNode[]): number {

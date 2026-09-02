@@ -14,6 +14,7 @@ import type {
   ExecutableWorkflow,
   ExecutionOptions,
   ExecutionRunResult,
+  NodeExecutionResult,
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
@@ -91,15 +92,13 @@ export class WorkflowEngineAdapterService {
     return result;
   }
 
-  resumeWorkflow(
+  executeNode(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
     workflow: ExecutableWorkflow,
-    previousRunResult: ExecutionRunResult,
     options: ExecutionOptions = {},
-  ): Promise<ExecutionRunResult> {
-    this.loggerService.log(`${this.logContext} resuming workflow`, {
-      workflowId: workflow.id,
-    });
-    return this.engine.resume(workflow, previousRunResult, options);
+  ): Promise<NodeExecutionResult> {
+    return this.engine.executeNode(node, inputs, workflow, options);
   }
 
   estimateCredits(nodes: ExecutableNode[]): number {

@@ -1,12 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_RETRY_CONFIG } from '../types';
 import {
+  executionErrorFromHttpStatus,
+  PermanentExecutionError,
+  TransientExecutionError,
+} from './execution-error';
+import {
   calculateRetryDelay,
   createRetryHandler,
   isRetryableError,
   sleep,
   withRetry,
 } from './retry-handler';
+
+class NestLikeHttpError extends Error {
+  constructor(
+    private readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'NestLikeHttpError';
+  }
+
+  getStatus(): number {
+    return this.statusCode;
+  }
+}
 
 describe('calculateRetryDelay', () => {
   it('increases delay with attempt number', () => {
@@ -33,23 +52,42 @@ describe('sleep', () => {
 });
 
 describe('isRetryableError', () => {
-  it('retries network errors', () => {
-    expect(isRetryableError(new Error('network timeout'))).toBe(true);
+  it('retries TransientExecutionError', () => {
+    expect(
+      isRetryableError(new TransientExecutionError('provider timeout')),
+    ).toBe(true);
   });
-  it('retries rate limit (429)', () => {
-    expect(isRetryableError(new Error('429 Too Many Requests'))).toBe(true);
+  it('does not retry PermanentExecutionError', () => {
+    expect(
+      isRetryableError(new PermanentExecutionError('invalid payload')),
+    ).toBe(false);
   });
-  it('does not retry validation errors', () => {
-    expect(isRetryableError(new Error('validation failed'))).toBe(false);
+  it('does not retry unknown errors', () => {
+    expect(isRetryableError(new Error('something random'))).toBe(false);
   });
-  it('does not retry unauthorized', () => {
-    expect(isRetryableError(new Error('unauthorized'))).toBe(false);
+  it('does not retry non-Error values', () => {
+    expect(isRetryableError('some string')).toBe(false);
   });
-  it('retries non-Error values', () => {
-    expect(isRetryableError('some string')).toBe(true);
+  it('retries Nest-like 429 via getStatus()', () => {
+    expect(isRetryableError(new NestLikeHttpError(429, 'rate limited'))).toBe(
+      true,
+    );
   });
-  it('retries unknown errors', () => {
-    expect(isRetryableError(new Error('something random'))).toBe(true);
+  it('does not retry Nest-like 400 via getStatus()', () => {
+    expect(isRetryableError(new NestLikeHttpError(400, 'bad request'))).toBe(
+      false,
+    );
+  });
+  it('maps executor HTTP status into the typed contract', () => {
+    expect(executionErrorFromHttpStatus(503, 'unavailable').isRetryable).toBe(
+      true,
+    );
+    expect(executionErrorFromHttpStatus(404, 'missing').isRetryable).toBe(
+      false,
+    );
+    expect(
+      isRetryableError(executionErrorFromHttpStatus(502, 'bad gateway')),
+    ).toBe(true);
   });
 });
 
@@ -67,7 +105,7 @@ describe('withRetry', () => {
   it('retries on retryable error', async () => {
     const fn = vi
       .fn()
-      .mockRejectedValueOnce(new Error('network error'))
+      .mockRejectedValueOnce(new TransientExecutionError('provider timeout'))
       .mockResolvedValue('ok');
     const onRetry = vi.fn();
     const result = await withRetry(
@@ -81,7 +119,9 @@ describe('withRetry', () => {
   });
 
   it('throws on non-retryable error immediately', async () => {
-    const fn = vi.fn().mockRejectedValue(new Error('unauthorized'));
+    const fn = vi
+      .fn()
+      .mockRejectedValue(new PermanentExecutionError('unauthorized'));
     await expect(
       withRetry(fn, {
         ...DEFAULT_RETRY_CONFIG,
@@ -93,14 +133,16 @@ describe('withRetry', () => {
   });
 
   it('throws after max retries', async () => {
-    const fn = vi.fn().mockRejectedValue(new Error('network error'));
+    const fn = vi
+      .fn()
+      .mockRejectedValue(new TransientExecutionError('provider timeout'));
     await expect(
       withRetry(fn, {
         ...DEFAULT_RETRY_CONFIG,
         baseDelayMs: 1,
         maxRetries: 1,
       }),
-    ).rejects.toThrow('network error');
+    ).rejects.toThrow('provider timeout');
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
