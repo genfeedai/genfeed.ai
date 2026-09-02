@@ -1,4 +1,3 @@
-import { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import {
   CredentialPlatform,
   PostCategory,
@@ -6,9 +5,11 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
+const CAMPAIGN_ID = '4d3c2b1a-5e6f-4708-9a0b-1c2d3e4f5a6b';
 const CREDENTIAL_ID = '7f1c9ad2-6a5b-4c3d-8e2f-0b1a2c3d4e5f';
 const OTHER_CREDENTIAL_ID = '2b8e4f61-9c07-4a11-93d5-6e7f8a9b0c1d';
 
@@ -52,6 +53,15 @@ describe('PostGroupsQueryDto', () => {
       ReleaseStatus.SCHEDULED,
       ReleaseStatus.FAILED,
     ]);
+  });
+
+  it('accepts a campaign filter that is an entity id', async () => {
+    const query = plainToInstance(PostGroupsQueryDto, {
+      campaignId: CAMPAIGN_ID,
+    });
+
+    await expect(validate(query)).resolves.toEqual([]);
+    expect(query.campaignId).toBe(CAMPAIGN_ID);
   });
 
   it.each([
@@ -120,6 +130,14 @@ describe('PostGroupsQueryDto', () => {
       value: {
         endDate: '2026-07-27T00:00:00.000Z',
         executionState: 'exploded',
+        startDate: '2026-07-20T00:00:00.000Z',
+      },
+    },
+    {
+      name: 'a campaign filter that is not an entity id',
+      value: {
+        campaignId: 'not-an-id',
+        endDate: '2026-07-27T00:00:00.000Z',
         startDate: '2026-07-20T00:00:00.000Z',
       },
     },

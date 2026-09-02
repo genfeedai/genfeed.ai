@@ -1,10 +1,6 @@
 import type { ChannelTargetValidationResult } from '@api-types/contracts/channel-capabilities.contract';
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import {
-  ReleaseAttachmentKind,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+import { ReleaseAttachmentKind, ReleaseStatus } from '@genfeedai/enums';
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
@@ -25,6 +21,11 @@ import type {
 } from '@server/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import {
+  compareReleaseProjections,
+  matchesReleaseListQuery,
+  toSyntheticReleaseGroup,
+} from '@server/collections/post-groups/services/post-group-release-projection.util';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -63,6 +64,7 @@ const SCHEDULER_POST_GROUP_SELECT = {
   attachments: true,
   baseContent: true,
   brandId: true,
+  campaignId: true,
   createdAt: true,
   id: true,
   idempotencyKey: true,
@@ -99,6 +101,7 @@ const SCHEDULER_POST_TARGET_SELECT = {
   analyticsCollectionRequestedAt: true,
   analyticsCollectionState: true,
   brandId: true,
+  campaignId: true,
   category: true,
   createdAt: true,
   credentialId: true,
@@ -204,6 +207,7 @@ export class PostGroupPersistenceService {
         ),
         baseContent: params.input.baseContent,
         brandId,
+        campaignId: params.input.campaignId ?? null,
         idempotencyKey: params.input.idempotencyKey ?? null,
         media: this.contractService.toJson(params.input.media ?? []),
         organizationId: params.organizationId,
@@ -256,6 +260,7 @@ export class PostGroupPersistenceService {
 
       const created = (await tx.post.create({
         data: {
+          campaignId: context.group.campaignId,
           ...(params.provenance?.agentContextSource && {
             agentContextSource: params.provenance.agentContextSource,
           }),
@@ -373,6 +378,9 @@ export class PostGroupPersistenceService {
     query: ReleaseGroupListQuery,
   ): Promise<ReleaseGroupListResult> {
     const brandFilter = query.brandId ? { brandId: query.brandId } : {};
+    const campaignFilter = query.campaignId
+      ? { campaignId: query.campaignId }
+      : {};
     const window: ScheduleWindow | undefined =
       query.startDate && query.endDate
         ? { gte: query.startDate, lte: query.endDate }
@@ -382,7 +390,7 @@ export class PostGroupPersistenceService {
     // release projection is derived (status, search, and target facets all
     // need the derived shape). When present, prefilter both hydration reads
     // with two id-only queries so a calendar page stops scanning the
-    // organization's full posting history. `matchesListQuery` below remains
+    // organization's full posting history. `matchesReleaseListQuery` remains
     // the source of truth for every filter, including the window itself.
     const windowGroupIds = window
       ? await this.findGroupIdsInScheduleWindow(query, window)
@@ -394,6 +402,7 @@ export class PostGroupPersistenceService {
         select: SCHEDULER_POST_GROUP_SELECT,
         where: scopedWhere(query.organizationId, {
           ...brandFilter,
+          ...campaignFilter,
           ...(windowGroupIds ? { id: { in: windowGroupIds } } : {}),
         }),
       }) as Promise<SchedulerPostGroup[]>,
@@ -429,7 +438,7 @@ export class PostGroupPersistenceService {
 
     for (const target of targets) {
       if (!target.groupId) {
-        const syntheticGroup = this.toSyntheticGroup(
+        const syntheticGroup = toSyntheticReleaseGroup(
           target,
           query.organizationId,
         );
@@ -467,9 +476,9 @@ export class PostGroupPersistenceService {
     }
 
     const matchingRecords = projectionRecords
-      .filter((record) => this.matchesListQuery(record.release, query))
+      .filter((record) => matchesReleaseListQuery(record.release, query))
       .sort((left, right) =>
-        this.compareReleases(left.release, right.release, query),
+        compareReleaseProjections(left.release, right.release, query),
       );
     const totalDocs = matchingRecords.length;
     const isPaginated = query.page !== undefined || query.limit !== undefined;
@@ -512,7 +521,7 @@ export class PostGroupPersistenceService {
   /**
    * Ids of every release whose group-level schedule or at least one target
    * schedule intersects the window — the same membership rule
-   * `matchesListQuery` applies to the derived projection.
+   * `matchesReleaseListQuery` applies to the derived projection.
    */
   private async findGroupIdsInScheduleWindow(
     query: ReleaseGroupListQuery,
@@ -548,176 +557,6 @@ export class PostGroupPersistenceService {
           .filter((id): id is string => id !== null),
       ]),
     ];
-  }
-
-  private toSyntheticGroup(
-    target: SchedulerPostTarget,
-    organizationId: string,
-  ): SchedulerPostGroup | null {
-    if (
-      target.organizationId !== organizationId ||
-      !target.userId ||
-      target.description === undefined
-    ) {
-      return null;
-    }
-
-    const contentTitle = target.description.replace(/<[^>]+>/g, ' ').trim();
-    const title =
-      target.label?.trim() ||
-      (contentTitle.length > 80
-        ? `${contentTitle.slice(0, 77).trimEnd()}...`
-        : contentTitle) ||
-      'Untitled post';
-
-    return {
-      attachments: [],
-      baseContent: target.description,
-      brandId: target.brandId,
-      createdAt: target.createdAt,
-      id: target.id,
-      idempotencyKey: null,
-      isDeleted: target.isDeleted,
-      media: [],
-      organizationId,
-      ownerId: target.userId,
-      postingSetId: null,
-      publishedAt: target.publishedAt,
-      recurrence: null,
-      rssFeedItemId: null,
-      rssSourceId: null,
-      scheduledAt: target.scheduledDate,
-      status: target.targetExecutionState,
-      statusTransitions: [],
-      timezone: target.timezone,
-      title,
-      updatedAt: target.updatedAt,
-    };
-  }
-
-  private matchesListQuery(
-    release: IReleaseGroup,
-    query: ReleaseGroupListQuery,
-  ): boolean {
-    if (query.startDate && query.endDate) {
-      const start = query.startDate.getTime();
-      const end = query.endDate.getTime();
-      const occupiesWindow = [
-        release.scheduledAt,
-        ...(release.targets ?? []).map((target) => target.scheduledAt),
-      ].some((scheduledAt) => {
-        if (!scheduledAt) {
-          return false;
-        }
-        const instant = Date.parse(scheduledAt);
-        return Number.isFinite(instant) && instant >= start && instant <= end;
-      });
-      if (!occupiesWindow) {
-        return false;
-      }
-    }
-
-    if (query.statuses?.length && !query.statuses.includes(release.status)) {
-      return false;
-    }
-
-    const targets = release.targets ?? [];
-    const hasTargetFilters = Boolean(
-      query.categories?.length ||
-        query.credentialIds?.length ||
-        query.executionStates?.length ||
-        query.platforms?.length ||
-        query.sources?.length,
-    );
-    if (
-      hasTargetFilters &&
-      !targets.some(
-        (target) =>
-          (!query.categories?.length ||
-            (target.category !== undefined &&
-              query.categories.includes(target.category))) &&
-          (!query.credentialIds?.length ||
-            query.credentialIds.includes(target.credentialId)) &&
-          (!query.executionStates?.length ||
-            query.executionStates.includes(target.executionState)) &&
-          (!query.platforms?.length ||
-            query.platforms.includes(target.platform)) &&
-          (!query.sources?.length || query.sources.includes(target.source)),
-      )
-    ) {
-      return false;
-    }
-
-    if (query.publicationState) {
-      const isPosted = targets.some(
-        (target) => target.executionState === TargetExecutionState.PUBLISHED,
-      );
-      if (
-        (query.publicationState === 'posted' && !isPosted) ||
-        (query.publicationState === 'not-posted' && isPosted)
-      ) {
-        return false;
-      }
-    }
-
-    const search = query.search?.trim().toLocaleLowerCase();
-    if (search) {
-      const searchableValues = [
-        release.title,
-        release.baseContent,
-        ...targets.flatMap((target) => [
-          target.platform,
-          target.category ?? '',
-        ]),
-      ];
-      if (
-        !searchableValues.some((value) =>
-          String(value).toLocaleLowerCase().includes(search),
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private compareReleases(
-    left: IReleaseGroup,
-    right: IReleaseGroup,
-    query: ReleaseGroupListQuery,
-  ): number {
-    const sort =
-      query.sort ??
-      (query.startDate && query.endDate ? 'scheduledDate: 1' : 'createdAt: -1');
-    const [field, directionText] = sort.split(': ');
-    const direction = directionText === '1' ? 1 : -1;
-    const leftValue = this.releaseSortValue(left, field);
-    const rightValue = this.releaseSortValue(right, field);
-
-    if (leftValue === null && rightValue !== null) {
-      return 1;
-    }
-    if (leftValue !== null && rightValue === null) {
-      return -1;
-    }
-    if (leftValue !== null && rightValue !== null && leftValue !== rightValue) {
-      return (leftValue - rightValue) * direction;
-    }
-    return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
-  }
-
-  private releaseSortValue(
-    release: IReleaseGroup,
-    field: string | undefined,
-  ): number | null {
-    const value =
-      field === 'scheduledDate'
-        ? this.getEarliestSchedule(release)
-        : field === 'updatedAt'
-          ? Date.parse(release.updatedAt)
-          : Date.parse(release.createdAt);
-    return Number.isFinite(value) && value !== Number.MAX_VALUE ? value : null;
   }
 
   async resolveCredentials(
@@ -962,18 +801,6 @@ export class PostGroupPersistenceService {
     }
 
     return analyticsByTarget;
-  }
-
-  private getEarliestSchedule(release: IReleaseGroup): number {
-    const schedules = [
-      release.scheduledAt,
-      ...(release.targets ?? []).map((target) => target.scheduledAt),
-    ]
-      .filter((scheduledAt): scheduledAt is string => Boolean(scheduledAt))
-      .map((scheduledAt) => Date.parse(scheduledAt))
-      .filter(Number.isFinite);
-
-    return schedules.length > 0 ? Math.min(...schedules) : Number.MAX_VALUE;
   }
 
   async hydrateWithDerivedStatus(

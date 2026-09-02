@@ -12,6 +12,8 @@ export function executionsHistoryLocator(page: Page): Locator {
     .getByRole('link', { name: 'View Details' })
     .or(page.getByRole('columnheader', { name: /^Workflow$/i }))
     .or(page.getByRole('heading', { name: /no executions yet/i }))
+    .or(page.getByText(/no workflow executions yet/i))
+    .or(page.getByText('Recent Runs'))
     .or(page.getByText('Go to Automations'));
 }
 
@@ -26,6 +28,8 @@ export function executionsHistoryLocator(page: Page): Locator {
 export class WorkflowPage {
   readonly page: Page;
   readonly basePath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS);
+  readonly templatesPath = brandPath(APP_ROUTES.AUTOMATION.TEMPLATES);
+  readonly runsPath = brandPath(APP_ROUTES.AUTOMATION.RUNS);
 
   // Layout
   readonly sidebar: Locator;
@@ -287,17 +291,17 @@ export class WorkflowPage {
   }
 
   async gotoTemplates(): Promise<void> {
-    await this.page.goto(`${this.basePath}/templates`);
+    await this.page.goto(this.templatesPath);
     await this.waitForPageLoad();
   }
 
   async gotoExecutions(): Promise<void> {
-    await this.page.goto(`${this.basePath}/executions`);
+    await this.page.goto(this.runsPath);
     await this.waitForPageLoad();
   }
 
   async gotoExecutionById(id: string): Promise<void> {
-    await this.page.goto(`${this.basePath}/executions/${id}`);
+    await this.page.goto(`${this.runsPath}/${id}`);
     await this.waitForPageLoad();
   }
 

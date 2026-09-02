@@ -118,18 +118,14 @@ test.describe('Core Automation Loop', () => {
 
     await workflowPage.gotoExecutions();
 
-    await expect(automationPage).toHaveURL(
-      /\/automation\/workflows\/executions/,
-    );
+    await expect(automationPage).toHaveURL(/\/automation\/runs(?:\/)?$/);
     await workflowPage.assertExecutionListVisible();
     await expect(automationPage.getByText('Completed').first()).toBeVisible();
     await expect(automationPage.getByText('Failed').first()).toBeVisible();
 
     await workflowPage.gotoExecutionById('exec-003');
 
-    await expect(automationPage).toHaveURL(
-      /\/automation\/workflows\/executions\/exec-003/,
-    );
+    await expect(automationPage).toHaveURL(/\/automation\/runs\/exec-003/);
     await expect(
       automationPage.getByRole('button', { name: 'Resume Execution' }),
     ).toBeVisible();

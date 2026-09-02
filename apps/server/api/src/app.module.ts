@@ -27,6 +27,7 @@ import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { CampaignsModule } from '@api/collections/campaigns/campaigns.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
@@ -286,6 +287,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     BrandInterviewModule,
     BrandsModule,
     OutreachCampaignsModule,
+    CampaignsModule,
     CaptionsModule,
     ClipProjectsModule,
     EditorProjectsModule,

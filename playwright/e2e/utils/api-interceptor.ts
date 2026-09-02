@@ -1007,6 +1007,17 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
     return;
   }
 
+  if (url.includes('/leaderboard') || url.includes('/top')) {
+    await route.fulfill({
+      body: JSON.stringify(
+        wrapCollectionInJsonApi([], 'analytics-leaderboard', 'leaderboard'),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+    return;
+  }
+
   await route.fulfill({
     body: JSON.stringify({ data: {} }),
     contentType: 'application/json',

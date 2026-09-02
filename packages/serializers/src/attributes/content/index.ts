@@ -5,6 +5,7 @@ export * from '@serializers/attributes/content/batch-interpolation.attributes';
 export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/calendar-slot.attributes';
 export * from '@serializers/attributes/content/calendar-slot-bulk-generate.attributes';
+export * from '@serializers/attributes/content/campaign.attributes';
 export * from '@serializers/attributes/content/channel-target.attributes';
 export * from '@serializers/attributes/content/clip-project.attributes';
 export * from '@serializers/attributes/content/clip-result.attributes';

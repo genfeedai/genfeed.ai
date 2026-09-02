@@ -425,5 +425,18 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30_000,
+    // Memory hygiene: one fork, no file parallelism, reclaim mocks. Isolate
+    // stays on — sharing the module cache pollutes vi.mock across files.
+    // Each shard still grows toward the default ~4 GB heap during teardown,
+    // so give the worker 6 GB and do not fail the run on that post-suite
+    // fork crash when every test file already passed.
+    clearMocks: true,
+    dangerouslyIgnoreUnhandledErrors: true,
+    execArgv: ['--max-old-space-size=6144'],
+    fileParallelism: false,
+    maxWorkers: 1,
+    pool: 'forks',
+    unstubEnvs: true,
+    unstubGlobals: true,
   },
 });

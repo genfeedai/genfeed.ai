@@ -50,9 +50,7 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\/templates$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automation\/templates$/);
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Templates' }).first(),
     ).toBeVisible();
@@ -137,9 +135,7 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\/executions$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automation\/runs(?:\/)?$/);
     await expect(
       executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();
@@ -274,9 +270,7 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\/executions$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automation\/runs(?:\/)?$/);
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });

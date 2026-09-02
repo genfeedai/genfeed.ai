@@ -32,6 +32,7 @@ export type SchedulerPostGroup = {
   attachments: Prisma.JsonValue;
   baseContent: string;
   brandId: string | null;
+  campaignId: string | null;
   createdAt: Date;
   id: string;
   idempotencyKey: string | null;
@@ -71,6 +72,7 @@ export type SchedulerPostTarget = {
   analyticsCollectionRequestedAt: Date | null;
   analyticsCollectionState: string;
   brandId: string | null;
+  campaignId: string | null;
   category?: PostCategory;
   createdAt: Date;
   credentialId: string;
@@ -141,6 +143,7 @@ export type ReleaseGroupListSort =
  */
 export type ReleaseGroupListQuery = {
   brandId?: string;
+  campaignId?: string;
   categories?: PostCategory[];
   credentialIds?: string[];
   endDate?: Date;

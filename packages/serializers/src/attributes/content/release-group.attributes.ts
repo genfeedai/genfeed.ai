@@ -15,6 +15,7 @@ export const releaseGroupAttributes = createEntityAttributes([
   'owner',
   'organization',
   'brand',
+  'campaignId',
   'status',
   'scheduledAt',
   'publishedAt',
