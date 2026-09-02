@@ -26,6 +26,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useState } from 'react';
 
 function parseMetric(value: string): EngagementMetric {
@@ -114,6 +115,7 @@ export default function ReleaseEngagementRules({
   reconnectHref,
   target,
 }: ReleaseEngagementRulesProps) {
+  const translate = useTranslations('pages.publishing.release');
   const notifications = NotificationsService.getInstance();
   const { href } = useOrgUrl();
   const { create, isLoading, rules, update } = useEngagementRules({
@@ -177,9 +179,13 @@ export default function ReleaseEngagementRules({
 
   return (
     <section className="space-y-3 border-t border-border pt-3">
-      <h4 className="text-sm font-medium text-foreground">Automation</h4>
+      <h4 className="text-sm font-medium text-foreground">
+        {translate('engagement.title')}
+      </h4>
       {isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading rules…</p>
+        <p className="text-xs text-muted-foreground">
+          {translate('engagement.loading')}
+        </p>
       ) : null}
 
       {rules.map((rule) => (
@@ -200,13 +206,18 @@ export default function ReleaseEngagementRules({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Threshold {rule.threshold} · {rule.mode}
+            {translate('engagement.thresholdSummary', {
+              mode: rule.mode,
+              threshold: rule.threshold,
+            })}
           </p>
           {rule.lastError ? (
             <p className="text-xs text-destructive">{rule.lastError}</p>
           ) : null}
           <div className="space-y-1 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Trigger history</p>
+            <p className="font-medium text-foreground">
+              {translate('engagement.triggerHistory')}
+            </p>
             {rule.triggeredAt ? (
               <p>
                 {formatInstant(rule.triggeredAt)} · {formatSnapshot(rule)}
@@ -225,14 +236,16 @@ export default function ReleaseEngagementRules({
                 ) : null}
               </p>
             ) : (
-              <p>Not triggered yet.</p>
+              <p>{translate('engagement.notTriggered')}</p>
             )}
           </div>
         </div>
       ))}
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Create rule</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {translate('engagement.createRule')}
+        </p>
         <Select
           value={metric}
           onValueChange={(value) => setMetric(parseMetric(value))}
@@ -241,12 +254,20 @@ export default function ReleaseEngagementRules({
             <SelectValue placeholder="Metric" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={EngagementMetric.LIKES}>Likes</SelectItem>
-            <SelectItem value={EngagementMetric.COMMENTS}>Comments</SelectItem>
-            <SelectItem value={EngagementMetric.SHARES}>Shares</SelectItem>
-            <SelectItem value={EngagementMetric.VIEWS}>Views</SelectItem>
+            <SelectItem value={EngagementMetric.LIKES}>
+              {translate('engagement.likes')}
+            </SelectItem>
+            <SelectItem value={EngagementMetric.COMMENTS}>
+              {translate('engagement.comments')}
+            </SelectItem>
+            <SelectItem value={EngagementMetric.SHARES}>
+              {translate('engagement.shares')}
+            </SelectItem>
+            <SelectItem value={EngagementMetric.VIEWS}>
+              {translate('engagement.views')}
+            </SelectItem>
             <SelectItem value={EngagementMetric.ENGAGEMENT_RATE}>
-              Engagement rate
+              {translate('engagement.engagementRate')}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -265,9 +286,11 @@ export default function ReleaseEngagementRules({
             <SelectValue placeholder="Action" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={EngagementRuleAction.REPOST}>Repost</SelectItem>
+            <SelectItem value={EngagementRuleAction.REPOST}>
+              {translate('engagement.repost')}
+            </SelectItem>
             <SelectItem value={EngagementRuleAction.FOLLOW_UP_COMMENT}>
-              Follow-up comment
+              {translate('engagement.followUpComment')}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -280,9 +303,11 @@ export default function ReleaseEngagementRules({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={EngagementRuleMode.APPROVAL}>
-              Approval
+              {translate('engagement.approval')}
             </SelectItem>
-            <SelectItem value={EngagementRuleMode.AUTO}>Auto</SelectItem>
+            <SelectItem value={EngagementRuleMode.AUTO}>
+              {translate('engagement.auto')}
+            </SelectItem>
           </SelectContent>
         </Select>
         <Switch
@@ -305,11 +330,11 @@ export default function ReleaseEngagementRules({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Rules fire at most once per target.{' '}
+        {translate('engagement.rulesFireOncePrefix')}{' '}
         <Link className="underline" href={reconnectHref}>
-          Reconnect accounts
+          {translate('engagement.reconnectAccounts')}
         </Link>{' '}
-        if a rule is ineligible.
+        {translate('engagement.rulesFireOnceSuffix')}
       </p>
     </section>
   );

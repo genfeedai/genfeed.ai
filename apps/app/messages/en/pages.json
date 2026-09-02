@@ -543,12 +543,6 @@
         "board": "Board",
         "list": "List"
       }
-    },
-    "release": {
-      "actions": {
-        "preview": "Preview",
-        "reconnect": "Reconnect {target}"
-      }
     }
   },
   "publishing": {
@@ -610,6 +604,48 @@
       "queueDescription": "Scheduled releases due within the next 24 hours.",
       "queueEmpty": "Nothing scheduled in the next 24 hours.",
       "queueTitle": "Next 24 hours"
+    },
+    "release": {
+      "actions": {
+        "preview": "Preview",
+        "reconnect": "Reconnect {target}"
+      },
+      "analytics": {
+        "caption": "Normalized analytics metrics by channel target",
+        "emptyDescription": "Metrics appear after a published target has a collected analytics snapshot.",
+        "emptyTitle": "No target analytics yet",
+        "evidence": "Evidence",
+        "snapshot": "Snapshot {date}",
+        "target": "Target",
+        "title": "Analytics"
+      },
+      "badgePost": "Post",
+      "engagement": {
+        "approval": "Approval",
+        "auto": "Auto",
+        "comments": "Comments",
+        "createRule": "Create rule",
+        "engagementRate": "Engagement rate",
+        "followUpComment": "Follow-up comment",
+        "likes": "Likes",
+        "loading": "Loading rules…",
+        "notTriggered": "Not triggered yet.",
+        "reconnectAccounts": "Reconnect accounts",
+        "repost": "Repost",
+        "rulesFireOncePrefix": "Rules fire at most once per target.",
+        "rulesFireOnceSuffix": "if a rule is ineligible.",
+        "shares": "Shares",
+        "thresholdSummary": "Threshold {threshold} · {mode}",
+        "title": "Automation",
+        "triggerHistory": "Trigger history",
+        "views": "Views"
+      },
+      "noExecutionHistory": "No execution history yet.",
+      "noTargets": "This post has no channel targets.",
+      "readinessBlocked": "Publishing setup is blocking this channel",
+      "rescheduleLocked": "This post can no longer be moved — one or more targets have already published or been cancelled.",
+      "schedule": "Schedule",
+      "targets": "Targets"
     },
     "review": {
       "lineage": {

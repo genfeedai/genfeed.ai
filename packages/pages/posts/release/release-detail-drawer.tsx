@@ -99,11 +99,14 @@ function TargetHistory({
 }: {
   target: IChannelTarget;
 }): React.JSX.Element {
+  const translate = useTranslations('pages.publishing.release');
   const entries = targetHistory(target);
 
   if (entries.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">No execution history yet.</p>
+      <p className="text-xs text-muted-foreground">
+        {translate('noExecutionHistory')}
+      </p>
     );
   }
 
@@ -134,7 +137,7 @@ export default function ReleaseDetailDrawer({
   reconnectHref,
   release,
 }: ReleaseDetailDrawerProps): React.JSX.Element {
-  const translate = useTranslations('pages.posts.release');
+  const translate = useTranslations('pages.publishing.release');
   const { getToken } = useAuthIdentity();
   const [releaseDate, setReleaseDate] = useState('');
   const [targetDates, setTargetDates] = useState<Record<string, string>>({});
@@ -216,7 +219,7 @@ export default function ReleaseDetailDrawer({
         <div className="border-b border-border bg-background/95 px-6 pb-5 pt-6 backdrop-blur">
           <SheetHeader className="space-y-3 text-left">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Post</Badge>
+              <Badge variant="outline">{translate('badgePost')}</Badge>
               {statusBadge ? (
                 <Badge variant={badgeVariantForTone(statusBadge.tone)}>
                   {statusBadge.label}
@@ -244,7 +247,9 @@ export default function ReleaseDetailDrawer({
 
           {release ? (
             <section className="space-y-3">
-              <h3 className="font-medium text-foreground">Schedule</h3>
+              <h3 className="font-medium text-foreground">
+                {translate('schedule')}
+              </h3>
               <div className="flex flex-wrap items-end gap-3">
                 <Input
                   className="max-w-xs"
@@ -274,8 +279,7 @@ export default function ReleaseDetailDrawer({
               </div>
               {!canRescheduleRelease ? (
                 <p className="text-xs text-muted-foreground">
-                  This post can no longer be moved — one or more targets have
-                  already published or been cancelled.
+                  {translate('rescheduleLocked')}
                 </p>
               ) : null}
             </section>
@@ -283,7 +287,9 @@ export default function ReleaseDetailDrawer({
 
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-medium text-foreground">Targets</h3>
+              <h3 className="font-medium text-foreground">
+                {translate('targets')}
+              </h3>
               {onAddChannel && targets.length > 0 ? (
                 <Button
                   size={ButtonSize.SM}
@@ -298,7 +304,7 @@ export default function ReleaseDetailDrawer({
             </div>
             {targets.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                This post has no channel targets.
+                {translate('noTargets')}
               </p>
             ) : (
               targets.map((target) => {
@@ -377,7 +383,7 @@ export default function ReleaseDetailDrawer({
                     {isBlocked ? (
                       <div className="border border-warning/40 bg-warning/10 p-3 text-xs">
                         <p className="font-medium text-foreground">
-                          Publishing setup is blocking this channel
+                          {translate('readinessBlocked')}
                         </p>
                         {target.readiness?.requiredAction ? (
                           <p className="mt-1 text-muted-foreground">
@@ -400,7 +406,9 @@ export default function ReleaseDetailDrawer({
                           variant={ButtonVariant.SECONDARY}
                         >
                           <Link href={reconnectHref}>
-                            Reconnect {targetLabel(target)}
+                            {translate('actions.reconnect', {
+                              target: targetLabel(target),
+                            })}
                           </Link>
                         </Button>
                       </div>
@@ -508,7 +516,9 @@ export default function ReleaseDetailDrawer({
           </section>
 
           <section className="space-y-3">
-            <h3 className="font-medium text-foreground">Analytics</h3>
+            <h3 className="font-medium text-foreground">
+              {translate('analytics.title')}
+            </h3>
             <ReleaseAnalyticsTable comparison={release?.analyticsComparison} />
           </section>
         </div>
