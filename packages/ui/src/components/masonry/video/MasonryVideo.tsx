@@ -3,11 +3,12 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
+import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
-import MasonryBadgeOverlay from '@ui/masonry/shared/MasonryBadgeOverlay';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
+import MasonrySelectionToggle from '@ui/masonry/shared/MasonrySelectionToggle';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import MasonryVideoActionsBar from './MasonryVideoActionsBar';
 import MasonryVideoMediaArea from './MasonryVideoMediaArea';
@@ -29,10 +30,10 @@ export default function MasonryVideo({
   isReversing = false,
   availableTags,
   isLoadingTags,
-  evaluationScore,
   isContainerHovered = true,
   onShareIngredient,
   onClickIngredient,
+  onToggleSelection,
   onDeleteIngredient,
   onVoteIngredient,
   onPublishIngredient,
@@ -56,6 +57,7 @@ export default function MasonryVideo({
     videoRef,
     isHovered,
     isProcessing,
+    isFailed,
     isUnavailable,
     isFleetNsfwLocked,
     isInteractionBlocked,
@@ -94,6 +96,8 @@ export default function MasonryVideo({
     onHoverChange,
   });
 
+  const failureReason = getIngredientFailureReason(video);
+
   const content = (
     <div
       onMouseEnter={() => !isInteractionBlocked && handleMouseHover(true)}
@@ -104,22 +108,13 @@ export default function MasonryVideo({
         'relative block w-full cursor-pointer rounded-xl bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         video.aspectRatio,
-        isSelected && 'border-primary',
+        isSelected && 'ring-2 ring-primary',
         isFleetNsfwLocked && 'cursor-not-allowed',
         isFormatCompatible ? '' : 'opacity-50',
       )}
     >
       {/* Inner wrapper with overflow-hidden for media clipping */}
       <div className={cn('overflow-hidden', MASONRY_TILE_RADIUS_CLASS)}>
-        {/* Badges - hide when processing */}
-        {!isUnavailable && !isPublicGallery && (
-          <MasonryBadgeOverlay
-            ingredient={video}
-            evaluationScore={evaluationScore}
-            isPublicGallery={isPublicGallery}
-          />
-        )}
-
         {/* Brand logo for public galleries */}
         <MasonryBrandLogo
           ingredient={video}
@@ -133,6 +128,8 @@ export default function MasonryVideo({
           metadata={metadata}
           isUnavailable={isUnavailable}
           isProcessing={isProcessing}
+          isFailed={isFailed}
+          failureReason={failureReason}
           isFleetNsfwLocked={isFleetNsfwLocked}
           isDragEnabled={isDragEnabled}
           hasUpdateParent={!!onUpdateParent}
@@ -145,8 +142,17 @@ export default function MasonryVideo({
           onClickIngredient={onClickIngredient}
           onRefresh={onRefresh}
           onImageLoad={onImageLoad}
+          onReprompt={onReprompt}
         />
       </div>
+
+      {isActionsEnabled && !isUnavailable && onToggleSelection && (
+        <MasonrySelectionToggle
+          ingredient={video}
+          isSelected={isSelected}
+          onToggleSelection={onToggleSelection}
+        />
+      )}
 
       {/* Quick actions bar */}
       <MasonryVideoActionsBar

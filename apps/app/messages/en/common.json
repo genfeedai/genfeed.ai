@@ -140,6 +140,11 @@
       "title": "Start from a template"
     }
   },
+  "selectionActions": {
+    "count": "{count} selected",
+    "download": "Download",
+    "merge": "Merge"
+  },
   "settings": {
     "search": {
       "empty": "No settings found",
@@ -808,13 +813,17 @@
     "title": "Provider contract",
     "versionLabel": "Version:"
   },
-  "moodboard": {
-    "close": "Close",
-    "closeMoodboard": "Close moodboard",
-    "first": "First {count}",
+  "libraryCanvas": {
     "fit": "Fit",
     "fitBoard": "Fit board",
-    "loadingMore": "Loading… {count} so far"
+    "loading": "Loading… {count} so far",
+    "noPreview": "No preview",
+    "videoBadge": "Video"
+  },
+  "libraryRetry": {
+    "genericFailureReason": "Generation failed.",
+    "retry": "Retry",
+    "retryAriaLabel": "Retry generation"
   },
   "articleDetail": {
     "loadingTitle": "Loading article…"

@@ -105,7 +105,7 @@ describe('IngredientQuickActions', () => {
     }
   });
 
-  it('hides the context group in masonry compact mode', () => {
+  it('collapses a masonry tile to the overflow menu alone', () => {
     render(
       <IngredientQuickActions
         selectedIngredient={ingredient}
@@ -122,7 +122,10 @@ describe('IngredientQuickActions', () => {
     expect(screen.queryByTestId('dropdown-prompt')).not.toBeInTheDocument();
     expect(screen.queryByTestId('dropdown-status')).not.toBeInTheDocument();
     expect(screen.queryByTestId('dropdown-scope')).not.toBeInTheDocument();
-    expect(screen.getByTestId('primary-actions-group')).toHaveClass(
+    expect(
+      screen.queryByTestId('primary-actions-group'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('masonry-compact-actions')).toHaveClass(
       'bg-secondary/80',
     );
   });

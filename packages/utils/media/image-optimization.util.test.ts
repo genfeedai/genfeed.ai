@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canOptimizeImageSource } from './can-optimize-image-source';
+import { canOptimizeImageSource } from './image-optimization.util';
 
 describe('canOptimizeImageSource', () => {
   it.each([

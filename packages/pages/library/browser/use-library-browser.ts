@@ -1,6 +1,10 @@
 'use client';
 
-import { LIBRARY_QUERY_KEYS, type LibraryViewMode } from '@genfeedai/constants';
+import {
+  LIBRARY_QUERY_KEYS,
+  LIBRARY_VIEW_MODES,
+  type LibraryViewMode,
+} from '@genfeedai/constants';
 import {
   IngredientCategory,
   LibraryPlace,
@@ -40,7 +44,7 @@ function parseCategories(values: string[]): IngredientCategory[] {
 }
 
 function parseViewMode(value: string | null): LibraryViewMode {
-  return value === 'list' ? 'list' : 'grid';
+  return LIBRARY_VIEW_MODES.find((mode) => mode === value) ?? 'grid';
 }
 
 /**

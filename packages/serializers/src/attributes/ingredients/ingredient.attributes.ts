@@ -64,4 +64,12 @@ export const ingredientAttributes = createEntityAttributes([
   'agentStrategyId',
   'cdnUrl',
   's3Key',
+  // Generation ledger. The Library list view reports what produced an asset and
+  // why a failed one failed; without these the operator sees a red status chip
+  // and no reason for it.
+  'generationError',
+  'generationCompletedAt',
+  'modelUsed',
+  'fileSize',
+  'mimeType',
 ]);

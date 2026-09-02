@@ -76,6 +76,8 @@ export interface IngredientsMediaGridProps {
   onRefresh: () => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onClickIngredient: (ingredient: IIngredient) => void;
+  /** Toggle this asset in the surrounding surface's selection set. */
+  onToggleSelection?: (ingredient: IIngredient) => void;
   isPortraiting: boolean;
   isGeneratingCaptions: boolean;
   isMirroring?: boolean;
@@ -89,12 +91,6 @@ export interface IngredientsMediaGridProps {
 export interface IngredientInspectorRailProps {
   ingredient: IIngredient;
   className?: string;
-  /**
-   * The docked rail names the asset itself. Inside a sheet the surrounding
-   * header already carries that name, so the rail drops its own heading rather
-   * than printing the label twice.
-   */
-  hasHeading?: boolean;
 }
 
 export interface IngredientsTypeProps {
@@ -367,12 +363,13 @@ export interface IngredientFilters {
  * Selection actions bar props
  */
 export interface SelectionActionsBarProps {
-  count: number;
   canMerge?: boolean;
   canPublishCampaign?: boolean;
+  count: number;
   isMerging?: boolean;
-  onClear: () => void;
   onBulkDelete: () => void;
+  onClear: () => void;
+  onDownload?: () => void;
   onMerge?: () => void;
   onPublishCampaign?: () => void;
 }

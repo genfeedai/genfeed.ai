@@ -4,42 +4,75 @@ import { IngredientFormat } from '@genfeedai/enums';
 import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
-import {
-  getIngredientDisplayLabel,
-  isVideoIngredient,
-} from '@genfeedai/utils/media/ingredient-type.util';
-import { getLibraryAssetTypeLabel } from '@genfeedai/utils/media/library-asset-type.util';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
-import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import { useMemo, useSyncExternalStore } from 'react';
 
 import { groupIngredientsByTime } from './ingredient-time-groups.util';
 
-function getGridClassName(format?: IngredientFormat): string {
-  switch (format) {
-    case IngredientFormat.LANDSCAPE:
-      return 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3';
-    case IngredientFormat.PORTRAIT:
-      return 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
-    default:
-      return 'grid-cols-2 md:grid-cols-3 xl:grid-cols-4';
+const COLUMN_GAP = '4px';
+
+function getColumnsConfig(format?: IngredientFormat): {
+  mobile: number;
+  tablet: number;
+  desktop: number;
+} {
+  if (format === IngredientFormat.LANDSCAPE) {
+    return { desktop: 3, mobile: 2, tablet: 2 };
   }
+  if (format === IngredientFormat.PORTRAIT) {
+    return { desktop: 6, mobile: 3, tablet: 5 };
+  }
+  return { desktop: 5, mobile: 3, tablet: 4 };
+}
+
+function getViewportWidthSnapshot(): number {
+  return typeof window === 'undefined' ? 0 : window.innerWidth;
+}
+
+function subscribeViewportWidth(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  window.addEventListener('resize', onStoreChange);
+  return () => window.removeEventListener('resize', onStoreChange);
+}
+
+function useColumnCount(format?: IngredientFormat): number {
+  const viewportWidth = useSyncExternalStore(
+    subscribeViewportWidth,
+    getViewportWidthSnapshot,
+    () => 0,
+  );
+
+  return useMemo(() => {
+    const config = getColumnsConfig(format);
+    if (viewportWidth >= 1024) {
+      return config.desktop;
+    }
+    if (viewportWidth >= 640) {
+      return config.tablet;
+    }
+    return config.mobile;
+  }, [format, viewportWidth]);
 }
 
 function IngredientsMediaGridSkeleton({
-  format,
+  columnCount,
 }: {
-  format?: IngredientFormat;
+  columnCount: number;
 }) {
   return (
-    <div className={`grid gap-3 ${getGridClassName(format)}`}>
+    <div style={{ columnCount, columnGap: COLUMN_GAP }}>
       {Array.from({ length: 12 }).map((_, index) => (
         <Skeleton
           key={index}
-          className="aspect-[4/5] w-full rounded-lg"
+          className="mb-1 aspect-[4/5] w-full break-inside-avoid rounded-lg"
           variant="rounded"
         />
       ))}
@@ -66,6 +99,7 @@ export default function IngredientsMediaGrid({
   onRefresh,
   onPublishIngredient,
   onClickIngredient,
+  onToggleSelection,
   isPortraiting,
   isGeneratingCaptions,
   isMirroring,
@@ -75,8 +109,10 @@ export default function IngredientsMediaGrid({
   onCopyPrompt,
   onReprompt,
 }: IngredientsMediaGridProps) {
+  const columnCount = useColumnCount(format);
+
   if (isLoading) {
-    return <IngredientsMediaGridSkeleton format={format} />;
+    return <IngredientsMediaGridSkeleton columnCount={columnCount} />;
   }
 
   if (items.length === 0) {
@@ -85,19 +121,13 @@ export default function IngredientsMediaGrid({
 
   const renderIngredient = (ingredient: IIngredient) => {
     const isSelected = selectedIds.includes(ingredient.id);
-    const hoverDetails = (
-      <AssetHoverDetails
-        label={getIngredientDisplayLabel(ingredient) || 'Untitled asset'}
-        metadata={
-          ingredient.metadataModelLabel || ingredient.metadataModel || undefined
-        }
-        typeLabel={getLibraryAssetTypeLabel(ingredient.category)}
-      />
-    );
 
     if (isVideoIngredient(ingredient)) {
       return (
-        <div key={ingredient.id} className="group relative min-w-0">
+        <div
+          key={ingredient.id}
+          className="group relative mb-1 break-inside-avoid"
+        >
           <LazyMasonryVideo
             video={new Video(ingredient as IVideo)}
             isSelected={isSelected}
@@ -119,17 +149,20 @@ export default function IngredientsMediaGrid({
             onUpdateParent={onUpdateParent}
             onRefresh={onRefresh}
             onClickIngredient={onClickIngredient}
+            onToggleSelection={onToggleSelection}
             onScopeChange={onScopeChange}
             onPortraitVideo={onConvertToPortrait}
             onGenerateCaptions={onGenerateCaptions}
           />
-          {hoverDetails}
         </div>
       );
     }
 
     return (
-      <div key={ingredient.id} className="group relative min-w-0">
+      <div
+        key={ingredient.id}
+        className="group relative mb-1 break-inside-avoid"
+      >
         <LazyMasonryImage
           image={ingredient as IImage}
           isSelected={isSelected}
@@ -145,19 +178,19 @@ export default function IngredientsMediaGrid({
           onUpdateParent={onUpdateParent}
           onRefresh={onRefresh}
           onClickIngredient={onClickIngredient}
+          onToggleSelection={onToggleSelection}
           onScopeChange={onScopeChange}
           onConvertToVideo={onConvertToVideo}
         />
-        {hoverDetails}
       </div>
     );
   };
 
   const timeGroups = groupIngredientsByTime(items);
-  const gridClassName = `grid gap-3 ${getGridClassName(format)}`;
+  const columnStyle = { columnCount, columnGap: COLUMN_GAP };
 
   if (!timeGroups) {
-    return <div className={gridClassName}>{items.map(renderIngredient)}</div>;
+    return <div style={columnStyle}>{items.map(renderIngredient)}</div>;
   }
 
   return (
@@ -167,9 +200,7 @@ export default function IngredientsMediaGrid({
           <h3 className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40 backdrop-blur">
             {group.label}
           </h3>
-          <div className={gridClassName}>
-            {group.items.map(renderIngredient)}
-          </div>
+          <div style={columnStyle}>{group.items.map(renderIngredient)}</div>
         </section>
       ))}
     </div>

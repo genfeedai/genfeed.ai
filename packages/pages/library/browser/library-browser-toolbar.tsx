@@ -1,11 +1,16 @@
 'use client';
 
 import {
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  type LibraryViewMode,
+} from '@genfeedai/constants';
+import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   ViewType,
 } from '@genfeedai/enums';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -21,23 +26,46 @@ import {
   categoriesFromAssetTypeIds,
   selectedAssetTypeIds,
 } from '@utils/media/library-asset-type.util';
-import { LayoutGrid, Rows3, Upload, X } from 'lucide-react';
+import { Frame, LayoutGrid, Rows3, Upload, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
+import { useMemo } from 'react';
 
 import { LIBRARY_TYPE_CHIPS } from './library-browser.config';
 
-const VIEW_OPTIONS = [
-  {
-    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
-    label: 'Contact sheet',
-    type: ViewType.GRID,
-  },
-  {
-    icon: <Rows3 className={SHELL_ICON_CLASS} />,
-    label: 'List',
-    type: ViewType.LIST,
-  },
-];
+const GRID_VIEW_OPTION = {
+  icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
+  label: 'Contact sheet',
+  type: ViewType.GRID,
+};
+
+const LIST_VIEW_OPTION = {
+  icon: <Rows3 className={SHELL_ICON_CLASS} />,
+  label: 'List',
+  type: ViewType.LIST,
+};
+
+const CANVAS_VIEW_OPTION = {
+  icon: <Frame className={SHELL_ICON_CLASS} />,
+  label: 'Canvas',
+  type: ViewType.CANVAS,
+};
+
+/**
+ * The same filtered result set, arranged three ways. Canvas is the mood board:
+ * it moved off its own route so the shelf, folder and type axes keep applying
+ * to it instead of being abandoned at a nav link.
+ */
+const VIEW_TYPE_TO_MODE: Record<string, LibraryViewMode> = {
+  [ViewType.CANVAS]: 'canvas',
+  [ViewType.GRID]: 'grid',
+  [ViewType.LIST]: 'list',
+};
+
+const MODE_TO_VIEW_TYPE: Record<LibraryViewMode, ViewType> = {
+  canvas: ViewType.CANVAS,
+  grid: ViewType.GRID,
+  list: ViewType.LIST,
+};
 
 const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
   label: chip.label,
@@ -68,6 +96,15 @@ export default function LibraryBrowserToolbar({
 }: LibraryBrowserToolbarProps) {
   const hasTypeFilter = categories.length > 0;
   const selectedTypeIds = selectedAssetTypeIds(categories);
+  const isCanvasEnabled = useFeatureFlag(LIBRARY_CANVAS_FEATURE_FLAG);
+
+  const viewOptions = useMemo(
+    () =>
+      isCanvasEnabled
+        ? [GRID_VIEW_OPTION, LIST_VIEW_OPTION, CANVAS_VIEW_OPTION]
+        : [GRID_VIEW_OPTION, LIST_VIEW_OPTION],
+    [isCanvasEnabled],
+  );
 
   return (
     <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
@@ -119,11 +156,11 @@ export default function LibraryBrowserToolbar({
         />
 
         <ViewToggle
-          activeView={viewMode === 'list' ? ViewType.LIST : ViewType.GRID}
+          activeView={MODE_TO_VIEW_TYPE[viewMode]}
           onChange={(view) =>
-            onViewModeChange(view === ViewType.LIST ? 'list' : 'grid')
+            onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')
           }
-          options={VIEW_OPTIONS}
+          options={viewOptions}
           size={ComponentSize.SM}
         />
 

@@ -2,11 +2,10 @@
 
 import { formatEnumLabel, IngredientCategory } from '@genfeedai/enums';
 import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 import type { LibraryArtifactReference } from './library-remix-reference';
 

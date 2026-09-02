@@ -1,9 +1,9 @@
 'use client';
 
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const DEFAULT_WORKFLOW_CARD_IMAGE = metadata.cards.default;
 

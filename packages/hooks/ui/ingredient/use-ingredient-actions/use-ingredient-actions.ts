@@ -882,13 +882,8 @@ export function useIngredientActions({
       if (onReprompt) {
         return await onReprompt(ingredient);
       }
-
-      // Default implementation - parent should provide onReprompt callback
-      notificationsService.info(
-        'Reprompt feature requires custom implementation',
-      );
     },
-    [notificationsService, onReprompt],
+    [onReprompt],
   );
 
   const handleSeeDetails = useCallback(

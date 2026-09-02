@@ -264,9 +264,31 @@ export default function IngredientQuickActions(
     'quick-actions-wrapper transition-all duration-300',
   );
 
+  // A masonry tile shows one control at rest: the overflow menu. Primary
+  // actions are not deleted, they move to the top of that menu so the media
+  // keeps the whole tile.
+  if (isMasonryCompact) {
+    return (
+      <div className={cn('flex items-center', alignmentClass)}>
+        <div
+          data-testid="masonry-compact-actions"
+          className={cn(sharedShellClassName, 'flex items-center')}
+        >
+          <QuickActionsMenu
+            actions={actions}
+            isMenuOpen={isMenuOpen}
+            setIsMenuOpen={setIsMenuOpen}
+            size={size}
+            onActionClick={handleActionClick}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex flex-wrap items-center gap-2', alignmentClass)}>
-      {!isMasonryCompact && contextActions.length > 0 && (
+      {contextActions.length > 0 && (
         <IngredientContextActions
           contextActions={contextActions}
           selectedIngredient={selectedIngredient}
@@ -286,9 +308,7 @@ export default function IngredientQuickActions(
         {primaryActions.map((action) => (
           <QuickActionButton
             key={action.id}
-            action={
-              isMasonryCompact ? { ...action, variant: undefined } : action
-            }
+            action={action}
             size={size}
             showLabel={false}
             onClick={handleActionClick}

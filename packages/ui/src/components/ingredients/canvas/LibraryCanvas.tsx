@@ -1,7 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useMoodBoard } from '@genfeedai/hooks/data/content/use-mood-board/use-mood-board';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
+import type { IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type { LibraryCanvasProps } from '@genfeedai/props/content/library-canvas.props';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { Button } from '@ui/primitives/button';
 import { MediaCanvasShell } from '@ui/shell';
@@ -14,50 +17,59 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Maximize2, X } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+import { LibraryCanvasNode } from './LibraryCanvasNode';
+import type { LibraryCanvasFlowNode } from './library-canvas.types';
+import { useLibraryCanvasNodes } from './use-library-canvas-nodes';
 
-import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
-import type {
-  MediaAssetFlowNode,
-  MoodBoardCanvasProps,
-} from '@/features/moodboard/moodboard.types';
+const NODE_TYPES = { libraryAsset: LibraryCanvasNode };
 
-const NODE_TYPES = { mediaAsset: MediaAssetNode };
-
-function MoodBoardCanvasInner({
-  assets,
-  nodes,
-  onNodesChange,
-  onNodeDragStop,
-  onClose,
-  isLoadingMore,
-  isTruncated,
-}: MoodBoardCanvasProps): React.JSX.Element {
-  const translate = useTranslations('common.moodboard');
+function LibraryCanvasInner({
+  ingredients,
+  isLoading = false,
+}: LibraryCanvasProps): React.JSX.Element {
+  const translate = useTranslations('common.libraryCanvas');
   const { fitView } = useReactFlow();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
-  const assetIndexById = useMemo(
-    () => new Map(assets.map((asset, index) => [asset.id, index])),
-    [assets],
+  const { board, save } = useMoodBoard();
+  const savedLayout = useMemo(() => board?.layout ?? [], [board?.layout]);
+
+  const handlePersist = useCallback(
+    (layout: IMoodBoardLayoutItem[]) => {
+      void save(layout);
+    },
+    [save],
   );
 
-  const focusedAsset =
-    lightboxIndex !== null ? assets[lightboxIndex] : undefined;
+  const { nodes, onNodesChange, onNodeDragStop } = useLibraryCanvasNodes({
+    ingredients,
+    onPersist: handlePersist,
+    savedLayout,
+  });
+
+  const ingredientIndexById = useMemo(
+    () =>
+      new Map(ingredients.map((ingredient, index) => [ingredient.id, index])),
+    [ingredients],
+  );
+
+  const focusedIngredient =
+    lightboxIndex !== null ? ingredients[lightboxIndex] : undefined;
   const ambientColor = useDominantColor(
-    focusedAsset?.ingredientUrl ?? focusedAsset?.thumbnailUrl,
+    focusedIngredient?.ingredientUrl ?? focusedIngredient?.thumbnailUrl,
   );
 
   const handleNodeClick = useCallback(
-    (_event: React.MouseEvent, node: MediaAssetFlowNode) => {
-      const index = assetIndexById.get(node.id);
+    (_event: React.MouseEvent, node: LibraryCanvasFlowNode) => {
+      const index = ingredientIndexById.get(node.id);
       if (index !== undefined) {
         setLightboxIndex(index);
       }
     },
-    [assetIndexById],
+    [ingredientIndexById],
   );
 
   return (
@@ -67,14 +79,12 @@ function MoodBoardCanvasInner({
         toolbarClassName="p-3"
         actions={
           <div
-            data-testid="moodboard-actions"
+            data-testid="library-canvas-actions"
             className="gen-glass flex items-center gap-0.5 rounded-lg p-0.5"
           >
-            {isLoadingMore || isTruncated ? (
+            {isLoading ? (
               <span className="px-2 text-xs text-foreground/55">
-                {isLoadingMore
-                  ? translate('loadingMore', { count: assets.length })
-                  : translate('first', { count: assets.length })}
+                {translate('loading', { count: ingredients.length })}
               </span>
             ) : null}
             <Button
@@ -87,21 +97,11 @@ function MoodBoardCanvasInner({
               icon={<Maximize2 className="size-3.5" />}
               onClick={() => fitView({ duration: 300 })}
             />
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              ariaLabel={translate('closeMoodboard')}
-              tooltip={translate('close')}
-              withWrapper={false}
-              className="size-7"
-              icon={<X className="size-3.5" />}
-              onClick={onClose}
-            />
           </div>
         }
       >
-        <ReactFlow<MediaAssetFlowNode>
-          className="moodboard-flow bg-background"
+        <ReactFlow<LibraryCanvasFlowNode>
+          className="library-canvas-flow bg-background"
           nodes={nodes}
           edges={[]}
           nodeTypes={NODE_TYPES}
@@ -137,7 +137,7 @@ function MoodBoardCanvasInner({
       </MediaCanvasShell>
 
       <MediaLightbox
-        items={assets}
+        items={ingredients}
         startIndex={lightboxIndex ?? 0}
         open={lightboxIndex !== null}
         onClose={() => setLightboxIndex(null)}
@@ -146,12 +146,12 @@ function MoodBoardCanvasInner({
   );
 }
 
-export default function MoodBoardCanvas(
-  props: MoodBoardCanvasProps,
+export default function LibraryCanvas(
+  props: LibraryCanvasProps,
 ): React.JSX.Element {
   return (
     <ReactFlowProvider>
-      <MoodBoardCanvasInner {...props} />
+      <LibraryCanvasInner {...props} />
     </ReactFlowProvider>
   );
 }

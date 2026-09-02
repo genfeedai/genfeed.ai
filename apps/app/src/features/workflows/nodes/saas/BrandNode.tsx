@@ -1,5 +1,6 @@
 'use client';
 
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import type { BrandNodeData } from '@genfeedai/workflows/nodes';
 import {
   selectUpdateNodeData,
@@ -14,7 +15,6 @@ import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 /**
  * Store icon for brand nodes

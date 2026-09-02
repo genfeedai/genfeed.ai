@@ -65,6 +65,16 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 
 const UI_TEST_MESSAGES = {
   common: {
+    libraryCanvas: {
+      fit: 'Fit',
+      fitBoard: 'Fit board',
+      loading: 'Loading… {count} so far',
+    },
+    libraryRetry: {
+      genericFailureReason: 'Generation failed.',
+      retry: 'Retry',
+      retryAriaLabel: 'Retry generation',
+    },
     modelProviderContract: {
       empty: 'No reviewed or pending provider contract is stored yet.',
       error: 'Provider contract details could not be loaded.',

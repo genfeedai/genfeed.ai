@@ -1,9 +1,26 @@
-import { IngredientCategory, ModalEnum, PageScope } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  ModalEnum,
+  PageScope,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
+import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const { setSelectedAsset } = vi.hoisted(() => ({
+  setSelectedAsset: vi.fn(),
+}));
+
+// The grid hands its single selection to the shared asset selection, and the
+// library surface adapter renders the rail from there. Stubbing the context is
+// what lets this test assert the handoff instead of the rail's markup.
+vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
+  useAssetSelection: () => ({ setSelectedAsset }),
+}));
 
 vi.mock('next/image', () => ({
   default: ({ alt, src }: { alt: string; src: string }) => (
@@ -19,6 +36,23 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
+}));
+
+// The canvas pulls React Flow in behind next/dynamic, whose loader never
+// resolves under jsdom. Stubbing the boundary keeps this test on the view
+// switch, which is what IngredientsListContent actually owns.
+vi.mock('next/dynamic', () => ({
+  default: () => {
+    function LibraryCanvasStub({
+      ingredients,
+    }: {
+      ingredients: IIngredient[];
+    }) {
+      return <div data-testid="library-canvas">{ingredients.length}</div>;
+    }
+
+    return LibraryCanvasStub;
+  },
 }));
 
 vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
@@ -49,29 +83,13 @@ const baseIngredient = {
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
 
-/**
- * The inspector reads the viewport through `matchMedia`, so a test picks its
- * presentation by answering that query rather than by asserting on a class.
- */
-function mockInspectorViewport(isDocked: boolean): void {
-  vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query: string) =>
-      ({
-        addEventListener: vi.fn(),
-        matches: isDocked,
-        media: query,
-        removeEventListener: vi.fn(),
-      }) as unknown as MediaQueryList,
-  );
-}
-
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
 ) {
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
-  render(
+  const { unmount } = render(
     <IngredientsListContent
       type="avatars"
       scope={PageScope.ORGANIZATION}
@@ -110,7 +128,7 @@ function renderContent(
     />,
   );
 
-  return { onOpenIngredientModal, onOpenLightbox };
+  return { onOpenIngredientModal, onOpenLightbox, unmount };
 }
 
 const videoIngredient = {
@@ -133,6 +151,35 @@ const musicIngredient = {
   metadataLabel: 'Opening Theme',
   status: 'GENERATED',
   updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+// A local, non-UTC-parsed Date so `format(createdAt, ...)` below and the
+// component's own `format(new Date(ingredient.createdAt), ...)` always agree,
+// regardless of the machine's timezone — both derive from the same instant.
+const ledgerCreatedAt = new Date(2026, 0, 15, 9, 30);
+
+const ledgerIngredient = {
+  ...baseIngredient,
+  createdAt: ledgerCreatedAt.toISOString(),
+  id: 'ledger-1',
+  metadataHeight: 1080,
+  metadataWidth: 1920,
+  modelUsed: 'Nano Banana Pro',
+  provider: 'genfeedai',
+} as unknown as IIngredient;
+
+const failedIngredient = {
+  ...baseIngredient,
+  generationError: 'Provider rejected the prompt for a policy violation.',
+  id: 'failed-1',
+  status: IngredientStatus.FAILED,
+} as unknown as IIngredient;
+
+const staleErrorIngredient = {
+  ...baseIngredient,
+  generationError: 'Stale error from a prior failed attempt.',
+  id: 'stale-error-1',
+  status: IngredientStatus.GENERATED,
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
@@ -166,6 +213,19 @@ describe('IngredientsListContent', () => {
       screen.getByRole('img', { name: 'A red apple on a table' }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+  });
+
+  it('arranges the same filtered set on the canvas view', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'canvas',
+    });
+
+    expect(screen.getByTestId('library-canvas')).toHaveTextContent('2');
+    expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('renders avatar rows in the table view', () => {
@@ -249,50 +309,147 @@ describe('IngredientsListContent', () => {
   });
 });
 
-describe('IngredientsListContent inspector', () => {
+describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    setSelectedAsset.mockClear();
   });
 
-  it('docks the rail beside the grid on a wide viewport', () => {
-    mockInspectorViewport(true);
-
+  it('publishes a single selection for the workspace rail', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
-    expect(screen.getByLabelText('Asset details')).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(setSelectedAsset).toHaveBeenCalledWith(baseIngredient);
   });
 
-  it('presents the same rail as a sheet on a narrow viewport', () => {
-    mockInspectorViewport(false);
+  it('publishes nothing for a multi-selection', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
 
-    renderContent({ selectedIngredientIds: [baseIngredient.id] });
-
-    const dialog = screen.getByRole('dialog');
-
-    expect(within(dialog).getByLabelText('Asset details')).toBeInTheDocument();
-    expect(within(dialog).getByText('Avatar Source')).toBeInTheDocument();
+    expect(setSelectedAsset).toHaveBeenCalledWith(null);
+    expect(setSelectedAsset).not.toHaveBeenCalledWith(baseIngredient);
   });
 
-  it('drops the selection when the sheet is dismissed', () => {
-    mockInspectorViewport(false);
-
-    const onSelectionChange = vi.fn();
-    renderContent({
-      onSelectionChange,
+  it('clears the published asset when the library unmounts', () => {
+    const { unmount } = renderContent({
       selectedIngredientIds: [baseIngredient.id],
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    setSelectedAsset.mockClear();
+    unmount();
 
-    expect(onSelectionChange).toHaveBeenCalledWith([]);
+    expect(setSelectedAsset).toHaveBeenCalledWith(null);
   });
 
-  it('shows no inspector for a multi-selection', () => {
-    mockInspectorViewport(true);
-
-    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+  it('renders no inspector of its own', () => {
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
     expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('IngredientsListContent generation ledger columns', () => {
+  it('renders the seven ledger column headers in order', () => {
+    renderContent({ viewMode: 'list' });
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+
+    // The first header is the selectable checkbox column, owned by AppTable
+    // itself — the ledger contract is the remaining seven.
+    expect(headers.slice(1)).toEqual([
+      '',
+      'Asset',
+      'Type',
+      'Model',
+      'Size',
+      'Created',
+      'Status',
+    ]);
+  });
+
+  it("shows a normal asset's model, size, and created date", () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
+    expect(screen.getByText('genfeedai')).toBeInTheDocument();
+    expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yyyy')),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces the failure reason for a FAILED asset', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByTestId(`ingredient-failure-reason-${failedIngredient.id}`),
+    ).toHaveTextContent('Provider rejected the prompt for a policy violation.');
+  });
+
+  it('does not surface a stale generationError on a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [staleErrorIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByTestId(
+        `ingredient-failure-reason-${staleErrorIngredient.id}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Stale error from a prior failed attempt.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders an em dash when model and size are unavailable', () => {
+    renderContent({ viewMode: 'list' });
+
+    expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+
+  it('offers a retry action next to the status chip for a FAILED asset', () => {
+    const onReprompt = vi.fn();
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt,
+      viewMode: 'list',
+    });
+
+    const retryButton = screen.getByRole('button', {
+      name: 'Retry generation',
+    });
+    fireEvent.click(retryButton);
+
+    expect(onReprompt).toHaveBeenCalledWith(failedIngredient);
+  });
+
+  it('does not offer a retry action for a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer a retry action when onReprompt is not provided', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      onReprompt: undefined,
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry generation' }),
+    ).not.toBeInTheDocument();
   });
 });

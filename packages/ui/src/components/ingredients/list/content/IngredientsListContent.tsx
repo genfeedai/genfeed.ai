@@ -1,7 +1,9 @@
 'use client';
 
 import { EMPTY_STATES } from '@genfeedai/constants';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import {
+  ButtonSize,
   ButtonVariant,
   ComponentSize,
   categoryToString,
@@ -13,6 +15,13 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
+import {
+  getIngredientFailureReason,
+  getIngredientModelLabel,
+  getIngredientProviderLabel,
+  getIngredientSizeLabel,
+  isFailedIngredient,
+} from '@genfeedai/utils/media/ingredient-ledger.util';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import {
   getIngredientDisplayLabel,
@@ -24,19 +33,26 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
-import {
-  getIsInspectorDocked,
-  subscribeInspectorDocked,
-} from '@ui/ingredients/inspector/inspector-viewport.util';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
-import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
-import { Eye, Film, ImageIcon } from 'lucide-react';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Button } from '@ui/primitives/button';
+import { format } from 'date-fns';
+import { Eye, Film, ImageIcon, RefreshCw } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+
+// React Flow is heavier than the whole grid; only the canvas view pays for it.
+const LibraryCanvas = dynamic(
+  () => import('@ui/ingredients/canvas/LibraryCanvas'),
+  {
+    loading: () => <LazyLoadingFallback variant="minimal" />,
+    ssr: false,
+  },
+);
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const previewUrl = getIngredientPreviewUrl(ingredient);
@@ -88,6 +104,45 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   );
 }
 
+/**
+ * The list view is a ledger, so a row says what the asset is and — when the
+ * generation failed — why. A red status chip with no reason forces the operator
+ * back into the modal to find out what the provider actually said.
+ */
+function IngredientLedgerAssetCell({
+  ingredient,
+}: {
+  ingredient: IIngredient;
+}) {
+  const label = getIngredientDisplayLabel(ingredient);
+  const failureReason = getIngredientFailureReason(ingredient);
+  const promptText = ingredient.promptText?.trim();
+
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-sm font-medium" title={label || undefined}>
+        {label || 'Untitled asset'}
+      </span>
+      {failureReason ? (
+        <span
+          className="truncate text-xs text-destructive"
+          data-testid={`ingredient-failure-reason-${ingredient.id}`}
+          title={failureReason}
+        >
+          {failureReason}
+        </span>
+      ) : promptText ? (
+        <span
+          className="truncate text-xs text-foreground/45"
+          title={promptText}
+        >
+          {promptText}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export default function IngredientsListContent({
   type,
   scope,
@@ -125,6 +180,7 @@ export default function IngredientsListContent({
   onReprompt,
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
+  const translateRetry = useTranslations('common.libraryRetry');
   const isAudioCategory =
     singularType === IngredientCategory.MUSIC ||
     singularType === IngredientCategory.VOICE;
@@ -159,6 +215,7 @@ export default function IngredientsListContent({
   const columns = useMemo(
     () => [
       {
+        className: 'w-14',
         header: '',
         key: 'ingredientUrl',
         render: (ingredient: IIngredient) => (
@@ -166,34 +223,98 @@ export default function IngredientsListContent({
         ),
       },
       {
-        header: 'Label',
+        header: 'Asset',
         key: 'metadataLabel',
-        render: (ingredient: IIngredient) =>
-          getIngredientDisplayLabel(ingredient),
-      },
-      {
-        header: 'Category',
-        key: 'category',
         render: (ingredient: IIngredient) => (
-          <LibraryAssetTypeBadge category={ingredient.category} />
+          <IngredientLedgerAssetCell ingredient={ingredient} />
         ),
       },
       {
-        header: 'Format',
-        key: 'ingredientFormat',
+        className: 'w-40',
+        header: 'Type',
+        key: 'category',
         render: (ingredient: IIngredient) => {
           const format =
             ingredient.ingredientFormat || ingredient.format || undefined;
-          const label = formatEnumLabel(format);
+          const formatLabel = formatEnumLabel(format);
 
-          if (!label) {
-            return null;
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <LibraryAssetTypeBadge category={ingredient.category} />
+              {formatLabel ? (
+                <Badge size={ComponentSize.SM} variant="slate">
+                  {formatLabel}
+                </Badge>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-52',
+        header: 'Model',
+        key: 'model',
+        render: (ingredient: IIngredient) => {
+          const modelLabel = getIngredientModelLabel(ingredient);
+
+          if (!modelLabel) {
+            return <span className="text-foreground/35">—</span>;
+          }
+
+          const providerLabel = getIngredientProviderLabel(ingredient);
+
+          return (
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm" title={modelLabel}>
+                {modelLabel}
+              </span>
+              {providerLabel ? (
+                <span className="truncate text-xs text-foreground/45">
+                  {providerLabel}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-28',
+        header: 'Size',
+        key: 'metadataSize',
+        render: (ingredient: IIngredient) => {
+          const sizeLabel = getIngredientSizeLabel(ingredient);
+
+          if (!sizeLabel) {
+            return <span className="text-foreground/35">—</span>;
           }
 
           return (
-            <Badge size={ComponentSize.SM} variant="slate">
-              {label}
-            </Badge>
+            <span className="text-sm tabular-nums text-foreground/70">
+              {sizeLabel}
+            </span>
+          );
+        },
+      },
+      {
+        className: 'w-28',
+        header: 'Created',
+        key: 'createdAt',
+        render: (ingredient: IIngredient) => {
+          const createdAt = ingredient.createdAt
+            ? new Date(ingredient.createdAt)
+            : null;
+
+          if (!createdAt || Number.isNaN(createdAt.getTime())) {
+            return <span className="text-foreground/35">—</span>;
+          }
+
+          return (
+            <time
+              className="text-sm tabular-nums text-foreground/70"
+              dateTime={createdAt.toISOString()}
+            >
+              {format(createdAt, 'd MMM yyyy')}
+            </time>
           );
         },
       },
@@ -202,24 +323,36 @@ export default function IngredientsListContent({
         header: 'Status',
         key: 'status',
         render: (ingredient: IIngredient) => (
-          <DropdownStatus
-            entity={ingredient}
-            onStatusChange={(_newStatus, updatedIngredient) => {
-              if (updatedIngredient) {
-                onSetIngredients((prev) =>
-                  prev.map((ing: IIngredient) =>
-                    ing.id === ingredient.id
-                      ? (updatedIngredient as IIngredient)
-                      : ing,
-                  ),
-                );
-              }
-            }}
-          />
+          <div className="flex items-center gap-1.5">
+            <DropdownStatus
+              entity={ingredient}
+              onStatusChange={(_newStatus, updatedIngredient) => {
+                if (updatedIngredient) {
+                  onSetIngredients((prev) =>
+                    prev.map((ing: IIngredient) =>
+                      ing.id === ingredient.id
+                        ? (updatedIngredient as IIngredient)
+                        : ing,
+                    ),
+                  );
+                }
+              }}
+            />
+            {isFailedIngredient(ingredient) && onReprompt && (
+              <Button
+                label={translateRetry('retry')}
+                ariaLabel={translateRetry('retryAriaLabel')}
+                icon={<RefreshCw className="size-3.5" />}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.XS}
+                onClick={() => onReprompt(ingredient)}
+              />
+            )}
+          </div>
         ),
       },
     ],
-    [onSetIngredients],
+    [onSetIngredients, onReprompt, translateRetry],
   );
 
   const handleMediaClick = useCallback(
@@ -235,6 +368,17 @@ export default function IngredientsListContent({
       }
     },
     [onOpenIngredientModal, onOpenLightbox, scope],
+  );
+
+  const handleToggleSelection = useCallback(
+    (ingredient: IIngredient) => {
+      onSelectionChange(
+        selectedIngredientIds.includes(ingredient.id)
+          ? selectedIngredientIds.filter((id) => id !== ingredient.id)
+          : [...selectedIngredientIds, ingredient.id],
+      );
+    },
+    [onSelectionChange, selectedIngredientIds],
   );
 
   const handleViewIngredient = useCallback(
@@ -265,6 +409,20 @@ export default function IngredientsListContent({
   );
 
   const content = useMemo(() => {
+    if (viewMode === 'canvas') {
+      // The canvas is a free-placement surface, so it needs a bounded box of
+      // its own — the Library page scrolls, and `h-full` inside a scrolling
+      // column collapses React Flow to zero height.
+      return (
+        <div className="h-[70vh] min-h-[32rem] overflow-hidden rounded-lg border border-border">
+          <LibraryCanvas
+            ingredients={filteredIngredients}
+            isLoading={isLoading}
+          />
+        </div>
+      );
+    }
+
     if (viewMode === 'list') {
       return (
         <AppTable
@@ -335,6 +493,7 @@ export default function IngredientsListContent({
               }
               onPublishIngredient={onPublishIngredient}
               onClickIngredient={handleMediaClick}
+              onToggleSelection={handleToggleSelection}
               onScopeChange={onScopeChange}
               onConvertToVideo={onConvertToVideo}
               onCopyPrompt={onCopyPrompt}
@@ -380,6 +539,7 @@ export default function IngredientsListContent({
     filteredIngredients,
     formatFilter,
     handleMediaClick,
+    handleToggleSelection,
     isActionsEnabled,
     isDragEnabled,
     isAudioCategory,
@@ -416,8 +576,9 @@ export default function IngredientsListContent({
   ]);
 
   /**
-   * The rail inspects one asset. A multi-selection is a bulk action, so it
-   * stays closed rather than picking an arbitrary member to describe.
+   * The workspace rail inspects one asset. A multi-selection is a bulk action,
+   * so it publishes nothing rather than picking an arbitrary member to
+   * describe.
    */
   const inspectedIngredient = useMemo(() => {
     if (selectedIngredientIds.length !== 1) {
@@ -432,70 +593,43 @@ export default function IngredientsListContent({
   }, [filteredIngredients, selectedIngredientIds]);
 
   /**
-   * Dock the inspector beside the grid where there is room for both, and show
-   * the same rail as a sheet where there is not. A docked rail that is merely
-   * hidden below `lg` leaves a narrow viewport with no way to read the asset it
-   * just selected.
+   * The grid owns the selection, the workspace shell owns the inspector.
+   * Publishing into the shared asset selection is the whole handoff: the
+   * library surface adapter reads it back and renders the inspector as a rail
+   * pane, so the canvas never carries a second inspector of its own.
    */
-  const isInspectorDocked = useSyncExternalStore(
-    subscribeInspectorDocked,
-    getIsInspectorDocked,
-    () => false,
-  );
+  const { setSelectedAsset } = useAssetSelection();
 
-  /** Closing the inspector is the same gesture as dropping the selection. */
-  const handleInspectorOpenChange = useCallback(
-    (isOpen: boolean) => {
-      if (!isOpen) {
-        onSelectionChange([]);
-      }
-    },
-    [onSelectionChange],
-  );
+  useEffect(() => {
+    setSelectedAsset(inspectedIngredient);
+  }, [inspectedIngredient, setSelectedAsset]);
+
+  // Leaving the library drops the selection so the composer stops citing an
+  // asset the operator can no longer see.
+  useEffect(() => () => setSelectedAsset(null), [setSelectedAsset]);
 
   return (
-    <div className="flex min-w-0 flex-1 overflow-hidden">
-      <div
-        className={`flex-1 min-w-0 overflow-hidden ${
-          isAudioCategory
-            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
-            : ''
-        }`}
-      >
-        {hasFilteredEmptyState ? (
-          <CardEmptyContent
-            label={EMPTY_STATES.RESULTS_FOUND}
-            description="Try adjusting your filters or search terms."
-            action={{
-              label: 'Clear Filters',
-              onClick: onClearFilters,
-              variant: ButtonVariant.SECONDARY,
-            }}
-            className="w-full max-w-lg"
-          />
-        ) : (
-          content
-        )}
-      </div>
-
-      {inspectedIngredient && isInspectorDocked ? (
-        <IngredientInspectorRail ingredient={inspectedIngredient} />
-      ) : null}
-
-      {inspectedIngredient && !isInspectorDocked ? (
-        <ContextInspector
-          isOpen
-          onOpenChange={handleInspectorOpenChange}
-          title={inspectedIngredient.metadataLabel || 'Untitled asset'}
-          width="md"
-        >
-          <IngredientInspectorRail
-            className="w-full border-l-0 px-5 py-5"
-            hasHeading={false}
-            ingredient={inspectedIngredient}
-          />
-        </ContextInspector>
-      ) : null}
+    <div
+      className={`flex-1 min-w-0 overflow-hidden ${
+        isAudioCategory
+          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
+          : ''
+      }`}
+    >
+      {hasFilteredEmptyState ? (
+        <CardEmptyContent
+          label={EMPTY_STATES.RESULTS_FOUND}
+          description="Try adjusting your filters or search terms."
+          action={{
+            label: 'Clear Filters',
+            onClick: onClearFilters,
+            variant: ButtonVariant.SECONDARY,
+          }}
+          className="w-full max-w-lg"
+        />
+      ) : (
+        content
+      )}
     </div>
   );
 }

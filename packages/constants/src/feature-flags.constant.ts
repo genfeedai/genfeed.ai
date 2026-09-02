@@ -21,6 +21,12 @@ export const REPLY_BOT_FEATURE_FLAG = 'reply_bot';
  */
 export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG = 'desktop_local_workspace';
 
+/**
+ * Library canvas view. The PostHog key stays `moodboard` — the surface moved
+ * from its own route to the Library's third view, the rollout did not.
+ */
+export const LIBRARY_CANVAS_FEATURE_FLAG = 'moodboard';
+
 export type AppSwitcherFeatureFlagApp = keyof typeof APP_SWITCHER_FEATURE_FLAGS;
 
 export type AppSwitcherFeatureFlagKey =
