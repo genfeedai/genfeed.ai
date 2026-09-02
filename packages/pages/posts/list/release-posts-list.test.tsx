@@ -1,6 +1,190 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { CredentialPlatform, PageScope, ReleaseStatus } from '@genfeedai/enums';
+import type { IReleaseGroup } from '@genfeedai/interfaces';
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ReleasePostsList from './release-posts-list';
+
+function release(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
+  return {
+    id: 'release-1',
+    scheduledAt: '2026-08-02T09:00:00.000Z',
+    status: ReleaseStatus.SCHEDULED,
+    targets: [
+      {
+        executionState: 'scheduled',
+        id: 'target-1',
+        platform: CredentialPlatform.INSTAGRAM,
+      },
+    ],
+    timezone: 'UTC',
+    title: 'Campaign release',
+    ...overrides,
+  } as IReleaseGroup;
+}
+
+const releases = [
+  release(),
+  release({ id: 'release-2', title: 'Second release' }),
+];
+
+let searchParams = new URLSearchParams('');
+const replaceMock = vi.fn();
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/genfeed-ai/paperclip/publishing/posts',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: replaceMock,
+  }),
+  useSearchParams: () => searchParams,
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+  }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/genfeed-ai/paperclip${path}`,
+  }),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => vi.fn(),
+}));
+
+vi.mock('@contexts/posts/posts-layout-context', () => ({
+  usePostsLayout: () => ({
+    setFiltersNode: vi.fn(),
+    setRefresh: vi.fn(),
+    setViewToggleNode: vi.fn(),
+  }),
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      success: vi.fn(),
+    }),
+  },
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({
+    data: {
+      pagination: {
+        page: 1,
+        pageSize: 12,
+        total: releases.length,
+        totalPages: 1,
+      },
+      releases,
+    },
+    error: null,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useQueryClient: () => ({
+    setQueryData: vi.fn(),
+  }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
+vi.mock('@pages/posts/rail/release-rail-accounts', () => ({
+  __esModule: true,
+  default: () => <div>Accounts</div>,
+}));
+
+vi.mock('@pages/posts/rail/release-rail-segments', () => ({
+  __esModule: true,
+  default: () => <div>Segments</div>,
+}));
+
+vi.mock('@pages/posts/rail/release-rail-row', () => ({
+  __esModule: true,
+  default: ({
+    onActivate,
+    release: rowRelease,
+  }: {
+    onActivate: () => void;
+    release: IReleaseGroup;
+  }) => (
+    <button onClick={onActivate} type="button">
+      {rowRelease.title}
+    </button>
+  ),
+}));
+
+vi.mock('@pages/posts/release/release-detail-drawer', () => ({
+  __esModule: true,
+  RELEASE_RESCHEDULE_ACTION: 'release:reschedule',
+  default: ({ release: selected }: { release: IReleaseGroup | null }) => (
+    <div data-testid="drawer">{selected ? selected.id : 'closed'}</div>
+  ),
+  targetRescheduleAction: (targetId: string) => `target:reschedule:${targetId}`,
+  targetRetryAction: (targetId: string) => `target:retry:${targetId}`,
+}));
+
+describe('ReleasePostsList selection from the release URL param', () => {
+  beforeEach(() => {
+    searchParams = new URLSearchParams('');
+    replaceMock.mockClear();
+  });
+
+  it('renders no release selected when the URL carries no release param', () => {
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    expect(screen.getByTestId('drawer')).toHaveTextContent('closed');
+  });
+
+  it('derives the selected release from the release search param', () => {
+    searchParams = new URLSearchParams('release=release-2');
+
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    expect(screen.getByTestId('drawer')).toHaveTextContent('release-2');
+  });
+
+  it('sets the release param when a row is activated', () => {
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+      />,
+    );
+
+    screen.getByText('Second release').click();
+
+    expect(replaceMock).toHaveBeenCalledWith(
+      expect.stringContaining('release=release-2'),
+      expect.objectContaining({ scroll: false }),
+    );
+  });
+});
 
 describe('ReleasePostsList', () => {
   const source = readFileSync(

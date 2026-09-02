@@ -90,6 +90,12 @@ export interface CalendarRepublishDialogProps {
 }
 
 export interface ReleaseDetailDrawerProps {
+  /**
+   * Brand scope for the drawer's own account-health lookup, which backs the
+   * per-target Reconnect action. `undefined`/`null` skips the fetch, so a
+   * caller with no brand in scope yet still renders without a Reconnect gate.
+   */
+  brandId?: string | null;
   /** Message from the most recent failed mutation, already user-safe. */
   error: string | null;
   /** Opens the repurpose flow to add a draft target for another channel. */
