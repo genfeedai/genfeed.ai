@@ -283,55 +283,60 @@ vi.mock('./release-calendar-filters', async (importOriginal) => {
   };
 });
 
-vi.mock('./release-detail-drawer', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('./release-detail-drawer')>();
+vi.mock(
+  '@pages/posts/release/release-detail-drawer',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@pages/posts/release/release-detail-drawer')
+      >();
 
-  return {
-    ...actual,
-    default: ({
-      error,
-      onRescheduleRelease,
-      onRescheduleTarget,
-      onRetryTarget,
-      pendingAction,
-      reconnectHref,
-      release,
-    }: {
-      error: string | null;
-      onRescheduleRelease: (scheduledDate: string) => void;
-      onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
-      onRetryTarget: (targetId: string) => void;
-      pendingAction: string | null;
-      reconnectHref: string;
-      release: { id: string } | null;
-    }) => (
-      <div data-testid="release-drawer">
-        <span data-testid="reconnect-href">{reconnectHref}</span>
-        <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
-        <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
-        {error ? <span data-testid="drawer-error">{error}</span> : null}
-        <button
-          type="button"
-          onClick={() => onRescheduleRelease('2026-03-14T10:00:00.000Z')}
-        >
-          Reschedule post
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            onRescheduleTarget('target-1', '2026-03-14T12:00:00.000Z')
-          }
-        >
-          Reschedule target
-        </button>
-        <button type="button" onClick={() => onRetryTarget('target-1')}>
-          Retry target
-        </button>
-      </div>
-    ),
-  };
-});
+    return {
+      ...actual,
+      default: ({
+        error,
+        onRescheduleRelease,
+        onRescheduleTarget,
+        onRetryTarget,
+        pendingAction,
+        reconnectHref,
+        release,
+      }: {
+        error: string | null;
+        onRescheduleRelease: (scheduledDate: string) => void;
+        onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
+        onRetryTarget: (targetId: string) => void;
+        pendingAction: string | null;
+        reconnectHref: string;
+        release: { id: string } | null;
+      }) => (
+        <div data-testid="release-drawer">
+          <span data-testid="reconnect-href">{reconnectHref}</span>
+          <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
+          <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
+          {error ? <span data-testid="drawer-error">{error}</span> : null}
+          <button
+            type="button"
+            onClick={() => onRescheduleRelease('2026-03-14T10:00:00.000Z')}
+          >
+            Reschedule post
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onRescheduleTarget('target-1', '2026-03-14T12:00:00.000Z')
+            }
+          >
+            Reschedule target
+          </button>
+          <button type="button" onClick={() => onRetryTarget('target-1')}>
+            Retry target
+          </button>
+        </div>
+      ),
+    };
+  },
+);
 
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>

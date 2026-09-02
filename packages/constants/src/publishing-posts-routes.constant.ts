@@ -3,6 +3,7 @@ import { APP_ROUTES } from './routes.constant';
 export const PUBLISHING_POSTS_QUERY_KEYS = {
   ACCOUNT: 'account',
   PUBLICATION_STATE: 'publicationState',
+  RELEASE: 'release',
   STATUS: 'status',
   /** List rows vs. status-column board. Grid is reserved but not selectable yet. */
   VIEW: 'view',

@@ -6,14 +6,40 @@ import {
   TargetValidationState,
 } from '@genfeedai/enums';
 import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
   targetRetryAction,
 } from './release-detail-drawer';
+
+const getToken = vi.fn(async () => 'token-123');
+const listBrandAccountHealth = vi.fn();
+
+vi.mock('@helpers/auth/auth.helper', () => ({
+  resolveAuthToken: vi.fn(async (getTokenFn: () => Promise<string>) =>
+    getTokenFn(),
+  ),
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ getToken }),
+}));
+
+vi.mock('@services/organization/credentials.service', () => ({
+  CredentialsService: {
+    getInstance: () => ({ listBrandAccountHealth }),
+  },
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 
 // Radix's Sheet portals into a dialog the jsdom tree cannot focus-trap; the
 // drawer's own behavior is what these tests are about.
@@ -70,6 +96,23 @@ function release(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
   } as IReleaseGroup;
 }
 
+function buildAccount(overrides: Record<string, unknown> = {}) {
+  return {
+    credentialId: 'credential-1',
+    handle: '@brand',
+    holdPublishing: false,
+    label: 'Brand Account',
+    override: { isActive: false },
+    platform: CredentialPlatform.INSTAGRAM,
+    riskLevel: 'low',
+    score: 90,
+    signals: {},
+    state: 'healthy',
+    thresholds: {},
+    ...overrides,
+  };
+}
+
 function renderDrawer(
   overrides: Partial<IReleaseGroup> = {},
   pending: string | null = null,
@@ -83,6 +126,7 @@ function renderDrawer(
 
   const view = render(
     <ReleaseDetailDrawer
+      brandId="brand-1"
       error={null}
       pendingAction={pending}
       reconnectHref="/acme-org/acme-creator/settings/social"
@@ -95,6 +139,12 @@ function renderDrawer(
 }
 
 describe('ReleaseDetailDrawer', () => {
+  beforeEach(() => {
+    getToken.mockClear();
+    listBrandAccountHealth.mockReset();
+    listBrandAccountHealth.mockResolvedValue([]);
+  });
+
   it('seeds both schedule inputs from the instants the API returned', () => {
     renderDrawer();
 
@@ -364,5 +414,74 @@ describe('ReleaseDetailDrawer', () => {
     expect(RELEASE_RESCHEDULE_ACTION).toBe('release:reschedule');
     expect(targetRescheduleAction('t-1')).toBe('target:reschedule:t-1');
     expect(targetRetryAction('t-1')).toBe('target:retry:t-1');
+  });
+
+  it('shows a Preview action when the target carries a permalink', async () => {
+    renderDrawer({ targets: [target({ url: 'https://instagram.com/p/abc' })] });
+
+    const preview = await screen.findByRole('link', { name: 'Preview' });
+    expect(preview).toHaveAttribute('href', 'https://instagram.com/p/abc');
+  });
+
+  it('omits the Preview action when the target has no permalink', () => {
+    renderDrawer();
+
+    expect(
+      screen.queryByRole('link', { name: 'Preview' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers a Reconnect action when account health flags the credential', async () => {
+    listBrandAccountHealth.mockResolvedValue([
+      buildAccount({
+        reconnect: {
+          credentialId: 'credential-1',
+          isAvailable: true,
+          reason: 'disconnected',
+        },
+      }),
+    ]);
+
+    renderDrawer({
+      targets: [target({ credentialId: 'credential-1' })],
+    });
+
+    const reconnect = await screen.findByRole('link', {
+      name: 'Reconnect Instagram',
+    });
+    expect(reconnect).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/settings/social',
+    );
+  });
+
+  it('does not offer account-health Reconnect when the credential is healthy', async () => {
+    listBrandAccountHealth.mockResolvedValue([buildAccount()]);
+
+    renderDrawer({
+      targets: [target({ credentialId: 'credential-1' })],
+    });
+
+    await waitFor(() => expect(listBrandAccountHealth).toHaveBeenCalled());
+    expect(
+      screen.queryByRole('link', { name: 'Reconnect Instagram' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('skips the account-health lookup when no brandId is in scope', () => {
+    render(
+      <ReleaseDetailDrawer
+        error={null}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        reconnectHref="/acme-org/acme-creator/settings/social"
+        release={release()}
+      />,
+    );
+
+    expect(listBrandAccountHealth).not.toHaveBeenCalled();
   });
 });

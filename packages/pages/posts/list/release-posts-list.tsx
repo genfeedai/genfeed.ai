@@ -17,10 +17,7 @@ import {
   ViewType,
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
-import {
-  getPublishingPostHref,
-  normalizePostsPlatform,
-} from '@helpers/content/posts.helper';
+import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
@@ -36,10 +33,17 @@ import {
   type ReleaseRailSegment,
   railSegmentFromFilters,
 } from '@pages/posts/rail/release-rail-segments.helpers';
+import ReleaseDetailDrawer, {
+  RELEASE_RESCHEDULE_ACTION,
+  targetRescheduleAction,
+  targetRetryAction,
+} from '@pages/posts/release/release-detail-drawer';
+import { createReleaseMutationRunner } from '@pages/posts/release/release-mutation-runner';
 import type { ContentProps } from '@props/layout/content.props';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
-import { useQuery } from '@tanstack/react-query';
+import { NotificationsService } from '@services/core/notifications.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -158,6 +162,13 @@ export default function ReleasePostsList({
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
+  const queryClient = useQueryClient();
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
   const queryKey = buildReleasePostsListQueryKey({
     brandId,
     contentTypes,
@@ -244,6 +255,103 @@ export default function ReleasePostsList({
       });
     },
     [pathname, router, searchParamsString],
+  );
+
+  /**
+   * Same apply-or-surface-the-failure path the calendar page uses — only
+   * `onSuccess` differs, since this list keeps its releases in the
+   * react-query cache rather than local state.
+   */
+  const runMutation = useMemo(
+    () =>
+      createReleaseMutationRunner({
+        getReleaseGroupsService,
+        notificationsService,
+        onSuccess: (updated) => {
+          queryClient.setQueryData(queryKey, (current: typeof data) => {
+            if (!current) {
+              return current;
+            }
+            return {
+              ...current,
+              releases: current.releases.map((release) =>
+                release.id === updated.id ? updated : release,
+              ),
+            };
+          });
+        },
+        setDrawerError,
+        setPendingAction,
+      }),
+    [getReleaseGroupsService, notificationsService, queryClient, queryKey],
+  );
+
+  const selectedReleaseId = searchParams?.get(
+    PUBLISHING_POSTS_QUERY_KEYS.RELEASE,
+  );
+  const selectedRelease = useMemo(
+    () =>
+      data.releases.find((release) => release.id === selectedReleaseId) ?? null,
+    [data.releases, selectedReleaseId],
+  );
+
+  const selectRelease = useCallback(
+    (releaseId: string) => {
+      replaceSearchParams((params) => {
+        params.set(PUBLISHING_POSTS_QUERY_KEYS.RELEASE, releaseId);
+      });
+    },
+    [replaceSearchParams],
+  );
+
+  const closeDrawer = useCallback(() => {
+    setDrawerError(null);
+    replaceSearchParams((params) => {
+      params.delete(PUBLISHING_POSTS_QUERY_KEYS.RELEASE);
+    });
+  }, [replaceSearchParams]);
+
+  const handleRescheduleRelease = useCallback(
+    (scheduledDate: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
+        service.update(selectedReleaseId, { scheduledDate }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleRescheduleTarget = useCallback(
+    (targetId: string, scheduledDate: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetRescheduleAction(targetId), (service) =>
+        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  /**
+   * A manual retry is expressed as moving a failed target back to
+   * `scheduled` — the API turns that transition into a fresh publish
+   * attempt, mirroring the calendar page's retry handler.
+   */
+  const handleRetryTarget = useCallback(
+    (targetId: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+      void runMutation(targetRetryAction(targetId), (service) =>
+        service.updateTarget(selectedReleaseId, targetId, {
+          executionState: TargetState.SCHEDULED,
+        }),
+      );
+    },
+    [runMutation, selectedReleaseId],
   );
 
   const handleSegmentChange = useCallback(
@@ -425,9 +533,8 @@ export default function ReleasePostsList({
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
-      const targetId = release?.targets?.[0]?.id ?? release?.id;
-      if (targetId) {
-        router.push(href(getPublishingPostHref(targetId)));
+      if (release) {
+        selectRelease(release.id);
       }
     },
     onRefresh: () => void refetch(),
@@ -489,7 +596,10 @@ export default function ReleasePostsList({
               index={index}
               isActive={index === activeIndex}
               key={release.id}
-              onActivate={() => setActiveIndex(index)}
+              onActivate={() => {
+                setActiveIndex(index);
+                selectRelease(release.id);
+              }}
               registerRow={registerItem(index)}
               release={release}
             />
@@ -532,6 +642,18 @@ export default function ReleasePostsList({
           />
         </div>
       ) : null}
+
+      <ReleaseDetailDrawer
+        brandId={brandId}
+        error={drawerError}
+        onClose={closeDrawer}
+        onRescheduleRelease={handleRescheduleRelease}
+        onRescheduleTarget={handleRescheduleTarget}
+        onRetryTarget={handleRetryTarget}
+        pendingAction={pendingAction}
+        reconnectHref={href(APP_ROUTES.SETTINGS.SOCIAL)}
+        release={selectedRelease}
+      />
     </div>
   );
 }
