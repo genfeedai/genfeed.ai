@@ -49,7 +49,7 @@ apps/server/api/src/services/integrations/<platform>/
 
 ## Step 1: Register Platform
 
-Add to `packages/enums/src/platform.enum.ts`:
+Add to `packages/contracts/src/enums/platform.enum.ts`:
 ```typescript
 export enum Platform {
   // existing...
@@ -211,4 +211,4 @@ Both from `@genfeedai/serializers`.
 - `apps/server/api/src/services/integrations/twitter/` — OAuth 2 PKCE
 - `apps/server/api/src/services/integrations/linkedin/` — newer error pattern
 - `apps/server/api/src/collections/credentials/services/credentials.service.ts`
-- `packages/enums/src/platform.enum.ts`"""
+- `packages/contracts/src/enums/platform.enum.ts`"""
