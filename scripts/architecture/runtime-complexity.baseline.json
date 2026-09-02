@@ -96,24 +96,6 @@
     "symbol": "BillingAccountsService.linkOrganization"
   },
   {
-    "actual": 157,
-    "file": "apps/server/server/src/collections/brands/services/brand-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "BrandGenerationService.generateBrandVoice"
-  },
-  {
-    "actual": 194,
-    "file": "apps/server/server/src/collections/brands/services/brand-kit-assets.service.ts",
-    "metric": "method-lines",
-    "symbol": "BrandKitAssetsService.importBrandKitAssetCandidate"
-  },
-  {
-    "actual": 158,
-    "file": "apps/server/server/src/collections/brands/services/brands.service.ts",
-    "metric": "method-lines",
-    "symbol": "BrandsService.updateAgentConfig"
-  },
-  {
     "actual": 182,
     "file": "apps/server/server/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",

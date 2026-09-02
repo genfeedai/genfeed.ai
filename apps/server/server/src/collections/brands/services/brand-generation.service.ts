@@ -1,4 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LinkCategory } from '@genfeedai/enums';
+import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import type {
   GenerateBrandVoiceDto,
   GeneratedBrandVoice,
@@ -16,16 +26,6 @@ import {
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { LinkCategory } from '@genfeedai/enums';
-import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
 
 export type BrandFinder = (
   criteria: Record<string, unknown>,
@@ -187,8 +187,12 @@ export class BrandGenerationService {
       organizationId,
     );
 
-    const rawContent = completion.choices?.[0]?.message?.content?.trim() ?? '';
+    return this.parseBrandVoiceCompletion(
+      completion.choices?.[0]?.message?.content?.trim() ?? '',
+    );
+  }
 
+  private parseBrandVoiceCompletion(rawContent: string): GeneratedBrandVoice {
     try {
       return parseGeneratedBrandProfile(rawContent);
     } catch (error: unknown) {
