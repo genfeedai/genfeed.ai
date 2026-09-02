@@ -543,6 +543,12 @@
         "board": "Board",
         "list": "List"
       }
+    },
+    "release": {
+      "actions": {
+        "preview": "Preview",
+        "reconnect": "Reconnect {target}"
+      }
     }
   },
   "publishing": {

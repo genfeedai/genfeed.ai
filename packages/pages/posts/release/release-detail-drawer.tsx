@@ -6,11 +6,20 @@ import {
   formatPlatformLabel,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  AccountHealthSummary,
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import ReleaseAnalyticsTable from '@pages/posts/release/release-analytics-table';
+import ReleaseEngagementRules from '@pages/posts/release/release-engagement-rules';
+import { isCredentialAtRisk } from '@pages/posts/release/release-target-actions.helpers';
 import {
   badgeVariantForTone,
   isReleaseReschedulable,
@@ -23,6 +32,8 @@ import {
   validationBadge,
 } from '@pages/posts/shared/release-status.helpers';
 import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar.props';
+import { logger } from '@services/core/logger.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -33,11 +44,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { Repeat2 } from 'lucide-react';
+import { ExternalLink, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import ReleaseAnalyticsTable from './release-analytics-table';
-import ReleaseEngagementRules from './release-engagement-rules';
 
 /** Action identifier for the release-level reschedule control. */
 export const RELEASE_RESCHEDULE_ACTION = 'release:reschedule';
@@ -112,6 +122,7 @@ function TargetHistory({
 }
 
 export default function ReleaseDetailDrawer({
+  brandId,
   error,
   onAddChannel,
   onClose,
@@ -122,8 +133,13 @@ export default function ReleaseDetailDrawer({
   reconnectHref,
   release,
 }: ReleaseDetailDrawerProps): React.JSX.Element {
+  const translate = useTranslations('pages.posts.release');
+  const { getToken } = useAuthIdentity();
   const [releaseDate, setReleaseDate] = useState('');
   const [targetDates, setTargetDates] = useState<Record<string, string>>({});
+  const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
+    [],
+  );
 
   // Re-seed whenever the drawer is pointed at a different release, or the same
   // release comes back from the server with new instants after a mutation.
@@ -135,6 +151,44 @@ export default function ReleaseDetailDrawer({
     );
     setTargetDates(seedTargetDates(release));
   }, [release]);
+
+  // The drawer owns its own account-health lookup so every caller (calendar,
+  // rail) can hand it a brandId without also wiring a credentials fetch.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadAccountHealth() {
+      if (!brandId) {
+        setAccountHealth([]);
+        return;
+      }
+      try {
+        const token = (await resolveAuthToken(getToken)) ?? '';
+        if (controller.signal.aborted) {
+          return;
+        }
+        const service = CredentialsService.getInstance(token);
+        const summaries = await service.listBrandAccountHealth(brandId);
+        if (!controller.signal.aborted) {
+          setAccountHealth(summaries);
+        }
+      } catch (fetchError) {
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          return;
+        }
+        if (!controller.signal.aborted) {
+          logger.error(
+            'Failed to load release drawer account health',
+            fetchError,
+          );
+        }
+      }
+    }
+
+    void loadAccountHealth();
+
+    return () => controller.abort();
+  }, [brandId, getToken]);
 
   const isPending = pendingAction !== null;
   const targets = releaseTargets(release);
@@ -256,6 +310,11 @@ export default function ReleaseDetailDrawer({
                 const rescheduleAction = targetRescheduleAction(target.id);
                 const retryAction = targetRetryAction(target.id);
                 const inputLabel = `${targetLabel(target)} time`;
+                const needsReconnect = isCredentialAtRisk(
+                  accountHealth,
+                  target.credentialId,
+                );
+                const hasPreview = Boolean(target.url);
 
                 return (
                   <article
@@ -329,6 +388,40 @@ export default function ReleaseDetailDrawer({
                         reconnectHref={reconnectHref}
                         target={target}
                       />
+                    ) : null}
+
+                    {hasPreview || needsReconnect ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {hasPreview ? (
+                          <Button
+                            asChild
+                            size={ButtonSize.SM}
+                            variant={ButtonVariant.SECONDARY}
+                            icon={<ExternalLink className="size-3.5" />}
+                          >
+                            <Link
+                              href={target.url ?? ''}
+                              rel="noopener noreferrer"
+                              target="_blank"
+                            >
+                              {translate('actions.preview')}
+                            </Link>
+                          </Button>
+                        ) : null}
+                        {needsReconnect ? (
+                          <Button
+                            asChild
+                            size={ButtonSize.SM}
+                            variant={ButtonVariant.SECONDARY}
+                          >
+                            <Link href={reconnectHref}>
+                              {translate('actions.reconnect', {
+                                target: targetLabel(target),
+                              })}
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
                     ) : null}
 
                     <div className="flex flex-wrap items-end gap-3">
