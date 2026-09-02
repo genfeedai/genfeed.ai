@@ -22,6 +22,10 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@server/services/integrations/stripe/services/stripe-error.util';
+import {
+  collectUpcomingInvoiceLines,
+  type UpcomingInvoicePreview,
+} from '@server/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 import StripeConstructor from 'stripe';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -60,10 +64,7 @@ type StripeWebhookEvent = Awaited<
   ReturnType<StripeClient['webhooks']['constructEventAsync']>
 >;
 
-export type UpcomingInvoicePreview = Pick<
-  StripeInvoice,
-  'amount_due' | 'currency' | 'lines'
->;
+export type { UpcomingInvoicePreview } from '@server/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
   '2026-08-26.dahlia';
@@ -1148,11 +1149,19 @@ export class StripeService {
         },
       });
 
+      const fullUpcomingInvoice = await collectUpcomingInvoiceLines({
+        context: { customerId, subscriptionId, url },
+        logger: this.loggerService,
+        stripe: this.stripe,
+        upcomingInvoice,
+      });
+
       this.loggerService.log(`${url} success`, {
-        amountDue: upcomingInvoice.amount_due,
+        amountDue: fullUpcomingInvoice.amount_due,
         customerId,
-        currency: upcomingInvoice.currency,
+        currency: fullUpcomingInvoice.currency,
         currentPriceId,
+        lineCount: fullUpcomingInvoice.lines.data.length,
         newPriceId,
         quantity: targetQuantity,
         subscriptionId,
@@ -1160,7 +1169,7 @@ export class StripeService {
         targetUsageType: targetPrice.recurring?.usage_type,
       });
 
-      return upcomingInvoice;
+      return fullUpcomingInvoice;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

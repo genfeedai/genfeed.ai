@@ -160,6 +160,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           idempotencyKey: options?.idempotencyKey,
           organizationId,
         });
+        // Replay of an already-applied deduction: the balance and ledger
+        // entry are untouched, but a prior attempt may have crashed before
+        // reaching cache invalidation below. Invalidate on every replay so a
+        // reaper-driven retry (e.g. referrals.service.ts) can't leave the
+        // access-bootstrap cache stale. Do not re-emit the websocket balance
+        // event or the credits.activity event for a transaction key that was
+        // already applied.
+        await this.accessBootstrapCacheService.invalidateForOrganization(
+          organizationId,
+        );
         return;
       }
 
@@ -430,6 +440,20 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           idempotencyKey: options?.idempotencyKey,
           organizationId,
         });
+        // Replay of an already-applied grant: a prior attempt committed the
+        // balance/ledger write inside the serializable transaction but may
+        // have crashed before reaching the side effects below (e.g. a
+        // reaper-driven retry of a referral reward — see
+        // referrals.service.ts). Still ensure hasEverHadCredits and the
+        // access-bootstrap cache are correct on every replay; skip only the
+        // websocket balance emit, since that event was already delivered for
+        // this transaction key.
+        if (creditsToAdd > 0) {
+          await this.markOrganizationAsHavingCredits(organizationId);
+        }
+        await this.accessBootstrapCacheService.invalidateForOrganization(
+          organizationId,
+        );
         return;
       }
 

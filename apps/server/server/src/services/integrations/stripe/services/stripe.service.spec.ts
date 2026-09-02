@@ -7,11 +7,11 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import Stripe from 'stripe';
 
 function stripeResponse<T extends object>(resource: T): Stripe.Response<T> {
@@ -39,6 +39,7 @@ function checkoutSessionResponse(
 
 describe('StripeService', () => {
   let service: StripeService;
+  let loggerService: LoggerService;
 
   beforeEach(async () => {
     const configGetMock = vi.fn((key: string) => {
@@ -61,12 +62,13 @@ describe('StripeService', () => {
         { provide: ConfigService, useValue: { get: configGetMock } },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn() },
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
     }).compile();
 
     service = module.get<StripeService>(StripeService);
+    loggerService = module.get<LoggerService>(LoggerService);
   });
 
   afterEach(() => {
@@ -571,6 +573,156 @@ describe('StripeService', () => {
       await expect(
         service.constructWebhookEvent(payload, 't=1,v1=deadbeef'),
       ).rejects.toBe(unexpected);
+    });
+  });
+
+  describe('getUpcomingInvoice', () => {
+    const customerId = 'cus_test';
+    const subscriptionId = 'sub_test';
+    const currentPriceId = 'price_current';
+    const newPriceId = 'price_new';
+    const previewInvoiceId = 'upcoming_in_test';
+
+    function stripeLineItem(id: string): Stripe.InvoiceLineItem {
+      return { id } as Stripe.InvoiceLineItem;
+    }
+
+    function upcomingInvoiceResponse(
+      lineIds: string[],
+      hasMore: boolean,
+    ): Stripe.Response<Stripe.Invoice> {
+      const invoice = {
+        amount_due: 4_200,
+        currency: 'usd',
+        id: previewInvoiceId,
+        lines: {
+          data: lineIds.map(stripeLineItem),
+          has_more: hasMore,
+          object: 'list',
+          url: `/v1/invoices/${previewInvoiceId}/lines`,
+        },
+      } as Stripe.Invoice;
+      return stripeResponse(invoice);
+    }
+
+    function lineItemsPage(
+      lineIds: string[],
+      hasMore: boolean,
+    ): Stripe.Response<Stripe.ApiList<Stripe.InvoiceLineItem>> {
+      const page = {
+        data: lineIds.map(stripeLineItem),
+        has_more: hasMore,
+        object: 'list',
+        url: `/v1/invoices/${previewInvoiceId}/lines`,
+      } as Stripe.ApiList<Stripe.InvoiceLineItem>;
+      return stripeResponse(page);
+    }
+
+    beforeEach(() => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        stripeResponse({
+          customer: customerId,
+          items: {
+            data: [
+              {
+                id: 'si_test',
+                price: { id: currentPriceId },
+                quantity: 1,
+              },
+            ],
+          },
+        } as unknown as Stripe.Subscription),
+      );
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue(
+        stripeResponse({
+          id: newPriceId,
+          recurring: { usage_type: 'licensed' },
+        } as unknown as Stripe.Price),
+      );
+    });
+
+    it('returns a single-page preview unchanged when has_more is false', async () => {
+      vi.spyOn(service.stripe.invoices, 'createPreview').mockResolvedValue(
+        upcomingInvoiceResponse(['il_1', 'il_2'], false),
+      );
+      const listLineItemsSpy = vi.spyOn(
+        service.stripe.invoices,
+        'listLineItems',
+      );
+
+      const preview = await service.getUpcomingInvoice(
+        customerId,
+        subscriptionId,
+        currentPriceId,
+        newPriceId,
+      );
+
+      expect(listLineItemsSpy).not.toHaveBeenCalled();
+      expect(preview.lines.data.map((line) => line.id)).toEqual([
+        'il_1',
+        'il_2',
+      ]);
+      expect(preview.lines.has_more).toBe(false);
+    });
+
+    it('pages through invoices.listLineItems and sums every proration line when the preview is truncated', async () => {
+      vi.spyOn(service.stripe.invoices, 'createPreview').mockResolvedValue(
+        upcomingInvoiceResponse(['il_1', 'il_2'], true),
+      );
+      const listLineItemsSpy = vi
+        .spyOn(service.stripe.invoices, 'listLineItems')
+        .mockResolvedValueOnce(lineItemsPage(['il_3', 'il_4'], true))
+        .mockResolvedValueOnce(lineItemsPage(['il_5'], false));
+
+      const preview = await service.getUpcomingInvoice(
+        customerId,
+        subscriptionId,
+        currentPriceId,
+        newPriceId,
+      );
+
+      expect(listLineItemsSpy).toHaveBeenCalledTimes(2);
+      expect(listLineItemsSpy).toHaveBeenNthCalledWith(
+        1,
+        previewInvoiceId,
+        expect.objectContaining({ limit: 100, starting_after: 'il_2' }),
+      );
+      expect(listLineItemsSpy).toHaveBeenNthCalledWith(
+        2,
+        previewInvoiceId,
+        expect.objectContaining({ limit: 100, starting_after: 'il_4' }),
+      );
+      expect(preview.lines.data.map((line) => line.id)).toEqual([
+        'il_1',
+        'il_2',
+        'il_3',
+        'il_4',
+        'il_5',
+      ]);
+      expect(preview.lines.has_more).toBe(false);
+    });
+
+    it('stops paginating and logs a warning if has_more never resolves to false', async () => {
+      vi.spyOn(service.stripe.invoices, 'createPreview').mockResolvedValue(
+        upcomingInvoiceResponse(['il_1'], true),
+      );
+      const warnSpy = vi.spyOn(loggerService, 'warn');
+      vi.spyOn(service.stripe.invoices, 'listLineItems').mockResolvedValue(
+        lineItemsPage(['il_runaway'], true),
+      );
+
+      const preview = await service.getUpcomingInvoice(
+        customerId,
+        subscriptionId,
+        currentPriceId,
+        newPriceId,
+      );
+
+      expect(preview.lines.has_more).toBe(true);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('has more proration lines'),
+        expect.objectContaining({ customerId, subscriptionId }),
+      );
     });
   });
 });
