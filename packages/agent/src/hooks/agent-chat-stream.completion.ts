@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { MappedSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
@@ -23,24 +24,10 @@ export type ResolveStreamFromMessagesDeps = {
     runId: string | null,
     meta?: {
       startedAt?: string | null;
-      status?:
-        | 'cancelled'
-        | 'cancelling'
-        | 'completed'
-        | 'failed'
-        | 'idle'
-        | 'running';
+      status?: MappedSnapshotRunStatus;
     },
   ) => void;
-  setActiveRunStatus: (
-    status:
-      | 'cancelled'
-      | 'cancelling'
-      | 'completed'
-      | 'failed'
-      | 'idle'
-      | 'running',
-  ) => void;
+  setActiveRunStatus: (status: MappedSnapshotRunStatus) => void;
   setError: (error: string | null) => void;
   setMessages: (
     messages: import('@genfeedai/agent/models/agent-chat.model').AgentChatMessage[],
