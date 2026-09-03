@@ -18,9 +18,11 @@ import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsAccountDetail() {
+  const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const credentialId = params.id;
@@ -109,16 +111,22 @@ export default function AnalyticsAccountDetail() {
       </div>
       {detail?.evaluation ? (
         <Card className="mt-4">
-          <p className="text-sm text-muted-foreground">Evaluation</p>
+          <p className="text-sm text-muted-foreground">
+            {translate('evaluation')}
+          </p>
           <p className="text-lg">{detail.evaluation.state}</p>
           <p className="text-sm">
-            {detail.evaluation.evidence.publishedPosts} posts over{' '}
-            {detail.evaluation.evidence.windowWeeks} weeks
+            {translate('postsOverWeeks', {
+              posts: detail.evaluation.evidence.publishedPosts,
+              weeks: detail.evaluation.evidence.windowWeeks,
+            })}
           </p>
         </Card>
       ) : null}
       <Card className="mt-4">
-        <p className="mb-2 text-sm text-muted-foreground">Trend</p>
+        <p className="mb-2 text-sm text-muted-foreground">
+          {translate('trend')}
+        </p>
         {detail?.series?.length ? (
           <ul className="space-y-1">
             {detail.series.map((point) => {
@@ -139,7 +147,7 @@ export default function AnalyticsAccountDetail() {
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No trend data for this window
+            {translate('noTrend')}
           </p>
         )}
       </Card>

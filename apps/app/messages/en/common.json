@@ -415,18 +415,27 @@
     },
     "approvals": {
       "empty": "Nothing is waiting for review.",
-      "open": "Open queue"
+      "open": "Open queue",
+      "openItem": "Open",
+      "overflow": "{count} more waiting",
+      "readyToReview": "Ready to review",
+      "viewAll": "View all"
     },
     "credentials": {
-      "manage": "Manage accounts"
+      "loading": "Loading credential health...",
+      "manage": "Manage accounts",
+      "reconnect": "Reconnect"
     },
     "publishing": {
       "empty": "No publishing runs yet. Drafts created through MCP will appear here.",
       "open": "Open publishing"
     },
     "schedule": {
+      "addBrand": "Add a brand before scheduling posts to the calendar.",
       "empty": "Nothing is scheduled for the next 7 days.",
-      "open": "Open calendar"
+      "open": "Open calendar",
+      "title": "Next 7 days",
+      "unavailable": "The upcoming schedule is temporarily unavailable. Approval, publishing, and credential summaries remain available."
     }
   },
   "agent": {

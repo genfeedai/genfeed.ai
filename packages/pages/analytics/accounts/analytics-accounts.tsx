@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function metricLabel(
@@ -39,6 +40,7 @@ function metricLabel(
 }
 
 export default function AnalyticsAccounts() {
+  const translate = useTranslations('pages.analytics.accounts');
   const { brandId } = useCollectionScope();
   const { dateRange } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
@@ -157,11 +159,15 @@ export default function AnalyticsAccounts() {
               <SelectValue placeholder="Metric" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={AnalyticsMetric.VIEWS}>Views</SelectItem>
-              <SelectItem value={AnalyticsMetric.FOLLOWERS}>
-                Followers
+              <SelectItem value={AnalyticsMetric.VIEWS}>
+                {translate('views')}
               </SelectItem>
-              <SelectItem value={AnalyticsMetric.POSTS}>Posts</SelectItem>
+              <SelectItem value={AnalyticsMetric.FOLLOWERS}>
+                {translate('followers')}
+              </SelectItem>
+              <SelectItem value={AnalyticsMetric.POSTS}>
+                {translate('posts')}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Input

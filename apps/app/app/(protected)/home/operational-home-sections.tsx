@@ -307,7 +307,11 @@ function NeedsYouSurface({
                   density="compact"
                   description={`${item.format}${item.platform ? ` · ${formatPlatformLabel(item.platform) ?? item.platform}` : ''}`}
                   key={needsYouItem.key}
-                  meta={<Badge variant="info">Ready to review</Badge>}
+                  meta={
+                    <Badge variant="info">
+                      {translate('home.approvals.readyToReview')}
+                    </Badge>
+                  }
                   title={item.summary}
                   trailing={
                     <div className="flex shrink-0 items-center gap-2">
@@ -327,7 +331,7 @@ function NeedsYouSurface({
                         variant={ButtonVariant.GHOST}
                       >
                         <Link href={reviewItemHref(reviewHref, item)}>
-                          Open
+                          {translate('home.approvals.openItem')}
                         </Link>
                       </Button>
                     </div>
@@ -359,7 +363,9 @@ function NeedsYouSurface({
                       size={ButtonSize.SM}
                       variant={ButtonVariant.GHOST}
                     >
-                      <Link href={publishingHref}>Open</Link>
+                      <Link href={publishingHref}>
+                        {translate('home.approvals.openItem')}
+                      </Link>
                     </Button>
                   }
                 />
@@ -386,7 +392,9 @@ function NeedsYouSurface({
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
                   >
-                    <Link href={credentialsHref}>Reconnect</Link>
+                    <Link href={credentialsHref}>
+                      {translate('home.credentials.reconnect')}
+                    </Link>
                   </Button>
                 }
               />
@@ -397,10 +405,10 @@ function NeedsYouSurface({
               data-testid="operational-home-needs-you-overflow"
               density="compact"
               href={reviewHref}
-              title={`${overflow} more waiting`}
+              title={translate('home.approvals.overflow', { count: overflow })}
               trailing={
                 <span className="flex items-center gap-1 text-sm text-foreground/55">
-                  View all
+                  {translate('home.approvals.viewAll')}
                   <ArrowRight aria-hidden="true" className="size-3.5" />
                 </span>
               }
@@ -507,7 +515,7 @@ function UpcomingScheduleBlock({
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
-          Next 7 days
+          {translate('home.schedule.title')}
         </p>
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
           <Link href={calendarHref}>
@@ -519,7 +527,7 @@ function UpcomingScheduleBlock({
 
       {!brandSlug ? (
         <p className="text-sm text-foreground/55">
-          Add a brand before scheduling posts to the calendar.
+          {translate('home.schedule.addBrand')}
         </p>
       ) : isError ? (
         <div
@@ -527,8 +535,7 @@ function UpcomingScheduleBlock({
           role="alert"
         >
           <span className="min-w-0 flex-1">
-            The upcoming schedule is temporarily unavailable. Approval,
-            publishing, and credential summaries remain available.
+            {translate('home.schedule.unavailable')}
           </span>
           <Button
             aria-label="Retry upcoming schedule"
@@ -728,7 +735,7 @@ function CredentialHealthSurface({
       {isLoading ? (
         <>
           <span className="sr-only" role="status">
-            Loading credential health...
+            {translate('home.credentials.loading')}
           </span>
           <ListRowsSkeleton rows={3} />
         </>

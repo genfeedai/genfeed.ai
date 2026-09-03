@@ -79,7 +79,8 @@ export const semanticColorTokens = {
     border: { hex: '#333333', hsl: '0 0% 20%' },
     borderStrong: { hex: '#4A4A4A', hsl: '0 0% 29%' },
     // Lighter than the canvas, so a card reads as raised without a border.
-    card: { hex: '#161616', hsl: '0 0% 9%' },
+    // 5% (not 9%) so dark panels separate from the 4% canvas.
+    card: { hex: '#0D0D0D', hsl: '0 0% 5%' },
     cardForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },

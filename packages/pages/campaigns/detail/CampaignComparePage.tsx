@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 function CampaignCompareColumn({ campaignId }: { campaignId: string }) {
+  const translate = useTranslations('pages.publishing.campaigns');
   const { campaign, isLoading } = useCampaign(campaignId);
   const { performance } = useCampaignPerformance(campaignId);
 
@@ -19,15 +20,19 @@ function CampaignCompareColumn({ campaignId }: { campaignId: string }) {
     <Card label={campaign.name}>
       <dl className="grid gap-2 text-sm">
         <div>
-          <dt className="text-foreground/50">objective</dt>
+          <dt className="text-foreground/50">
+            {translate('compareObjective')}
+          </dt>
           <dd>{campaign.objective || '—'}</dd>
         </div>
         <div>
-          <dt className="text-foreground/50">views</dt>
+          <dt className="text-foreground/50">{translate('compareViews')}</dt>
           <dd>{performance?.organic.views.value ?? '—'}</dd>
         </div>
         <div>
-          <dt className="text-foreground/50">engagements</dt>
+          <dt className="text-foreground/50">
+            {translate('compareEngagements')}
+          </dt>
           <dd>{performance?.organic.engagements.value ?? '—'}</dd>
         </div>
       </dl>

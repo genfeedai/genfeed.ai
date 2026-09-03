@@ -83,6 +83,15 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',
   '/:orgSlug/~/publishing/posts',
+  '/:orgSlug/~/publishing/campaigns',
+  '/:orgSlug/~/publishing/campaigns/new',
+  '/:orgSlug/~/publishing/campaigns/compare',
+  '/:orgSlug/~/publishing/campaigns/:id',
+  '/:orgSlug/~/publishing/campaigns/:id/content',
+  '/:orgSlug/~/publishing/campaigns/:id/calendar',
+  '/:orgSlug/~/publishing/campaigns/:id/performance',
+  '/:orgSlug/~/publishing/campaigns/:id/ads',
+  '/:orgSlug/~/publishing/campaigns/:id/edit',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
