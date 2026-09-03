@@ -276,14 +276,35 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       'organizationId: ctx.organizationId',
       executeIdx,
     );
+    const deletedIdx = source.indexOf('isDeleted: false', executeIdx);
     const inputsIdx = source.indexOf(
       'Missing required workflow inputs',
       executeIdx,
     );
     const executorIdx = source.indexOf('executeManualWorkflow', executeIdx);
     expect(scopeIdx).toBeGreaterThan(executeIdx);
+    expect(deletedIdx).toBeGreaterThan(executeIdx);
     expect(inputsIdx).toBeGreaterThan(scopeIdx);
+    expect(inputsIdx).toBeGreaterThan(deletedIdx);
     expect(executorIdx).toBeGreaterThan(scopeIdx);
+    expect(executorIdx).toBeGreaterThan(deletedIdx);
+  });
+
+  it('does not map @genfeedai/contracts onto the enums file in Next turbopack', () => {
+    const appNext = readRepo('apps/app/next.config.ts');
+    const websiteNext = readRepo('apps/website/next.config.ts');
+    expect(appNext).toContain(
+      "'@genfeedai/contracts': '../../packages/contracts/src/index.ts'",
+    );
+    expect(appNext).not.toContain(
+      "'@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts'",
+    );
+    expect(websiteNext).toContain(
+      "'@genfeedai/contracts': '../../packages/contracts/src/index.ts'",
+    );
+    expect(websiteNext).not.toContain(
+      "'@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts'",
+    );
   });
 
   it('in-process node claim map hydrates completed nodes for same executionId', () => {

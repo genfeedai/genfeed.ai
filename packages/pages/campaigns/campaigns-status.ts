@@ -1,4 +1,4 @@
-import { ContentCampaignStatus } from '@genfeedai/enums';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 
 export const CAMPAIGN_STATUS_LABELS: Record<ContentCampaignStatus, string> = {
   [ContentCampaignStatus.ACTIVE]: 'Active',

@@ -66,7 +66,26 @@ import { Module } from '@nestjs/common';
  * can complete media jobs without mounting the inbound webhook surface.
  */
 @Module({
-  exports: [WebhooksService],
+  exports: [
+    ArgilModule,
+    ArgilWebhookService,
+    ChromaticWebhookService,
+    FleetWebhookService,
+    GitHubWebhookService,
+    HeygenWebhookService,
+    HeygenWebhookVerificationService,
+    KlingWebhookService,
+    LeonardoaiWebhookService,
+    ModelRegistrationService,
+    NotificationsPublisherModule,
+    OpusProWebhookService,
+    ReplicateGenerationWebhookHandler,
+    ReplicateWebhookService,
+    ReplicateWebhookVerificationService,
+    TrainingsModule,
+    VercelWebhookService,
+    WebhooksService,
+  ],
   imports: [
     ArgilModule,
     ActivitiesModule,

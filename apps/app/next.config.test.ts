@@ -634,6 +634,19 @@ describe('app next.config', () => {
     });
   });
 
+  it('aliases @genfeedai/contracts to the package index, not the enums file', () => {
+    expect(config.turbopack?.resolveAlias).toMatchObject({
+      '@genfeedai/contracts': '../../packages/contracts/src/index.ts',
+      '@genfeedai/contracts/constants':
+        '../../packages/contracts/src/constants/index.ts',
+      '@genfeedai/contracts/interfaces':
+        '../../packages/contracts/src/interfaces/index.ts',
+    });
+    expect(
+      config.turbopack?.resolveAlias?.['@genfeedai/contracts'],
+    ).not.toContain('enums/index.ts');
+  });
+
   it('aliases workflow UI and nodes to package source', () => {
     expect(config.turbopack?.resolveAlias).toMatchObject({
       '@genfeedai/workflows/nodes':

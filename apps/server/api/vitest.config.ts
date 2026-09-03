@@ -190,10 +190,10 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/contracts',
+        find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/contracts/src/enums',
+          '../../../packages/contracts/src/index.ts',
         ),
       },
       {

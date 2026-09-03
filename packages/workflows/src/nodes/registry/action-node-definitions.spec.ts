@@ -82,6 +82,22 @@ describe('ACTION_NODE_DEFINITIONS', () => {
     );
   });
 
+  it('unwraps anyOf output schemas so trendTrigger exposes topic', () => {
+    expect(
+      ACTION_NODE_DEFINITIONS.trendTrigger?.outputs.map((output) => output.id),
+    ).toEqual(expect.arrayContaining(['topic', 'platform', 'trendId']));
+  });
+
+  it('declares content-loop promptConstructor guidance handles', () => {
+    expect(
+      ACTION_NODE_DEFINITIONS.promptConstructor?.inputs.map(
+        (input) => input.id,
+      ),
+    ).toEqual(
+      expect.arrayContaining(['avoid', 'brandVoice', 'hooks', 'topic']),
+    );
+  });
+
   it('keeps talking-head script ports on the catalog contract', () => {
     expect(
       ACTION_NODE_DEFINITIONS.talkingHeadScript?.inputs.map(

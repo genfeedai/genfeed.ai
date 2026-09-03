@@ -26,23 +26,65 @@ const ANALYTICS_OUTPUT = {
   worstTopics: ['giveaway', 'unboxings'],
 };
 
+type TemplateActionConfig = {
+  actionId?: string;
+};
+
+type TemplateVisualNode = {
+  data: { config?: TemplateActionConfig };
+  type: string;
+};
+
+type HandleLookupDirection = 'inputs' | 'outputs';
+
 /**
  * Product nodes persist as `genfeedAction`, so their handles live on the
  * presentation definition for the configured action, not on the node type.
+ * Catalog definitions use arrays; the API adapter maps those arrays by id.
+ * Runtime connection validation reads the adapter only.
  */
-function resolveNodeDefinition(
-  node: { data: { config?: unknown }; type: string } | undefined,
-) {
+function hasHandle(handles: unknown, handleId: string): boolean {
+  if (!handles) {
+    return false;
+  }
+  if (Array.isArray(handles)) {
+    return handles.some(
+      (handle) =>
+        handle !== null &&
+        typeof handle === 'object' &&
+        'id' in handle &&
+        handle.id === handleId,
+    );
+  }
+  if (typeof handles === 'object') {
+    return handleId in handles;
+  }
+  return false;
+}
+
+function resolvePresentationType(
+  node: TemplateVisualNode | undefined,
+): string | undefined {
   if (!node) {
     return undefined;
   }
 
-  const actionId = (node.data.config as { actionId?: string } | undefined)
-    ?.actionId;
+  const actionId = node.data.config?.actionId;
+  return actionId ? getWorkflowPresentationNodeType(actionId) : node.type;
+}
 
-  return getNodeDefinition(
-    actionId ? getWorkflowPresentationNodeType(actionId) : node.type,
-  );
+function definitionDeclaresHandle(
+  node: TemplateVisualNode | undefined,
+  handleId: string,
+  direction: HandleLookupDirection,
+): boolean {
+  const presentationType = resolvePresentationType(node);
+  if (!presentationType) {
+    return false;
+  }
+
+  const adapterDefinition = getNodeDefinition(presentationType);
+  return hasHandle(adapterDefinition?.[direction], handleId);
 }
 
 describe('CONTENT_LOOP_TEMPLATE', () => {
@@ -115,19 +157,17 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
       expect(targetNode).toBeDefined();
 
       if (edge.sourceHandle) {
-        const sourceDefinition = resolveNodeDefinition(sourceNode);
         expect(
-          sourceDefinition?.outputs[edge.sourceHandle],
+          definitionDeclaresHandle(sourceNode, edge.sourceHandle, 'outputs'),
           `${sourceNode?.type}.${edge.sourceHandle}`,
-        ).toBeDefined();
+        ).toBe(true);
       }
 
       if (edge.targetHandle) {
-        const targetDefinition = resolveNodeDefinition(targetNode);
         expect(
-          targetDefinition?.inputs[edge.targetHandle],
+          definitionDeclaresHandle(targetNode, edge.targetHandle, 'inputs'),
           `${targetNode?.type}.${edge.targetHandle}`,
-        ).toBeDefined();
+        ).toBe(true);
       }
     }
   });

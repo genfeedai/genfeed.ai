@@ -13,8 +13,6 @@ const ENUM_PATH =
   'packages/contracts/src/interfaces/ai/agent-tool.interface.ts';
 const AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
-const BRANDLESS_TOOLS_PATH =
-  'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 const DISPATCH_PATH =
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 
@@ -336,10 +334,9 @@ function writeFixtures(fixtures: {
     defaultToolsSource(fixtures.defaultTools ?? fixtures.dispatch),
   );
   writeFixture(
-    BRANDLESS_TOOLS_PATH,
-    brandlessToolsSource(fixtures.brandless ?? fixtures.dispatch),
+    DISPATCH_PATH,
+    `${brandlessToolsSource(fixtures.brandless ?? fixtures.dispatch)}\n${dispatchSource(fixtures.dispatch)}`,
   );
-  writeFixture(DISPATCH_PATH, dispatchSource(fixtures.dispatch));
 }
 
 function writeFixture(relativePath: string, contents: string): void {

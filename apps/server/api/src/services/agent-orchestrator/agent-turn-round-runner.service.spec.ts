@@ -4,7 +4,10 @@ import {
   AgentTurnRoundRunnerService,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { buildCampaignPreparationCacheKey } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import {
+  buildCampaignConfirmationPrompt,
+  buildCampaignPreparationCacheKey,
+} from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { RouterPriority } from '@genfeedai/contracts';
@@ -54,7 +57,11 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     sourceActionId: string;
   } {
     const sourceActionId = `campaign-transition-${randomUUID()}`;
-    const confirmationPrompt = `Confirm campaign start for campaign campaign-1. Intent: ${sourceActionId}.`;
+    const confirmationPrompt = buildCampaignConfirmationPrompt({
+      campaignId: 'campaign-1',
+      sourceActionId,
+      transition: 'start',
+    });
     cachedPreparations.set(
       buildCampaignPreparationCacheKey({
         organizationId: 'org-1',
@@ -266,7 +273,11 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
 
   it('redacts the confirmation nonce from model-visible tool results', async () => {
     const sourceActionId = `campaign-transition-${randomUUID()}`;
-    const confirmationPrompt = `Confirm campaign start for campaign campaign-1. Intent: ${sourceActionId}.`;
+    const confirmationPrompt = buildCampaignConfirmationPrompt({
+      campaignId: 'campaign-1',
+      sourceActionId,
+      transition: 'start',
+    });
     executeTool.mockResolvedValueOnce({
       creditsUsed: 0,
       data: {

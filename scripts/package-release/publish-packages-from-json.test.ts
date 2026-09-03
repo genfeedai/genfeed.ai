@@ -23,22 +23,18 @@ import {
 describe('publish package release planning', () => {
   it('requires exact PR-merged versions and rejects live bump requests', () => {
     const inventory = inventoryFor([
-      packageEntry(
-        'packages/contracts/src/enums',
-        '@genfeedai/contracts',
-        '2.3.2',
-      ),
+      packageEntry('packages/contracts', '@genfeedai/contracts', '2.3.2'),
     ]);
 
     expect(() =>
       normalizeReleaseRequests(
-        [{ bump: 'patch', path: 'packages/contracts/src/enums' }],
+        [{ bump: 'patch', path: 'packages/contracts' }],
         inventory,
       ),
     ).toThrow('version changes must merge through a PR');
     expect(() =>
       normalizeReleaseRequests(
-        [{ path: 'packages/contracts/src/enums', version: '2.3.3' }],
+        [{ path: 'packages/contracts', version: '2.3.3' }],
         inventory,
       ),
     ).toThrow('master contains 2.3.2');
@@ -56,30 +52,25 @@ describe('publish package release planning', () => {
 
   it('sorts requests dependency-first regardless of input order', () => {
     const enums = packageEntry(
-      'packages/contracts/src/enums',
+      'packages/contracts',
       '@genfeedai/contracts',
       '2.3.2',
     );
-    const constants = packageEntry(
-      'packages/contracts/src/constants',
-      '@genfeedai/contracts/constants',
+    const helpers = packageEntry(
+      'packages/helpers',
+      '@genfeedai/helpers',
       '2.2.9',
       { '@genfeedai/contracts': 'workspace:*' },
     );
-    const interfaces = packageEntry(
-      'packages/contracts/src/interfaces',
-      '@genfeedai/contracts/interfaces',
-      '2.3.20',
-      {
-        '@genfeedai/contracts/constants': 'workspace:*',
-        '@genfeedai/contracts': 'workspace:*',
-      },
-    );
-    const inventory = inventoryFor([interfaces, constants, enums]);
+    const cli = packageEntry('packages/cli', '@genfeedai/cli', '0.6.0', {
+      '@genfeedai/helpers': 'workspace:*',
+      '@genfeedai/contracts': 'workspace:*',
+    });
+    const inventory = inventoryFor([cli, helpers, enums]);
     const requests = normalizeReleaseRequests(
       [
-        { path: interfaces.path, version: interfaces.pkg.version },
-        { path: constants.path, version: constants.pkg.version },
+        { path: cli.path, version: cli.pkg.version },
+        { path: helpers.path, version: helpers.pkg.version },
         { path: enums.path, version: enums.pkg.version },
       ],
       inventory,
@@ -87,11 +78,7 @@ describe('publish package release planning', () => {
 
     expect(
       sortReleaseRequests(requests, inventory).map((entry) => entry.name),
-    ).toEqual([
-      '@genfeedai/contracts',
-      '@genfeedai/contracts/constants',
-      '@genfeedai/contracts/interfaces',
-    ]);
+    ).toEqual(['@genfeedai/contracts', '@genfeedai/helpers', '@genfeedai/cli']);
   });
 
   it('rejects dependency cycles before any build or publish', () => {
@@ -120,13 +107,13 @@ describe('publish package release planning', () => {
 
   it('validates resolved workspace versions and packed entry points', () => {
     const dependency = packageEntry(
-      'packages/contracts/src/enums',
+      'packages/contracts',
       '@genfeedai/contracts',
       '2.3.2',
     );
     const request = packageEntry(
-      'packages/contracts/src/constants',
-      '@genfeedai/contracts/constants',
+      'packages/helpers',
+      '@genfeedai/helpers',
       '2.2.9',
       { '@genfeedai/contracts': 'workspace:*' },
     );
@@ -163,7 +150,7 @@ describe('publish package release planning', () => {
 
   it('requires a license payload in every tarball', () => {
     const request = packageEntry(
-      'packages/contracts/src/enums',
+      'packages/contracts',
       '@genfeedai/contracts',
       '2.3.2',
     );
@@ -188,7 +175,7 @@ describe('publish package release planning', () => {
 
   it('rejects platform metadata from repacked tarballs', () => {
     const request = packageEntry(
-      'packages/contracts/src/enums',
+      'packages/contracts',
       '@genfeedai/contracts',
       '2.3.2',
     );

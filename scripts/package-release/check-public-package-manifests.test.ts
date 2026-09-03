@@ -37,7 +37,7 @@ describe('check-public-package-manifests', () => {
   });
 
   it('accepts canonical build-output metadata', () => {
-    writePackage('enums', publicManifest('enums'));
+    writePackage('contracts', publicManifest('contracts'));
     writePackage('client', {
       ...publicManifest('client'),
       license: 'MIT',
@@ -68,13 +68,13 @@ describe('check-public-package-manifests', () => {
   });
 
   it('rejects ambiguous license metadata', () => {
-    writePackage('enums', {
-      ...publicManifest('enums'),
+    writePackage('contracts', {
+      ...publicManifest('contracts'),
       license: 'SEE LICENSE IN LICENSE',
     });
 
     expect(checkPublicPackageManifests({ root }).violations).toContain(
-      'packages/contracts/src/enums/package.json: license must be an explicit supported SPDX identifier (AGPL-3.0, AGPL-3.0-or-later, MIT)',
+      'packages/contracts/package.json: license must be an explicit supported SPDX identifier (AGPL-3.0, AGPL-3.0-or-later, MIT)',
     );
   });
 

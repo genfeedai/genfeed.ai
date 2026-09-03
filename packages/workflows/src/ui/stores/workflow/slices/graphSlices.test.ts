@@ -13,7 +13,7 @@ beforeEach(() => {
   });
 });
 
-function addNode(type: 'prompt' | 'imageGen' | 'videoGen' | 'llm'): string {
+function addNode(type: 'llm' | 'imageGen' | 'videoGen'): string {
   return useWorkflowStore.getState().addNode(type, { x: 0, y: 0 });
 }
 
@@ -23,7 +23,7 @@ describe('nodeSlice — addNode', () => {
     const node = useWorkflowStore.getState().getNodeById(id);
 
     expect(node?.type).toBe('imageGen');
-    expect(node?.data.label).toBe('Image Generator');
+    expect(node?.data.label).toBe('Generate Image');
     expect(node?.data.status).toBe('idle');
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });
@@ -43,10 +43,10 @@ describe('nodeSlice — addNode', () => {
 
 describe('nodeSlice — updateNodeData', () => {
   it('merges data updates', () => {
-    const id = addNode('prompt');
-    useWorkflowStore.getState().updateNodeData(id, { prompt: 'hello' });
+    const id = addNode('llm');
+    useWorkflowStore.getState().updateNodeData(id, { inputPrompt: 'hello' });
 
-    expect(useWorkflowStore.getState().getNodeById(id)?.data.prompt).toBe(
+    expect(useWorkflowStore.getState().getNodeById(id)?.data.inputPrompt).toBe(
       'hello',
     );
     expect(useWorkflowStore.getState().isDirty).toBe(true);
@@ -65,7 +65,7 @@ describe('nodeSlice — updateNodeData', () => {
   });
 
   it('propagates prompt text to connected generator inputs', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore.setState((state) => ({
       edges: [
@@ -73,14 +73,16 @@ describe('nodeSlice — updateNodeData', () => {
         {
           id: 'e1',
           source: promptId,
-          sourceHandle: 'prompt',
+          sourceHandle: 'text',
           target: imageId,
           targetHandle: 'prompt',
         },
       ],
     }));
 
-    useWorkflowStore.getState().updateNodeData(promptId, { prompt: 'castle' });
+    useWorkflowStore
+      .getState()
+      .updateNodeData(promptId, { outputText: 'castle' });
 
     const imageNode = useWorkflowStore.getState().getNodeById(imageId);
     expect(imageNode?.data.inputPrompt).toBe('castle');
@@ -113,12 +115,18 @@ describe('nodeSlice — updateNodeData', () => {
 
 describe('nodeSlice — removeNode and duplicateNode', () => {
   it('removeNode drops the node and its edges', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore.setState((state) => ({
       edges: [
         ...state.edges,
-        { id: 'e1', source: promptId, target: imageId, targetHandle: 'prompt' },
+        {
+          id: 'e1',
+          source: promptId,
+          sourceHandle: 'text',
+          target: imageId,
+          targetHandle: 'prompt',
+        },
       ],
     }));
 
@@ -129,16 +137,18 @@ describe('nodeSlice — removeNode and duplicateNode', () => {
   });
 
   it('duplicateNode clones data, offsets position, and rewires inputs', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
-    useWorkflowStore.getState().updateNodeData(promptId, { prompt: 'castle' });
+    useWorkflowStore
+      .getState()
+      .updateNodeData(promptId, { outputText: 'castle' });
     useWorkflowStore.setState((state) => ({
       edges: [
         ...state.edges,
         {
           id: 'e1',
           source: promptId,
-          sourceHandle: 'prompt',
+          sourceHandle: 'text',
           target: imageId,
           targetHandle: 'prompt',
         },
@@ -173,8 +183,10 @@ describe('nodeSlice — addNodesAndEdges', () => {
   });
 
   it('appends nodes and edges and propagates outputs', () => {
-    const promptId = addNode('prompt');
-    useWorkflowStore.getState().updateNodeData(promptId, { prompt: 'castle' });
+    const promptId = addNode('llm');
+    useWorkflowStore
+      .getState()
+      .updateNodeData(promptId, { outputText: 'castle' });
     const imageNode = {
       data: { inputPrompt: null, label: 'Gen', status: 'idle' },
       id: 'pasted-image',
@@ -188,7 +200,7 @@ describe('nodeSlice — addNodesAndEdges', () => {
         {
           id: 'e-pasted',
           source: promptId,
-          sourceHandle: 'prompt',
+          sourceHandle: 'text',
           target: 'pasted-image',
           targetHandle: 'prompt',
         } as never,
@@ -212,7 +224,7 @@ describe('edgeSlice — connections', () => {
   }
 
   it('isValidConnection accepts text → text and rejects text → image', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
 
     expect(
@@ -236,7 +248,7 @@ describe('edgeSlice — connections', () => {
   });
 
   it('onConnect adds valid edges and ignores invalid ones', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
 
     useWorkflowStore
@@ -252,9 +264,11 @@ describe('edgeSlice — connections', () => {
   });
 
   it('onConnect propagates existing source output', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
-    useWorkflowStore.getState().updateNodeData(promptId, { prompt: 'castle' });
+    useWorkflowStore
+      .getState()
+      .updateNodeData(promptId, { outputText: 'castle' });
 
     useWorkflowStore
       .getState()
@@ -266,7 +280,7 @@ describe('edgeSlice — connections', () => {
   });
 
   it('findCompatibleHandle picks the first free compatible input', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
 
     expect(
@@ -277,8 +291,8 @@ describe('edgeSlice — connections', () => {
   });
 
   it('findCompatibleHandle skips occupied single-connection handles', () => {
-    const promptA = addNode('prompt');
-    const promptB = addNode('prompt');
+    const promptA = addNode('llm');
+    const promptB = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore
       .getState()
@@ -300,7 +314,7 @@ describe('edgeSlice — connections', () => {
 
 describe('edgeSlice — edge maintenance', () => {
   it('removeEdge deletes by id', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,
@@ -315,7 +329,7 @@ describe('edgeSlice — edge maintenance', () => {
   });
 
   it('setEdgeStyle restyles every edge', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,
@@ -331,7 +345,7 @@ describe('edgeSlice — edge maintenance', () => {
   });
 
   it('toggleEdgePause flips the pause flag', () => {
-    const promptId = addNode('prompt');
+    const promptId = addNode('llm');
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,

@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import NotFoundPage from '@pages/not-found/not-found-page';
 import { useTranslations } from 'next-intl';

@@ -33,10 +33,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
-        find: '@genfeedai/contracts',
+        find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/contracts/src/enums/index.ts',
+          '../../../packages/contracts/src/index.ts',
         ),
       },
       {

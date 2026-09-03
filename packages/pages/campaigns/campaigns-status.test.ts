@@ -1,4 +1,4 @@
-import { ContentCampaignStatus } from '@genfeedai/enums';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   parseCampaignStatusFilter,

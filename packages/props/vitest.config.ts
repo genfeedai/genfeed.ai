@@ -2,7 +2,6 @@ import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
-const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
 
 export default defineConfig({
   resolve: {
@@ -16,8 +15,8 @@ export default defineConfig({
         replacement: CONSTANTS_SRC,
       },
       {
-        find: '@genfeedai/contracts',
-        replacement: ENUMS_SRC,
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: '@genfeedai/models',

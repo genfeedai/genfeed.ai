@@ -3,27 +3,36 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@constants': path.resolve(__dirname, '../ui/constants'),
-      '@genfeedai/contracts/constants': path.resolve(
-        __dirname,
-        '../contracts/src/constants',
-      ),
-      '@genfeedai/contracts': path.resolve(
-        __dirname,
-        '../contracts/src/index.ts',
-      ),
-      '@genfeedai/helpers': path.resolve(__dirname, './src/index.ts'),
-      '@genfeedai/contracts/interfaces': path.resolve(
-        __dirname,
-        '../contracts/src/interfaces/index.ts',
-      ),
-      '@helpers': path.resolve(__dirname, './src'),
-      '@hooks': path.resolve(__dirname, '../hooks'),
-      '@props': path.resolve(__dirname, '../props'),
-      '@ui': path.resolve(__dirname, '../ui'),
-      '@utils': path.resolve(__dirname, '../utils'),
-    },
+    alias: [
+      {
+        find: '@constants',
+        replacement: path.resolve(__dirname, '../ui/constants'),
+      },
+      {
+        find: '@genfeedai/contracts/constants',
+        replacement: path.resolve(__dirname, '../contracts/src/constants'),
+      },
+      {
+        find: '@genfeedai/contracts/interfaces',
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/interfaces/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
+      },
+      {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(__dirname, './src/index.ts'),
+      },
+      { find: '@helpers', replacement: path.resolve(__dirname, './src') },
+      { find: '@hooks', replacement: path.resolve(__dirname, '../hooks') },
+      { find: '@props', replacement: path.resolve(__dirname, '../props') },
+      { find: '@ui', replacement: path.resolve(__dirname, '../ui') },
+      { find: '@utils', replacement: path.resolve(__dirname, '../utils') },
+    ],
   },
   test: {
     coverage: {

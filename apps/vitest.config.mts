@@ -35,7 +35,10 @@ export default defineConfig({
     alias: [
       {
         find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/api-types/$1'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/api-types/$1',
+        ),
       },
       {
         find: /^@app$/,
@@ -121,7 +124,10 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/contracts\/constants\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/constants/$1'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/constants/$1',
+        ),
       },
       {
         find: /^@genfeedai\/contexts$/,
@@ -147,11 +153,17 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/contracts$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/index.ts'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/index.ts',
+        ),
       },
       {
         find: /^@genfeedai\/contracts\/enums\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/enums/$1'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/enums/$1',
+        ),
       },
       {
         find: /^@genfeedai\/fonts$/,
@@ -182,7 +194,10 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/interfaces/$1'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/interfaces/$1',
+        ),
       },
       {
         find: /^@genfeedai\/client$/,
@@ -253,11 +268,17 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/contracts\/types$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/types/index.ts'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/types/index.ts',
+        ),
       },
       {
         find: /^@genfeedai\/contracts\/types\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/contracts/src/types/$1'),
+        replacement: path.resolve(
+          repoRoot,
+          './packages/contracts/src/types/$1',
+        ),
       },
       {
         find: /^@genfeedai\/ui$/,

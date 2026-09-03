@@ -606,7 +606,7 @@ config.turbopack = {
     '@genfeedai/client': '../../packages/client/src/index.ts',
     '@genfeedai/contracts/constants':
       '../../packages/contracts/src/constants/index.ts',
-    '@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts',
+    '@genfeedai/contracts': '../../packages/contracts/src/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
     '@genfeedai/contracts/interfaces':
       '../../packages/contracts/src/interfaces/index.ts',
