@@ -7,7 +7,7 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@tanstack/react-query": "5.102.8",
-    "@tiptap/core": "3.30.5",
+    "@tiptap/core": "3.31.0",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared React contexts for Genfeed applications",

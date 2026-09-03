@@ -8,7 +8,7 @@
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@tanstack/react-query": "5.102.8",
-    "@xyflow/react": "12.11.5",
+    "@xyflow/react": "12.11.6",
     "gsap": "3.15.0",
     "@genfeedai/contracts": "workspace:*"
   },

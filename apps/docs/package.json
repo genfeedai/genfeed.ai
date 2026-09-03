@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "next": "16.3.3",
+    "next": "16.3.4",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.422.5",
+    "posthog-js": "1.425.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "swagger-ui-react": "5.32.14"
