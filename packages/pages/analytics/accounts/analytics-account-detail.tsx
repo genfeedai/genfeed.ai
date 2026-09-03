@@ -25,7 +25,7 @@ export default function AnalyticsAccountDetail() {
   const params = useParams<{ id: string }>();
   const credentialId = params.id;
   const { brandId } = useCollectionScope();
-  const { filters } = useAnalyticsContext();
+  const { dateRange } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -36,8 +36,8 @@ export default function AnalyticsAccountDetail() {
     void (async () => {
       const service = await getService();
       const { startDate, endDate } = getDateRangeWithDefaults(
-        filters.startDate,
-        filters.endDate,
+        dateRange.startDate ?? undefined,
+        dateRange.endDate ?? undefined,
       );
       const data = (await service.getAccountAnalyticsDetail(credentialId, {
         brandId: brandId || undefined,
@@ -49,7 +49,13 @@ export default function AnalyticsAccountDetail() {
       }
     })();
     return () => controller.abort();
-  }, [brandId, credentialId, filters.endDate, filters.startDate, getService]);
+  }, [
+    brandId,
+    credentialId,
+    dateRange.endDate,
+    dateRange.startDate,
+    getService,
+  ]);
 
   const title =
     detail?.identity.label || detail?.identity.externalHandle || 'Account';

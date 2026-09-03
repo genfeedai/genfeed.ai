@@ -40,7 +40,7 @@ function metricLabel(
 
 export default function AnalyticsAccounts() {
   const { brandId } = useCollectionScope();
-  const { filters } = useAnalyticsContext();
+  const { dateRange } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -55,8 +55,8 @@ export default function AnalyticsAccounts() {
     async (signal: AbortSignal) => {
       const service = await getService();
       const { startDate, endDate } = getDateRangeWithDefaults(
-        filters.startDate,
-        filters.endDate,
+        dateRange.startDate ?? undefined,
+        dateRange.endDate ?? undefined,
       );
       const [accounts, evaluationPolicy] = await Promise.all([
         service.getAccountAnalytics({
@@ -80,7 +80,14 @@ export default function AnalyticsAccounts() {
       }
       setIsLoading(false);
     },
-    [brandId, filters.endDate, filters.startDate, getService, metric, search],
+    [
+      brandId,
+      dateRange.endDate,
+      dateRange.startDate,
+      getService,
+      metric,
+      search,
+    ],
   );
 
   useEffect(() => {

@@ -8,7 +8,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
-  useAnalyticsContext: () => ({ filters: {} }),
+  useAnalyticsContext: () => ({ dateRange: {}, filters: {} }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

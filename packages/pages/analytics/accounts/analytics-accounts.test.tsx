@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import AnalyticsAccounts from './analytics-accounts';
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
-  useAnalyticsContext: () => ({ filters: {} }),
+  useAnalyticsContext: () => ({ dateRange: {}, filters: {} }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
