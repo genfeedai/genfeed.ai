@@ -25,6 +25,7 @@ describe('AccountAnalyticsService', () => {
     brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
     credential: { findMany: vi.fn().mockResolvedValue([]) },
     organizationSetting: {
+      create: vi.fn(),
       findFirst: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
     },
@@ -123,5 +124,79 @@ describe('AccountAnalyticsService', () => {
         views: 90,
       }),
     ]);
+  });
+
+  it('ranks higher period views first by default', async () => {
+    prisma.credential.findMany.mockResolvedValue([
+      credential(1),
+      credential(2),
+    ]);
+    prisma.$queryRaw.mockImplementation(async (query: unknown) => {
+      const text =
+        query && typeof query === 'object' && 'strings' in query
+          ? (query as { strings: string[] }).strings.join(' ')
+          : String(query);
+      if (text.includes('COUNT(DISTINCT')) {
+        return [
+          {
+            comments: 0,
+            credentialId: 'cred-1',
+            likes: 0,
+            posts: 1,
+            prevComments: 0,
+            prevLikes: 0,
+            prevSaves: 0,
+            prevShares: 0,
+            prevViews: 0,
+            saves: 0,
+            shares: 0,
+            views: 10,
+          },
+          {
+            comments: 0,
+            credentialId: 'cred-2',
+            likes: 0,
+            posts: 1,
+            prevComments: 0,
+            prevLikes: 0,
+            prevSaves: 0,
+            prevShares: 0,
+            prevViews: 0,
+            saves: 0,
+            shares: 0,
+            views: 100,
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.listAccounts('org-1', {
+      metric: AnalyticsMetric.VIEWS,
+    });
+
+    expect(
+      result.accounts.map((account) => account.identity.credentialId),
+    ).toEqual(['cred-2', 'cred-1']);
+  });
+
+  it('creates an organization setting when saving a fleet policy for the first time', async () => {
+    await service.savePolicy('org-1', {
+      healthyMin: 1000,
+      isEnabled: true,
+      metric: AnalyticsMetric.VIEWS,
+      minPublishedPosts: 8,
+      version: 1,
+      watchMin: 400,
+      windowWeeks: 4,
+    });
+
+    expect(prisma.organizationSetting.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          organizationId: 'org-1',
+        }),
+      }),
+    );
   });
 });

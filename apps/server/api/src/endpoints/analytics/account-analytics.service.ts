@@ -232,6 +232,13 @@ export class AccountAnalyticsService {
         data: { fleetEvaluationPolicy: next as Prisma.InputJsonValue },
         where: { id: existing.id },
       });
+    } else {
+      await this.prisma.organizationSetting.create({
+        data: {
+          fleetEvaluationPolicy: next as Prisma.InputJsonValue,
+          organizationId,
+        },
+      });
     }
 
     return this.readPolicy(next, brandId) ?? next;
@@ -325,10 +332,14 @@ export class AccountAnalyticsService {
           ? Math.floor((now - firstPublishedAt.getTime()) / 86_400_000)
           : Math.floor((now - credential.createdAt.getTime()) / 86_400_000);
         const ranked = metrics.find((item) => item.metric === metric);
+        const endSnapshot = endByCredential.get(credential.id);
+        const freshnessHours = endSnapshot
+          ? (now - endSnapshot.date.getTime()) / 3_600_000
+          : null;
         const evaluation = classifyAccountEvaluation({
           accountAgeDays: ageDays,
           coverage: publishedPosts > 0 ? 1 : 0,
-          freshnessHours: endSnapshots.length ? 1 : null,
+          freshnessHours,
           metricAvailability:
             ranked?.availability ?? AnalyticsMetricAvailability.UNAVAILABLE,
           metricValue: ranked?.change ?? ranked?.lifetime ?? null,
@@ -339,7 +350,7 @@ export class AccountAnalyticsService {
         const account: IAccountAnalytics = {
           coverage: publishedPosts > 0 ? 1 : 0,
           evaluation,
-          freshnessHours: 1,
+          freshnessHours,
           identity: {
             ...identity,
             firstPublishedAt: firstPublishedAt?.toISOString() ?? null,
@@ -374,7 +385,7 @@ export class AccountAnalyticsService {
             right.identity.credentialId,
           );
         }
-        return leftValue > rightValue ? direction * -1 : direction;
+        return (leftValue - rightValue) * direction;
       });
 
     return accounts;
@@ -495,6 +506,7 @@ export class AccountAnalyticsService {
         SELECT DISTINCT ON (p."credentialId", pa."postId", pa."platform")
           p."credentialId" AS "credentialId",
           pa."postId",
+          pa."platform",
           pa."totalViews" AS views,
           pa."totalLikes" AS likes,
           pa."totalComments" AS comments,
@@ -543,6 +555,7 @@ export class AccountAnalyticsService {
       LEFT JOIN start_snap s
         ON s."credentialId" = e."credentialId"
         AND s."postId" = e."postId"
+        AND s."platform" = e."platform"
       GROUP BY e."credentialId"
     `;
   }
