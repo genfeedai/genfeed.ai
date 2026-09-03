@@ -33,9 +33,9 @@ function isFilesServiceHostname(hostname: string): boolean {
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
 
-  public declare cdnUrl?: string | null;
-  public declare s3Key?: string | null;
-  public declare version?: number;
+  declare public cdnUrl?: string | null;
+  declare public s3Key?: string | null;
+  declare public version?: number;
   public isPlaying: boolean = false;
   public isFavorite: boolean = false;
   public isVoteAnimating: boolean = false;

@@ -2,8 +2,8 @@ import { Ingredient } from '@genfeedai/client/models';
 import type { IGIF } from '@genfeedai/contracts/interfaces';
 
 export class GIF extends Ingredient implements IGIF {
-  public declare duration?: number;
-  public declare isLooping?: boolean;
+  declare public duration?: number;
+  declare public isLooping?: boolean;
 
   constructor(data: Partial<IGIF> = {}) {
     super(data);

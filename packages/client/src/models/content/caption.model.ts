@@ -7,11 +7,11 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Caption extends BaseEntity implements ICaption {
-  public declare ingredient: IIngredient | string;
-  public declare user: IUser | string;
-  public declare language: string;
-  public declare content?: string;
-  public declare format: CaptionFormat;
+  declare public ingredient: IIngredient | string;
+  declare public user: IUser | string;
+  declare public language: string;
+  declare public content?: string;
+  declare public format: CaptionFormat;
 
   constructor(data: Partial<ICaption> = {}) {
     super(data);

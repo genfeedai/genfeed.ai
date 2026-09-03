@@ -6,25 +6,25 @@ import type {
 import type { ISocialSource } from '@genfeedai/contracts/interfaces';
 
 export class SocialSource extends BaseEntity implements ISocialSource {
-  public declare organizationId: string;
-  public declare brandId: string;
-  public declare userId: string;
-  public declare credentialId?: string | null;
-  public declare platform: SocialSourcePlatform | string;
-  public declare sourceType: SocialSourceType | string;
-  public declare externalId?: string | null;
-  public declare handle: string;
-  public declare displayName?: string | null;
-  public declare avatarUrl?: string | null;
-  public declare profileUrl?: string | null;
-  public declare bio?: string | null;
-  public declare followersCount?: number | null;
-  public declare isActive: boolean;
-  public declare lastSyncedAt?: string | null;
-  public declare lastSyncStatus?: string | null;
-  public declare lastSyncError?: string | null;
-  public declare lastPostExternalId?: string | null;
-  public declare metadata?: Record<string, unknown>;
+  declare public organizationId: string;
+  declare public brandId: string;
+  declare public userId: string;
+  declare public credentialId?: string | null;
+  declare public platform: SocialSourcePlatform | string;
+  declare public sourceType: SocialSourceType | string;
+  declare public externalId?: string | null;
+  declare public handle: string;
+  declare public displayName?: string | null;
+  declare public avatarUrl?: string | null;
+  declare public profileUrl?: string | null;
+  declare public bio?: string | null;
+  declare public followersCount?: number | null;
+  declare public isActive: boolean;
+  declare public lastSyncedAt?: string | null;
+  declare public lastSyncStatus?: string | null;
+  declare public lastSyncError?: string | null;
+  declare public lastPostExternalId?: string | null;
+  declare public metadata?: Record<string, unknown>;
 
   constructor(data: Partial<ISocialSource> = {}) {
     super(data);

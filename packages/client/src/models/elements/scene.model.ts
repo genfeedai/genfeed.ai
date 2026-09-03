@@ -3,11 +3,11 @@ import type { ModelCategory } from '@genfeedai/contracts';
 import type { IElementScene } from '@genfeedai/contracts/interfaces';
 
 export class ElementScene extends BaseEntity implements IElementScene {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare category?: ModelCategory;
-  public declare isFavorite?: boolean;
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category?: ModelCategory;
+  declare public isFavorite?: boolean;
 
   constructor(data: Partial<IElementScene> = {}) {
     super(data);

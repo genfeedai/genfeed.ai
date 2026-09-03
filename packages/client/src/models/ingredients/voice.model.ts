@@ -2,13 +2,13 @@ import { Ingredient } from '@genfeedai/client/models';
 import type { IVoice } from '@genfeedai/contracts/interfaces';
 
 export class Voice extends Ingredient implements IVoice {
-  public declare duration?: number;
-  public declare channels?: number;
-  public declare sampleRate?: number;
-  public declare isPlaying?: boolean;
+  declare public duration?: number;
+  declare public channels?: number;
+  declare public sampleRate?: number;
+  declare public isPlaying?: boolean;
 
-  public declare language?: string;
-  public declare gender?: string;
+  declare public language?: string;
+  declare public gender?: string;
 
   constructor(data: Partial<IVoice> = {}) {
     super(data);

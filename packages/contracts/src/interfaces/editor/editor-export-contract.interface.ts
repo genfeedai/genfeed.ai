@@ -13,7 +13,7 @@ export const EDITOR_EXPORT_CONTRACT_VERSION = 1 as const;
  * Do not keep a `patchedDependencies` key for a different `@remotion/bundler`
  * version — Bun drops that patch silently.
  */
-export const EDITOR_RENDERER_VERSION = 'remotion@4.0.518' as const;
+export const EDITOR_RENDERER_VERSION = 'remotion@4.0.520' as const;
 export const EDITOR_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 
 export type EditorRenderTerminalReason =

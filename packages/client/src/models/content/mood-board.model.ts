@@ -5,10 +5,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class MoodBoard extends BaseEntity implements IMoodBoard {
-  public declare brandId: string;
-  public declare organizationId: string;
-  public declare layout: IMoodBoardLayoutItem[];
-  public declare metadata?: Record<string, unknown>;
+  declare public brandId: string;
+  declare public organizationId: string;
+  declare public layout: IMoodBoardLayoutItem[];
+  declare public metadata?: Record<string, unknown>;
 
   constructor(data: Partial<IMoodBoard> = {}) {
     super(data);

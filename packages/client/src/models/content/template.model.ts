@@ -10,28 +10,28 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Template extends BaseEntity implements ITemplate {
-  public declare organization?: string;
-  public declare organizationData?: IOrganization | string;
-  public declare createdBy?: string;
-  public declare user?: IUser | string;
-  public declare key?: string;
-  public declare purpose: 'content' | 'prompt';
-  public declare category?: TemplateCategory;
-  public declare label: string;
-  public declare description: string;
-  public declare content: string;
-  public declare variables: ITemplateVariable[];
-  public declare categories?: string[];
-  public declare industries?: string[];
-  public declare platforms?: TemplatePlatform[];
-  public declare tags?: string[];
-  public declare metadata?: ITemplateMetadata;
-  public declare performance?: ITemplatePerformance;
-  public declare scope?: string;
-  public declare isPremium?: boolean;
-  public declare isFeatured?: boolean;
-  public declare version?: number;
-  public declare isActive?: boolean;
+  declare public organization?: string;
+  declare public organizationData?: IOrganization | string;
+  declare public createdBy?: string;
+  declare public user?: IUser | string;
+  declare public key?: string;
+  declare public purpose: 'content' | 'prompt';
+  declare public category?: TemplateCategory;
+  declare public label: string;
+  declare public description: string;
+  declare public content: string;
+  declare public variables: ITemplateVariable[];
+  declare public categories?: string[];
+  declare public industries?: string[];
+  declare public platforms?: TemplatePlatform[];
+  declare public tags?: string[];
+  declare public metadata?: ITemplateMetadata;
+  declare public performance?: ITemplatePerformance;
+  declare public scope?: string;
+  declare public isPremium?: boolean;
+  declare public isFeatured?: boolean;
+  declare public version?: number;
+  declare public isActive?: boolean;
 
   constructor(data: Partial<ITemplate> = {}) {
     super(data);

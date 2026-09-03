@@ -3,12 +3,12 @@ import type { ModelCategory } from '@genfeedai/contracts';
 import type { IElementLighting } from '@genfeedai/contracts/interfaces';
 
 export class ElementLighting extends BaseEntity implements IElementLighting {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare category?: ModelCategory;
-  public declare isActive?: boolean;
-  public declare isDefault?: boolean;
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category?: ModelCategory;
+  declare public isActive?: boolean;
+  declare public isDefault?: boolean;
 
   constructor(data: Partial<IElementLighting> = {}) {
     super(data);

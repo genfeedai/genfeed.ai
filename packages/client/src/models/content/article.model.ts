@@ -15,23 +15,23 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Article extends BaseEntity implements IArticle {
-  public declare user: IUser;
-  public declare organization: IOrganization;
-  public declare brand?: IBrand;
-  public declare tags?: ITag[];
-  public declare coverImageUrl?: string;
-  public declare label: string;
-  public declare slug: string;
-  public declare summary: string;
-  public declare content: string;
-  public declare category: ArticleCategory;
-  public declare status: ArticleStatus;
-  public declare publishedAt?: string;
-  public declare scope: AssetScope;
-  public declare generationPrompt?: string;
-  public declare seoScore?: number | null;
-  public declare seoBreakdown?: SeoScorecardSnapshot | null;
-  public declare xArticleMetadata?: IXArticleMetadata;
+  declare public user: IUser;
+  declare public organization: IOrganization;
+  declare public brand?: IBrand;
+  declare public tags?: ITag[];
+  declare public coverImageUrl?: string;
+  declare public label: string;
+  declare public slug: string;
+  declare public summary: string;
+  declare public content: string;
+  declare public category: ArticleCategory;
+  declare public status: ArticleStatus;
+  declare public publishedAt?: string;
+  declare public scope: AssetScope;
+  declare public generationPrompt?: string;
+  declare public seoScore?: number | null;
+  declare public seoBreakdown?: SeoScorecardSnapshot | null;
+  declare public xArticleMetadata?: IXArticleMetadata;
 
   constructor(data: Partial<IArticle> = {}) {
     super(data);

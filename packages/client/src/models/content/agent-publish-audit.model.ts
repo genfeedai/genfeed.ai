@@ -5,21 +5,21 @@ export class AgentPublishAudit
   extends BaseEntity
   implements IAgentPublishAudit
 {
-  public declare workflowExecutionId?: string | null;
-  public declare agentStrategyId?: string | null;
-  public declare agentThreadId?: string | null;
-  public declare autonomyMode: string;
-  public declare brand?: IAgentPublishAudit['brand'];
-  public declare brandId?: string | null;
-  public declare channel?: string | null;
-  public declare decision: IAgentPublishAudit['decision'];
-  public declare organization?: IAgentPublishAudit['organization'];
-  public declare organizationId: string;
-  public declare policyName: string;
-  public declare postGroupId?: string | null;
-  public declare reason: string;
-  public declare user?: IAgentPublishAudit['user'];
-  public declare userId: string;
+  declare public workflowExecutionId?: string | null;
+  declare public agentStrategyId?: string | null;
+  declare public agentThreadId?: string | null;
+  declare public autonomyMode: string;
+  declare public brand?: IAgentPublishAudit['brand'];
+  declare public brandId?: string | null;
+  declare public channel?: string | null;
+  declare public decision: IAgentPublishAudit['decision'];
+  declare public organization?: IAgentPublishAudit['organization'];
+  declare public organizationId: string;
+  declare public policyName: string;
+  declare public postGroupId?: string | null;
+  declare public reason: string;
+  declare public user?: IAgentPublishAudit['user'];
+  declare public userId: string;
 
   constructor(data: Partial<IAgentPublishAudit> = {}) {
     super(data);

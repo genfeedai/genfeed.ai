@@ -3,10 +3,10 @@ import type { ModelCategory } from '@genfeedai/contracts';
 import type { IElementMood } from '@genfeedai/contracts/interfaces';
 
 export class ElementMood extends BaseEntity implements IElementMood {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare category?: ModelCategory;
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category?: ModelCategory;
 
   constructor(data: Partial<IElementMood> = {}) {
     super(data);

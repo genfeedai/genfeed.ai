@@ -11,23 +11,23 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Preset extends BaseEntity implements IPreset {
-  public declare organization?: IOrganization | string;
-  public declare brand?: IBrand | string;
-  public declare label: string;
-  public declare description: string;
-  public declare prompt?: string;
-  public declare key: string;
-  public declare category: ModelCategory;
-  public declare model?: string;
-  public declare provider?: ModelProvider;
-  public declare platform?: Platform;
-  public declare defaultCamera?: string;
-  public declare defaultMoods?: string[];
-  public declare defaultScene?: string;
-  public declare defaultStyle?: string;
-  public declare defaultBlacklists?: string[];
-  public declare isActive: boolean;
-  public declare isFavorite?: boolean;
+  declare public organization?: IOrganization | string;
+  declare public brand?: IBrand | string;
+  declare public label: string;
+  declare public description: string;
+  declare public prompt?: string;
+  declare public key: string;
+  declare public category: ModelCategory;
+  declare public model?: string;
+  declare public provider?: ModelProvider;
+  declare public platform?: Platform;
+  declare public defaultCamera?: string;
+  declare public defaultMoods?: string[];
+  declare public defaultScene?: string;
+  declare public defaultStyle?: string;
+  declare public defaultBlacklists?: string[];
+  declare public isActive: boolean;
+  declare public isFavorite?: boolean;
 
   constructor(data: Partial<IPreset> = {}) {
     super(data);

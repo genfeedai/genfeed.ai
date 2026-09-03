@@ -102,8 +102,8 @@ function normalizeLivestreamSettings(
 }
 
 export class Bot extends BaseBot {
-  public declare targets: BotTarget[];
-  public declare livestreamSettings?: BotLivestreamSettings;
+  declare public targets: BotTarget[];
+  declare public livestreamSettings?: BotLivestreamSettings;
 
   constructor(partial: Partial<LivestreamBot> = {}) {
     super(partial);

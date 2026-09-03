@@ -19,15 +19,15 @@ export type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Evaluation implements IEvaluation {
-  public declare id: string;
-  public declare organizationId: string;
-  public declare userId: string;
-  public declare contentType: IEvaluation['contentType'];
-  public declare contentId: string | null;
-  public declare data: IEvaluationData;
-  public declare isDeleted: boolean;
-  public declare createdAt: Date;
-  public declare updatedAt: Date;
+  declare public id: string;
+  declare public organizationId: string;
+  declare public userId: string;
+  declare public contentType: IEvaluation['contentType'];
+  declare public contentId: string | null;
+  declare public data: IEvaluationData;
+  declare public isDeleted: boolean;
+  declare public createdAt: Date;
+  declare public updatedAt: Date;
 
   constructor(data: Partial<IEvaluation> = {}) {
     Object.assign(this, data);

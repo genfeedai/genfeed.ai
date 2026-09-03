@@ -9,22 +9,22 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Training extends BaseEntity implements ITraining {
-  public declare organization?: IOrganization | string;
-  public declare brand?: IBrand | string;
-  public declare user: IUser | string;
-  public declare sources?: IImage[] | string[];
-  public declare label: string;
-  public declare description?: string;
-  public declare model?: string;
-  public declare provider?: string;
-  public declare trigger: string;
-  public declare status?: TrainingStatus;
-  public declare steps?: number;
-  public declare category?: TrainingCategory;
-  public declare externalId?: string;
-  public declare isActive?: boolean;
-  public declare totalSources?: number;
-  public declare totalGeneratedImages?: number;
+  declare public organization?: IOrganization | string;
+  declare public brand?: IBrand | string;
+  declare public user: IUser | string;
+  declare public sources?: IImage[] | string[];
+  declare public label: string;
+  declare public description?: string;
+  declare public model?: string;
+  declare public provider?: string;
+  declare public trigger: string;
+  declare public status?: TrainingStatus;
+  declare public steps?: number;
+  declare public category?: TrainingCategory;
+  declare public externalId?: string;
+  declare public isActive?: boolean;
+  declare public totalSources?: number;
+  declare public totalGeneratedImages?: number;
 
   constructor(data: Partial<ITraining> = {}) {
     super(data);

@@ -8,17 +8,17 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Tag extends BaseEntity implements ITag {
-  public declare brand: IBrand;
-  public declare user: IUser;
-  public declare organization: IOrganization;
-  public declare category: TagCategory;
-  public declare label: string;
-  public declare description?: string;
-  public declare key?: string;
-  public declare backgroundColor: string;
-  public declare textColor: string;
-  public declare isActive?: boolean;
-  public declare color?: string;
+  declare public brand: IBrand;
+  declare public user: IUser;
+  declare public organization: IOrganization;
+  declare public category: TagCategory;
+  declare public label: string;
+  declare public description?: string;
+  declare public key?: string;
+  declare public backgroundColor: string;
+  declare public textColor: string;
+  declare public isActive?: boolean;
+  declare public color?: string;
 
   constructor(data: Partial<ITag> = {}) {
     super(data);
