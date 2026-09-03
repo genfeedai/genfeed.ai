@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -7,6 +7,7 @@ import {
   BRAND_RASTER_FILES,
   CANONICAL_LOGO_PATH,
   extractMarkPath,
+  FORBIDDEN_PUBLIC_LOADER_FILES,
   IDE_ACTIVITY_BAR_SVG,
   MARK_SOURCE_FILES,
 } from './render-brand-icons';
@@ -68,6 +69,14 @@ describe('committed brand icons', () => {
     for (const relativePath of MARK_SOURCE_FILES) {
       const source = readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
       expect(extractMarkPath(source), relativePath).toBe(canonical);
+    }
+  });
+
+  it('does not keep a second public loading.svg next to BrandLoader', () => {
+    for (const relativePath of FORBIDDEN_PUBLIC_LOADER_FILES) {
+      expect(existsSync(path.join(REPO_ROOT, relativePath)), relativePath).toBe(
+        false,
+      );
     }
   });
 

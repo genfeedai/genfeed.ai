@@ -9,13 +9,17 @@ export const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 } as const;
 
 export const MARK_SOURCE_FILES = [
   CANONICAL_LOGO_PATH,
-  'apps/app/public/loading.svg',
-  'apps/website/public/loading.svg',
   'packages/helpers/src/ui/icons/brands/genfeed-icon.ts',
   'packages/ui/src/components/feedback/brand-loader/BrandLoader.tsx',
   'apps/website/app/(content)/articles/[slug]/og/brand-mark.tsx',
   'apps/desktop/app/src/main/boot-screen.ts',
   'apps/extensions/ide/app/assets/icon.svg',
+] as const;
+
+/** Per-app public copies of the animated loader. BrandLoader is the shared one. */
+export const FORBIDDEN_PUBLIC_LOADER_FILES = [
+  'apps/app/public/loading.svg',
+  'apps/website/public/loading.svg',
 ] as const;
 
 export type BrandRasterId =
