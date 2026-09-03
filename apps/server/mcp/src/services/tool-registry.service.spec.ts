@@ -351,6 +351,7 @@ describe('ToolRegistryService', () => {
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
       'generate_video',
       { description: 'AI surfing', title: 'Epic Reel' },
+      undefined,
     );
     expect(
       (result as { content: { text: string }[] }).content[0].text,
@@ -718,6 +719,7 @@ describe('ToolRegistryService', () => {
     expect(clientService.executeAgentTool).toHaveBeenCalledWith(
       'get_credits_balance',
       {},
+      undefined,
     );
     expect(
       (result as { content: { text: string }[] }).content[0].text,

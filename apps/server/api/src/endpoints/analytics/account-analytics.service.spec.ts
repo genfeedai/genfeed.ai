@@ -2,6 +2,26 @@ import { AccountAnalyticsService } from '@api/endpoints/analytics/account-analyt
 import { AnalyticsMetric } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+function sqlText(query: unknown): string {
+  if (query && typeof query === 'object') {
+    const record = query as {
+      sql?: unknown;
+      strings?: unknown;
+      text?: unknown;
+    };
+    if (typeof record.sql === 'string') {
+      return record.sql;
+    }
+    if (typeof record.text === 'string') {
+      return record.text;
+    }
+    if (Array.isArray(record.strings)) {
+      return record.strings.map(String).join(' ');
+    }
+  }
+  return String(query);
+}
+
 function credential(index: number) {
   return {
     brand: { label: 'Brand' },
@@ -73,10 +93,7 @@ describe('AccountAnalyticsService', () => {
   it('returns period series and exact-credential top posts on drill-down', async () => {
     prisma.credential.findMany.mockResolvedValue([credential(1)]);
     prisma.$queryRaw.mockImplementation(async (query: unknown) => {
-      const text =
-        query && typeof query === 'object' && 'strings' in query
-          ? (query as { strings: string[] }).strings.join(' ')
-          : String(query);
+      const text = sqlText(query);
       if (text.includes('TO_CHAR')) {
         return [
           {
@@ -132,10 +149,7 @@ describe('AccountAnalyticsService', () => {
       credential(2),
     ]);
     prisma.$queryRaw.mockImplementation(async (query: unknown) => {
-      const text =
-        query && typeof query === 'object' && 'strings' in query
-          ? (query as { strings: string[] }).strings.join(' ')
-          : String(query);
+      const text = sqlText(query);
       if (text.includes('COUNT(DISTINCT')) {
         return [
           {

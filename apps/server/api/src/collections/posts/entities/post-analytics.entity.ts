@@ -27,6 +27,15 @@ export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly totalSavesIncrement: number;
 
   declare readonly engagementRate: number;
+  declare readonly credentialId: string | null;
+  declare readonly impressions: number | null;
+  declare readonly reach: number | null;
+  declare readonly clicks: number | null;
+  declare readonly videoViews: number | null;
+  declare readonly watchTimeSeconds: number | null;
+  declare readonly averageWatchTimeSeconds: number | null;
+  declare readonly metricAvailability: PostAnalytics['metricAvailability'];
+  declare readonly correctionKind: string | null;
 
   constructor(partial: Partial<PostAnalytics>) {
     Object.assign(this, partial);

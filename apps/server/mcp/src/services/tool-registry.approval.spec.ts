@@ -188,9 +188,11 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.resolveApproval).toHaveBeenCalledWith('apr-1', 'approve');
     expect(client.getApproval).not.toHaveBeenCalled();
     // The deferred tool actually ran...
-    expect(client.executeAgentTool).toHaveBeenCalledWith('create_post', {
-      content: 'hello',
-    });
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      'create_post',
+      { content: 'hello' },
+      { approvedApprovalId: 'apr-1' },
+    );
     // ...and the execution result was persisted via the dedicated result path.
     expect(client.attachApprovalResult).toHaveBeenCalledWith(
       'apr-1',
@@ -216,9 +218,11 @@ describe('ToolRegistryService — approval queue', () => {
       name: 'resolve_approval',
     })) as { isError?: boolean; content: { text: string }[] };
 
-    expect(client.executeAgentTool).toHaveBeenCalledWith('create_post', {
-      content: 'hello',
-    });
+    expect(client.executeAgentTool).toHaveBeenCalledWith(
+      'create_post',
+      { content: 'hello' },
+      { approvedApprovalId: 'apr-1' },
+    );
     // The approval gate was NOT re-applied on execution.
     expect(client.createApproval).not.toHaveBeenCalled();
     expect(result.isError).toBeFalsy();

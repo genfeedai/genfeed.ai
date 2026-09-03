@@ -229,13 +229,15 @@ export class AccountAnalyticsService {
 
     if (existing) {
       await this.prisma.organizationSetting.update({
-        data: { fleetEvaluationPolicy: next as Prisma.InputJsonValue },
+        data: {
+          fleetEvaluationPolicy: next as unknown as Prisma.InputJsonValue,
+        },
         where: { id: existing.id },
       });
     } else {
       await this.prisma.organizationSetting.create({
         data: {
-          fleetEvaluationPolicy: next as Prisma.InputJsonValue,
+          fleetEvaluationPolicy: next as unknown as Prisma.InputJsonValue,
           organizationId,
         },
       });

@@ -33,6 +33,7 @@ describe('ThreadsService', () => {
     const credentialsMock = {
       findAll: vi.fn(),
       findBrandAccounts: vi.fn(),
+      findConnectedAccounts: vi.fn(),
       findOne: vi.fn(),
       mergeWarmupSignals: vi.fn(),
       patch: vi.fn(),

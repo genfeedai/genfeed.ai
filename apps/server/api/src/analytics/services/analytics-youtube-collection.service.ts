@@ -58,10 +58,9 @@ export class AnalyticsYouTubeCollectionService {
       }
 
       const videoIds = posts.map((post) => post.externalId);
-      const firstPost = posts[0];
       const resolution = await resolveAnalyticsCollectionCredential({
         brandId,
-        credentialId: data.credentialId ?? firstPost?.credentialId,
+        credentialId: data.credentialId,
         lookup: this.credentialsService,
         organizationId,
         platform: CredentialPlatform.YOUTUBE,
