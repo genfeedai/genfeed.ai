@@ -1,6 +1,8 @@
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
+import { CampaignComparisonService } from '@api/collections/campaigns/services/campaign-comparison.service';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
+import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
@@ -33,6 +35,9 @@ const user = {
 } as never;
 
 describe('CampaignsController', () => {
+  const comparisonService = {
+    compare: vi.fn(),
+  };
   const generationService = {
     generate: vi.fn(),
   };
@@ -40,6 +45,11 @@ describe('CampaignsController', () => {
     complete: vi.fn(),
     pause: vi.fn(),
     start: vi.fn(),
+  };
+  const paidActivationService = {
+    approveSpend: vi.fn(),
+    list: vi.fn(),
+    prepare: vi.fn(),
   };
   const performanceService = {
     getPerformance: vi.fn(),
@@ -60,8 +70,10 @@ describe('CampaignsController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controller = new CampaignsController(
+      comparisonService as unknown as CampaignComparisonService,
       generationService as unknown as CampaignGenerationService,
       lifecycleService as unknown as CampaignLifecycleService,
+      paidActivationService as unknown as CampaignPaidActivationService,
       performanceService as unknown as CampaignPerformanceService,
       service as unknown as CampaignsService,
     );
@@ -71,8 +83,13 @@ describe('CampaignsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CampaignsController],
       providers: [
+        { provide: CampaignComparisonService, useValue: comparisonService },
         { provide: CampaignGenerationService, useValue: generationService },
         { provide: CampaignLifecycleService, useValue: lifecycleService },
+        {
+          provide: CampaignPaidActivationService,
+          useValue: paidActivationService,
+        },
         { provide: CampaignPerformanceService, useValue: performanceService },
         { provide: CampaignsService, useValue: service },
       ],

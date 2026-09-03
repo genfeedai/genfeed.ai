@@ -144,6 +144,10 @@ describe('CampaignDetailShell', () => {
       'href',
       '/acme/demo/publishing/campaigns/cmp-1/performance',
     );
+    expect(screen.getByRole('link', { name: 'tabs.ads' })).toHaveAttribute(
+      'href',
+      '/acme/demo/publishing/campaigns/cmp-1/ads',
+    );
     expect(screen.getByText('overview body')).toBeInTheDocument();
   });
 

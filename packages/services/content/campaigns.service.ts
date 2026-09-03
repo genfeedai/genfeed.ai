@@ -4,9 +4,11 @@ import type {
   ICampaign,
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
+  ICampaignPaidActivation,
   ICampaignPerformance,
   IGenerateCampaignContentInput,
   IPaginatedResponse,
+  IPrepareCampaignPaidActivationInput,
 } from '@genfeedai/contracts/interfaces';
 import { CampaignSerializer } from '@genfeedai/serializers';
 import {
@@ -105,6 +107,31 @@ export class CampaignsService extends BaseService<
         })
         .then((response) =>
           this.extractResource<ICampaignPerformance>(response.data),
+        ),
+    );
+  }
+
+  async listActivations(id: string): Promise<ICampaignPaidActivation[]> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/${id}/activations`,
+      this.instance
+        .get<JsonApiResponseDocument>(`/${id}/activations`)
+        .then((response) =>
+          this.extractCollection<ICampaignPaidActivation>(response.data),
+        ),
+    );
+  }
+
+  async prepareActivation(
+    id: string,
+    input: IPrepareCampaignPaidActivationInput,
+  ): Promise<ICampaignPaidActivation> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/activations`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/activations`, input)
+        .then((response) =>
+          this.extractResource<ICampaignPaidActivation>(response.data),
         ),
     );
   }

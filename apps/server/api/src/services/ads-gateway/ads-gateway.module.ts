@@ -17,7 +17,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AdsGatewayWriteController, AdsGatewayController],
-  exports: [AdsGatewayService],
+  exports: [AdsGatewayService, AdsGatewayRequestContextService],
   imports: [
     CredentialsCoreModule,
     MetaAdsModule,

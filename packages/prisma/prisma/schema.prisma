@@ -599,6 +599,7 @@ model User {
   apiKeys                   ApiKey[]
   ingredients               Ingredient[]
   campaigns                 Campaign[]
+  campaignPaidActivations   CampaignPaidActivation[]
   posts                     Post[]
   postGroups                PostGroup[]
   postingCadences           PostingCadence[]
@@ -720,6 +721,7 @@ model Organization {
   orgIntegrations               OrgIntegration[]
   ingredients                   Ingredient[]
   campaigns                     Campaign[]
+  campaignPaidActivations       CampaignPaidActivation[]
   posts                         Post[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
@@ -933,6 +935,7 @@ model Brand {
   credentials                Credential[]
   ingredients                Ingredient[]               @relation("ingredient_brand")
   campaigns                  Campaign[]
+  campaignPaidActivations    CampaignPaidActivation[]
   posts                      Post[]
   postGroups                 PostGroup[]
   postingCadences            PostingCadence[]
@@ -1621,6 +1624,7 @@ model Credential {
   socialMessages          SocialMessage[]
   personas                Persona[]                @relation("persona_credentials")
   outreachCampaigns       OutreachCampaign[]
+  campaignPaidActivations CampaignPaidActivation[]
   socialWarmupEnrollments SocialWarmupEnrollment[]
 
   @@index([oauthTokenHash])
@@ -2567,10 +2571,44 @@ model Campaign {
   updatedAt      DateTime     @updatedAt
   posts          Post[]
   postGroups     PostGroup[]
+  paidActivations CampaignPaidActivation[]
 
   @@unique([organizationId, idempotencyKey], map: "campaigns_organizationId_idempotencyKey_key")
   @@index([organizationId, isDeleted, brandId, status, createdAt(sort: Desc), id], map: "campaigns_org_brand_status_idx")
   @@map("campaigns")
+}
+
+model CampaignPaidActivation {
+  id                    String       @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  brandId               String
+  brand                 Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  campaignId            String
+  campaign              Campaign     @relation(fields: [campaignId], references: [id])
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id])
+  credentialId          String
+  credential            Credential   @relation(fields: [credentialId], references: [id])
+  adAccountId           String
+  platform              String
+  postIds               String[]     @default([])
+  status                String       @default("paused")
+  externalCampaignId    String?
+  externalAdSetId       String?
+  externalAdId          String?
+  currency              String?
+  failureReason         String?
+  idempotencyKey        String?
+  spendApprovedAt       DateTime?
+  spendApprovedByUserId String?
+  isDeleted             Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([organizationId, idempotencyKey], map: "campaign_paid_activations_org_idempotency_key")
+  @@index([organizationId, isDeleted, campaignId, createdAt(sort: Desc), id], map: "campaign_paid_activations_org_campaign_idx")
+  @@map("campaign_paid_activations")
 }
 
 model PostGroup {

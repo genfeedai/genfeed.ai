@@ -1,3 +1,5 @@
+export { default as CampaignComparePage } from '@pages/campaigns/detail/CampaignComparePage';
+export { default as CampaignDetailAds } from '@pages/campaigns/detail/CampaignDetailAds';
 export { default as CampaignDetailOverview } from '@pages/campaigns/detail/CampaignDetailOverview';
 export { default as CampaignDetailPerformance } from '@pages/campaigns/detail/CampaignDetailPerformance';
 export { default as CampaignDetailShell } from '@pages/campaigns/detail/CampaignDetailShell';

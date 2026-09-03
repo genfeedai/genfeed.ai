@@ -107,3 +107,13 @@ export function canApplyContentCampaignLifecycle(
 ): boolean {
   return CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM[action].has(status);
 }
+
+/**
+ * Paid activation program status. Provider resources stay paused until a
+ * later explicit spend approval actually starts spend — this slice never
+ * writes ACTIVE / ENABLE.
+ */
+export enum ContentCampaignPaidActivationStatus {
+  FAILED = 'failed',
+  PAUSED = 'paused',
+}
