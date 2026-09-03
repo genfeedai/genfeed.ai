@@ -5,6 +5,7 @@
  */
 
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
+import { AgentRunsController } from '@api/collections/agent-threads/controllers/agent-runs.controller';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
@@ -14,7 +15,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AgentThreadsController],
+  controllers: [AgentRunsController, AgentThreadsController],
   exports: [AgentScopeContextService, AgentThreadsService],
   imports: [AgentMessagesModule, UsersCoreModule],
   providers: [

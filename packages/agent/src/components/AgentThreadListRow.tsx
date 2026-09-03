@@ -43,6 +43,10 @@ interface AgentThreadListRowProps {
     | 'completed'
     | 'failed'
     | 'cancelled'
+    | 'awaiting_input'
+    | 'awaiting_confirmation'
+    | 'interrupted'
+    | 'restoring'
     | null
     | undefined;
   isStreaming: boolean;
@@ -106,36 +110,16 @@ function ThreadActivityIndicator({
     tone: statusMeta.tone,
   });
 
-  if (statusMeta.tone === 'failed') {
-    return (
-      <span
-        aria-label={statusMeta.label}
-        className="size-2 shrink-0 rounded-full bg-destructive"
-        role="status"
-        title={statusMeta.label}
-      />
-    );
-  }
-
-  if (statusMeta.tone === 'running') {
-    return (
-      <span
-        aria-label={statusMeta.label}
-        className="size-2 shrink-0 animate-pulse rounded-full bg-info motion-reduce:animate-none"
-        role="status"
-        title={statusMeta.label}
-      />
-    );
-  }
-
   return (
-    <Badge
-      className="shrink-0 capitalize"
-      size={ComponentSize.SM}
-      status={statusKey}
-    >
-      {statusMeta.label}
-    </Badge>
+    <span role="status" aria-label={statusMeta.label}>
+      <Badge
+        className="shrink-0 capitalize"
+        size={ComponentSize.SM}
+        status={statusKey}
+      >
+        {statusMeta.label}
+      </Badge>
+    </span>
   );
 }
 

@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { type ReactElement, useMemo, useState } from 'react';
+import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
 interface DynamicTableProps {
   block: TableBlock;
@@ -70,10 +70,15 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
   const { columns, rows, sortBy, sortDirection } = block;
   const hydratableBlock = block as HydratableTableBlock;
   const isLoading = hydratableBlock.hydration?.status === 'loading';
+  const [hasBeenViewed, setHasBeenViewed] = useState(false);
 
   const [sort, setSort] = useState<SortState | null>(
     sortBy ? { column: sortBy, direction: sortDirection ?? 'asc' } : null,
   );
+
+  useEffect(() => {
+    setHasBeenViewed(true);
+  }, []);
 
   const sortedRows = useMemo(() => sortRows(rows, sort), [rows, sort]);
 
@@ -92,7 +97,10 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
   }
 
   return (
-    <div className="overflow-x-auto border border-border">
+    <div
+      className="overflow-x-auto border border-border"
+      data-work-object-viewed={hasBeenViewed ? 'true' : 'false'}
+    >
       <Table className="w-full text-sm">
         <TableHeader>
           <TableRow className="border-b border-border bg-muted/50">

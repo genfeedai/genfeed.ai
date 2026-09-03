@@ -120,14 +120,41 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(
-      2,
+    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
+      3,
       expect.objectContaining({
         data: expect.objectContaining({
           status: PrismaWorkflowExecutionStatus.CANCELLED,
         }),
+        where: expect.objectContaining({
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.PENDING,
+              PrismaWorkflowExecutionStatus.RUNNING,
+            ],
+          },
+        }),
       }),
     );
+  });
+
+  it('leaves an already terminal execution unchanged on cancel', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      id: 'execution-1',
+      status: PrismaWorkflowExecutionStatus.COMPLETED,
+    });
+    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await service.cancelExecution('execution-1');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'execution-1',
+        status: PrismaWorkflowExecutionStatus.COMPLETED,
+      }),
+    );
+    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
   it('uses the organization-scoped unique key for idempotent child creation', async () => {

@@ -991,8 +991,7 @@ describe('AgentThreadList', () => {
     ).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
-    expect(screen.queryByText('Running')).toBeNull();
+    expect(status).toHaveTextContent('Running');
   });
 
   it('shows an accessible animated dot for a non-active running thread', async () => {
@@ -1012,11 +1011,10 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Background run')).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
-    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
-    expect(screen.queryByText('Running')).toBeNull();
+    expect(status).toHaveTextContent('Running');
   });
 
-  it('shows failed state as an accessible red dot without a text badge', async () => {
+  it('shows failed state with visible status text', async () => {
     const thread = createThread('conv-1', 'Failed thread', {
       runStatus: 'failed',
     } as Partial<AgentThread>);
@@ -1030,8 +1028,7 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Failed thread')).toBeInTheDocument();
     const failed = screen.getByRole('status', { name: 'Failed' });
     const title = screen.getByText('Failed thread');
-    expect(failed).toHaveClass('rounded-full', 'bg-destructive');
-    expect(failed).toHaveTextContent('');
+    expect(failed).toHaveTextContent('Failed');
     expect(
       Boolean(
         failed.compareDocumentPosition(title) &
@@ -1200,7 +1197,6 @@ describe('AgentThreadList', () => {
     ).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
-    expect(screen.queryByText('Running')).toBeNull();
+    expect(status).toHaveTextContent('Running');
   });
 });

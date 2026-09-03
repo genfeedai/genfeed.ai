@@ -403,6 +403,17 @@ export interface AgentThread {
     | 'completed'
     | 'failed'
     | 'cancelled';
+  runtimeState?:
+    | 'ready'
+    | 'running'
+    | 'awaiting_input'
+    | 'awaiting_confirmation'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'interrupted'
+    | 'restoring';
+  decisionHref?: string | null;
   pendingInputCount?: number;
   lastActivityAt?: string;
   lastAssistantPreview?: string;

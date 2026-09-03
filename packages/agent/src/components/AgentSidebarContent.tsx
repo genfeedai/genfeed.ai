@@ -1,10 +1,14 @@
+import { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactElement, useMemo } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentSidebarContentProps {
   apiService: AgentApiService;
@@ -16,6 +20,12 @@ export function AgentSidebarContent({
   onNavigate,
 }: AgentSidebarContentProps): ReactElement {
   const { activeHref, href } = useOrgUrl();
+  const [listView, setListView] = useState<'conversations' | 'runs'>(
+    'conversations',
+  );
+  const socketConnectionState = useAgentChatStore(
+    (state) => state.socketConnectionState,
+  );
   const newThreadHref = activeHref(APP_ROUTES.AGENT.NEW);
   const newThreadAction = useMemo(
     () => (
@@ -44,12 +54,41 @@ export function AgentSidebarContent({
           </span>
         </Link>
       </div>
-      <AgentThreadList
-        apiService={apiService}
-        onNavigate={onNavigate}
-        searchAction={newThreadAction}
-        showTitle
-      />
+      <div className="flex gap-1 px-3 pb-2">
+        <Button
+          variant={
+            listView === 'conversations'
+              ? ButtonVariant.SECONDARY
+              : ButtonVariant.GHOST
+          }
+          withWrapper={false}
+          onClick={() => setListView('conversations')}
+        >
+          Conversations
+        </Button>
+        <Button
+          variant={
+            listView === 'runs' ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+          }
+          withWrapper={false}
+          onClick={() => setListView('runs')}
+        >
+          Runs
+        </Button>
+      </div>
+      {listView === 'runs' ? (
+        <AgentRunsList
+          onNavigate={onNavigate}
+          socketConnectionState={socketConnectionState}
+        />
+      ) : (
+        <AgentThreadList
+          apiService={apiService}
+          onNavigate={onNavigate}
+          searchAction={newThreadAction}
+          showTitle
+        />
+      )}
     </div>
   );
 }

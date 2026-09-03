@@ -245,7 +245,7 @@ export function AgentChatContainer({
             onSendFollowUpNow={container.sendFollowUpNow}
             isInterruptingFollowUps={container.followUpQueue.isInterrupting}
             onStop={container.handleStopRun}
-            placeholder={placeholder}
+            placeholder={container.pendingInputRequest?.prompt ?? placeholder}
             promptBarSuggestions={emptyStatePromptBarSuggestions}
             removeAttachment={container.removeAttachment}
             creditsAvailable={creditsRemaining}
@@ -355,7 +355,7 @@ export function AgentChatContainer({
                   ? container.pendingInputRequest
                   : null
               }
-              placeholder={placeholder}
+              placeholder={container.pendingInputRequest?.prompt ?? placeholder}
               promptBarSuggestions={promptBarSuggestions}
               removeAttachment={container.removeAttachment}
               showSuggestedActionsWhenNotEmpty={

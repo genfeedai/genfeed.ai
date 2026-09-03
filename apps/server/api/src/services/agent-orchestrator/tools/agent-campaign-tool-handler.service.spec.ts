@@ -189,10 +189,12 @@ describe('AgentCampaignToolHandler', () => {
     expect(result.nextActions?.[0]?.ctas).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          action: 'send_prompt',
+          action: 'confirm_outreach_sequence',
           label: 'Confirm start',
           payload: {
-            prompt: expect.stringContaining('campaign-1'),
+            campaignId: 'campaign-1',
+            sourceActionId: expect.any(String),
+            transition: 'start',
           },
         }),
       ]),

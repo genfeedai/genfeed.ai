@@ -15,6 +15,7 @@ export { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboa
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+export { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
 export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 export { AgentStrategyConfig } from '@genfeedai/agent/components/AgentStrategyConfig';

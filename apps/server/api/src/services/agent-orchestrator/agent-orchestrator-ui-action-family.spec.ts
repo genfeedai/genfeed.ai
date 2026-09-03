@@ -13,6 +13,7 @@ const EXPECTED_ACTION_FAMILIES = {
   confirm_install_official_workflow: 'confirmed-tool',
   confirm_publish_post: 'confirmed-tool',
   confirm_generate_media: 'confirmed-tool',
+  confirm_outreach_sequence: 'confirmed-tool',
   confirm_save_brand_voice_profile: 'confirmed-tool',
 } as const satisfies Record<SupportedThreadUiAction, ThreadUiActionFamily>;
 

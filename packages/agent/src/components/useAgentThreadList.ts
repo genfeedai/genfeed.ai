@@ -91,8 +91,16 @@ export function useAgentThreadList({
   });
 
   const getThreadHref = useCallback(
-    (thread: AgentThread) =>
-      resolveThreadHref?.(thread) ?? `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
+    (thread: AgentThread) => {
+      const base =
+        resolveThreadHref?.(thread) ?? `${APP_ROUTES.AGENT.ROOT}/${thread.id}`;
+      const decisionHref = thread.decisionHref;
+      const queryIndex = decisionHref?.indexOf('?') ?? -1;
+      if (queryIndex === -1 || base.includes('?') || !decisionHref) {
+        return base;
+      }
+      return `${base}${decisionHref.slice(queryIndex)}`;
+    },
     [resolveThreadHref],
   );
   const getNewThreadHref = useCallback(() => APP_ROUTES.AGENT.NEW, []);

@@ -172,7 +172,9 @@ export function UiActionRenderer({
       card = <CampaignCreateCard action={action} />;
       break;
     case 'outreach_sequence_control_card':
-      card = <CampaignControlCard action={action} />;
+      card = (
+        <CampaignControlCard action={action} onUiAction={liveOnUiAction} />
+      );
       break;
     case 'review_gate_card':
       card = <ReviewGateCard action={action} />;
@@ -305,7 +307,16 @@ export function UiActionRenderer({
       );
       break;
     default:
-      return null;
+      card = (
+        <div
+          className="border border-border bg-background-secondary p-3 text-sm text-foreground"
+          role="status"
+        >
+          This card type is not supported yet.
+          {typeof action.type === 'string' ? ` (${action.type})` : ''}
+        </div>
+      );
+      break;
   }
 
   if (!card) {

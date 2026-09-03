@@ -4,7 +4,6 @@ import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline
 import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
-import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
@@ -156,8 +155,6 @@ export function AgentChatContainerThreadView({
           {activeThreadTitle ? (
             <h2 className="sr-only">{activeThreadTitle}</h2>
           ) : null}
-
-          <WorkflowPhaseProgressBar />
 
           {latestProposedPlan ? (
             <AgentPlanReviewSection

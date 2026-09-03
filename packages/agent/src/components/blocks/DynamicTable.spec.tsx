@@ -29,6 +29,15 @@ function readColumn(index: number): string[] {
 }
 
 describe('DynamicTable', () => {
+  it('marks the table viewed in session when it is rendered inline', () => {
+    const { container } = render(<DynamicTable block={makeBlock()} />);
+
+    expect(container.firstChild).toHaveAttribute(
+      'data-work-object-viewed',
+      'true',
+    );
+  });
+
   it('renders headers and rows in source order by default', () => {
     render(<DynamicTable block={makeBlock()} />);
 

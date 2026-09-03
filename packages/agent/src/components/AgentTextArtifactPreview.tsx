@@ -161,7 +161,7 @@ export function AgentTextArtifactPreview({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <ArtifactPreviewBody data={data} expanded={false} />
+      <ArtifactPreviewBody data={data} expanded />
       <div className="flex justify-end gap-1">
         {onCopy ? (
           <Button
