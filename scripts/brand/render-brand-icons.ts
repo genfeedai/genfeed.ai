@@ -33,7 +33,16 @@ export type BrandRasterId =
   | 'mobileSplashDark'
   | 'mobileNotification'
   | 'mobileFavicon'
-  | 'extensionToolbar';
+  | 'extensionToolbar'
+  | 'pwaMaskable192'
+  | 'pwaMaskable512';
+
+/**
+ * Maskable safe zone is a centered circle of diameter 80% of the canvas.
+ * The G is itself roughly circular, so 72% of the square keeps ink inside
+ * that circle after the SVG's own padding.
+ */
+export const PWA_MASKABLE_MARK_RATIO = 0.72;
 
 export type RasterBackground = {
   readonly r: number;
@@ -92,6 +101,18 @@ export const BRAND_RASTER_SPECS: Record<BrandRasterId, BrandRasterSpec> = {
     fill: '#000000',
     markSize: 400,
   },
+  pwaMaskable192: {
+    background: OPAQUE_BLACK,
+    canvas: 192,
+    fill: '#ffffff',
+    markSize: Math.round(192 * PWA_MASKABLE_MARK_RATIO),
+  },
+  pwaMaskable512: {
+    background: OPAQUE_BLACK,
+    canvas: 512,
+    fill: '#ffffff',
+    markSize: Math.round(512 * PWA_MASKABLE_MARK_RATIO),
+  },
 };
 
 export const BRAND_RASTER_FILES: Record<BrandRasterId, string> = {
@@ -102,7 +123,14 @@ export const BRAND_RASTER_FILES: Record<BrandRasterId, string> = {
   mobileNotification: 'apps/mobile/app/assets/images/notification-icon.png',
   mobileSplashDark: 'apps/mobile/app/assets/images/splash-icon-dark.png',
   mobileSplashLight: 'apps/mobile/app/assets/images/splash-icon.png',
+  pwaMaskable192: 'apps/app/public/assets/pwa/app/icon-maskable-192x192.png',
+  pwaMaskable512: 'apps/app/public/assets/pwa/app/icon-maskable-512x512.png',
 };
+
+export const PWA_ANY_ICON_FILES = {
+  192: 'apps/app/public/assets/pwa/app/icon-192x192.png',
+  512: 'apps/app/public/assets/pwa/app/icon-512x512.png',
+} as const;
 
 export const IDE_ACTIVITY_BAR_SVG = 'apps/extensions/ide/app/assets/icon.svg';
 
