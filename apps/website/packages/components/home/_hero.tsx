@@ -19,19 +19,19 @@ export default function HomeHero(): React.ReactElement {
         </Text>
         <Heading
           as="h1"
-          className="animate-gen-stagger-in mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [animation-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-in mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
           Everything your brand can become.
         </Heading>
         <Text
           as="p"
-          className="animate-gen-stagger-in mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 [animation-delay:180ms] md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
           Every format. One recognisable brand.
         </Text>
 
         <div
-          className="animate-gen-stagger-in mt-9 [animation-delay:270ms]"
+          className="animate-gen-stagger-in mt-9 [--gen-stagger-delay:270ms]"
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -65,7 +65,7 @@ export default function HomeHero(): React.ReactElement {
       </div>
 
       <div
-        className="animate-gen-rise mt-20 w-screen px-6 [animation-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="animate-gen-rise mt-20 w-screen px-6 [--gen-stagger-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
         data-testid="home-hero-output-carousel"
       >
         <HorizontalCarousel

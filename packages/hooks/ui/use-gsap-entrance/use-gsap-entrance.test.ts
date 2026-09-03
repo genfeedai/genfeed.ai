@@ -105,6 +105,36 @@ describe('useGsapEntrance batch reveals', () => {
     );
   });
 
+  it('never hides an element the reader can already see', async () => {
+    const inView = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({ bottom: 120, top: 40 } as DOMRect);
+
+    render(
+      createElement(RevealList, {
+        animations: [gsapPresets.revealEach('.item')],
+      }),
+    );
+
+    await waitFor(() => expect(gsapMock.context).toHaveBeenCalled());
+    expect(gsapMock.set).not.toHaveBeenCalled();
+    expect(scrollTriggerMock.batch).not.toHaveBeenCalled();
+    inView.mockRestore();
+  });
+
+  it('does nothing when unmounted before GSAP finishes loading', async () => {
+    const { unmount } = render(
+      createElement(RevealList, {
+        animations: [gsapPresets.revealEach('.item')],
+      }),
+    );
+    unmount();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(gsapMock.context).not.toHaveBeenCalled();
+    expect(gsapMock.set).not.toHaveBeenCalled();
+  });
+
   it('keeps shared-trigger animations on a single tween', async () => {
     render(
       createElement(RevealList, {
@@ -133,6 +163,7 @@ describe('useGsapEntrance batch reveals', () => {
 
 describe('prefersReducedMotion', () => {
   it('is false when matchMedia is unavailable', () => {
+    vi.stubGlobal('matchMedia', undefined);
     expect(prefersReducedMotion()).toBe(false);
   });
 

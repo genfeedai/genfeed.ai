@@ -2,7 +2,7 @@
 
 import type { GsapAnimation } from '@hooks/ui/use-gsap-entrance';
 import { gsapPresets, useGsapEntrance } from '@hooks/ui/use-gsap-entrance';
-import type { PropsWithChildren } from 'react';
+import type { LayoutProps } from '@props/layout/layout.props';
 
 /**
  * Sections opt into scroll reveals by marking elements with `data-reveal`.
@@ -16,7 +16,7 @@ export const HOME_REVEAL_ANIMATIONS: GsapAnimation[] = [
 
 export default function HomeReveal({
   children,
-}: PropsWithChildren): React.ReactElement {
+}: LayoutProps): React.ReactElement {
   const containerRef = useGsapEntrance({ animations: HOME_REVEAL_ANIMATIONS });
 
   return (

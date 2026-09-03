@@ -45,6 +45,16 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
+/**
+ * Content the reader can already see is never hidden for a reveal. The GSAP
+ * import resolves after first paint, so hiding it would flash on anchor
+ * entry or a restored scroll position.
+ */
+function isInViewport(element: Element): boolean {
+  const { bottom, top } = element.getBoundingClientRect();
+  return bottom > 0 && top < window.innerHeight;
+}
+
 export interface UseGsapEntranceOptions {
   /** Array of animations to run */
   animations: GsapAnimation[];
@@ -89,6 +99,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: { revert: () => void } | null = null;
+    let isCancelled = false;
 
     const initGsap = async () => {
       try {
@@ -96,6 +107,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
           import('gsap'),
           import('gsap/ScrollTrigger'),
         ]);
+        if (isCancelled) return;
 
         const gsap = gsapModule.default;
         const { ScrollTrigger } = scrollTriggerModule;
@@ -126,8 +138,13 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
             const start = anim.scrollTrigger?.start ?? 'top 85%';
 
             if (anim.scrollTrigger?.batch) {
-              gsap.set(elements, fromVars);
-              ScrollTrigger.batch(elements, {
+              const pending = Array.from(elements).filter(
+                (element) => !isInViewport(element),
+              );
+              if (pending.length === 0) continue;
+
+              gsap.set(pending, fromVars);
+              ScrollTrigger.batch(pending, {
                 onEnter: (batch) => {
                   gsap.to(batch, toVars);
                 },
@@ -155,6 +172,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
     initGsap();
 
     return () => {
+      isCancelled = true;
       ctx?.revert();
     };
   }, [animations, enabled]);
@@ -201,10 +219,13 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     }
 
     let ctx: { revert: () => void } | null = null;
+    let isCancelled = false;
 
     const initGsap = async () => {
       try {
         const gsapModule = await import('gsap');
+        if (isCancelled) return;
+
         const gsap = gsapModule.default;
 
         ctx = gsap.context(() => {
@@ -240,6 +261,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
     initGsap();
 
     return () => {
+      isCancelled = true;
       ctx?.revert();
     };
   }, [steps, enabled]);
