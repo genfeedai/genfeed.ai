@@ -206,6 +206,50 @@ describe('check-product-workflow-boundary', () => {
     expect(result.documentedDetections).toHaveLength(0);
   });
 
+  it('rejects Brand Remix generation that does not start a workflow execution', () => {
+    writeFixture(
+      'apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts',
+      `
+        export class BrandRemixRunExecutionService {
+          async start(): Promise<void> {
+            await this.dispatchMediaVariants();
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts',
+          ruleId: 'brand-remix-generation-bypasses-workflow',
+        }),
+      ]),
+    );
+  });
+
+  it('rejects the retired content-plan item macro action', () => {
+    writeFixture(
+      'apps/server/api/src/services/content-engine/content-execution.service.ts',
+      `
+        export const ITEM_ACTION = 'content.production.engine.execute-plan-item';
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'apps/server/api/src/services/content-engine/content-execution.service.ts',
+          ruleId: 'content-plan-item-macro-executor',
+        }),
+      ]),
+    );
+  });
+
   it('rejects serialized system workflow graphs from MCP and Website surfaces', () => {
     writeFixture(
       'apps/server/mcp/src/services/youtube-long-form.service.ts',

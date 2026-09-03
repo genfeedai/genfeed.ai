@@ -1,5 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
+import { BRAND_REMIX_EXECUTE_WORKFLOW_IDS } from '@api/collections/content-runs/services/brand-remix-execute-workflow-definition';
+import { runBrandRemixExecuteWorkflow } from '@api/collections/content-runs/services/brand-remix-execute-workflow.test-util';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -234,7 +236,14 @@ describe('BrandRemixRunsService', () => {
       videoGenerationService: videoGenerationService as never,
     });
     graph.review.onModuleInit();
+    graph.execution.onModuleInit();
     systemWorkflowRunner.runWorkflow.mockImplementation(async (request) => {
+      if (request.canonicalId === BRAND_REMIX_EXECUTE_WORKFLOW_IDS.EXECUTE) {
+        return runBrandRemixExecuteWorkflow({
+          actions: workflowActions,
+          request,
+        });
+      }
       const provenance = {
         executionId: 'workflow-execution-1',
         workflowId: 'workflow-1',

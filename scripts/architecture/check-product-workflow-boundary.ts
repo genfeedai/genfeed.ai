@@ -265,6 +265,26 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   },
   {
     exceptionAllowed: false,
+    id: 'brand-remix-generation-bypasses-workflow',
+    matches: (file, source) =>
+      file.endsWith(
+        '/collections/content-runs/services/brand-remix-run-execution.service.ts',
+      ) &&
+      /async start\s*\(/.test(source) &&
+      !/runWorkflow\s*</.test(source),
+    message:
+      'Brand Remix generation must start an immutable WorkflowExecution; do not dispatch variants from the entry surface.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'content-plan-item-macro-executor',
+    matches: (_file, source) =>
+      /content\.production\.engine\.execute-plan-item/.test(source),
+    message:
+      'Content-plan items must run through skill and mediaquery actions. The execute-plan-item macro is retired.',
+  },
+  {
+    exceptionAllowed: false,
     id: 'dynamic-system-action-workflow',
     matches: (_file, source) =>
       /\.\s*runAction\s*(?:<[^;{]*?>)?\s*\(/s.test(source) ||

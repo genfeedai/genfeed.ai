@@ -190,16 +190,40 @@ export class ContentProductionWorkflowService {
     );
   }
 
-  async executeContentEnginePlanItem(
+  async prepareContentEnginePlanItem(
     organizationId: string,
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const item = this.readRecord(input.item);
-    const result = await this.contentExecutionService.executeSingleItem(
+    return this.contentExecutionService.preparePlanItem(
       organizationId,
       this.requiredString(input.brandId, 'brandId'),
       this.requiredString(input.userId, 'userId'),
       this.requiredString(item.id, 'item.id'),
+    );
+  }
+
+  async runContentEngineSkillItem(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.contentExecutionService.runSkillItem(
+      this.readRecord(input.state) as never,
+    );
+  }
+
+  async persistContentEngineSkillItem(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.contentExecutionService.persistSkillItem(
+      this.readRecord(input.state) as never,
+    );
+  }
+
+  async executeContentEngineMediaqueryItem(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const result = await this.contentExecutionService.executeMediaqueryItem(
+      this.readRecord(input.state) as never,
     );
     return { ...result };
   }

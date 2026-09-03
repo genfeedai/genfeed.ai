@@ -592,12 +592,15 @@ const AUTOMATION_ACTION_IDS = [
   'agent.autopilot.reset-credit-window',
   'content.production.engine.begin',
   'content.production.engine.discover-brands',
-  'content.production.engine.execute-plan-item',
+  'content.production.engine.execute-mediaquery-item',
   'content.production.engine.fail',
   'content.production.engine.finalize-plan',
   'content.production.engine.finalize',
+  'content.production.engine.persist-skill-item',
   'content.production.engine.plan-brand',
   'content.production.engine.prepare-plan',
+  'content.production.engine.prepare-plan-item',
+  'content.production.engine.run-skill-item',
   'content.production.autopilot.begin',
   'content.production.autopilot.discover-personas',
   'content.production.autopilot.fail',
@@ -878,6 +881,41 @@ const SYSTEM_MAINTENANCE_ACTION_DEFINITIONS = SYSTEM_MAINTENANCE_ACTIONS.map(
 );
 
 const BRAND_REMIX_ACTIONS = [
+  [
+    'brand-remix.execute.adopt-orphans',
+    'Adopt Brand Remix Orphans',
+    'Adopts orphaned remix placeholders onto claimed variants.',
+  ],
+  [
+    'brand-remix.execute.claim',
+    'Claim Brand Remix Generation',
+    'Claims one remix run for idempotent generation.',
+  ],
+  [
+    'brand-remix.execute.dispatch-media',
+    'Dispatch Brand Remix Media',
+    'Dispatches claimed remix media variants through their provider executors.',
+  ],
+  [
+    'brand-remix.execute.generate-copy',
+    'Generate Brand Remix Copy',
+    'Generates copy variants for one claimed remix run.',
+  ],
+  [
+    'brand-remix.execute.prepare',
+    'Prepare Brand Remix Execution',
+    'Validates and snapshots one remix run before generation.',
+  ],
+  [
+    'brand-remix.execute.project',
+    'Project Brand Remix Execution',
+    'Projects one remix generation into its response contract.',
+  ],
+  [
+    'brand-remix.execute.reconcile',
+    'Reconcile Brand Remix Execution',
+    'Reconciles remix variant state after generation.',
+  ],
   [
     'brand-remix.meta.create-ad',
     'Create Brand Remix Meta Ad',

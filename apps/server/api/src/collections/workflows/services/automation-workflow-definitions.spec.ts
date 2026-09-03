@@ -146,6 +146,23 @@ describe('automation workflow definitions', () => {
     ).toBe(true);
   });
 
+  it('decomposes content-plan items into skill and mediaquery actions', () => {
+    const item = AUTOMATION_CHILD_WORKFLOWS.find(
+      (definition) =>
+        definition.canonicalId === AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
+    );
+
+    expect(item).toBeDefined();
+    expect(actionIds(item as (typeof AUTOMATION_CHILD_WORKFLOWS)[number])).toEqual(
+      [
+        AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_ITEM_PREPARE,
+        AUTOMATION_ACTION_IDS.CONTENT_ENGINE_RUN_SKILL,
+        AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PERSIST_SKILL,
+        AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_MEDIAQUERY,
+      ],
+    );
+  });
+
   it('backs every automation node with a registered action contract', () => {
     const actionIds = [
       ...AUTOMATION_PARENT_WORKFLOWS,
@@ -170,6 +187,7 @@ describe('automation workflow definitions', () => {
       'proactiveAgentStrategies',
       'contentEngineProduction',
       'contentPipelineAutopilot',
+      'content.production.engine.execute-plan-item',
       'replyBotPolling',
       'socialTriggerPolling',
       'trendSummaryNotifications',

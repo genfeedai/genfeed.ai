@@ -171,6 +171,23 @@ const EXECUTION_RESULT = closedObjectSchema(
   },
   ['itemId', 'status'],
 );
+const PLAN_ITEM_STATE = closedObjectSchema(
+  {
+    brandId: STRING_SCHEMA,
+    childWorkflowId: STRING_SCHEMA,
+    context: DOC,
+    isSkill: BOOLEAN_SCHEMA,
+    item: DOC,
+    itemId: STRING_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    params: DOC,
+    planId: STRING_SCHEMA,
+    result: EXECUTION_RESULT,
+    skill: DOC,
+    userId: STRING_SCHEMA,
+  },
+  ['brandId', 'isSkill', 'itemId', 'organizationId', 'planId', 'userId'],
+);
 const PERSONA_STATE = closedObjectSchema(
   {
     imageItems: arraySchema(DOC),
@@ -506,7 +523,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     inputSchema: input({}, ['request']),
     outputSchema: discoveryOutput(DOC, { planId: STRING_SCHEMA }, ['planId']),
   },
-  'content.production.engine.execute-plan-item': {
+  'content.production.engine.prepare-plan-item': {
     inputSchema: input(
       {
         brandId: STRING_SCHEMA,
@@ -515,8 +532,20 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
         planId: STRING_SCHEMA,
         userId: STRING_SCHEMA,
       },
-      ['brandId', 'item', 'organizationId', 'planId', 'userId'],
+      ['brandId', 'item', 'userId'],
     ),
+    outputSchema: PLAN_ITEM_STATE,
+  },
+  'content.production.engine.run-skill-item': {
+    inputSchema: input({ state: DOC }, ['state']),
+    outputSchema: PLAN_ITEM_STATE,
+  },
+  'content.production.engine.persist-skill-item': {
+    inputSchema: input({ state: DOC }, ['state']),
+    outputSchema: PLAN_ITEM_STATE,
+  },
+  'content.production.engine.execute-mediaquery-item': {
+    inputSchema: input({ state: DOC }, ['state']),
     outputSchema: EXECUTION_RESULT,
   },
   'content.production.engine.finalize-plan': {

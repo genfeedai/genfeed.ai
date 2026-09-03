@@ -5,16 +5,19 @@ import { describe, expect, it, vi } from 'vitest';
 describe('ContentProductionWorkflowService atomic actions', () => {
   function buildService() {
     const contentExecution = {
-      executeSingleItem: vi.fn().mockResolvedValue({ status: 'COMPLETED' }),
+      executeMediaqueryItem: vi.fn().mockResolvedValue({ status: 'COMPLETED' }),
       finalizePlanExecution: vi.fn().mockResolvedValue({
         results: [],
         summary: { completed: 0, failed: 0, total: 0 },
       }),
+      persistSkillItem: vi.fn().mockResolvedValue({ isSkill: true }),
       preparePlanExecution: vi.fn().mockResolvedValue({
         baseInput: {},
         items: [],
         planId: 'plan-1',
       }),
+      preparePlanItem: vi.fn().mockResolvedValue({ isSkill: true }),
+      runSkillItem: vi.fn().mockResolvedValue({ isSkill: true }),
     };
     return {
       contentExecution,

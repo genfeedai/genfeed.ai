@@ -1,4 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  BRAND_REMIX_EXECUTE_ACTION_IDS,
+  BRAND_REMIX_EXECUTE_WORKFLOW_IDS,
+  buildBrandRemixExecuteWorkflowDefinition,
+} from '@api/collections/content-runs/services/brand-remix-execute-workflow-definition';
 import { remixErrorMessage } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
@@ -17,6 +22,8 @@ import {
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { GenerationReservationBarrier } from '@api/collections/content-runs/services/generation-reservation-barrier';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
@@ -46,9 +53,41 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  type OnModuleInit,
 } from '@nestjs/common';
+
+type BrandRemixExecuteRuntime = {
+  request: Request;
+  user: User;
+};
+
+type BrandRemixExecuteState = {
+  avatarByokBypass: boolean;
+  brandContext: ResolvedBrandContext;
+  brandId: string;
+  config: BrandRemixRunConfig;
+  hasWork: boolean;
+  isCopy: boolean;
+  items: BrandRemixVariantItem[];
+  organizationId: string;
+  recipeRevision: number;
+  run: BrandRemixRunRecord;
+  runId: string;
+  view?: BrandRemixRunView;
+};
+
+type BrandRemixVariantItem = {
+  avatarByokBypass: boolean;
+  brandId: string;
+  config: BrandRemixRunConfig;
+  organizationId: string;
+  recipeRevision: number;
+  runId: string;
+  variant: BrandRemixExecution['variants'][number];
+};
+
 @Injectable()
-export class BrandRemixRunExecutionService {
+export class BrandRemixRunExecutionService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly planning: BrandRemixRunPlanningService,
@@ -57,9 +96,44 @@ export class BrandRemixRunExecutionService {
     private readonly dispatch: BrandRemixRunProviderDispatchService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly byokService: ByokService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     @Inject(BRAND_REMIX_RUNTIME)
     private readonly runtime: BrandRemixRuntime,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.PREPARE,
+      (request) => this.prepareAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.CLAIM,
+      (request) => this.claimAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.ADOPT_ORPHANS,
+      (request) => this.adoptOrphansAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.GENERATE_COPY,
+      (request) => this.generateCopyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.DISPATCH_MEDIA,
+      (request) => this.dispatchMediaAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.RECONCILE,
+      (request) => this.reconcileAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_EXECUTE_ACTION_IDS.PROJECT,
+      (request) => this.projectAction(request),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildBrandRemixExecuteWorkflowDefinition(),
+    );
+  }
 
   async start(
     organizationId: string,
@@ -68,87 +142,237 @@ export class BrandRemixRunExecutionService {
     request: Request,
     input: StartBrandRemixRun,
   ): Promise<BrandRemixRunView> {
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<BrandRemixRunView>({
+        actionType: BRAND_REMIX_EXECUTE_WORKFLOW_IDS.EXECUTE,
+        canonicalId: BRAND_REMIX_EXECUTE_WORKFLOW_IDS.EXECUTE,
+        inputValues: {
+          request: {
+            expectedRevision: input.expectedRevision,
+            organizationId,
+            runId,
+          },
+        },
+        organizationId,
+        runtimeContext: { request, user } satisfies BrandRemixExecuteRuntime,
+        source: 'BrandRemixRunsService.start',
+        userId: user.userId ?? user.id,
+      });
+    return result;
+  }
+
+  private unwrapState(value: unknown): BrandRemixExecuteState {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: BrandRemixExecuteState }).data;
+    }
+    return value as BrandRemixExecuteState;
+  }
+
+  private runtimeOf(
+    request: SystemWorkflowActionRequest,
+  ): BrandRemixExecuteRuntime {
+    const runtime = request.runtimeContext as
+      | BrandRemixExecuteRuntime
+      | undefined;
+    if (!runtime?.request || !runtime.user) {
+      throw new ConflictException(
+        'Brand remix generation requires the originating request context.',
+      );
+    }
+    return runtime;
+  }
+
+  private async prepareAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const payload = this.readRecord(request.input.request);
+    const organizationId = this.requiredString(
+      payload.organizationId,
+      'organizationId',
+    );
+    const runId = this.requiredString(payload.runId, 'runId');
+    const expectedRevision = this.requiredNumber(
+      payload.expectedRevision,
+      'expectedRevision',
+    );
+    const { request: httpRequest } = this.runtimeOf(request);
     const prepared = await this.prepareStart(
       organizationId,
       runId,
-      request,
-      input,
+      httpRequest,
+      { expectedRevision },
     );
-    const claimed = await this.claimGeneration(prepared);
-    if (claimed.view) return claimed.view;
-
-    let activeConfig = claimed.config;
-    const run = claimed.run;
-    const stuck = claimed.resumable.filter(
-      (variant) => variant.status === 'processing',
-    );
-    if (stuck.length) {
-      activeConfig = await this.adoptOrphanedPlaceholders({
-        brandId: prepared.brandId,
-        config: activeConfig,
-        organizationId,
-        runId,
-        variants: stuck,
-      });
-    }
-    const variants = claimed.resumable.filter(
-      (variant) =>
-        !activeConfig.execution?.variants.find(
-          (candidate) => candidate.id === variant.id,
-        )?.assetIds.length,
-    );
-    if (!variants.length) {
-      return this.state.clearGenerationClaimAndProject({
-        brandContext: prepared.brandContext,
-        config: activeConfig,
-        organizationId,
-        run,
-        runId,
-      });
-    }
-
-    const generationUser = { ...user, brandId: prepared.brandId };
-    if (activeConfig.draft.output.kind === 'copy') {
-      activeConfig = await this.dispatch.generateCopyVariants({
-        brandId: prepared.brandId,
-        config: activeConfig,
-        organizationId,
-        runId,
-        request,
-        variants,
-      });
-      const copied = await this.persistence.requireRun(organizationId, runId);
-      const reconciled = await this.state.reconcile(copied);
-      return this.state.clearGenerationClaimAndProject({
-        brandContext: prepared.brandContext,
-        config: reconciled.config,
-        organizationId,
-        run: reconciled.run,
-        runId,
-      });
-    }
-
-    await this.dispatchMediaVariants({
+    return {
       avatarByokBypass: prepared.avatarByokBypass,
+      brandContext: prepared.brandContext,
       brandId: prepared.brandId,
-      config: activeConfig,
-      generationUser,
+      config: prepared.config,
+      hasWork: false,
+      isCopy: prepared.config.draft.output.kind === 'copy',
+      items: [],
       organizationId,
       recipeRevision: prepared.config.revision,
-      request,
+      run: prepared.run,
       runId,
-      variants,
+    };
+  }
+
+  private async claimAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const state = this.unwrapState(request.input.state);
+    const claimed = await this.claimGeneration({
+      avatarByokBypass: state.avatarByokBypass,
+      brandContext: state.brandContext,
+      brandId: state.brandId,
+      config: state.config,
+      run: state.run,
     });
+    if (claimed.view) {
+      return {
+        ...state,
+        config: claimed.config,
+        hasWork: false,
+        items: [],
+        run: claimed.run,
+        view: claimed.view,
+      };
+    }
+    return {
+      ...state,
+      config: claimed.config,
+      hasWork: claimed.resumable.length > 0,
+      items: claimed.resumable.map((variant) => ({
+        avatarByokBypass: state.avatarByokBypass,
+        brandId: state.brandId,
+        config: claimed.config,
+        organizationId: state.organizationId,
+        recipeRevision: state.recipeRevision,
+        runId: state.runId,
+        variant,
+      })),
+      run: claimed.run,
+    };
+  }
+
+  private async adoptOrphansAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view || !state.hasWork) return state;
+    const stuck = state.items
+      .map((item) => item.variant)
+      .filter((variant) => variant.status === 'processing');
+    if (!stuck.length) return state;
+    const config = await this.adoptOrphanedPlaceholders({
+      brandId: state.brandId,
+      config: state.config,
+      organizationId: state.organizationId,
+      runId: state.runId,
+      variants: stuck,
+    });
+    const items = state.items.flatMap((item) => {
+      const current = config.execution?.variants.find(
+        (candidate) => candidate.id === item.variant.id,
+      );
+      if (current?.assetIds.length) return [];
+      return [{ ...item, config, variant: current ?? item.variant }];
+    });
+    return {
+      ...state,
+      config,
+      hasWork: items.length > 0,
+      items,
+    };
+  }
+
+  private async generateCopyAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view || !state.hasWork || !state.isCopy) return state;
+    const { request: httpRequest } = this.runtimeOf(request);
+    const config = await this.dispatch.generateCopyVariants({
+      brandId: state.brandId,
+      config: state.config,
+      organizationId: state.organizationId,
+      request: httpRequest,
+      runId: state.runId,
+      variants: state.items.map((item) => item.variant),
+    });
+    return { ...state, config, hasWork: false, items: [] };
+  }
+
+  private async dispatchMediaAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view || !state.hasWork || state.isCopy) return state;
+    const { request: httpRequest, user } = this.runtimeOf(request);
+    await this.dispatchMediaVariants({
+      avatarByokBypass: state.avatarByokBypass,
+      brandId: state.brandId,
+      config: state.config,
+      generationUser: { ...user, brandId: state.brandId },
+      organizationId: state.organizationId,
+      recipeRevision: state.recipeRevision,
+      request: httpRequest,
+      runId: state.runId,
+      variants: state.items.map((item) => item.variant),
+    });
+    return state;
+  }
+
+  private async reconcileAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixExecuteState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view) return state;
     const reconciled = await this.state.reconcile(
-      await this.persistence.requireRun(organizationId, runId),
+      await this.persistence.requireRun(state.organizationId, state.runId),
     );
-    return this.state.clearGenerationClaimAndProject({
-      brandContext: prepared.brandContext,
+    return {
+      ...state,
       config: reconciled.config,
-      organizationId,
       run: reconciled.run,
-      runId,
+    };
+  }
+
+  private async projectAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixRunView> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view) return state.view;
+    return this.state.clearGenerationClaimAndProject({
+      brandContext: state.brandContext,
+      config: state.config,
+      organizationId: state.organizationId,
+      run: state.run,
+      runId: state.runId,
     });
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new ConflictException('Brand remix workflow requires an object.');
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new ConflictException(`Brand remix workflow requires ${field}.`);
+    }
+    return value.trim();
+  }
+
+  private requiredNumber(value: unknown, field: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new ConflictException(
+        `Brand remix workflow requires numeric ${field}.`,
+      );
+    }
+    return value;
   }
 
   private async prepareStart(

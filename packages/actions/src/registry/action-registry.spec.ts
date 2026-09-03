@@ -205,10 +205,20 @@ describe('Genfeed action registry', () => {
     });
   });
 
+  it('does not publish the retired content-plan item macro', () => {
+    expect(
+      getActionDefinition('content.production.engine.execute-plan-item'),
+    ).toBeUndefined();
+  });
+
   it('publishes closed contracts for every decomposed automation action', () => {
     for (const actionId of [
       'agent.autopilot.discover',
-      'content.production.engine.execute-plan-item',
+      'content.production.engine.execute-mediaquery-item',
+      'content.production.engine.persist-skill-item',
+      'content.production.engine.prepare-plan-item',
+      'content.production.engine.run-skill-item',
+      'brand-remix.execute.dispatch-media',
       'content.production.autopilot.prepare-persona',
       'harness.winners.promote-item',
       'livestream.sessions.deliver-target',

@@ -46,12 +46,17 @@ export const AUTOMATION_ACTION_IDS = {
   AGENT_RESET: 'agent.autopilot.reset-credit-window',
   CONTENT_ENGINE_BEGIN: 'content.production.engine.begin',
   CONTENT_ENGINE_DISCOVER: 'content.production.engine.discover-brands',
-  CONTENT_ENGINE_EXECUTE_ITEM: 'content.production.engine.execute-plan-item',
+  CONTENT_ENGINE_EXECUTE_MEDIAQUERY:
+    'content.production.engine.execute-mediaquery-item',
   CONTENT_ENGINE_FAIL: 'content.production.engine.fail',
   CONTENT_ENGINE_FINALIZE: 'content.production.engine.finalize',
+  CONTENT_ENGINE_PERSIST_SKILL: 'content.production.engine.persist-skill-item',
   CONTENT_ENGINE_PLAN: 'content.production.engine.plan-brand',
   CONTENT_ENGINE_PLAN_FINALIZE: 'content.production.engine.finalize-plan',
+  CONTENT_ENGINE_PLAN_ITEM_PREPARE:
+    'content.production.engine.prepare-plan-item',
   CONTENT_ENGINE_PLAN_PREPARE: 'content.production.engine.prepare-plan',
+  CONTENT_ENGINE_RUN_SKILL: 'content.production.engine.run-skill-item',
   CONTENT_PIPELINE_BEGIN: 'content.production.autopilot.begin',
   CONTENT_PIPELINE_DISCOVER: 'content.production.autopilot.discover-personas',
   CONTENT_PIPELINE_FAIL: 'content.production.autopilot.fail',
@@ -774,6 +779,64 @@ function buildContentEngineBrandWorkflowDefinition(): SystemWorkflowGraphDefinit
   };
 }
 
+function buildContentEngineItemWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  const prepare = actionNode(
+    AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_ITEM_PREPARE,
+    'prepare-item',
+    0,
+    0,
+  );
+  const runSkill = actionNode(
+    AUTOMATION_ACTION_IDS.CONTENT_ENGINE_RUN_SKILL,
+    'run-skill',
+    0,
+    160,
+  );
+  const persistSkill = actionNode(
+    AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PERSIST_SKILL,
+    'persist-skill',
+    0,
+    320,
+  );
+  const mediaquery = actionNode(
+    AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_MEDIAQUERY,
+    'execute-mediaquery',
+    0,
+    480,
+  );
+  return {
+    canonicalId: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
+    definition: {
+      edges: [
+        {
+          id: 'prepare-run-skill',
+          source: prepare.id,
+          target: runSkill.id,
+          targetHandle: 'state',
+        },
+        {
+          id: 'run-skill-persist',
+          source: runSkill.id,
+          target: persistSkill.id,
+          targetHandle: 'state',
+        },
+        {
+          id: 'persist-mediaquery',
+          source: persistSkill.id,
+          target: mediaquery.id,
+          targetHandle: 'state',
+        },
+      ],
+      inputVariables: requestInput,
+      nodes: [prepare, runSkill, persistSkill, mediaquery],
+    },
+    description:
+      'Executes one pending content-plan item through a skill child workflow or the mediaquery action.',
+    label: 'Execute Content Plan Item',
+    resultNodeId: mediaquery.id,
+  };
+}
+
 function buildContentEnginePlanWorkflowDefinition(): SystemWorkflowGraphDefinition {
   const prepare = actionNode(
     AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_PREPARE,
@@ -1168,12 +1231,7 @@ export const AUTOMATION_CHILD_WORKFLOWS = [
   }),
   buildContentEngineBrandWorkflowDefinition(),
   buildContentEnginePlanWorkflowDefinition(),
-  singleActionChild({
-    actionId: AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_ITEM,
-    canonicalId: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
-    description: 'Executes one pending content-plan item.',
-    label: 'Execute Content Plan Item',
-  }),
+  buildContentEngineItemWorkflowDefinition(),
   buildPersonaWorkflowDefinition(),
   buildTypedPipelineWorkflowDefinition(
     AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE_IMAGE,

@@ -99,6 +99,22 @@ const X_PROMOTED = {
   promotedTweetId: STRING_SCHEMA,
 } as const;
 
+const EXECUTE_STATE = {
+  avatarByokBypass: BOOLEAN_SCHEMA,
+  brandContext: JSON_DOCUMENT_SCHEMA,
+  brandId: STRING_SCHEMA,
+  config: JSON_DOCUMENT_SCHEMA,
+  hasWork: BOOLEAN_SCHEMA,
+  isCopy: BOOLEAN_SCHEMA,
+  items: arraySchema(JSON_DOCUMENT_SCHEMA),
+  organizationId: STRING_SCHEMA,
+  recipeRevision: INTEGER_SCHEMA,
+  run: JSON_DOCUMENT_SCHEMA,
+  runId: STRING_SCHEMA,
+  view: JSON_DOCUMENT_SCHEMA,
+} as const;
+const EXECUTE_STATE_OPTIONAL = ['view'] as const;
+
 const REVIEW_PREPARED = {
   brandContext: JSON_DOCUMENT_SCHEMA,
   brandId: STRING_SCHEMA,
@@ -128,6 +144,66 @@ const REVIEW_HANDOFF = {
 } as const;
 
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
+  'brand-remix.execute.adopt-orphans': contract(
+    STATE_INPUT,
+    state(EXECUTE_STATE, EXECUTE_STATE_OPTIONAL),
+  ),
+  'brand-remix.execute.claim': contract(
+    STATE_INPUT,
+    state(EXECUTE_STATE, EXECUTE_STATE_OPTIONAL),
+  ),
+  'brand-remix.execute.dispatch-media': contract(
+    STATE_INPUT,
+    state(EXECUTE_STATE, EXECUTE_STATE_OPTIONAL),
+  ),
+  'brand-remix.execute.generate-copy': contract(
+    STATE_INPUT,
+    state(EXECUTE_STATE, EXECUTE_STATE_OPTIONAL),
+  ),
+  'brand-remix.execute.prepare': contract(
+    REQUEST_INPUT,
+    state(EXECUTE_STATE, [...EXECUTE_STATE_OPTIONAL, 'hasWork', 'isCopy']),
+  ),
+  'brand-remix.execute.project': contract(
+    STATE_INPUT,
+    state(
+      {
+        brand: JSON_DOCUMENT_SCHEMA,
+        brandId: STRING_SCHEMA,
+        contract: STRING_SCHEMA,
+        createdAt: STRING_SCHEMA,
+        draft: JSON_DOCUMENT_SCHEMA,
+        execution: JSON_DOCUMENT_SCHEMA,
+        generationClaim: JSON_DOCUMENT_SCHEMA,
+        id: STRING_SCHEMA,
+        paidDraft: JSON_DOCUMENT_SCHEMA,
+        paidDraftOperation: JSON_DOCUMENT_SCHEMA,
+        phase: STRING_SCHEMA,
+        readiness: JSON_DOCUMENT_SCHEMA,
+        recipeVersion: { const: 1, type: 'integer' },
+        review: JSON_DOCUMENT_SCHEMA,
+        reviewClaim: JSON_DOCUMENT_SCHEMA,
+        source: JSON_DOCUMENT_SCHEMA,
+        sourceSnapshot: JSON_DOCUMENT_SCHEMA,
+        status: STRING_SCHEMA,
+        updatedAt: STRING_SCHEMA,
+        version: { const: 1, type: 'integer' },
+      },
+      [
+        'execution',
+        'generationClaim',
+        'paidDraft',
+        'paidDraftOperation',
+        'review',
+        'reviewClaim',
+        'source',
+      ],
+    ),
+  ),
+  'brand-remix.execute.reconcile': contract(
+    STATE_INPUT,
+    state(EXECUTE_STATE, EXECUTE_STATE_OPTIONAL),
+  ),
   'brand-remix.meta.create-ad': contract(STATE_INPUT, state(META_PREPARED)),
   'brand-remix.meta.ensure-ad-set': contract(STATE_INPUT, state(META_AD_SET)),
   'brand-remix.meta.ensure-campaign': contract(

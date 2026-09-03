@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { runBrandRemixExecuteWorkflow } from '@api/collections/content-runs/services/brand-remix-execute-workflow.test-util';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -6,6 +7,16 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type CapturedWorkflowAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+  runtimeContext?: unknown;
+}) => Promise<unknown> | unknown;
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
 
@@ -35,10 +46,24 @@ describe('BrandRemixRunExecutionService', () => {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
     randomId: vi.fn(() => 'variant-1'),
   };
+  const actions = new Map<string, CapturedWorkflowAction>();
+  const systemWorkflowRunner = {
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      actions.set(id, action);
+    }),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
+  };
   let execution: BrandRemixRunExecutionService;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    actions.clear();
+    systemWorkflowRunner.registerAction.mockImplementation(
+      (id: string, action: CapturedWorkflowAction) => {
+        actions.set(id, action);
+      },
+    );
     runtime.randomId.mockReturnValue('variant-1');
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (
@@ -83,11 +108,15 @@ describe('BrandRemixRunExecutionService', () => {
       pausedXAdsCampaignDraftService: { prepare: vi.fn() } as never,
       prisma,
       runtime,
-      systemWorkflowRunner: {} as never,
+      systemWorkflowRunner: systemWorkflowRunner as never,
       trendReferenceCorpusService: {} as never,
       videoGenerationService: {} as never,
     });
     execution = graph.execution;
+    execution.onModuleInit();
+    systemWorkflowRunner.runWorkflow.mockImplementation(async (request) =>
+      runBrandRemixExecuteWorkflow({ actions, request }),
+    );
   });
 
   it('returns the live claim without redispatching while the generation lease is active', async () => {
@@ -185,6 +214,12 @@ describe('BrandRemixRunExecutionService', () => {
       { expectedRevision: 1 },
     );
 
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'brand-remix.execute',
+        source: 'BrandRemixRunsService.start',
+      }),
+    );
     expect(result.generationClaim?.id).toBe('run-1:generate:1');
     expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
     expect(contentRun.findFirst).toHaveBeenCalledWith(

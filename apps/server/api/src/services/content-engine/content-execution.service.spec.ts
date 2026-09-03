@@ -83,6 +83,23 @@ describe('ContentExecutionService', () => {
     );
   });
 
+  async function executePlanItem(
+    organizationId: string,
+    targetBrandId: string,
+    targetUserId: string,
+    itemId: string,
+  ) {
+    const prepared = await service.preparePlanItem(
+      organizationId,
+      targetBrandId,
+      targetUserId,
+      itemId,
+    );
+    const withSkill = await service.runSkillItem(prepared);
+    const persisted = await service.persistSkillItem(withSkill);
+    return service.executeMediaqueryItem(persisted);
+  }
+
   async function executePlanAtomically(
     organizationId: string,
     targetBrandId: string,
@@ -105,7 +122,7 @@ describe('ContentExecutionService', () => {
         pendingItems[index],
       );
       results.push(
-        await service.executeSingleItem(
+        await executePlanItem(
           organizationId,
           targetBrandId,
           targetUserId,
@@ -263,9 +280,9 @@ describe('ContentExecutionService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // executeSingleItem
+  // executePlanItem
   // ---------------------------------------------------------------------------
-  describe('executeSingleItem', () => {
+  describe('executePlanItem', () => {
     it('should fetch the item and execute it', async () => {
       const item = makeItem();
       const itemId = String(item.id);
@@ -281,12 +298,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      const result = await service.executeSingleItem(
-        orgId,
-        brandId,
-        userId,
-        itemId,
-      );
+      const result = await executePlanItem(orgId, brandId, userId, itemId);
 
       expect(mockContentPlanItemsService.getByIdOrFail).toHaveBeenCalledWith(
         orgId,
@@ -311,7 +323,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      await service.executeSingleItem(orgId, brandId, userId, itemId);
+      await executePlanItem(orgId, brandId, userId, itemId);
 
       expect(
         mockContentPlansService.incrementExecutedCount,
@@ -324,12 +336,7 @@ describe('ContentExecutionService', () => {
       mockContentPlanItemsService.getByIdOrFail.mockResolvedValue(item);
       mockSkillExecutorService.execute.mockRejectedValue(new Error('fail'));
 
-      const result = await service.executeSingleItem(
-        orgId,
-        brandId,
-        userId,
-        itemId,
-      );
+      const result = await executePlanItem(orgId, brandId, userId, itemId);
 
       expect(result.status).toBe(ContentPlanItemStatus.FAILED);
       expect(
@@ -343,7 +350,7 @@ describe('ContentExecutionService', () => {
       );
 
       await expect(
-        service.executeSingleItem(orgId, brandId, userId, 'bad-id'),
+        executePlanItem(orgId, brandId, userId, 'bad-id'),
       ).rejects.toThrow('Item not found');
     });
   });

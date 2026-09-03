@@ -1,3 +1,4 @@
+import { buildBrandRemixExecuteWorkflowDefinition } from '@api/collections/content-runs/services/brand-remix-execute-workflow-definition';
 import { AD_BULK_UPLOAD_CHILD_WORKFLOWS } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import {
   AUTOMATION_CHILD_WORKFLOWS,
@@ -58,6 +59,7 @@ const SHIPPED_GRAPH_SOURCES: readonly unknown[] = [
   AD_BULK_UPLOAD_CHILD_WORKFLOWS,
   AUTOMATION_CHILD_WORKFLOWS,
   AUTOMATION_PARENT_WORKFLOWS,
+  buildBrandRemixExecuteWorkflowDefinition(),
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {

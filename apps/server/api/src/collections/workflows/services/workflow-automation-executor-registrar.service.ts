@@ -352,10 +352,29 @@ export class WorkflowAutomationExecutorRegistrarService {
         ),
     );
     engine.registerExecutor(
-      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_ITEM,
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_ITEM_PREPARE,
       (node, inputs, context) =>
-        service.executeContentEnginePlanItem(
+        service.prepareContentEnginePlanItem(
           context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_RUN_SKILL,
+      (node, inputs) =>
+        service.runContentEngineSkillItem(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PERSIST_SKILL,
+      (node, inputs) =>
+        service.persistContentEngineSkillItem(
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_MEDIAQUERY,
+      (node, inputs) =>
+        service.executeContentEngineMediaqueryItem(
           actionInputs(node.config, inputs),
         ),
     );
