@@ -111,8 +111,18 @@ describe('AnalyticsService', () => {
     const capturedQueries: CapturedSqlQuery[] = [];
 
     mockPrismaService.$queryRaw.mockImplementation(
-      (strings: TemplateStringsArray, ...values: unknown[]) => {
-        capturedQueries.push(captureSqlQuery(strings, values));
+      (
+        stringsOrSql: TemplateStringsArray | SqlFragmentMock,
+        ...values: unknown[]
+      ) => {
+        if (isSqlFragment(stringsOrSql)) {
+          capturedQueries.push({
+            sql: stringsOrSql.sql.replace(/\s+/g, ' ').trim(),
+            values: stringsOrSql.values,
+          });
+        } else {
+          capturedQueries.push(captureSqlQuery(stringsOrSql, values));
+        }
         return Promise.resolve(resultsByCall[capturedQueries.length - 1] ?? []);
       },
     );

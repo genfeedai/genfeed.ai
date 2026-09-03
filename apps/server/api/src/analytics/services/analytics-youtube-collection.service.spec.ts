@@ -60,7 +60,6 @@ function input(): YouTubeAnalyticsCollectionInput {
     posts: [
       {
         brandId: 'brand-1',
-        credentialId: 'cred-1',
         externalId: 'video-1',
         id: 'post-1',
         organizationId: 'org-1',

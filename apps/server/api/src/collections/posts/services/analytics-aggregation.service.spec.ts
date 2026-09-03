@@ -14,6 +14,7 @@ describe('AnalyticsAggregationService', () => {
     const brandCount = vi.fn().mockResolvedValue(0);
     const service = new AnalyticsAggregationService(
       {
+        $queryRaw: vi.fn().mockResolvedValue([]),
         brand: {
           count: brandCount,
         },
@@ -72,6 +73,7 @@ describe('AnalyticsAggregationService', () => {
     const brandCount = vi.fn().mockResolvedValue(3);
     const service = new AnalyticsAggregationService(
       {
+        $queryRaw: vi.fn().mockResolvedValue([]),
         brand: {
           count: brandCount,
         },

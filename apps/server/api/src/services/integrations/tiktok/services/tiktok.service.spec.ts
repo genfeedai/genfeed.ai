@@ -56,6 +56,7 @@ describe('TiktokService', () => {
   const credentialsMock = {
     findAll: vi.fn(),
     findBrandAccounts: vi.fn(),
+    findConnectedAccounts: vi.fn(),
     findOne: vi.fn().mockResolvedValue({
       accessToken: 'access',
       accessTokenExpiry: new Date(),

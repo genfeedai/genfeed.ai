@@ -70,6 +70,7 @@ describe('RedditService (coverage)', () => {
     credentialsService = {
       findAll: vi.fn(),
       findBrandAccounts: vi.fn(),
+      findConnectedAccounts: vi.fn(),
       findOne: vi.fn().mockResolvedValue(null),
       mergeWarmupSignals: vi.fn(),
       patch: vi.fn().mockResolvedValue(makeCredential()),

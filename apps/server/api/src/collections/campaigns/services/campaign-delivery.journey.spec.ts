@@ -28,6 +28,9 @@ describe('Campaign delivery journey', () => {
             organizationId: 'org-1',
             status: ContentCampaignStatus.ACTIVE,
             userId: 'user-1',
+            isDeleted: false,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
           },
           organic: {
             clicks: { availablePostCount: 0, totalPostCount: 1, value: null },
@@ -58,6 +61,9 @@ describe('Campaign delivery journey', () => {
             organizationId: 'org-1',
             status: ContentCampaignStatus.ACTIVE,
             userId: 'user-1',
+            isDeleted: false,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z',
           },
           organic: {
             clicks: { availablePostCount: 0, totalPostCount: 1, value: null },

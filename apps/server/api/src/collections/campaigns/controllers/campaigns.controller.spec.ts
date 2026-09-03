@@ -6,6 +6,7 @@ import { CampaignPaidActivationService } from '@api/collections/campaigns/servic
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -93,7 +94,10 @@ describe('CampaignsController', () => {
         { provide: CampaignPerformanceService, useValue: performanceService },
         { provide: CampaignsService, useValue: service },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     expect(module.get(CampaignsController)).toBeDefined();
   });

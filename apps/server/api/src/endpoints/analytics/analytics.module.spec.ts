@@ -1,3 +1,4 @@
+import { AccountAnalyticsController } from '@api/endpoints/analytics/account-analytics.controller';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
@@ -12,7 +13,11 @@ describe('AnalyticsModule', () => {
   it('registers the split controllers and admin summary service', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),
-    ).toEqual([AnalyticsAdminController, AnalyticsController]);
+    ).toEqual([
+      AccountAnalyticsController,
+      AnalyticsAdminController,
+      AnalyticsController,
+    ]);
     expect(
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, AnalyticsModule),
     ).toContain(AnalyticsAdminSummaryService);
