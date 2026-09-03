@@ -4,6 +4,7 @@ import {
   isPortlessService,
   PORTLESS_PROXY_ENVIRONMENT,
   type PortlessService,
+  sanitizeNodeColorEnvironment,
 } from './portless-env';
 import {
   pruneStalePortlessSessions,
@@ -70,10 +71,10 @@ async function main(): Promise<void> {
         ARGUMENT_SEPARATOR,
         ...command,
       ],
-      {
+      sanitizeNodeColorEnvironment({
         ...process.env,
         ...PORTLESS_PROXY_ENVIRONMENT,
-      },
+      }),
     );
     process.exit(exitCode);
   }
@@ -83,14 +84,17 @@ async function main(): Promise<void> {
     return fail('Portless did not provide PORTLESS_URL to the child process.');
   }
 
-  const exitCode = await runDetachedCommand(command, {
-    ...process.env,
-    ...buildPortlessEnvironment({
-      currentService,
-      existingEnv: process.env,
-      portlessUrl,
+  const exitCode = await runDetachedCommand(
+    command,
+    sanitizeNodeColorEnvironment({
+      ...process.env,
+      ...buildPortlessEnvironment({
+        currentService,
+        existingEnv: process.env,
+        portlessUrl,
+      }),
     }),
-  });
+  );
   process.exit(exitCode);
 }
 

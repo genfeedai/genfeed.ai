@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { sanitizeNodeColorEnvironment } from './portless-env';
 import { runDetachedCommand } from './terminate-child-tree';
 
 const ARGUMENT_SEPARATOR = '--';
@@ -51,7 +52,9 @@ export function parsePortlessClientCommand(args: string[]): string[] {
 async function main(): Promise<void> {
   const exitCode = await runDetachedCommand(
     parsePortlessClientCommand(process.argv.slice(2)),
-    buildPortlessClientEnvironment({ existingEnv: process.env }),
+    sanitizeNodeColorEnvironment(
+      buildPortlessClientEnvironment({ existingEnv: process.env }),
+    ),
   );
   process.exit(exitCode);
 }
