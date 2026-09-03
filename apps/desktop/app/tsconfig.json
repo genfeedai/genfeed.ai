@@ -27,6 +27,8 @@
       "@genfeedai/desktop-prisma": [
         "../../../packages/desktop-prisma/src/index.ts"
       ],
+      "@genfeedai/actions": ["../../../packages/actions/src/index.ts"],
+      "@genfeedai/actions/*": ["../../../packages/actions/src/*"],
       "@genfeedai/contracts": ["../../../packages/contracts/src/index.ts"],
       "@genfeedai/contracts/*": ["../../../packages/contracts/src/*"],
       "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
