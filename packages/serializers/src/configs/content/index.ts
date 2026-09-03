@@ -6,6 +6,7 @@ export * from '@serializers/configs/content/bookmark.config';
 export * from '@serializers/configs/content/calendar-slot.config';
 export * from '@serializers/configs/content/calendar-slot-bulk-generate.config';
 export * from '@serializers/configs/content/campaign.config';
+export * from '@serializers/configs/content/campaign-comparison.config';
 export * from '@serializers/configs/content/campaign-lifecycle.config';
 export * from '@serializers/configs/content/campaign-paid-activation.config';
 export * from '@serializers/configs/content/campaign-performance.config';

@@ -6,6 +6,7 @@ export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/calendar-slot.attributes';
 export * from '@serializers/attributes/content/calendar-slot-bulk-generate.attributes';
 export * from '@serializers/attributes/content/campaign.attributes';
+export * from '@serializers/attributes/content/campaign-comparison.attributes';
 export * from '@serializers/attributes/content/campaign-lifecycle.attributes';
 export * from '@serializers/attributes/content/campaign-paid-activation.attributes';
 export * from '@serializers/attributes/content/campaign-performance.attributes';

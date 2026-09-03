@@ -11,6 +11,7 @@ import {
   PrepareCampaignActivationDto,
 } from '@api/collections/campaigns/dto/prepare-campaign-activation.dto';
 import { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
+import { CampaignComparisonService } from '@api/collections/campaigns/services/campaign-comparison.service';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
@@ -28,6 +29,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
+  CampaignComparisonSerializer,
   CampaignLifecycleSerializer,
   CampaignPaidActivationSerializer,
   CampaignPerformanceSerializer,
@@ -54,6 +56,7 @@ import type { Request } from 'express';
 @Controller('campaigns')
 export class CampaignsController {
   constructor(
+    private readonly comparisonService: CampaignComparisonService,
     private readonly generationService: CampaignGenerationService,
     private readonly lifecycleService: CampaignLifecycleService,
     private readonly paidActivationService: CampaignPaidActivationService,
@@ -69,6 +72,31 @@ export class CampaignsController {
   ) {
     const data = await this.service.list(user.organizationId, query);
     return serializeCollection(request, CampaignSerializer, data);
+  }
+
+  @Get('compare')
+  async compare(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query('ids') ids?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('metric') metric?: string,
+  ) {
+    const campaignIds = (ids ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    const data = await this.comparisonService.compare(
+      user.organizationId,
+      campaignIds,
+      {
+        endDate,
+        metric: metric === 'engagements' ? 'engagements' : 'views',
+        startDate,
+      },
+    );
+    return serializeSingle(request, CampaignComparisonSerializer, data);
   }
 
   @Get(':id')

@@ -7,6 +7,7 @@ export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/calendar-slot.serializer';
 export * from '@serializers/server/content/calendar-slot-bulk-generate.serializer';
 export * from '@serializers/server/content/campaign.serializer';
+export * from '@serializers/server/content/campaign-comparison.serializer';
 export * from '@serializers/server/content/campaign-lifecycle.serializer';
 export * from '@serializers/server/content/campaign-paid-activation.serializer';
 export * from '@serializers/server/content/campaign-performance.serializer';

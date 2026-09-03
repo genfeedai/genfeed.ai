@@ -92,6 +92,7 @@ export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/avatar-video-provider.interface';
 export * from './content/campaign.interface';
+export * from './content/campaign-comparison.interface';
 export * from './content/campaign-lifecycle.interface';
 export * from './content/campaign-paid-activation.interface';
 export * from './content/campaign-performance.interface';

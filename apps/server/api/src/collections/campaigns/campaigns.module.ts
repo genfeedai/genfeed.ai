@@ -1,4 +1,5 @@
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
+import { CampaignComparisonService } from '@api/collections/campaigns/services/campaign-comparison.service';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     AdsGatewayModule,
   ],
   providers: [
+    CampaignComparisonService,
     CampaignGenerationService,
     CampaignLifecycleService,
     CampaignPaidActivationService,

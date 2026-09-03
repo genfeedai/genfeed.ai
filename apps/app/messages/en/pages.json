@@ -584,6 +584,8 @@
         "objective": "Objective",
         "status": "Status"
       },
+      "compareDisclaimer": "Comparison is descriptive. It does not claim causal lift or treat spend as a universal winner.",
+      "compareNeedTwo": "Add at least two Campaign ids in the ids query to compare.",
       "complete": "Complete",
       "completeFailed": "Could not complete this campaign.",
       "completeMessage": "Future campaign dispatch stops. Already published posts stay live. Analytics keep updating.",
