@@ -5,12 +5,15 @@ import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 import {
   BRAND_RASTER_FILES,
+  BRAND_RASTER_SPECS,
   CANONICAL_LOGO_PATH,
   extractMarkPath,
   FORBIDDEN_MOBILE_FAVICON_ICO,
   FORBIDDEN_PUBLIC_LOADER_FILES,
   IDE_ACTIVITY_BAR_SVG,
   MARK_SOURCE_FILES,
+  PWA_ANY_ICON_FILES,
+  PWA_MASKABLE_MARK_RATIO,
 } from './render-brand-icons';
 
 const REPO_ROOT = path.resolve(
@@ -139,5 +142,46 @@ describe('committed brand icons', () => {
 
     expect(splash[3]).toBe(0);
     expect(adaptive[3]).toBe(0);
+  });
+
+  it('keeps PWA maskable marks inside the 80% crop circle', () => {
+    expect(PWA_MASKABLE_MARK_RATIO).toBeLessThanOrEqual(0.8);
+    expect(BRAND_RASTER_SPECS.pwaMaskable192.markSize).toBe(
+      Math.round(192 * PWA_MASKABLE_MARK_RATIO),
+    );
+    expect(BRAND_RASTER_SPECS.pwaMaskable512.markSize).toBe(
+      Math.round(512 * PWA_MASKABLE_MARK_RATIO),
+    );
+  });
+
+  it('does not reuse the square PWA icons as maskable', async () => {
+    const pairs = [
+      {
+        anyPath: PWA_ANY_ICON_FILES[192],
+        maskablePath: BRAND_RASTER_FILES.pwaMaskable192,
+        size: 192,
+      },
+      {
+        anyPath: PWA_ANY_ICON_FILES[512],
+        maskablePath: BRAND_RASTER_FILES.pwaMaskable512,
+        size: 512,
+      },
+    ] as const;
+
+    for (const pair of pairs) {
+      const anyPng = readFileSync(path.join(REPO_ROOT, pair.anyPath));
+      const maskablePng = readFileSync(path.join(REPO_ROOT, pair.maskablePath));
+      expect(anyPng.equals(maskablePng), pair.maskablePath).toBe(false);
+
+      const metadata = await sharp(maskablePng).metadata();
+      expect(metadata.width).toBe(pair.size);
+      expect(metadata.height).toBe(pair.size);
+
+      const corner = await samplePng(maskablePng, 2, 2);
+      expect(corner[0]).toBeLessThan(20);
+      expect(corner[1]).toBeLessThan(20);
+      expect(corner[2]).toBeLessThan(20);
+      expect(corner[3]).toBe(255);
+    }
   });
 });
