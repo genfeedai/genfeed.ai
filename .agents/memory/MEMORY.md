@@ -28,6 +28,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_fix_branch_ends_in_pr](feedback_fix_branch_ends_in_pr.md) — a pushed fix branch is done only when a ready PR exists; no "pushed, no PR" handoffs
 - [feedback_desktop_local_workspace_disabled](feedback_desktop_local_workspace_disabled.md) — desktop local/PGlite workspace is a PostHog-gated slice, not a void coming-soon page
 - [feedback_pr_closes_one_issue_per_keyword](feedback_pr_closes_one_issue_per_keyword.md) — one `Closes #N` line per issue; a comma list only auto-closes the first
+- [feedback_stacked_pr_merge_target](feedback_stacked_pr_merge_target.md) — retarget stacked PRs to `master` before merging; closing keywords never fire on a feature-branch base
 - [feedback_no_new_ci_guard_steps](feedback_no_new_ci_guard_steps.md) — no new named CI guard steps; #2946 owns YAML-ratchet cleanup
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [feedback_strategy_lives_in_vault](feedback_strategy_lives_in_vault.md) — competitive strategy lives in private `genfeedai/vault`, not this public repo or board
