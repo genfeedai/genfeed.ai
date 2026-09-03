@@ -7,14 +7,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Activity extends BaseEntity implements IActivity {
-  public declare user: IUser;
-  public declare organization?: IOrganization;
-  public declare key: string;
-  public declare value: string;
-  public declare status?: ActivityStatus;
-  public declare source: string;
-  public declare origin: ActionOrigin;
-  public declare isRead: boolean;
+  declare public user: IUser;
+  declare public organization?: IOrganization;
+  declare public key: string;
+  declare public value: string;
+  declare public status?: ActivityStatus;
+  declare public source: string;
+  declare public origin: ActionOrigin;
+  declare public isRead: boolean;
 
   constructor(data: Partial<IActivity> = {}) {
     super(data);

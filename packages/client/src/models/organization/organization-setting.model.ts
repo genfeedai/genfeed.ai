@@ -9,47 +9,47 @@ export class OrganizationSetting
   extends BaseEntity
   implements IOrganizationSetting
 {
-  public declare isWhitelabelEnabled: boolean;
-  public declare isVoiceControlEnabled: boolean;
+  declare public isWhitelabelEnabled: boolean;
+  declare public isVoiceControlEnabled: boolean;
 
-  public declare isNotificationsDiscordEnabled: boolean;
-  public declare isNotificationsTelegramEnabled: boolean;
-  public declare isNotificationsEmailEnabled: boolean;
+  declare public isNotificationsDiscordEnabled: boolean;
+  declare public isNotificationsTelegramEnabled: boolean;
+  declare public isNotificationsEmailEnabled: boolean;
 
-  public declare isWatermarkEnabled: boolean;
-  public declare isVerifyScriptEnabled: boolean;
-  public declare isVerifyIngredientEnabled: boolean;
-  public declare isVerifyVideoEnabled: boolean;
+  declare public isWatermarkEnabled: boolean;
+  declare public isVerifyScriptEnabled: boolean;
+  declare public isVerifyIngredientEnabled: boolean;
+  declare public isVerifyVideoEnabled: boolean;
 
-  public declare isGenerateVideosEnabled: boolean;
-  public declare isGenerateArticlesEnabled: boolean;
-  public declare isGenerateImagesEnabled: boolean;
-  public declare isGenerateMusicEnabled: boolean;
-  public declare isAutoEvaluateEnabled: boolean;
-  public declare isFastlaneEnabled: boolean;
-  public declare isFleetNsfwVisible: boolean;
+  declare public isGenerateVideosEnabled: boolean;
+  declare public isGenerateArticlesEnabled: boolean;
+  declare public isGenerateImagesEnabled: boolean;
+  declare public isGenerateMusicEnabled: boolean;
+  declare public isAutoEvaluateEnabled: boolean;
+  declare public isFastlaneEnabled: boolean;
+  declare public isFleetNsfwVisible: boolean;
 
-  public declare isAdvancedMode: boolean;
+  declare public isAdvancedMode: boolean;
 
-  public declare isWebhookEnabled: boolean;
-  public declare webhookEndpoint?: string;
-  public declare webhookSecret?: string;
-  public declare webhookEventTypes?: string[];
-  public declare webhookDeliveryStatus?: IOrganizationSetting['webhookDeliveryStatus'];
+  declare public isWebhookEnabled: boolean;
+  declare public webhookEndpoint?: string;
+  declare public webhookSecret?: string;
+  declare public webhookEventTypes?: string[];
+  declare public webhookDeliveryStatus?: IOrganizationSetting['webhookDeliveryStatus'];
 
-  public declare seatsLimit: number;
-  public declare brandsLimit: number;
+  declare public seatsLimit: number;
+  declare public brandsLimit: number;
 
-  public declare timezone?: string;
+  declare public timezone?: string;
 
-  public declare enabledModelIds?: string[];
-  public declare defaultAvatarPhotoUrl?: string | null;
-  public declare defaultVoiceId?: string | null;
-  public declare defaultVoiceProvider?: VoiceProvider | null;
-  public declare defaultModel?: string;
-  public declare defaultModelReview?: string;
-  public declare defaultModelUpdate?: string;
-  public declare defaultVoiceRef?: {
+  declare public enabledModelIds?: string[];
+  declare public defaultAvatarPhotoUrl?: string | null;
+  declare public defaultVoiceId?: string | null;
+  declare public defaultVoiceProvider?: VoiceProvider | null;
+  declare public defaultModel?: string;
+  declare public defaultModelReview?: string;
+  declare public defaultModelUpdate?: string;
+  declare public defaultVoiceRef?: {
     source: 'catalog' | 'cloned';
     provider?: VoiceProvider;
     internalVoiceId?: string;
@@ -57,10 +57,10 @@ export class OrganizationSetting
     label?: string;
     preview?: string | null;
   } | null;
-  public declare isByokEnabled?: boolean;
-  public declare byokOpenrouterApiKey?: string;
-  public declare onboardingJourneyMissions?: IOnboardingJourneyMissionState[];
-  public declare onboardingJourneyCompletedAt?: string | Date | null;
+  declare public isByokEnabled?: boolean;
+  declare public byokOpenrouterApiKey?: string;
+  declare public onboardingJourneyMissions?: IOnboardingJourneyMissionState[];
+  declare public onboardingJourneyCompletedAt?: string | Date | null;
 
   constructor(data: Partial<IOrganizationSetting> = {}) {
     super(data);

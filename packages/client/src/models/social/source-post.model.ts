@@ -6,27 +6,27 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class SourcePost extends BaseEntity implements ISourcePost {
-  public declare organizationId: string;
-  public declare brandId: string;
-  public declare userId?: string | null;
-  public declare sourceId: string;
-  public declare platform: SocialSourcePlatform | string;
-  public declare externalId: string;
-  public declare contentType: string;
-  public declare text?: string | null;
-  public declare authorId?: string | null;
-  public declare authorHandle?: string | null;
-  public declare authorDisplayName?: string | null;
-  public declare authorAvatarUrl?: string | null;
-  public declare authorFollowersCount?: number | null;
-  public declare sourceUrl?: string | null;
-  public declare mediaUrls?: string[];
-  public declare thumbnailUrl?: string | null;
-  public declare metrics?: SourcePostMetrics;
-  public declare hashtags?: string[];
-  public declare publishedAt?: string | null;
-  public declare collectedAt?: string | null;
-  public declare raw?: Record<string, unknown>;
+  declare public organizationId: string;
+  declare public brandId: string;
+  declare public userId?: string | null;
+  declare public sourceId: string;
+  declare public platform: SocialSourcePlatform | string;
+  declare public externalId: string;
+  declare public contentType: string;
+  declare public text?: string | null;
+  declare public authorId?: string | null;
+  declare public authorHandle?: string | null;
+  declare public authorDisplayName?: string | null;
+  declare public authorAvatarUrl?: string | null;
+  declare public authorFollowersCount?: number | null;
+  declare public sourceUrl?: string | null;
+  declare public mediaUrls?: string[];
+  declare public thumbnailUrl?: string | null;
+  declare public metrics?: SourcePostMetrics;
+  declare public hashtags?: string[];
+  declare public publishedAt?: string | null;
+  declare public collectedAt?: string | null;
+  declare public raw?: Record<string, unknown>;
 
   constructor(data: Partial<ISourcePost> = {}) {
     super(data);

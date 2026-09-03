@@ -12,23 +12,23 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class BaseCredential extends BaseEntity implements ICredential {
-  public declare userId: string | null;
-  public declare organizationId: string | null;
-  public declare brandId: string | null;
-  public declare user?: IUser;
-  public declare organization?: IOrganization;
-  public declare brand?: IBrand;
-  public declare tags: ITag[];
-  public declare platform: CredentialPlatform;
-  public declare externalId?: string | null;
-  public declare externalHandle?: string | null;
-  public declare externalName?: string | null;
-  public declare externalAvatar?: string | null;
-  public declare label?: string | null;
-  public declare description?: string | null;
-  public declare postingTimes?: IClockTime[];
-  public declare accessTokenExpiry?: string | null;
-  public declare isConnected: boolean;
+  declare public userId: string | null;
+  declare public organizationId: string | null;
+  declare public brandId: string | null;
+  declare public user?: IUser;
+  declare public organization?: IOrganization;
+  declare public brand?: IBrand;
+  declare public tags: ITag[];
+  declare public platform: CredentialPlatform;
+  declare public externalId?: string | null;
+  declare public externalHandle?: string | null;
+  declare public externalName?: string | null;
+  declare public externalAvatar?: string | null;
+  declare public label?: string | null;
+  declare public description?: string | null;
+  declare public postingTimes?: IClockTime[];
+  declare public accessTokenExpiry?: string | null;
+  declare public isConnected: boolean;
 
   constructor(data: Partial<ICredential> = {}) {
     super(data);
@@ -39,10 +39,10 @@ export class BaseCredentialInstagram
   extends BaseCredential
   implements ICredentialInstagram
 {
-  public declare label: string;
-  public declare username: string;
-  public declare image: string;
-  public declare category: boolean;
+  declare public label: string;
+  declare public username: string;
+  declare public image: string;
+  declare public category: boolean;
 
   constructor(data: Partial<ICredentialInstagram> = {}) {
     super(data);
@@ -53,7 +53,7 @@ export class BaseCredentialOAuth
   extends BaseCredential
   implements ICredentialOAuth
 {
-  public declare url: string;
+  declare public url: string;
 
   constructor(data: Partial<ICredentialOAuth> = {}) {
     super(data);

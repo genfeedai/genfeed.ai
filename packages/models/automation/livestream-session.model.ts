@@ -68,19 +68,19 @@ export class LivestreamSession
   extends BaseEntity
   implements ILivestreamSession
 {
-  public declare bot: string;
-  public declare organizationId?: string;
-  public declare brandId?: string;
-  public declare userId?: string;
-  public declare status: LivestreamSessionStatus;
-  public declare context: LivestreamContextState;
-  public declare transcriptChunks: LivestreamTranscriptChunk[];
-  public declare platformStates: LivestreamPlatformState[];
-  public declare deliveryHistory: LivestreamDeliveryRecord[];
-  public declare startedAt?: string;
-  public declare pausedAt?: string;
-  public declare stoppedAt?: string;
-  public declare lastTranscriptAt?: string;
+  declare public bot: string;
+  declare public organizationId?: string;
+  declare public brandId?: string;
+  declare public userId?: string;
+  declare public status: LivestreamSessionStatus;
+  declare public context: LivestreamContextState;
+  declare public transcriptChunks: LivestreamTranscriptChunk[];
+  declare public platformStates: LivestreamPlatformState[];
+  declare public deliveryHistory: LivestreamDeliveryRecord[];
+  declare public startedAt?: string;
+  declare public pausedAt?: string;
+  declare public stoppedAt?: string;
+  declare public lastTranscriptAt?: string;
 
   constructor(data: Partial<ILivestreamSession> = {}) {
     super(data);

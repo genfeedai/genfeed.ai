@@ -6,12 +6,12 @@ export class ElementCameraMovement
   extends BaseEntity
   implements IElementCameraMovement
 {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare category?: ModelCategory;
-  public declare isActive?: boolean;
-  public declare isDefault?: boolean;
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category?: ModelCategory;
+  declare public isActive?: boolean;
+  declare public isDefault?: boolean;
 
   constructor(data: Partial<IElementCameraMovement> = {}) {
     super(data);

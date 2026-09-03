@@ -3,11 +3,11 @@ import type { PersistedDashboardLayoutDocument } from '@genfeedai/contracts/inte
 import type { IDashboardLayout } from '@genfeedai/contracts/interfaces/content/dashboard-layout.interface';
 
 export class DashboardLayout extends BaseEntity implements IDashboardLayout {
-  public declare organizationId: string;
-  public declare brandId: string;
-  public declare pageKey: string;
-  public declare document: PersistedDashboardLayoutDocument;
-  public declare version: number;
+  declare public organizationId: string;
+  declare public brandId: string;
+  declare public pageKey: string;
+  declare public document: PersistedDashboardLayoutDocument;
+  declare public version: number;
 
   constructor(data: Partial<IDashboardLayout> = {}) {
     super(data);

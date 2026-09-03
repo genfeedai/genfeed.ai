@@ -18,21 +18,21 @@ export interface NewsletterSourceRef {
 }
 
 export class Newsletter extends BaseEntity {
-  public declare user?: unknown;
-  public declare organization?: unknown;
-  public declare brand?: unknown;
-  public declare label: string;
-  public declare topic: string;
-  public declare angle?: string;
-  public declare summary?: string;
-  public declare content: string;
-  public declare status: NewsletterStatus;
-  public declare sourceRefs?: NewsletterSourceRef[];
-  public declare contextNewsletterIds?: string[];
-  public declare generationPrompt?: string;
-  public declare approvedAt?: string;
-  public declare publishedAt?: string;
-  public declare scheduledFor?: string;
+  declare public user?: unknown;
+  declare public organization?: unknown;
+  declare public brand?: unknown;
+  declare public label: string;
+  declare public topic: string;
+  declare public angle?: string;
+  declare public summary?: string;
+  declare public content: string;
+  declare public status: NewsletterStatus;
+  declare public sourceRefs?: NewsletterSourceRef[];
+  declare public contextNewsletterIds?: string[];
+  declare public generationPrompt?: string;
+  declare public approvedAt?: string;
+  declare public publishedAt?: string;
+  declare public scheduledFor?: string;
 
   constructor(data: Partial<Newsletter> = {}) {
     super(data);

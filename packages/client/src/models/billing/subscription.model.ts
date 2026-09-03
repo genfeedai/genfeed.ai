@@ -11,15 +11,15 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Subscription extends BaseEntity implements ISubscription {
-  public declare organization: IOrganization;
-  public declare brand: IBrand;
-  public declare user: IUser;
-  public declare category: SubscriptionCategory;
-  public declare stripeSubscriptionId: string;
-  public declare stripeCustomerId: string;
-  public declare stripePriceId: string;
-  public declare status: SubscriptionStatus;
-  public declare currentPeriodEnd?: string;
+  declare public organization: IOrganization;
+  declare public brand: IBrand;
+  declare public user: IUser;
+  declare public category: SubscriptionCategory;
+  declare public stripeSubscriptionId: string;
+  declare public stripeCustomerId: string;
+  declare public stripePriceId: string;
+  declare public status: SubscriptionStatus;
+  declare public currentPeriodEnd?: string;
 
   constructor(data: Partial<ISubscription> = {}) {
     super(data);

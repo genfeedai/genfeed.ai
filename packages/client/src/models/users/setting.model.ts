@@ -7,21 +7,21 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Setting extends BaseEntity implements ISetting {
-  public declare theme: ThemePreference;
-  public declare isVerified: boolean;
-  public declare isFirstLogin: boolean;
-  public declare isMenuCollapsed: boolean;
-  public declare isAdvancedMode: boolean;
-  public declare isTrendNotificationsInApp: boolean;
-  public declare isTrendNotificationsTelegram: boolean;
-  public declare isTrendNotificationsEmail: boolean;
-  public declare isVideoNotificationsEmail: boolean;
-  public declare trendNotificationsTelegramChatId?: string;
-  public declare trendNotificationsEmailAddress?: string;
-  public declare trendNotificationsFrequency: TrendNotificationFrequency;
-  public declare trendNotificationsMinViralScore: number;
-  public declare isAgentAssetsPanelOpen?: boolean;
-  public declare dashboardPreferences?: DashboardPreferences;
+  declare public theme: ThemePreference;
+  declare public isVerified: boolean;
+  declare public isFirstLogin: boolean;
+  declare public isMenuCollapsed: boolean;
+  declare public isAdvancedMode: boolean;
+  declare public isTrendNotificationsInApp: boolean;
+  declare public isTrendNotificationsTelegram: boolean;
+  declare public isTrendNotificationsEmail: boolean;
+  declare public isVideoNotificationsEmail: boolean;
+  declare public trendNotificationsTelegramChatId?: string;
+  declare public trendNotificationsEmailAddress?: string;
+  declare public trendNotificationsFrequency: TrendNotificationFrequency;
+  declare public trendNotificationsMinViralScore: number;
+  declare public isAgentAssetsPanelOpen?: boolean;
+  declare public dashboardPreferences?: DashboardPreferences;
 
   constructor(data: Partial<ISetting> = {}) {
     super(data);

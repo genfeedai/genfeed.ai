@@ -16,26 +16,26 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Bot extends BaseEntity implements IBot {
-  public declare label: string;
-  public declare description?: string;
-  public declare category: BotCategory;
-  public declare status: BotStatus;
-  public declare scope: BotScope;
-  public declare organizationId?: string;
-  public declare brandId?: string;
-  public declare userId?: string;
-  public declare platforms: BotPlatform[];
-  public declare targets: IBotTarget[];
-  public declare settings: IBotSettings;
-  public declare engagementSettings?: IEngagementBotSettings;
-  public declare monitoringSettings?: IMonitoringBotSettings;
-  public declare publishingSettings?: IPublishingBotSettings;
-  public declare livestreamSettings?: IBotLivestreamSettings;
-  public declare messagesCount: number;
-  public declare engagementsCount: number;
-  public declare alertsTriggered?: number;
-  public declare postsPublished?: number;
-  public declare lastActivityAt?: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category: BotCategory;
+  declare public status: BotStatus;
+  declare public scope: BotScope;
+  declare public organizationId?: string;
+  declare public brandId?: string;
+  declare public userId?: string;
+  declare public platforms: BotPlatform[];
+  declare public targets: IBotTarget[];
+  declare public settings: IBotSettings;
+  declare public engagementSettings?: IEngagementBotSettings;
+  declare public monitoringSettings?: IMonitoringBotSettings;
+  declare public publishingSettings?: IPublishingBotSettings;
+  declare public livestreamSettings?: IBotLivestreamSettings;
+  declare public messagesCount: number;
+  declare public engagementsCount: number;
+  declare public alertsTriggered?: number;
+  declare public postsPublished?: number;
+  declare public lastActivityAt?: string;
 
   constructor(data: Partial<IBot> = {}) {
     super(data);

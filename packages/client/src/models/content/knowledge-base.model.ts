@@ -9,22 +9,22 @@ export class KnowledgeBase
   extends BaseEntity
   implements KnowledgeBaseInterface
 {
-  public declare label: string;
-  public declare description?: string;
-  public declare status: KnowledgeBaseStatus;
-  public declare scope: KnowledgeBaseScope;
-  public declare organizationId?: string;
-  public declare brandId?: string;
-  public declare userId?: string;
-  public declare branding?: KnowledgeBaseInterface['branding'];
-  public declare sources?: KnowledgeBaseInterface['sources'];
-  public declare fontFamily?: string;
-  public declare defaultVideoModel?: string;
-  public declare defaultImageModel?: string;
-  public declare defaultImageToVideoModel?: string;
-  public declare defaultMusicModel?: string;
-  public declare lastAnalyzedAt?: string;
-  public declare isActive: boolean;
+  declare public label: string;
+  declare public description?: string;
+  declare public status: KnowledgeBaseStatus;
+  declare public scope: KnowledgeBaseScope;
+  declare public organizationId?: string;
+  declare public brandId?: string;
+  declare public userId?: string;
+  declare public branding?: KnowledgeBaseInterface['branding'];
+  declare public sources?: KnowledgeBaseInterface['sources'];
+  declare public fontFamily?: string;
+  declare public defaultVideoModel?: string;
+  declare public defaultImageModel?: string;
+  declare public defaultImageToVideoModel?: string;
+  declare public defaultMusicModel?: string;
+  declare public lastAnalyzedAt?: string;
+  declare public isActive: boolean;
 
   constructor(data: Partial<KnowledgeBaseInterface> = {}) {
     super(data);

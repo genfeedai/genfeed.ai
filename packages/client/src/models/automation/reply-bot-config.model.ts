@@ -13,30 +13,30 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class ReplyBotConfig extends BaseEntity implements IReplyBotConfig {
-  public declare organizationId: string;
-  public declare brandId?: string;
-  public declare userId: string;
-  public declare credentialId?: string;
-  public declare name: string;
-  public declare description?: string;
-  public declare type: ReplyBotType;
-  public declare platform: ReplyBotPlatform;
-  public declare actionType: ReplyBotActionType;
-  public declare isActive: boolean;
-  public declare replyTone?: string;
-  public declare replyLength?: string;
-  public declare replyInstructions?: string;
-  public declare templateId?: string;
-  public declare dmConfig?: IReplyBotDmConfig;
-  public declare rateLimits: IReplyBotRateLimits;
-  public declare schedule?: IReplyBotSchedule;
-  public declare filters?: IReplyBotFilters;
-  public declare monitoredAccountIds: string[];
-  public declare totalRepliesSent: number;
-  public declare totalDmsSent: number;
-  public declare totalSkipped: number;
-  public declare totalFailed: number;
-  public declare lastActivityAt?: string;
+  declare public organizationId: string;
+  declare public brandId?: string;
+  declare public userId: string;
+  declare public credentialId?: string;
+  declare public name: string;
+  declare public description?: string;
+  declare public type: ReplyBotType;
+  declare public platform: ReplyBotPlatform;
+  declare public actionType: ReplyBotActionType;
+  declare public isActive: boolean;
+  declare public replyTone?: string;
+  declare public replyLength?: string;
+  declare public replyInstructions?: string;
+  declare public templateId?: string;
+  declare public dmConfig?: IReplyBotDmConfig;
+  declare public rateLimits: IReplyBotRateLimits;
+  declare public schedule?: IReplyBotSchedule;
+  declare public filters?: IReplyBotFilters;
+  declare public monitoredAccountIds: string[];
+  declare public totalRepliesSent: number;
+  declare public totalDmsSent: number;
+  declare public totalSkipped: number;
+  declare public totalFailed: number;
+  declare public lastActivityAt?: string;
 
   constructor(data: Partial<IReplyBotConfig> = {}) {
     super(data);

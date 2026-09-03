@@ -1,12 +1,12 @@
 import type { INews } from '@genfeedai/contracts/interfaces';
 
 export class News implements INews {
-  public declare id: string;
-  public declare title: string;
-  public declare description?: string;
-  public declare image?: string;
-  public declare url: string;
-  public declare publishedAt?: string;
+  declare public id: string;
+  declare public title: string;
+  declare public description?: string;
+  declare public image?: string;
+  declare public url: string;
+  declare public publishedAt?: string;
 
   constructor(data: Partial<INews> = {}) {
     Object.assign(this, data);

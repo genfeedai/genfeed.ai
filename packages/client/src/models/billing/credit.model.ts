@@ -3,9 +3,9 @@ import type { CreditEntityModel } from '@genfeedai/contracts';
 import type { ICredit } from '@genfeedai/contracts/interfaces';
 
 export class Credit extends BaseEntity implements ICredit {
-  public declare entity: string;
-  public declare entityModel: CreditEntityModel;
-  public declare balance: number;
+  declare public entity: string;
+  declare public entityModel: CreditEntityModel;
+  declare public balance: number;
 
   constructor(data: Partial<ICredit> = {}) {
     super(data);

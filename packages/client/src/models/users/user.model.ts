@@ -8,27 +8,27 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class User extends BaseEntity implements IUser {
-  public declare organization?: IOrganization;
-  public declare brands?: IBrand[];
-  public declare email: string;
-  public declare platformRole?: PlatformRole;
-  public declare firstName: string;
-  public declare lastName: string;
-  public declare username?: string;
-  public declare avatar?: string;
-  public declare isActive?: boolean;
-  public declare isVerified?: boolean;
-  public declare emailVerified?: boolean;
-  public declare timezone?: string;
-  public declare language?: string;
-  public declare theme?: string;
-  public declare handle: string;
-  public declare settings: ISetting;
-  public declare isOnboardingCompleted?: boolean;
-  public declare onboardingStartedAt?: Date;
-  public declare onboardingCompletedAt?: Date;
-  public declare onboardingType?: OnboardingType;
-  public declare onboardingStepsCompleted?: string[];
+  declare public organization?: IOrganization;
+  declare public brands?: IBrand[];
+  declare public email: string;
+  declare public platformRole?: PlatformRole;
+  declare public firstName: string;
+  declare public lastName: string;
+  declare public username?: string;
+  declare public avatar?: string;
+  declare public isActive?: boolean;
+  declare public isVerified?: boolean;
+  declare public emailVerified?: boolean;
+  declare public timezone?: string;
+  declare public language?: string;
+  declare public theme?: string;
+  declare public handle: string;
+  declare public settings: ISetting;
+  declare public isOnboardingCompleted?: boolean;
+  declare public onboardingStartedAt?: Date;
+  declare public onboardingCompletedAt?: Date;
+  declare public onboardingType?: OnboardingType;
+  declare public onboardingStepsCompleted?: string[];
 
   constructor(data: Partial<IUser> = {}) {
     super(data);

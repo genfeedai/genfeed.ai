@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 // Concrete subclass for testing
 class TestEntity extends BaseEntity {
-  public declare name: string;
+  declare public name: string;
   constructor(data: Partial<any> = {}) {
     super(data);
   }
