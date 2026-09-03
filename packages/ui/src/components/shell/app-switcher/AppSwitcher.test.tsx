@@ -261,17 +261,23 @@ describe('AppSwitcher', () => {
 
     expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
 
-    for (const label of [
+    const labels = [
       'Workspace',
       'Agent',
-      'Messages',
-      'Automation',
       'Studio',
       'Library',
       'Discovery',
       'Publishing',
       'Analytics',
-    ]) {
+      'Automation',
+      'Messages',
+    ];
+    const links = screen.getAllByRole('link');
+
+    expect(links.map((link) => link.getAttribute('aria-label'))).toEqual(
+      labels,
+    );
+    for (const label of labels) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(
@@ -356,7 +362,7 @@ describe('AppSwitcher', () => {
     const panel = container.querySelector('[data-app-switcher-panel]');
     const apps = screen.getByRole('group', { name: 'Apps' });
     const agentLink = screen.getByRole('link', { name: 'Agent' });
-    const messagesLink = screen.getByRole('link', { name: 'Messages' });
+    const studioLink = screen.getByRole('link', { name: 'Studio' });
 
     vi.spyOn(panel as HTMLElement, 'getBoundingClientRect').mockReturnValue({
       top: 20,
@@ -364,7 +370,7 @@ describe('AppSwitcher', () => {
     vi.spyOn(agentLink, 'getBoundingClientRect').mockReturnValue({
       top: 74,
     } as DOMRect);
-    vi.spyOn(messagesLink, 'getBoundingClientRect').mockReturnValue({
+    vi.spyOn(studioLink, 'getBoundingClientRect').mockReturnValue({
       top: 74,
     } as DOMRect);
 
@@ -375,13 +381,13 @@ describe('AppSwitcher', () => {
     expect(preview).toHaveStyle({ top: '54px' });
     expect(preview).toHaveTextContent('Agent');
 
-    fireEvent.mouseEnter(messagesLink);
+    fireEvent.mouseEnter(studioLink);
 
     expect(preview).toHaveAttribute('data-state', 'open');
     expect(preview).toHaveStyle({ top: '54px' });
     expect(preview).not.toHaveTextContent('Agent');
-    expect(preview).toHaveTextContent('Messages');
-    expect(preview).toHaveTextContent('Reply to audience.');
+    expect(preview).toHaveTextContent('Studio');
+    expect(preview).toHaveTextContent('Create assets.');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
@@ -533,13 +539,13 @@ describe('AppSwitcher', () => {
     for (const name of [
       'Workspace',
       'Agent',
-      'Messages',
-      'Automation',
       'Studio',
       'Library',
       'Discovery',
       'Publishing',
       'Analytics',
+      'Automation',
+      'Messages',
     ]) {
       expect(screen.getByRole('link', { name })).not.toHaveAttribute(
         'aria-current',
@@ -753,13 +759,13 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" />);
 
       for (const [label, href] of [
-        ['Messages', '/acme/~/messages'],
-        ['Automation', '/acme/~/automation'],
         ['Studio', '/acme/~/studio'],
         ['Library', '/acme/~/library'],
         ['Discovery', '/acme/~/discovery/overview'],
         ['Publishing', '/acme/~/publishing'],
         ['Analytics', '/acme/~/analytics'],
+        ['Automation', '/acme/~/automation'],
+        ['Messages', '/acme/~/messages'],
       ] as const) {
         expect(screen.getByRole('link', { name: label })).toHaveAttribute(
           'href',
