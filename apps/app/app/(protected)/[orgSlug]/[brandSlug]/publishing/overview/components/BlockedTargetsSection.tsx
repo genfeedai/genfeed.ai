@@ -3,6 +3,7 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewBlockedSectionProps } from '@props/publisher/publishing-overview.props';
 import Card from '@ui/card/Card';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -22,31 +23,30 @@ export default function BlockedTargetsSection({
       label={translate('blockedTitle')}
     >
       {groups.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        <div>
           {groups.map((group) => (
-            <li
+            <ListRow
               key={group.code}
-              className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
+              density="compact"
+              title={
+                <span className="flex flex-wrap items-center gap-2">
                   <Badge variant="destructive">{group.code}</Badge>
-                  <span className="text-sm font-medium">
+                  <span>
                     {translate('blockedCount', { count: group.count })}
                   </span>
-                </div>
-                <p className="truncate text-xs text-muted-foreground">
-                  {group.accounts.join(', ')}
-                </p>
-              </div>
-              <Button asChild className="shrink-0" withWrapper={false}>
-                <Link href={href(group.href)}>
-                  {translate('blockedViewAction')}
-                </Link>
-              </Button>
-            </li>
+                </span>
+              }
+              description={group.accounts.join(', ')}
+              trailing={
+                <Button asChild className="shrink-0" withWrapper={false}>
+                  <Link href={href(group.href)}>
+                    {translate('blockedViewAction')}
+                  </Link>
+                </Button>
+              }
+            />
           ))}
-        </ul>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">
           {translate('blockedEmpty')}

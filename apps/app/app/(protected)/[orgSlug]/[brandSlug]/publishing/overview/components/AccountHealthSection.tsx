@@ -6,6 +6,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewHealthSectionProps } from '@props/publisher/publishing-overview.props';
 import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -49,56 +50,59 @@ export default function AccountHealthSection({
       label={translate('healthTitle')}
     >
       {rows.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <div>
           {rows.map((row) => (
-            <li
+            <ListRow
               key={row.credentialId}
-              className="flex flex-col gap-2 rounded-md border border-border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
+              density="compact"
+              leading={
                 <PlatformBadge platform={row.platform} showLabel={false} />
-                <span className="min-w-0 truncate text-sm font-medium">
-                  {row.accountLabel}
-                </span>
-                <Badge variant={STATE_BADGE_VARIANT[row.state]}>
-                  {translate(STATE_MESSAGE_KEYS[row.state])}
-                </Badge>
-                {row.riskLevel === 'high' || row.riskLevel === 'medium' ? (
-                  <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
-                    {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
+              }
+              title={
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-0 truncate">{row.accountLabel}</span>
+                  <Badge variant={STATE_BADGE_VARIANT[row.state]}>
+                    {translate(STATE_MESSAGE_KEYS[row.state])}
                   </Badge>
-                ) : null}
-                {row.needsReconnect ? (
-                  <Badge variant="destructive">
-                    {translate('healthReconnect')}
-                  </Badge>
-                ) : null}
-                {row.holdPublishing ? (
-                  <Badge variant="warning">{translate('healthHold')}</Badge>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-3">
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {translate('healthScore', { score: row.score })}
+                  {row.riskLevel === 'high' || row.riskLevel === 'medium' ? (
+                    <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
+                      {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
+                    </Badge>
+                  ) : null}
+                  {row.needsReconnect ? (
+                    <Badge variant="destructive">
+                      {translate('healthReconnect')}
+                    </Badge>
+                  ) : null}
+                  {row.holdPublishing ? (
+                    <Badge variant="warning">{translate('healthHold')}</Badge>
+                  ) : null}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {translate('healthSignals', {
-                    days: row.connectedDays,
-                    failures: row.recentFailures,
-                    posts: row.publishedPosts,
-                  })}
+              }
+              meta={
+                <span className="flex flex-wrap gap-x-3 gap-y-1">
+                  <span>{translate('healthScore', { score: row.score })}</span>
+                  <span>
+                    {translate('healthSignals', {
+                      days: row.connectedDays,
+                      failures: row.recentFailures,
+                      posts: row.publishedPosts,
+                    })}
+                  </span>
                 </span>
-                {row.needsReconnect ? (
+              }
+              trailing={
+                row.needsReconnect ? (
                   <Button asChild size={ButtonSize.SM} withWrapper={false}>
                     <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
                       {translate('healthReconnectAction')}
                     </Link>
                   </Button>
-                ) : null}
-              </div>
-            </li>
+                ) : null
+              }
+            />
           ))}
-        </ul>
+        </div>
       ) : (
         <p className="text-sm text-muted-foreground">
           {translate('healthEmpty')}
