@@ -27,6 +27,8 @@ const mockPageScope = vi.hoisted(() => ({
   current: 'brand' as 'org' | 'brand',
 }));
 
+const mockReplace = vi.hoisted(() => vi.fn());
+
 vi.mock('@hooks/data/campaigns/use-campaigns', () => ({
   useCampaigns: () => mockUseCampaigns(),
 }));
@@ -52,7 +54,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/demo/publishing/campaigns',
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -115,8 +117,19 @@ vi.mock('@ui/display/table/Table', () => ({
   ),
 }));
 
-vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
-  default: () => null,
+vi.mock('@ui/navigation/pagination/Pagination', () => ({
+  default: ({
+    onPageChange,
+    totalPages,
+  }: {
+    onPageChange: (page: number) => void;
+    totalPages: number;
+  }) =>
+    totalPages > 1 ? (
+      <button type="button" onClick={() => onPageChange(99)}>
+        jump-last
+      </button>
+    ) : null,
 }));
 
 vi.mock('@ui/primitives/select', () => ({
@@ -143,6 +156,7 @@ vi.mock('@ui/primitives/button', () => ({
 
 describe('CampaignsListPage', () => {
   beforeEach(() => {
+    mockReplace.mockReset();
     mockPageScope.current = 'brand';
     mockUseCampaigns.mockReturnValue({
       campaigns: mockCampaigns,
@@ -169,5 +183,19 @@ describe('CampaignsListPage', () => {
 
     expect(screen.getByText('columns.brand')).toBeInTheDocument();
     expect(screen.getByText('Moonrise')).toBeInTheDocument();
+  });
+
+  it('clamps pagination to the last page', () => {
+    mockUseCampaigns.mockReturnValue({
+      campaigns: mockCampaigns,
+      isLoading: false,
+      totalPages: 3,
+    });
+    render(<CampaignsListPage />);
+    screen.getByRole('button', { name: 'jump-last' }).click();
+    expect(mockReplace).toHaveBeenCalledWith(
+      '/acme/demo/publishing/campaigns?page=3',
+      { scroll: false },
+    );
   });
 });

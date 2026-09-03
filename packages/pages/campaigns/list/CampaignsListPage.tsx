@@ -129,10 +129,14 @@ export default function CampaignsListPage() {
 
   function replacePage(nextPage: number): void {
     const params = new URLSearchParams(searchParams?.toString() ?? '');
-    if (nextPage <= 1) {
+    const clampedPage = Math.min(
+      Math.max(nextPage, 1),
+      Math.max(totalPages, 1),
+    );
+    if (clampedPage === 1) {
       params.delete('page');
     } else {
-      params.set('page', String(nextPage));
+      params.set('page', String(clampedPage));
     }
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : (pathname ?? ''), {
