@@ -5,6 +5,9 @@
 @import "./shadcn-theme.css";
 @import "./calendar.css";
 @import "./genfeed.css";
+/* Compiled with the main stylesheet. A second PostCSS entry for this file
+   SIGTERMs Turbopack's worker on the protected layout. */
+@import "../ui/src/components/editors/rich-editor.css";
 
 /* Shared product + marketing class sources. Disable monorepo-wide auto
    detection. Point at source trees only — a whole-app `@source` also
