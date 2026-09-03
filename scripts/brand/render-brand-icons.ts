@@ -22,6 +22,10 @@ export const FORBIDDEN_PUBLIC_LOADER_FILES = [
   'apps/website/public/loading.svg',
 ] as const;
 
+/** Expo web reads `favicon.png`. The `.ico` was a leftover copy of the Next favicon. */
+export const FORBIDDEN_MOBILE_FAVICON_ICO =
+  'apps/mobile/app/assets/images/favicon.ico';
+
 export type BrandRasterId =
   | 'mobileAppIcon'
   | 'mobileAdaptiveIcon'

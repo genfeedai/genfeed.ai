@@ -7,6 +7,7 @@ import {
   BRAND_RASTER_FILES,
   CANONICAL_LOGO_PATH,
   extractMarkPath,
+  FORBIDDEN_MOBILE_FAVICON_ICO,
   FORBIDDEN_PUBLIC_LOADER_FILES,
   IDE_ACTIVITY_BAR_SVG,
   MARK_SOURCE_FILES,
@@ -78,6 +79,12 @@ describe('committed brand icons', () => {
         false,
       );
     }
+  });
+
+  it('does not ship a leftover mobile favicon.ico next to favicon.png', () => {
+    expect(existsSync(path.join(REPO_ROOT, FORBIDDEN_MOBILE_FAVICON_ICO))).toBe(
+      false,
+    );
   });
 
   it('uses currentColor on the IDE activity-bar SVG so the workbench can tint it', () => {
