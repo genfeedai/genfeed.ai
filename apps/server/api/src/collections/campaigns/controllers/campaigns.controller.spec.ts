@@ -1,6 +1,7 @@
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
+import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
@@ -41,6 +42,11 @@ describe('CampaignsController', () => {
     pause: vi.fn(),
     start: vi.fn(),
   };
+  const paidActivationService = {
+    approveSpend: vi.fn(),
+    list: vi.fn(),
+    prepare: vi.fn(),
+  };
   const performanceService = {
     getPerformance: vi.fn(),
   };
@@ -62,6 +68,7 @@ describe('CampaignsController', () => {
     controller = new CampaignsController(
       generationService as unknown as CampaignGenerationService,
       lifecycleService as unknown as CampaignLifecycleService,
+      paidActivationService as unknown as CampaignPaidActivationService,
       performanceService as unknown as CampaignPerformanceService,
       service as unknown as CampaignsService,
     );
@@ -73,6 +80,10 @@ describe('CampaignsController', () => {
       providers: [
         { provide: CampaignGenerationService, useValue: generationService },
         { provide: CampaignLifecycleService, useValue: lifecycleService },
+        {
+          provide: CampaignPaidActivationService,
+          useValue: paidActivationService,
+        },
         { provide: CampaignPerformanceService, useValue: performanceService },
         { provide: CampaignsService, useValue: service },
       ],

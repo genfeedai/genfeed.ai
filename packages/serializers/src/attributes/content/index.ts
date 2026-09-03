@@ -7,6 +7,7 @@ export * from '@serializers/attributes/content/calendar-slot.attributes';
 export * from '@serializers/attributes/content/calendar-slot-bulk-generate.attributes';
 export * from '@serializers/attributes/content/campaign.attributes';
 export * from '@serializers/attributes/content/campaign-lifecycle.attributes';
+export * from '@serializers/attributes/content/campaign-paid-activation.attributes';
 export * from '@serializers/attributes/content/campaign-performance.attributes';
 export * from '@serializers/attributes/content/channel-target.attributes';
 export * from '@serializers/attributes/content/clip-project.attributes';

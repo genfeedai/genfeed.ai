@@ -164,6 +164,9 @@ vi.mock(
 );
 
 vi.mock('@pages/campaigns', () => ({
+  CampaignDetailAds: ({ campaignId }: { campaignId: string }) => (
+    <div data-campaign-id={campaignId} data-testid="campaign-ads" />
+  ),
   CampaignDetailOverview: ({ campaignId }: { campaignId: string }) => (
     <div data-campaign-id={campaignId} data-testid="campaign-overview" />
   ),
