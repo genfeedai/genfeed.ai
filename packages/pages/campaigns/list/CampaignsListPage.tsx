@@ -24,7 +24,7 @@ import type { Campaign } from '@services/content/campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -127,6 +127,19 @@ export default function CampaignsListPage() {
     });
   }
 
+  function replacePage(nextPage: number): void {
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    if (nextPage <= 1) {
+      params.delete('page');
+    } else {
+      params.set('page', String(nextPage));
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : (pathname ?? ''), {
+      scroll: false,
+    });
+  }
+
   return (
     <Container
       description={translate('listDescription')}
@@ -172,7 +185,15 @@ export default function CampaignsListPage() {
         items={campaigns}
         label={translate('title')}
       />
-      <AutoPagination totalPages={totalPages} />
+      {totalPages > 1 ? (
+        <div className="mt-4">
+          <Pagination
+            currentPage={page}
+            onPageChange={replacePage}
+            totalPages={totalPages}
+          />
+        </div>
+      ) : null}
     </Container>
   );
 }

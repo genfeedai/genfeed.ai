@@ -65,19 +65,20 @@ export default function CampaignDetailShell({
     );
   }
 
-  const isArchived = campaign.status === ContentCampaignStatus.ARCHIVED;
-  const overviewHref = href(createPublishingCampaignRoute(campaign.id));
+  const resolvedCampaign = campaign;
+  const isArchived = resolvedCampaign.status === ContentCampaignStatus.ARCHIVED;
+  const overviewHref = href(createPublishingCampaignRoute(resolvedCampaign.id));
   const contentHref = href(
-    createPublishingCampaignRoute(campaign.id, 'content'),
+    createPublishingCampaignRoute(resolvedCampaign.id, 'content'),
   );
   const calendarHref = href(
-    createPublishingCampaignRoute(campaign.id, 'calendar'),
+    createPublishingCampaignRoute(resolvedCampaign.id, 'calendar'),
   );
 
   async function invalidate(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ['publish-campaigns'] });
     await queryClient.invalidateQueries({
-      queryKey: ['publish-campaign', campaign.id],
+      queryKey: ['publish-campaign', resolvedCampaign.id],
     });
     await refetch();
   }
@@ -93,7 +94,7 @@ export default function CampaignDetailShell({
         setIsMutating(true);
         try {
           const service = await getService();
-          await service.archive(campaign.id);
+          await service.archive(resolvedCampaign.id);
           notificationsService.success(translate('archived'));
           await invalidate();
         } catch (error) {
@@ -110,7 +111,7 @@ export default function CampaignDetailShell({
     setIsMutating(true);
     try {
       const service = await getService();
-      await service.restore(campaign.id);
+      await service.restore(resolvedCampaign.id);
       notificationsService.success(translate('restored'));
       await invalidate();
     } catch (error) {
@@ -123,7 +124,7 @@ export default function CampaignDetailShell({
 
   return (
     <Container
-      description={campaign.objective || translate('listDescription')}
+      description={resolvedCampaign.objective || translate('listDescription')}
       headerTabs={{
         items: [
           {
@@ -146,11 +147,12 @@ export default function CampaignDetailShell({
         variant: 'underline',
       }}
       icon={Flag}
-      label={campaign.name}
+      label={resolvedCampaign.name}
       right={
         <div className="flex items-center gap-2">
-          <Badge status={campaign.status}>
-            {CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status}
+          <Badge status={resolvedCampaign.status}>
+            {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
+              resolvedCampaign.status}
           </Badge>
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
             <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
@@ -164,7 +166,9 @@ export default function CampaignDetailShell({
               variant={ButtonVariant.SECONDARY}
             >
               <Link
-                href={href(createPublishingCampaignRoute(campaign.id, 'edit'))}
+                href={href(
+                  createPublishingCampaignRoute(resolvedCampaign.id, 'edit'),
+                )}
               >
                 {translate('edit')}
               </Link>
