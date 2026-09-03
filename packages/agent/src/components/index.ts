@@ -13,6 +13,7 @@ export { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGenerat
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+export { AgentRunsList } from '@genfeedai/agent/components/AgentRunsList';
 export { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
 export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';

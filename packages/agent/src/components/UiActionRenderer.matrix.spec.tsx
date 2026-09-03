@@ -133,12 +133,15 @@ describe('UiActionRenderer dispatch matrix', () => {
     },
   );
 
-  it('renders nothing for unknown card types', () => {
-    const { container } = render(
+  it('renders a diagnostic fallback for unknown card types', () => {
+    const { getByRole } = render(
       <UiActionRenderer action={makeAction('mystery_card')} />,
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(getByRole('status').textContent).toContain(
+      'This card type is not supported yet',
+    );
+    expect(getByRole('status').textContent).toContain('mystery_card');
   });
 
   it('renders nothing for clip_run_card without run state', () => {

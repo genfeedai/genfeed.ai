@@ -268,7 +268,11 @@ interface AgentChatState {
     | 'cancelling'
     | 'completed'
     | 'failed'
-    | 'cancelled';
+    | 'cancelled'
+    | 'awaiting_input'
+    | 'awaiting_confirmation'
+    | 'interrupted'
+    | 'restoring';
   isGenerating: boolean;
   isOpen: boolean;
   error: string | null;

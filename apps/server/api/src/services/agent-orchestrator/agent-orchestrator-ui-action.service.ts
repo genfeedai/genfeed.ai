@@ -192,6 +192,7 @@ export class AgentOrchestratorUiActionService {
       case 'confirm_agent_transfer':
       case 'confirm_publish_post':
       case 'confirm_generate_media':
+      case 'confirm_outreach_sequence':
       case 'confirm_save_brand_voice_profile':
         return withAgentScopeResult(
           await this.confirmedToolActions.execute(action, params),
@@ -384,6 +385,10 @@ export class AgentOrchestratorUiActionService {
     }
     if (action === 'confirm_generate_media') {
       return `Confirmed ${payload?.generationType === 'video' ? 'video' : 'image'} generation.`;
+    }
+    if (action === 'confirm_outreach_sequence') {
+      const transition = payload?.transition === 'pause' ? 'pause' : 'start';
+      return `Confirmed outreach sequence ${transition}.`;
     }
     if (action === 'confirm_save_brand_voice_profile') {
       const brandId =

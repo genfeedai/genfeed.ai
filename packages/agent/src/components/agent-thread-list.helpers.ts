@@ -219,7 +219,11 @@ function isThreadActivelyRunning(
       | 'cancelling'
       | 'completed'
       | 'failed'
-      | 'cancelled';
+      | 'cancelled'
+      | 'awaiting_input'
+      | 'awaiting_confirmation'
+      | 'interrupted'
+      | 'restoring';
     activeThreadId?: string | null;
   },
 ): boolean {
@@ -255,7 +259,11 @@ export function getThreadStatusMeta(
       | 'cancelling'
       | 'completed'
       | 'failed'
-      | 'cancelled';
+      | 'cancelled'
+      | 'awaiting_input'
+      | 'awaiting_confirmation'
+      | 'interrupted'
+      | 'restoring';
     activeThreadId?: string | null;
   },
 ): {
@@ -263,12 +271,18 @@ export function getThreadStatusMeta(
   tone: 'running' | 'warning' | 'failed';
 } | null {
   if (
+    thread.runtimeState === 'awaiting_confirmation' ||
     thread.attentionState === 'needs-input' ||
     (thread.pendingInputCount ?? 0) > 0 ||
     thread.runStatus === 'waiting_input'
   ) {
     return {
-      label: 'Needs input',
+      label:
+        thread.runtimeState === 'awaiting_confirmation'
+          ? 'Awaiting confirmation'
+          : thread.runtimeState === 'awaiting_input'
+            ? 'Awaiting input'
+            : 'Needs input',
       tone: 'warning',
     };
   }

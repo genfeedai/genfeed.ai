@@ -111,6 +111,7 @@ export class AgentThreadProjectorService {
       case 'run.cancelled':
       case 'run.completed':
       case 'run.failed':
+      case 'run.interrupted':
       case 'work.completed':
       case 'error.raised':
         nextSnapshot.activeRun = {
@@ -267,6 +268,7 @@ export class AgentThreadProjectorService {
       case 'run.cancelled':
       case 'run.completed':
       case 'run.failed':
+      case 'run.interrupted':
         return {
           ...baseEntry,
           detail:
@@ -377,6 +379,8 @@ export class AgentThreadProjectorService {
     switch (eventType) {
       case 'run.cancelled':
         return 'cancelled';
+      case 'run.interrupted':
+        return 'interrupted';
       case 'run.failed':
       case 'error.raised':
         return 'failed';

@@ -447,11 +447,13 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'agent-thread:AgentThread': [
     'attentionState',
     'brandLabel',
+    'decisionHref',
     'lastActivityAt',
     'lastAssistantPreview',
     'lastGeneratedAssetUrl',
     'pendingInputCount',
     'runStatus',
+    'runtimeState',
   ],
   'announcement:Announcement': [
     'authorId',

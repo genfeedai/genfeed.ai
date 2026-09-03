@@ -258,6 +258,9 @@ export function useAgentChatContainer({
   const [isSubmittingInputRequest, setIsSubmittingInputRequest] =
     useState(false);
   const activeUiActionRef = useRef<string | null>(null);
+  const submitInputRequestRef = useRef<(answer: string) => Promise<void>>(
+    async () => undefined,
+  );
   const [activeUiAction, setActiveUiActionState] = useState<string | null>(
     null,
   );
@@ -499,6 +502,16 @@ export function useAgentChatContainer({
         liveState.isGenerating ||
         (isStreaming && liveState.stream.isStreaming);
 
+      const pendingAsk = liveState.pendingInputRequest;
+      if (pendingAsk && !shouldQueueFollowUp) {
+        const answer = content.trim();
+        if (answer) {
+          followLatestTurn('smooth');
+          void submitInputRequestRef.current(answer);
+          return true;
+        }
+      }
+
       if (shouldQueueFollowUp) {
         const enqueued = followUpQueue.enqueue(content, {
           attachments,
@@ -662,6 +675,7 @@ export function useAgentChatContainer({
       threads,
     ],
   );
+  submitInputRequestRef.current = handleSubmitInputRequest;
 
   const handleUiAction = useCallback(
     async (action: string, payload?: Record<string, unknown>) => {

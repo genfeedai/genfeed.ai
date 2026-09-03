@@ -237,4 +237,86 @@ describe('AgentThreadsService Prisma row contract', () => {
       }),
     );
   });
+
+  it('never projects a terminal workflow execution as running', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        id: 'thread-1',
+        organizationId: 'org-1',
+        title: 'Finished turn',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: {
+          activeRun: {
+            runId: 'run-1',
+            status: 'running',
+          },
+        },
+        threadId: 'thread-1',
+      },
+    ]);
+    queryRaw.mockResolvedValue([
+      { id: 'execution-1', status: 'COMPLETED', threadId: 'thread-1' },
+    ]);
+
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+    );
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        runStatus: 'completed',
+        runtimeState: 'completed',
+      }),
+    );
+  });
+
+  it('lists awaiting and failed runs without idle threads', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        id: 'thread-wait',
+        lastActivityAt: new Date().toISOString(),
+        organizationId: 'org-1',
+        title: 'Waiting',
+        userId: 'user-1',
+      },
+      {
+        id: 'thread-idle',
+        organizationId: 'org-1',
+        title: 'Idle',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: {
+          activeRun: { runId: 'run-wait', status: 'running' },
+          pendingInputRequests: [
+            { prompt: 'Pick a format', requestId: 'input-1', title: 'Format' },
+          ],
+        },
+        threadId: 'thread-wait',
+      },
+      {
+        data: { activeRun: { runId: 'run-idle', status: 'completed' } },
+        threadId: 'thread-idle',
+      },
+    ]);
+
+    const runs = await service.listAgentRuns('user-1', 'org-1');
+
+    expect(runs).toEqual([
+      expect.objectContaining({
+        id: 'run-wait',
+        inputRequestId: 'input-1',
+        runtimeState: 'awaiting_input',
+        threadId: 'thread-wait',
+      }),
+    ]);
+  });
 });

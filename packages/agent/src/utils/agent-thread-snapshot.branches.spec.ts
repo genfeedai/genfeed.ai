@@ -54,7 +54,7 @@ describe('mapSnapshotRunStatus', () => {
   it('maps every known status', () => {
     expect(mapSnapshotRunStatus('queued')).toBe('running');
     expect(mapSnapshotRunStatus('running')).toBe('running');
-    expect(mapSnapshotRunStatus('waiting_input')).toBe('running');
+    expect(mapSnapshotRunStatus('waiting_input')).toBe('awaiting_input');
     expect(mapSnapshotRunStatus('completed')).toBe('completed');
     expect(mapSnapshotRunStatus('failed')).toBe('failed');
     expect(mapSnapshotRunStatus('cancelled')).toBe('cancelled');

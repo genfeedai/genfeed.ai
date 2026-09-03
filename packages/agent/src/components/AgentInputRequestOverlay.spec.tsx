@@ -78,11 +78,27 @@ describe('AgentInputRequestOverlay', () => {
     fireEvent.change(screen.getByPlaceholderText(/type your own answer/i), {
       target: { value: 'Use a wider drop zone on desktop only.' },
     });
-    fireEvent.click(screen.getByText('Submit answers'));
+    fireEvent.click(screen.getByText('Use this answer'));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith(
       'Use a wider drop zone on desktop only.',
     );
+  });
+
+  it('marks the chosen option selected and keeps Other visible', () => {
+    const onSubmit = vi.fn();
+
+    render(
+      <AgentInputRequestOverlay onSubmit={onSubmit} request={makeRequest()} />,
+    );
+
+    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+
+    expect(screen.getByRole('button', { name: /Hybrid/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByLabelText('Other')).toBeInTheDocument();
   });
 });

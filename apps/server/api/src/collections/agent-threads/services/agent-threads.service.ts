@@ -8,10 +8,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
+  AGENT_RUNTIME_ACTIVE_STATES,
+  AgentRuntimeState,
   AgentThreadStatus,
   IngredientCategory,
-  WorkflowExecutionStatus,
+  resolveAgentRuntimeState,
 } from '@genfeedai/contracts';
+import type { IAgentRunProjection } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -30,11 +33,14 @@ type ThreadAttentionState = 'needs-input' | 'running' | 'updated' | null;
 type AgentThreadSummary = Partial<{
   attentionState: ThreadAttentionState;
   brandLabel: string;
+  decisionHref: string;
   lastActivityAt: string;
   lastAssistantPreview: string;
   lastGeneratedAssetUrl: string;
   pendingInputCount: number;
+  runId: string;
   runStatus: ThreadRunStatus;
+  runtimeState: AgentRuntimeState;
 }>;
 
 type ThreadGeneratedAsset = {
@@ -44,7 +50,7 @@ type ThreadGeneratedAsset = {
 
 type WorkflowExecutionRecord = {
   id: string;
-  status: WorkflowExecutionStatus | string;
+  status: string;
 };
 
 /**
@@ -341,6 +347,7 @@ export class AgentThreadsService extends BaseService<
         ...thread,
         ...(brandLabel ? { brandLabel } : {}),
         ...this.buildThreadSummary(
+          String(thread.id),
           snapshot,
           latestExecution,
           latestAssetsByThreadId.get(String(thread.id)),
@@ -349,7 +356,51 @@ export class AgentThreadsService extends BaseService<
     }) as AgentThreadWithSummary[];
   }
 
+  async listAgentRuns(
+    userId: string,
+    organizationId: string,
+    brandId?: string | null,
+  ): Promise<IAgentRunProjection[]> {
+    const threads = await this.getUserThreads(
+      userId,
+      organizationId,
+      AgentThreadStatus.ACTIVE,
+      brandId,
+    );
+    const projectedAt = new Date().toISOString();
+    const recentCutoff = Date.now() - 24 * 60 * 60 * 1000;
+
+    return threads.flatMap((thread) => {
+      const runtimeState = thread.runtimeState ?? AgentRuntimeState.READY;
+      const isRecentFailure =
+        (runtimeState === AgentRuntimeState.FAILED ||
+          runtimeState === AgentRuntimeState.INTERRUPTED ||
+          runtimeState === AgentRuntimeState.CANCELLED) &&
+        this.isRecentActivity(thread.lastActivityAt, recentCutoff);
+      if (!AGENT_RUNTIME_ACTIVE_STATES.has(runtimeState) && !isRecentFailure) {
+        return [];
+      }
+
+      return [
+        {
+          brandId: thread.brandId ?? null,
+          brandLabel: thread.brandLabel ?? null,
+          decisionHref: thread.decisionHref ?? `/agent/${thread.id}`,
+          id: thread.runId ?? `thread-run:${thread.id}`,
+          inputRequestId: this.readInputRequestIdFromHref(thread.decisionHref),
+          isProjectionStale: false,
+          projectedAt,
+          runtimeState,
+          startedAt: thread.lastActivityAt ?? null,
+          threadId: thread.id,
+          threadTitle: thread.title ?? null,
+        } satisfies IAgentRunProjection,
+      ];
+    });
+  }
+
   private buildThreadSummary(
+    threadId: string,
     snapshot?: AgentThreadSnapshotDocument | null,
     latestExecution?: WorkflowExecutionRecord | null,
     latestAsset?: ThreadGeneratedAsset,
@@ -370,22 +421,42 @@ export class AgentThreadsService extends BaseService<
     if (!snapshot) {
       return {
         attentionState: null,
+        decisionHref: `/agent/${threadId}`,
         lastGeneratedAssetUrl: lastGeneratedAsset?.url,
         pendingInputCount: 0,
         runStatus: 'idle',
+        runtimeState: AgentRuntimeState.READY,
       };
     }
 
-    const pendingInputCount = Array.isArray(snapshot.pendingInputRequests)
-      ? snapshot.pendingInputRequests.length
+    const pendingInputRequests = Array.isArray(snapshot.pendingInputRequests)
+      ? snapshot.pendingInputRequests
+      : [];
+    const pendingInputCount = pendingInputRequests.length;
+    const pendingApprovals = Array.isArray(snapshot.pendingApprovals)
+      ? snapshot.pendingApprovals.length
       : 0;
+    const hasPendingConfirmation =
+      pendingApprovals > 0 ||
+      Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval);
     const activeRun = this.asRecord(snapshot.activeRun);
     const rawRunStatus = this.readString(activeRun, 'status');
-    const runStatus = this.reconcileRunStatus(
-      this.normalizeRunStatus(rawRunStatus, pendingInputCount),
-      latestExecution,
+    const runtimeState = resolveAgentRuntimeState({
+      hasPendingConfirmation,
       pendingInputCount,
+      snapshotStatus: rawRunStatus,
+      workflowStatus: latestExecution?.status,
+    });
+    const runStatus = this.toLegacyRunStatus(runtimeState);
+    const inputRequestId = this.readString(
+      this.asRecord(pendingInputRequests.at(-1)),
+      'requestId',
     );
+    const decisionHref = this.buildDecisionHref(threadId, {
+      hasPendingConfirmation,
+      inputRequestId,
+      runtimeState,
+    });
     const lastAssistantMessage = this.asRecord(snapshot.lastAssistantMessage);
     const lastMeaningfulTimelineAssistant = [...(snapshot.timeline ?? [])]
       .reverse()
@@ -410,16 +481,20 @@ export class AgentThreadsService extends BaseService<
 
     return {
       attentionState:
-        pendingInputCount > 0
+        runtimeState === AgentRuntimeState.AWAITING_INPUT ||
+        runtimeState === AgentRuntimeState.AWAITING_CONFIRMATION
           ? 'needs-input'
-          : runStatus === 'queued' || runStatus === 'running'
+          : runtimeState === AgentRuntimeState.RUNNING
             ? 'running'
             : null,
+      decisionHref,
       lastActivityAt,
       lastAssistantPreview: lastAssistantPreview?.slice(0, 280),
       lastGeneratedAssetUrl: lastGeneratedAsset?.url,
       pendingInputCount,
+      runId: this.readString(activeRun, 'runId'),
       runStatus,
+      runtimeState,
     };
   }
 
@@ -523,53 +598,63 @@ export class AgentThreadsService extends BaseService<
     );
   }
 
-  private normalizeRunStatus(
-    rawStatus?: string,
-    pendingInputCount = 0,
-  ): ThreadRunStatus {
-    if (pendingInputCount > 0) {
-      return 'waiting_input';
-    }
-
-    switch (rawStatus) {
-      case 'queued':
-      case 'running':
-      case 'waiting_input':
-      case 'completed':
-      case 'failed':
-      case 'cancelled':
-        return rawStatus;
+  private toLegacyRunStatus(state: AgentRuntimeState): ThreadRunStatus {
+    switch (state) {
+      case AgentRuntimeState.RUNNING:
+        return 'running';
+      case AgentRuntimeState.AWAITING_INPUT:
+      case AgentRuntimeState.AWAITING_CONFIRMATION:
+        return 'waiting_input';
+      case AgentRuntimeState.COMPLETED:
+        return 'completed';
+      case AgentRuntimeState.FAILED:
+        return 'failed';
+      case AgentRuntimeState.CANCELLED:
+      case AgentRuntimeState.INTERRUPTED:
+        return 'cancelled';
       default:
         return 'idle';
     }
   }
 
-  private reconcileRunStatus(
-    snapshotStatus: ThreadRunStatus,
-    latestExecution?: WorkflowExecutionRecord | null,
-    pendingInputCount = 0,
-  ): ThreadRunStatus {
-    if (pendingInputCount > 0) {
-      return 'waiting_input';
-    }
-
-    if (!latestExecution) {
-      return snapshotStatus;
-    }
-
-    const latestExecutionStatus = this.mapWorkflowExecutionStatus(
-      latestExecution.status,
-    );
-
-    if (
-      (snapshotStatus === 'queued' || snapshotStatus === 'running') &&
-      latestExecutionStatus !== 'queued' &&
-      latestExecutionStatus !== 'running'
+  private buildDecisionHref(
+    threadId: string,
+    input: {
+      hasPendingConfirmation: boolean;
+      inputRequestId?: string;
+      runtimeState: AgentRuntimeState;
+    },
+  ): string {
+    const search = new URLSearchParams();
+    if (input.inputRequestId) {
+      search.set('inputRequestId', input.inputRequestId);
+    } else if (
+      input.hasPendingConfirmation ||
+      input.runtimeState === AgentRuntimeState.AWAITING_CONFIRMATION
     ) {
-      return latestExecutionStatus;
+      search.set('decision', 'confirmation');
     }
+    const query = search.toString();
+    return query ? `/agent/${threadId}?${query}` : `/agent/${threadId}`;
+  }
 
-    return snapshotStatus === 'idle' ? latestExecutionStatus : snapshotStatus;
+  private readInputRequestIdFromHref(href?: string): string | null {
+    if (!href?.includes('?')) {
+      return null;
+    }
+    const query = href.slice(href.indexOf('?') + 1);
+    return new URLSearchParams(query).get('inputRequestId');
+  }
+
+  private isRecentActivity(
+    lastActivityAt: string | undefined,
+    cutoffMs: number,
+  ): boolean {
+    if (!lastActivityAt) {
+      return false;
+    }
+    const value = Date.parse(lastActivityAt);
+    return Number.isFinite(value) && value >= cutoffMs;
   }
 
   private normalizeSnapshot(
@@ -585,28 +670,6 @@ export class AgentThreadsService extends BaseService<
           : undefined,
       ...(data as Partial<AgentThreadSnapshotDocument>),
     };
-  }
-
-  private mapWorkflowExecutionStatus(
-    status?: WorkflowExecutionStatus | string | null,
-  ): ThreadRunStatus {
-    const normalized = String(status ?? '').toUpperCase();
-    switch (normalized) {
-      case WorkflowExecutionStatus.PENDING:
-      case 'QUEUED':
-        return 'queued';
-      case WorkflowExecutionStatus.RUNNING:
-        return 'running';
-      case WorkflowExecutionStatus.COMPLETED:
-        return 'completed';
-      case WorkflowExecutionStatus.FAILED:
-      case 'BUDGET_EXHAUSTED':
-        return 'failed';
-      case WorkflowExecutionStatus.CANCELLED:
-        return 'cancelled';
-      default:
-        return 'idle';
-    }
   }
 
   private asRecord(value: unknown): Record<string, unknown> | undefined {

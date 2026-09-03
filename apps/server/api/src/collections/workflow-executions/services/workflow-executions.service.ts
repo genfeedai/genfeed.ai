@@ -601,15 +601,39 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
     // tenant-scope-ignore: the internal workflow runner cancels an execution by its opaque globally unique id and has no request-level tenant boundary
-    const result = await this.prisma.workflowExecution.update({
-      data: {
-        completedAt: new Date(),
-        status: PrismaWorkflowExecutionStatus.CANCELLED,
-      },
+    const existing = await this.prisma.workflowExecution.findUnique({
       where: { id: executionId },
     });
+    if (!existing) {
+      return null;
+    }
 
-    return this.normalizeDocument(result);
+    const completedAt = new Date();
+    const transition = await this.prisma.workflowExecution.updateMany({
+      data: {
+        completedAt,
+        status: PrismaWorkflowExecutionStatus.CANCELLED,
+      },
+      where: {
+        id: executionId,
+        status: {
+          in: [
+            PrismaWorkflowExecutionStatus.PENDING,
+            PrismaWorkflowExecutionStatus.RUNNING,
+          ],
+        },
+      },
+    });
+
+    if (transition.count !== 1) {
+      return this.normalizeDocument(existing);
+    }
+
+    // tenant-scope-ignore: primary-key read after the non-terminal cancel transition
+    const updated = await this.prisma.workflowExecution.findUnique({
+      where: { id: executionId },
+    });
+    return this.normalizeDocument(updated);
   }
 
   @HandleErrors('update node result', 'workflow-executions')

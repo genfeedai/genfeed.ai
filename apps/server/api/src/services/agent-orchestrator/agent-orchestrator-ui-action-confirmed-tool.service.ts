@@ -20,6 +20,7 @@ type ConfirmedToolAction =
   | 'confirm_agent_transfer'
   | 'confirm_generate_media'
   | 'confirm_install_official_workflow'
+  | 'confirm_outreach_sequence'
   | 'confirm_publish_post'
   | 'confirm_save_brand_voice_profile';
 
@@ -52,9 +53,63 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         return this.executePublishPost(params);
       case 'confirm_generate_media':
         return this.executeGenerateMedia(params);
+      case 'confirm_outreach_sequence':
+        return this.executeOutreachSequence(params);
       case 'confirm_save_brand_voice_profile':
         return this.executeSaveBrandVoiceProfile(params);
     }
+  }
+
+  private async executeOutreachSequence(
+    params: ThreadUiActionExecutionParams,
+  ): Promise<AgentChatResult> {
+    const sourceActionId =
+      typeof params.payload?.sourceActionId === 'string'
+        ? params.payload.sourceActionId.trim()
+        : '';
+    const campaignId =
+      typeof params.payload?.campaignId === 'string'
+        ? params.payload.campaignId.trim()
+        : '';
+    const transition =
+      params.payload?.transition === 'pause' ? 'pause' : 'start';
+    if (!sourceActionId || !campaignId) {
+      throw new BadRequestException(
+        'Outreach sequence confirmation requires campaignId and sourceActionId.',
+      );
+    }
+    const toolName =
+      transition === 'pause'
+        ? AgentToolName.PAUSE_OUTREACH_SEQUENCE
+        : AgentToolName.START_OUTREACH_SEQUENCE;
+    const execution = await this.executeTool(
+      params,
+      toolName,
+      {
+        campaignId,
+        confirmed: true,
+        sourceActionId,
+      },
+      { confirmationOrigin: 'thread-ui-action', sourceActionId },
+    );
+    if (!execution.result.success) {
+      throwFailedUiActionResult(
+        execution.result.error,
+        `Failed to ${transition} the outreach sequence.`,
+      );
+    }
+    return this.finalizer.finalizeStructuredAssistantTurn({
+      content:
+        transition === 'pause'
+          ? 'Outreach sequence paused.'
+          : 'Outreach sequence started.',
+      context: params.context,
+      eventIdempotencyKey: `outreach-sequence-result:${sourceActionId}`,
+      model: params.model,
+      result: execution.result,
+      threadId: params.threadId,
+      toolCalls: [execution.summary],
+    });
   }
 
   private async executeAgentTransfer(

@@ -8,23 +8,46 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+import {
+  AgentRuntimeState,
+  resolveAgentRuntimeState,
+} from '@genfeedai/contracts';
+
+export type MappedSnapshotRunStatus =
+  | 'idle'
+  | 'running'
+  | 'cancelling'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'awaiting_input'
+  | 'awaiting_confirmation'
+  | 'interrupted'
+  | 'restoring';
 
 export function mapSnapshotRunStatus(
   status?: string | null,
-): 'idle' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' {
-  switch (status) {
-    case 'queued':
-    case 'running':
-    case 'waiting_input':
-      return 'running';
-    case 'completed':
-      return 'completed';
-    case 'failed':
-      return 'failed';
-    case 'cancelled':
-      return 'cancelled';
-    default:
+): MappedSnapshotRunStatus {
+  const resolved = resolveAgentRuntimeState({ snapshotStatus: status });
+  switch (resolved) {
+    case AgentRuntimeState.READY:
       return 'idle';
+    case AgentRuntimeState.RUNNING:
+      return 'running';
+    case AgentRuntimeState.AWAITING_INPUT:
+      return 'awaiting_input';
+    case AgentRuntimeState.AWAITING_CONFIRMATION:
+      return 'awaiting_confirmation';
+    case AgentRuntimeState.INTERRUPTED:
+      return 'interrupted';
+    case AgentRuntimeState.RESTORING:
+      return 'restoring';
+    case AgentRuntimeState.COMPLETED:
+      return 'completed';
+    case AgentRuntimeState.FAILED:
+      return 'failed';
+    case AgentRuntimeState.CANCELLED:
+      return 'cancelled';
   }
 }
 
@@ -383,11 +406,13 @@ export function buildThreadSummaryFromSnapshot(
 ): Pick<
   AgentThread,
   | 'attentionState'
+  | 'decisionHref'
   | 'lastActivityAt'
   | 'lastAssistantPreview'
   | 'lastGeneratedAssetUrl'
   | 'pendingInputCount'
   | 'runStatus'
+  | 'runtimeState'
 > {
   const now = options?.now ?? new Date().toISOString();
   const isVisible = options?.isVisible ?? false;
@@ -396,14 +421,26 @@ export function buildThreadSummaryFromSnapshot(
   const hasPendingPlanApproval = Boolean(
     snapshot.latestProposedPlan?.awaitingApproval,
   );
-  const isRunning =
-    snapshot.activeRun?.status === 'queued' ||
-    snapshot.activeRun?.status === 'running';
+  const runtimeState = resolveAgentRuntimeState({
+    hasPendingConfirmation: hasPendingPlanApproval,
+    pendingInputCount: snapshot.pendingInputRequests.length,
+    snapshotStatus: snapshot.activeRun?.status,
+  });
+  const isRunning = runtimeState === AgentRuntimeState.RUNNING;
   const hasAssistantUpdate = Boolean(snapshot.lastAssistantMessage);
+  const inputRequestId = snapshot.pendingInputRequests.at(-1)?.requestId;
+  const search = new URLSearchParams();
+  if (inputRequestId) {
+    search.set('inputRequestId', inputRequestId);
+  } else if (hasPendingPlanApproval) {
+    search.set('decision', 'confirmation');
+  }
+  const query = search.toString();
 
   return {
     attentionState:
-      hasPendingInput || hasPendingPlanApproval
+      runtimeState === AgentRuntimeState.AWAITING_INPUT ||
+      runtimeState === AgentRuntimeState.AWAITING_CONFIRMATION
         ? 'needs-input'
         : isRunning
           ? isVisible
@@ -412,6 +449,9 @@ export function buildThreadSummaryFromSnapshot(
           : hasAssistantUpdate && !isVisible
             ? 'updated'
             : null,
+    decisionHref: query
+      ? `/agent/${snapshot.threadId}?${query}`
+      : `/agent/${snapshot.threadId}`,
     lastActivityAt:
       snapshot.lastAssistantMessage?.createdAt ??
       snapshot.activeRun?.completedAt ??
@@ -432,5 +472,6 @@ export function buildThreadSummaryFromSnapshot(
       hasPendingInput || hasPendingPlanApproval
         ? 'waiting_input'
         : ((snapshot.activeRun?.status as AgentThread['runStatus']) ?? 'idle'),
+    runtimeState,
   };
 }

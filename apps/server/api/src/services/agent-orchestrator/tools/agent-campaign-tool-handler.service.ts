@@ -452,9 +452,13 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              action: 'send_prompt',
+              action: 'confirm_outreach_sequence',
               label: transition === 'start' ? 'Confirm start' : 'Confirm pause',
-              payload: { prompt: preparation.confirmationPrompt },
+              payload: {
+                campaignId,
+                sourceActionId,
+                transition,
+              },
             },
             {
               href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,

@@ -1,10 +1,17 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Pause, Play } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface CampaignCardProps {
   action: AgentUiAction;
+  onUiAction?: AgentUiActionHandler;
 }
 
 const CAMPAIGN_STATUS_CONFIG: Record<
@@ -65,6 +72,7 @@ export function CampaignCreateCard({
 
 export function CampaignControlCard({
   action,
+  onUiAction,
 }: CampaignCardProps): ReactElement {
   const translate = useTranslations('agent.outreachSequence');
   const status = action.status || 'active';
@@ -98,18 +106,39 @@ export function CampaignControlCard({
             const isDestructive =
               cta.label.toLowerCase().includes('stop') ||
               cta.label.toLowerCase().includes('pause');
+            if (cta.action) {
+              return (
+                <Button
+                  key={cta.label}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                  onClick={() => {
+                    void onUiAction?.(cta.action as string, cta.payload);
+                  }}
+                  className={
+                    isDestructive
+                      ? 'bg-destructive/10 text-destructive hover:bg-destructive/10'
+                      : 'bg-warning/10 text-warning hover:bg-warning/10'
+                  }
+                >
+                  {cta.label}
+                </Button>
+              );
+            }
+            if (!cta.href) {
+              return null;
+            }
             return (
-              <a
+              <Button
                 key={cta.label}
-                href={cta.href}
-                className={`text-xs px-3 py-1.5 transition-colors ${
-                  isDestructive
-                    ? 'bg-destructive/10  text-destructive  hover:bg-destructive/10'
-                    : 'bg-warning/10  text-warning  hover:bg-warning/10'
-                }`}
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
               >
-                {cta.label}
-              </a>
+                <Link href={cta.href}>{cta.label}</Link>
+              </Button>
             );
           })}
         </div>
