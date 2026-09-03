@@ -19,6 +19,12 @@
 @source "../pages";
 @source "../ui";
 @source "../workflows";
+@source not "../../**/*.test.ts";
+@source not "../../**/*.test.tsx";
+@source not "../../**/*.spec.ts";
+@source not "../../**/*.spec.tsx";
+@source not "../../**/*.stories.ts";
+@source not "../../**/*.stories.tsx";
 
 /* Long-form prose (article bodies) arrives as sanitized HTML through
    `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a
