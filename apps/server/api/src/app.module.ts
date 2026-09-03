@@ -15,7 +15,6 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
-import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { RequestContextModule } from '@api/common/request-context.module';
 import { DevModule } from '@api/endpoints/dev/dev.module';
 import { DocsModule } from '@api/endpoints/docs/docs.module';
@@ -118,7 +117,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestContextMiddleware).forRoutes('*path');
     consumer.apply(OrgPrefixMiddleware).forRoutes('*path');
   }
 }
