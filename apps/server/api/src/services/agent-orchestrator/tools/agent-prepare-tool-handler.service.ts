@@ -18,7 +18,11 @@ import {
   resolveLockedGenerationType,
   type ThreadGenerationType,
 } from '@api/services/agent-orchestrator/utils/thread-generation-type.util';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
+import {
+  isExplicitAgentMediaGenerationMode,
+  VoiceCloneStatus,
+  VoiceProvider,
+} from '@genfeedai/contracts';
 import type {
   AgentClipRunIdentity,
   AgentNextStepOption,
@@ -60,16 +64,17 @@ export class AgentPrepareToolHandler {
   ): Promise<AgentToolResult> {
     const requestedGenerationType =
       params.generationType as ThreadGenerationType;
-    const generationType =
-      ctx?.generationMode === 'image' || ctx?.generationMode === 'video'
-        ? ctx.generationMode
-        : requestedGenerationType;
+    const generationType = isExplicitAgentMediaGenerationMode(
+      ctx?.generationMode,
+    )
+      ? ctx.generationMode
+      : requestedGenerationType;
     const prompt = params.prompt as string | undefined;
     const model = params.model as string | undefined;
     const aspectRatio = params.aspectRatio as string | undefined;
     const duration = params.duration as number | undefined;
 
-    if ((generationType !== 'image' && generationType !== 'video') || !prompt) {
+    if (!isExplicitAgentMediaGenerationMode(generationType) || !prompt) {
       return {
         creditsUsed: 0,
         error: 'generationType and prompt are required',
@@ -77,13 +82,12 @@ export class AgentPrepareToolHandler {
       };
     }
 
-    const lockError =
-      ctx?.generationMode === 'image' || ctx?.generationMode === 'video'
-        ? null
-        : generationTypeLockError(
-            generationType,
-            await this.readLockedGenerationType(ctx),
-          );
+    const lockError = isExplicitAgentMediaGenerationMode(ctx?.generationMode)
+      ? null
+      : generationTypeLockError(
+          generationType,
+          await this.readLockedGenerationType(ctx),
+        );
     if (lockError) {
       return {
         creditsUsed: 0,

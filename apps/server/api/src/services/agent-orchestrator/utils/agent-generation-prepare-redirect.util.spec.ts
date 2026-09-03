@@ -100,6 +100,19 @@ describe('getGenerationPreparationRedirect', () => {
     ).toBe(AgentToolName.PREPARE_VOICE_CLONE);
   });
 
+  it('does not treat open_studio_handoff as a generate tool', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        AgentToolName.OPEN_STUDIO_HANDOFF,
+        new Set([
+          AgentToolName.PREPARE_GENERATION,
+          AgentToolName.OPEN_STUDIO_HANDOFF,
+        ]),
+        { requestedGenerationType: 'image' },
+      ),
+    ).toBeNull();
+  });
+
   it('does not remap unknown non-generate tools', () => {
     expect(
       getGenerationPreparationRedirect(

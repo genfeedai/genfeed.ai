@@ -6,7 +6,7 @@
  * settings util, keeping the shared store package-agnostic.
  */
 import type { ConversationComposerGenerationSettings } from '@genfeedai/agent/models/conversation-composer.model';
-import { RouterPriority } from '@genfeedai/contracts';
+import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
@@ -69,7 +69,9 @@ export const AGENT_GENERATION_SETUP_TYPE_OPTIONS: readonly GenerationSetupTypeOp
 export function isAgentGenerationType(
   type: StudioGenerateType | null | undefined,
 ): type is AgentGenerationType {
-  return type === 'image' || type === 'video';
+  return (
+    type === AgentGenerationMode.IMAGE || type === AgentGenerationMode.VIDEO
+  );
 }
 
 export function getAgentGenerationSetupCapabilities(

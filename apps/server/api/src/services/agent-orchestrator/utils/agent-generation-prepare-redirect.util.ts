@@ -1,3 +1,7 @@
+import {
+  AgentGenerationMode,
+  isExplicitAgentMediaGenerationMode,
+} from '@genfeedai/contracts';
 import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
@@ -90,51 +94,48 @@ function isVisualGenerateLike(normalizedName: string): boolean {
 
 export function inferPrepareGenerationType(
   toolName: string,
-): 'image' | 'video' | undefined {
+): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
   const normalized = normalizeRequestedAgentToolName(toolName);
   if (normalized === AgentToolName.GENERATE_IMAGE) {
-    return 'image';
+    return AgentGenerationMode.IMAGE;
   }
   if (
     normalized === AgentToolName.GENERATE_AS_IDENTITY ||
     normalized === AgentToolName.GENERATE_VIDEO
   ) {
-    return 'video';
+    return AgentGenerationMode.VIDEO;
   }
 
   const compact = compactToolName(normalized);
   if (compact.includes('image') || compact.includes('img')) {
-    return 'image';
+    return AgentGenerationMode.IMAGE;
   }
   if (
     compact.includes('avatar') ||
     compact.includes('identity') ||
     compact.includes('video')
   ) {
-    return 'video';
+    return AgentGenerationMode.VIDEO;
   }
 
   return undefined;
 }
 
 interface GenerationRedirectOptions {
-  generationMode?: 'auto' | 'image' | 'video';
+  generationMode?: AgentGenerationMode | string;
   requestedGenerationType?: unknown;
 }
 
 function resolveVisualGenerationType(
   toolName: string,
   options: GenerationRedirectOptions,
-): 'image' | 'video' | undefined {
-  if (
-    options.generationMode === 'image' ||
-    options.generationMode === 'video'
-  ) {
+): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
+  if (isExplicitAgentMediaGenerationMode(options.generationMode)) {
     return options.generationMode;
   }
   if (
-    options.requestedGenerationType === 'image' ||
-    options.requestedGenerationType === 'video'
+    typeof options.requestedGenerationType === 'string' &&
+    isExplicitAgentMediaGenerationMode(options.requestedGenerationType)
   ) {
     return options.requestedGenerationType;
   }
@@ -164,9 +165,9 @@ export function getGenerationPreparationRedirect(
   ) {
     const generationType = resolveVisualGenerationType(normalized, options);
     const directTool =
-      generationType === 'video'
+      generationType === AgentGenerationMode.VIDEO
         ? AgentToolName.GENERATE_VIDEO
-        : generationType === 'image'
+        : generationType === AgentGenerationMode.IMAGE
           ? AgentToolName.GENERATE_IMAGE
           : null;
     if (

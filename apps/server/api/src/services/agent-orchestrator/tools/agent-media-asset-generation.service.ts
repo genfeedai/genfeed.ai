@@ -15,8 +15,15 @@ import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/too
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { RouterPriority, Status } from '@genfeedai/contracts';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import {
+  IngredientCategory,
+  RouterPriority,
+  Status,
+} from '@genfeedai/contracts';
+import {
+  createLibraryAssetRoute,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -538,7 +545,12 @@ export class AgentMediaAssetGenerationService {
               assetId: id,
               assetKind: 'voice',
               audio: cdnUrl ? [cdnUrl] : [],
-              ctas: [{ href: `/g/voice/${id}`, label: 'View in gallery' }],
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.VOICE, id),
+                  label: 'View in Library',
+                },
+              ],
               description: `Speech ${cdnUrl ? 'generated' : 'is generating'}: "${(params.text as string).substring(0, 80)}"`,
               id: `voice-gen-${id}`,
               status: cdnUrl ? 'completed' : 'processing',
@@ -719,14 +731,11 @@ export class AgentMediaAssetGenerationService {
             {
               ctas: [
                 {
-                  href:
-                    params.endpoint === 'image'
-                      ? '/library/assets'
-                      : `/g/${params.endpoint}/${id}`,
-                  label:
-                    params.endpoint === 'image'
-                      ? 'View in Library'
-                      : 'View in gallery',
+                  href: createLibraryAssetRoute(
+                    mediaAssetLibraryCategory(params.endpoint),
+                    id,
+                  ),
+                  label: 'View in Library',
                 },
               ],
               description: params.description,
@@ -805,5 +814,18 @@ export class AgentMediaAssetGenerationService {
       '16:9': { height: 576, width: 1024 },
     };
     return map[ratio] || map['1:1'];
+  }
+}
+
+function mediaAssetLibraryCategory(
+  endpoint: 'image' | 'music' | 'voice',
+): IngredientCategory {
+  switch (endpoint) {
+    case 'music':
+      return IngredientCategory.MUSIC;
+    case 'voice':
+      return IngredientCategory.VOICE;
+    default:
+      return IngredientCategory.IMAGE;
   }
 }

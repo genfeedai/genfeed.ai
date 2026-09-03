@@ -38,6 +38,7 @@ import {
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { AgentGenerationMode } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
@@ -182,7 +183,7 @@ interface UseAgentChatInputParams {
 }
 
 export function useAgentChatInput({
-  generationMode = 'auto',
+  generationMode = AgentGenerationMode.AUTO,
   generationSettings,
   onSend,
   onPromoteQueuedFollowUp,
@@ -651,7 +652,7 @@ export function useAgentChatInput({
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
         generationMode,
-        ...(generationMode !== 'auto' && generationSettings
+        ...(generationMode !== AgentGenerationMode.AUTO && generationSettings
           ? { generationSettings }
           : {}),
         planModeEnabled: false,

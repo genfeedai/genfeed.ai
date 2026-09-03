@@ -5193,7 +5193,9 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.nextActions?.[0]).toMatchObject({
       audio: ['https://cdn.example.test/voice-123.mp3'],
-      ctas: [{ href: '/g/voice/voice-123', label: 'View in gallery' }],
+      ctas: [
+        { href: '/library/voices?asset=voice-123', label: 'View in Library' },
+      ],
     });
   });
 
