@@ -30,8 +30,18 @@ function readObjectSchema(schema: object | undefined): {
   if (!isRecord(schema)) {
     return { properties: {}, required: new Set() };
   }
-  if (Array.isArray(schema.oneOf)) {
-    const firstObject = schema.oneOf.find(isRecord);
+  const alternatives = [
+    ...(Array.isArray(schema.oneOf) ? schema.oneOf : []),
+    ...(Array.isArray(schema.anyOf) ? schema.anyOf : []),
+  ];
+  if (alternatives.length > 0) {
+    const firstObject = alternatives.find(
+      (candidate) =>
+        isRecord(candidate) &&
+        (isRecord(candidate.properties) ||
+          Array.isArray(candidate.oneOf) ||
+          Array.isArray(candidate.anyOf)),
+    );
     return readObjectSchema(firstObject);
   }
   const properties = isRecord(schema.properties) ? schema.properties : {};

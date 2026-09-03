@@ -11,10 +11,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
-const enumsRoot = path.resolve(
-  websiteDir,
-  '../../packages/contracts/src/enums',
-);
+const contractsRoot = path.resolve(websiteDir, '../../packages/contracts');
 
 const config = createAppNextConfig({
   headers: async () => [
@@ -132,7 +129,7 @@ config.turbopack = {
     ...(config.turbopack?.resolveAlias ?? {}),
     '@genfeedai/contracts/constants':
       '../../packages/contracts/src/constants/index.ts',
-    '@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts',
+    '@genfeedai/contracts': '../../packages/contracts/src/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
     '@genfeedai/contracts/interfaces':
       '../../packages/contracts/src/interfaces/index.ts',
@@ -163,11 +160,19 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
-    '@genfeedai/contracts': path.join(enumsRoot, 'src/index.ts'),
+    '@genfeedai/contracts$': path.join(contractsRoot, 'src/index.ts'),
+    '@genfeedai/contracts/constants': path.join(
+      contractsRoot,
+      'src/constants/index.ts',
+    ),
+    '@genfeedai/contracts/interfaces': path.join(
+      contractsRoot,
+      'src/interfaces/index.ts',
+    ),
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     '@genfeedai/contracts/types': path.join(
-      websiteDir,
-      '../../packages/contracts/src/types/index.ts',
+      contractsRoot,
+      'src/types/index.ts',
     ),
     '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
     '@serializers': path.join(serializersRoot, 'src'),

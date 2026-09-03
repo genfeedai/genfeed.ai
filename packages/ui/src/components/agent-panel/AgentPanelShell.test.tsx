@@ -26,8 +26,8 @@ vi.mock('lucide-react', () => ({
   Sparkles: () => <span data-testid="icon-sparkles" />,
 }));
 
-// Mock enums used by Button
-vi.mock('@genfeedai/contracts', () => ({
+vi.mock('@genfeedai/contracts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts')>()),
   ButtonSize: { DEFAULT: 'default', ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', SOFT: 'soft' },
 }));

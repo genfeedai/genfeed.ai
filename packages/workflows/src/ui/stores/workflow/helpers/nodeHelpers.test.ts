@@ -25,8 +25,8 @@ describe('generateId', () => {
 });
 
 describe('getHandleType', () => {
-  it('returns correct type for known source handle (imageInput → image)', () => {
-    expect(getHandleType('imageInput', 'image', 'source')).toBe('image');
+  it('returns correct type for known source handle (imageGen → imageUrl)', () => {
+    expect(getHandleType('imageGen', 'imageUrl', 'source')).toBe('image');
   });
 
   it('returns correct type for known target handle (imageGen → prompt)', () => {
@@ -40,14 +40,14 @@ describe('getHandleType', () => {
   });
 
   it('returns null for known node type with unknown handle id', () => {
-    expect(getHandleType('imageInput', 'nonexistent', 'source')).toBeNull();
+    expect(getHandleType('imageGen', 'nonexistent', 'source')).toBeNull();
   });
 
   it('returns null when handle id is null', () => {
-    expect(getHandleType('imageInput', null, 'source')).toBeNull();
+    expect(getHandleType('imageGen', null, 'source')).toBeNull();
   });
 
-  it('returns text type for prompt node text output', () => {
-    expect(getHandleType('prompt', 'text', 'source')).toBe('text');
+  it('returns text type for llm node text output', () => {
+    expect(getHandleType('llm', 'text', 'source')).toBe('text');
   });
 });

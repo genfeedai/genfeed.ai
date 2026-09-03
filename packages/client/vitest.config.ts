@@ -16,7 +16,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contracts/src/constants/$1'),
       },
       {
-        find: '@genfeedai/contracts',
+        find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {

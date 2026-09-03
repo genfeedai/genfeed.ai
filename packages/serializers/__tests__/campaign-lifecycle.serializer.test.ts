@@ -4,7 +4,7 @@ import {
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { campaignLifecycleAttributes } from '@serializers/attributes/content/campaign-lifecycle.attributes';
 import { CampaignLifecycleSerializer } from '@serializers/server/content/campaign-lifecycle.serializer';
 import { describe, expect, it } from 'vitest';

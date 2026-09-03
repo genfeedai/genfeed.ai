@@ -78,7 +78,7 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/contracts$/,
-        replacement: path.join(ENUMS_SRC, 'index.ts'),
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@genfeedai\/contracts\/enums\/(.*)$/,
@@ -127,14 +127,6 @@ export default defineConfig({
       {
         find: /^@genfeedai\/contexts\/(.*)$/,
         replacement: path.resolve(__dirname, '../contexts/$1'),
-      },
-      {
-        find: '@genfeedai/contracts',
-        replacement: path.resolve(__dirname, '../contracts/dist/index'),
-      },
-      {
-        find: /^@genfeedai\/contracts\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../contracts/dist/enums/$1'),
       },
       {
         find: '@genfeedai/helpers',

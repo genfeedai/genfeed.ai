@@ -33,17 +33,20 @@ const httpClient: WorkflowUIHttpClient = {
 function seedValidWorkflow(): string {
   const promptId = useWorkflowStore
     .getState()
-    .addNode('prompt', { x: 0, y: 0 });
+    .addNode('promptConstructor', { x: 0, y: 0 });
   const imageId = useWorkflowStore
     .getState()
     .addNode('imageGen', { x: 300, y: 0 });
-  useWorkflowStore.getState().updateNodeData(promptId, { prompt: 'a castle' });
+  useWorkflowStore
+    .getState()
+    .updateNodeData(promptId, { outputText: 'a castle' });
   useWorkflowStore.setState((state) => ({
     edges: [
       ...state.edges,
       {
         id: `${promptId}-${imageId}`,
         source: promptId,
+        sourceHandle: 'text',
         target: imageId,
         targetHandle: 'prompt',
       },

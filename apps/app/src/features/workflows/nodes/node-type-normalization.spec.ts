@@ -52,7 +52,7 @@ describe('node type normalization', () => {
 
     expect(supportedNode).toBeDefined();
     expect(supportedNode.type).toBe('brand');
-    expect(supportedNode.data).toEqual({ label: 'Brand' });
+    expect(supportedNode.data).toEqual({ label: 'Read Brand' });
   });
 
   it('hydrates extended cloud nodes with their definition label', () => {

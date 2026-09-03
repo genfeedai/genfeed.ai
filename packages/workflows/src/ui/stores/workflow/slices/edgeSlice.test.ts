@@ -21,7 +21,7 @@ describe('edgeSlice onNodesChange dirty semantics', () => {
   function addNodeAndClean(): string {
     const nodeId = useWorkflowStore
       .getState()
-      .addNode('prompt', { x: 0, y: 0 });
+      .addNode('imageGen', { x: 0, y: 0 });
     useWorkflowStore.getState().setDirty(false);
     return nodeId;
   }
