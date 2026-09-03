@@ -3,10 +3,8 @@ import {
   AgentThreadStatus,
   ButtonSize,
   ButtonVariant,
-  ComponentSize,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Badge from '@ui/display/badge/Badge';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
@@ -28,7 +26,6 @@ import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
 import {
   formatRelativeTime,
-  getThreadStatusKey,
   getThreadStatusMeta,
   resolveThreadListPreview,
 } from './agent-thread-list.helpers';
@@ -80,8 +77,8 @@ interface AgentThreadListRowProps {
 }
 
 /**
- * Finalist 1 row chrome: dense title+preview+time, square active border,
- * canonical status glyph only when running/waiting/failed.
+ * Dense title+preview+time, square active border, and an 8px status
+ * dot with an accessible name when the thread is running, waiting, or failed.
  * Archived rows use semantic surface and foreground tokens so the title stays
  * above WCAG AA without opacity stacking dimming every descendant.
  */
@@ -101,24 +98,28 @@ function agentThreadListRowClassName(options: {
   );
 }
 
+const THREAD_STATUS_DOT_CLASS = {
+  failed: 'bg-destructive',
+  running: 'animate-pulse bg-info motion-reduce:animate-none',
+  warning: 'bg-warning',
+} as const;
+
 function ThreadActivityIndicator({
   statusMeta,
 }: {
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
 }): ReactElement {
-  const statusKey = getThreadStatusKey({
-    tone: statusMeta.tone,
-  });
-
   return (
-    <span role="status" aria-label={statusMeta.label}>
-      <Badge
-        className="shrink-0 capitalize"
-        size={ComponentSize.SM}
-        status={statusKey}
-      >
-        {statusMeta.label}
-      </Badge>
+    <span
+      aria-label={statusMeta.label}
+      className={cn(
+        'size-2 shrink-0 rounded-full',
+        THREAD_STATUS_DOT_CLASS[statusMeta.tone],
+      )}
+      role="status"
+      title={statusMeta.label}
+    >
+      <span className="sr-only">{statusMeta.label}</span>
     </span>
   );
 }

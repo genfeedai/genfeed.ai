@@ -762,7 +762,7 @@ describe('AgentThreadList', () => {
     expect(screen.queryByRole('region', { name: 'Curie' })).toBeNull();
   });
 
-  it('uses an iconic status pill with a visible label for threads that need input', async () => {
+  it('uses an accessible status dot for threads that need input', async () => {
     const thread = createThread('conv-1', 'Needs your reply', {
       pendingInputCount: 1,
     });
@@ -773,10 +773,10 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const statusPill = await screen.findByText('Needs input');
+    const status = await screen.findByRole('status', { name: 'Needs input' });
 
-    expect(statusPill).toHaveTextContent('Needs input');
-    expect(statusPill.querySelector('svg')).toBeInTheDocument();
+    expect(status).toHaveClass('rounded-full', 'size-2', 'bg-warning');
+    expect(status.querySelector('svg')).not.toBeInTheDocument();
   });
 
   it('does not hide the status meaning behind a focus-only tooltip', async () => {
@@ -790,9 +790,11 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const statusIndicator = await screen.findByText('Needs input');
+    const statusIndicator = await screen.findByRole('status', {
+      name: 'Needs input',
+    });
 
-    expect(statusIndicator).toHaveTextContent('Needs input');
+    expect(statusIndicator).toHaveAccessibleName('Needs input');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
@@ -991,7 +993,8 @@ describe('AgentThreadList', () => {
     ).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status).toHaveTextContent('Running');
+    expect(status).toHaveClass('rounded-full', 'size-2', 'bg-info');
+    expect(status.querySelector('svg')).not.toBeInTheDocument();
   });
 
   it('shows an accessible animated dot for a non-active running thread', async () => {
@@ -1011,10 +1014,10 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Background run')).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
-    expect(status).toHaveTextContent('Running');
+    expect(status).toHaveClass('rounded-full', 'size-2', 'bg-info');
   });
 
-  it('shows failed state with visible status text', async () => {
+  it('shows failed state as an accessible status dot', async () => {
     const thread = createThread('conv-1', 'Failed thread', {
       runStatus: 'failed',
     } as Partial<AgentThread>);
@@ -1028,7 +1031,8 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Failed thread')).toBeInTheDocument();
     const failed = screen.getByRole('status', { name: 'Failed' });
     const title = screen.getByText('Failed thread');
-    expect(failed).toHaveTextContent('Failed');
+    expect(failed).toHaveClass('rounded-full', 'size-2', 'bg-destructive');
+    expect(failed.querySelector('svg')).not.toBeInTheDocument();
     expect(
       Boolean(
         failed.compareDocumentPosition(title) &
@@ -1197,6 +1201,6 @@ describe('AgentThreadList', () => {
     ).toBeInTheDocument();
     const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status).toHaveTextContent('Running');
+    expect(status).toHaveClass('rounded-full', 'size-2', 'bg-info');
   });
 });
