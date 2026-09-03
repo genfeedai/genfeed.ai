@@ -5,6 +5,7 @@ import {
   PORTLESS_PROXY_ENVIRONMENT,
   resolveDirectOrigins,
   resolvePortlessOrigins,
+  sanitizeNodeColorEnvironment,
 } from './portless-env';
 
 describe('Portless local-development environment', () => {
@@ -52,6 +53,28 @@ describe('Portless local-development environment', () => {
       mcp: 'https://fix-auth.mcp.genfeed.localhost',
       notifications: 'https://fix-auth.notifications.genfeed.localhost',
       website: 'https://fix-auth.website.genfeed.localhost',
+    });
+  });
+
+  it('drops NO_COLOR when FORCE_COLOR is set so Node does not warn in workers', () => {
+    expect(
+      sanitizeNodeColorEnvironment({
+        FORCE_COLOR: '1',
+        NO_COLOR: '1',
+        PATH: '/usr/bin',
+      }),
+    ).toEqual({
+      FORCE_COLOR: '1',
+      PATH: '/usr/bin',
+    });
+    expect(
+      sanitizeNodeColorEnvironment({
+        NO_COLOR: '1',
+        PATH: '/usr/bin',
+      }),
+    ).toEqual({
+      NO_COLOR: '1',
+      PATH: '/usr/bin',
     });
   });
 

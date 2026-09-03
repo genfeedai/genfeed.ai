@@ -20,7 +20,6 @@ import type {} from '@tiptap/extension-strike';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useState } from 'react';
-import '@ui/editors/rich-editor.css';
 import RichTextEditorToolbar from './RichTextEditorToolbar';
 
 export default function RichTextEditor({

@@ -121,6 +121,22 @@ export function isPortlessService(value: string): value is PortlessService {
   return PORTLESS_SERVICES.includes(value as PortlessService);
 }
 
+/**
+ * Node warns and Turbopack's PostCSS worker can SIGTERM when both
+ * FORCE_COLOR and NO_COLOR are set (agent CLIs do this). FORCE_COLOR wins.
+ */
+export function sanitizeNodeColorEnvironment(
+  existingEnv: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  if (!existingEnv.FORCE_COLOR || !existingEnv.NO_COLOR) {
+    return existingEnv;
+  }
+
+  const environment = { ...existingEnv };
+  delete environment.NO_COLOR;
+  return environment;
+}
+
 export function resolveDirectOrigins(
   existingEnv: Readonly<Record<string, string | undefined>>,
 ): PortlessOrigins {

@@ -3,7 +3,7 @@
     "@genfeedai/pricing": "workspace:*",
     "dotenv": "17.4.2",
     "jose": "^6.2.10",
-    "joi": "18.2.5"
+    "joi": "18.2.8"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

@@ -1,0 +1,24 @@
+@import "../../../packages/styles/globals.css";
+@import "../../../packages/ui/src/components/editors/rich-editor.css";
+
+/* Product-app class sources only. Do not add apps/website here. */
+@source ".";
+@source "../src";
+@source "../packages";
+@source "../../../packages/agent";
+@source "../../../packages/auth-client";
+@source "../../../packages/contexts";
+@source "../../../packages/helpers";
+@source "../../../packages/hooks";
+@source "../../../packages/pages";
+@source "../../../packages/ui";
+@source "../../../packages/workflows";
+@source not "../../../**/*.test.ts";
+@source not "../../../**/*.test.tsx";
+@source not "../../../**/*.spec.ts";
+@source not "../../../**/*.spec.tsx";
+@source not "../../../**/*.stories.ts";
+@source not "../../../**/*.stories.tsx";
+@source not "../../../**/.next/**";
+@source not "../../../**/dist/**";
+@source not "../../../**/coverage/**";

@@ -173,6 +173,22 @@ describe('Container', () => {
     );
   });
 
+  it('keeps equal page insets when the title is chrome-only', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <Container fullWidth label="Overview" titleVisibility="sr-only">
+        content
+      </Container>,
+    );
+
+    const container = screen.getByTestId('container');
+
+    expect(container).toHaveClass('py-5', 'sm:py-6');
+    expect(container.className).not.toMatch(/\bpt-3\b/);
+    expect(container.className).not.toMatch(/\bsm:pt-4\b/);
+  });
+
   it('lifts body-only tabs into SectionTopbar (no orphan strip)', () => {
     render(
       <Container

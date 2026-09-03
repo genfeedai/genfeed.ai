@@ -2,6 +2,7 @@ import {
   buildDirectEnvironment,
   isPortlessService,
   type PortlessService,
+  sanitizeNodeColorEnvironment,
 } from './portless-env';
 import { runDetachedCommand } from './terminate-child-tree';
 
@@ -48,7 +49,12 @@ async function main(): Promise<void> {
         }),
       };
 
-  process.exit(await runDetachedCommand(command, environment));
+  process.exit(
+    await runDetachedCommand(
+      command,
+      sanitizeNodeColorEnvironment(environment),
+    ),
+  );
 }
 
 await main();

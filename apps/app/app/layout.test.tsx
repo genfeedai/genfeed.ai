@@ -9,7 +9,7 @@ const htmlDocumentSpy = vi.fn();
 const headersMock = vi.fn(async () => new Headers());
 const runtimeConfigSpy = vi.fn();
 
-vi.mock('@styles/globals.css', () => ({}));
+vi.mock('./styles.css', () => ({}));
 
 vi.mock('@genfeedai/fonts', () => ({
   fontVariables: 'font-vars',

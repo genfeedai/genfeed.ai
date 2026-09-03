@@ -75,8 +75,10 @@ function createScopedAppRoute({
 }
 
 /**
- * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publishing → Analytics.
+ * Flat ordered launcher (no section chrome). Order encodes product flow
+ * across a 3-column grid:
+ * Workspace / Agent / Studio → Library / Discovery / Publishing →
+ * Analytics / Automation / Messages.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -105,28 +107,6 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: APP_DISPLAY_LABELS.agent,
         route: createScopedAppRoute({ brandPath: '/agent' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.agent,
-      },
-      {
-        activePathRoots: ['/messages'],
-        description: 'Reply to audience.',
-        icon: MessageSquare,
-        id: 'messages',
-        itemKey: 'messages',
-        label: APP_DISPLAY_LABELS.messages,
-        route: createScopedAppRoute({ brandPath: '/messages' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
-      },
-      {
-        activePathRoots: ['/automation'],
-        description: 'Run workflows.',
-        icon: Workflow,
-        id: 'automation',
-        itemKey: 'automation',
-        label: APP_DISPLAY_LABELS.automation,
-        route: createScopedAppRoute({
-          brandPath: '/automation',
-        }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automation,
       },
       {
         activePathRoots: ['/studio'],
@@ -185,6 +165,28 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: APP_DISPLAY_LABELS.analytics,
         route: createScopedAppRoute({ brandPath: '/analytics' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
+      },
+      {
+        activePathRoots: ['/automation'],
+        description: 'Run workflows.',
+        icon: Workflow,
+        id: 'automation',
+        itemKey: 'automation',
+        label: APP_DISPLAY_LABELS.automation,
+        route: createScopedAppRoute({
+          brandPath: '/automation',
+        }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automation,
+      },
+      {
+        activePathRoots: ['/messages'],
+        description: 'Reply to audience.',
+        icon: MessageSquare,
+        id: 'messages',
+        itemKey: 'messages',
+        label: APP_DISPLAY_LABELS.messages,
+        route: createScopedAppRoute({ brandPath: '/messages' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
     ],
   },

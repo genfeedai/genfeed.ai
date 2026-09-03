@@ -177,7 +177,13 @@ describe('AppLayout', () => {
     expect(expandToggle).toHaveClass('left-3');
     expect(expandToggle).not.toHaveClass('overflow-hidden');
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
-    expect(expandToggle.querySelector('img')).toBeNull();
+    const logo = expandToggle.querySelector('img');
+    expect(logo?.getAttribute('src')).toContain('logo.svg');
+    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
+    expect(expandToggle.querySelector('svg')?.parentElement).toHaveClass(
+      'opacity-0',
+      'group-hover:opacity-100',
+    );
 
     fireEvent.click(expandToggle);
 
