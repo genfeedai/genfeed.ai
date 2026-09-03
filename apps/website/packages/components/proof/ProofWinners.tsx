@@ -136,17 +136,20 @@ export default function ProofWinners(): React.ReactElement | null {
 
   return (
     <WebSection bg="bordered" maxWidth="xl" py="lg">
-      <SectionHeader
-        className="mb-10 [&_h2]:text-5xl"
-        description="Created in Genfeed. Published on LinkedIn. Verified after launch."
-        title="Your next post."
-      />
+      <div data-reveal="up">
+        <SectionHeader
+          className="mb-10 [&_h2]:text-5xl"
+          description="Created in Genfeed. Published on LinkedIn. Verified after launch."
+          title="Your next post."
+        />
+      </div>
 
       <div className="space-y-6">
         {publishedWinners.map((winner) => (
           <div
             key={winner.id}
             className="grid overflow-hidden rounded-2xl border border-edge/10 bg-card lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.55fr)]"
+            data-reveal="up"
           >
             <div className="p-4 sm:p-6 lg:p-8">
               <PublishedOutputPreview winner={winner} />
