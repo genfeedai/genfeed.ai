@@ -9,6 +9,10 @@ import {
 } from '@api/analytics/analytics-collection-credential';
 import { classifyAnalyticsCollectionError } from '@api/analytics/analytics-collection-state';
 import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
+import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerLogger,
@@ -43,6 +47,7 @@ export class AnalyticsSocialCollectionService {
     private readonly credentialsService: ServerCredentialStore,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collect(data: SocialAnalyticsCollectionInput): Promise<void> {
@@ -122,6 +127,7 @@ export class AnalyticsSocialCollectionService {
             ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
             : undefined,
         });
+        await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
       case CredentialPlatform.TIKTOK: {
@@ -135,6 +141,7 @@ export class AnalyticsSocialCollectionService {
           ...analytics,
           shares: analytics.shares ?? 0,
         });
+        await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
       case CredentialPlatform.PINTEREST: {
@@ -148,6 +155,7 @@ export class AnalyticsSocialCollectionService {
           post.id,
           analytics,
         );
+        await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
       case CredentialPlatform.LINKEDIN: {
@@ -168,6 +176,7 @@ export class AnalyticsSocialCollectionService {
           shares: analytics.shares,
           views: analytics.views,
         });
+        await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
       case CredentialPlatform.MASTODON: {
@@ -181,6 +190,7 @@ export class AnalyticsSocialCollectionService {
           post.id,
           analytics,
         );
+        await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
       default:
@@ -188,6 +198,21 @@ export class AnalyticsSocialCollectionService {
           `Unsupported social analytics platform: ${post.platform}`,
         );
     }
+  }
+
+  private async recordSnapshot(
+    post: AnalyticsCollectionPost,
+    credentialId: string,
+    analytics: unknown,
+  ): Promise<void> {
+    const counts = extractProfileCounts(analytics);
+    await this.accountSnapshots.upsertDailySnapshot({
+      brandId: post.brandId,
+      credentialId,
+      organizationId: post.organizationId,
+      platform: post.platform,
+      ...counts,
+    });
   }
 
   private platformLabel(platform: CredentialPlatform): string {

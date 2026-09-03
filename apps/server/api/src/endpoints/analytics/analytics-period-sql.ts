@@ -96,3 +96,93 @@ export function analyticsPeriodSeriesSql(options: {
     ORDER BY day ASC
   `;
 }
+
+export function analyticsAccountPeriodSeriesSql(options: {
+  credentialId: string;
+  endDate: Date;
+  organizationId: string;
+  startDate: Date;
+}): Prisma.Sql {
+  return Prisma.sql`
+    WITH history AS (
+      SELECT
+        pa."postId",
+        pa."platform",
+        pa."date",
+        pa."totalViews",
+        pa."totalLikes",
+        pa."totalComments",
+        pa."totalShares",
+        pa."totalSaves",
+        LAG(pa."totalViews") OVER w AS prev_views,
+        LAG(pa."totalLikes") OVER w AS prev_likes,
+        LAG(pa."totalComments") OVER w AS prev_comments,
+        LAG(pa."totalShares") OVER w AS prev_shares,
+        LAG(pa."totalSaves") OVER w AS prev_saves
+      FROM "post_analytics" pa
+      INNER JOIN "posts" p ON p.id = pa."postId"
+      WHERE pa."organizationId" = ${options.organizationId}
+        AND p."isDeleted" = false
+        AND p."credentialId" = ${options.credentialId}
+        AND pa."date" <= ${options.endDate}
+      WINDOW w AS (PARTITION BY pa."postId", pa."platform" ORDER BY pa."date")
+    )
+    SELECT
+      TO_CHAR("date", 'YYYY-MM-DD') AS day,
+      SUM(${gainExpression('totalComments', 'prev_comments')}) AS comments,
+      SUM(${gainExpression('totalLikes', 'prev_likes')}) AS likes,
+      SUM(${gainExpression('totalSaves', 'prev_saves')}) AS saves,
+      SUM(${gainExpression('totalShares', 'prev_shares')}) AS shares,
+      SUM(${gainExpression('totalViews', 'prev_views')}) AS views
+    FROM history
+    WHERE "date" >= ${options.startDate}
+      AND "date" <= ${options.endDate}
+    GROUP BY TO_CHAR("date", 'YYYY-MM-DD')
+    ORDER BY day ASC
+  `;
+}
+
+export function analyticsAccountTopPostsSql(options: {
+  credentialId: string;
+  endDate: Date;
+  limit: number;
+  organizationId: string;
+  startDate: Date;
+}): Prisma.Sql {
+  return Prisma.sql`
+    SELECT
+      p.id AS post_id,
+      p.label AS title,
+      p.description AS description,
+      p.platform::text AS platform,
+      p."publishedAt" AS publish_date,
+      p.url AS url,
+      pa."totalViews" AS views,
+      pa."totalLikes" AS likes,
+      pa."totalComments" AS comments,
+      pa."totalShares" AS shares,
+      pa."engagementRate" AS engagement_rate
+    FROM "posts" p
+    INNER JOIN LATERAL (
+      SELECT
+        "totalViews",
+        "totalLikes",
+        "totalComments",
+        "totalShares",
+        "engagementRate"
+      FROM "post_analytics"
+      WHERE "postId" = p.id
+        AND "organizationId" = ${options.organizationId}
+        AND "date" >= ${options.startDate}
+        AND "date" <= ${options.endDate}
+      ORDER BY "date" DESC
+      LIMIT 1
+    ) pa ON true
+    WHERE p."organizationId" = ${options.organizationId}
+      AND p."isDeleted" = false
+      AND p."credentialId" = ${options.credentialId}
+      AND p."publishedAt" IS NOT NULL
+    ORDER BY pa."totalViews" DESC NULLS LAST, p.id ASC
+    LIMIT ${options.limit}
+  `;
+}

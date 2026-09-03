@@ -1,19 +1,24 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IAccountAnalyticsDetail } from '@genfeedai/contracts/interfaces';
+import type {
+  IAccountAnalyticsDetail,
+  ITopContent,
+} from '@genfeedai/contracts/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
+import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function AnalyticsAccountDetail() {
   const router = useRouter();
@@ -48,6 +53,26 @@ export default function AnalyticsAccountDetail() {
 
   const title =
     detail?.identity.label || detail?.identity.externalHandle || 'Account';
+  const columns: TableColumn<ITopContent>[] = useMemo(
+    () => [
+      {
+        key: 'title',
+        header: 'Post',
+        render: (row) => row.title || row.postId,
+      },
+      {
+        key: 'views',
+        header: 'Views',
+        render: (row) => formatCompactNumberIntl(row.views),
+      },
+      {
+        key: 'likes',
+        header: 'Likes',
+        render: (row) => formatCompactNumberIntl(row.likes),
+      },
+    ],
+    [],
+  );
 
   return (
     <Container
@@ -86,6 +111,41 @@ export default function AnalyticsAccountDetail() {
           </p>
         </Card>
       ) : null}
+      <Card className="mt-4">
+        <p className="mb-2 text-sm text-muted-foreground">Trend</p>
+        {detail?.series?.length ? (
+          <ul className="space-y-1">
+            {detail.series.map((point) => {
+              const views = point.metrics.find(
+                (metric) => metric.metric === AnalyticsMetric.VIEWS,
+              );
+              return (
+                <li key={point.date} className="flex justify-between">
+                  <span>{point.date}</span>
+                  <span>
+                    {views?.availability === 'observed' && views.change !== null
+                      ? formatCompactNumberIntl(views.change)
+                      : 'Unavailable'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No trend data for this window
+          </p>
+        )}
+      </Card>
+      <div className="mt-4">
+        <Table
+          columns={columns}
+          emptyLabel="No posts for this account"
+          getRowKey={(row) => row.postId}
+          items={detail?.topPosts ?? []}
+          label="Top posts"
+        />
+      </div>
     </Container>
   );
 }

@@ -4,6 +4,10 @@ import {
   resolveAnalyticsCollectionCredential,
 } from '@api/analytics/analytics-collection-credential';
 import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
+import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerLogger,
@@ -34,6 +38,7 @@ export class AnalyticsYouTubeCollectionService {
     private readonly credentialsService: ServerCredentialStore,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collect(data: YouTubeAnalyticsCollectionInput): Promise<void> {
@@ -153,6 +158,10 @@ export class AnalyticsYouTubeCollectionService {
       this.logger.log(
         `YouTube analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
+
+      if (readyTargets.length > 0) {
+        await this.recordSnapshot(data, resolution.credentialId, analyticsMap);
+      }
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
       const unsettledPosts = posts.filter(
@@ -176,5 +185,42 @@ export class AnalyticsYouTubeCollectionService {
       );
       throw error;
     }
+  }
+
+  private async recordSnapshot(
+    data: YouTubeAnalyticsCollectionInput,
+    credentialId: string,
+    analyticsMap: Map<string, unknown>,
+  ): Promise<void> {
+    const counts = extractProfileCounts(
+      [...analyticsMap.values()].find((value) => value != null),
+    );
+    if (
+      counts.subscribers === undefined &&
+      this.youtubeService.getChannelDetails
+    ) {
+      try {
+        const details = await this.youtubeService.getChannelDetails(
+          data.organizationId,
+          data.brandId,
+        );
+        if (typeof details.subscriberCount === 'number') {
+          counts.subscribers = details.subscriberCount;
+        }
+      } catch (error: unknown) {
+        this.logger.warn(
+          `YouTube profile snapshot skipped for credential ${credentialId}`,
+          error,
+        );
+      }
+    }
+
+    await this.accountSnapshots.upsertDailySnapshot({
+      brandId: data.brandId,
+      credentialId,
+      organizationId: data.organizationId,
+      platform: CredentialPlatform.YOUTUBE,
+      ...counts,
+    });
   }
 }

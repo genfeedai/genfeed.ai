@@ -134,7 +134,7 @@ export class AnalyticsPage {
   }
 
   async gotoSection(
-    section: 'overview' | 'trends' | 'hooks' | 'insights',
+    section: 'overview' | 'trends' | 'hooks' | 'insights' | 'accounts',
   ): Promise<void> {
     await this.page.goto(`/analytics/${section}`);
     await this.waitForPageLoad();

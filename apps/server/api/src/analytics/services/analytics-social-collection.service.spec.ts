@@ -52,6 +52,9 @@ function createHarness() {
     patch: vi.fn(),
     resolveBrandAccount: vi.fn(),
   } as unknown as ServerCredentialStore;
+  const accountSnapshots = {
+    upsertDailySnapshot: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new AnalyticsSocialCollectionService(
     socialAnalytics,
     socialAnalytics,
@@ -63,8 +66,10 @@ function createHarness() {
     collectionState,
     credentials,
     logger,
+    accountSnapshots as never,
   );
   return {
+    accountSnapshots,
     collectionState,
     credentials,
     postAnalytics,
@@ -109,6 +114,13 @@ describe('AnalyticsSocialCollectionService', () => {
     ).toHaveBeenCalledWith('post-1', { mediaType: undefined, views: 42 });
     expect(harness.collectionState.markReady).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1', organizationId: 'org-1' }),
+    );
+    expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.INSTAGRAM,
+      }),
     );
   });
 

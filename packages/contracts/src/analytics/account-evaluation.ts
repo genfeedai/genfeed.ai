@@ -83,14 +83,16 @@ export function classifyAccountEvaluation(
     input.freshnessHours === null ||
     input.freshnessHours > DEFAULT_FLEET_EVALUATION_FRESHNESS_HOURS;
   const hasCoverage = input.coverage >= DEFAULT_FLEET_EVALUATION_COVERAGE;
+  const metricValue = input.metricValue;
   const hasMetric =
     input.metricAvailability === AnalyticsMetricAvailability.OBSERVED &&
-    input.metricValue !== null;
+    metricValue !== null;
 
   if (
     input.accountAgeDays < requiredAgeDays ||
     input.publishedPosts < policy.minPublishedPosts ||
     !hasMetric ||
+    metricValue === null ||
     !hasCoverage ||
     isStale
   ) {
@@ -100,11 +102,11 @@ export function classifyAccountEvaluation(
     };
   }
 
-  if (input.metricValue >= policy.healthyMin) {
+  if (metricValue >= policy.healthyMin) {
     return { evidence, state: AccountEvaluationState.HEALTHY };
   }
 
-  if (input.metricValue >= policy.watchMin) {
+  if (metricValue >= policy.watchMin) {
     return { evidence, state: AccountEvaluationState.WATCH };
   }
 

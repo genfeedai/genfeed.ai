@@ -1,8 +1,43 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { AnalyticsMetricAvailability } from '@genfeedai/contracts';
-import type { CredentialPlatform } from '@genfeedai/prisma';
+import {
+  AnalyticsMetricAvailability,
+  type CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+
+export function extractProfileCounts(value: unknown): {
+  followers?: number;
+  subscribers?: number;
+} {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  const record = value as Record<string, unknown>;
+  const followers = asFiniteNumber(
+    record.followers ?? record.followerCount ?? record.followersCount,
+  );
+  const subscribers = asFiniteNumber(
+    record.subscribers ?? record.subscriberCount,
+  );
+  return {
+    ...(followers === undefined ? {} : { followers }),
+    ...(subscribers === undefined ? {} : { subscribers }),
+  };
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function startOfLocalDay(date: Date): Date {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
 
 @Injectable()
 export class AccountAnalyticsSnapshotService {
@@ -16,9 +51,12 @@ export class AccountAnalyticsSnapshotService {
     platform: CredentialPlatform;
     subscribers?: number | null;
   }): Promise<void> {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
+    const platform = toPrismaCredentialPlatform(input.platform);
+    if (!platform) {
+      return;
+    }
 
+    const date = startOfLocalDay(new Date());
     const metricAvailability = {
       followers:
         typeof input.followers === 'number'
@@ -38,13 +76,17 @@ export class AccountAnalyticsSnapshotService {
         followers: input.followers ?? null,
         metricAvailability,
         organizationId: input.organizationId,
-        platform: input.platform,
+        platform,
         subscribers: input.subscribers ?? null,
       },
       update: {
-        followers: input.followers ?? null,
+        ...(input.followers === undefined
+          ? {}
+          : { followers: input.followers }),
         metricAvailability,
-        subscribers: input.subscribers ?? null,
+        ...(input.subscribers === undefined
+          ? {}
+          : { subscribers: input.subscribers }),
       },
       where: {
         credentialId_date: {
@@ -58,9 +100,13 @@ export class AccountAnalyticsSnapshotService {
   async findLatest(
     organizationId: string,
     credentialId: string,
-  ): Promise<{ date: Date; followers: number | null } | null> {
+  ): Promise<{
+    date: Date;
+    followers: number | null;
+    subscribers: number | null;
+  } | null> {
     return this.prisma.accountAnalyticsSnapshot.findFirst({
-      select: { date: true, followers: true },
+      select: { date: true, followers: true, subscribers: true },
       where: scopedWhere(organizationId, { credentialId }),
       orderBy: { date: 'desc' },
     });

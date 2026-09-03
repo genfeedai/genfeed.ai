@@ -9,6 +9,10 @@ import { PostAnalyticsCollectionStateService } from '@api/analytics/services/pos
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -36,6 +40,7 @@ export class AnalyticsProviderCollectionService {
     private readonly collectionState: PostAnalyticsCollectionStateService,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collectFacebook(
@@ -87,6 +92,13 @@ export class AnalyticsProviderCollectionService {
         shares: analytics.shares,
         views: analytics.views,
       });
+      await this.accountSnapshots.upsertDailySnapshot({
+        brandId: post.brandId,
+        credentialId: resolution.credentialId,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+        ...extractProfileCounts(analytics),
+      });
     });
   }
 
@@ -104,6 +116,15 @@ export class AnalyticsProviderCollectionService {
         post.id,
         analytics,
       );
+      if (post.credentialId) {
+        await this.accountSnapshots.upsertDailySnapshot({
+          brandId: post.brandId,
+          credentialId: post.credentialId,
+          organizationId: post.organizationId,
+          platform: CredentialPlatform.THREADS,
+          ...extractProfileCounts(analytics),
+        });
+      }
     });
   }
 

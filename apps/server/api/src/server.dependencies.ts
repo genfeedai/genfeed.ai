@@ -87,6 +87,11 @@ export interface ServerTwitterAnalytics {
 }
 
 export interface ServerYouTubeAnalytics {
+  getChannelDetails?(
+    organizationId: string,
+    brandId: string,
+    authOrSkipRefresh?: unknown,
+  ): Promise<{ subscriberCount?: number }>;
   getMediaAnalyticsBatch(
     organizationId: string,
     brandId: string,

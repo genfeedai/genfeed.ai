@@ -11,6 +11,7 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
@@ -36,6 +37,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 
 const ANALYTICS_COLLECTION_SERVICES = [
+  AccountAnalyticsSnapshotService,
   AnalyticsProviderCollectionService,
   AnalyticsSocialCollectionService,
   AnalyticsTwitterCollectionService,

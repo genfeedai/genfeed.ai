@@ -100,6 +100,7 @@ import {
   WORKFLOW_ENGINE_ADAPTER,
   WORKFLOW_EXECUTOR,
 } from '@api/collections/workflows/workflows.tokens';
+import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
@@ -242,6 +243,7 @@ const WORKER_DOMAIN_SERVICES = [
   AgentStrategyWorkflowRunService,
   AgentStreamPublisherService,
   AgentTurnAcceptanceService,
+  AccountAnalyticsSnapshotService,
   AnalyticsProviderCollectionService,
   AnalyticsSocialCollectionService,
   AnalyticsSyncService,

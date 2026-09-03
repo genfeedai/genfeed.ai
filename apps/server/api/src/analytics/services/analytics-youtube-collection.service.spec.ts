@@ -37,14 +37,18 @@ function createHarness(analytics = new Map<string, unknown>()) {
       platform: 'YOUTUBE',
     }),
   } as unknown as ServerCredentialStore;
+  const accountSnapshots = {
+    upsertDailySnapshot: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new AnalyticsYouTubeCollectionService(
     youtube,
     postAnalytics,
     collectionState,
     credentials,
     logger,
+    accountSnapshots as never,
   );
-  return { collectionState, postAnalytics, service, youtube };
+  return { accountSnapshots, collectionState, postAnalytics, service, youtube };
 }
 
 function input(): YouTubeAnalyticsCollectionInput {
@@ -87,6 +91,13 @@ describe('AnalyticsYouTubeCollectionService', () => {
         platform: CredentialPlatform.YOUTUBE,
       }),
     ]);
+    expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.YOUTUBE,
+      }),
+    );
   });
 
   it('records delayed state and fails when provider data is unavailable', async () => {

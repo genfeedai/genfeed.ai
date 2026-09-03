@@ -1,3 +1,7 @@
+import {
+  analyticsAccountPeriodSeriesSql,
+  analyticsAccountTopPostsSql,
+} from '@api/endpoints/analytics/analytics-period-sql';
 import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import type { AccountAnalyticsQueryDto } from '@api/endpoints/analytics/dto/account-analytics-query.dto';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
@@ -18,8 +22,10 @@ import type {
   IAccountAnalytics,
   IAccountAnalyticsDetail,
   IAccountAnalyticsList,
+  IAccountAnalyticsSeriesPoint,
   IAccountMetricValue,
   IFleetEvaluationPolicy,
+  ITopContent,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -46,7 +52,44 @@ type SnapshotRow = {
   subscribers: number | null;
 };
 
+type SeriesRow = {
+  comments: number | null;
+  day: string;
+  likes: number | null;
+  saves: number | null;
+  shares: number | null;
+  views: number | null;
+};
+
+type TopPostRow = {
+  comments: number | null;
+  description: string | null;
+  engagement_rate: number | null;
+  likes: number | null;
+  platform: string | null;
+  post_id: string;
+  publish_date: Date | null;
+  shares: number | null;
+  title: string | null;
+  url: string | null;
+  views: number | null;
+};
+
 const DEFAULT_POLICY_VERSION = 1;
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
 
 @Injectable()
 export class AccountAnalyticsService {
@@ -120,6 +163,15 @@ export class AccountAnalyticsService {
       return null;
     }
 
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
+      query.startDate,
+      query.endDate,
+    );
+    const [series, topPosts] = await Promise.all([
+      this.loadSeries(organizationId, credentialId, startDate, endDate),
+      this.loadTopPosts(organizationId, credentialId, startDate, endDate),
+    ]);
+
     return {
       ...account,
       growth: account.metrics.filter((metric) =>
@@ -127,8 +179,8 @@ export class AccountAnalyticsService {
           metric.metric,
         ),
       ),
-      series: [],
-      topPosts: [],
+      series,
+      topPosts,
     };
   }
 
@@ -267,7 +319,7 @@ export class AccountAnalyticsService {
           startByCredential.get(credential.id),
           endByCredential.get(credential.id),
         );
-        const publishedPosts = period?.posts ?? 0;
+        const publishedPosts = toFiniteNumber(period?.posts) ?? 0;
         const firstPublishedAt = firstPublished.get(credential.id) ?? null;
         const ageDays = firstPublishedAt
           ? Math.floor((now - firstPublishedAt.getTime()) / 86_400_000)
@@ -383,20 +435,20 @@ export class AccountAnalyticsService {
     endSnapshot: SnapshotRow | undefined,
   ): IAccountMetricValue[] {
     const views = periodMetricGain({
-      endValue: period?.views,
-      startValue: period?.prevViews,
+      endValue: toFiniteNumber(period?.views),
+      startValue: toFiniteNumber(period?.prevViews),
     });
     const likes = periodMetricGain({
-      endValue: period?.likes,
-      startValue: period?.prevLikes,
+      endValue: toFiniteNumber(period?.likes),
+      startValue: toFiniteNumber(period?.prevLikes),
     });
     const followers = periodMetricGain({
-      endValue: endSnapshot?.followers,
-      startValue: startSnapshot?.followers,
+      endValue: toFiniteNumber(endSnapshot?.followers),
+      startValue: toFiniteNumber(startSnapshot?.followers),
     });
     const subscribers = periodMetricGain({
-      endValue: endSnapshot?.subscribers,
-      startValue: startSnapshot?.subscribers,
+      endValue: toFiniteNumber(endSnapshot?.subscribers),
+      startValue: toFiniteNumber(startSnapshot?.subscribers),
     });
 
     return [
@@ -406,8 +458,8 @@ export class AccountAnalyticsService {
       this.toMetric(AnalyticsMetric.SUBSCRIBERS, subscribers),
       {
         availability: AnalyticsMetricAvailability.OBSERVED,
-        change: period?.posts ?? 0,
-        lifetime: period?.posts ?? 0,
+        change: toFiniteNumber(period?.posts) ?? 0,
+        lifetime: toFiniteNumber(period?.posts) ?? 0,
         metric: AnalyticsMetric.POSTS,
       },
     ];
@@ -518,6 +570,82 @@ export class AccountAnalyticsService {
         AND "date" ${side === 'start' ? Prisma.sql`< ${boundary}` : Prisma.sql`<= ${boundary}`}
       ORDER BY "credentialId", "date" DESC
     `;
+  }
+
+  private async loadSeries(
+    organizationId: string,
+    credentialId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<IAccountAnalyticsSeriesPoint[]> {
+    const rows = await this.prisma.$queryRaw<SeriesRow[]>(
+      analyticsAccountPeriodSeriesSql({
+        credentialId,
+        endDate,
+        organizationId,
+        startDate,
+      }),
+    );
+
+    return rows.map((row) => {
+      const views = periodMetricGain({
+        endValue: toFiniteNumber(row.views),
+        startValue: null,
+      });
+      const likes = periodMetricGain({
+        endValue: toFiniteNumber(row.likes),
+        startValue: null,
+      });
+      const comments = toFiniteNumber(row.comments);
+      return {
+        date: row.day,
+        metrics: [
+          this.toMetric(AnalyticsMetric.VIEWS, views),
+          this.toMetric(AnalyticsMetric.LIKES, likes),
+          {
+            availability:
+              comments === null
+                ? AnalyticsMetricAvailability.UNAVAILABLE
+                : AnalyticsMetricAvailability.OBSERVED,
+            change: comments,
+            lifetime: comments,
+            metric: AnalyticsMetric.COMMENTS,
+          },
+        ],
+      };
+    });
+  }
+
+  private async loadTopPosts(
+    organizationId: string,
+    credentialId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<ITopContent[]> {
+    const rows = await this.prisma.$queryRaw<TopPostRow[]>(
+      analyticsAccountTopPostsSql({
+        credentialId,
+        endDate,
+        limit: 10,
+        organizationId,
+        startDate,
+      }),
+    );
+
+    return rows.map((row) => ({
+      comments: toFiniteNumber(row.comments) ?? 0,
+      description: row.description ?? '',
+      engagementRate: toFiniteNumber(row.engagement_rate) ?? 0,
+      ingredientId: row.post_id,
+      likes: toFiniteNumber(row.likes) ?? 0,
+      platform: row.platform ?? '',
+      postId: row.post_id,
+      publishDate: row.publish_date ?? endDate,
+      shares: toFiniteNumber(row.shares) ?? 0,
+      title: row.title ?? '',
+      url: row.url ?? undefined,
+      views: toFiniteNumber(row.views) ?? 0,
+    }));
   }
 
   private async loadFirstPublished(
