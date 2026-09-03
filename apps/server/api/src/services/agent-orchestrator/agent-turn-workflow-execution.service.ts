@@ -629,7 +629,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           ...(settings?.prioritize ? { prioritize: settings.prioritize } : {}),
           prompt: state.request.content,
           ...(settings?.resolution ? { resolution: settings.resolution } : {}),
-          sourceActionId: `composer-generation:${state.executionId}`,
+          sourceActionId: `composer-generation-${state.executionId}`,
         },
         threadId: state.threadId,
       },
