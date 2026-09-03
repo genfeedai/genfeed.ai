@@ -69,7 +69,7 @@ function internalAction(
 
 function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
   return {
-    approval: tool.requiresConfirmation ? 'required' : 'none',
+    approval: tool.mutationPolicy === 'approval-required' ? 'required' : 'none',
     authorization: tool.requiredRole,
     completionMode: 'synchronous',
     credits: { amount: tool.creditCost, mode: 'fixed' },

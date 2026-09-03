@@ -9,6 +9,7 @@ import type { CanonicalToolDefinition } from '../interfaces/tool-definition.inte
  * namespaced per the MCP convention for vendor-specific metadata.
  */
 export const MCP_CREDIT_COST_META_KEY = 'genfeed.ai/creditCost';
+export const MCP_MUTATION_POLICY_META_KEY = 'genfeed.ai/mutationPolicy';
 
 export interface McpToolOutput {
   name: string;
@@ -26,7 +27,12 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
     .filter((tool) => tool.surfaces.mcp)
     .map((tool) => ({
-      _meta: { [MCP_CREDIT_COST_META_KEY]: tool.creditCost },
+      _meta: {
+        [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+        ...(tool.mutationPolicy
+          ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
+          : {}),
+      },
       description: tool.description,
       inputSchema: {
         properties: tool.parameters.properties,

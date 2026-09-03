@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ALL_TOOLS,
   CURATED_ACTION_CATALOG,
+  evaluateMutationPolicy,
   getToolByName,
   getToolsByCategory,
   getToolsForRole,
@@ -24,6 +25,7 @@ describe('package entry point', () => {
       getToolsForSurface,
       isActionOnSurface,
       isPublishingApprovalRequired,
+      evaluateMutationPolicy,
       toAgentTools,
       toMcpTools,
     ]) {

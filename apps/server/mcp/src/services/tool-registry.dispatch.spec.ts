@@ -84,34 +84,12 @@ describe('ToolRegistryService.classify', () => {
 
 describe('ToolRegistryService.validateDispatchCoverage', () => {
   it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
-    // Every APPROVAL_REQUIRED_TOOLS name must be surfaced (the guard's second
-    // check), plus a routable sample and the pre-dispatch resolve_approval.
-    const approvalGated = [
-      'create_post',
-      'create_article',
-      'generate_content_batch',
-      'start_brand_interview',
-      'submit_brand_interview_answer',
-      'skip_brand_interview_question',
-      'approve_social_draft',
-      'post_social_reply',
-      'send_social_dm',
-      'analyze_clip_project',
-      'create_clip_project_from_youtube',
-      'generate_clips',
-      'create_ad_remix_workflow',
-      'create_instagram_remix_workflow',
-      'create_scheduled_release',
-      'update_scheduled_release',
-      'control_scheduled_release',
-      'install_skills_pro_skill',
-    ];
     mockState.tools = [
       { name: 'generate_image' },
       { name: 'get_video_status' },
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
-      ...approvalGated.map((name) => ({ name })),
+      { name: 'create_post' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
   });
@@ -123,15 +101,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(
       /no executor dispatch for \[totally_unrouted_tool\]/,
-    );
-  });
-
-  it('throws when an approval-gated tool is not surfaced', () => {
-    // create_post is in APPROVAL_REQUIRED_TOOLS; omitting it from the surfaced
-    // set must trip the approval-gate drift check.
-    mockState.tools = [{ name: 'generate_image' }];
-    expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(
-      /approval-gate drift/,
     );
   });
 });

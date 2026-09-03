@@ -69,6 +69,14 @@ describe('tool registry', () => {
     }
   });
 
+  it('attaches mutationPolicy only to canonical write tools', () => {
+    expect(getToolByName('create_post')?.mutationPolicy).toBe(
+      'approval-required',
+    );
+    expect(getToolByName('generate_image')?.mutationPolicy).toBe('direct');
+    expect(getToolByName('list_posts')?.mutationPolicy).toBeUndefined();
+  });
+
   it('attaches a UI action type only to mapped actions', () => {
     expect(getToolByName('generate_image')?.uiActionType).toBe(
       'generation_action_card',

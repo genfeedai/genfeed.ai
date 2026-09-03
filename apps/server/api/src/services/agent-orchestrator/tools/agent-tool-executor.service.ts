@@ -1,3 +1,4 @@
+import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   type ApiKeyPublishingContext,
@@ -42,7 +43,11 @@ import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import { getToolByName } from '@genfeedai/actions';
+import {
+  buildLogicalWriteKey,
+  evaluateMutationPolicy,
+  getToolByName,
+} from '@genfeedai/actions';
 import {
   ActionOrigin,
   type RouterPriority,
@@ -53,6 +58,7 @@ import type {
   ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -91,6 +97,14 @@ export interface ToolExecutionContext {
   validatedScope?: ValidatedAgentScope;
   /** Server-only proof that this execution came from a confirmed thread UI action. */
   confirmationOrigin?: 'thread-ui-action';
+  /**
+   * Whether this invoking host can persist and resume an approval.
+   * Web agent turns are true; CLI and bare HTTP execute are false.
+   * Unspecified leaves current handler behavior for unit tests.
+   */
+  hostSupportsApproval?: boolean;
+  /** Already-claimed MCP/tool approval that authorizes this exact logical write. */
+  approvedApprovalId?: string;
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
@@ -166,6 +180,8 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly transferHandler?: AgentTransferToolHandler,
     @Optional()
     private readonly systemWorkflowRunner?: SystemWorkflowRunnerService,
+    @Optional()
+    private readonly mcpApprovalsService?: McpApprovalsService,
   ) {}
 
   onModuleInit(): void {
@@ -270,6 +286,15 @@ export class AgentToolExecutorService implements OnModuleInit {
   ): Promise<AgentToolResult> {
     const startTime = Date.now();
     try {
+      const policyResult = await this.applyMutationPolicy(
+        toolName,
+        parameters,
+        context,
+      );
+      if (policyResult) {
+        return policyResult;
+      }
+
       if (context.threadId) {
         if (!context.validatedScope || !this.agentScopeContextService) {
           throw new Error(
@@ -297,6 +322,12 @@ export class AgentToolExecutorService implements OnModuleInit {
         result,
         context,
       );
+      await this.recordApprovedMutationResult(
+        toolName,
+        parameters,
+        context,
+        scopedResult,
+      );
       const durationMs = Date.now() - startTime;
 
       this.loggerService.log(
@@ -321,6 +352,170 @@ export class AgentToolExecutorService implements OnModuleInit {
         success: false,
       };
     }
+  }
+
+  private async applyMutationPolicy(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentToolResult | null> {
+    if (
+      context.hostSupportsApproval === undefined &&
+      !context.approvedApprovalId
+    ) {
+      return null;
+    }
+
+    const definition = getToolByName(toolName);
+    const isAvailableOnSurface = Boolean(
+      definition?.surfaces.agent || definition?.surfaces.mcp,
+    );
+    const idempotencyKey = buildLogicalWriteKey({
+      arguments: parameters,
+      organizationId: context.organizationId,
+      threadId: context.threadId,
+      toolName,
+      userId: context.userId,
+    });
+    const existing = this.mcpApprovalsService
+      ? await this.mcpApprovalsService.findActiveByIdempotencyKey(
+          context.organizationId,
+          idempotencyKey,
+        )
+      : null;
+    const hasTrustedApproval = await this.hasTrustedMutationApproval(
+      toolName,
+      context,
+    );
+    const decision = evaluateMutationPolicy({
+      existing: existing
+        ? {
+            result: (existing.result as Record<string, unknown> | null) ?? null,
+            status: existing.status as 'APPROVED' | 'DECLINED' | 'PENDING',
+          }
+        : undefined,
+      hasTrustedApproval,
+      hostSupportsApproval: context.hostSupportsApproval,
+      isAvailableOnSurface,
+      policy: definition?.mutationPolicy,
+    });
+
+    if (decision.kind === 'execute') {
+      if (
+        existing?.status === McpApprovalStatus.PENDING &&
+        this.mcpApprovalsService
+      ) {
+        await this.mcpApprovalsService.resolve(
+          existing.id,
+          context.organizationId,
+          'approve',
+        );
+      }
+      return null;
+    }
+
+    if (decision.kind === 'replay') {
+      return {
+        approvalId: existing?.id,
+        approvalStatus: 'approved',
+        creditsUsed: 0,
+        data: decision.result,
+        mutationPolicy: 'approval-required',
+        success: true,
+      };
+    }
+
+    if (decision.kind === 'reject') {
+      return {
+        creditsUsed: 0,
+        error: decision.error,
+        mutationPolicy: definition?.mutationPolicy,
+        success: false,
+      };
+    }
+
+    const approval = this.mcpApprovalsService
+      ? await this.mcpApprovalsService.createPending(
+          context.organizationId,
+          context.userId,
+          toolName,
+          parameters,
+          { threadId: context.threadId },
+        )
+      : null;
+
+    return {
+      approvalId: approval?.id,
+      approvalStatus: 'pending',
+      creditsUsed: 0,
+      data: {
+        approvalId: approval?.id,
+        mutationPolicy: 'approval-required',
+        status: 'pending',
+        toolName,
+      },
+      mutationPolicy: 'approval-required',
+      requiresConfirmation: true,
+      success: true,
+    };
+  }
+
+  private async hasTrustedMutationApproval(
+    toolName: AgentToolName,
+    context: ToolExecutionContext,
+  ): Promise<boolean> {
+    if (context.confirmationOrigin === 'thread-ui-action') {
+      return true;
+    }
+    if (!context.approvedApprovalId || !this.mcpApprovalsService) {
+      return false;
+    }
+    const claimed = await this.mcpApprovalsService.findOwned(
+      context.approvedApprovalId,
+      context.organizationId,
+    );
+    return (
+      claimed.status === McpApprovalStatus.APPROVED &&
+      claimed.toolName === toolName &&
+      claimed.isDeleted === false
+    );
+  }
+
+  private async recordApprovedMutationResult(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+    result: AgentToolResult,
+  ): Promise<void> {
+    if (
+      !this.mcpApprovalsService ||
+      getToolByName(toolName)?.mutationPolicy !== 'approval-required'
+    ) {
+      return;
+    }
+    const existing = await this.mcpApprovalsService.findActiveByIdempotencyKey(
+      context.organizationId,
+      buildLogicalWriteKey({
+        arguments: parameters,
+        organizationId: context.organizationId,
+        threadId: context.threadId,
+        toolName,
+        userId: context.userId,
+      }),
+    );
+    if (!existing || existing.status !== McpApprovalStatus.APPROVED) {
+      return;
+    }
+    await this.mcpApprovalsService.attachResult(
+      existing.id,
+      context.organizationId,
+      {
+        creditsUsed: result.creditsUsed,
+        data: result.data,
+        error: result.error,
+        success: result.success,
+      },
+    );
   }
 
   private assertToolBrandScope(

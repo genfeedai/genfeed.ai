@@ -74,6 +74,7 @@ export interface AgentChatRequest {
   content: string;
   brandId?: string | null;
   expectedContextVersion?: number;
+  hostSupportsApproval?: boolean;
   model?: string;
   source?: 'agent' | 'onboarding' | 'proactive';
   threadId?: string;
@@ -234,6 +235,7 @@ export async function startAgentChatStream(
     clientRequestId: request.clientRequestId ?? randomUUID(),
     content: request.content,
     expectedContextVersion: request.expectedContextVersion,
+    hostSupportsApproval: request.hostSupportsApproval ?? false,
     model: request.model,
     source: request.source ?? 'agent',
   };

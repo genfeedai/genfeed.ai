@@ -10,18 +10,30 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  */
 const MOCK_TOOLS: Record<
   string,
-  { name: string; requiredRole?: string; surfaces: { mcp: boolean } }
+  {
+    mutationPolicy?: 'approval-required' | 'direct';
+    name: string;
+    requiredRole?: string;
+    surfaces: { mcp: boolean };
+  }
 > = {
   create_ad_remix_workflow: {
+    mutationPolicy: 'approval-required',
     name: 'create_ad_remix_workflow',
     surfaces: { mcp: true },
   },
   create_instagram_remix_workflow: {
+    mutationPolicy: 'approval-required',
     name: 'create_instagram_remix_workflow',
     surfaces: { mcp: true },
   },
-  create_post: { name: 'create_post', surfaces: { mcp: true } },
+  create_post: {
+    mutationPolicy: 'approval-required',
+    name: 'create_post',
+    surfaces: { mcp: true },
+  },
   create_scheduled_release: {
+    mutationPolicy: 'approval-required',
     name: 'create_scheduled_release',
     surfaces: { mcp: true },
   },

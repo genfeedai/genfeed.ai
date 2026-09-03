@@ -10,6 +10,7 @@ import { scopedWhere } from '@api/index';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { buildLogicalWriteKey } from '@genfeedai/actions';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -41,7 +42,28 @@ export class McpApprovalsService extends BaseService<
     userId: string,
     toolName: string,
     args: Record<string, unknown>,
+    options?: { threadId?: string },
   ): Promise<McpApprovalDocument> {
+    const idempotencyKey = buildLogicalWriteKey({
+      arguments: args,
+      organizationId,
+      threadId: options?.threadId,
+      toolName,
+      userId,
+    });
+    const existing = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, {
+        idempotencyKey,
+        status: {
+          in: [McpApprovalStatus.APPROVED, McpApprovalStatus.PENDING],
+        },
+      }),
+      orderBy: { createdAt: 'desc' },
+    })) as McpApprovalDocument | null;
+    if (existing) {
+      return existing;
+    }
+
     const pendingCount = await this.delegate.count({
       where: scopedWhere(organizationId, { status: McpApprovalStatus.PENDING }),
     });
@@ -54,11 +76,12 @@ export class McpApprovalsService extends BaseService<
 
     const approval = (await this.delegate.create({
       data: {
-        organizationId,
-        userId,
-        toolName,
         arguments: args,
+        idempotencyKey,
+        organizationId,
         status: McpApprovalStatus.PENDING,
+        toolName,
+        userId,
       },
     })) as McpApprovalDocument;
 
@@ -164,7 +187,29 @@ export class McpApprovalsService extends BaseService<
         id,
         status: McpApprovalStatus.APPROVED,
       }),
-      data: { result },
+      data: { executedAt: new Date(), result },
     });
+  }
+
+  async findOwned(
+    id: string,
+    organizationId: string,
+  ): Promise<McpApprovalDocument> {
+    return this.findOneWithOrganization(id, organizationId);
+  }
+
+  async findActiveByIdempotencyKey(
+    organizationId: string,
+    idempotencyKey: string,
+  ): Promise<McpApprovalDocument | null> {
+    return (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, {
+        idempotencyKey,
+        status: {
+          in: [McpApprovalStatus.APPROVED, McpApprovalStatus.PENDING],
+        },
+      }),
+      orderBy: { createdAt: 'desc' },
+    })) as McpApprovalDocument | null;
   }
 }

@@ -548,6 +548,7 @@ export class AgentTurnRoundRunnerService {
           qualityTier: policy.qualityTier,
           reviewModelOverride: policy.reviewModelOverride,
           runId: context.executionId,
+          hostSupportsApproval: context.hostSupportsApproval ?? true,
           ...(preparedToolCall.confirmationContext ?? {}),
           strategyId: context.strategyId,
           thinkingModel,

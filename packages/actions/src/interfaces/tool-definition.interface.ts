@@ -40,6 +40,8 @@ export interface ToolSurfaceConfig {
 
 export type ToolRequiredRole = 'user' | 'admin' | 'superadmin';
 
+export type ToolMutationPolicy = 'approval-required' | 'direct';
+
 export type ToolCategory =
   | 'generation'
   | 'content'
@@ -64,6 +66,7 @@ export interface CanonicalToolDefinition {
   requiredRole: ToolRequiredRole;
   surfaces: ToolSurfaceConfig;
   category: ToolCategory;
+  mutationPolicy?: ToolMutationPolicy;
   uiActionType?: ToolUiActionType;
   tags?: string[];
   requiresConfirmation?: boolean;

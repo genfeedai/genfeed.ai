@@ -139,4 +139,7 @@ export interface AgentToolResult {
   riskLevel?: 'low' | 'medium' | 'high';
   requiresConfirmation?: boolean;
   nextActions?: AgentUiAction[];
+  approvalId?: string;
+  approvalStatus?: 'pending' | 'approved' | 'declined';
+  mutationPolicy?: 'approval-required' | 'direct';
 }
