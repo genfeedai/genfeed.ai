@@ -61,7 +61,7 @@ export function resolveAnalyticsTenantScope(
 export function buildAnalyticsCacheKey(
   route: string,
   request: AnalyticsCacheRequest,
-  parts: ReadonlyArray<string | number | undefined> = [],
+  parts: ReadonlyArray<unknown> = [],
 ): string {
   const privilege = readAnalyticsPrivilege(request);
   const organizationKey =
