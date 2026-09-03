@@ -447,6 +447,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...baseContext,
       generationPriority,
       generationSettings: request.generationSettings,
+      hostSupportsApproval: request.hostSupportsApproval ?? true,
       resolvedSkills: resolved.resolvedSkills,
       scope,
     };

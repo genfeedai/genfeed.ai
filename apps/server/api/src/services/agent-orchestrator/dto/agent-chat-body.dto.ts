@@ -167,6 +167,15 @@ export class AgentChatBodyDto {
   })
   source?: 'agent' | 'proactive' | 'onboarding';
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'False when the invoking host cannot persist or resume an approval-required mutation',
+    required: false,
+  })
+  hostSupportsApproval?: boolean;
+
   @IsArray()
   @IsOptional()
   @ApiProperty({

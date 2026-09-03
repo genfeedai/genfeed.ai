@@ -154,44 +154,6 @@ type ExecutorKind =
   | 'skills-pro'
   | 'unknown';
 
-/**
- * Mutating MCP tools that must NOT execute immediately — instead they persist a
- * pending approval (human-in-the-loop) and only run once approved. Names are the
- * canonical tool names from `packages/actions/src/registry/source`. High-risk and
- * expensive mutations (content creation, batch generation, external sends).
- * Extend deliberately.
- *
- * Every entry must be MCP-surfaced (`surfaces.mcp`), or the boot-time drift
- * guard rejects it — see {@link validateDispatchCoverage}.
- */
-const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
-  'create_post',
-  'create_article',
-  // Batch content generation — expensive multi-item write (agent-executor).
-  'generate_content_batch',
-  // Brand context interview — mutating tools require user confirmation
-  'start_brand_interview',
-  'submit_brand_interview_answer',
-  'skip_brand_interview_question',
-  // Social messages — external sends require approval
-  'approve_social_draft',
-  'post_social_reply',
-  'send_social_dm',
-  // Clip projects — resource creation + credit-spending compute require approval
-  'analyze_clip_project',
-  'create_clip_project_from_youtube',
-  'generate_clips',
-  // Inspiration remixes — tenant writes remain draft-only until approved
-  'create_ad_remix_workflow',
-  'create_instagram_remix_workflow',
-  // Scheduler releases — stateful publishing mutations require confirmation
-  'create_scheduled_release',
-  'update_scheduled_release',
-  'control_scheduled_release',
-  // Proprietary pack installs write the tenant runtime skill store.
-  'install_skills_pro_skill',
-]);
-
 @Injectable()
 export class ToolRegistryService implements OnModuleInit {
   /**
@@ -209,12 +171,11 @@ export class ToolRegistryService implements OnModuleInit {
   /**
    * Assert the canonical registry and this service cannot silently drift:
    * (1) every MCP-surfaced tool classifies to a real executor, and
-   * (2) every approval-gated name is actually MCP-surfaced (a stale entry would
-   * make the tool unreachable while still claiming to need approval).
+   * (2) every MCP-surfaced approval-required tool still classifies (a stale
+   * catalog policy must not advertise a write the server cannot resume).
    */
   static validateDispatchCoverage(): void {
     const mcpTools = toMcpTools(getToolsForSurface('mcp'));
-    const mcpNames = new Set(mcpTools.map((tool) => tool.name));
 
     const unroutable = mcpTools
       .map((tool) => tool.name)
@@ -225,17 +186,6 @@ export class ToolRegistryService implements OnModuleInit {
         `MCP tool registry drift: no executor dispatch for [${unroutable.join(
           ', ',
         )}]. Add a handler + classify() entry, or unset surfaces.mcp.`,
-      );
-    }
-
-    const approvalNotSurfaced = [...APPROVAL_REQUIRED_TOOLS].filter(
-      (name) => !mcpNames.has(name),
-    );
-    if (approvalNotSurfaced.length > 0) {
-      throw new Error(
-        `MCP approval-gate drift: APPROVAL_REQUIRED_TOOLS names are not ` +
-          `MCP-surfaced [${approvalNotSurfaced.join(', ')}]. Remove them or ` +
-          `set surfaces.mcp on the canonical tool.`,
       );
     }
   }
@@ -364,17 +314,25 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private static requiresApproval(name: string): boolean {
-    return APPROVAL_REQUIRED_TOOLS.has(name);
+    return getToolByName(name)?.mutationPolicy === 'approval-required';
   }
 
-  private async executeTool(name: string, args: Record<string, unknown>) {
+  private async executeTool(
+    name: string,
+    args: Record<string, unknown>,
+    approvedApprovalId?: string,
+  ) {
     switch (ToolRegistryService.classify(name)) {
       case 'agent-chat':
         return handleAgentChatTool(this.clientService, name, args);
       case 'workflow-control':
         return handleWorkflowControlTool(this.clientService, name, args);
       case 'agent-executor': {
-        const result = await this.clientService.executeAgentTool(name, args);
+        const result = await this.clientService.executeAgentTool(
+          name,
+          args,
+          approvedApprovalId ? { approvedApprovalId } : undefined,
+        );
         return this.toMcpResult(result);
       }
       case 'legacy':
@@ -456,6 +414,7 @@ export class ToolRegistryService implements OnModuleInit {
       result = await this.executeTool(
         approval.toolName,
         approval.arguments ?? {},
+        approval.id,
       );
     } catch (error: unknown) {
       // The approval is already claimed; record the failure on the audit row so

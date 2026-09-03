@@ -7,6 +7,10 @@ import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
 } from './curated-action-catalog';
+import {
+  MUTATION_POLICY_BY_NAME,
+  toolRequiresMutationPolicy,
+} from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
 
 const UI_ACTION_MAP: Partial<
@@ -189,6 +193,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
     }
 
     const agent = isActionOnSurface(entry, 'agent');
+    const mutationPolicy = MUTATION_POLICY_BY_NAME[tool.name];
     return {
       category: inferCategory(tool.name),
       creditCost: tool.creditCost,
@@ -202,6 +207,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
         mcp: isActionOnSurface(entry, 'mcp'),
       },
       uiActionType: UI_ACTION_MAP[tool.name],
+      ...(mutationPolicy ? { mutationPolicy } : {}),
     };
   });
 
@@ -216,6 +222,16 @@ export const ALL_TOOLS: CanonicalToolDefinition[] = CANONICAL_SOURCE_TOOLS.sort(
 const toolsByName = new Map<string, CanonicalToolDefinition>(
   ALL_TOOLS.map((tool) => [tool.name, tool]),
 );
+
+const missingMutationPolicies = ALL_TOOLS.filter(
+  (tool) =>
+    toolRequiresMutationPolicy(tool.name) && tool.mutationPolicy === undefined,
+).map((tool) => tool.name);
+if (missingMutationPolicies.length > 0) {
+  throw new Error(
+    `canonical write tools missing mutationPolicy: ${missingMutationPolicies.join(', ')}`,
+  );
+}
 
 export function getToolByName(
   name: string,

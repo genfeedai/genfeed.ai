@@ -24,9 +24,19 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   { name: 'get_trends', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'create_post', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    mutationPolicy: 'approval-required',
+    name: 'create_post',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
   { name: 'list_posts', requiredRole: undefined, surfaces: { mcp: true } },
-  { name: 'create_article', requiredRole: undefined, surfaces: { mcp: true } },
+  {
+    mutationPolicy: 'approval-required',
+    name: 'create_article',
+    requiredRole: undefined,
+    surfaces: { mcp: true },
+  },
   { name: 'create_workflow', requiredRole: undefined, surfaces: { mcp: true } },
   {
     name: 'execute_workflow',
@@ -95,6 +105,7 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   {
+    mutationPolicy: 'approval-required',
     name: 'approve_social_draft',
     requiredRole: 'user',
     surfaces: { mcp: true },
@@ -105,11 +116,13 @@ const MOCK_TOOLS = [
     surfaces: { mcp: true },
   },
   {
+    mutationPolicy: 'approval-required',
     name: 'post_social_reply',
     requiredRole: 'user',
     surfaces: { mcp: true },
   },
   {
+    mutationPolicy: 'approval-required',
     name: 'send_social_dm',
     requiredRole: 'user',
     surfaces: { mcp: true },

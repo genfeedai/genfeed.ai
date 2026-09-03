@@ -30,7 +30,10 @@ interface ExecuteToolBody {
   context?: Partial<
     Omit<
       ToolExecutionContext,
-      'userId' | 'organizationId' | 'confirmationOrigin'
+      | 'confirmationOrigin'
+      | 'hostSupportsApproval'
+      | 'organizationId'
+      | 'userId'
     >
   >;
 }
@@ -85,10 +88,15 @@ export class AgentToolsController {
         ...(body.context ?? {}),
       } as Partial<ToolExecutionContext>;
       delete clientContext.confirmationOrigin;
+      const approvedApprovalId = clientContext.approvedApprovalId;
+      delete clientContext.hostSupportsApproval;
+      delete clientContext.approvedApprovalId;
 
       const context: ToolExecutionContext = {
         ...clientContext,
         apiKeyContext: user,
+        approvedApprovalId,
+        hostSupportsApproval: Boolean(approvedApprovalId),
         organizationId,
         userId,
       };

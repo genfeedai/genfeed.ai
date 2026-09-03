@@ -49,13 +49,24 @@ const APPROVAL_GATED_NAMES = [
   'install_skills_pro_skill',
 ];
 
+const APPROVAL_GATED = new Set<string>(APPROVAL_GATED_NAMES);
+
 const MOCK_TOOLS = new Map(
   [
     ...LEGACY_NAMES,
     ...APPROVAL_GATED_NAMES,
     'generate_image',
     'resolve_approval',
-  ].map((name) => [name, { name, surfaces: { mcp: true } }]),
+  ].map((name) => [
+    name,
+    {
+      mutationPolicy: APPROVAL_GATED.has(name)
+        ? ('approval-required' as const)
+        : undefined,
+      name,
+      surfaces: { mcp: true },
+    },
+  ]),
 );
 
 vi.mock('@genfeedai/actions', () => ({

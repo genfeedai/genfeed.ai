@@ -884,12 +884,15 @@ model McpApproval {
   status         McpApprovalStatus @default(PENDING)
   result         Json?
   resolvedAt     DateTime?
+  executedAt     DateTime?
+  idempotencyKey String?
   isDeleted      Boolean           @default(false)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, status, isDeleted])
+  @@index([organizationId, idempotencyKey, isDeleted])
   @@map("mcp_approvals")
 }
 

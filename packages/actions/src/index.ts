@@ -3,6 +3,7 @@ export { toAgentTools } from './adapters/to-agent-tool';
 export type { McpToolOutput } from './adapters/to-mcp-tool';
 export {
   MCP_CREDIT_COST_META_KEY,
+  MCP_MUTATION_POLICY_META_KEY,
   toMcpTools,
 } from './adapters/to-mcp-tool';
 export type {
@@ -27,6 +28,7 @@ export { GENFEED_ACTION_NODE_TYPE } from './interfaces/action-execution.interfac
 export type {
   CanonicalToolDefinition,
   ToolCategory,
+  ToolMutationPolicy,
   ToolParameterSchema,
   ToolRequiredRole,
   ToolSurfaceConfig,
@@ -47,6 +49,22 @@ export {
   isCuratedActionName,
   isPublishingApprovalRequired,
 } from './registry/curated-action-catalog';
+export type {
+  MutationApprovalStatus,
+  MutationPolicyDecision,
+} from './registry/mutation-policy';
+export {
+  buildLogicalWriteKey,
+  evaluateMutationPolicy,
+  getDeclaredMutationPolicy,
+  isApprovalRequiredToolName,
+  isReadOnlyToolName,
+  MUTATION_POLICY_BY_NAME,
+  POLICY_REVOKED_ERROR,
+  TOOL_MUTATION_POLICY,
+  toolRequiresMutationPolicy,
+  UNSUPPORTED_APPROVAL_ERROR,
+} from './registry/mutation-policy';
 export {
   ALL_TOOLS,
   getToolByName,

@@ -53,6 +53,12 @@ describe('hand-authored action definitions', () => {
     }
   });
 
+  it('keeps mutation policy out of definition shards', () => {
+    for (const tool of SOURCE_TOOLS) {
+      expect(tool).not.toHaveProperty('mutationPolicy');
+    }
+  });
+
   it('exposes a well-formed definition for every action', () => {
     for (const tool of SOURCE_TOOLS) {
       expect(tool.name).toMatch(/^[a-z][a-z0-9_]*$/);

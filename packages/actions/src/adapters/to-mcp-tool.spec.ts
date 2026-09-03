@@ -39,7 +39,7 @@ describe('toMcpTools', () => {
     const [tool] = toMcpTools([buildTool()]);
 
     expect(MCP_CREDIT_COST_META_KEY).toBe('genfeed.ai/creditCost');
-    expect(tool?._meta).toEqual({ [MCP_CREDIT_COST_META_KEY]: 17 });
+    expect(tool?._meta[MCP_CREDIT_COST_META_KEY]).toBe(17);
   });
 
   it('advertises a credit cost for every MCP-surfaced action', () => {

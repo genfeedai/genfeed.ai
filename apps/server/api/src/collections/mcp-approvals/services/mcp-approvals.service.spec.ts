@@ -52,6 +52,7 @@ describe('McpApprovalsService', () => {
         status: 'PENDING',
         createdAt: new Date(),
       };
+      mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.create.mockResolvedValue(fakeApproval);
       (
         mockNotificationsPublisher.publishNotification as ReturnType<
@@ -68,11 +69,12 @@ describe('McpApprovalsService', () => {
 
       expect(mcpApproval.create).toHaveBeenCalledWith({
         data: {
-          organizationId: 'org-1',
-          userId: 'user-1',
-          toolName: 'delete_file',
           arguments: { path: '/tmp/file.txt' },
+          idempotencyKey: expect.any(String),
+          organizationId: 'org-1',
           status: 'PENDING',
+          toolName: 'delete_file',
+          userId: 'user-1',
         },
       });
       expect(
@@ -92,7 +94,28 @@ describe('McpApprovalsService', () => {
       expect(result).toEqual(fakeApproval);
     });
 
+    it('returns an existing PENDING or APPROVED row for the same logical write', async () => {
+      const existing = {
+        id: 'approval-existing',
+        organizationId: 'org-1',
+        status: 'PENDING',
+        toolName: 'delete_file',
+      };
+      mcpApproval.findFirst.mockResolvedValue(existing);
+
+      const result = await service.createPending(
+        'org-1',
+        'user-1',
+        'delete_file',
+        { path: '/tmp/file.txt' },
+      );
+
+      expect(result).toEqual(existing);
+      expect(mcpApproval.create).not.toHaveBeenCalled();
+    });
+
     it('throws BadRequestException when the org has reached the pending limit', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.count.mockResolvedValue(100);
 
       await expect(
@@ -119,6 +142,7 @@ describe('McpApprovalsService', () => {
         status: 'PENDING',
         createdAt: new Date(),
       };
+      mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.create.mockResolvedValue(fakeApproval);
       (
         mockNotificationsPublisher.publishNotification as ReturnType<
@@ -287,7 +311,7 @@ describe('McpApprovalsService', () => {
           isDeleted: false,
           status: 'APPROVED',
         },
-        data: { result: { output: 42 } },
+        data: { executedAt: expect.any(Date), result: { output: 42 } },
       });
     });
   });

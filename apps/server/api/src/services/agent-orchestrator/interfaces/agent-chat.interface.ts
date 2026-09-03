@@ -64,6 +64,8 @@ export interface AgentChatRequest {
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';
   systemPromptOverride?: string;
+  /** False when the invoking host cannot persist or resume an approval. */
+  hostSupportsApproval?: boolean;
 }
 
 export interface AgentTurnAcknowledgement {
@@ -102,6 +104,8 @@ export interface AgentChatContext {
   /** Strategy ID — enables content attribution on created posts/content */
   strategyId?: string;
   userId: string;
+  /** False when the invoking host cannot persist or resume an approval. */
+  hostSupportsApproval?: boolean;
 }
 
 export interface ToolCallSummary {

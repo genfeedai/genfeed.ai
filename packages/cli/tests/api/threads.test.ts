@@ -40,8 +40,11 @@ describe('api/threads', () => {
 
     expect(mockPost).toHaveBeenCalledWith('/agent/threads/thread-1/turns/stream', {
       attachments: [{ kind: 'image', url: 'https://cdn.genfeed.ai/example.png' }],
+      brandId: undefined,
       clientRequestId: 'request-1',
       content: 'hello',
+      expectedContextVersion: undefined,
+      hostSupportsApproval: false,
       model: 'claude-3-7-sonnet',
       source: 'agent',
     });
@@ -72,6 +75,7 @@ describe('api/threads', () => {
       clientRequestId: expect.any(String),
       content: 'hello',
       expectedContextVersion: undefined,
+      hostSupportsApproval: false,
       model: undefined,
       source: 'onboarding',
     });

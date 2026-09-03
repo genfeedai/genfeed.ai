@@ -19,6 +19,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
@@ -151,6 +152,7 @@ import { Module } from '@nestjs/common';
     LoggerModule,
     LlmDispatcherModule,
     MarketplaceIntegrationModule,
+    McpApprovalsModule,
     NewslettersModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,
