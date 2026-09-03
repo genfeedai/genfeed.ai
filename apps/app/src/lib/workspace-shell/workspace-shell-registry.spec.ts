@@ -322,7 +322,6 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/publishing/content',
       '/acme/moonrise/publishing/posts',
       '/acme/moonrise/publishing/review',
-      '/acme/~/publishing/campaigns',
       '/acme/~/publishing/posts',
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',

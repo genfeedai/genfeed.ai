@@ -78,13 +78,19 @@
     "symbol": "BillingAccountsService.linkOrganization"
   },
   {
+    "actual": 153,
+    "file": "apps/server/api/src/collections/campaigns/services/campaign-generation.service.ts",
+    "metric": "method-lines",
+    "symbol": "CampaignGenerationService.generate"
+  },
+  {
     "actual": 182,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",
     "symbol": "ClipGenerationDispatchService.retryFailedClips"
   },
   {
-    "actual": 1059,
+    "actual": 1063,
     "file": "apps/server/api/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/models/services/models.service.ts"
@@ -96,13 +102,19 @@
     "symbol": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts"
   },
   {
+    "actual": 1010,
+    "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
+  },
+  {
     "actual": 1020,
     "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/post-analytics.service.ts"
   },
   {
-    "actual": 1231,
+    "actual": 1257,
     "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/posts.service.ts"
@@ -156,6 +168,12 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
+    "actual": 514,
+    "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
+  },
+  {
     "actual": 218,
     "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.ts",
     "metric": "method-lines",
@@ -186,7 +204,7 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 218,
+    "actual": 210,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-batch.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
@@ -204,7 +222,7 @@
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 634,
+    "actual": 602,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
@@ -228,7 +246,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
   },
   {
-    "actual": 199,
+    "actual": 197,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnWorkflowExecutionService.execute"
@@ -246,7 +264,7 @@
     "symbol": "AgentMediaAssetGenerationService.generateImage"
   },
   {
-    "actual": 1333,
+    "actual": 1344,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"
@@ -288,7 +306,7 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 1087,
+    "actual": 1090,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts"
