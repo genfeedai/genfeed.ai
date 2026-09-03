@@ -2,14 +2,14 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  APP_ROUTES,
-  createPublishingCampaignRoute,
-} from '@genfeedai/constants';
-import {
   ButtonSize,
   ButtonVariant,
   ContentCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createPublishingCampaignRoute,
+} from '@genfeedai/contracts/constants';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCampaigns } from '@hooks/data/campaigns/use-campaigns';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';

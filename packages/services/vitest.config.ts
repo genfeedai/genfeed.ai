@@ -3,7 +3,6 @@ import { defineConfig } from 'vitest/config';
 
 const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
 const CONFIG_SRC = path.resolve(__dirname, '../config/src');
-const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
 const API_TYPES_SRC = path.resolve(__dirname, '../contracts/src/api-types');
 
 export default defineConfig({
@@ -40,8 +39,8 @@ export default defineConfig({
         replacement: CONSTANTS_SRC,
       },
       {
-        find: '@genfeedai/contracts',
-        replacement: ENUMS_SRC,
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@api-types\/(.*)$/,

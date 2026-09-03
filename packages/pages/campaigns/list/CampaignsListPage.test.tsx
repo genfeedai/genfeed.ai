@@ -1,4 +1,4 @@
-import { ContentCampaignStatus } from '@genfeedai/enums';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 import CampaignsListPage from '@pages/campaigns/list/CampaignsListPage';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';

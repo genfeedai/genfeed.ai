@@ -20,7 +20,7 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/contracts',
+        find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {

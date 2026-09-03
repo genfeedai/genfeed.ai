@@ -24,7 +24,6 @@ const API_TYPES_SRC = path.resolve(__dirname, '../contracts/src/api-types');
 const AUTH_CLIENT_SRC = path.resolve(__dirname, '../auth-client/src');
 const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
 const CONFIG_SRC = path.resolve(__dirname, '../config/src');
-const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
 const INTERFACES_SRC = path.resolve(__dirname, '../contracts/src/interfaces');
 const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
@@ -143,8 +142,8 @@ export default defineConfig({
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
       },
       {
-        find: '@genfeedai/contracts',
-        replacement: ENUMS_SRC,
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,

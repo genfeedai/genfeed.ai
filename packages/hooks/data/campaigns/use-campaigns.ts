@@ -1,8 +1,8 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import type { ContentCampaignStatus } from '@genfeedai/enums';
-import type { IPaginatedResponse } from '@genfeedai/interfaces';
+import type { ContentCampaignStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import {

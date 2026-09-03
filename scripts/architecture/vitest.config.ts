@@ -11,7 +11,7 @@ export default defineConfig({
       ),
       '@genfeedai/contracts': path.resolve(
         import.meta.dirname,
-        '../../packages/contracts/src/enums/index.ts',
+        '../../packages/contracts/src/index.ts',
       ),
     },
   },

@@ -28,10 +28,10 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/contracts',
+        find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(
           mcpDir,
-          '../../../packages/contracts/src/enums/index.ts',
+          '../../../packages/contracts/src/index.ts',
         ),
       },
       {

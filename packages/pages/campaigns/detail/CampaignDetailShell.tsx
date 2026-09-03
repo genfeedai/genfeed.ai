@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  APP_ROUTES,
-  createPublishingCampaignRoute,
-  type PublishingCampaignSection,
-} from '@genfeedai/constants';
-import {
   ButtonSize,
   ButtonVariant,
   ContentCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createPublishingCampaignRoute,
+  type PublishingCampaignSection,
+} from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCampaign } from '@hooks/data/campaigns/use-campaign';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
