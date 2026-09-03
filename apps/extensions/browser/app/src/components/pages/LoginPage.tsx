@@ -19,7 +19,12 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center py-8">
       {logoUrl && (
-        <Image src={logoUrl} width={80} alt="Genfeed" className="mb-6" />
+        <Image
+          src={logoUrl}
+          width={80}
+          alt="Genfeed"
+          className="mb-6 dark:invert"
+        />
       )}
 
       <h2 className="text-2xl font-semibold mb-2 text-foreground">

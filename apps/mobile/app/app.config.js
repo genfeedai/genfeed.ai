@@ -7,7 +7,7 @@ export default {
   expo: {
     android: {
       adaptiveIcon: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#000000',
         foregroundImage: './assets/images/adaptive-icon.png',
       },
       edgeToEdgeEnabled: true,
@@ -75,7 +75,7 @@ export default {
           backgroundColor: '#FAFAFA',
           dark: {
             backgroundColor: '#0A0A0A',
-            image: './assets/images/splash-icon.png',
+            image: './assets/images/splash-icon-dark.png',
           },
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
@@ -106,7 +106,7 @@ export default {
       backgroundColor: '#FAFAFA',
       dark: {
         backgroundColor: '#0A0A0A',
-        image: './assets/images/splash-icon.png',
+        image: './assets/images/splash-icon-dark.png',
       },
       image: './assets/images/splash-icon.png',
       imageWidth: 200,

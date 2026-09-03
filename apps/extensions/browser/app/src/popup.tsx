@@ -90,6 +90,7 @@ function PopupContent() {
               width={30}
               height={30}
               alt="Genfeed"
+              className="dark:invert"
             />
             <h1 className="text-xl font-semibold text-foreground">Genfeed</h1>
           </div>
@@ -109,6 +110,7 @@ function PopupContent() {
               width={30}
               height={30}
               alt="Genfeed"
+              className="dark:invert"
             />
             <h1 className="text-xl font-semibold text-foreground">Genfeed</h1>
           </div>
