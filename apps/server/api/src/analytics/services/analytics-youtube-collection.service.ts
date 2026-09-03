@@ -1,6 +1,15 @@
 import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
+  attributionFailureFor,
+  resolveAnalyticsCollectionCredential,
+} from '@api/analytics/analytics-collection-credential';
+import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
+import {
   SERVER_TOKENS,
+  type ServerCredentialStore,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerYouTubeAnalytics,
@@ -25,8 +34,11 @@ export class AnalyticsYouTubeCollectionService {
     private readonly postAnalyticsService: ServerPostAnalytics,
     @Inject(SERVER_TOKENS.analyticsCollectionState)
     private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collect(data: YouTubeAnalyticsCollectionInput): Promise<void> {
@@ -46,10 +58,32 @@ export class AnalyticsYouTubeCollectionService {
       }
 
       const videoIds = posts.map((post) => post.externalId);
+      const firstPost = posts[0];
+      const resolution = await resolveAnalyticsCollectionCredential({
+        brandId,
+        credentialId: data.credentialId ?? firstPost?.credentialId,
+        lookup: this.credentialsService,
+        organizationId,
+        platform: CredentialPlatform.YOUTUBE,
+      });
+      if (
+        resolution.kind === 'ambiguous' ||
+        resolution.kind === 'missing' ||
+        resolution.kind === 'mismatch'
+      ) {
+        throw Object.assign(
+          new Error(attributionFailureFor(resolution.kind).message),
+          {
+            analyticsFailure: attributionFailureFor(resolution.kind),
+            status: 409,
+          },
+        );
+      }
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
         organizationId,
         brandId,
         videoIds,
+        resolution.credentialId,
       );
 
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -124,6 +158,10 @@ export class AnalyticsYouTubeCollectionService {
       this.logger.log(
         `YouTube analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
+
+      if (readyTargets.length > 0) {
+        await this.recordSnapshot(data, resolution.credentialId, analyticsMap);
+      }
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
       const unsettledPosts = posts.filter(
@@ -147,5 +185,42 @@ export class AnalyticsYouTubeCollectionService {
       );
       throw error;
     }
+  }
+
+  private async recordSnapshot(
+    data: YouTubeAnalyticsCollectionInput,
+    credentialId: string,
+    analyticsMap: Map<string, unknown>,
+  ): Promise<void> {
+    const counts = extractProfileCounts(
+      [...analyticsMap.values()].find((value) => value != null),
+    );
+    if (
+      counts.subscribers === undefined &&
+      this.youtubeService.getChannelDetails
+    ) {
+      try {
+        const details = await this.youtubeService.getChannelDetails(
+          data.organizationId,
+          data.brandId,
+        );
+        if (typeof details.subscriberCount === 'number') {
+          counts.subscribers = details.subscriberCount;
+        }
+      } catch (error: unknown) {
+        this.logger.warn(
+          `YouTube profile snapshot skipped for credential ${credentialId}`,
+          error,
+        );
+      }
+    }
+
+    await this.accountSnapshots.upsertDailySnapshot({
+      brandId: data.brandId,
+      credentialId,
+      organizationId: data.organizationId,
+      platform: CredentialPlatform.YOUTUBE,
+      ...counts,
+    });
   }
 }

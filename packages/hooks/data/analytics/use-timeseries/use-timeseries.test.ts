@@ -13,6 +13,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({ brandId: 'brand-1' }),
+}));
+
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),

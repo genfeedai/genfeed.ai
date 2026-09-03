@@ -1,5 +1,9 @@
 import type { TwitterAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
+import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerLogger,
@@ -36,6 +40,7 @@ export class AnalyticsTwitterCollectionService {
     private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collect(data: TwitterAnalyticsCollectionInput): Promise<void> {
@@ -54,9 +59,15 @@ export class AnalyticsTwitterCollectionService {
         throw new Error('Twitter analytics action requires exactly one post');
       }
 
-      const credential: unknown = await this.credentialsService.findOne({
-        id: credentialId,
-      });
+      const firstPost = posts[0];
+      const credential = firstPost
+        ? await this.credentialsService.resolveBrandAccount({
+            brandId: firstPost.brandId,
+            credentialId,
+            organizationId: firstPost.organizationId,
+            platform: CredentialPlatform.TWITTER,
+          })
+        : null;
 
       if (!credential) {
         this.logger.error(`Credential ${credentialId} not found`);
@@ -143,6 +154,18 @@ export class AnalyticsTwitterCollectionService {
       this.logger.log(
         `Twitter analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
+
+      if (readyTargets.length > 0 && firstPost) {
+        await this.accountSnapshots.upsertDailySnapshot({
+          brandId: firstPost.brandId,
+          credentialId: data.credentialId,
+          organizationId: firstPost.organizationId,
+          platform: CredentialPlatform.TWITTER,
+          ...extractProfileCounts(
+            [...analyticsMap.values()].find((value) => value != null),
+          ),
+        });
+      }
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'Twitter');
       const unsettledPosts = posts.filter(

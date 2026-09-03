@@ -110,6 +110,13 @@ export class PostAnalyticsService extends BaseService<
       totalComments: number;
       totalShares?: number;
       totalSaves?: number;
+      clicks?: number | null;
+      credentialId?: string | null;
+      impressions?: number | null;
+      metricAvailability?: Record<string, string>;
+      reach?: number | null;
+      videoViews?: number | null;
+      watchTimeSeconds?: number | null;
     },
   ): Promise<PostAnalyticsEntity | null> {
     const today = new Date();
@@ -743,11 +750,21 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.INSTAGRAM, {
+        impressions: analytics.impressions ?? null,
+        metricAvailability: {
+          impressions:
+            analytics.impressions == null ? 'unavailable' : 'observed',
+          reach: analytics.reach == null ? 'unavailable' : 'observed',
+          views: analytics.views == null ? 'unavailable' : 'observed',
+        },
+        reach: analytics.reach ?? null,
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
+        totalSaves: analytics.saves || 0,
         totalShares: analytics.shares || 0,
         totalViews:
           analytics.views || analytics.impressions || analytics.reach || 0,
+        videoViews: analytics.views ?? null,
       });
 
       this.logger.log(`Updated Instagram analytics for post ${postId}`);
@@ -812,8 +829,17 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.PINTEREST, {
+        clicks: analytics.clicks ?? null,
+        impressions: analytics.impressions ?? null,
+        metricAvailability: {
+          clicks: analytics.clicks == null ? 'unavailable' : 'observed',
+          impressions:
+            analytics.impressions == null ? 'unavailable' : 'observed',
+          views: analytics.views == null ? 'unavailable' : 'observed',
+        },
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
+        totalSaves: analytics.saves || 0,
         totalShares: 0,
         totalViews: analytics.views || analytics.impressions || 0,
       });
@@ -847,6 +873,16 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.LINKEDIN, {
+        clicks: analytics.clicks ?? null,
+        impressions: analytics.impressions ?? null,
+        metricAvailability: {
+          clicks: analytics.clicks == null ? 'unavailable' : 'observed',
+          impressions:
+            analytics.impressions == null ? 'unavailable' : 'observed',
+          reach: analytics.reach == null ? 'unavailable' : 'observed',
+          views: 'observed',
+        },
+        reach: analytics.reach ?? null,
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares || 0,
@@ -911,6 +947,14 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.FACEBOOK, {
+        impressions: analytics.impressions ?? null,
+        metricAvailability: {
+          impressions:
+            analytics.impressions == null ? 'unavailable' : 'observed',
+          reach: analytics.reach == null ? 'unavailable' : 'observed',
+          views: 'observed',
+        },
+        reach: analytics.reach ?? null,
         totalComments: analytics.comments,
         totalLikes: analytics.likes,
         totalShares: analytics.shares,

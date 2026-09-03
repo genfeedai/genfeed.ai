@@ -21,6 +21,7 @@ export class AnalyticsPage {
   readonly trendsTab: Locator;
   readonly hooksTab: Locator;
   readonly insightsTab: Locator;
+  readonly accountsTab: Locator;
 
   // Metrics
   readonly engagementMetrics: Locator;
@@ -67,6 +68,11 @@ export class AnalyticsPage {
       'a[href*="analytics/insights"],' +
         ' button:has-text("Insights"),' +
         ' [data-testid="analytics-insights-tab"]',
+    );
+    this.accountsTab = page.locator(
+      'a[href*="analytics/accounts"],' +
+        ' button:has-text("Accounts"),' +
+        ' [data-testid="analytics-accounts-tab"]',
     );
 
     // Metrics
@@ -128,7 +134,7 @@ export class AnalyticsPage {
   }
 
   async gotoSection(
-    section: 'overview' | 'trends' | 'hooks' | 'insights',
+    section: 'overview' | 'trends' | 'hooks' | 'insights' | 'accounts',
   ): Promise<void> {
     await this.page.goto(`/analytics/${section}`);
     await this.waitForPageLoad();

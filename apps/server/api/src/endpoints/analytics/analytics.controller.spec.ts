@@ -238,6 +238,7 @@ describe('AnalyticsController', () => {
       const result = await controller.getTimeSeries(
         mockRequest.user as never,
         mockRequest,
+        {},
       );
 
       const [startDate, endDate] =

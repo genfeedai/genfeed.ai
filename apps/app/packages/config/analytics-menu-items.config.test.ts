@@ -102,6 +102,7 @@ describe('ANALYTICS_MENU_ITEMS', () => {
   it('puts what-happened destinations ungrouped under Analytics', () => {
     expect(labelsInGroup('')).toEqual([
       'Overview',
+      'Accounts',
       'Posts',
       'Brands',
       'Streaks',
@@ -164,7 +165,10 @@ describe('ANALYTICS_MENU_ITEMS', () => {
 
   it('hides brand-only analytics destinations on org scope', () => {
     const orgItems = getAnalyticsMenuItemsForScope('~');
-    expect(orgItems.map((item) => item.label)).toEqual(['Overview']);
+    expect(orgItems.map((item) => item.label)).toEqual([
+      'Overview',
+      'Accounts',
+    ]);
     expect(orgItems.some((item) => item.href === '/analytics/posts')).toBe(
       false,
     );

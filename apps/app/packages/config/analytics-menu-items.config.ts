@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
+  AtSign,
   Building2,
   ChartColumn,
   FileText,
@@ -21,7 +22,7 @@ import {
  * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
  * (Insights, Hooks, Lab, Trends).
  *
- * Org-level routes (`/:org/~/analytics/*`) only ship Overview today. Items with
+ * Org-level routes (`/:org/~/analytics/*`) ship Overview and Accounts. Items with
  * `hrefScope: 'brand'` are brand-route only — hide them on org scope or they 404.
  *
  * Every icon is unique — a repeated glyph makes two rows read as one entry.
@@ -36,6 +37,15 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: ChartColumn,
     solid: ChartColumn,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.ANALYTICS.ACCOUNTS,
+    hrefScope: 'organization',
+    label: 'Accounts',
+    matchPaths: [APP_ROUTES.ANALYTICS.ACCOUNTS],
+    outline: AtSign,
+    solid: AtSign,
   },
   {
     group: '',
@@ -128,6 +138,5 @@ export function getAnalyticsMenuItemsForScope(
   if (!isOrgScope) {
     return ANALYTICS_MENU_ITEMS;
   }
-  // Org scope only has Overview. Keep it ungrouped under Analytics.
   return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand');
 }

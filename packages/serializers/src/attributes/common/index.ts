@@ -1,3 +1,4 @@
+export * from '@serializers/attributes/common/account-analytics.attributes';
 export * from '@serializers/attributes/common/activity.attributes';
 export * from '@serializers/attributes/common/analytics.attributes';
 export * from '@serializers/attributes/common/analytics-brand-leaderboard.attributes';

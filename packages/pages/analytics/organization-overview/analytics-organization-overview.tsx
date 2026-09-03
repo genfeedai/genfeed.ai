@@ -11,6 +11,7 @@ import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
+import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
 import type {
   BrandPerformanceData,
   IBrandWithStats,
@@ -226,7 +227,7 @@ export default function AnalyticsOrganizationOverview({
       try {
         const service = await getAnalyticsService();
         const response = (await service.getPlatformComparison({
-          brand: brandId,
+          brandId,
           endDate,
           startDate,
         })) as Record<string, { posts?: number; views?: number }>;
@@ -271,6 +272,7 @@ export default function AnalyticsOrganizationOverview({
   return (
     <div className="space-y-6">
       <OrganizationMetricStrip analytics={analytics} isLoading={isLoading} />
+      <AnalyticsTopAccounts />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BrandPerformanceChart

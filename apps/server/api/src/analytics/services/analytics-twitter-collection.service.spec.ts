@@ -28,24 +28,31 @@ function createHarness(analytics = new Map<string, unknown>()) {
   const credentials = {
     findAll: vi.fn(),
     findBrandAccounts: vi.fn(),
-    findOne: vi.fn().mockResolvedValue({ accessToken: 'access-token' }),
+    findConnectedAccounts: vi.fn(),
+    findOne: vi.fn(),
     mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
-    resolveBrandAccount: vi.fn(),
+    resolveBrandAccount: vi.fn().mockResolvedValue({
+      accessToken: 'access-token',
+    }),
   } satisfies ServerCredentialStore;
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
   } satisfies ServerLogger;
+  const accountSnapshots = {
+    upsertDailySnapshot: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new AnalyticsTwitterCollectionService(
     twitter,
     postAnalytics,
     credentials,
     collectionState,
     logger,
+    accountSnapshots as never,
   );
-  return { collectionState, postAnalytics, service, twitter };
+  return { accountSnapshots, collectionState, postAnalytics, service, twitter };
 }
 
 function input(): TwitterAnalyticsCollectionInput {
@@ -74,6 +81,13 @@ describe('AnalyticsTwitterCollectionService', () => {
     expect(harness.postAnalytics.processTwitterAnalytics).toHaveBeenCalledWith(
       'post-1',
       { views: 42 },
+    );
+    expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'credential-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      }),
     );
     expect(harness.collectionState.markReadyBatch).toHaveBeenCalledWith([
       expect.objectContaining({

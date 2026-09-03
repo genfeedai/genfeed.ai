@@ -1,4 +1,7 @@
 import {
+  accountAnalyticsDetailAttributes,
+  accountAnalyticsListAttributes,
+  accountAnalyticsTopAttributes,
   analyticsAttributes,
   analyticsBrandLeaderboardAttributes,
   analyticsBrandStatsAttributes,
@@ -12,6 +15,7 @@ import {
   analyticsTimeSeriesWithPlatformsAttributes,
   analyticsTopContentAttributes,
   analyticsTrendAttributes,
+  fleetEvaluationPolicyAttributes,
 } from '@serializers/attributes/common';
 import { simpleConfig } from '@serializers/builders';
 
@@ -78,4 +82,24 @@ export const analyticsHooksSerializerConfig = simpleConfig(
 export const analyticsTrendSerializerConfig = simpleConfig(
   'analytics-trend',
   analyticsTrendAttributes,
+);
+
+export const accountAnalyticsListSerializerConfig = simpleConfig(
+  'account-analytics-list',
+  accountAnalyticsListAttributes,
+);
+
+export const accountAnalyticsTopSerializerConfig = simpleConfig(
+  'account-analytics-top',
+  accountAnalyticsTopAttributes,
+);
+
+export const accountAnalyticsDetailSerializerConfig = simpleConfig(
+  'account-analytics-detail',
+  accountAnalyticsDetailAttributes,
+);
+
+export const fleetEvaluationPolicySerializerConfig = simpleConfig(
+  'fleet-evaluation-policy',
+  fleetEvaluationPolicyAttributes,
 );

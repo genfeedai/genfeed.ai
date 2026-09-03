@@ -87,10 +87,16 @@ export interface ServerTwitterAnalytics {
 }
 
 export interface ServerYouTubeAnalytics {
+  getChannelDetails?(
+    organizationId: string,
+    brandId: string,
+    authOrSkipRefresh?: unknown,
+  ): Promise<{ subscriberCount?: number }>;
   getMediaAnalyticsBatch(
     organizationId: string,
     brandId: string,
     videoIds: string[],
+    credentialId?: string,
   ): Promise<Map<string, unknown>>;
 }
 
@@ -99,6 +105,7 @@ export interface ServerSocialAnalytics {
     organizationId: string,
     brandId: string,
     externalId: string,
+    credentialId?: string,
   ): Promise<{
     clicks?: number;
     comments?: number;

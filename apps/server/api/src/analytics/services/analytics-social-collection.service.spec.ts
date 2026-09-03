@@ -1,5 +1,6 @@
 import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import type {
+  ServerCredentialStore,
   ServerLogger,
   ServerPostAnalytics,
   ServerPosts,
@@ -37,6 +38,23 @@ function createHarness() {
     log: vi.fn(),
     warn: vi.fn(),
   } satisfies ServerLogger;
+  const credentials = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
+    findConnectedAccounts: vi.fn().mockResolvedValue([{ id: 'cred-1' }]),
+    findOne: vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'cred-1',
+      organizationId: 'org-1',
+      platform: 'INSTAGRAM',
+    }),
+    mergeWarmupSignals: vi.fn(),
+    patch: vi.fn(),
+    resolveBrandAccount: vi.fn(),
+  } as unknown as ServerCredentialStore;
+  const accountSnapshots = {
+    upsertDailySnapshot: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new AnalyticsSocialCollectionService(
     socialAnalytics,
     socialAnalytics,
@@ -46,9 +64,19 @@ function createHarness() {
     postAnalytics,
     posts,
     collectionState,
+    credentials,
     logger,
+    accountSnapshots as never,
   );
-  return { collectionState, postAnalytics, posts, service, socialAnalytics };
+  return {
+    accountSnapshots,
+    collectionState,
+    credentials,
+    postAnalytics,
+    posts,
+    service,
+    socialAnalytics,
+  };
 }
 
 function input(
@@ -59,6 +87,7 @@ function input(
     posts: [
       {
         brandId: 'brand-1',
+        credentialId: 'cred-1',
         externalId: 'external-1',
         id: 'post-1',
         organizationId: 'org-1',
@@ -74,11 +103,24 @@ describe('AnalyticsSocialCollectionService', () => {
 
     await harness.service.collect(input());
 
+    expect(harness.socialAnalytics.getMediaAnalytics).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      'external-1',
+      'cred-1',
+    );
     expect(
       harness.postAnalytics.processInstagramAnalytics,
     ).toHaveBeenCalledWith('post-1', { mediaType: undefined, views: 42 });
     expect(harness.collectionState.markReady).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1', organizationId: 'org-1' }),
+    );
+    expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.INSTAGRAM,
+      }),
     );
   });
 

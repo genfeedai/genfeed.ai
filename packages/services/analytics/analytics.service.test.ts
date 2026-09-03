@@ -58,6 +58,9 @@ describe('AnalyticsService', () => {
       ['getTimeSeries', 'timeseries'],
       ['getGrowthTrends', 'growth'],
       ['getEngagement', 'engagement'],
+      ['getAccountAnalytics', 'accounts'],
+      ['getTopAccounts', 'accounts/top'],
+      ['getFleetEvaluationPolicy', 'fleet-evaluation-policy'],
     ] as const;
 
     it.each(resourceEndpoints)(

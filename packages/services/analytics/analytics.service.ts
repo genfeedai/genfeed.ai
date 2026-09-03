@@ -198,6 +198,47 @@ export class AnalyticsService extends HTTPBaseService {
       .then((res) => deserializeResource<unknown>(res.data));
   }
 
+  public async getAccountAnalytics(query?: IQueryParams): Promise<unknown> {
+    return await this.instance
+      .get<JsonApiResponseDocument>('accounts', { params: query })
+      .then((res) => deserializeResource<unknown>(res.data));
+  }
+
+  public async getTopAccounts(query?: IQueryParams): Promise<unknown> {
+    return await this.instance
+      .get<JsonApiResponseDocument>('accounts/top', { params: query })
+      .then((res) => deserializeResource<unknown>(res.data));
+  }
+
+  public async getAccountAnalyticsDetail(
+    credentialId: string,
+    query?: IQueryParams,
+  ): Promise<unknown> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`accounts/${credentialId}`, {
+        params: query,
+      })
+      .then((res) => deserializeResource<unknown>(res.data));
+  }
+
+  public async getFleetEvaluationPolicy(
+    query?: IQueryParams,
+  ): Promise<unknown> {
+    return await this.instance
+      .get<JsonApiResponseDocument>('fleet-evaluation-policy', {
+        params: query,
+      })
+      .then((res) => deserializeResource<unknown>(res.data));
+  }
+
+  public async saveFleetEvaluationPolicy(
+    body: Record<string, unknown>,
+  ): Promise<unknown> {
+    return await this.instance
+      .patch<JsonApiResponseDocument>('fleet-evaluation-policy', body)
+      .then((res) => deserializeResource<unknown>(res.data));
+  }
+
   public async getGrowthTrends(query?: IQueryParams): Promise<unknown> {
     return await this.instance
       .get<JsonApiResponseDocument>('growth', { params: query })

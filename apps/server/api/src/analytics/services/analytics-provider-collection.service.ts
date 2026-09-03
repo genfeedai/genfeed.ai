@@ -1,9 +1,18 @@
 import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
+import {
+  attributionFailureFor,
+  isAnalyticsAttributionFailure,
+  resolveAnalyticsCollectionCredential,
+} from '@api/analytics/analytics-collection-credential';
 import { classifyAnalyticsCollectionError } from '@api/analytics/analytics-collection-state';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  AccountAnalyticsSnapshotService,
+  extractProfileCounts,
+} from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
@@ -31,16 +40,35 @@ export class AnalyticsProviderCollectionService {
     private readonly collectionState: PostAnalyticsCollectionStateService,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
+    private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
   async collectFacebook(
     data: SocialAnalyticsCollectionInput,
   ): Promise<AnalyticsCollectionResult> {
     return this.collectPosts(data, 'Facebook', async (post) => {
+      const resolution = await resolveAnalyticsCollectionCredential({
+        brandId: post.brandId,
+        credentialId: post.credentialId,
+        lookup: this.credentialsService,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+      });
+      if (
+        resolution.kind === 'ambiguous' ||
+        resolution.kind === 'missing' ||
+        resolution.kind === 'mismatch'
+      ) {
+        throw Object.assign(
+          new Error(attributionFailureFor(resolution.kind).message),
+          {
+            analyticsFailure: attributionFailureFor(resolution.kind),
+            status: 409,
+          },
+        );
+      }
       const credential = await this.credentialsService.findOne({
-        ...(post.credentialId
-          ? { id: post.credentialId }
-          : { brandId: post.brandId }),
+        id: resolution.credentialId,
         isDeleted: false,
         organizationId: post.organizationId,
         platform: CredentialPlatform.FACEBOOK,
@@ -64,6 +92,13 @@ export class AnalyticsProviderCollectionService {
         shares: analytics.shares,
         views: analytics.views,
       });
+      await this.accountSnapshots.upsertDailySnapshot({
+        brandId: post.brandId,
+        credentialId: resolution.credentialId,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+        ...extractProfileCounts(analytics),
+      });
     });
   }
 
@@ -81,6 +116,15 @@ export class AnalyticsProviderCollectionService {
         post.id,
         analytics,
       );
+      if (post.credentialId) {
+        await this.accountSnapshots.upsertDailySnapshot({
+          brandId: post.brandId,
+          credentialId: post.credentialId,
+          organizationId: post.organizationId,
+          platform: CredentialPlatform.THREADS,
+          ...extractProfileCounts(analytics),
+        });
+      }
     });
   }
 
@@ -113,7 +157,10 @@ export class AnalyticsProviderCollectionService {
         `Failed to collect ${platformLabel} analytics for post ${post.id}`,
         error,
       );
-      if (!failure.isRetryable) {
+      if (
+        !failure.isRetryable &&
+        !isAnalyticsAttributionFailure(failure.code)
+      ) {
         await this.disableAnalytics(post.id);
       }
       throw error;

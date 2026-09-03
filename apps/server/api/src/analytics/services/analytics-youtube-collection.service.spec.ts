@@ -1,5 +1,6 @@
 import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import type {
+  ServerCredentialStore,
   ServerLogger,
   ServerPostAnalytics,
   ServerYouTubeAnalytics,
@@ -27,23 +28,39 @@ function createHarness(analytics = new Map<string, unknown>()) {
     log: vi.fn(),
     warn: vi.fn(),
   } satisfies ServerLogger;
+  const credentials = {
+    findConnectedAccounts: vi.fn().mockResolvedValue([{ id: 'cred-1' }]),
+    findOne: vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'cred-1',
+      organizationId: 'org-1',
+      platform: 'YOUTUBE',
+    }),
+  } as unknown as ServerCredentialStore;
+  const accountSnapshots = {
+    upsertDailySnapshot: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new AnalyticsYouTubeCollectionService(
     youtube,
     postAnalytics,
     collectionState,
+    credentials,
     logger,
+    accountSnapshots as never,
   );
-  return { collectionState, postAnalytics, service };
+  return { accountSnapshots, collectionState, postAnalytics, service, youtube };
 }
 
 function input(): YouTubeAnalyticsCollectionInput {
   return {
     attemptKey: 'attempt-1',
     brandId: 'brand-1',
+    credentialId: 'cred-1',
     organizationId: 'org-1',
     posts: [
       {
         brandId: 'brand-1',
+        credentialId: 'cred-1',
         externalId: 'video-1',
         id: 'post-1',
         organizationId: 'org-1',
@@ -58,6 +75,12 @@ describe('AnalyticsYouTubeCollectionService', () => {
 
     await harness.service.collect(input());
 
+    expect(harness.youtube.getMediaAnalyticsBatch).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      ['video-1'],
+      'cred-1',
+    );
     expect(harness.postAnalytics.processYouTubeAnalytics).toHaveBeenCalledWith(
       'post-1',
       { views: 42 },
@@ -68,6 +91,13 @@ describe('AnalyticsYouTubeCollectionService', () => {
         platform: CredentialPlatform.YOUTUBE,
       }),
     ]);
+    expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.YOUTUBE,
+      }),
+    );
   });
 
   it('records delayed state and fails when provider data is unavailable', async () => {

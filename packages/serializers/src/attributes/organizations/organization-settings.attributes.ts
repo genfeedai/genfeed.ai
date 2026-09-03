@@ -44,6 +44,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'defaultImageToVideoModel',
   'defaultMusicModel',
   'agentPolicy',
+  'fleetEvaluationPolicy',
   'onboardingJourneyMissions',
   'onboardingJourneyCompletedAt',
 ]);
