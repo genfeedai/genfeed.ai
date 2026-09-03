@@ -25,6 +25,7 @@ type InputField =
   | 'auto'
   | 'autoAnalyzeAfterHours'
   | 'autoSync'
+  | 'avoid'
   | 'backgroundColor'
   | 'bitrate'
   | 'brand'
@@ -68,6 +69,7 @@ type InputField =
   | 'headers'
   | 'height'
   | 'hookFormula'
+  | 'hooks'
   | 'html'
   | 'idempotencyKey'
   | 'image'
@@ -275,6 +277,8 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       return enumSchema(['full', 'draft'] as const);
     case 'transitionType':
       return enumSchema(['cut', 'crossfade', 'wipe', 'fade'] as const);
+    case 'avoid':
+    case 'hooks':
     case 'keywords':
     case 'languages':
     case 'secondaryKeywords':
@@ -331,9 +335,12 @@ function inputSchema(fields: readonly InputField[]): ActionJsonSchema {
 function promptConstructorInputSchema(): ActionJsonSchema {
   const declared = [
     'acceptsStructuredPrompt',
+    'avoid',
     'brand',
+    'brandVoice',
     'content',
     'data',
+    'hooks',
     'includeHashtags',
     'maxLength',
     'prompt',

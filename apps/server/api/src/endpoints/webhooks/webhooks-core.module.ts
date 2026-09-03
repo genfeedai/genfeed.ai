@@ -67,15 +67,22 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [
+    ArgilModule,
     ArgilWebhookService,
     ChromaticWebhookService,
     FleetWebhookService,
     GitHubWebhookService,
     HeygenWebhookService,
+    HeygenWebhookVerificationService,
     KlingWebhookService,
     LeonardoaiWebhookService,
+    ModelRegistrationService,
+    NotificationsPublisherModule,
     OpusProWebhookService,
+    ReplicateGenerationWebhookHandler,
     ReplicateWebhookService,
+    ReplicateWebhookVerificationService,
+    TrainingsModule,
     VercelWebhookService,
     WebhooksService,
   ],

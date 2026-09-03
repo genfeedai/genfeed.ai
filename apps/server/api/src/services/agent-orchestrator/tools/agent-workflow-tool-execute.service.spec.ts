@@ -257,6 +257,7 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
 
     expect(workflowsService.findOne).toHaveBeenCalledWith({
       id: 'wf-foreign',
+      isDeleted: false,
       organizationId: 'org-1',
     });
     expect(result).toEqual({

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useWorkflowStore } from '../workflowStore';
 
 function addNode(): string {
-  return useWorkflowStore.getState().addNode('prompt', { x: 0, y: 0 });
+  return useWorkflowStore.getState().addNode('imageGen', { x: 0, y: 0 });
 }
 
 beforeEach(() => {

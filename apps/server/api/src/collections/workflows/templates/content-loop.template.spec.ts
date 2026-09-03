@@ -4,6 +4,7 @@ import {
   CONTENT_LOOP_PROMPT_TEMPLATE,
   CONTENT_LOOP_TEMPLATE,
 } from '@api/collections/workflows/templates/content-loop.template';
+import { NODE_DEFINITIONS as CORE_NODE_DEFINITIONS } from '@genfeedai/contracts/types/nodes';
 import {
   createPublishExecutor,
   PromptConstructorExecutor,
@@ -29,10 +30,30 @@ const ANALYTICS_OUTPUT = {
 /**
  * Product nodes persist as `genfeedAction`, so their handles live on the
  * presentation definition for the configured action, not on the node type.
+ * Catalog definitions use arrays; the API adapter maps those arrays by id.
  */
-function resolveNodeDefinition(
+function handleExists(handles: unknown, handleId: string): boolean {
+  if (!handles) {
+    return false;
+  }
+  if (Array.isArray(handles)) {
+    return handles.some(
+      (handle) =>
+        handle !== null &&
+        typeof handle === 'object' &&
+        'id' in handle &&
+        handle.id === handleId,
+    );
+  }
+  if (typeof handles === 'object') {
+    return handleId in handles;
+  }
+  return false;
+}
+
+function resolvePresentationType(
   node: { data: { config?: unknown }; type: string } | undefined,
-) {
+): string | undefined {
   if (!node) {
     return undefined;
   }
@@ -40,8 +61,30 @@ function resolveNodeDefinition(
   const actionId = (node.data.config as { actionId?: string } | undefined)
     ?.actionId;
 
-  return getNodeDefinition(
-    actionId ? getWorkflowPresentationNodeType(actionId) : node.type,
+  return actionId ? getWorkflowPresentationNodeType(actionId) : node.type;
+}
+
+function definitionDeclaresHandle(
+  node: { data: { config?: unknown }; type: string } | undefined,
+  handleId: string,
+  direction: 'inputs' | 'outputs',
+): boolean {
+  const presentationType = resolvePresentationType(node);
+  if (!presentationType) {
+    return false;
+  }
+
+  const adapterDefinition = getNodeDefinition(presentationType);
+  const coreDefinition =
+    presentationType in CORE_NODE_DEFINITIONS
+      ? CORE_NODE_DEFINITIONS[
+          presentationType as keyof typeof CORE_NODE_DEFINITIONS
+        ]
+      : undefined;
+
+  return (
+    handleExists(adapterDefinition?.[direction], handleId) ||
+    handleExists(coreDefinition?.[direction], handleId)
   );
 }
 
@@ -115,19 +158,17 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
       expect(targetNode).toBeDefined();
 
       if (edge.sourceHandle) {
-        const sourceDefinition = resolveNodeDefinition(sourceNode);
         expect(
-          sourceDefinition?.outputs[edge.sourceHandle],
+          definitionDeclaresHandle(sourceNode, edge.sourceHandle, 'outputs'),
           `${sourceNode?.type}.${edge.sourceHandle}`,
-        ).toBeDefined();
+        ).toBe(true);
       }
 
       if (edge.targetHandle) {
-        const targetDefinition = resolveNodeDefinition(targetNode);
         expect(
-          targetDefinition?.inputs[edge.targetHandle],
+          definitionDeclaresHandle(targetNode, edge.targetHandle, 'inputs'),
           `${targetNode?.type}.${edge.targetHandle}`,
-        ).toBeDefined();
+        ).toBe(true);
       }
     }
   });
