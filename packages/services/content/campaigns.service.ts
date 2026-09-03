@@ -4,8 +4,11 @@ import type {
   ICampaign,
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
+  ICampaignPaidActivation,
+  ICampaignPerformance,
   IGenerateCampaignContentInput,
   IPaginatedResponse,
+  IPrepareCampaignPaidActivationInput,
 } from '@genfeedai/contracts/interfaces';
 import { CampaignSerializer } from '@genfeedai/serializers';
 import {
@@ -90,6 +93,47 @@ export class CampaignsService extends BaseService<
 
   async getById(id: string): Promise<Campaign> {
     return this.findOne(id);
+  }
+
+  async getPerformance(
+    id: string,
+    query: { endDate?: string; startDate?: string } = {},
+  ): Promise<ICampaignPerformance> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/${id}/performance`,
+      this.instance
+        .get<JsonApiResponseDocument>(`/${id}/performance`, {
+          params: query,
+        })
+        .then((response) =>
+          this.extractResource<ICampaignPerformance>(response.data),
+        ),
+    );
+  }
+
+  async listActivations(id: string): Promise<ICampaignPaidActivation[]> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/${id}/activations`,
+      this.instance
+        .get<JsonApiResponseDocument>(`/${id}/activations`)
+        .then((response) =>
+          this.extractCollection<ICampaignPaidActivation>(response.data),
+        ),
+    );
+  }
+
+  async prepareActivation(
+    id: string,
+    input: IPrepareCampaignPaidActivationInput,
+  ): Promise<ICampaignPaidActivation> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/activations`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/activations`, input)
+        .then((response) =>
+          this.extractResource<ICampaignPaidActivation>(response.data),
+        ),
+    );
   }
 
   async create(data: CreateCampaignInput): Promise<Campaign> {

@@ -77,6 +77,10 @@ export default function CampaignDetailShell({
   const calendarHref = href(
     createPublishingCampaignRoute(resolvedCampaign.id, 'calendar'),
   );
+  const performanceHref = href(
+    createPublishingCampaignRoute(campaign.id, 'performance'),
+  );
+  const adsHref = href(createPublishingCampaignRoute(campaign.id, 'ads'));
 
   async function invalidate(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ['publish-campaigns'] });
@@ -229,6 +233,16 @@ export default function CampaignDetailShell({
           {
             href: calendarHref,
             label: translate('tabs.calendar'),
+            matchMode: 'exact',
+          },
+          {
+            href: performanceHref,
+            label: translate('tabs.performance'),
+            matchMode: 'exact',
+          },
+          {
+            href: adsHref,
+            label: translate('tabs.ads'),
             matchMode: 'exact',
           },
         ],

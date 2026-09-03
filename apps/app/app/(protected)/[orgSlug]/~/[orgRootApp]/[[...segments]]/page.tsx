@@ -8,7 +8,9 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
+  CampaignDetailAds,
   CampaignDetailOverview,
+  CampaignDetailPerformance,
   CampaignDetailShell,
   CampaignFormPage,
   CampaignsListPage,
@@ -185,6 +187,26 @@ async function renderOrgCampaignSurface({
       <Suspense fallback={null}>
         <CampaignDetailShell campaignId={campaignId} section="calendar">
           <ContentCalendarPage campaignId={campaignId} />
+        </CampaignDetailShell>
+      </Suspense>
+    );
+  }
+
+  if (campaignSection === 'performance') {
+    return (
+      <Suspense fallback={null}>
+        <CampaignDetailShell campaignId={campaignId} section="performance">
+          <CampaignDetailPerformance campaignId={campaignId} />
+        </CampaignDetailShell>
+      </Suspense>
+    );
+  }
+
+  if (campaignSection === 'ads') {
+    return (
+      <Suspense fallback={null}>
+        <CampaignDetailShell campaignId={campaignId} section="ads">
+          <CampaignDetailAds campaignId={campaignId} />
         </CampaignDetailShell>
       </Suspense>
     );

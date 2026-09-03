@@ -1,0 +1,15 @@
+export const campaignPaidActivationAttributes = [
+  'adAccountId',
+  'campaignId',
+  'credentialId',
+  'currency',
+  'externalAdId',
+  'externalAdSetId',
+  'externalCampaignId',
+  'failureReason',
+  'paidInsights',
+  'platform',
+  'postIds',
+  'spendApprovedAt',
+  'status',
+];

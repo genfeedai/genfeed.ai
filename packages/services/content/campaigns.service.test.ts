@@ -66,6 +66,34 @@ describe('CampaignsService', () => {
     expect(result.items[0]?.id).toBe(CAMPAIGN_ID);
   });
 
+  it('reads organic performance for a reporting window', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            campaignId: CAMPAIGN_ID,
+            organic: {
+              views: { availablePostCount: 0, totalPostCount: 2, value: null },
+            },
+            windowEnd: '2026-09-02T23:59:59.999Z',
+            windowStart: '2026-08-26T00:00:00.000Z',
+          },
+          { id: CAMPAIGN_ID, type: 'campaign-performance' },
+        ),
+      ),
+    );
+
+    const result = await service.getPerformance(CAMPAIGN_ID, {
+      endDate: '2026-09-02',
+      startDate: '2026-08-26',
+    });
+
+    expect(http.get).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/performance`, {
+      params: { endDate: '2026-09-02', startDate: '2026-08-26' },
+    });
+    expect(result.organic.views.value).toBeNull();
+  });
+
   it('archives and restores through the collection action paths', async () => {
     http.post.mockResolvedValue(
       axiosResponse(

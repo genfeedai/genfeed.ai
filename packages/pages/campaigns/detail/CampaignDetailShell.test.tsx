@@ -118,7 +118,7 @@ describe('CampaignDetailShell', () => {
     });
   });
 
-  it('renders overview, content, and calendar destinations', () => {
+  it('renders overview, content, calendar, and performance destinations', () => {
     render(
       <CampaignDetailShell campaignId="cmp-1" section="overview">
         <div>overview body</div>
@@ -137,6 +137,16 @@ describe('CampaignDetailShell', () => {
     expect(screen.getByRole('link', { name: 'tabs.calendar' })).toHaveAttribute(
       'href',
       '/acme/demo/publishing/campaigns/cmp-1/calendar',
+    );
+    expect(
+      screen.getByRole('link', { name: 'tabs.performance' }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/demo/publishing/campaigns/cmp-1/performance',
+    );
+    expect(screen.getByRole('link', { name: 'tabs.ads' })).toHaveAttribute(
+      'href',
+      '/acme/demo/publishing/campaigns/cmp-1/ads',
     );
     expect(screen.getByText('overview body')).toBeInTheDocument();
   });
