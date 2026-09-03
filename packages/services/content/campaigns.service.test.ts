@@ -1,4 +1,7 @@
-import { ContentCampaignStatus } from '@genfeedai/contracts';
+import {
+  ContentCampaignLifecycleAction,
+  ContentCampaignStatus,
+} from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import {
   axiosResponse,
@@ -9,6 +12,7 @@ import {
 } from '@services/__mocks__/http.mock';
 import {
   Campaign,
+  CampaignLifecycleResult,
   CampaignsService,
 } from '@services/content/campaigns.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -87,6 +91,127 @@ describe('CampaignsService', () => {
     await service.restore(CAMPAIGN_ID, ContentCampaignStatus.DRAFT);
     expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/restore`, {
       status: ContentCampaignStatus.DRAFT,
+    });
+  });
+
+  it('maps start, pause, complete, and generate as lifecycle results', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            action: ContentCampaignLifecycleAction.START,
+            campaign: {
+              brandId: 'brand-1',
+              id: CAMPAIGN_ID,
+              name: 'Q4',
+              status: ContentCampaignStatus.ACTIVE,
+            },
+            items: [
+              {
+                id: 'cpost00000001',
+                kind: 'post',
+                retryable: false,
+                status: 'succeeded',
+              },
+            ],
+          },
+          { id: CAMPAIGN_ID, type: 'campaign-lifecycle' },
+        ),
+      ),
+    );
+
+    const started = await service.start(CAMPAIGN_ID);
+    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/start`, {});
+    expect(started).toBeInstanceOf(CampaignLifecycleResult);
+    expect(started.campaign).toBeInstanceOf(Campaign);
+    expect(started.campaign.status).toBe(ContentCampaignStatus.ACTIVE);
+    expect(started.items).toHaveLength(1);
+
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            action: ContentCampaignLifecycleAction.GENERATE,
+            campaign: {
+              brandId: 'brand-1',
+              id: CAMPAIGN_ID,
+              name: 'Q4',
+              status: ContentCampaignStatus.DRAFT,
+            },
+            items: [],
+          },
+          { id: CAMPAIGN_ID, type: 'campaign-lifecycle' },
+        ),
+      ),
+    );
+
+    await service.generate(CAMPAIGN_ID, { credentialIds: ['ccred00000001'] });
+    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/generate`, {
+      credentialIds: ['ccred00000001'],
+    });
+
+    await service.pause(CAMPAIGN_ID);
+    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/pause`, {});
+
+    await service.complete(CAMPAIGN_ID);
+    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/complete`, {});
+  });
+
+  it('maps assign and unassign as lifecycle results, not campaign rows', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            action: ContentCampaignLifecycleAction.ASSIGN,
+            campaign: {
+              brandId: 'brand-1',
+              id: CAMPAIGN_ID,
+              name: 'Q4',
+              status: ContentCampaignStatus.DRAFT,
+            },
+            items: [
+              {
+                id: 'cpost00000001',
+                kind: 'post',
+                retryable: false,
+                status: 'succeeded',
+              },
+            ],
+          },
+          { id: CAMPAIGN_ID, type: 'campaign-lifecycle' },
+        ),
+      ),
+    );
+
+    const assigned = await service.assignPosts(CAMPAIGN_ID, ['cpost00000001']);
+    expect(assigned).toBeInstanceOf(CampaignLifecycleResult);
+    expect(assigned.action).toBe(ContentCampaignLifecycleAction.ASSIGN);
+    expect(assigned.items[0]?.id).toBe('cpost00000001');
+
+    http.delete.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            action: ContentCampaignLifecycleAction.UNASSIGN,
+            campaign: {
+              brandId: 'brand-1',
+              id: CAMPAIGN_ID,
+              name: 'Q4',
+              status: ContentCampaignStatus.DRAFT,
+            },
+            items: [],
+          },
+          { id: CAMPAIGN_ID, type: 'campaign-lifecycle' },
+        ),
+      ),
+    );
+
+    const unassigned = await service.unassignPosts(CAMPAIGN_ID, [
+      'cpost00000001',
+    ]);
+    expect(unassigned).toBeInstanceOf(CampaignLifecycleResult);
+    expect(http.delete).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/posts`, {
+      data: { postIds: ['cpost00000001'] },
     });
   });
 });

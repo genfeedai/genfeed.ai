@@ -2,6 +2,9 @@ import type { ContentCampaignStatus } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ICampaign,
+  ICampaignLifecycleItemOutcome,
+  ICampaignLifecycleResult,
+  IGenerateCampaignContentInput,
   IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
 import { CampaignSerializer } from '@genfeedai/serializers';
@@ -22,6 +25,21 @@ export interface CreateCampaignInput {
 }
 
 export type UpdateCampaignInput = Partial<CreateCampaignInput>;
+
+export type GenerateCampaignContentInput = IGenerateCampaignContentInput;
+
+export class CampaignLifecycleResult implements ICampaignLifecycleResult {
+  action!: ICampaignLifecycleResult['action'];
+  campaign!: Campaign;
+  id!: string;
+  items!: ICampaignLifecycleItemOutcome[];
+
+  constructor(partial: Partial<ICampaignLifecycleResult>) {
+    Object.assign(this, partial);
+    this.campaign = new Campaign(partial.campaign ?? {});
+    this.items = partial.items ?? [];
+  }
+}
 
 export interface CampaignListQuery {
   brandId?: string;
@@ -102,23 +120,69 @@ export class CampaignsService extends BaseService<
     );
   }
 
-  async assignPosts(id: string, postIds: string[]): Promise<Campaign> {
+  async start(id: string): Promise<CampaignLifecycleResult> {
+    return this.postLifecycle(id, 'start');
+  }
+
+  async pause(id: string): Promise<CampaignLifecycleResult> {
+    return this.postLifecycle(id, 'pause');
+  }
+
+  async complete(id: string): Promise<CampaignLifecycleResult> {
+    return this.postLifecycle(id, 'complete');
+  }
+
+  async generate(
+    id: string,
+    input: GenerateCampaignContentInput = {},
+  ): Promise<CampaignLifecycleResult> {
+    return this.postLifecycle(id, 'generate', input);
+  }
+
+  async assignPosts(
+    id: string,
+    postIds: string[],
+  ): Promise<CampaignLifecycleResult> {
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}/${id}/posts`,
       this.instance
         .post<JsonApiResponseDocument>(`/${id}/posts`, { postIds })
-        .then((response) => this.mapOne(response.data)),
+        .then((response) => this.mapLifecycle(response.data)),
     );
   }
 
-  async unassignPosts(id: string, postIds: string[]): Promise<Campaign> {
+  async unassignPosts(
+    id: string,
+    postIds: string[],
+  ): Promise<CampaignLifecycleResult> {
     return this.executeWithErrorHandling(
       `DELETE ${this.baseURL}/${id}/posts`,
       this.instance
         .delete<JsonApiResponseDocument>(`/${id}/posts`, {
           data: { postIds },
         })
-        .then((response) => this.mapOne(response.data)),
+        .then((response) => this.mapLifecycle(response.data)),
+    );
+  }
+
+  private postLifecycle(
+    id: string,
+    action: 'complete' | 'generate' | 'pause' | 'start',
+    body: GenerateCampaignContentInput = {},
+  ): Promise<CampaignLifecycleResult> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/${action}`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/${action}`, body)
+        .then((response) => this.mapLifecycle(response.data)),
+    );
+  }
+
+  private mapLifecycle(
+    document: JsonApiResponseDocument,
+  ): CampaignLifecycleResult {
+    return new CampaignLifecycleResult(
+      this.extractResource<ICampaignLifecycleResult>(document),
     );
   }
 }

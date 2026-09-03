@@ -141,6 +141,75 @@ describe('CampaignDetailShell', () => {
     expect(screen.getByText('overview body')).toBeInTheDocument();
   });
 
+  it('shows generate and start on a draft campaign', () => {
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(
+      screen.getByRole('button', { name: 'generate' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'start' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'pause' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'complete' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows pause and complete on an active campaign', () => {
+    mockUseCampaign.mockReturnValue({
+      campaign: {
+        brandId: 'brand-1',
+        id: 'cmp-1',
+        name: 'Autumn Reveal',
+        status: ContentCampaignStatus.ACTIVE,
+      },
+      isLoading: false,
+      isUnavailable: false,
+      refetch: vi.fn(),
+    });
+
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(
+      screen.getByRole('button', { name: 'generate' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'pause' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'complete' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'start' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides lifecycle controls on an archived campaign', () => {
+    mockUseCampaign.mockReturnValue({
+      campaign: {
+        brandId: 'brand-1',
+        id: 'cmp-1',
+        name: 'Autumn Reveal',
+        status: ContentCampaignStatus.ARCHIVED,
+      },
+      isLoading: false,
+      isUnavailable: false,
+      refetch: vi.fn(),
+    });
+
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(screen.getByRole('button', { name: 'restore' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'generate' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'start' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'archive' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the canonical unavailable state without campaign details', () => {
     mockUseCampaign.mockReturnValue({
       campaign: null,

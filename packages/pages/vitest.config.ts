@@ -136,6 +136,40 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('client'), '$1'),
       },
       {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(packageSrc('config'), 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(packageSrc('config'), '$1'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/constants$/,
+        replacement: path.resolve(
+          packageSrc('contracts'),
+          'constants/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/constants\/(.*)$/,
+        replacement: path.resolve(packageSrc('contracts'), 'constants/$1'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/interfaces$/,
+        replacement: path.resolve(
+          packageSrc('contracts'),
+          'interfaces/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
+        replacement: path.resolve(packageSrc('contracts'), 'interfaces/$1'),
+      },
+      {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(packageSrc('contracts'), 'index.ts'),
+      },
+      {
         find: /^@genfeedai\/constants$/,
         replacement: packageSrc('constants'),
       },

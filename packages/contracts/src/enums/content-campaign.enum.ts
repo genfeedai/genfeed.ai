@@ -59,3 +59,51 @@ export function isContentCampaignDispatchBlocked(
     status as ContentCampaignStatus,
   );
 }
+
+/**
+ * Statuses that may receive each coordinating mutation. Archived campaigns
+ * stay assignable so posts can be moved off them; they cannot start, pause,
+ * complete, or generate.
+ */
+export const CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM: Readonly<
+  Record<ContentCampaignLifecycleAction, ReadonlySet<ContentCampaignStatus>>
+> = {
+  [ContentCampaignLifecycleAction.ASSIGN]: new Set(
+    Object.values(ContentCampaignStatus),
+  ),
+  [ContentCampaignLifecycleAction.COMPLETE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.COMPLETED,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.GENERATE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.PAUSE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.START]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.UNASSIGN]: new Set(
+    Object.values(ContentCampaignStatus),
+  ),
+};
+
+export function canApplyContentCampaignLifecycle(
+  status: ContentCampaignStatus,
+  action: ContentCampaignLifecycleAction,
+): boolean {
+  return CONTENT_CAMPAIGN_LIFECYCLE_ALLOWED_FROM[action].has(status);
+}
