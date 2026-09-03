@@ -85,6 +85,7 @@ export class AgentWorkflowToolExecuteService {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
+      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -334,6 +335,7 @@ export class AgentWorkflowToolExecuteService {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
+      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -410,6 +412,7 @@ export class AgentWorkflowToolExecuteService {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
+      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 

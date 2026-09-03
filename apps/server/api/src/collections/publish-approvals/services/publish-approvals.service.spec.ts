@@ -857,7 +857,7 @@ describe('PublishApprovalsService', () => {
         reviewDecision: null,
         reviewVersionPinId: null,
       },
-      where: { id: 'post-1', organizationId: 'org-1' },
+      where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
     });
   });
 

@@ -197,6 +197,7 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
 
   beforeEach(() => {
     vi.clearAllMocks();
+    systemWorkflowRunner.getWorkflow.mockReturnValue(undefined);
     handler = new AgentWorkflowToolExecuteService(
       workflowsService as never,
       workflowExecutorService as never,
@@ -434,6 +435,7 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
 
     expect(workflowsService.findOne).toHaveBeenCalledWith({
       id: 'wf-1',
+      isDeleted: false,
       organizationId: 'org-1',
     });
     expect(result.success).toBe(true);

@@ -23,7 +23,7 @@ describe('nodeSlice — addNode', () => {
     const node = useWorkflowStore.getState().getNodeById(id);
 
     expect(node?.type).toBe('imageGen');
-    expect(node?.data.label).toBe('Image Generator');
+    expect(node?.data.label).toBe('Generate Image');
     expect(node?.data.status).toBe('idle');
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });

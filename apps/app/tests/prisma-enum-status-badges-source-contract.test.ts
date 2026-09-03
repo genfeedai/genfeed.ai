@@ -25,7 +25,7 @@ describe('Prisma-enum status badge source contracts', () => {
     );
 
     expect(source).toMatch(
-      /import \{[^}]*BotStatus[^}]*\} from '@genfeedai\/enums'/,
+      /import \{[^}]*BotStatus[^}]*\} from '@genfeedai\/contracts'/,
     );
     expect(source).toContain('case BotStatus.ACTIVE:');
     expect(source).toContain('case BotStatus.PAUSED:');
