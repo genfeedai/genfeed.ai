@@ -16,6 +16,7 @@
     },
     "rootDir": "./src",
     "skipLibCheck": true,
+    "types": ["node"],
     "sourceMap": true,
     "target": "es2022"
   },
