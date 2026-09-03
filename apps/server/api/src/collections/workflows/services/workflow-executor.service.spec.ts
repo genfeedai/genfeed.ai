@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   createExecutableActionNode,
+  type ExecutableNode,
   type ExecutableWorkflow,
   type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
