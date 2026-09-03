@@ -6,9 +6,8 @@
 @import "./calendar.css";
 @import "./genfeed.css";
 
-/* Class sources live in each app's CSS entry (`apps/app/app/styles.css`,
-   `apps/website/app/styles.css`) so a product compile does not scan the
-   marketing tree — that dual scan SIGTERMs Turbopack's PostCSS worker. */
+/* Class sources live in each app's CSS entry so a product compile does not
+   scan the marketing tree — that dual scan SIGTERMs Turbopack's PostCSS worker. */
 
 /* Long-form prose (article bodies) arrives as sanitized HTML through
    `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a
