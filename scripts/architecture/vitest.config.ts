@@ -4,16 +4,22 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@genfeedai/contracts/constants': path.resolve(
-        import.meta.dirname,
-        '../../packages/contracts/src/constants/index.ts',
-      ),
-      '@genfeedai/contracts': path.resolve(
-        import.meta.dirname,
-        '../../packages/contracts/src/index.ts',
-      ),
-    },
+    alias: [
+      {
+        find: '@genfeedai/contracts/constants',
+        replacement: path.resolve(
+          import.meta.dirname,
+          '../../packages/contracts/src/constants/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(
+          import.meta.dirname,
+          '../../packages/contracts/src/index.ts',
+        ),
+      },
+    ],
   },
   root: fileURLToPath(new URL('.', import.meta.url)),
   test: {

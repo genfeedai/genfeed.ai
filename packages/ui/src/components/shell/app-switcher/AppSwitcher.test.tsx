@@ -123,7 +123,8 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/contracts', () => ({
+vi.mock('@genfeedai/contracts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts')>()),
   ButtonSize: { ICON: 'icon', SM: 'sm', DEFAULT: 'default' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));

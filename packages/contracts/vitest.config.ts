@@ -3,25 +3,40 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@genfeedai/contracts': path.resolve(__dirname, 'src/index.ts'),
-      '@genfeedai/contracts/api-types': path.resolve(
-        __dirname,
-        'src/api-types',
-      ),
-      '@genfeedai/contracts/constants': path.resolve(
-        __dirname,
-        'src/constants',
-      ),
-      '@genfeedai/contracts/desktop': path.resolve(__dirname, 'src/desktop'),
-      '@genfeedai/contracts/enums': path.resolve(__dirname, 'src/enums'),
-      '@genfeedai/contracts/interfaces': path.resolve(
-        __dirname,
-        'src/interfaces',
-      ),
-      '@genfeedai/contracts/queue': path.resolve(__dirname, 'src/queue'),
-      '@genfeedai/contracts/types': path.resolve(__dirname, 'src/types'),
-    },
+    alias: [
+      {
+        find: '@genfeedai/contracts/api-types',
+        replacement: path.resolve(__dirname, 'src/api-types'),
+      },
+      {
+        find: '@genfeedai/contracts/constants',
+        replacement: path.resolve(__dirname, 'src/constants'),
+      },
+      {
+        find: '@genfeedai/contracts/desktop',
+        replacement: path.resolve(__dirname, 'src/desktop'),
+      },
+      {
+        find: '@genfeedai/contracts/enums',
+        replacement: path.resolve(__dirname, 'src/enums'),
+      },
+      {
+        find: '@genfeedai/contracts/interfaces',
+        replacement: path.resolve(__dirname, 'src/interfaces'),
+      },
+      {
+        find: '@genfeedai/contracts/queue',
+        replacement: path.resolve(__dirname, 'src/queue'),
+      },
+      {
+        find: '@genfeedai/contracts/types',
+        replacement: path.resolve(__dirname, 'src/types'),
+      },
+      {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, 'src/index.ts'),
+      },
+    ],
   },
   test: {
     environment: 'node',
