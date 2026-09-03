@@ -96,7 +96,7 @@ const SORT_VALUES: readonly DiscoveryDeskSort[] = [
  * "Light table" grid.
  */
 export default function DiscoveryDesk() {
-  const translateDesk = useTranslations('trends.desk');
+  const translateDesk = useTranslations('common.trends.desk');
   const brandId = useBrandId();
   const { href, orgHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
