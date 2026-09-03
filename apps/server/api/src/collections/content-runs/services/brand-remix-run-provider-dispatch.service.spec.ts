@@ -73,10 +73,6 @@ describe('BrandRemixRunProviderDispatchService', () => {
   const videoGenerationService = { generateVideo: vi.fn() };
   const avatarVideoGenerationService = { generateAvatarVideo: vi.fn() };
   const contentGeneratorService = { generateContent: vi.fn() };
-  const creditsUtilsService = {
-    checkOrganizationCreditsAvailable: vi.fn(),
-    getOrganizationCreditsBalance: vi.fn(),
-  };
   let dispatch: BrandRemixRunProviderDispatchService;
 
   beforeEach(() => {
@@ -91,8 +87,6 @@ describe('BrandRemixRunProviderDispatchService', () => {
       videoGenerationService as never,
       avatarVideoGenerationService as never,
       contentGeneratorService as never,
-      creditsUtilsService as never,
-      persistence,
       state,
     );
   });

@@ -1,4 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
+  BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
+  buildBrandRemixGenerateWorkflowDefinitions,
+} from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { remixErrorMessage } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
@@ -15,15 +20,16 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
-import { GenerationReservationBarrier } from '@api/collections/content-runs/services/generation-reservation-barrier';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ActivitySource,
   ByokProvider,
   ContentRunStatus,
   IngredientCategory,
@@ -46,9 +52,48 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  type OnModuleInit,
 } from '@nestjs/common';
+
+type BrandRemixGenerateRuntime = {
+  request: Request;
+  seenCopy: Set<string>;
+  user: User;
+};
+
+type BrandRemixVariantItem = {
+  avatarByokBypass: boolean;
+  brandId: string;
+  config: BrandRemixRunConfig;
+  organizationId: string;
+  recipeRevision: number;
+  runId: string;
+  variant: BrandRemixExecution['variants'][number];
+};
+
+type BrandRemixVariantCredit = {
+  amount: number;
+  isByokBypass: boolean;
+  variantId: string;
+};
+
+type BrandRemixGenerateState = {
+  avatarByokBypass: boolean;
+  baseInput?: BrandRemixGenerateState;
+  brandContext: ResolvedBrandContext;
+  brandId: string;
+  config: BrandRemixRunConfig;
+  hasWork: boolean;
+  items: BrandRemixVariantItem[];
+  organizationId: string;
+  recipeRevision: number;
+  run: BrandRemixRunRecord;
+  runId: string;
+  successfulVariantIds?: string[];
+  view?: BrandRemixRunView;
+};
 @Injectable()
-export class BrandRemixRunExecutionService {
+export class BrandRemixRunExecutionService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly planning: BrandRemixRunPlanningService,
@@ -57,9 +102,44 @@ export class BrandRemixRunExecutionService {
     private readonly dispatch: BrandRemixRunProviderDispatchService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly byokService: ByokService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     @Inject(BRAND_REMIX_RUNTIME)
     private readonly runtime: BrandRemixRuntime,
   ) {}
+
+  onModuleInit(): void {
+    const ids = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
+    this.systemWorkflowRunner.registerAction(ids.GENERATE_CLAIM, (request) =>
+      this.claimAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_ADOPT_ORPHANS,
+      (request) => this.adoptOrphansAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_RESOLVE_VARIANT_CREDITS,
+      (request) => this.resolveVariantCreditsAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_RESERVE_CREDITS,
+      (request) => this.reserveCreditsAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_DISPATCH_VARIANT,
+      (request) => this.dispatchVariantAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_RECONCILE,
+      (request) => this.reconcileAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ids.GENERATE_CLEAR_CLAIM,
+      (request) => this.clearClaimAction(request),
+    );
+    for (const definition of buildBrandRemixGenerateWorkflowDefinitions()) {
+      this.systemWorkflowRunner.registerWorkflow(definition);
+    }
+  }
 
   async start(
     organizationId: string,
@@ -68,86 +148,439 @@ export class BrandRemixRunExecutionService {
     request: Request,
     input: StartBrandRemixRun,
   ): Promise<BrandRemixRunView> {
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<BrandRemixRunView>({
+        actionType: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE,
+        canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE,
+        inputValues: {
+          request: {
+            expectedRevision: input.expectedRevision,
+            organizationId,
+            runId,
+          },
+        },
+        organizationId,
+        runtimeContext: {
+          request,
+          seenCopy: new Set<string>(),
+          user,
+        } satisfies BrandRemixGenerateRuntime,
+        source: 'BrandRemixRunsService.start',
+        userId: user.userId ?? user.id,
+      });
+    return result;
+  }
+
+  private unwrapState(value: unknown): BrandRemixGenerateState {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: BrandRemixGenerateState }).data;
+    }
+    return value as BrandRemixGenerateState;
+  }
+
+  private runtimeOf(
+    request: SystemWorkflowActionRequest,
+  ): BrandRemixGenerateRuntime {
+    const runtime = request.runtimeContext as
+      | BrandRemixGenerateRuntime
+      | undefined;
+    if (!runtime?.request || !runtime.user) {
+      throw new ConflictException(
+        'Brand remix generation requires the originating request context.',
+      );
+    }
+    return runtime;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new ConflictException('Brand remix workflow requires an object.');
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new ConflictException(`Brand remix workflow requires ${field}.`);
+    }
+    return value.trim();
+  }
+
+  private requiredNumber(value: unknown, field: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new ConflictException(
+        `Brand remix workflow requires numeric ${field}.`,
+      );
+    }
+    return value;
+  }
+
+  private toItems(
+    state: BrandRemixGenerateState,
+    variants: BrandRemixExecution['variants'],
+  ): BrandRemixVariantItem[] {
+    return variants.map((variant) => ({
+      avatarByokBypass: state.avatarByokBypass,
+      brandId: state.brandId,
+      config: state.config,
+      organizationId: state.organizationId,
+      recipeRevision: state.recipeRevision,
+      runId: state.runId,
+      variant,
+    }));
+  }
+
+  private withItems(
+    state: BrandRemixGenerateState,
+    items: BrandRemixVariantItem[],
+  ): BrandRemixGenerateState {
+    const { baseInput: _baseInput, ...rest } = state;
+    const next = {
+      ...rest,
+      hasWork: items.length > 0,
+      items,
+    };
+    return {
+      ...next,
+      baseInput: next,
+    };
+  }
+
+  private async claimAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixGenerateState> {
+    const payload = this.readRecord(request.input.request);
+    const organizationId = this.requiredString(
+      payload.organizationId,
+      'organizationId',
+    );
+    const runId = this.requiredString(payload.runId, 'runId');
+    const { request: httpRequest } = this.runtimeOf(request);
     const prepared = await this.prepareStart(
       organizationId,
       runId,
-      request,
-      input,
+      httpRequest,
+      {
+        expectedRevision: this.requiredNumber(
+          payload.expectedRevision,
+          'expectedRevision',
+        ),
+      },
     );
-    const claimed = await this.claimGeneration(prepared);
-    if (claimed.view) return claimed.view;
+    const claimed = await this.claimGeneration({
+      ...prepared,
+      workflowExecutionId: request.provenance.executionId,
+      workflowId: request.provenance.workflowId,
+    });
+    const state: BrandRemixGenerateState = {
+      avatarByokBypass: prepared.avatarByokBypass,
+      brandContext: prepared.brandContext,
+      brandId: prepared.brandId,
+      config: claimed.config,
+      hasWork: claimed.resumable.length > 0 && !claimed.view,
+      items: [],
+      organizationId,
+      recipeRevision: prepared.config.revision,
+      run: claimed.run,
+      runId,
+      ...(claimed.view ? { view: claimed.view } : {}),
+    };
+    if (claimed.view) return this.withItems(state, []);
+    return this.withItems(state, this.toItems(state, claimed.resumable));
+  }
 
-    let activeConfig = claimed.config;
-    const run = claimed.run;
-    const stuck = claimed.resumable.filter(
-      (variant) => variant.status === 'processing',
-    );
+  private async adoptOrphansAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixGenerateState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view || !state.hasWork) return this.withItems(state, []);
+    const stuck = state.items
+      .map((item) => item.variant)
+      .filter((variant) => variant.status === 'processing');
+    let config = state.config;
     if (stuck.length) {
-      activeConfig = await this.adoptOrphanedPlaceholders({
-        brandId: prepared.brandId,
-        config: activeConfig,
-        organizationId,
-        runId,
+      config = await this.adoptOrphanedPlaceholders({
+        brandId: state.brandId,
+        config,
+        organizationId: state.organizationId,
+        runId: state.runId,
         variants: stuck,
       });
     }
-    const variants = claimed.resumable.filter(
-      (variant) =>
-        !activeConfig.execution?.variants.find(
-          (candidate) => candidate.id === variant.id,
-        )?.assetIds.length,
-    );
-    if (!variants.length) {
-      return this.state.clearGenerationClaimAndProject({
-        brandContext: prepared.brandContext,
-        config: activeConfig,
-        organizationId,
-        run,
-        runId,
-      });
-    }
-
-    const generationUser = { ...user, brandId: prepared.brandId };
-    if (activeConfig.draft.output.kind === 'copy') {
-      activeConfig = await this.dispatch.generateCopyVariants({
-        brandId: prepared.brandId,
-        config: activeConfig,
-        organizationId,
-        runId,
-        request,
-        variants,
-      });
-      const copied = await this.persistence.requireRun(organizationId, runId);
-      const reconciled = await this.state.reconcile(copied);
-      return this.state.clearGenerationClaimAndProject({
-        brandContext: prepared.brandContext,
-        config: reconciled.config,
-        organizationId,
-        run: reconciled.run,
-        runId,
-      });
-    }
-
-    await this.dispatchMediaVariants({
-      avatarByokBypass: prepared.avatarByokBypass,
-      brandId: prepared.brandId,
-      config: activeConfig,
-      generationUser,
-      organizationId,
-      recipeRevision: prepared.config.revision,
-      request,
-      runId,
-      variants,
+    const next = { ...state, config };
+    const items = this.toItems(
+      next,
+      state.items.map((item) => item.variant),
+    ).filter((item) => {
+      const current = config.execution?.variants.find(
+        (candidate) => candidate.id === item.variant.id,
+      );
+      return !current?.assetIds.length;
     });
-    const reconciled = await this.state.reconcile(
-      await this.persistence.requireRun(organizationId, runId),
+    return this.withItems({ ...next, items }, items);
+  }
+
+  private resolveVariantCreditsAction(
+    request: SystemWorkflowActionRequest,
+  ): BrandRemixVariantCredit {
+    const item = this.readRecord(request.input.item) as BrandRemixVariantItem;
+    const { request: httpRequest } = this.runtimeOf(request);
+    return this.dispatch.resolveVariantCredits({
+      avatarByokBypass: item.avatarByokBypass,
+      config: item.config,
+      request: httpRequest,
+      variant: item.variant,
+    });
+  }
+
+  private async reserveCreditsAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixGenerateState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view || !state.hasWork) return this.withItems(state, []);
+    const credits = this.readVariantCredits(request.input.batch);
+    if (
+      credits.some((entry) => entry.isByokBypass) &&
+      credits.some((entry) => !entry.isByokBypass)
+    ) {
+      throw new ConflictException(
+        'Remix variants resolved mixed BYOK billing modes; no provider work was started.',
+      );
+    }
+    const isByokBypass =
+      credits.length > 0 && credits.every((entry) => entry.isByokBypass);
+    const reservedAmount = credits.reduce(
+      (sum, entry) => sum + (entry.isByokBypass ? 0 : entry.amount),
+      0,
     );
-    return this.state.clearGenerationClaimAndProject({
-      brandContext: prepared.brandContext,
+    if (
+      reservedAmount > 0 &&
+      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        state.organizationId,
+        reservedAmount,
+      ))
+    ) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          state.organizationId,
+        );
+      throw createInsufficientCreditsException(reservedAmount, balance);
+    }
+    const execution = state.config.execution;
+    const config = execution
+      ? brandRemixRunConfigSchema.parse({
+          ...state.config,
+          execution: {
+            ...execution,
+            generationCredits: {
+              isByokBypass,
+              reservedAmount,
+              settledAmount: 0,
+              variants: credits,
+              workflowExecutionId: execution.workflowExecutionId,
+            },
+          },
+        })
+      : state.config;
+    const persisted = await this.persistExecutionConfig({
+      expectedConfig: state.config,
+      nextConfig: config,
+      organizationId: state.organizationId,
+      runId: state.runId,
+    });
+    const next = { ...state, config: persisted.config, run: persisted.run };
+    return this.withItems(
+      next,
+      this.toItems(
+        next,
+        state.items.map((item) => item.variant),
+      ),
+    );
+  }
+
+  private async dispatchVariantAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{ success: boolean; variantId: string }> {
+    const item = this.readRecord(request.input.item) as BrandRemixVariantItem;
+    const runtime = this.runtimeOf(request);
+    const generationUser = { ...runtime.user, brandId: item.brandId };
+    if (item.config.draft.output.kind === 'copy') {
+      const generated = await this.dispatch.generateOneCopyVariant({
+        brandId: item.brandId,
+        config: item.config,
+        organizationId: item.organizationId,
+        runId: item.runId,
+        seen: runtime.seenCopy,
+        variant: item.variant,
+      });
+      return { success: generated.succeeded, variantId: item.variant.id };
+    }
+    try {
+      await this.dispatchOneMediaVariant({
+        avatarByokBypass: item.avatarByokBypass,
+        brandId: item.brandId,
+        config: item.config,
+        generationUser,
+        organizationId: item.organizationId,
+        recipeRevision: item.recipeRevision,
+        request: runtime.request,
+        runId: item.runId,
+        variant: item.variant,
+      });
+      return { success: true, variantId: item.variant.id };
+    } catch {
+      return { success: false, variantId: item.variant.id };
+    }
+  }
+
+  private async reconcileAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixGenerateState> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view) return state;
+    const reconciled = await this.state.reconcile(
+      await this.persistence.requireRun(state.organizationId, state.runId),
+    );
+    return {
+      ...state,
       config: reconciled.config,
-      organizationId,
       run: reconciled.run,
-      runId,
+      successfulVariantIds: this.readDispatchSuccesses(request.input.batch),
+    };
+  }
+
+  private async clearClaimAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<BrandRemixRunView> {
+    const state = this.unwrapState(request.input.state);
+    if (state.view) return state.view;
+    const { user } = this.runtimeOf(request);
+    const credits = state.config.execution?.generationCredits;
+    const successfulIds = new Set(state.successfulVariantIds ?? []);
+    const settleAmount =
+      credits && !credits.isByokBypass
+        ? credits.variants.reduce(
+            (sum, entry) =>
+              successfulIds.has(entry.variantId) ? sum + entry.amount : sum,
+            0,
+          )
+        : 0;
+    if (settleAmount > 0) {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        state.organizationId,
+        user.userId ?? user.id,
+        settleAmount,
+        'Brand remix generation',
+        ActivitySource.SCRIPT,
+        {
+          idempotencyKey: `brand-remix.generate:${request.provenance.executionId}`,
+          referenceId: state.runId,
+          referenceType: 'brand-remix-run',
+        },
+      );
+    }
+    const execution = state.config.execution;
+    const config =
+      credits && execution
+        ? brandRemixRunConfigSchema.parse({
+            ...state.config,
+            execution: {
+              ...execution,
+              generationCredits: {
+                ...credits,
+                settledAmount: credits.isByokBypass ? 0 : settleAmount,
+              },
+            },
+          })
+        : state.config;
+    return this.state.clearGenerationClaimAndProject({
+      brandContext: state.brandContext,
+      config,
+      organizationId: state.organizationId,
+      run: state.run,
+      runId: state.runId,
+    });
+  }
+
+  private async persistExecutionConfig(params: {
+    expectedConfig: BrandRemixRunConfig;
+    nextConfig: BrandRemixRunConfig;
+    organizationId: string;
+    runId: string;
+  }): Promise<{ config: BrandRemixRunConfig; run: BrandRemixRunRecord }> {
+    const updated = await this.persistence.compareAndSwapExactConfig({
+      expectedConfig: params.expectedConfig,
+      nextConfig: params.nextConfig,
+      organizationId: params.organizationId,
+      runId: params.runId,
+      status: ContentRunStatus.RUNNING,
+    });
+    if (!updated) {
+      throw new ConflictException({
+        detail:
+          'The remix changed while generation credits were being reserved.',
+        title: 'Remix generation conflict',
+      });
+    }
+    return {
+      config: this.persistence.parseConfig(updated.config, params.runId),
+      run: updated,
+    };
+  }
+
+  private readDispatchSuccesses(value: unknown): string[] {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return [];
+    }
+    const results = (value as { results?: unknown }).results;
+    if (!Array.isArray(results)) return [];
+    return results.flatMap((entry) => {
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+      const result = (entry as { result?: unknown }).result;
+      if (
+        result === null ||
+        typeof result !== 'object' ||
+        Array.isArray(result)
+      ) {
+        return [];
+      }
+      const record = result as Record<string, unknown>;
+      if (record.success !== true || typeof record.variantId !== 'string') {
+        return [];
+      }
+      return [record.variantId];
+    });
+  }
+
+  private readVariantCredits(value: unknown): BrandRemixVariantCredit[] {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return [];
+    }
+    const results = (value as { results?: unknown }).results;
+    if (!Array.isArray(results)) return [];
+    return results.flatMap((entry) => {
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+      const result = (entry as { result?: unknown }).result;
+      if (
+        result === null ||
+        typeof result !== 'object' ||
+        Array.isArray(result)
+      ) {
+        return [];
+      }
+      const record = result as Record<string, unknown>;
+      if (typeof record.variantId !== 'string') return [];
+      return [
+        {
+          amount: typeof record.amount === 'number' ? record.amount : 0,
+          isByokBypass: record.isByokBypass === true,
+          variantId: record.variantId,
+        },
+      ];
     });
   }
 
@@ -326,6 +759,8 @@ export class BrandRemixRunExecutionService {
     brandId: string;
     config: BrandRemixRunConfig;
     run: BrandRemixRunRecord;
+    workflowExecutionId?: string;
+    workflowId?: string;
   }): Promise<{
     config: BrandRemixRunConfig;
     resumable: BrandRemixExecution['variants'];
@@ -378,6 +813,14 @@ export class BrandRemixRunExecutionService {
 
     const claimedConfig = brandRemixRunConfigSchema.parse({
       ...activeConfig,
+      execution:
+        activeConfig.execution && params.workflowExecutionId
+          ? {
+              ...activeConfig.execution,
+              workflowExecutionId: params.workflowExecutionId,
+              workflowId: params.workflowId,
+            }
+          : activeConfig.execution,
       generationClaim: {
         claimedAt: this.runtime.now().toISOString(),
         id: `${runId}:generate:${activeConfig.revision}`,
@@ -407,140 +850,54 @@ export class BrandRemixRunExecutionService {
     return { config: claimedConfig, resumable, run: generationClaim };
   }
 
-  private async dispatchMediaVariants(params: {
-    avatarByokBypass: boolean;
-    brandId: string;
-    config: BrandRemixRunConfig;
-    generationUser: User;
-    organizationId: string;
-    recipeRevision: number;
-    request: Request;
-    runId: string;
-    variants: BrandRemixExecution['variants'];
-  }): Promise<void> {
-    for (const variant of params.variants) {
-      await this.state.patchGeneratingVariant({
-        organizationId: params.organizationId,
-        patch: { status: 'processing' },
-        recipeRevision: params.recipeRevision,
-        runId: params.runId,
-        status: ContentRunStatus.RUNNING,
-        variantId: variant.id,
-      });
-    }
-
-    const creditAmounts = new Map<string, number>();
-    const byokCredits = new Map<
-      string,
-      NonNullable<RemixCreditsRequest['creditsConfig']>
-    >();
-    const successfulVariants = new Set<string>();
-    const barrier = new GenerationReservationBarrier(params.variants.length);
-    const creditBarrier = new GenerationReservationBarrier(
-      params.variants.length,
-      async () => {
-        if (byokCredits.size > 0 && byokCredits.size !== creditAmounts.size) {
-          throw new ConflictException(
-            'Remix variants resolved mixed BYOK billing modes; no provider work was started.',
-          );
-        }
-        const total = [...creditAmounts.entries()].reduce(
-          (sum, [variantId, amount]) =>
-            sum + (byokCredits.has(variantId) ? 0 : amount),
-          0,
-        );
-        if (
-          total > 0 &&
-          !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-            params.organizationId,
-            total,
-          ))
-        ) {
-          const balance =
-            await this.creditsUtilsService.getOrganizationCreditsBalance(
-              params.organizationId,
-            );
-          throw createInsufficientCreditsException(total, balance);
-        }
-      },
-    );
-    await Promise.all(
-      params.variants.map((variant) =>
-        this.dispatchOneMediaVariant({
-          ...params,
-          barrier,
-          byokCredits,
-          creditAmounts,
-          creditBarrier,
-          successfulVariants,
-          variant,
-        }),
-      ),
-    );
-    const successfulByokCredits = [...successfulVariants]
-      .map((variantId) => byokCredits.get(variantId))
-      .find((creditsConfig) => creditsConfig !== undefined);
-    if (successfulByokCredits) {
-      (params.request as RemixCreditsRequest).creditsConfig = {
-        ...(params.request as RemixCreditsRequest).creditsConfig,
-        ...successfulByokCredits,
-        deferred: true,
-      };
-    }
-    finalizeOutputCredits(
-      params.request,
-      [...successfulVariants].reduce(
-        (sum, variantId) => sum + (creditAmounts.get(variantId) ?? 0),
-        0,
-      ),
-    );
-  }
-
   private async dispatchOneMediaVariant(params: {
     avatarByokBypass: boolean;
-    barrier: GenerationReservationBarrier;
     brandId: string;
-    byokCredits: Map<string, NonNullable<RemixCreditsRequest['creditsConfig']>>;
     config: BrandRemixRunConfig;
-    creditAmounts: Map<string, number>;
-    creditBarrier: GenerationReservationBarrier;
     generationUser: User;
     organizationId: string;
     recipeRevision: number;
     request: Request;
     runId: string;
-    successfulVariants: Set<string>;
     variant: BrandRemixExecution['variants'][number];
   }): Promise<void> {
+    await this.state.patchGeneratingVariant({
+      organizationId: params.organizationId,
+      patch: { status: 'processing' },
+      recipeRevision: params.recipeRevision,
+      runId: params.runId,
+      status: ContentRunStatus.RUNNING,
+      variantId: params.variant.id,
+    });
     let linkedAssetId: string | undefined;
     const groupIndex =
       params.config.execution?.variants.findIndex(
         (candidate) => candidate.id === params.variant.id,
       ) ?? -1;
+    const variantRequest = Object.assign(
+      Object.create(Object.getPrototypeOf(params.request)),
+      params.request,
+    ) as RemixCreditsRequest;
+    const originalCredits = (params.request as RemixCreditsRequest)
+      .creditsConfig;
+    if (params.config.draft.output.kind === 'avatar') {
+      const requestedAmount = originalCredits?.amount;
+      variantRequest.creditsConfig = {
+        ...originalCredits,
+        amount:
+          typeof requestedAmount === 'number' &&
+          Number.isFinite(requestedAmount) &&
+          requestedAmount > 0
+            ? requestedAmount
+            : AVATAR_GENERATION_CREDIT_COST,
+        deferred: true,
+      };
+    } else {
+      variantRequest.creditsConfig = originalCredits
+        ? { ...originalCredits, deferred: true }
+        : undefined;
+    }
     try {
-      const variantRequest = Object.assign(
-        Object.create(Object.getPrototypeOf(params.request)),
-        params.request,
-      ) as RemixCreditsRequest;
-      const originalCredits = (params.request as RemixCreditsRequest)
-        .creditsConfig;
-      if (params.config.draft.output.kind === 'avatar') {
-        const requestedAmount = originalCredits?.amount;
-        variantRequest.creditsConfig = {
-          ...originalCredits,
-          amount:
-            typeof requestedAmount === 'number' &&
-            Number.isFinite(requestedAmount) &&
-            requestedAmount > 0
-              ? requestedAmount
-              : AVATAR_GENERATION_CREDIT_COST,
-          deferred: true,
-        };
-      } else {
-        variantRequest.creditsConfig = originalCredits
-          ? { ...originalCredits, deferred: true }
-          : undefined;
-      }
       const assetId = await this.dispatch.dispatchVariant({
         brandId: params.brandId,
         config: params.config,
@@ -571,21 +928,8 @@ export class BrandRemixRunExecutionService {
             variantId: params.variant.id,
           });
           linkedAssetId = ingredientId;
-          await params.barrier.arrive();
         },
-        onCreditsPrepared: async () => {
-          if (variantRequest.creditsConfig?.isByokBypass === true) {
-            params.byokCredits.set(
-              params.variant.id,
-              variantRequest.creditsConfig,
-            );
-          }
-          params.creditAmounts.set(
-            params.variant.id,
-            variantRequest.creditsConfig?.amount ?? 0,
-          );
-          await params.creditBarrier.arrive();
-        },
+        onCreditsPrepared: async () => undefined,
         placeholderScope: {
           groupId: params.runId,
           groupIndex,
@@ -610,10 +954,7 @@ export class BrandRemixRunExecutionService {
           variantId: params.variant.id,
         });
       }
-      params.successfulVariants.add(params.variant.id);
     } catch (error: unknown) {
-      params.barrier.fail(error);
-      params.creditBarrier.fail(error);
       await this.state.patchGeneratingVariant({
         organizationId: params.organizationId,
         patch: {
@@ -625,6 +966,7 @@ export class BrandRemixRunExecutionService {
         status: ContentRunStatus.RUNNING,
         variantId: params.variant.id,
       });
+      throw error;
     }
   }
 

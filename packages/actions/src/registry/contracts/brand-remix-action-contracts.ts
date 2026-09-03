@@ -6,6 +6,7 @@ import {
   closedObjectSchema,
   INTEGER_SCHEMA,
   JSON_DOCUMENT_SCHEMA,
+  NUMBER_SCHEMA,
   STRING_SCHEMA,
 } from './schema-builders';
 
@@ -127,7 +128,99 @@ const REVIEW_HANDOFF = {
   }),
 } as const;
 
+const GENERATE_STATE = {
+  avatarByokBypass: BOOLEAN_SCHEMA,
+  brandContext: JSON_DOCUMENT_SCHEMA,
+  brandId: STRING_SCHEMA,
+  config: JSON_DOCUMENT_SCHEMA,
+  hasWork: BOOLEAN_SCHEMA,
+  items: arraySchema(JSON_DOCUMENT_SCHEMA),
+  organizationId: STRING_SCHEMA,
+  recipeRevision: INTEGER_SCHEMA,
+  run: JSON_DOCUMENT_SCHEMA,
+  runId: STRING_SCHEMA,
+  view: JSON_DOCUMENT_SCHEMA,
+} as const;
+const GENERATE_STATE_OPTIONAL = ['view'] as const;
+const VARIANT_CREDIT = state({
+  amount: NUMBER_SCHEMA,
+  isByokBypass: BOOLEAN_SCHEMA,
+  variantId: STRING_SCHEMA,
+});
+
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
+  'brand-remix.generate.adopt-orphans': contract(
+    STATE_INPUT,
+    state(GENERATE_STATE, GENERATE_STATE_OPTIONAL),
+  ),
+  'brand-remix.generate.claim': contract(
+    REQUEST_INPUT,
+    state(GENERATE_STATE, GENERATE_STATE_OPTIONAL),
+  ),
+  'brand-remix.generate.clear-claim': contract(
+    STATE_INPUT,
+    state(
+      {
+        brand: JSON_DOCUMENT_SCHEMA,
+        brandId: STRING_SCHEMA,
+        contract: STRING_SCHEMA,
+        createdAt: STRING_SCHEMA,
+        draft: JSON_DOCUMENT_SCHEMA,
+        execution: JSON_DOCUMENT_SCHEMA,
+        generationClaim: JSON_DOCUMENT_SCHEMA,
+        id: STRING_SCHEMA,
+        paidDraft: JSON_DOCUMENT_SCHEMA,
+        paidDraftOperation: JSON_DOCUMENT_SCHEMA,
+        phase: STRING_SCHEMA,
+        readiness: JSON_DOCUMENT_SCHEMA,
+        recipeVersion: { const: 1, type: 'integer' },
+        review: JSON_DOCUMENT_SCHEMA,
+        reviewClaim: JSON_DOCUMENT_SCHEMA,
+        source: JSON_DOCUMENT_SCHEMA,
+        sourceSnapshot: JSON_DOCUMENT_SCHEMA,
+        status: STRING_SCHEMA,
+        updatedAt: STRING_SCHEMA,
+        version: { const: 1, type: 'integer' },
+      },
+      [
+        'execution',
+        'generationClaim',
+        'paidDraft',
+        'paidDraftOperation',
+        'review',
+        'reviewClaim',
+        'source',
+      ],
+    ),
+  ),
+  'brand-remix.generate.dispatch-variant': contract(
+    closedObjectSchema({ item: JSON_DOCUMENT_SCHEMA }, ['item']),
+    state({
+      success: BOOLEAN_SCHEMA,
+      variantId: STRING_SCHEMA,
+    }),
+  ),
+  'brand-remix.generate.reconcile': contract(
+    STATE_INPUT,
+    state(GENERATE_STATE, GENERATE_STATE_OPTIONAL),
+  ),
+  'brand-remix.generate.reserve-credits': contract(
+    closedObjectSchema(
+      { batch: JSON_DOCUMENT_SCHEMA, state: JSON_DOCUMENT_SCHEMA },
+      ['state'],
+    ),
+    state(
+      {
+        ...GENERATE_STATE,
+        baseInput: JSON_DOCUMENT_SCHEMA,
+      },
+      GENERATE_STATE_OPTIONAL,
+    ),
+  ),
+  'brand-remix.generate.resolve-variant-credits': contract(
+    closedObjectSchema({ item: JSON_DOCUMENT_SCHEMA }, ['item']),
+    VARIANT_CREDIT,
+  ),
   'brand-remix.meta.create-ad': contract(STATE_INPUT, state(META_PREPARED)),
   'brand-remix.meta.ensure-ad-set': contract(STATE_INPUT, state(META_AD_SET)),
   'brand-remix.meta.ensure-campaign': contract(

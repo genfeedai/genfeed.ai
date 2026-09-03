@@ -205,6 +205,29 @@ describe('Genfeed action registry', () => {
     });
   });
 
+  it('publishes closed contracts for every Brand Remix generation action', () => {
+    for (const actionId of [
+      'brand-remix.generate.adopt-orphans',
+      'brand-remix.generate.claim',
+      'brand-remix.generate.clear-claim',
+      'brand-remix.generate.dispatch-variant',
+      'brand-remix.generate.reconcile',
+      'brand-remix.generate.reserve-credits',
+      'brand-remix.generate.resolve-variant-credits',
+    ]) {
+      const action = getActionDefinition(actionId);
+      expect(action, actionId).toBeDefined();
+      expect(action?.inputSchema).toMatchObject({
+        additionalProperties: false,
+        type: 'object',
+      });
+      expect(action?.outputSchema).toMatchObject({
+        additionalProperties: false,
+        type: 'object',
+      });
+    }
+  });
+
   it('publishes closed contracts for every decomposed automation action', () => {
     for (const actionId of [
       'agent.autopilot.discover',

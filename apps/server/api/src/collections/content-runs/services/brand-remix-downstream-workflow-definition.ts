@@ -33,9 +33,20 @@ export const BRAND_REMIX_DOWNSTREAM_ACTION_IDS = {
   X_RESOLVE_FUNDING: 'brand-remix.x.resolve-funding',
   X_VALIDATE_SOURCE: 'brand-remix.x.validate-source',
   X_VALIDATE_TWEET: 'brand-remix.x.validate-tweet',
+  GENERATE_ADOPT_ORPHANS: 'brand-remix.generate.adopt-orphans',
+  GENERATE_CLAIM: 'brand-remix.generate.claim',
+  GENERATE_CLEAR_CLAIM: 'brand-remix.generate.clear-claim',
+  GENERATE_DISPATCH_VARIANT: 'brand-remix.generate.dispatch-variant',
+  GENERATE_RECONCILE: 'brand-remix.generate.reconcile',
+  GENERATE_RESERVE_CREDITS: 'brand-remix.generate.reserve-credits',
+  GENERATE_RESOLVE_VARIANT_CREDITS:
+    'brand-remix.generate.resolve-variant-credits',
 } as const;
 
 export const BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS = {
+  GENERATE: 'brand-remix.generate',
+  GENERATE_DISPATCH_VARIANT: 'brand-remix.generate.dispatch-one',
+  GENERATE_RESOLVE_CREDITS: 'brand-remix.generate.resolve-credits',
   META_PAUSED_DRAFT: 'brand-remix.meta.paused-draft',
   REVIEW_HANDOFF: 'brand-remix.review-handoff',
   X_PAUSED_DRAFT: 'brand-remix.x.paused-draft',
@@ -83,6 +94,200 @@ function conditionNode(
     position: { x: 0, y },
     type: 'condition',
   };
+}
+
+function fanOutNode(
+  id: string,
+  childWorkflowId: string,
+  y: number,
+  parameters: Record<string, unknown> = {},
+): WorkflowVisualNode {
+  return createGenfeedActionNode({
+    actionId: 'workflow.for-each',
+    id,
+    parameters: {
+      childWorkflowId,
+      itemInputKey: 'item',
+      maxConcurrency: 10,
+      mode: 'await',
+      ...parameters,
+    },
+    position: { x: 0, y },
+  });
+}
+
+export function buildBrandRemixGenerateResolveCreditsWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_RESOLVE_CREDITS,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'item',
+          label: 'Brand remix variant',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_RESOLVE_VARIANT_CREDITS,
+          'resolve-variant-credits',
+          0,
+          ['item'],
+        ),
+      ],
+    },
+    description:
+      'Resolves credit amount and billing mode for one remix variant.',
+    label: 'Brand Remix Resolve Variant Credits',
+    resultNodeId: 'resolve-variant-credits',
+    version: 1,
+  };
+}
+
+export function buildBrandRemixGenerateDispatchWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_DISPATCH_VARIANT,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'item',
+          label: 'Brand remix variant',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_DISPATCH_VARIANT,
+          'dispatch-variant',
+          0,
+          ['item'],
+        ),
+      ],
+    },
+    description:
+      'Dispatches one claimed remix variant to copy generation or a media provider.',
+    label: 'Brand Remix Dispatch Variant',
+    resultNodeId: 'dispatch-variant',
+    version: 1,
+  };
+}
+
+export function buildBrandRemixGenerateWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE,
+    definition: {
+      edges: [
+        edge('claim-generation', 'adopt-orphans'),
+        {
+          id: 'adopt-resolve-items',
+          source: 'adopt-orphans',
+          sourceHandle: 'items',
+          target: 'resolve-variant-credits',
+          targetHandle: 'items',
+        },
+        {
+          id: 'adopt-resolve-base',
+          source: 'adopt-orphans',
+          sourceHandle: 'baseInput',
+          target: 'resolve-variant-credits',
+          targetHandle: 'baseInput',
+        },
+        edge('adopt-orphans', 'reserve-credits'),
+        {
+          id: 'resolve-reserve',
+          source: 'resolve-variant-credits',
+          target: 'reserve-credits',
+          targetHandle: 'batch',
+        },
+        {
+          id: 'reserve-dispatch-items',
+          source: 'reserve-credits',
+          sourceHandle: 'items',
+          target: 'dispatch-variant',
+          targetHandle: 'items',
+        },
+        {
+          id: 'reserve-dispatch-base',
+          source: 'reserve-credits',
+          sourceHandle: 'baseInput',
+          target: 'dispatch-variant',
+          targetHandle: 'baseInput',
+        },
+        edge('reserve-credits', 'reconcile-run'),
+        {
+          id: 'dispatch-reconcile',
+          source: 'dispatch-variant',
+          target: 'reconcile-run',
+          targetHandle: 'batch',
+        },
+        edge('reconcile-run', 'clear-claim'),
+      ],
+      inputVariables: [
+        {
+          key: 'request',
+          label: 'Brand Remix start',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_CLAIM,
+          'claim-generation',
+          0,
+          ['request'],
+        ),
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_ADOPT_ORPHANS,
+          'adopt-orphans',
+          140,
+        ),
+        fanOutNode(
+          'resolve-variant-credits',
+          BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_RESOLVE_CREDITS,
+          280,
+        ),
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_RESERVE_CREDITS,
+          'reserve-credits',
+          420,
+        ),
+        fanOutNode(
+          'dispatch-variant',
+          BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_DISPATCH_VARIANT,
+          560,
+          { failureMode: 'collect' },
+        ),
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_RECONCILE,
+          'reconcile-run',
+          700,
+        ),
+        actionNode(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_CLEAR_CLAIM,
+          'clear-claim',
+          840,
+        ),
+      ],
+    },
+    description:
+      'Claims a Brand Remix run, reserves credits, and dispatches each variant through a child execution.',
+    label: 'Brand Remix Generate',
+    resultNodeId: 'clear-claim',
+    version: 1,
+  };
+}
+
+export function buildBrandRemixGenerateWorkflowDefinitions(): SystemWorkflowGraphDefinition[] {
+  return [
+    buildBrandRemixGenerateResolveCreditsWorkflowDefinition(),
+    buildBrandRemixGenerateDispatchWorkflowDefinition(),
+    buildBrandRemixGenerateWorkflowDefinition(),
+  ];
 }
 
 export function buildBrandRemixReviewWorkflowDefinition(): SystemWorkflowGraphDefinition {

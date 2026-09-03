@@ -5,9 +5,8 @@ import {
   remixDimensions,
   remixErrorMessage,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
-import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { RemixCreditsRequest } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
@@ -18,8 +17,6 @@ import type {
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
-import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import {
   ContentIntelligencePlatform,
   ContentRunStatus,
@@ -28,10 +25,12 @@ import {
   type BrandRemixDraft,
   type BrandRemixExecution,
   type BrandRemixRunConfig,
-  brandRemixRunConfigSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  sourcePostVariationCredits,
+} from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -42,8 +41,6 @@ export class BrandRemixRunProviderDispatchService {
     private readonly videoGenerationService: VideoGenerationService,
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     private readonly contentGeneratorService: ContentGeneratorService,
-    private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly persistence: BrandRemixRunPersistenceService,
     private readonly state: BrandRemixRunStateService,
   ) {}
 
@@ -219,58 +216,50 @@ export class BrandRemixRunProviderDispatchService {
     return lines.join('\n');
   }
 
-  async generateCopyVariants(params: {
-    brandId: string;
+  resolveVariantCredits(params: {
+    avatarByokBypass: boolean;
     config: BrandRemixRunConfig;
-    organizationId: string;
     request: Request;
-    runId: string;
-    variants: BrandRemixExecution['variants'];
-  }): Promise<BrandRemixRunConfig> {
-    const requestedCredits = sourcePostVariationCredits(params.variants.length);
-    if (
-      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        params.organizationId,
-        requestedCredits,
-      ))
-    ) {
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          params.organizationId,
-        );
-      throw createInsufficientCreditsException(requestedCredits, balance);
+    variant: BrandRemixExecution['variants'][number];
+  }): {
+    amount: number;
+    isByokBypass: boolean;
+    variantId: string;
+  } {
+    const requested = (params.request as RemixCreditsRequest).creditsConfig;
+    if (params.config.draft.output.kind === 'copy') {
+      return {
+        amount: sourcePostVariationCredits(1),
+        isByokBypass: false,
+        variantId: params.variant.id,
+      };
     }
-    let config = params.config;
-    const seen = new Set(
-      config.execution?.variants.flatMap((variant) =>
-        variant.status === 'ready' && variant.content
-          ? [variant.content.trim()]
-          : [],
-      ) ?? [],
-    );
-    let successfulCount = 0;
-    for (const variant of params.variants) {
-      const generated = await this.generateOneCopyVariant({
-        brandId: params.brandId,
-        config,
-        organizationId: params.organizationId,
-        runId: params.runId,
-        seen,
-        variant,
-      });
-      config = generated.config;
-      if (generated.succeeded) successfulCount += 1;
+    if (params.config.draft.output.kind === 'avatar') {
+      const amount =
+        typeof requested?.amount === 'number' &&
+        Number.isFinite(requested.amount) &&
+        requested.amount > 0
+          ? requested.amount
+          : AVATAR_GENERATION_CREDIT_COST;
+      return {
+        amount: params.avatarByokBypass ? 0 : amount,
+        isByokBypass: params.avatarByokBypass,
+        variantId: params.variant.id,
+      };
     }
-    return this.persistCopyGenerationResult({
-      config,
-      organizationId: params.organizationId,
-      request: params.request,
-      runId: params.runId,
-      successfulCount,
-    });
+    const amount =
+      typeof requested?.amount === 'number' && Number.isFinite(requested.amount)
+        ? requested.amount
+        : 0;
+    const isByokBypass = requested?.isByokBypass === true;
+    return {
+      amount: isByokBypass ? 0 : amount,
+      isByokBypass,
+      variantId: params.variant.id,
+    };
   }
 
-  private async generateOneCopyVariant(params: {
+  async generateOneCopyVariant(params: {
     brandId: string;
     config: BrandRemixRunConfig;
     organizationId: string;
@@ -340,57 +329,6 @@ export class BrandRemixRunProviderDispatchService {
         succeeded,
       };
     }
-  }
-
-  private async persistCopyGenerationResult(params: {
-    config: BrandRemixRunConfig;
-    organizationId: string;
-    request: Request;
-    runId: string;
-    successfulCount: number;
-  }): Promise<BrandRemixRunConfig> {
-    const actualCount =
-      params.config.execution?.variants.filter(
-        (variant) => variant.status === 'ready',
-      ).length ?? 0;
-    finalizeOutputCredits(
-      params.request,
-      sourcePostVariationCredits(params.successfulCount),
-    );
-    const execution = params.config.execution;
-    if (!execution) return params.config;
-    const nextConfig = brandRemixRunConfigSchema.parse({
-      ...params.config,
-      execution: {
-        ...execution,
-        actualCount,
-        ...(actualCount < execution.requestedCount
-          ? {
-              partialReason: `${execution.requestedCount - actualCount} requested copy outputs were not distinct and usable.`,
-            }
-          : { partialReason: undefined }),
-      },
-      phase:
-        actualCount === execution.requestedCount
-          ? 'ready_for_review'
-          : actualCount > 0
-            ? 'partially_ready'
-            : 'failed',
-    });
-    const updated = await this.persistence.compareAndSwapExactConfig({
-      expectedConfig: params.config,
-      nextConfig,
-      organizationId: params.organizationId,
-      runId: params.runId,
-      status:
-        actualCount > 0 ? ContentRunStatus.COMPLETED : ContentRunStatus.FAILED,
-    });
-    if (!updated) {
-      throw new ConflictException(
-        'The copy generation result changed concurrently.',
-      );
-    }
-    return nextConfig;
   }
 
   private generatedAssetId(response: JsonApiSingleResponse): string {

@@ -1,10 +1,12 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
+import { runBrandRemixGenerateWorkflow } from '@api/collections/content-runs/services/brand-remix-generate-workflow.test-util';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ActivitySource,
   ContentRunStatus,
   IngredientCategory,
   IngredientStatus,
@@ -112,6 +114,7 @@ describe('BrandRemixRunsService', () => {
   const pausedXAdsCampaignDraftService = { prepare: vi.fn() };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
+    deductCreditsFromOrganization: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
   };
   const workflowActions = new Map<string, CapturedWorkflowAction>();
@@ -144,6 +147,7 @@ describe('BrandRemixRunsService', () => {
     organizationId: 'org-1',
     userId: 'user-1',
   } as AuthenticatedUser;
+  let remixGraph!: ReturnType<typeof assembleBrandRemixRunsGraph>;
   let service: BrandRemixRunsService;
 
   beforeEach(() => {
@@ -206,6 +210,9 @@ describe('BrandRemixRunsService', () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
+    creditsUtilsService.deductCreditsFromOrganization.mockResolvedValue(
+      undefined,
+    );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
@@ -233,8 +240,16 @@ describe('BrandRemixRunsService', () => {
       trendReferenceCorpusService: trendReferenceCorpusService as never,
       videoGenerationService: videoGenerationService as never,
     });
+    remixGraph = graph;
     graph.review.onModuleInit();
+    graph.execution.onModuleInit();
     systemWorkflowRunner.runWorkflow.mockImplementation(async (request) => {
+      if (request.canonicalId === 'brand-remix.generate') {
+        return runBrandRemixGenerateWorkflow({
+          actions: workflowActions,
+          request,
+        });
+      }
       const provenance = {
         executionId: 'workflow-execution-1',
         workflowId: 'workflow-1',
@@ -1055,13 +1070,7 @@ describe('BrandRemixRunsService', () => {
       const created = await createPersistedRun({
         draft: { output: { count: 3, kind: 'copy' } },
       });
-      let stored = created;
-      contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
-      contentRun.updateMany.mockImplementation(({ data }) => {
-        stored = makeRun(data.config as Record<string, unknown>);
-        stored.status = (data.status ?? stored.status) as ContentRunStatus;
-        return Promise.resolve({ count: 1 });
-      });
+      installExactConfigStore(created);
       contentGeneratorService.generateContent
         .mockResolvedValueOnce([{ content: 'Original brand copy one.' }])
         .mockResolvedValueOnce([{ content: 'Original brand copy two.' }])
@@ -1105,16 +1114,32 @@ describe('BrandRemixRunsService', () => {
       expect(creditCheckOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
         generationOrder ?? 0,
       );
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', 3);
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        2,
+        'Brand remix generation',
+        ActivitySource.SCRIPT,
+        expect.objectContaining({
+          idempotencyKey: 'brand-remix.generate:generate-workflow-execution-1',
+          referenceId: 'run-1',
+          referenceType: 'brand-remix-run',
+        }),
+      );
     });
 
-    it('attaches every requested placeholder before the first provider side effect', async () => {
+    it('binds a durable placeholder for each dispatched image variant', async () => {
       const created = await createPersistedRun({
         draft: {
           output: { aspectRatio: '1:1', count: 3, kind: 'image' },
         },
       });
-      const getStored = installExactConfigStore(created);
-      const attachedCounts: number[] = [];
+      installExactConfigStore(created);
       imageGenerationService.generateImage.mockImplementation(
         async (
           _user,
@@ -1125,15 +1150,6 @@ describe('BrandRemixRunsService', () => {
           onCreditsPrepared,
         ) => {
           await onCreated?.(`image-${reservation.groupIndex}`);
-          const execution = (
-            getStored().config as {
-              execution?: { variants: Array<{ assetIds: string[] }> };
-            }
-          ).execution;
-          attachedCounts.push(
-            execution?.variants.filter((variant) => variant.assetIds.length > 0)
-              .length ?? 0,
-          );
           await onCreditsPrepared?.();
           return {
             data: {
@@ -1144,11 +1160,21 @@ describe('BrandRemixRunsService', () => {
         },
       );
 
-      await service.start('org-1', 'run-1', user, request as never, {
-        expectedRevision: 1,
-      });
+      const result = await service.start(
+        'org-1',
+        'run-1',
+        user,
+        request as never,
+        { expectedRevision: 1 },
+      );
 
-      expect(attachedCounts).toEqual([3, 3, 3]);
+      expect(result.execution?.variants).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ assetIds: ['image-0'] }),
+          expect.objectContaining({ assetIds: ['image-1'] }),
+          expect.objectContaining({ assetIds: ['image-2'] }),
+        ]),
+      );
       expect(prisma.ingredient.updateMany).toHaveBeenNthCalledWith(1, {
         data: { templateVersion: 1 },
         where: {
@@ -1880,17 +1906,39 @@ describe('BrandRemixRunsService', () => {
         },
       };
 
-      await service.start('org-1', 'run-1', user, creditRequest as never, {
-        expectedRevision: 1,
-      });
+      const result = await service.start(
+        'org-1',
+        'run-1',
+        user,
+        creditRequest as never,
+        { expectedRevision: 1 },
+      );
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith('org-1', 3);
-      expect(creditRequest.creditsConfig).toMatchObject({
-        amount: 3,
-        deferred: false,
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        3,
+        'Brand remix generation',
+        ActivitySource.SCRIPT,
+        expect.objectContaining({
+          idempotencyKey: 'brand-remix.generate:generate-workflow-execution-1',
+          referenceId: 'run-1',
+        }),
+      );
+      expect(result.execution?.generationCredits).toMatchObject({
+        isByokBypass: false,
+        reservedAmount: 3,
+        settledAmount: 3,
       });
+      expect(result.execution?.workflowExecutionId).toBe(
+        'generate-workflow-execution-1',
+      );
+      expect(creditRequest.creditsConfig.deferred).toBe(true);
     });
 
     it('records avatar BYOK usage without checking or deducting platform credits', async () => {
@@ -1923,19 +1971,30 @@ describe('BrandRemixRunsService', () => {
         },
       );
 
-      await service.start('org-1', 'run-1', user, request as never, {
-        expectedRevision: 1,
-      });
+      const result = await service.start(
+        'org-1',
+        'run-1',
+        user,
+        request as never,
+        { expectedRevision: 1 },
+      );
 
-      expect(request.creditsConfig).toMatchObject({
-        amount: 2,
-        deferred: false,
-        isByokBypass: true,
-        modelKey: 'heygen/avatar',
-      });
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(result.execution?.generationCredits).toMatchObject({
+        isByokBypass: true,
+        reservedAmount: 0,
+        settledAmount: 0,
+      });
+      expect(request.creditsConfig).toMatchObject({
+        isByokBypass: true,
+        modelKey: 'heygen/avatar',
+        provider: 'heygen',
+      });
     });
 
     it('preserves an explicit positive Avatar credit amount', async () => {
@@ -1971,17 +2030,34 @@ describe('BrandRemixRunsService', () => {
         },
       };
 
-      await service.start('org-1', 'run-1', user, creditRequest as never, {
-        expectedRevision: 1,
-      });
+      const result = await service.start(
+        'org-1',
+        'run-1',
+        user,
+        creditRequest as never,
+        { expectedRevision: 1 },
+      );
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith('org-1', 5);
-      expect(creditRequest.creditsConfig).toMatchObject({
-        amount: 5,
-        deferred: false,
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledWith(
+        'org-1',
+        'user-1',
+        5,
+        'Brand remix generation',
+        ActivitySource.SCRIPT,
+        expect.objectContaining({
+          idempotencyKey: 'brand-remix.generate:generate-workflow-execution-1',
+        }),
+      );
+      expect(result.execution?.generationCredits).toMatchObject({
+        reservedAmount: 5,
+        settledAmount: 5,
       });
+      expect(creditRequest.creditsConfig.deferred).toBe(true);
     });
 
     it('stops Avatar provider consumption when aggregate credit reservation fails', async () => {
@@ -2014,23 +2090,30 @@ describe('BrandRemixRunsService', () => {
         },
       };
 
-      const result = await service.start(
-        'org-1',
-        'run-1',
-        user,
-        creditRequest as never,
-        { expectedRevision: 1 },
-      );
+      await expect(
+        service.start('org-1', 'run-1', user, creditRequest as never, {
+          expectedRevision: 1,
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          detail: 'Insufficient credits: 3 required, 0 available',
+          title: 'Insufficient credits',
+        },
+        status: 402,
+      });
 
       expect(providerConsumptions).toBe(0);
-      expect(result.phase).toBe('failed');
-      expect(getStored().config).toMatchObject({ phase: 'failed' });
-      expect(result.execution?.variants).toEqual(
-        expect.arrayContaining([expect.objectContaining({ status: 'failed' })]),
-      );
-      expect(creditRequest.creditsConfig).toMatchObject({
-        amount: 0,
-        deferred: false,
+      expect(
+        avatarVideoGenerationService.generateAvatarVideo,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(getStored().config).toMatchObject({
+        generationClaim: expect.objectContaining({
+          id: 'run-1:generate:1',
+        }),
+        phase: 'generating',
       });
     });
 
@@ -2089,22 +2172,40 @@ describe('BrandRemixRunsService', () => {
           },
         };
 
-        await service.start('org-1', 'run-1', user, creditRequest as never, {
-          expectedRevision: 1,
-        });
+        const result = await service.start(
+          'org-1',
+          'run-1',
+          user,
+          creditRequest as never,
+          { expectedRevision: 1 },
+        );
 
         expect(
           creditsUtilsService.checkOrganizationCreditsAvailable,
         ).toHaveBeenCalledWith('org-1', 4);
-        expect(creditRequest.creditsConfig).toMatchObject({
-          amount: 4,
-          deferred: false,
+        expect(
+          creditsUtilsService.deductCreditsFromOrganization,
+        ).toHaveBeenCalledWith(
+          'org-1',
+          'user-1',
+          4,
+          'Brand remix generation',
+          ActivitySource.SCRIPT,
+          expect.objectContaining({
+            idempotencyKey:
+              'brand-remix.generate:generate-workflow-execution-1',
+          }),
+        );
+        expect(result.execution?.generationCredits).toMatchObject({
+          reservedAmount: 4,
+          settledAmount: 4,
         });
+        expect(creditRequest.creditsConfig.deferred).toBe(true);
       },
     );
 
     it.each(['image', 'video'] as const)(
-      'records resolved-provider BYOK usage for %s remixes without platform credits',
+      'records request-scoped BYOK usage for %s remixes without platform credits',
       async (kind) => {
         const created = await createPersistedRun({
           draft: {
@@ -2123,17 +2224,16 @@ describe('BrandRemixRunsService', () => {
             ? imageGenerationService.generateImage
             : videoGenerationService.generateVideo;
         generator.mockImplementation(
-          async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
+          async (
+            _user,
+            _dto,
+            _variantRequest,
+            onCreated,
+            _scope,
+            onCredits,
+          ) => {
             const ingredientId = `${kind}-byok-credit-1`;
             await onCreated?.(ingredientId);
-            variantRequest.creditsConfig = {
-              ...variantRequest.creditsConfig,
-              amount: 4,
-              deferred: false,
-              isByokBypass: true,
-              modelKey: 'fal-ai/byok-model',
-              provider: 'fal',
-            };
             await onCredits?.();
             return { data: { id: ingredientId, type: 'ingredient' } };
           },
@@ -2141,25 +2241,33 @@ describe('BrandRemixRunsService', () => {
         const creditRequest = {
           ...request,
           creditsConfig: {
-            amount: 0,
+            amount: 4,
             deferred: true,
             description: 'Brand remix generation',
+            isByokBypass: true,
+            modelKey: 'fal-ai/byok-model',
+            provider: 'fal',
           },
         };
 
-        await service.start('org-1', 'run-1', user, creditRequest as never, {
-          expectedRevision: 1,
-        });
+        const result = await service.start(
+          'org-1',
+          'run-1',
+          user,
+          creditRequest as never,
+          { expectedRevision: 1 },
+        );
 
         expect(
           creditsUtilsService.checkOrganizationCreditsAvailable,
         ).not.toHaveBeenCalled();
-        expect(creditRequest.creditsConfig).toMatchObject({
-          amount: 4,
-          deferred: false,
+        expect(
+          creditsUtilsService.deductCreditsFromOrganization,
+        ).not.toHaveBeenCalled();
+        expect(result.execution?.generationCredits).toMatchObject({
           isByokBypass: true,
-          modelKey: 'fal-ai/byok-model',
-          provider: 'fal',
+          reservedAmount: 0,
+          settledAmount: 0,
         });
       },
     );
@@ -2177,59 +2285,27 @@ describe('BrandRemixRunsService', () => {
         stored.status = (data.status ?? stored.status) as ContentRunStatus;
         return Promise.resolve({ count: 1 });
       });
-      let preparedCount = 0;
-      let providerConsumptions = 0;
-      imageGenerationService.generateImage.mockImplementation(
-        async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
-          const index = ++preparedCount;
-          const ingredientId = `image-mixed-credit-${index}`;
-          variantRequest.creditsConfig = {
-            ...variantRequest.creditsConfig,
-            amount: 4,
-            deferred: false,
-            ...(index === 1
-              ? {
-                  isByokBypass: true,
-                  modelKey: 'fal-ai/byok-model',
-                  provider: 'fal',
-                }
-              : { isByokBypass: false }),
-          };
-          await onCreated?.(ingredientId);
-          await onCredits?.();
-          providerConsumptions += 1;
-          return { data: { id: ingredientId, type: 'ingredient' } };
-        },
-      );
-      const creditRequest = {
-        ...request,
-        creditsConfig: {
-          amount: 0,
-          deferred: true,
-          description: 'Brand remix generation',
-        },
-      };
-
-      const result = await service.start(
-        'org-1',
-        'run-1',
-        user,
-        creditRequest as never,
-        { expectedRevision: 1 },
+      vi.spyOn(remixGraph.dispatch, 'resolveVariantCredits').mockImplementation(
+        ({ variant }) => ({
+          amount: 4,
+          isByokBypass: variant.id === 'variant-1',
+          variantId: variant.id,
+        }),
       );
 
-      expect(providerConsumptions).toBe(0);
+      await expect(
+        service.start('org-1', 'run-1', user, request as never, {
+          expectedRevision: 1,
+        }),
+      ).rejects.toThrow(/mixed BYOK billing modes/);
+
+      expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
-      expect(result.execution?.variants).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            error: expect.stringContaining('mixed BYOK'),
-            status: 'failed',
-          }),
-        ]),
-      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
     });
 
     it('passes an operator-authored Avatar script verbatim after trimming', async () => {

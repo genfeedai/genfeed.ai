@@ -259,8 +259,16 @@ export class BrandRemixRunStateService {
             phase === 'paid_draft_ready'
           ? ContentRunStatus.COMPLETED
           : ContentRunStatus.RUNNING;
+    const copyPartialReason =
+      config.draft.output.kind === 'copy'
+        ? actualCount < config.execution.requestedCount
+          ? `${config.execution.requestedCount - actualCount} requested copy outputs were not distinct and usable.`
+          : undefined
+        : config.execution.partialReason;
     changed ||=
-      actualCount !== config.execution.actualCount || phase !== config.phase;
+      actualCount !== config.execution.actualCount ||
+      phase !== config.phase ||
+      copyPartialReason !== config.execution.partialReason;
     return {
       changed,
       config: brandRemixRunConfigSchema.parse({
@@ -268,6 +276,7 @@ export class BrandRemixRunStateService {
         execution: {
           ...config.execution,
           actualCount,
+          partialReason: copyPartialReason,
           variants,
         },
         phase,
