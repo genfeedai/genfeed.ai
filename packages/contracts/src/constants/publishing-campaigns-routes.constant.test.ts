@@ -9,12 +9,18 @@ describe('createPublishingCampaignRoute', () => {
     );
   });
 
-  it('nests content, calendar, and edit under the campaign', () => {
+  it('nests content, calendar, performance, and edit under the campaign', () => {
     expect(createPublishingCampaignRoute('cmp_spring', 'content')).toBe(
       `${APP_ROUTES.PUBLISHING.CAMPAIGNS}/cmp_spring/content`,
     );
     expect(createPublishingCampaignRoute('cmp_spring', 'calendar')).toBe(
       `${APP_ROUTES.PUBLISHING.CAMPAIGNS}/cmp_spring/calendar`,
+    );
+    expect(createPublishingCampaignRoute('cmp_spring', 'performance')).toBe(
+      `${APP_ROUTES.PUBLISHING.CAMPAIGNS}/cmp_spring/performance`,
+    );
+    expect(createPublishingCampaignRoute('cmp_spring', 'ads')).toBe(
+      `${APP_ROUTES.PUBLISHING.CAMPAIGNS}/cmp_spring/ads`,
     );
     expect(createPublishingCampaignRoute('cmp_spring', 'edit')).toBe(
       `${APP_ROUTES.PUBLISHING.CAMPAIGNS}/cmp_spring/edit`,

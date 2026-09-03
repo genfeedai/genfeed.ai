@@ -6,20 +6,33 @@ import {
 import { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
+import {
+  ApproveCampaignSpendDto,
+  PrepareCampaignActivationDto,
+} from '@api/collections/campaigns/dto/prepare-campaign-activation.dto';
 import { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
+import { CampaignComparisonService } from '@api/collections/campaigns/services/campaign-comparison.service';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
+import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
+import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
+  CampaignComparisonSerializer,
   CampaignLifecycleSerializer,
+  CampaignPaidActivationSerializer,
+  CampaignPerformanceSerializer,
   CampaignSerializer,
 } from '@genfeedai/serializers';
 import {
@@ -33,6 +46,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -42,8 +56,11 @@ import type { Request } from 'express';
 @Controller('campaigns')
 export class CampaignsController {
   constructor(
+    private readonly comparisonService: CampaignComparisonService,
     private readonly generationService: CampaignGenerationService,
     private readonly lifecycleService: CampaignLifecycleService,
+    private readonly paidActivationService: CampaignPaidActivationService,
+    private readonly performanceService: CampaignPerformanceService,
     private readonly service: CampaignsService,
   ) {}
 
@@ -57,6 +74,31 @@ export class CampaignsController {
     return serializeCollection(request, CampaignSerializer, data);
   }
 
+  @Get('compare')
+  async compare(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query('ids') ids?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('metric') metric?: string,
+  ) {
+    const campaignIds = (ids ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    const data = await this.comparisonService.compare(
+      user.organizationId,
+      campaignIds,
+      {
+        endDate,
+        metric: metric === 'engagements' ? 'engagements' : 'views',
+        startDate,
+      },
+    );
+    return serializeSingle(request, CampaignComparisonSerializer, data);
+  }
+
   @Get(':id')
   async getOne(
     @Req() request: Request,
@@ -65,6 +107,74 @@ export class CampaignsController {
   ) {
     const data = await this.service.getOne(user.organizationId, id);
     return serializeSingle(request, CampaignSerializer, data);
+  }
+
+  @Get(':id/performance')
+  async getPerformance(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const data = await this.performanceService.getPerformance(
+      user.organizationId,
+      id,
+      { endDate, startDate },
+    );
+    return serializeSingle(request, CampaignPerformanceSerializer, data);
+  }
+
+  @Get(':id/activations')
+  async listActivations(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.paidActivationService.list(user.organizationId, id);
+    return serializeCollection(request, CampaignPaidActivationSerializer, {
+      docs: data,
+    });
+  }
+
+  @Post(':id/activations')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async prepareActivation(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: PrepareCampaignActivationDto,
+  ) {
+    const data = await this.paidActivationService.prepare(
+      user.organizationId,
+      user,
+      id,
+      dto,
+    );
+    return serializeSingle(request, CampaignPaidActivationSerializer, data);
+  }
+
+  @Post(':id/activations/:activationId/spend-approval')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
+  async approveSpend(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('activationId') activationId: string,
+    @Body() dto: ApproveCampaignSpendDto,
+  ) {
+    const data = await this.paidActivationService.approveSpend(
+      user.organizationId,
+      this.resolveUserId(user),
+      id,
+      activationId,
+      dto,
+    );
+    return serializeSingle(request, CampaignPaidActivationSerializer, data);
   }
 
   @Post()

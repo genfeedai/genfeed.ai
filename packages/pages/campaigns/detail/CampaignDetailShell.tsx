@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  ContentCampaignStatus,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingCampaignRoute,
@@ -13,10 +9,17 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCampaign } from '@hooks/data/campaigns/use-campaign';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { CAMPAIGN_STATUS_LABELS } from '@pages/campaigns/campaigns-status';
+import {
+  CAMPAIGN_STATUS_LABELS,
+  summarizeCampaignLifecycleItems,
+  visibleCampaignDeskActions,
+} from '@pages/campaigns/campaigns-status';
 import CampaignUnavailableState from '@pages/campaigns/detail/CampaignUnavailableState';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
-import { CampaignsService } from '@services/content/campaigns.service';
+import {
+  type CampaignLifecycleResult,
+  CampaignsService,
+} from '@services/content/campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,7 +69,7 @@ export default function CampaignDetailShell({
   }
 
   const resolvedCampaign = campaign;
-  const isArchived = resolvedCampaign.status === ContentCampaignStatus.ARCHIVED;
+  const deskActions = visibleCampaignDeskActions(resolvedCampaign.status);
   const overviewHref = href(createPublishingCampaignRoute(resolvedCampaign.id));
   const contentHref = href(
     createPublishingCampaignRoute(resolvedCampaign.id, 'content'),
@@ -74,6 +77,10 @@ export default function CampaignDetailShell({
   const calendarHref = href(
     createPublishingCampaignRoute(resolvedCampaign.id, 'calendar'),
   );
+  const performanceHref = href(
+    createPublishingCampaignRoute(campaign.id, 'performance'),
+  );
+  const adsHref = href(createPublishingCampaignRoute(campaign.id, 'ads'));
 
   async function invalidate(): Promise<void> {
     await queryClient.invalidateQueries({ queryKey: ['publish-campaigns'] });
@@ -81,6 +88,47 @@ export default function CampaignDetailShell({
       queryKey: ['publish-campaign', resolvedCampaign.id],
     });
     await refetch();
+  }
+
+  function notifyLifecycle(
+    result: CampaignLifecycleResult,
+    successKey: string,
+  ): void {
+    notificationsService.success(
+      translate(successKey, summarizeCampaignLifecycleItems(result.items)),
+    );
+  }
+
+  function confirmLifecycle(
+    titleKey: string,
+    messageKey: string,
+    confirmKey: string,
+    successKey: string,
+    failedKey: string,
+    mutate: (service: CampaignsService) => Promise<CampaignLifecycleResult>,
+    isError = false,
+  ): void {
+    openConfirm({
+      cancelLabel: translate('cancel'),
+      confirmLabel: translate(confirmKey),
+      isError,
+      label: translate(titleKey),
+      message: translate(messageKey),
+      onConfirm: async () => {
+        setIsMutating(true);
+        try {
+          const service = await getService();
+          const result = await mutate(service);
+          notifyLifecycle(result, successKey);
+          await invalidate();
+        } catch (error) {
+          logger.error(`Failed to ${confirmKey} campaign`, error);
+          notificationsService.error(translate(failedKey));
+        } finally {
+          setIsMutating(false);
+        }
+      },
+    });
   }
 
   function handleArchive(): void {
@@ -122,6 +170,51 @@ export default function CampaignDetailShell({
     }
   }
 
+  function handleGenerate(): void {
+    confirmLifecycle(
+      'generateTitle',
+      'generateMessage',
+      'generate',
+      'generated',
+      'generateFailed',
+      (service) => service.generate(resolvedCampaign.id),
+    );
+  }
+
+  function handleStart(): void {
+    confirmLifecycle(
+      'startTitle',
+      'startMessage',
+      'start',
+      'started',
+      'startFailed',
+      (service) => service.start(resolvedCampaign.id),
+    );
+  }
+
+  function handlePause(): void {
+    confirmLifecycle(
+      'pauseTitle',
+      'pauseMessage',
+      'pause',
+      'paused',
+      'pauseFailed',
+      (service) => service.pause(resolvedCampaign.id),
+    );
+  }
+
+  function handleComplete(): void {
+    confirmLifecycle(
+      'completeTitle',
+      'completeMessage',
+      'complete',
+      'completed',
+      'completeFailed',
+      (service) => service.complete(resolvedCampaign.id),
+      true,
+    );
+  }
+
   return (
     <Container
       description={resolvedCampaign.objective || translate('listDescription')}
@@ -142,6 +235,16 @@ export default function CampaignDetailShell({
             label: translate('tabs.calendar'),
             matchMode: 'exact',
           },
+          {
+            href: performanceHref,
+            label: translate('tabs.performance'),
+            matchMode: 'exact',
+          },
+          {
+            href: adsHref,
+            label: translate('tabs.ads'),
+            matchMode: 'exact',
+          },
         ],
         size: 'sm',
         variant: 'underline',
@@ -154,6 +257,42 @@ export default function CampaignDetailShell({
             {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
               resolvedCampaign.status}
           </Badge>
+          {deskActions.canGenerate ? (
+            <Button
+              isDisabled={isMutating}
+              label={translate('generate')}
+              onClick={handleGenerate}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+          ) : null}
+          {deskActions.canStart ? (
+            <Button
+              isDisabled={isMutating}
+              label={translate('start')}
+              onClick={handleStart}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+            />
+          ) : null}
+          {deskActions.canPause ? (
+            <Button
+              isDisabled={isMutating}
+              label={translate('pause')}
+              onClick={handlePause}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+            />
+          ) : null}
+          {deskActions.canComplete ? (
+            <Button
+              isDisabled={isMutating}
+              label={translate('complete')}
+              onClick={handleComplete}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+            />
+          ) : null}
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
             <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
               {translate('backToCampaigns')}
@@ -174,7 +313,7 @@ export default function CampaignDetailShell({
               </Link>
             </Button>
           ) : null}
-          {isArchived ? (
+          {deskActions.canRestore ? (
             <Button
               isDisabled={isMutating}
               label={translate('restore')}
@@ -184,7 +323,8 @@ export default function CampaignDetailShell({
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
             />
-          ) : (
+          ) : null}
+          {deskActions.canArchive ? (
             <Button
               isDisabled={isMutating}
               label={translate('archive')}
@@ -192,7 +332,7 @@ export default function CampaignDetailShell({
               size={ButtonSize.SM}
               variant={ButtonVariant.GHOST}
             />
-          )}
+          ) : null}
         </div>
       }
       titleVisibility="visible"

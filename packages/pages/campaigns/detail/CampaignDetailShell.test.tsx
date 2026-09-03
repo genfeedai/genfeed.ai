@@ -118,7 +118,7 @@ describe('CampaignDetailShell', () => {
     });
   });
 
-  it('renders overview, content, and calendar destinations', () => {
+  it('renders overview, content, calendar, and performance destinations', () => {
     render(
       <CampaignDetailShell campaignId="cmp-1" section="overview">
         <div>overview body</div>
@@ -138,7 +138,86 @@ describe('CampaignDetailShell', () => {
       'href',
       '/acme/demo/publishing/campaigns/cmp-1/calendar',
     );
+    expect(
+      screen.getByRole('link', { name: 'tabs.performance' }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/demo/publishing/campaigns/cmp-1/performance',
+    );
+    expect(screen.getByRole('link', { name: 'tabs.ads' })).toHaveAttribute(
+      'href',
+      '/acme/demo/publishing/campaigns/cmp-1/ads',
+    );
     expect(screen.getByText('overview body')).toBeInTheDocument();
+  });
+
+  it('shows generate and start on a draft campaign', () => {
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(
+      screen.getByRole('button', { name: 'generate' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'start' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'pause' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'complete' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows pause and complete on an active campaign', () => {
+    mockUseCampaign.mockReturnValue({
+      campaign: {
+        brandId: 'brand-1',
+        id: 'cmp-1',
+        name: 'Autumn Reveal',
+        status: ContentCampaignStatus.ACTIVE,
+      },
+      isLoading: false,
+      isUnavailable: false,
+      refetch: vi.fn(),
+    });
+
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(
+      screen.getByRole('button', { name: 'generate' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'pause' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'complete' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'start' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides lifecycle controls on an archived campaign', () => {
+    mockUseCampaign.mockReturnValue({
+      campaign: {
+        brandId: 'brand-1',
+        id: 'cmp-1',
+        name: 'Autumn Reveal',
+        status: ContentCampaignStatus.ARCHIVED,
+      },
+      isLoading: false,
+      isUnavailable: false,
+      refetch: vi.fn(),
+    });
+
+    render(<CampaignDetailShell campaignId="cmp-1" section="overview" />);
+
+    expect(screen.getByRole('button', { name: 'restore' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'generate' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'start' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'archive' }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the canonical unavailable state without campaign details', () => {

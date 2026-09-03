@@ -29,3 +29,15 @@ export interface ICampaignLifecycleResult {
   id: string;
   items: ICampaignLifecycleItemOutcome[];
 }
+
+/**
+ * Optional generate payload. Omit credentials to fan out to every connected
+ * account on the campaign brand. Public mutations take arrays.
+ */
+export interface IGenerateCampaignContentInput {
+  contentRunId?: string;
+  credentialIds?: string[];
+  idempotencyKey?: string;
+  source?: string;
+  workflowExecutionId?: string;
+}

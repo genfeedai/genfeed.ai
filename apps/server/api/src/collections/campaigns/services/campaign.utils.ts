@@ -1,8 +1,8 @@
 import {
   ContentCampaignItemKind,
   type ContentCampaignItemOutcomeStatus,
-  ContentCampaignLifecycleAction,
   ContentCampaignStatus,
+  canApplyContentCampaignLifecycle,
   type TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
@@ -10,6 +10,8 @@ import type {
   ICampaignLifecycleItemOutcome,
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
+
+export { canApplyContentCampaignLifecycle };
 
 /**
  * Persistence row → product contract. `status` is a String column carrying the
@@ -32,49 +34,6 @@ export function toCampaign(row: Campaign): ICampaign {
     updatedAt: row.updatedAt.toISOString(),
     userId: row.userId,
   };
-}
-
-const LIFECYCLE_ALLOWED_FROM: Readonly<
-  Record<ContentCampaignLifecycleAction, ReadonlySet<ContentCampaignStatus>>
-> = {
-  [ContentCampaignLifecycleAction.ASSIGN]: new Set(
-    Object.values(ContentCampaignStatus),
-  ),
-  [ContentCampaignLifecycleAction.COMPLETE]: new Set([
-    ContentCampaignStatus.ACTIVE,
-    ContentCampaignStatus.COMPLETED,
-    ContentCampaignStatus.DRAFT,
-    ContentCampaignStatus.PAUSED,
-    ContentCampaignStatus.SCHEDULED,
-  ]),
-  [ContentCampaignLifecycleAction.GENERATE]: new Set([
-    ContentCampaignStatus.ACTIVE,
-    ContentCampaignStatus.DRAFT,
-    ContentCampaignStatus.PAUSED,
-    ContentCampaignStatus.SCHEDULED,
-  ]),
-  [ContentCampaignLifecycleAction.PAUSE]: new Set([
-    ContentCampaignStatus.ACTIVE,
-    ContentCampaignStatus.DRAFT,
-    ContentCampaignStatus.PAUSED,
-    ContentCampaignStatus.SCHEDULED,
-  ]),
-  [ContentCampaignLifecycleAction.START]: new Set([
-    ContentCampaignStatus.ACTIVE,
-    ContentCampaignStatus.DRAFT,
-    ContentCampaignStatus.PAUSED,
-    ContentCampaignStatus.SCHEDULED,
-  ]),
-  [ContentCampaignLifecycleAction.UNASSIGN]: new Set(
-    Object.values(ContentCampaignStatus),
-  ),
-};
-
-export function canApplyContentCampaignLifecycle(
-  status: ContentCampaignStatus,
-  action: ContentCampaignLifecycleAction,
-): boolean {
-  return LIFECYCLE_ALLOWED_FROM[action].has(status);
 }
 
 export function campaignItemOutcome(input: {

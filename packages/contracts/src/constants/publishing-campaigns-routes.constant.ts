@@ -4,6 +4,8 @@ export const PUBLISHING_CAMPAIGN_SECTIONS = [
   'overview',
   'content',
   'calendar',
+  'performance',
+  'ads',
   'edit',
 ] as const;
 
