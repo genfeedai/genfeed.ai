@@ -1,6 +1,5 @@
 name: Bug report
 description: Report reproducible broken behavior
-title: "fix: "
 labels: ["bug", "needs:triage"]
 body:
   - type: markdown

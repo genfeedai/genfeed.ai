@@ -18,6 +18,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
 - [p0_priority_not_label](p0_priority_not_label.md) — priority lives in native organization Issue Fields, not labels or project-local duplicates
 - [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
+- [issue_titles_imperative](issue_titles_imperative.md) — short imperative titles, no conventional-commit prefix, about 50 chars
 - [skill_boundary](skill_boundary.md) — `.agents/skills` build the app; `skills/` are product content
 - [genfeed_project_kanban](genfeed_project_kanban.md) — Project #12 owns workflow Status; native Issue Fields own shared metadata
 - [epic_status_on_child_start](epic_status_on_child_start.md) — epics go In Progress when a child starts

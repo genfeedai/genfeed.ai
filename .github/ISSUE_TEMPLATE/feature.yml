@@ -1,6 +1,5 @@
 name: Feature / PRD
 description: Propose a new capability with an actionable product brief
-title: "feat: "
 labels: ["enhancement", "needs:triage"]
 body:
   - type: markdown
