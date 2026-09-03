@@ -4,8 +4,7 @@ import { AlertCategory, ComponentSize } from '@genfeedai/contracts';
 import type { VideoTrimTimelineProps } from '@genfeedai/props/ui/media/video-trim-timeline.props';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
+import { Slider } from '@ui/primitives/slider';
 import { useMemo } from 'react';
 
 /**
@@ -78,37 +77,27 @@ export default function VideoTrimTimeline({
         />
       </div>
 
-      {/* Range Slider */}
       <div className="px-2">
         <Slider
-          range
           min={0}
           max={videoDuration}
           step={0.1}
           value={[startTime, endTime]}
-          onChange={(values) => onRangeChange(values as [number, number])}
-          marks={marks}
-          className="custom-range-slider"
-          styles={{
-            handle: {
-              backgroundColor: 'hsl(var(--foreground))',
-              borderColor: 'hsl(var(--foreground))',
-              height: 16,
-              marginTop: -4,
-              opacity: 1,
-              width: 16,
-            },
-            rail: {
-              background: 'rgba(255, 255, 255, 0.1)',
-              height: 8,
-            },
-            track: {
-              background:
-                'linear-gradient(90deg, hsl(var(--p)) 0%, hsl(var(--s)) 100%)',
-              height: 8,
-            },
+          onValueChange={(values) => {
+            const nextStart = values[0];
+            const nextEnd = values[1];
+            if (nextStart === undefined || nextEnd === undefined) {
+              return;
+            }
+            onRangeChange([nextStart, nextEnd]);
           }}
+          className="h-8"
         />
+        <div className="mt-1 flex justify-between text-xs text-foreground/60">
+          {Object.entries(marks).map(([time, label]) => (
+            <span key={time}>{label}</span>
+          ))}
+        </div>
       </div>
 
       {/* Time Display */}

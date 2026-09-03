@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { render } from '@testing-library/react';
 import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,5 +29,14 @@ describe('VideoTrimTimeline', () => {
     const { container } = render(<VideoTrimTimeline {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('does not import rc-slider CSS into the Turbopack PostCSS graph', () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'VideoTrimTimeline.tsx'),
+      'utf8',
+    );
+
+    expect(source).not.toMatch(/rc-slider/);
   });
 });
