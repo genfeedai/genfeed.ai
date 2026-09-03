@@ -1,7 +1,3 @@
-import {
-  fromPromiseEffect,
-  runEffectPromise,
-} from '@api/helpers/utils/effect/effect.util';
 import { scopedWhere } from '@api/index';
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
@@ -9,7 +5,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Effect } from 'effect';
 
 export interface UpsertRuntimeSessionBindingParams {
   threadId: string;
@@ -60,119 +55,78 @@ export class AgentRuntimeSessionService {
     return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
   }
 
-  upsertBindingEffect(
-    params: UpsertRuntimeSessionBindingParams,
-  ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
-    const nowIso = new Date().toISOString();
-
-    return fromPromiseEffect(async () => {
-      // Session binding is stored inside AgentThreadSnapshot.data.sessionBinding
-      const sessionBindingPatch: Record<string, unknown> = {
-        lastSeenAt: nowIso,
-        status: params.status,
-      };
-      if (params.activeCommandId) {
-        sessionBindingPatch.activeCommandId = params.activeCommandId;
-      }
-      if (params.metadata) {
-        sessionBindingPatch.metadata = params.metadata;
-      }
-      if (params.model) {
-        sessionBindingPatch.model = params.model;
-      }
-      if (params.resumeCursor) {
-        sessionBindingPatch.resumeCursor = params.resumeCursor;
-      }
-      if (params.runId) {
-        sessionBindingPatch.runId = params.runId;
-      }
-
-      const existing = await this.prisma.agentThreadSnapshot.findFirst({
-        where: scopedWhere(params.organizationId, {
-          threadId: params.threadId,
-        }),
-      });
-
-      let snapshot: Record<string, unknown> | null = null;
-
-      if (existing) {
-        const existingData = (existing.data as Record<string, unknown>) ?? {};
-        const updatedData = {
-          ...existingData,
-          sessionBinding: {
-            ...((existingData.sessionBinding as Record<string, unknown>) ?? {}),
-            ...sessionBindingPatch,
-          },
-        };
-
-        snapshot = (await this.prisma.agentThreadSnapshot.update({
-          where: { id: existing.id },
-          data: { data: this.toJsonValue(updatedData), updatedAt: new Date() },
-        })) as unknown as Record<string, unknown>;
-      } else {
-        snapshot = (await this.prisma.agentThreadSnapshot.create({
-          data: {
-            data: this.toJsonValue({ sessionBinding: sessionBindingPatch }),
-            isDeleted: false,
-            organizationId: params.organizationId,
-            threadId: params.threadId,
-          },
-        })) as unknown as Record<string, unknown>;
-      }
-
-      return toSessionBindingDocument(snapshot);
-    });
-  }
-
   async upsertBinding(
     params: UpsertRuntimeSessionBindingParams,
   ): Promise<AgentSessionBindingDocument | null> {
-    return runEffectPromise(this.upsertBindingEffect(params));
-  }
+    const nowIso = new Date().toISOString();
 
-  getBindingEffect(
-    threadId: string,
-    organizationId: string,
-  ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
-    return fromPromiseEffect(async () => {
-      const snapshot = await this.prisma.agentThreadSnapshot.findFirst({
-        where: scopedWhere(organizationId, { threadId }),
-      });
+    // Session binding is stored inside AgentThreadSnapshot.data.sessionBinding
+    const sessionBindingPatch: Record<string, unknown> = {
+      lastSeenAt: nowIso,
+      status: params.status,
+    };
+    if (params.activeCommandId) {
+      sessionBindingPatch.activeCommandId = params.activeCommandId;
+    }
+    if (params.metadata) {
+      sessionBindingPatch.metadata = params.metadata;
+    }
+    if (params.model) {
+      sessionBindingPatch.model = params.model;
+    }
+    if (params.resumeCursor) {
+      sessionBindingPatch.resumeCursor = params.resumeCursor;
+    }
+    if (params.runId) {
+      sessionBindingPatch.runId = params.runId;
+    }
 
-      return toSessionBindingDocument(
-        snapshot as unknown as Record<string, unknown> | null,
-      );
+    const existing = await this.prisma.agentThreadSnapshot.findFirst({
+      where: scopedWhere(params.organizationId, {
+        threadId: params.threadId,
+      }),
     });
+
+    let snapshot: Record<string, unknown> | null = null;
+
+    if (existing) {
+      const existingData = (existing.data as Record<string, unknown>) ?? {};
+      const updatedData = {
+        ...existingData,
+        sessionBinding: {
+          ...((existingData.sessionBinding as Record<string, unknown>) ?? {}),
+          ...sessionBindingPatch,
+        },
+      };
+
+      snapshot = (await this.prisma.agentThreadSnapshot.update({
+        where: { id: existing.id },
+        data: { data: this.toJsonValue(updatedData), updatedAt: new Date() },
+      })) as unknown as Record<string, unknown>;
+    } else {
+      snapshot = (await this.prisma.agentThreadSnapshot.create({
+        data: {
+          data: this.toJsonValue({ sessionBinding: sessionBindingPatch }),
+          isDeleted: false,
+          organizationId: params.organizationId,
+          threadId: params.threadId,
+        },
+      })) as unknown as Record<string, unknown>;
+    }
+
+    return toSessionBindingDocument(snapshot);
   }
 
   async getBinding(
     threadId: string,
     organizationId: string,
   ): Promise<AgentSessionBindingDocument | null> {
-    return runEffectPromise(this.getBindingEffect(threadId, organizationId));
-  }
+    const snapshot = await this.prisma.agentThreadSnapshot.findFirst({
+      where: scopedWhere(organizationId, { threadId }),
+    });
 
-  markCancelledEffect(
-    threadId: string,
-    organizationId: string,
-    runId?: string,
-  ): Effect.Effect<void, unknown> {
-    return this.upsertBindingEffect({
-      organizationId,
-      runId,
-      status: 'cancelled',
-      threadId,
-    }).pipe(
-      Effect.tap(() =>
-        Effect.sync(() => {
-          this.loggerService.warn('Agent runtime session marked cancelled', {
-            organizationId,
-            runId,
-            threadId,
-          });
-        }),
-      ),
-      Effect.asVoid,
+    return toSessionBindingDocument(
+      snapshot as unknown as Record<string, unknown> | null,
     );
   }
 
@@ -181,9 +135,18 @@ export class AgentRuntimeSessionService {
     organizationId: string,
     runId?: string,
   ): Promise<void> {
-    await runEffectPromise(
-      this.markCancelledEffect(threadId, organizationId, runId),
-    );
+    await this.upsertBinding({
+      organizationId,
+      runId,
+      status: 'cancelled',
+      threadId,
+    });
+
+    this.loggerService.warn('Agent runtime session marked cancelled', {
+      organizationId,
+      runId,
+      threadId,
+    });
   }
 }
 
@@ -192,29 +155,29 @@ export class AgentRuntimeSessionService {
  * Returns `null` when the service is absent so orchestrator callers do not
  * each re-implement the same guard.
  */
-export function getRuntimeBindingEffect(
+export async function getRuntimeBinding(
   service: AgentRuntimeSessionService | undefined,
   threadId: string,
   organizationId: string,
-): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
+): Promise<AgentSessionBindingDocument | null> {
   if (!service) {
-    return Effect.succeed(null);
+    return null;
   }
 
-  return service.getBindingEffect(threadId, organizationId);
+  return service.getBinding(threadId, organizationId);
 }
 
 /**
  * Null-safe upsert when `AgentRuntimeSessionService` is `@Optional()`-injected.
  * No-ops (void) when the service is absent.
  */
-export function upsertRuntimeBindingEffect(
+export async function upsertRuntimeBinding(
   service: AgentRuntimeSessionService | undefined,
   params: UpsertRuntimeSessionBindingParams,
-): Effect.Effect<void, unknown> {
+): Promise<void> {
   if (!service) {
-    return Effect.void;
+    return;
   }
 
-  return service.upsertBindingEffect(params).pipe(Effect.asVoid);
+  await service.upsertBinding(params);
 }

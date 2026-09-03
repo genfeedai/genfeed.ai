@@ -1,6 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -121,15 +120,13 @@ export function useAgentThreadList({
       setIsLoading(true);
     }
     try {
-      const data = await runAgentApiEffect(
-        apiService.getThreadsEffect(
-          {
-            limit: CONVERSATION_LIMIT,
-            status: viewStatus,
-            brandId: brandId || undefined,
-          },
-          controller.signal,
-        ),
+      const data = await apiService.getThreads(
+        {
+          limit: CONVERSATION_LIMIT,
+          status: viewStatus,
+          brandId: brandId || undefined,
+        },
+        controller.signal,
       );
       if (controller.signal.aborted || abortRef.current !== controller) {
         return false;
@@ -388,19 +385,18 @@ export function useAgentThreadList({
       resetStreamState();
 
       try {
-        const messages = await runAgentApiEffect(
-          apiService.getMessagesEffect(
-            thread.id,
-            { limit: 100 },
-            abortRef.current.signal,
-          ),
+        const messages = await apiService.getMessages(
+          thread.id,
+          { limit: 100 },
+          abortRef.current.signal,
         );
         setAuthError(null);
         setLoadError(null);
         setMessages(messages);
         try {
-          const convo = await runAgentApiEffect(
-            apiService.getThreadEffect(thread.id, abortRef.current.signal),
+          const convo = await apiService.getThread(
+            thread.id,
+            abortRef.current.signal,
           );
           setThreadPrompt(thread.id, convo.systemPrompt ?? undefined);
         } catch {
@@ -441,9 +437,7 @@ export function useAgentThreadList({
   const handleArchiveFromMenu = useCallback(
     async (thread: AgentThread) => {
       try {
-        const archived = await runAgentApiEffect(
-          apiService.archiveThreadEffect(thread.id),
-        );
+        const archived = await apiService.archiveThread(thread.id);
         const currentThreads = useAgentChatStore.getState().threads;
         // Drop from Recent immediately. If this is the open thread and we stay
         // on the URL, keep a store row with status archived so isReadOnly flips
@@ -492,7 +486,7 @@ export function useAgentThreadList({
   const handleUnarchiveFromMenu = useCallback(
     async (thread: AgentThread) => {
       try {
-        await runAgentApiEffect(apiService.unarchiveThreadEffect(thread.id));
+        await apiService.unarchiveThread(thread.id);
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(currentThreads.filter((item) => item.id !== thread.id));
       } catch {
@@ -507,9 +501,7 @@ export function useAgentThreadList({
   const handleForkThread = useCallback(
     async (thread: AgentThread) => {
       try {
-        const branchedThread = await runAgentApiEffect(
-          apiService.branchThreadEffect(thread.id),
-        );
+        const branchedThread = await apiService.branchThread(thread.id);
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(
           sortThreads([
@@ -553,8 +545,8 @@ export function useAgentThreadList({
     async (thread: AgentThread) => {
       try {
         const updatedThread = thread.isPinned
-          ? await runAgentApiEffect(apiService.unpinThreadEffect(thread.id))
-          : await runAgentApiEffect(apiService.pinThreadEffect(thread.id));
+          ? await apiService.unpinThread(thread.id)
+          : await apiService.pinThread(thread.id);
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(
           sortThreads(
@@ -574,9 +566,7 @@ export function useAgentThreadList({
 
   const handleArchiveAllThreads = useCallback(async () => {
     try {
-      await runAgentApiEffect(
-        apiService.archiveAllThreadsEffect(brandId || undefined),
-      );
+      await apiService.archiveAllThreads(brandId || undefined);
       const currentThreads = useAgentChatStore.getState().threads;
       const archivedActiveThread = currentThreads.some(
         (thread) => thread.id === activeThreadId,
@@ -624,11 +614,9 @@ export function useAgentThreadList({
       }
 
       try {
-        const updatedThread = await runAgentApiEffect(
-          apiService.updateThreadEffect(thread.id, {
-            title: trimmedTitle,
-          }),
-        );
+        const updatedThread = await apiService.updateThread(thread.id, {
+          title: trimmedTitle,
+        });
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(
           sortThreads(

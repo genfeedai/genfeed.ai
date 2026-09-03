@@ -7,7 +7,6 @@ import {
 } from '@agent-tests/json-api-fetch.mock';
 import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeService(token: string | null = 'test-token') {
@@ -27,9 +26,7 @@ describe('AgentApiService', () => {
       const conv = { id: 'c-1', status: 'active' };
       mockJsonApiResource(conv, 'thread');
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.createThreadEffect({ title: 'Test' }),
-      );
+      const result = await service.createThread({ title: 'Test' });
       expect(result).toEqual(conv);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads',
@@ -40,32 +37,14 @@ describe('AgentApiService', () => {
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.createThreadEffect({})),
-      ).rejects.toThrow('500');
-    });
-
-    it('supports an Effect-native createThread flow', async () => {
-      const conv = { id: 'c-1', status: 'active' };
-      mockJsonApiResource(conv, 'thread');
-      const service = makeService();
-
-      const result = await Effect.runPromise(
-        service.createThreadEffect({ title: 'Test' }),
-      );
-
-      expect(result).toEqual(conv);
+      await expect(service.createThread({})).rejects.toThrow('500');
     });
 
     it('maps invalid thread documents to a typed decode error', async () => {
       mockOk({});
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.createThreadEffect({ title: 'Broken' })),
-      );
-
-      expect(error).toEqual(
+      await expect(service.createThread({ title: 'Broken' })).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to deserialize thread',
@@ -86,12 +65,10 @@ describe('AgentApiService', () => {
       const service = makeService();
 
       await expect(
-        Effect.runPromise(
-          service.updateThreadContextEffect('c-1', {
-            brandId: 'brand-1',
-            expectedContextVersion: 3,
-          }),
-        ),
+        service.updateThreadContext('c-1', {
+          brandId: 'brand-1',
+          expectedContextVersion: 3,
+        }),
       ).resolves.toEqual(thread);
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -112,12 +89,10 @@ describe('AgentApiService', () => {
       const msg = { content: 'hi', id: 'm-1', role: 'user' };
       mockJsonApiResource(msg, 'thread-message');
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.sendMessageEffect({
-          content: 'hi',
-          threadId: 'c-1',
-        }),
-      );
+      const result = await service.sendMessage({
+        content: 'hi',
+        threadId: 'c-1',
+      });
       expect(result).toEqual({ ...msg, threadId: 'c-1' });
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads/c-1/messages',
@@ -129,25 +104,8 @@ describe('AgentApiService', () => {
       mockError(400);
       const service = makeService();
       await expect(
-        Effect.runPromise(
-          service.sendMessageEffect({ content: 'hi', threadId: 'c-1' }),
-        ),
+        service.sendMessage({ content: 'hi', threadId: 'c-1' }),
       ).rejects.toThrow('400');
-    });
-
-    it('supports an Effect-native sendMessage flow', async () => {
-      const msg = { content: 'hi', id: 'm-1', role: 'user' };
-      mockJsonApiResource(msg, 'thread-message');
-      const service = makeService();
-
-      const result = await Effect.runPromise(
-        service.sendMessageEffect({
-          content: 'hi',
-          threadId: 'c-1',
-        }),
-      );
-
-      expect(result).toEqual({ ...msg, threadId: 'c-1' });
     });
   });
 
@@ -166,12 +124,10 @@ describe('AgentApiService', () => {
       };
       mockOk(resp);
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.respondToUiActionEffect(
-          'c-1',
-          'confirm_install_official_workflow',
-          { sourceId: 'template-1' },
-        ),
+      const result = await service.respondToUiAction(
+        'c-1',
+        'confirm_install_official_workflow',
+        { sourceId: 'template-1' },
       );
 
       expect(result).toEqual(resp);
@@ -179,32 +135,6 @@ describe('AgentApiService', () => {
         'http://api.test/agent/threads/c-1/ui-actions',
         expect.objectContaining({ method: 'POST' }),
       );
-    });
-
-    it('supports an Effect-native UI action flow', async () => {
-      const resp = {
-        creditsRemaining: 50,
-        creditsUsed: 0,
-        message: {
-          content: 'Official workflow installed.',
-          metadata: {},
-          role: 'assistant',
-        },
-        threadId: 'c-1',
-        toolCalls: [],
-      };
-      mockOk(resp);
-      const service = makeService();
-
-      const result = await Effect.runPromise(
-        service.respondToUiActionEffect(
-          'c-1',
-          'confirm_install_official_workflow',
-          { sourceId: 'template-1' },
-        ),
-      );
-
-      expect(result).toEqual(resp);
     });
   });
 
@@ -216,9 +146,7 @@ describe('AgentApiService', () => {
       };
       mockOk(resp);
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.chatEffect({ content: 'hello' }),
-      );
+      const result = await service.chat({ content: 'hello' });
       expect(result).toEqual(resp);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads/turns',
@@ -234,9 +162,7 @@ describe('AgentApiService', () => {
       mockOk(resp);
       const service = makeService();
 
-      await Effect.runPromise(
-        service.chatEffect({ content: 'hello', threadId: 'c-1' }),
-      );
+      await service.chat({ content: 'hello', threadId: 'c-1' });
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads/c-1/turns',
@@ -258,14 +184,12 @@ describe('AgentApiService', () => {
         serializer: 'ingredient' as const,
       };
 
-      await Effect.runPromise(
-        service.chatEffect({
-          artifactReferences: [artifactReference],
-          brandId: 'brand-1',
-          content: 'Use this asset',
-          threadId: 'c-1',
-        }),
-      );
+      await service.chat({
+        artifactReferences: [artifactReference],
+        brandId: 'brand-1',
+        content: 'Use this asset',
+        threadId: 'c-1',
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads/c-1/turns',
@@ -283,29 +207,12 @@ describe('AgentApiService', () => {
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.chatEffect({ content: 'hi' })),
-      ).rejects.toThrow('500');
-    });
-
-    it('supports an Effect-native chat flow', async () => {
-      const resp = {
-        message: { content: 'hi', role: 'assistant' },
-        threadId: 'c-1',
-      };
-      mockOk(resp);
-      const service = makeService();
-
-      const result = await Effect.runPromise(
-        service.chatEffect({ content: 'hello' }),
-      );
-
-      expect(result).toEqual(resp);
+      await expect(service.chat({ content: 'hi' })).rejects.toThrow('500');
     });
   });
 
   describe('chatStream', () => {
-    it('supports an Effect-native chat stream flow', async () => {
+    it('starts a chat stream', async () => {
       const resp = {
         channel: 'socket',
         runId: 'run-1',
@@ -314,9 +221,7 @@ describe('AgentApiService', () => {
       mockOk(resp);
       const service = makeService();
 
-      const result = await Effect.runPromise(
-        service.chatStreamEffect({ content: 'hello' }),
-      );
+      const result = await service.chatStream({ content: 'hello' });
 
       expect(result).toEqual(resp);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -334,9 +239,7 @@ describe('AgentApiService', () => {
       mockOk(resp);
       const service = makeService();
 
-      await Effect.runPromise(
-        service.chatStreamEffect({ content: 'hello', threadId: 'c-1' }),
-      );
+      await service.chatStream({ content: 'hello', threadId: 'c-1' });
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads/c-1/turns/stream',
@@ -349,9 +252,7 @@ describe('AgentApiService', () => {
     it('fetches threads from JSON:API collection', async () => {
       mockJsonApiCollection([{ id: 'c-1' }], 'thread');
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.getThreadsEffect({ limit: 10, page: 1 }),
-      );
+      const result = await service.getThreads({ limit: 10, page: 1 });
       expect(result).toEqual([{ id: 'c-1' }]);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/agent/threads?page=1'),
@@ -362,35 +263,22 @@ describe('AgentApiService', () => {
     it('works without params', async () => {
       mockJsonApiCollection([], 'thread');
       const service = makeService();
-      await Effect.runPromise(service.getThreadsEffect());
+      await service.getThreads();
       expect(mockFetch).toHaveBeenCalled();
     });
 
     it('throws on error', async () => {
       mockError(401);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.getThreadsEffect()),
-      ).rejects.toThrow('401');
+      await expect(service.getThreads()).rejects.toThrow('401');
     });
 
     it('includes backend error detail in thrown message', async () => {
       mockError(400, { detail: 'Invalid userId' });
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.getThreadsEffect()),
-      ).rejects.toThrow('Failed to fetch threads: 400 - Invalid userId');
-    });
-
-    it('supports an Effect-native getThreads flow', async () => {
-      mockJsonApiCollection([{ id: 'c-1' }], 'thread');
-      const service = makeService();
-
-      const result = await Effect.runPromise(
-        service.getThreadsEffect({ limit: 10, page: 1 }),
+      await expect(service.getThreads()).rejects.toThrow(
+        'Failed to fetch threads: 400 - Invalid userId',
       );
-
-      expect(result).toEqual([{ id: 'c-1' }]);
     });
   });
 
@@ -399,9 +287,9 @@ describe('AgentApiService', () => {
       mockOk({ archivedCount: 7 });
       const service = makeService();
 
-      await expect(
-        Effect.runPromise(service.archiveAllThreadsEffect()),
-      ).resolves.toEqual({ archivedCount: 7 });
+      await expect(service.archiveAllThreads()).resolves.toEqual({
+        archivedCount: 7,
+      });
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent/threads',
@@ -417,9 +305,9 @@ describe('AgentApiService', () => {
     it('fetches messages', async () => {
       mockJsonApiCollection([{ id: 'm-1' }], 'thread-message');
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.getMessagesEffect('c-1', { cursor: 'older-cursor' }),
-      );
+      const result = await service.getMessages('c-1', {
+        cursor: 'older-cursor',
+      });
       expect(result).toEqual([{ id: 'm-1', metadata: {}, threadId: 'c-1' }]);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('c-1/messages?cursor=older-cursor'),
@@ -446,9 +334,7 @@ describe('AgentApiService', () => {
       });
       const service = makeService();
 
-      const result = await Effect.runPromise(
-        service.getMessagesPageEffect('c-1', { limit: 50 }),
-      );
+      const result = await service.getMessagesPage('c-1', { limit: 50 });
 
       expect(result).toEqual({
         hasMore: true,
@@ -471,14 +357,12 @@ describe('AgentApiService', () => {
     it('throws on error', async () => {
       mockError(404);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.getMessagesEffect('c-1')),
-      ).rejects.toThrow('404');
+      await expect(service.getMessages('c-1')).rejects.toThrow('404');
     });
   });
 
   describe('getThreadSnapshot', () => {
-    it('supports an Effect-native snapshot flow', async () => {
+    it('fetches the thread snapshot', async () => {
       const snapshot = {
         activeRun: null,
         latestProposedPlan: null,
@@ -486,9 +370,7 @@ describe('AgentApiService', () => {
       mockOk(snapshot);
       const service = makeService();
 
-      const result = await Effect.runPromise(
-        service.getThreadSnapshotEffect('c-1'),
-      );
+      const result = await service.getThreadSnapshot('c-1');
 
       expect(result).toEqual(snapshot);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -514,9 +396,7 @@ describe('AgentApiService', () => {
       );
       const service = makeService();
 
-      await expect(
-        Effect.runPromise(service.getModelsEffect()),
-      ).resolves.toEqual([
+      await expect(service.getModels()).resolves.toEqual([
         {
           category: 'image',
           id: 'model-1',
@@ -537,7 +417,7 @@ describe('AgentApiService', () => {
     it('includes auth token when available', async () => {
       mockJsonApiCollection([], 'thread');
       const service = makeService('my-token');
-      await Effect.runPromise(service.getThreadsEffect());
+      await service.getThreads();
       const call = mockFetch.mock.calls[0];
       const headers = await call[1].headers;
       expect(headers.Authorization).toBe('Bearer my-token');
@@ -546,7 +426,7 @@ describe('AgentApiService', () => {
     it('omits auth when no token', async () => {
       mockJsonApiCollection([], 'thread');
       const service = makeService(null);
-      await Effect.runPromise(service.getThreadsEffect());
+      await service.getThreads();
       const call = mockFetch.mock.calls[0];
       const headers = await call[1].headers;
       expect(headers.Authorization).toBeUndefined();
@@ -566,13 +446,7 @@ describe('AgentApiService', () => {
       const service = makeService();
 
       await expect(
-        Effect.runPromise(
-          service.respondToInputRequestEffect(
-            'thread-1',
-            'input-1',
-            'Use hybrid',
-          ),
-        ),
+        service.respondToInputRequest('thread-1', 'input-1', 'Use hybrid'),
       ).resolves.toEqual(payload);
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -589,7 +463,7 @@ describe('AgentApiService', () => {
       const service = makeService();
 
       await expect(
-        Effect.runPromise(service.getWorkflowExecutionEffect('execution-1')),
+        service.getWorkflowExecution('execution-1'),
       ).resolves.toEqual(execution);
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -604,7 +478,7 @@ describe('AgentApiService', () => {
       const service = makeService();
 
       await expect(
-        Effect.runPromise(service.cancelWorkflowExecutionEffect('execution-1')),
+        service.cancelWorkflowExecution('execution-1'),
       ).resolves.toEqual(execution);
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -628,9 +502,7 @@ describe('AgentApiService', () => {
       );
       const service = makeService();
 
-      const active = await Effect.runPromise(
-        service.getActiveWorkflowExecutionsEffect(),
-      );
+      const active = await service.getActiveWorkflowExecutions();
 
       expect(active.map((execution) => execution.id)).toEqual([
         'execution-1',
@@ -658,7 +530,7 @@ describe('AgentApiService', () => {
       });
       const service = makeService();
 
-      const result = await Effect.runPromise(service.getMentionsEffect());
+      const result = await service.getMentions();
 
       expect(result).toEqual([
         {
@@ -692,7 +564,7 @@ describe('AgentApiService', () => {
       });
       const service = makeService();
 
-      const result = await Effect.runPromise(service.getTeamMentionsEffect());
+      const result = await service.getTeamMentions();
 
       expect(result).toEqual([
         {
@@ -724,9 +596,7 @@ describe('AgentApiService', () => {
       });
       const service = makeService();
 
-      const result = await Effect.runPromise(
-        service.getContentMentionsEffect(),
-      );
+      const result = await service.getContentMentions();
 
       expect(result).toEqual([
         {
@@ -749,11 +619,7 @@ describe('AgentApiService', () => {
       mockError(401, { message: 'Unauthorized' });
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.getTeamMentionsEffect()),
-      );
-
-      expect(error).toEqual(
+      await expect(service.getTeamMentions()).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiRequestError',
           status: 401,
@@ -768,11 +634,7 @@ describe('AgentApiService', () => {
       mockOk({ data: [] });
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.getMentionsEffect()),
-      );
-
-      expect(error).toEqual(
+      await expect(service.getMentions()).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to decode credential mentions',
@@ -784,11 +646,7 @@ describe('AgentApiService', () => {
       mockOk({ data: [] });
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.getTeamMentionsEffect()),
-      );
-
-      expect(error).toEqual(
+      await expect(service.getTeamMentions()).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to decode team mentions',
@@ -800,11 +658,7 @@ describe('AgentApiService', () => {
       mockOk({ data: [] });
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.getContentMentionsEffect()),
-      );
-
-      expect(error).toEqual(
+      await expect(service.getContentMentions()).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to decode content mentions',

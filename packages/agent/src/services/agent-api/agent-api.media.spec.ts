@@ -6,20 +6,19 @@ import {
   mockOk,
 } from '@agent-tests/json-api-fetch.mock';
 import {
-  cloneVoiceEffect,
-  createPromptEffect,
-  generateIngredientEffect,
-  getClonedVoicesEffect,
-  getGeneratedAssetEffect,
-  getModelsEffect,
-  mergeVideosEffect,
-  reframeVideoEffect,
-  resizeVideoEffect,
-  setBrandVoiceDefaultsEffect,
-  uploadAttachmentEffect,
+  cloneVoice,
+  createPrompt,
+  generateIngredient,
+  getClonedVoices,
+  getGeneratedAsset,
+  getModels,
+  mergeVideos,
+  reframeVideo,
+  resizeVideo,
+  setBrandVoiceDefaults,
+  uploadAttachment,
 } from '@genfeedai/agent/services/agent-api/agent-api.media';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeApi(): AgentBaseApiService {
@@ -34,15 +33,15 @@ function lastRequest(): { body?: string; url: string } {
   return { body: call?.[1]?.body as string | undefined, url: call?.[0] };
 }
 
-describe('agent-api.media effects', () => {
+describe('agent-api.media', () => {
   beforeEach(() => {
     mockFetch.mockReset();
   });
 
-  it('getModelsEffect fetches the active model catalog', async () => {
+  it('getModels fetches the active model catalog', async () => {
     mockJsonApiCollection([{ id: 'model-1', name: 'Test Model' }], 'model');
 
-    const result = await Effect.runPromise(getModelsEffect(makeApi()));
+    const result = await getModels(makeApi());
 
     expect(result).toEqual([
       expect.objectContaining({ id: 'model-1', name: 'Test Model' }),
@@ -52,12 +51,10 @@ describe('agent-api.media effects', () => {
     );
   });
 
-  it('mergeVideosEffect posts merge defaults', async () => {
+  it('mergeVideos posts merge defaults', async () => {
     mockOk({ id: 'video-1', status: 'processing' });
 
-    const result = await Effect.runPromise(
-      mergeVideosEffect(makeApi(), ['a', 'b']),
-    );
+    const result = await mergeVideos(makeApi(), ['a', 'b']);
 
     expect(result).toEqual({ id: 'video-1', status: 'processing' });
     const { body, url } = lastRequest();
@@ -72,17 +69,15 @@ describe('agent-api.media effects', () => {
     });
   });
 
-  it('mergeVideosEffect honors explicit options', async () => {
+  it('mergeVideos honors explicit options', async () => {
     mockOk({ id: 'video-1', status: 'processing' });
 
-    await Effect.runPromise(
-      mergeVideosEffect(makeApi(), ['a'], {
-        isMuteVideoAudio: false,
-        isResizeEnabled: true,
-        transition: 'fade',
-        transitionDuration: 1,
-      }),
-    );
+    await mergeVideos(makeApi(), ['a'], {
+      isMuteVideoAudio: false,
+      isResizeEnabled: true,
+      transition: 'fade',
+      transitionDuration: 1,
+    });
 
     expect(JSON.parse(lastRequest().body ?? '{}')).toMatchObject({
       isMuteVideoAudio: false,
@@ -92,12 +87,10 @@ describe('agent-api.media effects', () => {
     });
   });
 
-  it('reframeVideoEffect defaults to portrait and maps prompt to text', async () => {
+  it('reframeVideo defaults to portrait and maps prompt to text', async () => {
     mockOk({ id: 'video-1', status: 'processing' });
 
-    await Effect.runPromise(
-      reframeVideoEffect(makeApi(), 'video-1', { prompt: 'focus on face' }),
-    );
+    await reframeVideo(makeApi(), 'video-1', { prompt: 'focus on face' });
 
     const { body, url } = lastRequest();
     expect(url).toBe('http://api.test/videos/video-1/reframe');
@@ -107,35 +100,31 @@ describe('agent-api.media effects', () => {
     });
   });
 
-  it('resizeVideoEffect posts width and height', async () => {
+  it('resizeVideo posts width and height', async () => {
     mockOk({ id: 'video-1', status: 'processing' });
 
-    await Effect.runPromise(resizeVideoEffect(makeApi(), 'video-1', 720, 1280));
+    await resizeVideo(makeApi(), 'video-1', 720, 1280);
 
     const { body, url } = lastRequest();
     expect(url).toBe('http://api.test/videos/video-1/resize');
     expect(JSON.parse(body ?? '{}')).toEqual({ height: 1280, width: 720 });
   });
 
-  it('createPromptEffect unwraps the created prompt id', async () => {
+  it('createPrompt unwraps the created prompt id', async () => {
     mockOk({ data: { id: 'prompt-1' } });
 
-    const result = await Effect.runPromise(
-      createPromptEffect(makeApi(), {
-        category: 'image',
-        original: 'A red fox',
-      }),
-    );
+    const result = await createPrompt(makeApi(), {
+      category: 'image',
+      original: 'A red fox',
+    });
 
     expect(result).toEqual({ id: 'prompt-1' });
     expect(lastRequest().url).toBe('http://api.test/prompts');
   });
 
-  it('generateIngredientEffect targets images or videos by type', async () => {
+  it('generateIngredient targets images or videos by type', async () => {
     mockOk({ id: 'ing-1', status: 'completed' });
-    await Effect.runPromise(
-      generateIngredientEffect(makeApi(), 'image', { prompt: 'sunset' }),
-    );
+    await generateIngredient(makeApi(), 'image', { prompt: 'sunset' });
     expect(lastRequest().url).toBe('http://api.test/images');
     expect(JSON.parse(lastRequest().body ?? '{}')).toMatchObject({
       prompt: 'sunset',
@@ -143,9 +132,7 @@ describe('agent-api.media effects', () => {
     });
 
     mockOk({ id: 'ing-2', status: 'completed' });
-    await Effect.runPromise(
-      generateIngredientEffect(makeApi(), 'video', { prompt: 'waves' }),
-    );
+    await generateIngredient(makeApi(), 'video', { prompt: 'waves' });
     expect(lastRequest().url).toBe('http://api.test/videos');
   });
 
@@ -161,9 +148,7 @@ describe('agent-api.media effects', () => {
       'ingredient',
     );
 
-    const result = await Effect.runPromise(
-      getGeneratedAssetEffect(makeApi(), 'ing-1'),
-    );
+    const result = await getGeneratedAsset(makeApi(), 'ing-1');
 
     expect(result).toMatchObject({
       id: 'ing-1',
@@ -172,14 +157,12 @@ describe('agent-api.media effects', () => {
     });
   });
 
-  it('cloneVoiceEffect posts the form data to the clone endpoint', async () => {
+  it('cloneVoice posts the form data to the clone endpoint', async () => {
     mockJsonApiResource({ id: 'voice-1', name: 'My Voice' }, 'voice');
     const formData = new FormData();
     formData.append('name', 'My Voice');
 
-    const result = await Effect.runPromise(
-      cloneVoiceEffect(makeApi(), formData),
-    );
+    const result = await cloneVoice(makeApi(), formData);
 
     expect(result).toEqual(
       expect.objectContaining({ id: 'voice-1', name: 'My Voice' }),
@@ -187,23 +170,21 @@ describe('agent-api.media effects', () => {
     expect(lastRequest().url).toBe('http://api.test/voices/clone');
   });
 
-  it('getClonedVoicesEffect fetches the cloned voice collection', async () => {
+  it('getClonedVoices fetches the cloned voice collection', async () => {
     mockJsonApiCollection([{ id: 'voice-1', name: 'My Voice' }], 'voice');
 
-    const result = await Effect.runPromise(getClonedVoicesEffect(makeApi()));
+    const result = await getClonedVoices(makeApi());
 
     expect(result).toHaveLength(1);
     expect(lastRequest().url).toBe('http://api.test/voices/cloned');
   });
 
-  it('setBrandVoiceDefaultsEffect patches the brand agent config', async () => {
+  it('setBrandVoiceDefaults patches the brand agent config', async () => {
     mockOk({ data: null });
 
-    const result = await Effect.runPromise(
-      setBrandVoiceDefaultsEffect(makeApi(), 'brand-1', {
-        defaultVoiceId: 'voice-1',
-      }),
-    );
+    const result = await setBrandVoiceDefaults(makeApi(), 'brand-1', {
+      defaultVoiceId: 'voice-1',
+    });
 
     expect(result).toBeUndefined();
     const { body, url } = lastRequest();
@@ -214,9 +195,9 @@ describe('agent-api.media effects', () => {
   it('surfaces request errors from the API', async () => {
     mockError(500);
 
-    await expect(
-      Effect.runPromise(resizeVideoEffect(makeApi(), 'video-1', 10, 10)),
-    ).rejects.toThrow('Failed to resize video');
+    await expect(resizeVideo(makeApi(), 'video-1', 10, 10)).rejects.toThrow(
+      'Failed to resize video',
+    );
   });
 });
 
@@ -274,7 +255,7 @@ class FakeXMLHttpRequest {
   }
 }
 
-describe('uploadAttachmentEffect', () => {
+describe('uploadAttachment', () => {
   const realXhr = global.XMLHttpRequest;
 
   beforeEach(() => {
@@ -303,9 +284,7 @@ describe('uploadAttachmentEffect', () => {
     const onProgress = vi.fn();
     const file = new File(['binary'], 'image.png', { type: 'image/png' });
 
-    const result = await Effect.runPromise(
-      uploadAttachmentEffect(makeApi(), file, onProgress),
-    );
+    const result = await uploadAttachment(makeApi(), file, onProgress);
 
     expect(result).toEqual({
       ingredientId: 'ing-1',
@@ -332,8 +311,8 @@ describe('uploadAttachmentEffect', () => {
     });
     const file = new File(['binary'], 'image.png', { type: 'image/png' });
 
-    await expect(
-      Effect.runPromise(uploadAttachmentEffect(makeApi(), file)),
-    ).rejects.toThrow('S3 upload failed: 403');
+    await expect(uploadAttachment(makeApi(), file)).rejects.toThrow(
+      'S3 upload failed: 403',
+    );
   });
 });

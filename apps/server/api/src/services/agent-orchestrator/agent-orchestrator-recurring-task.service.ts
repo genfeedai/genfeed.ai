@@ -2,7 +2,6 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -29,8 +28,8 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import {
   AgentRuntimeSessionService,
-  getRuntimeBindingEffect,
-  upsertRuntimeBindingEffect,
+  getRuntimeBinding,
+  upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import {
@@ -90,12 +89,10 @@ export class AgentOrchestratorRecurringTaskService {
     threadId: string;
     userId: string;
   }): Promise<boolean> {
-    const binding = await runEffectPromise(
-      getRuntimeBindingEffect(
-        this.agentRuntimeSessionService,
-        params.threadId,
-        params.organizationId,
-      ),
+    const binding = await getRuntimeBinding(
+      this.agentRuntimeSessionService,
+      params.threadId,
+      params.organizationId,
     );
     const resumeCursor = this.readRecurringTaskResumeCursor(
       binding?.resumeCursor as Record<string, unknown> | undefined,
@@ -155,18 +152,16 @@ export class AgentOrchestratorRecurringTaskService {
     });
 
     if (this.streamPublisher) {
-      await runEffectPromise(
-        this.streamEffects.publishStreamDoneOnlyEffect({
-          content: assistantResponse.content,
-          context,
-          creditsRemaining,
-          creditsUsed: assistantResponse.creditsUsed,
-          metadata: assistantResponse.metadata,
-          startedAt: new Date().toISOString(),
-          threadId: params.threadId,
-          toolCalls: [],
-        }),
-      );
+      await this.streamEffects.publishStreamDoneOnly({
+        content: assistantResponse.content,
+        context,
+        creditsRemaining,
+        creditsUsed: assistantResponse.creditsUsed,
+        metadata: assistantResponse.metadata,
+        startedAt: new Date().toISOString(),
+        threadId: params.threadId,
+        toolCalls: [],
+      });
     }
     return true;
   }
@@ -284,18 +279,16 @@ export class AgentOrchestratorRecurringTaskService {
       userId: params.context.userId,
     });
 
-    await runEffectPromise(
-      this.streamEffects.publishStreamDoneOnlyEffect({
-        content: assistantResponse.content,
-        context: params.context,
-        creditsRemaining,
-        creditsUsed: assistantResponse.creditsUsed,
-        metadata: assistantMetadata,
-        startedAt: params.startedAt,
-        threadId: params.threadId,
-        toolCalls: [],
-      }),
-    );
+    await this.streamEffects.publishStreamDoneOnly({
+      content: assistantResponse.content,
+      context: params.context,
+      creditsRemaining,
+      creditsUsed: assistantResponse.creditsUsed,
+      metadata: assistantMetadata,
+      startedAt: params.startedAt,
+      threadId: params.threadId,
+      toolCalls: [],
+    });
 
     return true;
   }
@@ -310,12 +303,10 @@ export class AgentOrchestratorRecurringTaskService {
     creditsUsed: number;
     metadata: Record<string, unknown>;
   } | null> {
-    const binding = await runEffectPromise(
-      getRuntimeBindingEffect(
-        this.agentRuntimeSessionService,
-        params.threadId,
-        params.context.organizationId,
-      ),
+    const binding = await getRuntimeBinding(
+      this.agentRuntimeSessionService,
+      params.threadId,
+      params.context.organizationId,
     );
     const activeDraft = this.readRecurringTaskResumeCursor(
       binding?.resumeCursor as Record<string, unknown> | undefined,
@@ -504,19 +495,17 @@ export class AgentOrchestratorRecurringTaskService {
       inputRequestId,
     );
 
-    await runEffectPromise(
-      this.streamEffects.publishStreamInputRequestEffect({
-        ...config,
-        context,
-        fieldId,
-        inputRequestId,
-        metadata: {
-          flow: 'recurring_workflow_setup',
-        },
-        runId: context.executionId,
-        threadId,
-      }),
-    );
+    await this.streamEffects.publishStreamInputRequest({
+      ...config,
+      context,
+      fieldId,
+      inputRequestId,
+      metadata: {
+        flow: 'recurring_workflow_setup',
+      },
+      runId: context.executionId,
+      threadId,
+    });
   }
 
   private async persistRecurringTaskDraft(
@@ -536,19 +525,17 @@ export class AgentOrchestratorRecurringTaskService {
       updatedAt: new Date().toISOString(),
     };
 
-    await runEffectPromise(
-      upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
-        organizationId: context.organizationId,
-        resumeCursor,
-        runId: context.executionId,
-        status: completedAt
-          ? 'completed'
-          : awaitingField
-            ? 'waiting_input'
-            : 'running',
-        threadId,
-      }),
-    );
+    await upsertRuntimeBinding(this.agentRuntimeSessionService, {
+      organizationId: context.organizationId,
+      resumeCursor,
+      runId: context.executionId,
+      status: completedAt
+        ? 'completed'
+        : awaitingField
+          ? 'waiting_input'
+          : 'running',
+      threadId,
+    });
   }
 
   private readRecurringTaskResumeCursor(

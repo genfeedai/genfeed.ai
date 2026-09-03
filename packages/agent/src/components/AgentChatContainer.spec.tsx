@@ -12,7 +12,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -407,42 +406,8 @@ const storeState: StoreState = {
   workEvents: [],
 };
 
-const EFFECT_METHOD_MAP = {
-  cancelWorkflowExecution: 'cancelWorkflowExecutionEffect',
-  getActiveWorkflowExecutions: 'getActiveWorkflowExecutionsEffect',
-  getMessagesPage: 'getMessagesPageEffect',
-  respondToInputRequest: 'respondToInputRequestEffect',
-  respondToUiAction: 'respondToUiActionEffect',
-  updateThread: 'updateThreadEffect',
-  uploadAttachment: 'uploadAttachmentEffect',
-} as const;
-
-function withAgentApiEffects<T extends Record<string, unknown>>(
-  apiService: T,
-): T {
-  for (const [method, effectMethod] of Object.entries(EFFECT_METHOD_MAP)) {
-    const handler = apiService[method as keyof T];
-
-    if (typeof handler !== 'function' || effectMethod in apiService) {
-      continue;
-    }
-
-    Object.assign(apiService, {
-      [effectMethod]: vi.fn((...args: unknown[]) =>
-        Effect.promise(() =>
-          Promise.resolve(
-            (handler as (...effectArgs: unknown[]) => unknown)(...args),
-          ),
-        ),
-      ),
-    });
-  }
-
-  return apiService;
-}
-
 function createApiService(overrides: Record<string, unknown> = {}) {
-  return withAgentApiEffects({
+  return {
     cancelWorkflowExecution: vi.fn(),
     getActiveWorkflowExecutions: vi.fn().mockResolvedValue([]),
     getMessagesPage: vi.fn(),
@@ -451,7 +416,7 @@ function createApiService(overrides: Record<string, unknown> = {}) {
     updateThread: vi.fn(),
     uploadAttachment: vi.fn(),
     ...overrides,
-  });
+  };
 }
 
 function buildAssistantMessage(

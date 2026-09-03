@@ -8,7 +8,6 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AgentTransferPresentation } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -108,7 +107,7 @@ export function AgentTransferProvenanceCard({
     setIsRetrying(true);
     setLocalError(null);
     try {
-      await runAgentApiEffect(apiService.retryAgentTransferEffect(transfer.id));
+      await apiService.retryAgentTransfer(transfer.id);
       setLocalStatus('QUEUED');
     } catch (error: unknown) {
       setLocalError(error instanceof Error ? error.message : 'Retry failed.');

@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -223,20 +222,11 @@ function createCreditsInfoApiService() {
 
   return {
     getCreditsInfo,
-    getCreditsInfoEffect: vi.fn((...args: Parameters<typeof getCreditsInfo>) =>
-      Effect.promise(() => getCreditsInfo(...args)),
-    ),
     getInstallReadiness,
-    getInstallReadinessEffect: vi.fn(
-      (...args: Parameters<typeof getInstallReadiness>) =>
-        Effect.promise(() => getInstallReadiness(...args)),
-    ),
     getToken,
-    updateThreadEffect: vi.fn(() =>
-      Effect.succeed({
-        id: 'thread-123',
-      }),
-    ),
+    updateThread: vi.fn().mockResolvedValue({
+      id: 'thread-123',
+    }),
   };
 }
 

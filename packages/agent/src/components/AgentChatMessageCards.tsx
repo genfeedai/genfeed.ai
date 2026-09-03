@@ -2,7 +2,6 @@ import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMedi
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
@@ -187,11 +186,9 @@ export function ContentPreviewCard({
     const reconcile = async () => {
       attempts += 1;
       try {
-        const asset = await runAgentApiEffect(
-          apiService.getGeneratedAssetEffect(
-            action.assetId as string,
-            controller.signal,
-          ),
+        const asset = await apiService.getGeneratedAsset(
+          action.assetId as string,
+          controller.signal,
         );
         setReconciledStatus(asset.status);
         if (asset.url) {

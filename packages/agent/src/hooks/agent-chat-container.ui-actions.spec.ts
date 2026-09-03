@@ -5,7 +5,6 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandleUiActionDeps } from './agent-chat-container.ui-actions';
 import { handleAgentUiAction } from './agent-chat-container.ui-actions';
@@ -58,7 +57,7 @@ function makeDeps(
     activeUiAction: null,
     addMessage: vi.fn(),
     apiService: {
-      respondToUiActionEffect: vi.fn(() => Effect.succeed(makeResponse())),
+      respondToUiAction: vi.fn().mockResolvedValue(makeResponse()),
     } as unknown as AgentApiService,
     draftPlanModeEnabled: false,
     followLatestTurn: vi.fn(),
@@ -183,22 +182,22 @@ describe('handleAgentUiAction', () => {
     await handleAgentUiAction('approve_plan', undefined, deps);
 
     expect(deps.setError).not.toHaveBeenCalled();
-    expect(deps.apiService.respondToUiActionEffect).not.toHaveBeenCalled();
+    expect(deps.apiService.respondToUiAction).not.toHaveBeenCalled();
   });
 
   it('runs a thread-bound action and applies the response', async () => {
-    const respondToUiActionEffect = vi.fn(() =>
-      Effect.succeed(makeResponse({ creditsRemaining: 42 })),
-    );
+    const respondToUiAction = vi
+      .fn()
+      .mockResolvedValue(makeResponse({ creditsRemaining: 42 }));
     const deps = makeDeps({
       apiService: {
-        respondToUiActionEffect,
+        respondToUiAction,
       } as unknown as AgentApiService,
     });
 
     await handleAgentUiAction('start_interview', { step: 1 }, deps);
 
-    expect(respondToUiActionEffect).toHaveBeenCalledWith(
+    expect(respondToUiAction).toHaveBeenCalledWith(
       'thread-1',
       'start_interview',
       { step: 1 },
@@ -258,9 +257,9 @@ describe('handleAgentUiAction', () => {
   it('switches the active thread when the response lands elsewhere', async () => {
     const deps = makeDeps({
       apiService: {
-        respondToUiActionEffect: vi.fn(() =>
-          Effect.succeed(makeResponse({ threadId: 'thread-2' })),
-        ),
+        respondToUiAction: vi
+          .fn()
+          .mockResolvedValue(makeResponse({ threadId: 'thread-2' })),
       } as unknown as AgentApiService,
     });
 
@@ -293,9 +292,9 @@ describe('handleAgentUiAction', () => {
     seedUiAction('failed-source-action');
     const deps = makeDeps({
       apiService: {
-        respondToUiActionEffect: vi.fn(() =>
-          Effect.fail(new Error('context conflict')),
-        ),
+        respondToUiAction: vi
+          .fn()
+          .mockRejectedValue(new Error('context conflict')),
       } as unknown as AgentApiService,
     });
 

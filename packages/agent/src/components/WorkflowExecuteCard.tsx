@@ -4,7 +4,6 @@ import type {
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -100,9 +99,8 @@ export function WorkflowExecuteCard({
 
     const controller = new AbortController();
 
-    void runAgentApiEffect(
-      apiService.getWorkflowInterfaceEffect(workflowId, controller.signal),
-    )
+    void apiService
+      .getWorkflowInterface(workflowId, controller.signal)
       .then((schema) => {
         setInterfaceState({
           formValues: Object.fromEntries(
@@ -199,18 +197,16 @@ export function WorkflowExecuteCard({
     abortRef.current = controller;
 
     try {
-      const result = await runAgentApiEffect(
-        apiService.triggerWorkflowEffect(
-          workflowId,
-          sanitizeInputValues(formValues),
-          controller.signal,
-          activeThreadId && activeThread?.contextVersion !== undefined
-            ? {
-                expectedContextVersion: activeThread.contextVersion,
-                threadId: activeThreadId,
-              }
-            : undefined,
-        ),
+      const result = await apiService.triggerWorkflow(
+        workflowId,
+        sanitizeInputValues(formValues),
+        controller.signal,
+        activeThreadId && activeThread?.contextVersion !== undefined
+          ? {
+              expectedContextVersion: activeThread.contextVersion,
+              threadId: activeThreadId,
+            }
+          : undefined,
       );
       setExecutionId(result.id);
       setStatus('done');

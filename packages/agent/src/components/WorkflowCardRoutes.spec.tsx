@@ -5,25 +5,20 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function createApiServiceMock(): AgentApiService {
   return {
-    createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
-    generateIngredientEffect: vi.fn(() => Effect.succeed({ id: 'video-123' })),
-    getWorkflowInterfaceEffect: vi.fn(() =>
-      Effect.succeed({
-        inputs: {},
-        outputs: {},
-      }),
-    ),
-    mergeVideosEffect: vi.fn(() => Effect.succeed({ id: 'merged-video-123' })),
-    reframeVideoEffect: vi.fn(() =>
-      Effect.succeed({ id: 'portrait-video-123' }),
-    ),
-    resizeVideoEffect: vi.fn(() => Effect.succeed({ id: 'resized-video-123' })),
-    triggerWorkflowEffect: vi.fn(() => Effect.succeed({ id: 'exec-123' })),
+    createPrompt: vi.fn().mockResolvedValue({ id: 'prompt-123' }),
+    generateIngredient: vi.fn().mockResolvedValue({ id: 'video-123' }),
+    getWorkflowInterface: vi.fn().mockResolvedValue({
+      inputs: {},
+      outputs: {},
+    }),
+    mergeVideos: vi.fn().mockResolvedValue({ id: 'merged-video-123' }),
+    reframeVideo: vi.fn().mockResolvedValue({ id: 'portrait-video-123' }),
+    resizeVideo: vi.fn().mockResolvedValue({ id: 'resized-video-123' }),
+    triggerWorkflow: vi.fn().mockResolvedValue({ id: 'exec-123' }),
   } as unknown as AgentApiService;
 }
 

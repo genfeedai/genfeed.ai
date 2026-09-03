@@ -1,5 +1,4 @@
 import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
@@ -36,11 +35,9 @@ export function AgentStrategyHeader({
             abortRef.current?.abort();
             abortRef.current = new AbortController();
             try {
-              const updated = await runAgentApiEffect(
-                apiService.toggleStrategyEffect(
-                  strategy.id,
-                  abortRef.current.signal,
-                ),
+              const updated = await apiService.toggleStrategy(
+                strategy.id,
+                abortRef.current.signal,
               );
               setStrategy(updated);
             } catch {

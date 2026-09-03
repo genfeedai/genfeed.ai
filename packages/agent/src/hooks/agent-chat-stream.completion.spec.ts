@@ -2,21 +2,18 @@ import { resolveStreamFromMessages } from '@genfeedai/agent/hooks/agent-chat-str
 import { STREAM_COMPLETION_GRACE_PERIOD_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
-import { Effect } from 'effect';
 import { expect, it, vi } from 'vitest';
 
 it('emits a structured stream-recovery timeout after durable acknowledgement', async () => {
   const setError = vi.fn();
   const deps = {
     apiService: {
-      getMessagesEffect: vi.fn(() => Effect.succeed([])),
-      getWorkflowExecutionEffect: vi.fn(() =>
-        Effect.succeed({
-          error: null,
-          id: 'execution-1',
-          status: WorkflowExecutionStatus.FAILED,
-        }),
-      ),
+      getMessages: vi.fn().mockResolvedValue([]),
+      getWorkflowExecution: vi.fn().mockResolvedValue({
+        error: null,
+        id: 'execution-1',
+        status: WorkflowExecutionStatus.FAILED,
+      }),
     },
     cleanupSubscriptions: vi.fn(),
     clearCompletionWatchdog: vi.fn(),
@@ -52,13 +49,11 @@ it('emits a structured stream-recovery timeout after durable acknowledgement', a
 it('keeps reconciling a durably queued run after the stream grace period', async () => {
   const deps = {
     apiService: {
-      getMessagesEffect: vi.fn(() => Effect.succeed([])),
-      getWorkflowExecutionEffect: vi.fn(() =>
-        Effect.succeed({
-          id: 'execution-1',
-          status: WorkflowExecutionStatus.PENDING,
-        }),
-      ),
+      getMessages: vi.fn().mockResolvedValue([]),
+      getWorkflowExecution: vi.fn().mockResolvedValue({
+        id: 'execution-1',
+        status: WorkflowExecutionStatus.PENDING,
+      }),
     },
     cleanupSubscriptions: vi.fn(),
     clearCompletionWatchdog: vi.fn(),

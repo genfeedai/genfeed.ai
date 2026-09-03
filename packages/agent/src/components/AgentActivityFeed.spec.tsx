@@ -6,7 +6,6 @@ import type {
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const NOW = new Date('2026-01-10T12:00:00.000Z');
@@ -31,7 +30,7 @@ function makeStrategy(runHistory: AgentStrategyRun[]): AgentStrategy {
 
 function makeApi(strategies: AgentStrategy[]): AgentStrategyApiService {
   return {
-    getStrategiesEffect: vi.fn(() => Effect.succeed(strategies)),
+    getStrategies: vi.fn().mockResolvedValue(strategies),
   } as unknown as AgentStrategyApiService;
 }
 
@@ -66,7 +65,7 @@ describe('AgentActivityFeed', () => {
     await waitFor(() => {
       expect(screen.getByText('Recent Activity')).toBeInTheDocument();
     });
-    expect(api.getStrategiesEffect).not.toHaveBeenCalled();
+    expect(api.getStrategies).not.toHaveBeenCalled();
   });
 
   it('records a load failure in the store', async () => {
@@ -74,7 +73,7 @@ describe('AgentActivityFeed', () => {
       <AgentActivityFeed
         apiService={
           {
-            getStrategiesEffect: vi.fn(() => Effect.fail(new Error('nope'))),
+            getStrategies: vi.fn().mockRejectedValue(new Error('nope')),
           } as unknown as AgentStrategyApiService
         }
       />,

@@ -1,6 +1,5 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -102,21 +101,19 @@ export class AgentOrchestratorBatchService {
       threadId: params.threadId,
       toolName,
     });
-    await runEffectPromise(
-      this.streamEffects.publishStreamingToolStartedEffect({
-        context: params.context,
-        detail: `Starting ${toolName}`,
-        label: toolName,
-        parameters: toolParams,
-        progress: 10,
-        startedAt: startedAtIso,
-        threadId: params.threadId,
-        toolCallId,
-        toolName,
-        workEventDetail: `Creating ${draft.count} post${draft.count === 1 ? '' : 's'} and streaming drafts as they finish.`,
-        workEventLabel: 'Batch generation',
-      }),
-    );
+    await this.streamEffects.publishStreamingToolStarted({
+      context: params.context,
+      detail: `Starting ${toolName}`,
+      label: toolName,
+      parameters: toolParams,
+      progress: 10,
+      startedAt: startedAtIso,
+      threadId: params.threadId,
+      toolCallId,
+      toolName,
+      workEventDetail: `Creating ${draft.count} post${draft.count === 1 ? '' : 's'} and streaming drafts as they finish.`,
+      workEventLabel: 'Batch generation',
+    });
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolParams,
@@ -164,30 +161,26 @@ export class AgentOrchestratorBatchService {
       threadId: params.threadId,
       toolName,
     });
-    await runEffectPromise(
-      this.streamEffects.publishStreamingToolCompletedEffect({
-        context: params.context,
-        creditsUsed: summary.creditsUsed,
-        detail: summary.error ?? summary.resultSummary,
-        durationMs,
-        error: summary.error,
-        label: toolName,
-        parameters: toolParams,
-        resultSummary: summary.resultSummary,
-        status: summary.status,
-        threadId: params.threadId,
-        toolCallId,
-        toolName,
-      }),
-    );
+    await this.streamEffects.publishStreamingToolCompleted({
+      context: params.context,
+      creditsUsed: summary.creditsUsed,
+      detail: summary.error ?? summary.resultSummary,
+      durationMs,
+      error: summary.error,
+      label: toolName,
+      parameters: toolParams,
+      resultSummary: summary.resultSummary,
+      status: summary.status,
+      threadId: params.threadId,
+      toolCallId,
+      toolName,
+    });
 
     if (!result.success) {
-      await runEffectPromise(
-        this.streamEffects.publishStreamErrorOnlyEffect(
-          params.context,
-          params.threadId,
-          result.error ?? 'Batch generation failed',
-        ),
+      await this.streamEffects.publishStreamErrorOnly(
+        params.context,
+        params.threadId,
+        result.error ?? 'Batch generation failed',
       );
       return true;
     }
@@ -264,18 +257,16 @@ export class AgentOrchestratorBatchService {
       runId: params.context.executionId,
       threadId: params.threadId,
     });
-    await runEffectPromise(
-      this.streamEffects.publishStreamDoneOnlyEffect({
-        content: fullContent,
-        context: params.context,
-        creditsRemaining,
-        creditsUsed: result.creditsUsed ?? 0,
-        metadata: assistantMetadata,
-        startedAt: params.startedAt,
-        threadId: params.threadId,
-        toolCalls: [summary],
-      }),
-    );
+    await this.streamEffects.publishStreamDoneOnly({
+      content: fullContent,
+      context: params.context,
+      creditsRemaining,
+      creditsUsed: result.creditsUsed ?? 0,
+      metadata: assistantMetadata,
+      startedAt: params.startedAt,
+      threadId: params.threadId,
+      toolCalls: [summary],
+    });
 
     return true;
   }

@@ -3,7 +3,6 @@ import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const NOW = new Date('2026-01-10T12:00:00.000Z');
@@ -27,16 +26,16 @@ function makeStrategy(overrides: Partial<AgentStrategy> = {}): AgentStrategy {
 }
 
 interface ApiOverrides {
-  runNowEffect?: ReturnType<typeof vi.fn>;
-  updateStrategyEffect?: ReturnType<typeof vi.fn>;
+  runNow?: ReturnType<typeof vi.fn>;
+  updateStrategy?: ReturnType<typeof vi.fn>;
 }
 
 function makeApi(overrides: ApiOverrides = {}): AgentStrategyApiService {
   return {
-    runNowEffect: vi.fn(() => Effect.succeed(makeStrategy())),
-    updateStrategyEffect: vi.fn(() =>
-      Effect.succeed(makeStrategy({ isEnabled: false })),
-    ),
+    runNow: vi.fn().mockResolvedValue(makeStrategy()),
+    updateStrategy: vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ isEnabled: false })),
     ...overrides,
   } as unknown as AgentStrategyApiService;
 }
@@ -207,21 +206,21 @@ describe('AgentStrategyStatus', () => {
   });
 
   it('toggles the enabled flag through the api', async () => {
-    const updateStrategyEffect = vi.fn(() =>
-      Effect.succeed(makeStrategy({ isEnabled: false })),
-    );
+    const updateStrategy = vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ isEnabled: false }));
     useAgentStrategyStore.setState({ strategy: makeStrategy() });
 
     const { container } = render(
-      <AgentStrategyStatus apiService={makeApi({ updateStrategyEffect })} />,
+      <AgentStrategyStatus apiService={makeApi({ updateStrategy })} />,
     );
 
     fireEvent.click(container.querySelector('.h-5.w-9') as HTMLElement);
 
     await waitFor(() => {
-      expect(updateStrategyEffect).toHaveBeenCalled();
+      expect(updateStrategy).toHaveBeenCalled();
     });
-    expect(updateStrategyEffect.mock.calls[0]?.[1]).toEqual({
+    expect(updateStrategy.mock.calls[0]?.[1]).toEqual({
       isEnabled: false,
     });
     await waitFor(() => {
@@ -230,44 +229,44 @@ describe('AgentStrategyStatus', () => {
   });
 
   it('swallows a failed toggle', async () => {
-    const updateStrategyEffect = vi.fn(() => Effect.fail(new Error('nope')));
+    const updateStrategy = vi.fn().mockRejectedValue(new Error('nope'));
     useAgentStrategyStore.setState({ strategy: makeStrategy() });
 
     const { container } = render(
-      <AgentStrategyStatus apiService={makeApi({ updateStrategyEffect })} />,
+      <AgentStrategyStatus apiService={makeApi({ updateStrategy })} />,
     );
 
     fireEvent.click(container.querySelector('.h-5.w-9') as HTMLElement);
 
     await waitFor(() => {
-      expect(updateStrategyEffect).toHaveBeenCalled();
+      expect(updateStrategy).toHaveBeenCalled();
     });
     expect(useAgentStrategyStore.getState().strategy?.isEnabled).toBe(true);
   });
 
   it('triggers an immediate run', async () => {
-    const runNowEffect = vi.fn(() => Effect.succeed(makeStrategy()));
+    const runNow = vi.fn().mockResolvedValue(makeStrategy());
     useAgentStrategyStore.setState({ strategy: makeStrategy() });
 
-    render(<AgentStrategyStatus apiService={makeApi({ runNowEffect })} />);
+    render(<AgentStrategyStatus apiService={makeApi({ runNow })} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Run Now' }));
 
     await waitFor(() => {
-      expect(runNowEffect).toHaveBeenCalledWith('s-1', expect.anything());
+      expect(runNow).toHaveBeenCalledWith('s-1', expect.anything());
     });
   });
 
   it('swallows a failed immediate run', async () => {
-    const runNowEffect = vi.fn(() => Effect.fail(new Error('nope')));
+    const runNow = vi.fn().mockRejectedValue(new Error('nope'));
     useAgentStrategyStore.setState({ strategy: makeStrategy() });
 
-    render(<AgentStrategyStatus apiService={makeApi({ runNowEffect })} />);
+    render(<AgentStrategyStatus apiService={makeApi({ runNow })} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Run Now' }));
 
     await waitFor(() => {
-      expect(runNowEffect).toHaveBeenCalled();
+      expect(runNow).toHaveBeenCalled();
     });
   });
 });

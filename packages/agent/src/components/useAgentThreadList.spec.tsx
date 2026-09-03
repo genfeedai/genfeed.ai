@@ -3,7 +3,6 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentThreadList } from './useAgentThreadList';
 
@@ -28,27 +27,25 @@ interface ApiOverrides {
 
 function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   return {
-    archiveAllThreadsEffect: vi.fn(() => Effect.succeed(undefined)),
-    archiveThreadEffect: vi.fn((id: string) =>
-      Effect.succeed(makeThread(id, { status: AgentThreadStatus.ARCHIVED })),
+    archiveAllThreads: vi.fn().mockResolvedValue(undefined),
+    archiveThread: vi.fn((id: string) =>
+      Promise.resolve(makeThread(id, { status: AgentThreadStatus.ARCHIVED })),
     ),
-    branchThreadEffect: vi.fn(() => Effect.succeed(makeThread('branched-1'))),
-    getMessagesEffect: vi.fn(() => Effect.succeed([])),
-    getThreadEffect: vi.fn((id: string) =>
-      Effect.succeed(makeThread(id, { systemPrompt: 'be nice' } as never)),
+    branchThread: vi.fn(() => Promise.resolve(makeThread('branched-1'))),
+    getMessages: vi.fn().mockResolvedValue([]),
+    getThread: vi.fn((id: string) =>
+      Promise.resolve(makeThread(id, { systemPrompt: 'be nice' } as never)),
     ),
-    getThreadsEffect: vi.fn(() => Effect.succeed([makeThread('t-1')])),
-    pinThreadEffect: vi.fn((id: string) =>
-      Effect.succeed(makeThread(id, { isPinned: true })),
+    getThreads: vi.fn(() => Promise.resolve([makeThread('t-1')])),
+    pinThread: vi.fn((id: string) =>
+      Promise.resolve(makeThread(id, { isPinned: true })),
     ),
-    unarchiveThreadEffect: vi.fn((id: string) =>
-      Effect.succeed(makeThread(id)),
+    unarchiveThread: vi.fn((id: string) => Promise.resolve(makeThread(id))),
+    unpinThread: vi.fn((id: string) =>
+      Promise.resolve(makeThread(id, { isPinned: false })),
     ),
-    unpinThreadEffect: vi.fn((id: string) =>
-      Effect.succeed(makeThread(id, { isPinned: false })),
-    ),
-    updateThreadEffect: vi.fn((id: string, patch: { title: string }) =>
-      Effect.succeed(makeThread(id, { title: patch.title })),
+    updateThread: vi.fn((id: string, patch: { title: string }) =>
+      Promise.resolve(makeThread(id, { title: patch.title })),
     ),
     ...overrides,
   } as unknown as AgentApiService;
@@ -81,12 +78,12 @@ describe('useAgentThreadList', () => {
 
   it('loads threads on mount and splits pinned from regular', async () => {
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn(() =>
-        Effect.succeed([
+      getThreads: vi
+        .fn()
+        .mockResolvedValue([
           makeThread('t-1', { isPinned: true }),
           makeThread('t-2'),
         ]),
-      ),
     });
 
     const { result } = renderThreadList(apiService);
@@ -100,7 +97,7 @@ describe('useAgentThreadList', () => {
 
   it('shows the empty state when the API returns nothing', async () => {
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn(() => Effect.succeed([])),
+      getThreads: vi.fn().mockResolvedValue([]),
     });
 
     const { result } = renderThreadList(apiService);
@@ -119,7 +116,7 @@ describe('useAgentThreadList', () => {
       },
     ];
     const apiService = makeApiService({
-      getMessagesEffect: vi.fn(() => Effect.succeed(messages)),
+      getMessages: vi.fn().mockResolvedValue(messages),
     });
     const { result } = renderThreadList(apiService);
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
@@ -147,7 +144,7 @@ describe('useAgentThreadList', () => {
     });
 
     expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/t-1');
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
     expect(useAgentChatStore.getState().activeThreadId).toBeNull();
   });
 
@@ -189,7 +186,7 @@ describe('useAgentThreadList', () => {
       'prefetched reply',
     );
     expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/t-1');
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
   it('handleSelect is a no-op for the already-active thread', async () => {
@@ -204,7 +201,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleSelect(makeThread('t-1'));
     });
 
-    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
   it('archives an inactive thread and removes it from the list', async () => {
@@ -216,7 +213,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleArchiveFromMenu(makeThread('t-1'));
     });
 
-    expect(apiService.archiveThreadEffect).toHaveBeenCalledWith('t-1');
+    expect(apiService.archiveThread).toHaveBeenCalledWith('t-1');
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
 
@@ -248,7 +245,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleUnarchiveFromMenu(makeThread('t-1'));
     });
 
-    expect(apiService.unarchiveThreadEffect).toHaveBeenCalledWith('t-1');
+    expect(apiService.unarchiveThread).toHaveBeenCalledWith('t-1');
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
   });
 
@@ -262,7 +259,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleForkThread(makeThread('t-1'));
     });
 
-    expect(apiService.branchThreadEffect).toHaveBeenCalledWith('t-1');
+    expect(apiService.branchThread).toHaveBeenCalledWith('t-1');
     expect(onNavigate).toHaveBeenCalledWith('/agent/branched-1');
     expect(
       useAgentChatStore.getState().threads.map((thread) => thread.id),
@@ -289,7 +286,7 @@ describe('useAgentThreadList', () => {
     await act(async () => {
       await result.current.handleTogglePinned(makeThread('t-1'));
     });
-    expect(apiService.pinThreadEffect).toHaveBeenCalledWith('t-1');
+    expect(apiService.pinThread).toHaveBeenCalledWith('t-1');
     expect(useAgentChatStore.getState().threads[0]?.isPinned).toBe(true);
 
     await act(async () => {
@@ -297,7 +294,7 @@ describe('useAgentThreadList', () => {
         makeThread('t-1', { isPinned: true }),
       );
     });
-    expect(apiService.unpinThreadEffect).toHaveBeenCalledWith('t-1');
+    expect(apiService.unpinThread).toHaveBeenCalledWith('t-1');
   });
 
   it('archive all clears the list and navigates when the active thread dies', async () => {
@@ -313,7 +310,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleArchiveAllThreads();
     });
 
-    expect(apiService.archiveAllThreadsEffect).toHaveBeenCalled();
+    expect(apiService.archiveAllThreads).toHaveBeenCalled();
     expect(useAgentChatStore.getState().threads).toHaveLength(0);
     expect(onNavigate).toHaveBeenCalledWith('/agent/new');
   });
@@ -336,7 +333,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleSubmitRename(makeThread('t-1'));
     });
 
-    expect(apiService.updateThreadEffect).toHaveBeenCalledWith('t-1', {
+    expect(apiService.updateThread).toHaveBeenCalledWith('t-1', {
       title: 'Better title',
     });
     expect(useAgentChatStore.getState().threads[0]?.title).toBe('Better title');
@@ -355,7 +352,7 @@ describe('useAgentThreadList', () => {
       await result.current.handleSubmitRename(makeThread('t-1'));
     });
 
-    expect(apiService.updateThreadEffect).not.toHaveBeenCalled();
+    expect(apiService.updateThread).not.toHaveBeenCalled();
   });
 
   it('handleToggleView flips between active and archived', async () => {
@@ -383,14 +380,12 @@ describe('useAgentThreadList', () => {
     });
 
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn(() =>
-        Effect.succeed([
-          makeThread('archived-open', {
-            brandId: 'brand-1',
-            status: AgentThreadStatus.ARCHIVED,
-          }),
-        ]),
-      ),
+      getThreads: vi.fn().mockResolvedValue([
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ]),
     });
 
     const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
@@ -418,16 +413,16 @@ describe('useAgentThreadList', () => {
     });
 
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn((params?: { status?: string }) => {
+      getThreads: vi.fn((params?: { status?: string }) => {
         if (params?.status === AgentThreadStatus.ARCHIVED) {
-          return Effect.succeed([
+          return Promise.resolve([
             makeThread('archived-open', {
               brandId: 'brand-1',
               status: AgentThreadStatus.ARCHIVED,
             }),
           ]);
         }
-        return Effect.succeed([
+        return Promise.resolve([
           makeThread('active-1', {
             brandId: 'brand-1',
             status: AgentThreadStatus.ACTIVE,
@@ -469,8 +464,8 @@ describe('useAgentThreadList', () => {
     });
 
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn((params?: { status?: string }) =>
-        Effect.succeed(
+      getThreads: vi.fn((params?: { status?: string }) =>
+        Promise.resolve(
           params?.status === AgentThreadStatus.ARCHIVED
             ? [
                 makeThread('archived-open', {
@@ -524,8 +519,8 @@ describe('useAgentThreadList', () => {
     });
 
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn((params?: { status?: string }) =>
-        Effect.succeed(
+      getThreads: vi.fn((params?: { status?: string }) =>
+        Promise.resolve(
           params?.status === AgentThreadStatus.ARCHIVED
             ? [
                 makeThread('archived-open', {
@@ -562,12 +557,12 @@ describe('useAgentThreadList', () => {
   });
 
   it('shows a store upsert title immediately without refetching conversations', async () => {
-    const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
-    const apiService = makeApiService({ getThreadsEffect });
+    const getThreads = vi.fn().mockResolvedValue([makeThread('t-1')]);
+    const apiService = makeApiService({ getThreads });
 
     const { result } = renderThreadList(apiService);
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
 
     act(() => {
       useAgentChatStore.getState().upsertThread(
@@ -582,27 +577,25 @@ describe('useAgentThreadList', () => {
     expect(result.current.threads.map((thread) => thread.id)).toContain(
       't-send',
     );
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
   });
 
   it('reorders the list from a store finalize write without refetching', async () => {
-    const getThreadsEffect = vi.fn(() =>
-      Effect.succeed([
-        makeThread('stale', {
-          title: 'Stale',
-          updatedAt: '2026-03-20T08:00:00.000Z',
-        }),
-        makeThread('fresh', {
-          title: 'Fresh',
-          updatedAt: '2026-03-20T11:00:00.000Z',
-        }),
-      ]),
-    );
-    const apiService = makeApiService({ getThreadsEffect });
+    const getThreads = vi.fn().mockResolvedValue([
+      makeThread('stale', {
+        title: 'Stale',
+        updatedAt: '2026-03-20T08:00:00.000Z',
+      }),
+      makeThread('fresh', {
+        title: 'Fresh',
+        updatedAt: '2026-03-20T11:00:00.000Z',
+      }),
+    ]);
+    const apiService = makeApiService({ getThreads });
 
     const { result } = renderThreadList(apiService);
     await waitFor(() => expect(result.current.threads).toHaveLength(2));
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
 
     act(() => {
       useAgentChatStore.getState().updateThread('stale', {
@@ -615,16 +608,16 @@ describe('useAgentThreadList', () => {
       'stale',
       'fresh',
     ]);
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
   });
 
   it('ignores the retired window refresh event and only refetches from handleRefresh', async () => {
-    const getThreadsEffect = vi.fn(() => Effect.succeed([makeThread('t-1')]));
-    const apiService = makeApiService({ getThreadsEffect });
+    const getThreads = vi.fn().mockResolvedValue([makeThread('t-1')]);
+    const apiService = makeApiService({ getThreads });
 
     const { result } = renderThreadList(apiService);
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
 
     act(() => {
       window.dispatchEvent(new Event('agent:threads:refresh'));
@@ -637,17 +630,17 @@ describe('useAgentThreadList', () => {
           setTimeout(resolve, 200);
         }),
     );
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       await result.current.handleRefresh();
     });
-    expect(getThreadsEffect).toHaveBeenCalledTimes(2);
+    expect(getThreads).toHaveBeenCalledTimes(2);
   });
 
   it('surfaces load failures with a retry state', async () => {
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn(() => Effect.fail(new Error('network down'))),
+      getThreads: vi.fn().mockRejectedValue(new Error('network down')),
     });
 
     const { result } = renderThreadList(apiService);
@@ -660,12 +653,12 @@ describe('useAgentThreadList', () => {
 
   it('brand scope filters out threads from other brands', async () => {
     const apiService = makeApiService({
-      getThreadsEffect: vi.fn(() =>
-        Effect.succeed([
+      getThreads: vi
+        .fn()
+        .mockResolvedValue([
           makeThread('t-1', { brandId: 'brand-1' } as never),
           makeThread('t-2', { brandId: 'brand-2' } as never),
         ]),
-      ),
     });
 
     const { result } = renderThreadList(apiService, { brandId: 'brand-1' });

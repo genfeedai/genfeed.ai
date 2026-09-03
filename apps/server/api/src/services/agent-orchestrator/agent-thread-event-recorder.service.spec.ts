@@ -1,7 +1,6 @@
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { Effect } from 'effect';
 
 const context: AgentChatContext = {
   organizationId: 'org-1',
@@ -9,7 +8,7 @@ const context: AgentChatContext = {
 };
 
 const mockAgentThreadEngineService = {
-  appendEventEffect: vi.fn(() => Effect.void),
+  appendEvent: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('AgentThreadEventRecorderService', () => {
@@ -35,12 +34,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'turn-requested:thread-1:run-1',
           organizationId: 'org-1',
@@ -61,9 +56,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -77,12 +70,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'assistant-finalized:thread-1:run-1',
           organizationId: 'org-1',
@@ -103,9 +92,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
     it('uses an idempotency key for retries without changing run attribution', async () => {
@@ -117,9 +104,7 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'assistant-finalized:thread-1:brand-confirmation-1',
           runId: undefined,
@@ -144,12 +129,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'plan-upserted:thread-1:plan-1:run-1',
           organizationId: 'org-1',
@@ -169,9 +150,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -185,12 +164,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'turn-started:thread-1:run-1',
           organizationId: 'org-1',
@@ -210,9 +185,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -227,12 +200,8 @@ describe('AgentThreadEventRecorderService', () => {
         toolName: 'search',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'tool-started:thread-1:call-1:run-1',
           organizationId: 'org-1',
@@ -253,9 +222,7 @@ describe('AgentThreadEventRecorderService', () => {
           toolName: 'search',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -271,12 +238,8 @@ describe('AgentThreadEventRecorderService', () => {
         toolName: 'search',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'tool-completed:thread-1:call-1:run-1',
           organizationId: 'org-1',
@@ -298,9 +261,7 @@ describe('AgentThreadEventRecorderService', () => {
           toolName: 'search',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -314,12 +275,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'ui-blocks:thread-1:run-1:add',
           organizationId: 'org-1',
@@ -339,9 +296,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
@@ -354,12 +309,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'run-completed:thread-1:run-1',
           organizationId: 'org-1',
@@ -384,9 +335,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
     it('uses an idempotency key for retries without changing run attribution', async () => {
@@ -397,9 +346,7 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'run-completed:thread-1:brand-confirmation-1',
           runId: undefined,
@@ -417,12 +364,8 @@ describe('AgentThreadEventRecorderService', () => {
         threadId: 'thread-1',
       });
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           commandId: 'run-failed:thread-1:run-1',
           organizationId: 'org-1',
@@ -447,9 +390,7 @@ describe('AgentThreadEventRecorderService', () => {
           threadId: 'thread-1',
         }),
       ).resolves.toBeUndefined();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 });

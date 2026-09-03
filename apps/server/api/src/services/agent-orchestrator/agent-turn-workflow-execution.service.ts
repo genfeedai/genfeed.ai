@@ -7,7 +7,6 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -34,7 +33,7 @@ import {
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import {
   AgentRuntimeSessionService,
-  upsertRuntimeBindingEffect,
+  upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -468,15 +467,13 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       source: request.source,
       threadId: state.threadId,
     });
-    await runEffectPromise(
-      upsertRuntimeBindingEffect(this.runtimeSessionService, {
-        model,
-        organizationId: state.organizationId,
-        runId: state.executionId,
-        status: 'running',
-        threadId: state.threadId,
-      }),
-    );
+    await upsertRuntimeBinding(this.runtimeSessionService, {
+      model,
+      organizationId: state.organizationId,
+      runId: state.executionId,
+      status: 'running',
+      threadId: state.threadId,
+    });
     await this.agentMessagesService.addMessage({
       artifactReferences: request.artifactReferences,
       brandId: scope.brandId,
@@ -681,14 +678,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       organizationId: params.organizationId,
       userId: params.userId,
     };
-    await runEffectPromise(
-      this.streamEffects.publishStreamFailureEffect({
-        context,
-        error: params.error,
-        failRun: false,
-        threadId: params.threadId,
-      }),
-    );
+    await this.streamEffects.publishStreamFailure({
+      context,
+      error: params.error,
+      failRun: false,
+      threadId: params.threadId,
+    });
   }
 
   private async readCompletedTurn(

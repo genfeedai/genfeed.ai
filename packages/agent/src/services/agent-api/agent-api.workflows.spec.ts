@@ -1,11 +1,10 @@
 import { mockFetch, mockOk } from '@agent-tests/json-api-fetch.mock';
 import {
-  createManualReviewBatchEffect,
-  getWorkflowInterfaceEffect,
-  triggerWorkflowEffect,
+  createManualReviewBatch,
+  getWorkflowInterface,
+  triggerWorkflow,
 } from '@genfeedai/agent/services/agent-api/agent-api.workflows';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeApi(): AgentBaseApiService {
@@ -15,12 +14,12 @@ function makeApi(): AgentBaseApiService {
   });
 }
 
-describe('agent-api.workflows effects', () => {
+describe('agent-api.workflows', () => {
   beforeEach(() => {
     mockFetch.mockReset();
   });
 
-  it('getWorkflowInterfaceEffect unwraps a data payload', async () => {
+  it('getWorkflowInterface unwraps a data payload', async () => {
     mockOk({
       data: {
         inputs: { topic: { label: 'Topic', type: 'string' } },
@@ -28,9 +27,7 @@ describe('agent-api.workflows effects', () => {
       },
     });
 
-    const result = await Effect.runPromise(
-      getWorkflowInterfaceEffect(makeApi(), 'wf-1'),
-    );
+    const result = await getWorkflowInterface(makeApi(), 'wf-1');
 
     expect(result.inputs.topic).toMatchObject({ label: 'Topic' });
     expect(mockFetch).toHaveBeenCalledWith(
@@ -39,12 +36,10 @@ describe('agent-api.workflows effects', () => {
     );
   });
 
-  it('getWorkflowInterfaceEffect falls back to bare inputs/outputs', async () => {
+  it('getWorkflowInterface falls back to bare inputs/outputs', async () => {
     mockOk({ inputs: { title: { type: 'string' } } });
 
-    const result = await Effect.runPromise(
-      getWorkflowInterfaceEffect(makeApi(), 'wf-1'),
-    );
+    const result = await getWorkflowInterface(makeApi(), 'wf-1');
 
     expect(result).toEqual({
       inputs: { title: { type: 'string' } },
@@ -52,23 +47,23 @@ describe('agent-api.workflows effects', () => {
     });
   });
 
-  it('getWorkflowInterfaceEffect defaults to empty schemas', async () => {
+  it('getWorkflowInterface defaults to empty schemas', async () => {
     mockOk({});
 
-    const result = await Effect.runPromise(
-      getWorkflowInterfaceEffect(makeApi(), 'wf-1'),
-    );
+    const result = await getWorkflowInterface(makeApi(), 'wf-1');
 
     expect(result).toEqual({ inputs: {}, outputs: {} });
   });
 
-  it('triggerWorkflowEffect posts input values and scope', async () => {
+  it('triggerWorkflow posts input values and scope', async () => {
     mockOk({ id: 'exec-1', status: 'queued' });
 
-    const result = await Effect.runPromise(
-      triggerWorkflowEffect(makeApi(), 'wf-1', { topic: 'launch' }, undefined, {
-        brandId: 'brand-1',
-      }),
+    const result = await triggerWorkflow(
+      makeApi(),
+      'wf-1',
+      { topic: 'launch' },
+      undefined,
+      { brandId: 'brand-1' },
     );
 
     expect(result).toEqual({ id: 'exec-1', status: 'queued' });
@@ -81,10 +76,10 @@ describe('agent-api.workflows effects', () => {
     });
   });
 
-  it('triggerWorkflowEffect defaults inputValues to an empty object', async () => {
+  it('triggerWorkflow defaults inputValues to an empty object', async () => {
     mockOk({ id: 'exec-1', status: 'queued' });
 
-    await Effect.runPromise(triggerWorkflowEffect(makeApi(), 'wf-1'));
+    await triggerWorkflow(makeApi(), 'wf-1');
 
     const call = mockFetch.mock.calls.at(-1);
     expect(JSON.parse((call?.[1]?.body as string) ?? '{}')).toEqual({
@@ -93,15 +88,13 @@ describe('agent-api.workflows effects', () => {
     });
   });
 
-  it('createManualReviewBatchEffect posts the payload', async () => {
+  it('createManualReviewBatch posts the payload', async () => {
     mockOk({ id: 'batch-1', items: [{ id: 'item-1', postId: 'post-1' }] });
 
-    const result = await Effect.runPromise(
-      createManualReviewBatchEffect(makeApi(), {
-        items: [],
-        name: 'Review batch',
-      } as never),
-    );
+    const result = await createManualReviewBatch(makeApi(), {
+      items: [],
+      name: 'Review batch',
+    } as never);
 
     expect(result.id).toBe('batch-1');
     expect(mockFetch).toHaveBeenCalledWith(

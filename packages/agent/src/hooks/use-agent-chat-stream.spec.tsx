@@ -10,7 +10,6 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type SocketHandler = (data: unknown) => void;
@@ -24,40 +23,8 @@ let socketConnectionState:
   | 'reconnecting'
   | 'offline' = 'connected';
 
-const EFFECT_METHOD_MAP = {
-  chat: 'chatEffect',
-  chatStream: 'chatStreamEffect',
-  getMessages: 'getMessagesEffect',
-  getThreadSnapshot: 'getThreadSnapshotEffect',
-  getThreads: 'getThreadsEffect',
-} as const;
-
-function withAgentApiEffects<T extends Record<string, unknown>>(
-  apiService: T,
-): T {
-  for (const [method, effectMethod] of Object.entries(EFFECT_METHOD_MAP)) {
-    const handler = apiService[method as keyof T];
-
-    if (typeof handler !== 'function' || effectMethod in apiService) {
-      continue;
-    }
-
-    Object.assign(apiService, {
-      [effectMethod]: vi.fn((...args: unknown[]) =>
-        Effect.promise(() =>
-          Promise.resolve(
-            (handler as (...effectArgs: unknown[]) => unknown)(...args),
-          ),
-        ),
-      ),
-    });
-  }
-
-  return apiService;
-}
-
 function createApiService(overrides: Record<string, unknown>): AgentApiService {
-  return withAgentApiEffects(overrides) as unknown as AgentApiService;
+  return overrides as unknown as AgentApiService;
 }
 
 function createCircularIcon(): unknown {

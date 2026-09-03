@@ -8,7 +8,6 @@ import type {
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
@@ -131,17 +130,15 @@ export async function handleAgentUiAction(
     const currentThread = deps.threads.find(
       (thread) => thread.id === deps.activeThreadId,
     );
-    const response = await runAgentApiEffect(
-      deps.apiService.respondToUiActionEffect(
-        deps.activeThreadId,
-        action,
-        payload,
-        undefined,
-        {
-          brandId: currentThread?.brandId ?? null,
-          expectedContextVersion: currentThread?.contextVersion,
-        },
-      ),
+    const response = await deps.apiService.respondToUiAction(
+      deps.activeThreadId,
+      action,
+      payload,
+      undefined,
+      {
+        brandId: currentThread?.brandId ?? null,
+        expectedContextVersion: currentThread?.contextVersion,
+      },
     );
 
     const sourceActionId =

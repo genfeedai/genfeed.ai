@@ -1,6 +1,5 @@
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
 
@@ -52,8 +51,7 @@ const mockAgentThreadsService = {
 };
 
 const mockAgentThreadEngineService = {
-  appendEvent: vi.fn(),
-  appendEventEffect: vi.fn(() => Effect.void),
+  appendEvent: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockConfigService = {
@@ -286,12 +284,8 @@ describe('AgentStreamPublisherService', () => {
         userId,
       } as unknown as PublishToolStartInput);
 
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledOnce();
-      expect(
-        mockAgentThreadEngineService.appendEventEffect,
-      ).toHaveBeenCalledWith(
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: { origin: 'stream-publisher' },
           organizationId,

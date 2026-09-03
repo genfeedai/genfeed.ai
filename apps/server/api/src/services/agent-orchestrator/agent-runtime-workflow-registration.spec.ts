@@ -4,7 +4,6 @@ import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/ag
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import { RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
-import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function source(relativePath: string): string {
@@ -239,10 +238,10 @@ describe('agent runtime workflow registration contract', () => {
   });
 
   it('publishes one canonical terminal failure event path', async () => {
-    const publishStreamFailureEffect = vi.fn(() => Effect.void);
+    const publishStreamFailure = vi.fn().mockResolvedValue(undefined);
     const recordRunFailed = vi.fn();
     const dependencies = Array.from({ length: 18 }, () => ({}));
-    dependencies[13] = { publishStreamFailureEffect };
+    dependencies[13] = { publishStreamFailure };
     dependencies[14] = { recordRunFailed };
     const service = Reflect.construct(
       AgentTurnWorkflowExecutionService,
@@ -258,6 +257,6 @@ describe('agent runtime workflow registration contract', () => {
     });
 
     expect(recordRunFailed).not.toHaveBeenCalled();
-    expect(publishStreamFailureEffect).toHaveBeenCalledOnce();
+    expect(publishStreamFailure).toHaveBeenCalledOnce();
   });
 });

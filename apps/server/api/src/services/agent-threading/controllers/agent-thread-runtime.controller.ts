@@ -3,7 +3,6 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
@@ -46,8 +45,10 @@ export class AgentThreadRuntimeController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const snapshot = await runEffectPromise(
-        this.getThreadSnapshotEffect(threadId, organizationId, userId),
+      const snapshot = await this.agentThreadEngineService.getSnapshot(
+        threadId,
+        organizationId,
+        userId,
       );
       return {
         activeRun: snapshot.activeRun ?? null,
@@ -85,13 +86,11 @@ export class AgentThreadRuntimeController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
-      const events = await runEffectPromise(
-        this.listThreadEventsEffect(
-          threadId,
-          organizationId,
-          afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
-          userId,
-        ),
+      const events = await this.agentThreadEngineService.listEvents(
+        threadId,
+        organizationId,
+        afterSequence ? Number.parseInt(afterSequence, 10) : undefined,
+        userId,
       );
 
       return events.map((event) => ({
@@ -146,15 +145,14 @@ export class AgentThreadRuntimeController {
         scope,
         'workflow',
       );
-      const inputRequest = await runEffectPromise(
-        this.resolveInputRequestEffect({
+      const inputRequest =
+        await this.agentThreadEngineService.resolveInputRequest({
           answer: body.answer,
           organizationId,
           requestId,
           threadId,
           userId,
-        }),
-      );
+        });
 
       await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
         answer: body.answer,
@@ -282,42 +280,6 @@ export class AgentThreadRuntimeController {
     );
   }
 
-  private getThreadSnapshotEffect(
-    threadId: string,
-    organizationId: string,
-    userId: string,
-  ) {
-    return this.agentThreadEngineService.getSnapshotEffect(
-      threadId,
-      organizationId,
-      userId,
-    );
-  }
-
-  private listThreadEventsEffect(
-    threadId: string,
-    organizationId: string,
-    afterSequence?: number,
-    userId?: string,
-  ) {
-    return this.agentThreadEngineService.listEventsEffect(
-      threadId,
-      organizationId,
-      afterSequence,
-      userId,
-    );
-  }
-
-  private resolveInputRequestEffect(params: {
-    threadId: string;
-    organizationId: string;
-    requestId: string;
-    answer: string;
-    userId: string;
-  }) {
-    return this.agentThreadEngineService.resolveInputRequestEffect(params);
-  }
-
   private async recordThreadMemoryFlush(
     threadId: string,
     organizationId: string,
@@ -325,14 +287,12 @@ export class AgentThreadRuntimeController {
     content: string,
     tags: string[],
   ): Promise<void> {
-    await runEffectPromise(
-      this.agentThreadEngineService.recordMemoryFlushEffect(
-        threadId,
-        organizationId,
-        userId,
-        content,
-        tags,
-      ),
+    await this.agentThreadEngineService.recordMemoryFlush(
+      threadId,
+      organizationId,
+      userId,
+      content,
+      tags,
     );
   }
 

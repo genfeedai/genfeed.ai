@@ -2,7 +2,6 @@ import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { act, renderHook } from '@testing-library/react';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createCircularIcon(): unknown {
@@ -38,9 +37,6 @@ describe('useAgentChat', () => {
     });
     const apiService = {
       chat,
-      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
-        Effect.promise(() => chat(...args)),
-      ),
     } as unknown as AgentApiService;
 
     const { result } = renderHook(() =>
@@ -79,9 +75,6 @@ describe('useAgentChat', () => {
     });
     const apiService = {
       chat,
-      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
-        Effect.promise(() => chat(...args)),
-      ),
     } as unknown as AgentApiService;
 
     const { result } = renderHook(() =>
@@ -134,9 +127,6 @@ describe('useAgentChat', () => {
     });
     const apiService = {
       chat,
-      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
-        Effect.promise(() => chat(...args)),
-      ),
     } as unknown as AgentApiService;
 
     const { result } = renderHook(() =>
@@ -175,9 +165,6 @@ describe('useAgentChat', () => {
     });
     const apiService = {
       chat,
-      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
-        Effect.promise(() => chat(...args)),
-      ),
     } as unknown as AgentApiService;
     const reference = {
       brandId: 'brand-1',
@@ -215,9 +202,6 @@ describe('useAgentChat', () => {
     });
     const apiService = {
       chat,
-      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
-        Effect.promise(() => chat(...args)),
-      ),
     } as unknown as AgentApiService;
 
     const { result } = renderHook(() => useAgentChat({ apiService }));

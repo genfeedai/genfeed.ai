@@ -6,7 +6,6 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const IMAGE_ID = testId('image');
@@ -42,18 +41,14 @@ describe('ContentPreviewCard', () => {
 
   it('reconciles an accepted image asset into the persisted conversation card', async () => {
     vi.useFakeTimers();
-    const getGeneratedAssetEffect = vi
+    const getGeneratedAsset = vi
       .fn()
-      .mockReturnValueOnce(
-        Effect.succeed({ id: 'image-queued', status: 'PROCESSING' }),
-      )
-      .mockReturnValue(
-        Effect.succeed({
-          id: 'image-queued',
-          status: 'generated',
-          url: 'https://cdn.test/image-queued.png',
-        }),
-      );
+      .mockResolvedValueOnce({ id: 'image-queued', status: 'PROCESSING' })
+      .mockResolvedValue({
+        id: 'image-queued',
+        status: 'generated',
+        url: 'https://cdn.test/image-queued.png',
+      });
 
     render(
       <ContentPreviewCard
@@ -65,7 +60,7 @@ describe('ContentPreviewCard', () => {
           title: 'Image generating',
           type: 'content_preview_card',
         }}
-        apiService={{ getGeneratedAssetEffect } as never}
+        apiService={{ getGeneratedAsset } as never}
       />,
     );
 
@@ -79,7 +74,7 @@ describe('ContentPreviewCard', () => {
         name: 'Open Image generating 1 preview',
       }),
     ).toBeInTheDocument();
-    expect(getGeneratedAssetEffect).toHaveBeenCalledWith(
+    expect(getGeneratedAsset).toHaveBeenCalledWith(
       'image-queued',
       expect.any(AbortSignal),
     );
@@ -87,9 +82,9 @@ describe('ContentPreviewCard', () => {
 
   it('bounds reconciliation polling for an asset that never becomes readable', async () => {
     vi.useFakeTimers();
-    const getGeneratedAssetEffect = vi.fn(() =>
-      Effect.fail(new Error('still unavailable')),
-    );
+    const getGeneratedAsset = vi
+      .fn()
+      .mockRejectedValue(new Error('still unavailable'));
 
     render(
       <ContentPreviewCard
@@ -100,14 +95,14 @@ describe('ContentPreviewCard', () => {
           status: 'processing',
           type: 'content_preview_card',
         }}
-        apiService={{ getGeneratedAssetEffect } as never}
+        apiService={{ getGeneratedAsset } as never}
       />,
     );
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
     });
-    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(150);
+    expect(getGeneratedAsset).toHaveBeenCalledTimes(150);
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Unable to reconcile generated media. Please refresh and try again.',
     );
@@ -115,9 +110,9 @@ describe('ContentPreviewCard', () => {
 
   it('keeps reconciling a healthy long-running video beyond the image horizon', async () => {
     vi.useFakeTimers();
-    const getGeneratedAssetEffect = vi.fn(() =>
-      Effect.succeed({ id: 'video-long', status: 'PROCESSING' }),
-    );
+    const getGeneratedAsset = vi
+      .fn()
+      .mockResolvedValue({ id: 'video-long', status: 'PROCESSING' });
 
     render(
       <ContentPreviewCard
@@ -128,14 +123,14 @@ describe('ContentPreviewCard', () => {
           status: 'processing',
           type: 'content_preview_card',
         }}
-        apiService={{ getGeneratedAssetEffect } as never}
+        apiService={{ getGeneratedAsset } as never}
       />,
     );
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
     });
-    expect(getGeneratedAssetEffect.mock.calls.length).toBeGreaterThan(150);
+    expect(getGeneratedAsset.mock.calls.length).toBeGreaterThan(150);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

@@ -5,7 +5,6 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
@@ -62,11 +61,9 @@ export async function resolveStreamFromMessages(
   let shouldKeepWaiting = false;
 
   try {
-    const messages = await runAgentApiEffect(
-      deps.apiService.getMessagesEffect(pending.threadId, {
-        limit: 100,
-      }),
-    );
+    const messages = await deps.apiService.getMessages(pending.threadId, {
+      limit: 100,
+    });
 
     const recoveredAssistantMessage = findRecoveredAssistantMessage(
       messages,
@@ -80,9 +77,7 @@ export async function resolveStreamFromMessages(
       }
 
       const persistedExecution = pending.runId
-        ? await runAgentApiEffect(
-            deps.apiService.getWorkflowExecutionEffect(pending.runId),
-          )
+        ? await deps.apiService.getWorkflowExecution(pending.runId)
         : null;
       if (
         persistedExecution?.status === WorkflowExecutionStatus.PENDING ||

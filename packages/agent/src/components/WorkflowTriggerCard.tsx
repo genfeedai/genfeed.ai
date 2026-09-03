@@ -1,6 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -51,18 +50,16 @@ export function WorkflowTriggerCard({
     abortRef.current = controller;
 
     try {
-      const result = await runAgentApiEffect(
-        apiService.triggerWorkflowEffect(
-          selectedId,
-          {},
-          controller.signal,
-          activeThreadId && activeThread?.contextVersion !== undefined
-            ? {
-                expectedContextVersion: activeThread.contextVersion,
-                threadId: activeThreadId,
-              }
-            : undefined,
-        ),
+      const result = await apiService.triggerWorkflow(
+        selectedId,
+        {},
+        controller.signal,
+        activeThreadId && activeThread?.contextVersion !== undefined
+          ? {
+              expectedContextVersion: activeThread.contextVersion,
+              threadId: activeThreadId,
+            }
+          : undefined,
       );
       setExecutionId(result.id);
       setStatus('done');

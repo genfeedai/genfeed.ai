@@ -11,7 +11,6 @@ import type {
   AgentApiService,
   AgentInstallReadiness,
 } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentRuntimeCatalog,
@@ -134,7 +133,8 @@ export function AgentPanel({
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getCreditsInfoEffect(controller.signal))
+    apiService
+      .getCreditsInfo(controller.signal)
       .then((info) => {
         if (!info) {
           return;
@@ -165,7 +165,8 @@ export function AgentPanel({
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getInstallReadinessEffect(controller.signal))
+    apiService
+      .getInstallReadiness(controller.signal)
       .then((readiness) => {
         setInstallReadiness(readiness);
       })
@@ -199,16 +200,15 @@ export function AgentPanel({
     });
 
     const controller = new AbortController();
-    runAgentApiEffect(
-      apiService.updateThreadEffect(
+    apiService
+      .updateThread(
         activeThreadId,
         {
           requestedModel: draftRuntime.requestedModel || undefined,
           runtimeKey: draftRuntime.key || undefined,
         },
         controller.signal,
-      ),
-    )
+      )
       .then(() => {
         setDraftRuntime(null);
       })
@@ -253,16 +253,16 @@ export function AgentPanel({
       });
 
       const controller = new AbortController();
-      void runAgentApiEffect(
-        apiService.updateThreadEffect(
+      void apiService
+        .updateThread(
           activeThreadId,
           {
             requestedModel: runtime.requestedModel || undefined,
             runtimeKey: runtime.key || undefined,
           },
           controller.signal,
-        ),
-      ).catch(() => undefined);
+        )
+        .catch(() => undefined);
     },
     [activeThreadId, apiService, updateThread],
   );

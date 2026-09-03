@@ -1,6 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
@@ -45,15 +44,13 @@ export function IngredientAlternativesCard({
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const promptDoc = await runAgentApiEffect(
-        apiService.createPromptEffect(
-          {
-            category: getPromptCategoryForGenerationType(alt.generationType),
-            isSkipEnhancement: true,
-            original: alt.prompt,
-          },
-          controller.signal,
-        ),
+      const promptDoc = await apiService.createPrompt(
+        {
+          category: getPromptCategoryForGenerationType(alt.generationType),
+          isSkipEnhancement: true,
+          original: alt.prompt,
+        },
+        controller.signal,
       );
 
       const body = buildAgentGenerationRequestBody({
@@ -63,12 +60,10 @@ export function IngredientAlternativesCard({
       });
 
       try {
-        const result = await runAgentApiEffect(
-          apiService.generateIngredientEffect(
-            alt.generationType,
-            body,
-            controller.signal,
-          ),
+        const result = await apiService.generateIngredient(
+          alt.generationType,
+          body,
+          controller.signal,
         );
         setResultId(result.id);
         const mediaPath = alt.generationType === 'video' ? 'videos' : 'images';

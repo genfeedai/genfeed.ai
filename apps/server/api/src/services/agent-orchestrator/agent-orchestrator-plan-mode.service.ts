@@ -2,7 +2,6 @@ import { type AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -140,18 +139,16 @@ export class AgentOrchestratorPlanModeService {
       host,
     );
 
-    await runEffectPromise(
-      this.streamEffects.publishStreamDoneOnlyEffect({
-        content: response.message.content,
-        context: params.context,
-        creditsRemaining: response.creditsRemaining,
-        creditsUsed: response.creditsUsed,
-        metadata: response.message.metadata,
-        startedAt: params.startedAt,
-        threadId: params.threadId,
-        toolCalls: [],
-      }),
-    );
+    await this.streamEffects.publishStreamDoneOnly({
+      content: response.message.content,
+      context: params.context,
+      creditsRemaining: response.creditsRemaining,
+      creditsUsed: response.creditsUsed,
+      metadata: response.message.metadata,
+      startedAt: params.startedAt,
+      threadId: params.threadId,
+      toolCalls: [],
+    });
 
     return true;
   }

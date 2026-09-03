@@ -11,7 +11,6 @@ import {
   ConversationInspectorShellProvider,
   getConversationComposerAction,
   resolveConversationComposerDestinationHref,
-  runAgentApiEffect,
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -516,16 +515,15 @@ function UniversalWorkspaceShellContent({
     }
 
     const abortController = new AbortController();
-    runAgentApiEffect(
-      agentApiService.updateThreadContextEffect(
+    agentApiService
+      .updateThreadContext(
         activeThreadIdForScope,
         {
           brandId: targetSyncBrandId,
           expectedContextVersion: activeThreadContextVersion,
         },
         abortController.signal,
-      ),
-    )
+      )
       .then((thread) => {
         if (abortController.signal.aborted) {
           return;

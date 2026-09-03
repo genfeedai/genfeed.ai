@@ -1,5 +1,4 @@
 import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -72,9 +71,7 @@ export function AgentStrategyConfig({
     const fetchStrategy = async () => {
       setIsLoading(true);
       try {
-        const strategies = await runAgentApiEffect(
-          apiService.getStrategiesEffect(controller.signal),
-        );
+        const strategies = await apiService.getStrategies(controller.signal);
         if (strategies.length > 0) {
           setStrategy(strategies[0]);
           populateForm(strategies[0]);
@@ -155,16 +152,15 @@ export function AgentStrategyConfig({
 
       let updated: AgentStrategy;
       if (strategy) {
-        updated = await runAgentApiEffect(
-          apiService.updateStrategyEffect(
-            strategy.id,
-            payload,
-            abortRef.current.signal,
-          ),
+        updated = await apiService.updateStrategy(
+          strategy.id,
+          payload,
+          abortRef.current.signal,
         );
       } else {
-        updated = await runAgentApiEffect(
-          apiService.createStrategyEffect(payload, abortRef.current.signal),
+        updated = await apiService.createStrategy(
+          payload,
+          abortRef.current.signal,
         );
       }
       setStrategy(updated);

@@ -1,5 +1,4 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useEffect, useState } from 'react';
 
@@ -15,17 +14,15 @@ export function useContentMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (
-      !apiService ||
-      typeof apiService.getContentMentionsEffect !== 'function'
-    ) {
+    if (!apiService || typeof apiService.getContentMentions !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getContentMentionsEffect(controller.signal))
+    apiService
+      .getContentMentions(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
           setMentions(data ?? []);

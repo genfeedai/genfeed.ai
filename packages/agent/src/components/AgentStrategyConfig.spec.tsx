@@ -3,7 +3,6 @@ import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeStrategy(overrides: Partial<AgentStrategy> = {}): AgentStrategy {
@@ -29,24 +28,24 @@ function makeStrategy(overrides: Partial<AgentStrategy> = {}): AgentStrategy {
 }
 
 interface ApiOverrides {
-  createStrategyEffect?: ReturnType<typeof vi.fn>;
-  getStrategiesEffect?: ReturnType<typeof vi.fn>;
-  toggleStrategyEffect?: ReturnType<typeof vi.fn>;
-  updateStrategyEffect?: ReturnType<typeof vi.fn>;
+  createStrategy?: ReturnType<typeof vi.fn>;
+  getStrategies?: ReturnType<typeof vi.fn>;
+  toggleStrategy?: ReturnType<typeof vi.fn>;
+  updateStrategy?: ReturnType<typeof vi.fn>;
 }
 
 function makeApi(overrides: ApiOverrides = {}): AgentStrategyApiService {
   return {
-    createStrategyEffect: vi.fn(() =>
-      Effect.succeed(makeStrategy({ id: 'created-1' })),
-    ),
-    getStrategiesEffect: vi.fn(() => Effect.succeed([makeStrategy()])),
-    toggleStrategyEffect: vi.fn(() =>
-      Effect.succeed(makeStrategy({ isActive: false })),
-    ),
-    updateStrategyEffect: vi.fn(() =>
-      Effect.succeed(makeStrategy({ label: 'Updated' })),
-    ),
+    createStrategy: vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ id: 'created-1' })),
+    getStrategies: vi.fn().mockResolvedValue([makeStrategy()]),
+    toggleStrategy: vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ isActive: false })),
+    updateStrategy: vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ label: 'Updated' })),
     ...overrides,
   } as unknown as AgentStrategyApiService;
 }
@@ -83,7 +82,7 @@ describe('AgentStrategyConfig', () => {
     render(
       <AgentStrategyConfig
         apiService={makeApi({
-          getStrategiesEffect: vi.fn(() => Effect.fail(new Error('boom'))),
+          getStrategies: vi.fn().mockRejectedValue(new Error('boom')),
         })}
       />,
     );
@@ -95,7 +94,7 @@ describe('AgentStrategyConfig', () => {
 
   it('leaves the form empty when no strategy exists', async () => {
     await renderConfig(
-      makeApi({ getStrategiesEffect: vi.fn(() => Effect.succeed([])) }),
+      makeApi({ getStrategies: vi.fn().mockResolvedValue([]) }),
     );
 
     expect(
@@ -177,18 +176,18 @@ describe('AgentStrategyConfig', () => {
   });
 
   it('updates an existing strategy on save', async () => {
-    const updateStrategyEffect = vi.fn(() =>
-      Effect.succeed(makeStrategy({ label: 'Updated' })),
-    );
-    await renderConfig(makeApi({ updateStrategyEffect }));
+    const updateStrategy = vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ label: 'Updated' }));
+    await renderConfig(makeApi({ updateStrategy }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(updateStrategyEffect).toHaveBeenCalled();
+      expect(updateStrategy).toHaveBeenCalled();
     });
-    expect(updateStrategyEffect.mock.calls[0]?.[0]).toBe('s-1');
-    expect(updateStrategyEffect.mock.calls[0]?.[1]).toMatchObject({
+    expect(updateStrategy.mock.calls[0]?.[0]).toBe('s-1');
+    expect(updateStrategy.mock.calls[0]?.[1]).toMatchObject({
       label: 'Weekly lifestyle',
       platforms: ['instagram'],
       topics: ['fitness'],
@@ -196,13 +195,13 @@ describe('AgentStrategyConfig', () => {
   });
 
   it('creates a strategy when none is loaded', async () => {
-    const createStrategyEffect = vi.fn(() =>
-      Effect.succeed(makeStrategy({ id: 'created-1' })),
-    );
+    const createStrategy = vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ id: 'created-1' }));
     await renderConfig(
       makeApi({
-        createStrategyEffect,
-        getStrategiesEffect: vi.fn(() => Effect.succeed([])),
+        createStrategy,
+        getStrategies: vi.fn().mockResolvedValue([]),
       }),
     );
 
@@ -215,9 +214,9 @@ describe('AgentStrategyConfig', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create Strategy' }));
 
     await waitFor(() => {
-      expect(createStrategyEffect).toHaveBeenCalled();
+      expect(createStrategy).toHaveBeenCalled();
     });
-    expect(createStrategyEffect.mock.calls[0]?.[0]).toMatchObject({
+    expect(createStrategy.mock.calls[0]?.[0]).toMatchObject({
       label: 'Fresh plan',
     });
   });
@@ -225,9 +224,7 @@ describe('AgentStrategyConfig', () => {
   it('records a save failure in the store', async () => {
     await renderConfig(
       makeApi({
-        updateStrategyEffect: vi.fn(() =>
-          Effect.fail(new Error('save failed')),
-        ),
+        updateStrategy: vi.fn().mockRejectedValue(new Error('save failed')),
       }),
     );
 
@@ -239,19 +236,16 @@ describe('AgentStrategyConfig', () => {
   });
 
   it('toggles the strategy active state from the header', async () => {
-    const toggleStrategyEffect = vi.fn(() =>
-      Effect.succeed(makeStrategy({ isActive: false })),
-    );
-    const { container } = await renderConfig(makeApi({ toggleStrategyEffect }));
+    const toggleStrategy = vi
+      .fn()
+      .mockResolvedValue(makeStrategy({ isActive: false }));
+    const { container } = await renderConfig(makeApi({ toggleStrategy }));
 
     const toggle = container.querySelector('.h-5.w-9') as HTMLElement;
     fireEvent.click(toggle);
 
     await waitFor(() => {
-      expect(toggleStrategyEffect).toHaveBeenCalledWith(
-        's-1',
-        expect.anything(),
-      );
+      expect(toggleStrategy).toHaveBeenCalledWith('s-1', expect.anything());
     });
     await waitFor(() => {
       expect(useAgentStrategyStore.getState().strategy?.isActive).toBe(false);

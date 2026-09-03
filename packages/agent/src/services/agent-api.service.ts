@@ -21,7 +21,7 @@ export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.se
 
 /**
  * Thin facade over domain API modules (threads, runs, mentions, media, workflows).
- * Call sites keep `apiService.methodEffect(...)` — implementations live in
+ * Call sites keep `apiService.method(...)` — implementations live in
  * `services/agent-api/*`.
  */
 export class AgentApiService extends AgentBaseApiService {
@@ -34,89 +34,68 @@ export class AgentApiService extends AgentBaseApiService {
   }
 
   // Threads / chat
-  createThreadEffect = threadsApi.createThreadEffect.bind(null, this);
-  sendMessageEffect = threadsApi.sendMessageEffect.bind(null, this);
-  chatEffect = threadsApi.chatEffect.bind(null, this);
-  chatStreamEffect = threadsApi.chatStreamEffect.bind(null, this);
-  getThreadsEffect = threadsApi.getThreadsEffect.bind(null, this);
-  archiveAllThreadsEffect = threadsApi.archiveAllThreadsEffect.bind(null, this);
-  archiveThreadEffect = threadsApi.archiveThreadEffect.bind(null, this);
-  unarchiveThreadEffect = threadsApi.unarchiveThreadEffect.bind(null, this);
-  getThreadEffect = threadsApi.getThreadEffect.bind(null, this);
-  getThreadSnapshotEffect = threadsApi.getThreadSnapshotEffect.bind(null, this);
-  updateThreadEffect = threadsApi.updateThreadEffect.bind(null, this);
-  updateThreadContextEffect = threadsApi.updateThreadContextEffect.bind(
-    null,
-    this,
-  );
-  branchThreadEffect = threadsApi.branchThreadEffect.bind(null, this);
-  respondToInputRequestEffect = threadsApi.respondToInputRequestEffect.bind(
-    null,
-    this,
-  );
-  respondToUiActionEffect = threadsApi.respondToUiActionEffect.bind(null, this);
-  pinThreadEffect = threadsApi.pinThreadEffect.bind(null, this);
-  unpinThreadEffect = threadsApi.unpinThreadEffect.bind(null, this);
-  getMessagesEffect = threadsApi.getMessagesEffect.bind(null, this);
-  getMessagesPageEffect = threadsApi.getMessagesPageEffect.bind(null, this);
-  retryAgentTransferEffect = threadsApi.retryAgentTransferEffect.bind(
-    null,
-    this,
-  );
+  createThread = threadsApi.createThread.bind(null, this);
+  sendMessage = threadsApi.sendMessage.bind(null, this);
+  chat = threadsApi.chat.bind(null, this);
+  chatStream = threadsApi.chatStream.bind(null, this);
+  getThreads = threadsApi.getThreads.bind(null, this);
+  archiveAllThreads = threadsApi.archiveAllThreads.bind(null, this);
+  archiveThread = threadsApi.archiveThread.bind(null, this);
+  unarchiveThread = threadsApi.unarchiveThread.bind(null, this);
+  getThread = threadsApi.getThread.bind(null, this);
+  getThreadSnapshot = threadsApi.getThreadSnapshot.bind(null, this);
+  updateThread = threadsApi.updateThread.bind(null, this);
+  updateThreadContext = threadsApi.updateThreadContext.bind(null, this);
+  branchThread = threadsApi.branchThread.bind(null, this);
+  respondToInputRequest = threadsApi.respondToInputRequest.bind(null, this);
+  respondToUiAction = threadsApi.respondToUiAction.bind(null, this);
+  pinThread = threadsApi.pinThread.bind(null, this);
+  unpinThread = threadsApi.unpinThread.bind(null, this);
+  getMessages = threadsApi.getMessages.bind(null, this);
+  getMessagesPage = threadsApi.getMessagesPage.bind(null, this);
+  retryAgentTransfer = threadsApi.retryAgentTransfer.bind(null, this);
 
   // Workflow executions / credits / readiness
-  getInstallReadinessEffect = executionsApi.getInstallReadinessEffect.bind(
+  getInstallReadiness = executionsApi.getInstallReadiness.bind(null, this);
+  getCreditsInfo = executionsApi.getCreditsInfo.bind(null, this);
+  getActiveWorkflowExecutions = executionsApi.getActiveWorkflowExecutions.bind(
     null,
     this,
   );
-  getCreditsInfoEffect = executionsApi.getCreditsInfoEffect.bind(null, this);
-  getActiveWorkflowExecutionsEffect =
-    executionsApi.getActiveWorkflowExecutionsEffect.bind(null, this);
-  getWorkflowExecutionEffect = executionsApi.getWorkflowExecutionEffect.bind(
+  getWorkflowExecution = executionsApi.getWorkflowExecution.bind(null, this);
+  cancelWorkflowExecution = executionsApi.cancelWorkflowExecution.bind(
     null,
     this,
   );
-  cancelWorkflowExecutionEffect =
-    executionsApi.cancelWorkflowExecutionEffect.bind(null, this);
 
   // Mentions / memory
-  getMentionsEffect = mentionsApi.getMentionsEffect.bind(null, this);
-  getTeamMentionsEffect = mentionsApi.getTeamMentionsEffect.bind(null, this);
-  getCharacterMentionsEffect = mentionsApi.getCharacterMentionsEffect.bind(
-    null,
-    this,
-  );
-  getContentMentionsEffect = mentionsApi.getContentMentionsEffect.bind(
-    null,
-    this,
-  );
-  listMemoriesEffect = mentionsApi.listMemoriesEffect.bind(null, this);
-  createMemoryEffect = mentionsApi.createMemoryEffect.bind(null, this);
-  deleteMemoryEffect = mentionsApi.deleteMemoryEffect.bind(null, this);
+  getMentions = mentionsApi.getMentions.bind(null, this);
+  getTeamMentions = mentionsApi.getTeamMentions.bind(null, this);
+  getCharacterMentions = mentionsApi.getCharacterMentions.bind(null, this);
+  getContentMentions = mentionsApi.getContentMentions.bind(null, this);
+  listMemories = mentionsApi.listMemories.bind(null, this);
+  createMemory = mentionsApi.createMemory.bind(null, this);
+  deleteMemory = mentionsApi.deleteMemory.bind(null, this);
 
   // Media / generation
-  getModelsEffect = mediaApi.getModelsEffect.bind(null, this);
-  getGeneratedAssetEffect = mediaApi.getGeneratedAssetEffect.bind(null, this);
-  mergeVideosEffect = mediaApi.mergeVideosEffect.bind(null, this);
-  reframeVideoEffect = mediaApi.reframeVideoEffect.bind(null, this);
-  resizeVideoEffect = mediaApi.resizeVideoEffect.bind(null, this);
-  createPromptEffect = mediaApi.createPromptEffect.bind(null, this);
-  generateIngredientEffect = mediaApi.generateIngredientEffect.bind(null, this);
-  generateVoiceEffect = mediaApi.generateVoiceEffect.bind(null, this);
-  cloneVoiceEffect = mediaApi.cloneVoiceEffect.bind(null, this);
-  getClonedVoicesEffect = mediaApi.getClonedVoicesEffect.bind(null, this);
-  setBrandVoiceDefaultsEffect = mediaApi.setBrandVoiceDefaultsEffect.bind(
-    null,
-    this,
-  );
-  uploadAttachmentEffect = mediaApi.uploadAttachmentEffect.bind(null, this);
+  getModels = mediaApi.getModels.bind(null, this);
+  getGeneratedAsset = mediaApi.getGeneratedAsset.bind(null, this);
+  mergeVideos = mediaApi.mergeVideos.bind(null, this);
+  reframeVideo = mediaApi.reframeVideo.bind(null, this);
+  resizeVideo = mediaApi.resizeVideo.bind(null, this);
+  createPrompt = mediaApi.createPrompt.bind(null, this);
+  generateIngredient = mediaApi.generateIngredient.bind(null, this);
+  generateVoice = mediaApi.generateVoice.bind(null, this);
+  cloneVoice = mediaApi.cloneVoice.bind(null, this);
+  getClonedVoices = mediaApi.getClonedVoices.bind(null, this);
+  setBrandVoiceDefaults = mediaApi.setBrandVoiceDefaults.bind(null, this);
+  uploadAttachment = mediaApi.uploadAttachment.bind(null, this);
 
   // Workflows / batches
-  getWorkflowInterfaceEffect = workflowsApi.getWorkflowInterfaceEffect.bind(
+  getWorkflowInterface = workflowsApi.getWorkflowInterface.bind(null, this);
+  triggerWorkflow = workflowsApi.triggerWorkflow.bind(null, this);
+  createManualReviewBatch = workflowsApi.createManualReviewBatch.bind(
     null,
     this,
   );
-  triggerWorkflowEffect = workflowsApi.triggerWorkflowEffect.bind(null, this);
-  createManualReviewBatchEffect =
-    workflowsApi.createManualReviewBatchEffect.bind(null, this);
 }

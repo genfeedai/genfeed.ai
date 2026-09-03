@@ -93,7 +93,6 @@ const characterMentionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@genfeedai/agent', () => ({
-  runAgentApiEffect: vi.fn(),
   useAgentApiService: () => null,
 }));
 
