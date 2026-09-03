@@ -5,7 +5,7 @@
       "followers": "Followers",
       "noTrend": "No trend data for this window",
       "posts": "Posts",
-      "postsOverWeeks": "{posts} posts over {weeks} weeks",
+      "postsOverWeeks": "{posts, plural, one {# post} other {# posts}} over {weeks, plural, one {# week} other {# weeks}}",
       "topAccounts": "Top accounts",
       "trend": "Trend",
       "views": "Views"
