@@ -78,15 +78,34 @@ function main(): void {
   // satisfy config validation but are never dialed because the emit gate
   // exits before app.init()/listen. GENFEED_CLOUD is dropped so cloud-only
   // env conditionals stay optional regardless of the host shell.
+  //
+  // #4173 folded YouTube / Google Ads / Search Console client ids into the
+  // shared Google OAuth pair. Pin the canonical names here — never the
+  // retired YOUTUBE_CLIENT_* / GOOGLE_CLIENT_* / GOOGLE_ADS_CLIENT_* aliases.
   const childEnv: NodeJS.ProcessEnv = {
     ...process.env,
     BETTER_AUTH_SECRET: 'openapi-emit-placeholder',
     DATABASE_URL: 'postgresql://127.0.0.1:5432/openapi_emit',
+    GENFEEDAI_API_PUBLIC_URL: 'http://127.0.0.1:3010',
+    GENFEEDAI_API_URL: 'http://127.0.0.1:3010',
+    GENFEEDAI_APP_URL: 'http://127.0.0.1:3000',
+    GENFEEDAI_CDN_URL: 'http://127.0.0.1:3002',
+    GENFEEDAI_MCP_PUBLIC_URL: 'http://127.0.0.1:3014/mcp',
+    GENFEEDAI_WEBHOOKS_URL: 'http://127.0.0.1:3010/webhooks',
+    GOOGLE_OAUTH_CLIENT_ID: 'openapi-emit-placeholder',
+    GOOGLE_OAUTH_CLIENT_SECRET: 'openapi-emit-placeholder',
     NODE_ENV: 'test',
     OPENAPI_EMIT_PATH: out,
     PORT: '3010',
+    YOUTUBE_REDIRECT_URI: 'http://127.0.0.1/oauth/youtube',
   };
   delete childEnv.GENFEED_CLOUD;
+  delete childEnv.NEXT_PUBLIC_GENFEED_CLOUD;
+  delete childEnv.NEXT_PUBLIC_API_ENDPOINT;
+  delete childEnv.NEXT_PUBLIC_APPS_APP_ENDPOINT;
+  delete childEnv.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT;
+  delete childEnv.NEXT_PUBLIC_APPS_WEBSITE_ENDPOINT;
+  delete childEnv.NEXT_PUBLIC_MCP_ENDPOINT;
   delete childEnv.VERSION;
   delete childEnv.npm_package_version;
   delete childEnv.npm_package_description;
