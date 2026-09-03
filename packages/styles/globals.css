@@ -5,36 +5,10 @@
 @import "./shadcn-theme.css";
 @import "./calendar.css";
 @import "./genfeed.css";
-/* Compiled with the main stylesheet. A second PostCSS entry for this file
-   SIGTERMs Turbopack's worker on the protected layout. */
-@import "../ui/src/components/editors/rich-editor.css";
 
-/* Shared product + marketing class sources. Disable monorepo-wide auto
-   detection. Point at source trees only — a whole-app `@source` also
-   matches `.next` and SIGTERMs Turbopack's PostCSS worker. */
-@source "../../apps/app/app";
-@source "../../apps/app/src";
-@source "../../apps/app/packages";
-@source "../../apps/website/app";
-@source "../../apps/website/src";
-@source "../../apps/website/packages";
-@source "../agent";
-@source "../auth-client";
-@source "../contexts";
-@source "../helpers";
-@source "../hooks";
-@source "../pages";
-@source "../ui";
-@source "../workflows";
-@source not "../../**/*.test.ts";
-@source not "../../**/*.test.tsx";
-@source not "../../**/*.spec.ts";
-@source not "../../**/*.spec.tsx";
-@source not "../../**/*.stories.ts";
-@source not "../../**/*.stories.tsx";
-@source not "../../**/.next/**";
-@source not "../../**/dist/**";
-@source not "../../**/coverage/**";
+/* Class sources live in each app's CSS entry (`apps/app/app/styles.css`,
+   `apps/website/app/styles.css`) so a product compile does not scan the
+   marketing tree — that dual scan SIGTERMs Turbopack's PostCSS worker. */
 
 /* Long-form prose (article bodies) arrives as sanitized HTML through
    `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a

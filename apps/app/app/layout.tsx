@@ -1,4 +1,4 @@
-import '@styles/globals.css';
+import './styles.css';
 
 import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';

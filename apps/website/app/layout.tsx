@@ -1,4 +1,4 @@
-import '@styles/globals.css';
+import './styles.css';
 
 import { stringifyJsonLd } from '@data/json-ld';
 import { fontVariables } from '@genfeedai/fonts';
