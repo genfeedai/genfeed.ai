@@ -10,7 +10,7 @@ export default function HomeProduct(): React.ReactElement {
     <section className="gen-section-spacing-lg border-b border-edge/5">
       <div className="container mx-auto px-6">
         <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,0.72fr)_minmax(520px,1.28fr)] lg:gap-24 xl:gap-32">
-          <div className="max-w-xl">
+          <div className="max-w-xl" data-reveal="up">
             <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
               The product
             </Text>
@@ -29,6 +29,7 @@ export default function HomeProduct(): React.ReactElement {
 
           <div
             className="rounded-xl bg-card p-3 shadow-border-strong sm:p-4"
+            data-reveal="up"
             data-testid="home-product-workspace"
           >
             <div className="rounded-lg border border-edge/5 bg-background p-4 sm:p-5">
@@ -55,6 +56,7 @@ export default function HomeProduct(): React.ReactElement {
                         ? 'col-span-2 aspect-[16/8] sm:col-span-3 sm:row-span-2 sm:aspect-auto'
                         : 'col-span-1 aspect-[4/5]'
                     }`}
+                    data-reveal="scale"
                   >
                     <Image
                       alt={item.alt}

@@ -14,23 +14,26 @@ export default function HomeHero(): React.ReactElement {
   return (
     <section className="overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
       <div className="container mx-auto px-6 text-center">
-        <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
+        <Text className="animate-gen-stagger-in text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
           Made with Genfeed
         </Text>
         <Heading
           as="h1"
-          className="mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-in mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [animation-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
           Everything your brand can become.
         </Heading>
         <Text
           as="p"
-          className="mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 [animation-delay:180ms] md:text-lg"
         >
           Every format. One recognisable brand.
         </Text>
 
-        <div className="mt-9" data-testid="home-hero-actions">
+        <div
+          className="animate-gen-stagger-in mt-9 [animation-delay:270ms]"
+          data-testid="home-hero-actions"
+        >
           <div className="flex flex-wrap items-center justify-center gap-3">
             <ButtonTracked
               asChild
@@ -62,7 +65,7 @@ export default function HomeHero(): React.ReactElement {
       </div>
 
       <div
-        className="mt-20 w-screen px-6 sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="animate-gen-rise mt-20 w-screen px-6 [animation-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
         data-testid="home-hero-output-carousel"
       >
         <HorizontalCarousel

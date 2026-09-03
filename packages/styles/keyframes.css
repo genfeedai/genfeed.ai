@@ -253,11 +253,23 @@
   }
 }
 
+@keyframes gen-rise {
+  from {
+    transform: translateY(24px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 .animate-gen-reveal {
   animation: gen-reveal 0.8s ease-out both;
 }
 .animate-gen-stagger-in {
   animation: gen-stagger-in 0.5s ease-out both;
+}
+.animate-gen-rise {
+  animation: gen-rise 0.9s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 .animate-gen-flicker {
   animation: gen-flicker 4s ease-in-out infinite;

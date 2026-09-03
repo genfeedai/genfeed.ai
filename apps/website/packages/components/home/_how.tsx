@@ -27,7 +27,7 @@ export default function HomeHow(): React.ReactElement {
   return (
     <section id="how" className="gen-section-spacing border-b border-edge/5">
       <div className="container mx-auto px-6">
-        <div className="flex flex-col mb-10 max-w-3xl gap-4">
+        <div className="flex flex-col mb-10 max-w-3xl gap-4" data-reveal="up">
           <Text className={EYEBROW_CLASS}>How it works</Text>
           <Heading
             id="home-workflow-heading"
@@ -49,6 +49,7 @@ export default function HomeHow(): React.ReactElement {
             <li
               key={item.step}
               className="flex flex-col gap-3 bg-background p-8"
+              data-reveal="up"
             >
               <Text className="text-sm font-black tracking-[-0.02em] text-surface/72">
                 {item.step}

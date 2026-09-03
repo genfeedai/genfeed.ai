@@ -48,7 +48,7 @@ export default function HomeFormats(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="mb-16 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4" data-reveal="up">
             <Heading
               as="h2"
               className="max-w-3xl text-5xl font-semibold leading-tight tracking-[-0.04em] sm:text-6xl"
@@ -60,7 +60,7 @@ export default function HomeFormats(): React.ReactElement {
             </Text>
           </div>
 
-          <div className="lg:justify-self-end">
+          <div className="lg:justify-self-end" data-reveal="up">
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
@@ -78,6 +78,7 @@ export default function HomeFormats(): React.ReactElement {
             <li
               key={format.title}
               className="grid grid-cols-[2.5rem_1fr] gap-4 border-b border-edge/5 py-8"
+              data-reveal="up"
             >
               <Text className="pt-1 text-[11px] font-bold tracking-[0.12em] text-surface/55">
                 {String(index + 1).padStart(2, '0')}

@@ -32,18 +32,34 @@ vi.mock('@web-components/home/_footer', () => ({
   default: () => <footer>Footer</footer>,
 }));
 
+vi.mock('@hooks/ui/use-gsap-entrance', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@hooks/ui/use-gsap-entrance')>()),
+  useGsapEntrance: () => ({ current: null }),
+}));
+
 describe('HomeContent', () => {
+  it('wraps every section in the scroll reveal container', () => {
+    render(<HomeContent />);
+
+    expect(screen.getByTestId('home-reveal')).toContainElement(
+      screen.getByTestId('home-hero'),
+    );
+    expect(screen.getByTestId('home-reveal')).toContainElement(
+      screen.getByTestId('home-cta'),
+    );
+  });
+
   it('shows output first and the product mechanism second', () => {
-    const { container } = render(<HomeContent />);
-    const sections = Array.from(container.children);
+    render(<HomeContent />);
+    const sections = Array.from(screen.getByTestId('home-reveal').children);
 
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
     expect(sections[1]).toBe(screen.getByTestId('home-product'));
   });
 
   it('places verified proof after product and before explanation', () => {
-    const { container } = render(<HomeContent />);
-    const sections = Array.from(container.children);
+    render(<HomeContent />);
+    const sections = Array.from(screen.getByTestId('home-reveal').children);
 
     expect(sections[2]).toBe(screen.getByTestId('home-winners'));
     expect(sections[3]).toBe(screen.getByTestId('home-distribution-loop'));

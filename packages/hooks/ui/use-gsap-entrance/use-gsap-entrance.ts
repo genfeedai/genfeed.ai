@@ -23,7 +23,26 @@ export interface GsapAnimation {
   scrollTrigger?: {
     trigger?: string;
     start?: string;
+    /**
+     * Give every matched element its own trigger instead of one shared trigger.
+     * Elements entering the viewport together stagger as a group, so long lists
+     * reveal row by row as the reader scrolls.
+     */
+    batch?: boolean;
   };
+}
+
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+export function prefersReducedMotion(): boolean {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function'
+  ) {
+    return false;
+  }
+
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
 export interface UseGsapEntranceOptions {
@@ -60,7 +79,12 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
   const containerRef = useRef<T | null>(null);
 
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined' || animations.length === 0) {
+    if (
+      !enabled ||
+      typeof window === 'undefined' ||
+      animations.length === 0 ||
+      prefersReducedMotion()
+    ) {
       return;
     }
 
@@ -99,9 +123,23 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
               toVars.stagger = anim.stagger;
             }
 
+            const start = anim.scrollTrigger?.start ?? 'top 85%';
+
+            if (anim.scrollTrigger?.batch) {
+              gsap.set(elements, fromVars);
+              ScrollTrigger.batch(elements, {
+                onEnter: (batch) => {
+                  gsap.to(batch, toVars);
+                },
+                once: true,
+                start,
+              });
+              continue;
+            }
+
             if (anim.scrollTrigger) {
               toVars.scrollTrigger = {
-                start: anim.scrollTrigger.start ?? 'top 85%',
+                start,
                 trigger: anim.scrollTrigger.trigger ?? anim.selector,
               };
             }
@@ -153,7 +191,12 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
   const containerRef = useRef<T | null>(null);
 
   useEffect(() => {
-    if (!enabled || typeof window === 'undefined' || steps.length === 0) {
+    if (
+      !enabled ||
+      typeof window === 'undefined' ||
+      steps.length === 0 ||
+      prefersReducedMotion()
+    ) {
       return;
     }
 
@@ -230,6 +273,24 @@ export const gsapPresets = {
     from: { opacity: 0, scale: 0.95 },
     scrollTrigger: scrollTrigger ? { trigger: scrollTrigger } : undefined,
     selector,
+  }),
+
+  /** Each element fades up on its own trigger; rows entering together stagger */
+  revealEach: (selector: string): GsapAnimation => ({
+    duration: 0.9,
+    from: { opacity: 0, y: 32 },
+    scrollTrigger: { batch: true, start: 'top 88%' },
+    selector,
+    stagger: 0.12,
+  }),
+
+  /** Each element scales in on its own trigger; rows entering together stagger */
+  scaleEach: (selector: string): GsapAnimation => ({
+    duration: 0.8,
+    from: { opacity: 0, scale: 0.94 },
+    scrollTrigger: { batch: true, start: 'top 88%' },
+    selector,
+    stagger: 0.08,
   }),
 
   /** Staggered cards entrance */
