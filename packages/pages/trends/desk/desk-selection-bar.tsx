@@ -22,7 +22,7 @@ export default function DeskSelectionBar({
   onClear,
 }: DeskSelectionBarProps) {
   const remixSurface = useOptionalDiscoveryRemix();
-  const translateDesk = useTranslations('trends.desk');
+  const translateDesk = useTranslations('common.trends.desk');
   const [isRemixing, setIsRemixing] = useState(false);
 
   const handleBatchRemix = useCallback(async () => {

@@ -616,6 +616,8 @@ export class WorkflowExecutionsService extends BaseService<
       },
       where: {
         id: executionId,
+        isDeleted: false,
+        organizationId: existing.organizationId,
         status: {
           in: [
             PrismaWorkflowExecutionStatus.PENDING,

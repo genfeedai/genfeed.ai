@@ -511,7 +511,7 @@ describe('OperationalHomeContent', () => {
 
     const credentials = screen.getByTestId('operational-home-credentials');
     expect(within(credentials).getByRole('status')).toHaveTextContent(
-      'Loading credential health',
+      'catalog:home.credentials.loading',
     );
     expect(
       within(credentials).getByTestId('list-rows-skeleton'),
@@ -613,7 +613,8 @@ describe('OperationalHomeContent', () => {
     expect(
       within(needsYou).getByTestId('operational-home-needs-you-overflow'),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
-    expect(needsYou).toHaveTextContent('1 more waiting');
+    expect(needsYou).toHaveTextContent('catalog:home.approvals.overflow');
+    expect(needsYou).toHaveTextContent('catalog:home.approvals.viewAll');
   });
 
   it('approves a review item and refreshes the overview on success', async () => {

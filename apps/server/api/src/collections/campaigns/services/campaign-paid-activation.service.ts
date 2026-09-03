@@ -208,14 +208,22 @@ export class CampaignPaidActivationService {
       return toCampaignPaidActivation(existing);
     }
 
-    const updated = await this.prisma.campaignPaidActivation.update({
+    const spendApprovedAt = new Date();
+    const transition = await this.prisma.campaignPaidActivation.updateMany({
       data: {
-        spendApprovedAt: new Date(),
+        spendApprovedAt,
         spendApprovedByUserId: userId,
       },
-      where: { id: existing.id },
+      where: scopedWhere(organizationId, { id: existing.id }),
     });
-    return toCampaignPaidActivation(updated);
+    if (transition.count !== 1) {
+      throw new NotFoundException('Campaign paid activation', activationId);
+    }
+    return toCampaignPaidActivation({
+      ...existing,
+      spendApprovedAt,
+      spendApprovedByUserId: userId,
+    });
   }
 
   private async requireCampaign(organizationId: string, id: string) {

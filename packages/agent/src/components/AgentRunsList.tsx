@@ -5,6 +5,7 @@ import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Badge from '@ui/display/badge/Badge';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 import {
   type AgentRunListItem,
@@ -65,6 +66,7 @@ export function AgentRunsList({
   onNavigate,
   socketConnectionState,
 }: AgentRunsListProps): ReactElement {
+  const translate = useTranslations('agent.runsList');
   const threads = useAgentChatStore((state) => state.threads);
   const isProjectionStale =
     socketConnectionState === 'offline' ||
@@ -100,13 +102,13 @@ export function AgentRunsList({
     <div className="flex h-full min-h-0 flex-col" data-testid="agent-runs-list">
       {isProjectionStale ? (
         <p className="px-3 py-2 text-xs text-warning" role="status">
-          Run status may be stale until the connection recovers.
+          {translate('stale')}
         </p>
       ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {runs.length === 0 ? (
           <p className="px-1 py-6 text-sm text-muted-foreground">
-            No active or recently failed runs.
+            {translate('empty')}
           </p>
         ) : (
           sections.map((section) =>

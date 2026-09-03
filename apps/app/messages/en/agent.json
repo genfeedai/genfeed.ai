@@ -1,4 +1,14 @@
 {
+  "chrome": {
+    "conversations": "Conversations",
+    "runs": "Runs",
+    "title": "Agent",
+    "unsupportedCard": "This card type is not supported yet."
+  },
+  "runsList": {
+    "empty": "No active or recently failed runs.",
+    "stale": "Run status may be stale until the connection recovers."
+  },
   "brandIdentityConfirmation": {
     "awaitingConfirmation": "Awaiting confirmation",
     "confirmCreateTitle": "Confirm create brand",

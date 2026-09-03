@@ -11,9 +11,11 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export default function AnalyticsTopAccounts() {
+  const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
   const { brandId } = useCollectionScope();
   const getService = useAuthedService((token: string) =>
@@ -46,7 +48,7 @@ export default function AnalyticsTopAccounts() {
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg">Top accounts</h2>
+        <h2 className="text-lg">{translate('topAccounts')}</h2>
         <Button
           label="View all"
           variant={ButtonVariant.GHOST}

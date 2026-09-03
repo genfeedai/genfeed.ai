@@ -68,8 +68,30 @@ export class AccountAnalyticsSnapshotService {
           : AnalyticsMetricAvailability.UNAVAILABLE,
     };
 
-    await this.prisma.accountAnalyticsSnapshot.upsert({
-      create: {
+    const existing = await this.prisma.accountAnalyticsSnapshot.findFirst({
+      where: scopedWhere(input.organizationId, {
+        credentialId: input.credentialId,
+        date,
+      }),
+    });
+    if (existing) {
+      await this.prisma.accountAnalyticsSnapshot.updateMany({
+        data: {
+          ...(input.followers === undefined
+            ? {}
+            : { followers: input.followers }),
+          metricAvailability,
+          ...(input.subscribers === undefined
+            ? {}
+            : { subscribers: input.subscribers }),
+        },
+        where: scopedWhere(input.organizationId, { id: existing.id }),
+      });
+      return;
+    }
+
+    await this.prisma.accountAnalyticsSnapshot.create({
+      data: {
         brandId: input.brandId,
         credentialId: input.credentialId,
         date,
@@ -78,21 +100,6 @@ export class AccountAnalyticsSnapshotService {
         organizationId: input.organizationId,
         platform,
         subscribers: input.subscribers ?? null,
-      },
-      update: {
-        ...(input.followers === undefined
-          ? {}
-          : { followers: input.followers }),
-        metricAvailability,
-        ...(input.subscribers === undefined
-          ? {}
-          : { subscribers: input.subscribers }),
-      },
-      where: {
-        credentialId_date: {
-          credentialId: input.credentialId,
-          date,
-        },
       },
     });
   }

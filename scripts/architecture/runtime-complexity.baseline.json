@@ -1,75 +1,27 @@
 [
   {
-    "actual": 190,
-    "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTransfersService.create"
-  },
-  {
-    "actual": 175,
-    "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
-    "metric": "method-lines",
-    "symbol": "BillingAccountMigrationService.run"
-  },
-  {
-    "actual": 187,
-    "file": "apps/server/api/src/collections/clip-projects/services/public-youtube-clip-claim.service.ts",
-    "metric": "method-lines",
-    "symbol": "PublicYoutubeClipClaimService.claim"
-  },
-  {
-    "actual": 154,
-    "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
-    "metric": "method-lines",
-    "symbol": "ListeningTopicAnalysisService.persistAnalysis"
-  },
-  {
-    "actual": 266,
-    "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
-    "metric": "method-lines",
-    "symbol": "ProactiveOnboardingService.prepareBrand"
-  },
-  {
-    "actual": 198,
-    "file": "apps/server/api/src/endpoints/public/services/public-youtube-clips.service.ts",
-    "metric": "method-lines",
-    "symbol": "PublicYoutubeClipsService.onModuleInit"
-  },
-  {
-    "actual": 169,
-    "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
-    "metric": "method-lines",
-    "symbol": "HeygenWebhookService.handleCallback"
-  },
-  {
-    "actual": 172,
-    "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
-    "metric": "method-lines",
-    "symbol": "DesktopSyncService.pushAssets"
-  },
-  {
-    "actual": 1019,
-    "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
-  },
-  {
-    "actual": 365,
-    "file": "apps/server/mcp/src/services/tool-registry.service.ts",
-    "metric": "method-lines",
-    "symbol": "ToolRegistryService.handleLegacyTool"
-  },
-  {
     "actual": 156,
     "file": "apps/server/api/src/collections/agent-memories/services/agent-memories.service.ts",
     "metric": "method-lines",
     "symbol": "AgentMemoriesService.scoreFeedbackMemory"
   },
   {
+    "actual": 190,
+    "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentTransfersService.create"
+  },
+  {
     "actual": 1387,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"
+  },
+  {
+    "actual": 175,
+    "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
+    "metric": "method-lines",
+    "symbol": "BillingAccountMigrationService.run"
   },
   {
     "actual": 238,
@@ -90,6 +42,24 @@
     "symbol": "ClipGenerationDispatchService.retryFailedClips"
   },
   {
+    "actual": 187,
+    "file": "apps/server/api/src/collections/clip-projects/services/public-youtube-clip-claim.service.ts",
+    "metric": "method-lines",
+    "symbol": "PublicYoutubeClipClaimService.claim"
+  },
+  {
+    "actual": 1136,
+    "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts"
+  },
+  {
+    "actual": 154,
+    "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
+    "metric": "method-lines",
+    "symbol": "ListeningTopicAnalysisService.persistAnalysis"
+  },
+  {
     "actual": 1063,
     "file": "apps/server/api/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
@@ -108,7 +78,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1020,
+    "actual": 1064,
     "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/post-analytics.service.ts"
@@ -162,16 +132,40 @@
     "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
   },
   {
+    "actual": 1008,
+    "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts"
+  },
+  {
     "actual": 1070,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 514,
+    "actual": 519,
     "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
+  },
+  {
+    "actual": 266,
+    "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
+    "metric": "method-lines",
+    "symbol": "ProactiveOnboardingService.prepareBrand"
+  },
+  {
+    "actual": 198,
+    "file": "apps/server/api/src/endpoints/public/services/public-youtube-clips.service.ts",
+    "metric": "method-lines",
+    "symbol": "PublicYoutubeClipsService.onModuleInit"
+  },
+  {
+    "actual": 169,
+    "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
+    "metric": "method-lines",
+    "symbol": "HeygenWebhookService.handleCallback"
   },
   {
     "actual": 218,
@@ -234,7 +228,7 @@
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 454,
+    "actual": 455,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
@@ -246,7 +240,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
   },
   {
-    "actual": 197,
+    "actual": 198,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnWorkflowExecutionService.execute"
@@ -294,7 +288,7 @@
     "symbol": "AgentPublishToolHandler.publishConfirmedContent"
   },
   {
-    "actual": 28,
+    "actual": 29,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "constructor-dependencies",
     "symbol": "AgentToolExecutorService.constructor"
@@ -382,6 +376,24 @@
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
+  },
+  {
+    "actual": 172,
+    "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
+    "metric": "method-lines",
+    "symbol": "DesktopSyncService.pushAssets"
+  },
+  {
+    "actual": 1019,
+    "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
+  },
+  {
+    "actual": 365,
+    "file": "apps/server/mcp/src/services/tool-registry.service.ts",
+    "metric": "method-lines",
+    "symbol": "ToolRegistryService.handleLegacyTool"
   },
   {
     "actual": 1031,

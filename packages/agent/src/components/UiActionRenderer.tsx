@@ -49,6 +49,7 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 export function UiActionRenderer({
@@ -88,6 +89,7 @@ export function UiActionRenderer({
   onRetry?: () => void | Promise<void>;
   onUiAction?: AgentUiActionHandler;
 }): ReactElement | null {
+  const translate = useTranslations('agent.chrome');
   const isInert = isReadOnly || isDisabled;
   // Drop mutating handlers when archived or temporarily busy —
   // pointer-events-none alone is not enough for keyboard / programmatic
@@ -312,7 +314,7 @@ export function UiActionRenderer({
           className="border border-border bg-background-secondary p-3 text-sm text-foreground"
           role="status"
         >
-          This card type is not supported yet.
+          {translate('unsupportedCard')}
           {typeof action.type === 'string' ? ` (${action.type})` : ''}
         </div>
       );
