@@ -160,11 +160,16 @@ describe('useTimeseries', () => {
       twitter: 0,
       youtube: 0,
     };
-    const cacheKey = `timeseries:${PageScope.ORGANIZATION}:2025-01-01:2025-01-07`;
-    cacheStores.get('analytics:timeseries:')?.set(cacheKey, [cachedPoint]);
-    cacheStores
-      .get('analytics:timeseries:meta:')
-      ?.set(cacheKey, '2025-01-03T00:00:00.000Z');
+    const cacheKey = `timeseries:${PageScope.ORGANIZATION}:brand-1:2025-01-01:2025-01-07`;
+    const timeseriesStore =
+      cacheStores.get('analytics:timeseries:') ?? new Map<string, unknown>();
+    const timeseriesMetaStore =
+      cacheStores.get('analytics:timeseries:meta:') ??
+      new Map<string, unknown>();
+    cacheStores.set('analytics:timeseries:', timeseriesStore);
+    cacheStores.set('analytics:timeseries:meta:', timeseriesMetaStore);
+    timeseriesStore.set(cacheKey, [cachedPoint]);
+    timeseriesMetaStore.set(cacheKey, '2025-01-03T00:00:00.000Z');
     mockGetTimeSeries.mockRejectedValue(new Error('boom'));
 
     const { result } = renderHook(() =>
