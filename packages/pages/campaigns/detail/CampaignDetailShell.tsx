@@ -173,7 +173,7 @@ export default function CampaignDetailShell({
       'generate',
       'generated',
       'generateFailed',
-      (service) => service.generate(campaign.id),
+      (service) => service.generate(resolvedCampaign.id),
     );
   }
 
@@ -184,7 +184,7 @@ export default function CampaignDetailShell({
       'start',
       'started',
       'startFailed',
-      (service) => service.start(campaign.id),
+      (service) => service.start(resolvedCampaign.id),
     );
   }
 
@@ -195,7 +195,7 @@ export default function CampaignDetailShell({
       'pause',
       'paused',
       'pauseFailed',
-      (service) => service.pause(campaign.id),
+      (service) => service.pause(resolvedCampaign.id),
     );
   }
 
@@ -206,7 +206,7 @@ export default function CampaignDetailShell({
       'complete',
       'completed',
       'completeFailed',
-      (service) => service.complete(campaign.id),
+      (service) => service.complete(resolvedCampaign.id),
       true,
     );
   }
