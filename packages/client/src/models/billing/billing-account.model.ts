@@ -12,17 +12,17 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class BillingAccount extends BaseEntity implements IBillingAccount {
-  public declare label: string | null;
-  public declare status: BillingAccountStatus;
-  public declare planTier: string | null;
-  public declare callerRole: BillingAccountMemberRole | null;
-  public declare linkedOrganizations: IBillingAccountOrganizationLink[];
-  public declare wallet: IBillingAccountWallet;
-  public declare subscriptionStatus: string | null;
-  public declare currentPeriodEnd: string | null;
-  public declare isIdentityStale: boolean;
-  public declare capabilities: IBillingAccountCapabilities;
-  public declare members?: IBillingAccountMember[];
+  declare public label: string | null;
+  declare public status: BillingAccountStatus;
+  declare public planTier: string | null;
+  declare public callerRole: BillingAccountMemberRole | null;
+  declare public linkedOrganizations: IBillingAccountOrganizationLink[];
+  declare public wallet: IBillingAccountWallet;
+  declare public subscriptionStatus: string | null;
+  declare public currentPeriodEnd: string | null;
+  declare public isIdentityStale: boolean;
+  declare public capabilities: IBillingAccountCapabilities;
+  declare public members?: IBillingAccountMember[];
 
   constructor(data: Partial<IBillingAccount> = {}) {
     super(data);

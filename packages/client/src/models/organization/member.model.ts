@@ -8,16 +8,16 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Member extends BaseEntity implements IMember {
-  public declare organizationId: string;
-  public declare userId: string;
-  public declare roleId: string;
-  public declare lastUsedBrandId?: string | null;
-  public declare roleKey?: string | null;
-  public declare organization?: IOrganization;
-  public declare user?: IUser;
-  public declare role?: IRole;
-  public declare brands?: IBrand[];
-  public declare isActive: boolean;
+  declare public organizationId: string;
+  declare public userId: string;
+  declare public roleId: string;
+  declare public lastUsedBrandId?: string | null;
+  declare public roleKey?: string | null;
+  declare public organization?: IOrganization;
+  declare public user?: IUser;
+  declare public role?: IRole;
+  declare public brands?: IBrand[];
+  declare public isActive: boolean;
 
   constructor(data: Partial<IMember> = {}) {
     super(data);

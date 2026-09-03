@@ -6,27 +6,27 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 
 export class StudioLook extends BaseEntity implements IStudioLook {
-  public declare aspectRatio?: string | null;
-  public declare assetType: StudioLookAssetType;
-  public declare brandId: string;
-  public declare brandingMode?: 'brand' | 'off' | null;
-  public declare camera: string;
-  public declare cameraMovement?: string | null;
-  public declare duration?: number | null;
-  public declare isPromptEnhanceEnabled?: boolean;
-  public declare label: string;
-  public declare lens: string;
-  public declare lighting: string;
-  public declare modelKey?: string | null;
-  public declare mood: string;
-  public declare organizationId: string;
-  public declare outputs?: number | null;
-  public declare prioritize?: RouterPriority | null;
-  public declare promptTemplate: string;
-  public declare resolution?: string | null;
-  public declare scene: string;
-  public declare style: string;
-  public declare userId: string;
+  declare public aspectRatio?: string | null;
+  declare public assetType: StudioLookAssetType;
+  declare public brandId: string;
+  declare public brandingMode?: 'brand' | 'off' | null;
+  declare public camera: string;
+  declare public cameraMovement?: string | null;
+  declare public duration?: number | null;
+  declare public isPromptEnhanceEnabled?: boolean;
+  declare public label: string;
+  declare public lens: string;
+  declare public lighting: string;
+  declare public modelKey?: string | null;
+  declare public mood: string;
+  declare public organizationId: string;
+  declare public outputs?: number | null;
+  declare public prioritize?: RouterPriority | null;
+  declare public promptTemplate: string;
+  declare public resolution?: string | null;
+  declare public scene: string;
+  declare public style: string;
+  declare public userId: string;
 
   constructor(data: Partial<IStudioLook> = {}) {
     super(data);

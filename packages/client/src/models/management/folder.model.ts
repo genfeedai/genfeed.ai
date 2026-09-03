@@ -7,13 +7,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Folder extends BaseEntity implements IFolder {
-  public declare organization: IOrganization;
-  public declare brand?: IBrand;
-  public declare user: IUser;
-  public declare label: string;
-  public declare description?: string;
-  public declare tags: string[];
-  public declare isActive?: boolean;
+  declare public organization: IOrganization;
+  declare public brand?: IBrand;
+  declare public user: IUser;
+  declare public label: string;
+  declare public description?: string;
+  declare public tags: string[];
+  declare public isActive?: boolean;
 
   constructor(data: Partial<IFolder> = {}) {
     super(data);

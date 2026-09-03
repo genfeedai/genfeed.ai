@@ -2,10 +2,10 @@ import { Ingredient } from '@genfeedai/client/models';
 import type { IVideo } from '@genfeedai/contracts/interfaces';
 
 export class Video extends Ingredient implements IVideo {
-  public declare duration?: number;
-  public declare language?: string;
-  public declare resolution?: string;
-  public declare hasAudio?: boolean;
+  declare public duration?: number;
+  declare public language?: string;
+  declare public resolution?: string;
+  declare public hasAudio?: boolean;
 
   constructor(data: Partial<IVideo> = {}) {
     super(data);

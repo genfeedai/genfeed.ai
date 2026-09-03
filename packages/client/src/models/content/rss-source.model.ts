@@ -2,24 +2,24 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { IRssSource } from '@genfeedai/contracts/interfaces';
 
 export class RssSource extends BaseEntity implements IRssSource {
-  public declare approvalMode: IRssSource['approvalMode'];
-  public declare brand?: IRssSource['brand'];
-  public declare brandId?: string | null;
-  public declare failedCount: number;
-  public declare feedUrl: string;
-  public declare importedCount: number;
-  public declare importPolicy: IRssSource['importPolicy'];
-  public declare isEnabled: boolean;
-  public declare label: string;
-  public declare lastError?: string | null;
-  public declare lastPolledAt?: string | null;
-  public declare organization?: IRssSource['organization'];
-  public declare organizationId: string;
-  public declare skippedCount: number;
-  public declare targetChannels: IRssSource['targetChannels'];
-  public declare timezone: string;
-  public declare user?: IRssSource['user'];
-  public declare userId: string;
+  declare public approvalMode: IRssSource['approvalMode'];
+  declare public brand?: IRssSource['brand'];
+  declare public brandId?: string | null;
+  declare public failedCount: number;
+  declare public feedUrl: string;
+  declare public importedCount: number;
+  declare public importPolicy: IRssSource['importPolicy'];
+  declare public isEnabled: boolean;
+  declare public label: string;
+  declare public lastError?: string | null;
+  declare public lastPolledAt?: string | null;
+  declare public organization?: IRssSource['organization'];
+  declare public organizationId: string;
+  declare public skippedCount: number;
+  declare public targetChannels: IRssSource['targetChannels'];
+  declare public timezone: string;
+  declare public user?: IRssSource['user'];
+  declare public userId: string;
 
   constructor(data: Partial<IRssSource> = {}) {
     super(data);

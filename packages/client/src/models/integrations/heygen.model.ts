@@ -6,9 +6,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class HeyGen extends BaseEntity implements IHeyGen {
-  public declare provider: string;
-  public declare apiKey?: string;
-  public declare metadata?: Record<string, unknown>;
+  declare public provider: string;
+  declare public apiKey?: string;
+  declare public metadata?: Record<string, unknown>;
 
   constructor(data: Partial<IHeyGen> = {}) {
     super(data);
@@ -16,12 +16,12 @@ export class HeyGen extends BaseEntity implements IHeyGen {
 }
 
 export class HeyGenAvatar implements IHeyGenAvatar {
-  public declare avatarId: string;
-  public declare label: string;
-  public declare gender?: string;
-  public declare preview?: string;
-  public declare provider?: string;
-  public declare index?: number;
+  declare public avatarId: string;
+  declare public label: string;
+  declare public gender?: string;
+  declare public preview?: string;
+  declare public provider?: string;
+  declare public index?: number;
 
   constructor(data: Partial<IHeyGenAvatar> = {}) {
     Object.assign(this, data);
@@ -29,12 +29,12 @@ export class HeyGenAvatar implements IHeyGenAvatar {
 }
 
 export class HeyGenVoice implements IHeyGenVoice {
-  public declare voiceId: string;
-  public declare label: string;
-  public declare gender?: string;
-  public declare preview?: string;
-  public declare provider?: string;
-  public declare index?: number;
+  declare public voiceId: string;
+  declare public label: string;
+  declare public gender?: string;
+  declare public preview?: string;
+  declare public provider?: string;
+  declare public index?: number;
 
   constructor(data: Partial<IHeyGenVoice> = {}) {
     Object.assign(this, data);

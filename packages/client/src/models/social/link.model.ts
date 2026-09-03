@@ -3,11 +3,11 @@ import type { LinkCategory } from '@genfeedai/contracts';
 import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
 
 export class Link extends BaseEntity implements ILink {
-  public declare brandId: string;
-  public declare brand?: IBrand;
-  public declare label: string;
-  public declare category: LinkCategory;
-  public declare url: string;
+  declare public brandId: string;
+  declare public brand?: IBrand;
+  declare public label: string;
+  declare public category: LinkCategory;
+  declare public url: string;
 
   constructor(data: Partial<ILink> = {}) {
     super(data);

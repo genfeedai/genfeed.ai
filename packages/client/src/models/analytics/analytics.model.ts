@@ -16,23 +16,23 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Analytics implements IAnalytics {
-  public declare totalPosts: number;
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare totalShares: number;
-  public declare totalSaves: number;
-  public declare totalCredentialsConnected: number;
-  public declare avgEngagementRate: number;
-  public declare totalEngagement?: number;
-  public declare monthlyGrowth: number;
-  public declare viewsGrowth: number;
-  public declare engagementGrowth?: number;
-  public declare activePlatforms?: string[];
-  public declare bestPerformingPlatform?: string;
-  public declare totalSubscriptions?: number;
-  public declare totalUsers?: number;
-  public declare totalBrands?: number;
+  declare public totalPosts: number;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public totalShares: number;
+  declare public totalSaves: number;
+  declare public totalCredentialsConnected: number;
+  declare public avgEngagementRate: number;
+  declare public totalEngagement?: number;
+  declare public monthlyGrowth: number;
+  declare public viewsGrowth: number;
+  declare public engagementGrowth?: number;
+  declare public activePlatforms?: string[];
+  declare public bestPerformingPlatform?: string;
+  declare public totalSubscriptions?: number;
+  declare public totalUsers?: number;
+  declare public totalBrands?: number;
 
   constructor(data: Partial<IAnalytics> = {}) {
     Object.assign(this, data);
@@ -40,11 +40,11 @@ export class Analytics implements IAnalytics {
 }
 
 export class AnalyticsCSVRecord implements IAnalyticsCSVRecord {
-  public declare video: string;
-  public declare views: number;
-  public declare comments: number;
-  public declare likes: number;
-  public declare platform: string;
+  declare public video: string;
+  declare public views: number;
+  declare public comments: number;
+  declare public likes: number;
+  declare public platform: string;
 
   constructor(data: Partial<IAnalyticsCSVRecord> = {}) {
     Object.assign(this, data);
@@ -52,19 +52,19 @@ export class AnalyticsCSVRecord implements IAnalyticsCSVRecord {
 }
 
 export class PostAnalytics implements IPostAnalytics {
-  public declare id: string;
-  public declare post: string;
-  public declare platform: string;
-  public declare date: string;
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare totalShares: number;
-  public declare engagementRate: number;
-  public declare totalViewsIncrement: number;
-  public declare totalLikesIncrement: number;
-  public declare totalCommentsIncrement: number;
-  public declare totalSharesIncrement: number;
+  declare public id: string;
+  declare public post: string;
+  declare public platform: string;
+  declare public date: string;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public totalShares: number;
+  declare public engagementRate: number;
+  declare public totalViewsIncrement: number;
+  declare public totalLikesIncrement: number;
+  declare public totalCommentsIncrement: number;
+  declare public totalSharesIncrement: number;
 
   constructor(data: Partial<IPostAnalytics> = {}) {
     Object.assign(this, data);
@@ -72,12 +72,12 @@ export class PostAnalytics implements IPostAnalytics {
 }
 
 export class PlatformStats implements IPlatformStats {
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare totalShares: number;
-  public declare totalSaves: number;
-  public declare engagementRate: number;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public totalShares: number;
+  declare public totalSaves: number;
+  declare public engagementRate: number;
 
   constructor(data: Partial<IPlatformStats> = {}) {
     Object.assign(this, data);
@@ -85,13 +85,13 @@ export class PlatformStats implements IPlatformStats {
 }
 
 export class PostAnalyticsSummary implements IPostAnalyticsSummary {
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare totalShares: number;
-  public declare totalSaves: number;
-  public declare avgEngagementRate: number;
-  public declare platforms: Record<string, IPlatformStats>;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public totalShares: number;
+  declare public totalSaves: number;
+  declare public avgEngagementRate: number;
+  declare public platforms: Record<string, IPlatformStats>;
 
   constructor(data: Partial<IPostAnalyticsSummary> = {}) {
     Object.assign(this, data);
@@ -99,10 +99,10 @@ export class PostAnalyticsSummary implements IPostAnalyticsSummary {
 }
 
 export class AnalyticsRefreshResponse implements IAnalyticsRefreshResponse {
-  public declare totalPosts: number;
-  public declare successCount: number;
-  public declare errorCount: number;
-  public declare lastRefreshed: string;
+  declare public totalPosts: number;
+  declare public successCount: number;
+  declare public errorCount: number;
+  declare public lastRefreshed: string;
 
   constructor(data: Partial<IAnalyticsRefreshResponse> = {}) {
     Object.assign(this, data);
@@ -110,14 +110,14 @@ export class AnalyticsRefreshResponse implements IAnalyticsRefreshResponse {
 }
 
 export class PostWithAnalytics implements IPostWithAnalytics {
-  public declare id: string;
-  public declare label: string;
-  public declare platform: string;
-  public declare status: string;
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare engagementRate: number;
+  declare public id: string;
+  declare public label: string;
+  declare public platform: string;
+  declare public status: string;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public engagementRate: number;
 
   constructor(data: Partial<IPostWithAnalytics> = {}) {
     Object.assign(this, data);
@@ -127,12 +127,12 @@ export class PostWithAnalytics implements IPostWithAnalytics {
 export class OrganizationAnalyticsTotals
   implements IOrganizationAnalyticsTotals
 {
-  public declare totalPosts: number;
-  public declare totalViews: number;
-  public declare totalLikes: number;
-  public declare totalComments: number;
-  public declare totalShares: number;
-  public declare avgEngagementRate: number;
+  declare public totalPosts: number;
+  declare public totalViews: number;
+  declare public totalLikes: number;
+  declare public totalComments: number;
+  declare public totalShares: number;
+  declare public avgEngagementRate: number;
 
   constructor(data: Partial<IOrganizationAnalyticsTotals> = {}) {
     Object.assign(this, data);
@@ -140,14 +140,14 @@ export class OrganizationAnalyticsTotals
 }
 
 export class TimeSeriesDataPoint implements ITimeSeriesDataPoint {
-  public declare date: string;
-  public declare views: number;
-  public declare likes: number;
-  public declare comments: number;
-  public declare shares: number;
-  public declare saves: number;
-  public declare engagementRate: number;
-  public declare totalEngagement: number;
+  declare public date: string;
+  declare public views: number;
+  declare public likes: number;
+  declare public comments: number;
+  declare public shares: number;
+  declare public saves: number;
+  declare public engagementRate: number;
+  declare public totalEngagement: number;
 
   constructor(data: Partial<ITimeSeriesDataPoint> = {}) {
     Object.assign(this, data);
@@ -155,15 +155,15 @@ export class TimeSeriesDataPoint implements ITimeSeriesDataPoint {
 }
 
 export class PlatformComparison implements IPlatformComparison {
-  public declare platform: string;
-  public declare views: number;
-  public declare likes: number;
-  public declare comments: number;
-  public declare shares: number;
-  public declare saves: number;
-  public declare engagementRate: number;
-  public declare postCount: number;
-  public declare avgViewsPerPost: number;
+  declare public platform: string;
+  declare public views: number;
+  declare public likes: number;
+  declare public comments: number;
+  declare public shares: number;
+  declare public saves: number;
+  declare public engagementRate: number;
+  declare public postCount: number;
+  declare public avgViewsPerPost: number;
 
   constructor(data: Partial<IPlatformComparison> = {}) {
     Object.assign(this, data);
@@ -171,23 +171,23 @@ export class PlatformComparison implements IPlatformComparison {
 }
 
 export class GrowthTrends implements IGrowthTrends {
-  public declare views: {
+  declare public views: {
     current: number;
     previous: number;
     growth: number;
     growthPercentage: number;
   };
-  public declare engagement: {
+  declare public engagement: {
     current: number;
     previous: number;
     growth: number;
     growthPercentage: number;
   };
-  public declare bestDay: {
+  declare public bestDay: {
     date: string;
     views: number;
   };
-  public declare trendingDirection: TrendDirection;
+  declare public trendingDirection: TrendDirection;
 
   constructor(data: Partial<IGrowthTrends> = {}) {
     Object.assign(this, data);
@@ -195,15 +195,15 @@ export class GrowthTrends implements IGrowthTrends {
 }
 
 export class EngagementBreakdown implements IEngagementBreakdown {
-  public declare likes: number;
-  public declare likesPercentage: number;
-  public declare comments: number;
-  public declare commentsPercentage: number;
-  public declare shares: number;
-  public declare sharesPercentage: number;
-  public declare saves: number;
-  public declare savesPercentage: number;
-  public declare total: number;
+  declare public likes: number;
+  declare public likesPercentage: number;
+  declare public comments: number;
+  declare public commentsPercentage: number;
+  declare public shares: number;
+  declare public sharesPercentage: number;
+  declare public saves: number;
+  declare public savesPercentage: number;
+  declare public total: number;
 
   constructor(data: Partial<IEngagementBreakdown> = {}) {
     Object.assign(this, data);
@@ -211,18 +211,18 @@ export class EngagementBreakdown implements IEngagementBreakdown {
 }
 
 export class TopContent implements ITopContent {
-  public declare postId: string;
-  public declare ingredientId: string;
-  public declare title: string;
-  public declare description: string;
-  public declare platform: string;
-  public declare views: number;
-  public declare likes: number;
-  public declare comments: number;
-  public declare shares: number;
-  public declare engagementRate: number;
-  public declare publishDate: Date | string;
-  public declare url?: string;
+  declare public postId: string;
+  declare public ingredientId: string;
+  declare public title: string;
+  declare public description: string;
+  declare public platform: string;
+  declare public views: number;
+  declare public likes: number;
+  declare public comments: number;
+  declare public shares: number;
+  declare public engagementRate: number;
+  declare public publishDate: Date | string;
+  declare public url?: string;
 
   constructor(data: Partial<ITopContent> = {}) {
     Object.assign(this, data);

@@ -3,11 +3,11 @@ import type { ModelCategory } from '@genfeedai/contracts';
 import type { IElementStyle } from '@genfeedai/contracts/interfaces';
 
 export class ElementStyle extends BaseEntity implements IElementStyle {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare category?: ModelCategory;
-  public declare models?: string[];
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public category?: ModelCategory;
+  declare public models?: string[];
 
   constructor(data: Partial<IElementStyle> = {}) {
     super(data);

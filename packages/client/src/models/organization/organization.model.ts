@@ -10,26 +10,26 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Organization extends BaseEntity implements IOrganization {
-  public declare label: string;
-  public declare user: IUser;
-  public declare settings: IOrganizationSetting;
-  public declare credits?: ICredit;
-  public declare slug: string;
-  public declare description?: string;
-  public declare website?: string;
-  public declare logo?: IAsset;
-  public declare banner?: IAsset;
-  public declare isActive?: boolean;
-  public declare isVerified?: boolean;
-  public declare scope?: AssetScope;
-  public declare owner?: IUser;
-  public declare members?: IUser[];
-  public declare brands?: IBrand[];
-  public declare memberCount?: number;
-  public declare brandCount?: number;
-  public declare isSelected: boolean;
-  public declare category?: OrganizationCategory;
-  public declare accountType?: OrganizationCategory;
+  declare public label: string;
+  declare public user: IUser;
+  declare public settings: IOrganizationSetting;
+  declare public credits?: ICredit;
+  declare public slug: string;
+  declare public description?: string;
+  declare public website?: string;
+  declare public logo?: IAsset;
+  declare public banner?: IAsset;
+  declare public isActive?: boolean;
+  declare public isVerified?: boolean;
+  declare public scope?: AssetScope;
+  declare public owner?: IUser;
+  declare public members?: IUser[];
+  declare public brands?: IBrand[];
+  declare public memberCount?: number;
+  declare public brandCount?: number;
+  declare public isSelected: boolean;
+  declare public category?: OrganizationCategory;
+  declare public accountType?: OrganizationCategory;
 
   constructor(data: Partial<IOrganization> = {}) {
     super(data);

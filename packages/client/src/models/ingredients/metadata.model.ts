@@ -2,22 +2,22 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { IMetadata, IPrompt, ITag } from '@genfeedai/contracts/interfaces';
 
 export class Metadata extends BaseEntity implements IMetadata {
-  public declare label: string;
-  public declare description?: string;
-  public declare model?: string;
-  public declare result?: string;
-  public declare extension?: string;
-  public declare language?: string;
-  public declare duration?: number;
-  public declare width?: number;
-  public declare height?: number;
-  public declare size?: number;
-  public declare style?: string;
-  public declare hasAudio?: boolean;
-  public declare shortId?: string;
-  public declare prompt?: IPrompt;
-  public declare tags?: ITag[];
-  public declare url?: string;
+  declare public label: string;
+  declare public description?: string;
+  declare public model?: string;
+  declare public result?: string;
+  declare public extension?: string;
+  declare public language?: string;
+  declare public duration?: number;
+  declare public width?: number;
+  declare public height?: number;
+  declare public size?: number;
+  declare public style?: string;
+  declare public hasAudio?: boolean;
+  declare public shortId?: string;
+  declare public prompt?: IPrompt;
+  declare public tags?: ITag[];
+  declare public url?: string;
 
   constructor(data: Partial<IMetadata> = {}) {
     super(data);

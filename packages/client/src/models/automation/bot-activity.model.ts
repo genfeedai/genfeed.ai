@@ -3,25 +3,25 @@ import type { BotActivityStatus, ReplyBotPlatform } from '@genfeedai/contracts';
 import type { IBotActivity } from '@genfeedai/contracts/interfaces';
 
 export class BotActivity extends BaseEntity implements IBotActivity {
-  public declare organizationId: string;
-  public declare brandId?: string;
-  public declare userId: string;
-  public declare replyBotConfigId?: string;
-  public declare monitoredAccountId?: string;
-  public declare platform: ReplyBotPlatform;
-  public declare status: BotActivityStatus;
-  public declare triggerContentId: string;
-  public declare triggerContentText: string;
-  public declare triggerContentAuthor: string;
-  public declare triggerContentUrl?: string;
-  public declare replyText?: string;
-  public declare replyContentId?: string;
-  public declare replyContentUrl?: string;
-  public declare dmText?: string;
-  public declare dmSent: boolean;
-  public declare processingTimeMs?: number;
-  public declare errorMessage?: string;
-  public declare skippedReason?: string;
+  declare public organizationId: string;
+  declare public brandId?: string;
+  declare public userId: string;
+  declare public replyBotConfigId?: string;
+  declare public monitoredAccountId?: string;
+  declare public platform: ReplyBotPlatform;
+  declare public status: BotActivityStatus;
+  declare public triggerContentId: string;
+  declare public triggerContentText: string;
+  declare public triggerContentAuthor: string;
+  declare public triggerContentUrl?: string;
+  declare public replyText?: string;
+  declare public replyContentId?: string;
+  declare public replyContentUrl?: string;
+  declare public dmText?: string;
+  declare public dmSent: boolean;
+  declare public processingTimeMs?: number;
+  declare public errorMessage?: string;
+  declare public skippedReason?: string;
 
   constructor(data: Partial<IBotActivity> = {}) {
     super(data);

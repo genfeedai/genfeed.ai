@@ -2,9 +2,9 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { IElementCamera } from '@genfeedai/contracts/interfaces';
 
 export class ElementCamera extends BaseEntity implements IElementCamera {
-  public declare key: string;
-  public declare label: string;
-  public declare description?: string;
+  declare public key: string;
+  declare public label: string;
+  declare public description?: string;
 
   constructor(data: Partial<IElementCamera> = {}) {
     super(data);
