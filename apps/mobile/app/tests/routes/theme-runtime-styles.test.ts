@@ -50,7 +50,11 @@ describe('mobile runtime theme styles', () => {
         Array.isArray(plugin) && plugin[0] === 'expo-splash-screen',
     );
     const splashOptions = splashPlugin?.[1] as
-      | { backgroundColor?: string; dark?: { backgroundColor?: string } }
+      | {
+          backgroundColor?: string;
+          dark?: { backgroundColor?: string; image?: string };
+          image?: string;
+        }
       | undefined;
 
     expect(splashOptions?.backgroundColor).toBe(
@@ -58,6 +62,10 @@ describe('mobile runtime theme styles', () => {
     );
     expect(splashOptions?.dark?.backgroundColor).toBe(
       nativeThemeColors.dark.bgPrimary,
+    );
+    expect(splashOptions?.image).toBe('./assets/images/splash-icon.png');
+    expect(splashOptions?.dark?.image).toBe(
+      './assets/images/splash-icon-dark.png',
     );
 
     const dynamicConfig = readFileSync(
@@ -70,5 +78,26 @@ describe('mobile runtime theme styles', () => {
     expect(dynamicConfig).toContain(
       `backgroundColor: '${nativeThemeColors.dark.bgPrimary}'`,
     );
+    expect(dynamicConfig).toContain(
+      "image: './assets/images/splash-icon-dark.png'",
+    );
+  });
+
+  it('puts the official mark on a black Android adaptive-icon background', () => {
+    const appJson = JSON.parse(
+      readFileSync(path.join(mobileRoot, 'app.json'), 'utf8'),
+    ) as {
+      expo: {
+        android: { adaptiveIcon: { backgroundColor: string } };
+      };
+    };
+
+    expect(appJson.expo.android.adaptiveIcon.backgroundColor).toBe('#000000');
+
+    const dynamicConfig = readFileSync(
+      path.join(mobileRoot, 'app.config.js'),
+      'utf8',
+    );
+    expect(dynamicConfig).toContain("backgroundColor: '#000000'");
   });
 });

@@ -1,5 +1,6 @@
-// Simple hook for Chrome extension
-export function useThemeLogo(): string | null {
-  // Return a default logo URL or null for Chrome extension
-  return null;
+import { logoURL } from '~services/environment.service';
+
+/** Popup chrome reads the CDN mark. Store toolbar icons stay local rasters. */
+export function useThemeLogo(): string {
+  return logoURL;
 }
