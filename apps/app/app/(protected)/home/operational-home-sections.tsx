@@ -2,8 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
+  ButtonSize,
   ButtonVariant,
+  formatPlatformLabel,
+  normalizeReviewDecision,
   PageScope,
+  ReviewDecision,
   TargetExecutionState,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
@@ -23,23 +27,29 @@ import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstra
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
+import { ListRow } from '@ui/lists/list-row/ListRow';
+import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
   getActivityBadge,
   getCredentialBadge,
-  summarizeCredentialHealth,
+  needsAttentionCredential,
   summarizeUpcomingSchedule,
   type UpcomingScheduleDay,
 } from './operational-home.helpers';
@@ -63,19 +73,13 @@ const EXECUTION_STATUS_VARIANTS: Record<
   [WorkflowExecutionStatus.RUNNING]: 'info',
 };
 
-function LoadingPanel({ label }: { label: string }) {
-  return (
-    <div
-      aria-live="polite"
-      className="rounded-card bg-background p-5 text-sm text-foreground/55 shadow-border"
-      role="status"
-    >
-      {label}
-    </div>
-  );
-}
+const CREDENTIAL_ROW_LIMIT = 6;
+const ACTIVITY_ROW_LIMIT = 5;
+const RECENT_EXECUTION_LIMIT = 3;
+const NEEDS_YOU_LIMIT = 8;
+const UPCOMING_SCHEDULE_DAYS = 7;
 
-function ErrorPanel({
+function ErrorLine({
   description,
   onRetry,
 }: {
@@ -86,51 +90,49 @@ function ErrorPanel({
 
   return (
     <div
-      className="rounded-card bg-destructive/5 p-5 shadow-border"
+      className="flex flex-wrap items-center gap-3 border-l-2 border-destructive py-1 pl-3 text-sm text-foreground/70"
       role="alert"
     >
-      <div className="flex items-start gap-3">
-        <TriangleAlert
-          aria-hidden="true"
-          className="mt-0.5 size-5 shrink-0 text-destructive"
-        />
-        <div className="space-y-3">
-          <p className="text-sm leading-6 text-foreground/70">{description}</p>
-          <Button
-            onClick={() => {
-              void onRetry();
-            }}
-            variant={ButtonVariant.SECONDARY}
-            withWrapper={false}
-          >
-            <RefreshCw aria-hidden="true" className="size-4" />
-            {translate('actions.retry')}
-          </Button>
-        </div>
-      </div>
+      <TriangleAlert
+        aria-hidden="true"
+        className="size-4 shrink-0 text-destructive"
+      />
+      <span className="min-w-0 flex-1">{description}</span>
+      <Button
+        onClick={() => {
+          void onRetry();
+        }}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.SECONDARY}
+      >
+        <RefreshCw aria-hidden="true" className="size-3.5" />
+        {translate('actions.retry')}
+      </Button>
     </div>
   );
 }
 
-function EmptyPanel({
+function EmptyLine({
   actionHref,
   actionLabel,
   description,
 }: {
-  actionHref: string;
-  actionLabel: string;
-  description: string;
+  actionHref?: string;
+  actionLabel?: string;
+  description: ReactNode;
 }) {
   return (
-    <div className="rounded-card bg-background p-5 shadow-border">
-      <p className="text-sm leading-6 text-foreground/55">{description}</p>
-      <Button asChild className="mt-4" variant={ButtonVariant.SECONDARY}>
-        <Link href={actionHref}>
-          {actionLabel}
-          <ArrowRight aria-hidden="true" className="size-4" />
-        </Link>
-      </Button>
-    </div>
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-4 text-sm text-foreground/55">
+      <span>{description}</span>
+      {actionHref && actionLabel ? (
+        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
+          <Link href={actionHref}>
+            {actionLabel}
+            <ArrowRight aria-hidden="true" className="size-3.5" />
+          </Link>
+        </Button>
+      ) : null}
+    </p>
   );
 }
 
@@ -142,108 +144,47 @@ function reviewItemHref(baseHref: string, item: ReviewInboxItem): string {
   return `${baseHref}?${search.toString()}`;
 }
 
-function ApprovalsSurface({
-  brandSlug,
-  isError,
-  isLoading,
-  onRetry,
-  orgSlug,
+function isAwaitingReview(item: ReviewInboxItem): boolean {
+  return normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET;
+}
+
+type NeedsYouItem =
+  | { credential: ICredential; key: string; type: 'credential' }
+  | { execution: IWorkflowExecution; key: string; type: 'failed' }
+  | { item: ReviewInboxItem; key: string; type: 'review' };
+
+function buildNeedsYouItems({
+  credentials,
+  failedExecutions,
   reviewInbox,
 }: {
-  brandSlug?: string;
-  isError: boolean;
-  isLoading: boolean;
-  onRetry: () => Promise<void>;
-  orgSlug: string;
+  credentials: ICredential[];
+  failedExecutions: IWorkflowExecution[];
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
-}) {
-  const translate = useTranslations('common');
-  const brandSetupHref = createOrganizationAppRoute(
-    orgSlug,
-    APP_ROUTES.SETTINGS.BRANDS,
-  );
-  const reviewHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
-    : brandSetupHref;
+}): { items: NeedsYouItem[]; overflow: number } {
+  const reviewItems: NeedsYouItem[] = reviewInbox.recentItems
+    .filter(isAwaitingReview)
+    .map((item) => ({
+      item,
+      key: `review-${item.id}`,
+      type: 'review',
+    }));
+  const failedItems: NeedsYouItem[] = failedExecutions.map((execution) => ({
+    execution,
+    key: `failed-${execution.id}`,
+    type: 'failed',
+  }));
+  const credentialItems: NeedsYouItem[] = credentials
+    .filter(needsAttentionCredential)
+    .map((credential) => ({
+      credential,
+      key: `credential-${credential.id}`,
+      type: 'credential',
+    }));
+  const allItems = [...reviewItems, ...failedItems, ...credentialItems];
+  const items = allItems.slice(0, NEEDS_YOU_LIMIT);
 
-  return (
-    <WorkspaceSurface
-      actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={reviewHref}>
-            {translate('home.approvals.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </Button>
-      }
-      className="h-full"
-      data-testid="operational-home-approvals"
-      description="Items waiting for a human publishing decision."
-      eyebrow="Approvals"
-      title="Review queue"
-    >
-      {isLoading ? (
-        <LoadingPanel label="Loading approval state..." />
-      ) : isError ? (
-        <ErrorPanel
-          description="Approval state is temporarily unavailable. Publishing and credential checks remain available."
-          onRetry={onRetry}
-        />
-      ) : !brandSlug ? (
-        <EmptyPanel
-          actionHref={brandSetupHref}
-          actionLabel="Set up a brand"
-          description="Add a brand before opening a brand-scoped review queue."
-        />
-      ) : (
-        <>
-          <MetricSummary
-            items={[
-              { label: 'ready', value: String(reviewInbox.readyCount) },
-              {
-                label: 'generating',
-                value: String(reviewInbox.pendingCount),
-              },
-            ]}
-          />
-
-          <div className="space-y-2">
-            {reviewInbox.recentItems.length === 0 ? (
-              <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
-                {translate('home.approvals.empty')}
-              </p>
-            ) : (
-              reviewInbox.recentItems.slice(0, 3).map((item) => (
-                <Button
-                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 text-sm shadow-border transition hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  asChild
-                  key={item.id}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                >
-                  <Link href={reviewItemHref(reviewHref, item)}>
-                    <span className="min-w-0">
-                      <span className="line-clamp-1 font-medium text-foreground">
-                        {item.summary}
-                      </span>
-                      <span className="mt-1 block text-xs text-foreground/45">
-                        {item.format}
-                        {item.platform ? ` · ${item.platform}` : ''}
-                      </span>
-                    </span>
-                    <ArrowRight
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-foreground/45"
-                    />
-                  </Link>
-                </Button>
-              ))
-            )}
-          </div>
-        </>
-      )}
-    </WorkspaceSurface>
-  );
+  return { items, overflow: allItems.length - items.length };
 }
 
 function getExecutionTimestamp(execution: IWorkflowExecution): string {
@@ -255,131 +196,14 @@ function getExecutionTimestamp(execution: IWorkflowExecution): string {
   );
 }
 
-function PublishingSurface({
-  activeExecutions,
-  analyticsPendingPosts,
-  brandSlug,
-  failedToday,
-  isError,
-  isLoading,
-  onRetry,
-  orgSlug,
-  executions,
-}: {
-  activeExecutions: IWorkflowExecution[];
-  analyticsPendingPosts: number;
-  brandSlug?: string;
-  failedToday: number;
-  isError: boolean;
-  isLoading: boolean;
-  onRetry: () => Promise<void>;
-  orgSlug: string;
-  executions: IWorkflowExecution[];
-}) {
-  const translate = useTranslations('common');
-  const brandSetupHref = createOrganizationAppRoute(
-    orgSlug,
-    APP_ROUTES.SETTINGS.BRANDS,
-  );
-  const postsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
-    : brandSetupHref;
-  const recentExecutions = [...activeExecutions, ...executions]
-    .filter(
-      (execution, index, allExecutions) =>
-        allExecutions.findIndex(
-          (candidate) => candidate.id === execution.id,
-        ) === index,
-    )
-    .toSorted(
-      (left, right) =>
-        new Date(getExecutionTimestamp(right)).getTime() -
-        new Date(getExecutionTimestamp(left)).getTime(),
-    )
-    .slice(0, 3);
-
+function getCredentialLabel(credential: ICredential): string {
+  const handle = credential.externalHandle?.replace(/^@/, '');
   return (
-    <WorkspaceSurface
-      actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={postsHref}>
-            {translate('home.publishing.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </Button>
-      }
-      className="h-full"
-      data-testid="operational-home-publishing"
-      description="Draft and execution state across the current workspace."
-      eyebrow="Publishing state"
-      title="Distribution operations"
-    >
-      {isLoading ? (
-        <LoadingPanel label="Loading publishing state..." />
-      ) : isError ? (
-        <ErrorPanel
-          description="Publishing state could not be loaded. Credential health and activity remain available."
-          onRetry={onRetry}
-        />
-      ) : !brandSlug ? (
-        <EmptyPanel
-          actionHref={brandSetupHref}
-          actionLabel="Set up a brand"
-          description="Add a brand before opening brand-scoped publishing."
-        />
-      ) : (
-        <>
-          <MetricSummary
-            items={[
-              { label: 'active', value: String(activeExecutions.length) },
-              {
-                label: 'pending posts',
-                value: String(analyticsPendingPosts),
-              },
-              { label: 'failed today', value: String(failedToday) },
-            ]}
-          />
-
-          <div className="space-y-2">
-            {recentExecutions.length === 0 ? (
-              <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
-                {translate('home.publishing.empty')}
-              </p>
-            ) : (
-              recentExecutions.map((execution) => (
-                <div
-                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
-                  key={execution.id}
-                >
-                  <div className="min-w-0">
-                    <p className="line-clamp-1 text-sm font-medium text-foreground">
-                      {execution.workflow?.label ?? execution.workflowId}
-                    </p>
-                    <ClientFormattedDate
-                      className="mt-1 block text-xs text-foreground/45"
-                      fallback="Time unavailable"
-                      format="relative"
-                      value={getExecutionTimestamp(execution)}
-                    />
-                  </div>
-                  <Badge
-                    variant={
-                      EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
-                    }
-                  >
-                    {execution.status.toLowerCase()}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
-    </WorkspaceSurface>
+    credential.label ??
+    credential.externalName ??
+    (handle ? `@${handle}` : credential.platform)
   );
 }
-
-const UPCOMING_SCHEDULE_DAYS = 7;
 
 function formatScheduleDayLabel(date: Date, index: number): string {
   if (index === 0) {
@@ -389,7 +213,206 @@ function formatScheduleDayLabel(date: Date, index: number): string {
   return date.toLocaleDateString(undefined, { weekday: 'short' });
 }
 
-function UpcomingScheduleSurface({
+function NeedsYouSurface({
+  brandSlug,
+  credentials,
+  failedExecutions,
+  isError,
+  isLoading,
+  onApprove,
+  onRetry,
+  orgSlug,
+  reviewInbox,
+}: {
+  brandSlug?: string;
+  credentials: ICredential[];
+  failedExecutions: IWorkflowExecution[];
+  isError: boolean;
+  isLoading: boolean;
+  onApprove: (item: ReviewInboxItem) => Promise<void>;
+  onRetry: () => Promise<void>;
+  orgSlug: string;
+  reviewInbox: OverviewBootstrapPayload['reviewInbox'];
+}) {
+  const translate = useTranslations('common');
+  const [approvingItemId, setApprovingItemId] = useState<string | null>(null);
+  const brandSetupHref = createOrganizationAppRoute(
+    orgSlug,
+    APP_ROUTES.SETTINGS.BRANDS,
+  );
+  const reviewHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
+    : brandSetupHref;
+  const publishingHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
+    : brandSetupHref;
+  const credentialsHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
+    : brandSetupHref;
+  const { items: needsYouItems, overflow } = buildNeedsYouItems({
+    credentials,
+    failedExecutions,
+    reviewInbox,
+  });
+
+  const handleApprove = async (item: ReviewInboxItem) => {
+    setApprovingItemId(item.id);
+    try {
+      await onApprove(item);
+    } finally {
+      setApprovingItemId(null);
+    }
+  };
+
+  return (
+    <WorkspaceSurface
+      actions={
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={reviewHref}>
+            {translate('home.approvals.open')}
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
+        </Button>
+      }
+      data-testid="operational-home-needs-you"
+      description="Reviews, failures, and accounts waiting on you."
+      eyebrow="Needs you"
+      title="Attention queue"
+    >
+      {isLoading ? (
+        <ListRowsSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorLine
+          description="Approval state is temporarily unavailable. Publishing and credential checks remain available."
+          onRetry={onRetry}
+        />
+      ) : !brandSlug ? (
+        <EmptyLine
+          actionHref={brandSetupHref}
+          actionLabel="Set up a brand"
+          description="Add a brand before opening a brand-scoped review queue."
+        />
+      ) : needsYouItems.length === 0 ? (
+        <EmptyLine description={translate('home.approvals.empty')} />
+      ) : (
+        <div>
+          {needsYouItems.map((needsYouItem) => {
+            if (needsYouItem.type === 'review') {
+              const { item } = needsYouItem;
+              const isApproving = approvingItemId === item.id;
+
+              return (
+                <ListRow
+                  data-testid="operational-home-needs-you-row"
+                  density="compact"
+                  description={`${item.format}${item.platform ? ` · ${formatPlatformLabel(item.platform) ?? item.platform}` : ''}`}
+                  key={needsYouItem.key}
+                  meta={<Badge variant="info">Ready to review</Badge>}
+                  title={item.summary}
+                  trailing={
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        disabled={isApproving}
+                        onClick={() => {
+                          void handleApprove(item);
+                        }}
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.SECONDARY}
+                      >
+                        {isApproving ? 'Approving…' : 'Approve'}
+                      </Button>
+                      <Button
+                        asChild
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.GHOST}
+                      >
+                        <Link href={reviewItemHref(reviewHref, item)}>
+                          Open
+                        </Link>
+                      </Button>
+                    </div>
+                  }
+                />
+              );
+            }
+
+            if (needsYouItem.type === 'failed') {
+              const { execution } = needsYouItem;
+
+              return (
+                <ListRow
+                  data-testid="operational-home-needs-you-row"
+                  density="compact"
+                  description="Workflow execution failed."
+                  key={needsYouItem.key}
+                  meta={
+                    <ClientFormattedDate
+                      fallback="Time unavailable"
+                      format="relative"
+                      value={getExecutionTimestamp(execution)}
+                    />
+                  }
+                  title={execution.workflow?.label ?? execution.workflowId}
+                  trailing={
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                    >
+                      <Link href={publishingHref}>Open</Link>
+                    </Button>
+                  }
+                />
+              );
+            }
+
+            const { credential } = needsYouItem;
+            const badge = getCredentialBadge(credential);
+
+            return (
+              <ListRow
+                data-testid="operational-home-needs-you-row"
+                density="compact"
+                description={
+                  formatPlatformLabel(credential.platform) ??
+                  credential.platform
+                }
+                key={needsYouItem.key}
+                meta={<Badge variant={badge.variant}>{badge.label}</Badge>}
+                title={getCredentialLabel(credential)}
+                trailing={
+                  <Button
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                  >
+                    <Link href={credentialsHref}>Reconnect</Link>
+                  </Button>
+                }
+              />
+            );
+          })}
+          {overflow > 0 ? (
+            <ListRow
+              data-testid="operational-home-needs-you-overflow"
+              density="compact"
+              href={reviewHref}
+              title={`${overflow} more waiting`}
+              trailing={
+                <span className="flex items-center gap-1 text-sm text-foreground/55">
+                  View all
+                  <ArrowRight aria-hidden="true" className="size-3.5" />
+                </span>
+              }
+            />
+          ) : null}
+        </div>
+      )}
+    </WorkspaceSurface>
+  );
+}
+
+function UpcomingScheduleBlock({
   brandId,
   brandSlug,
   orgSlug,
@@ -478,36 +501,51 @@ function UpcomingScheduleSurface({
     scheduleDays?.reduce((total, day) => total + day.count, 0) ?? 0;
 
   return (
-    <WorkspaceSurface
-      actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
+    <div
+      className="flex flex-col gap-3 border-t border-border pt-4"
+      data-testid="operational-home-upcoming"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
+          Next 7 days
+        </p>
+        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
           <Link href={calendarHref}>
             {translate('home.schedule.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-3.5" />
           </Link>
         </Button>
-      }
-      className="h-full lg:col-span-2"
-      data-testid="operational-home-upcoming"
-      description="Scheduled channel sends over the coming week."
-      eyebrow="Upcoming schedule"
-      title="Next 7 days"
-    >
+      </div>
+
       {!brandSlug ? (
-        <EmptyPanel
-          actionHref={brandSetupHref}
-          actionLabel="Set up a brand"
-          description="Add a brand before scheduling posts to the calendar."
-        />
+        <p className="text-sm text-foreground/55">
+          Add a brand before scheduling posts to the calendar.
+        </p>
       ) : isError ? (
-        <ErrorPanel
-          description="The upcoming schedule is temporarily unavailable. Approval, publishing, and credential summaries remain available."
-          onRetry={refresh}
-        />
+        <div
+          className="flex flex-wrap items-center gap-3 border-l-2 border-destructive py-1 pl-3 text-sm text-foreground/70"
+          role="alert"
+        >
+          <span className="min-w-0 flex-1">
+            The upcoming schedule is temporarily unavailable. Approval,
+            publishing, and credential summaries remain available.
+          </span>
+          <Button
+            aria-label="Retry upcoming schedule"
+            onClick={() => {
+              void refresh();
+            }}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <RefreshCw aria-hidden="true" className="size-3.5" />
+          </Button>
+        </div>
       ) : scheduleDays === null ? (
-        <LoadingPanel label="Loading upcoming schedule..." />
+        <Skeleton className="w-2/3" height={12} variant="text" />
       ) : totalScheduled === 0 ? (
-        <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
+        <p className="text-sm text-foreground/55">
           {translate('home.schedule.empty')}
         </p>
       ) : (
@@ -522,16 +560,116 @@ function UpcomingScheduleSurface({
           ]}
         />
       )}
-    </WorkspaceSurface>
+    </div>
   );
 }
 
-function getCredentialLabel(credential: ICredential): string {
-  const handle = credential.externalHandle?.replace(/^@/, '');
+function PublishingSurface({
+  activeExecutions,
+  brandId,
+  brandSlug,
+  executions,
+  isError,
+  isLoading,
+  onRetry,
+  orgSlug,
+}: {
+  activeExecutions: IWorkflowExecution[];
+  brandId?: string;
+  brandSlug?: string;
+  executions: IWorkflowExecution[];
+  isError: boolean;
+  isLoading: boolean;
+  onRetry: () => Promise<void>;
+  orgSlug: string;
+}) {
+  const translate = useTranslations('common');
+  const brandSetupHref = createOrganizationAppRoute(
+    orgSlug,
+    APP_ROUTES.SETTINGS.BRANDS,
+  );
+  const postsHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
+    : brandSetupHref;
+  const recentExecutions = [...activeExecutions, ...executions]
+    .filter(
+      (execution, index, allExecutions) =>
+        allExecutions.findIndex(
+          (candidate) => candidate.id === execution.id,
+        ) === index,
+    )
+    .toSorted(
+      (left, right) =>
+        new Date(getExecutionTimestamp(right)).getTime() -
+        new Date(getExecutionTimestamp(left)).getTime(),
+    )
+    .slice(0, RECENT_EXECUTION_LIMIT);
+
   return (
-    credential.label ??
-    credential.externalName ??
-    (handle ? `@${handle}` : credential.platform)
+    <WorkspaceSurface
+      actions={
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={postsHref}>
+            {translate('home.publishing.open')}
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
+        </Button>
+      }
+      className="h-full"
+      data-testid="operational-home-publishing"
+      description="Recent executions and the sends scheduled this week."
+      eyebrow="Publishing state"
+      title="Distribution operations"
+    >
+      {isLoading ? (
+        <ListRowsSkeleton rows={3} />
+      ) : isError ? (
+        <ErrorLine
+          description="Publishing state could not be loaded. Credential health and activity remain available."
+          onRetry={onRetry}
+        />
+      ) : !brandSlug ? (
+        <EmptyLine
+          actionHref={brandSetupHref}
+          actionLabel="Set up a brand"
+          description="Add a brand before opening brand-scoped publishing."
+        />
+      ) : recentExecutions.length === 0 ? (
+        <EmptyLine description={translate('home.publishing.empty')} />
+      ) : (
+        <div>
+          {recentExecutions.map((execution) => (
+            <ListRow
+              density="compact"
+              key={execution.id}
+              meta={
+                <ClientFormattedDate
+                  fallback="Time unavailable"
+                  format="relative"
+                  value={getExecutionTimestamp(execution)}
+                />
+              }
+              title={execution.workflow?.label ?? execution.workflowId}
+              trailing={
+                <Badge
+                  variant={
+                    EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
+                  }
+                >
+                  {execution.status.toLowerCase()}
+                </Badge>
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      <UpcomingScheduleBlock
+        brandId={brandId}
+        brandSlug={brandSlug}
+        orgSlug={orgSlug}
+      />
+    </WorkspaceSurface>
   );
 }
 
@@ -558,7 +696,6 @@ function CredentialHealthSurface({
   const settingsHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
     : brandSetupHref;
-  const summary = summarizeCredentialHealth(credentials);
 
   return (
     <WorkspaceSurface
@@ -584,72 +721,47 @@ function CredentialHealthSurface({
       }
       className="h-full"
       data-testid="operational-home-credentials"
-      description="Connected channel availability and publishing risk."
+      description="Connected accounts and the ones that need a reconnect."
       eyebrow="Credential health"
       title="Channel readiness"
     >
       {isLoading ? (
-        <LoadingPanel label="Loading credential health..." />
+        <>
+          <span className="sr-only" role="status">
+            Loading credential health...
+          </span>
+          <ListRowsSkeleton rows={3} />
+        </>
       ) : isError ? (
-        <ErrorPanel
+        <ErrorLine
           description="Credential health is temporarily unavailable. Approval, publishing, and activity summaries remain available."
           onRetry={onRetry}
         />
+      ) : credentials.length === 0 ? (
+        <EmptyLine
+          actionHref={settingsHref}
+          actionLabel={brandSlug ? 'Connect an account' : 'Set up a brand'}
+          description="No publishing credentials are connected yet."
+        />
       ) : (
-        <>
-          <MetricSummary
-            data-testid="credential-health-summary"
-            items={[
-              { label: 'accounts', value: String(summary.total) },
-              {
-                label: 'need attention',
-                value: String(summary.attention),
-              },
-              { label: 'healthy', value: String(summary.healthy) },
-              ...(summary.unknown > 0
-                ? [
-                    {
-                      label: 'unknown',
-                      value: String(summary.unknown),
-                    },
-                  ]
-                : []),
-            ]}
-          />
+        <div>
+          {credentials.slice(0, CREDENTIAL_ROW_LIMIT).map((credential) => {
+            const badge = getCredentialBadge(credential);
 
-          <div className="space-y-2">
-            {credentials.length === 0 ? (
-              <EmptyPanel
-                actionHref={settingsHref}
-                actionLabel={
-                  brandSlug ? 'Connect an account' : 'Set up a brand'
+            return (
+              <ListRow
+                density="compact"
+                description={
+                  formatPlatformLabel(credential.platform) ??
+                  credential.platform
                 }
-                description="No publishing credentials are connected yet."
+                key={credential.id}
+                title={getCredentialLabel(credential)}
+                trailing={<Badge variant={badge.variant}>{badge.label}</Badge>}
               />
-            ) : (
-              credentials.slice(0, 4).map((credential) => {
-                const badge = getCredentialBadge(credential);
-
-                return (
-                  <div
-                    className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
-                    key={credential.id}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {getCredentialLabel(credential)}
-                      </p>
-                      <p className="mt-1 text-xs capitalize text-foreground/45">
-                        {credential.platform}
-                      </p>
-                    </div>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
     </WorkspaceSurface>
   );
@@ -659,10 +771,10 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
   const translate = useTranslations('common');
   const activityMessageFormatter = useActivityMessageFormatter();
   const { filteredActivities, isError, isLoading, refresh } = useActivities({
-    limit: 5,
+    limit: ACTIVITY_ROW_LIMIT,
     scope: PageScope.ORGANIZATION,
   });
-  const recentActivities = filteredActivities.slice(0, 5);
+  const recentActivities = filteredActivities.slice(0, ACTIVITY_ROW_LIMIT);
 
   return (
     <WorkspaceSurface
@@ -674,56 +786,67 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           </Link>
         </Button>
       }
-      className="h-full"
       data-testid="operational-home-activity"
       description="Organization-scoped actions and system events."
       eyebrow="Recent activity"
       title="What changed"
     >
       {isLoading ? (
-        <LoadingPanel label="Loading recent activity..." />
+        <ListRowsSkeleton rows={4} />
       ) : isError ? (
-        <ErrorPanel
+        <ErrorLine
           description="Recent activity is temporarily unavailable. Approval, publishing, and credential summaries remain available."
           onRetry={refresh}
         />
       ) : recentActivities.length === 0 ? (
-        <EmptyPanel
+        <EmptyLine
           actionHref={activityHref}
           actionLabel="Open activity"
           description="No activity has been recorded for this organization yet."
         />
       ) : (
-        <div className="space-y-2">
+        <div>
           {recentActivities.map((activity: IActivity) => {
             const badge = getActivityBadge(activity);
             return (
-              <div
-                className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
+              <ListRow
                 data-testid="operational-home-activity-row"
+                density="compact"
                 key={activity.id}
-              >
-                <div className="min-w-0">
-                  <p className="line-clamp-1 text-sm font-medium text-foreground">
-                    {getActivityDescription(activity, activityMessageFormatter)}
-                  </p>
+                meta={
                   <ClientFormattedDate
-                    className="mt-1 block text-xs text-foreground/45"
                     fallback="Time unavailable"
                     format="relative"
                     value={activity.createdAt}
                   />
-                </div>
-                <Badge className="shrink-0" variant={badge.variant}>
-                  {badge.label}
-                </Badge>
-              </div>
+                }
+                title={getActivityDescription(
+                  activity,
+                  activityMessageFormatter,
+                )}
+                trailing={<Badge variant={badge.variant}>{badge.label}</Badge>}
+              />
             );
           })}
         </div>
       )}
     </WorkspaceSurface>
   );
+}
+
+function metricValue(isLoading: boolean, value: number): ReactNode {
+  if (isLoading) {
+    return (
+      <Skeleton
+        className="inline-block align-middle"
+        height={12}
+        variant="text"
+        width={20}
+      />
+    );
+  }
+
+  return String(value);
 }
 
 export default function OperationalHomeSections({
@@ -745,6 +868,10 @@ export default function OperationalHomeSections({
     refresh: refreshExecutions,
     stats: executionStats,
   } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
+  const notifications = useMemo(() => NotificationsService.getInstance(), []);
+  const getBatchesService = useAuthedService((token: string) =>
+    BatchesService.getInstance(token),
+  );
   const activeExecutions = executions.filter(
     (execution) =>
       execution.status === WorkflowExecutionStatus.PENDING ||
@@ -755,9 +882,29 @@ export default function OperationalHomeSections({
       execution.status !== WorkflowExecutionStatus.PENDING &&
       execution.status !== WorkflowExecutionStatus.RUNNING,
   );
+  const failedExecutions = executions.filter(
+    (execution) => execution.status === WorkflowExecutionStatus.FAILED,
+  );
+  const attentionCredentials = credentials.filter(needsAttentionCredential);
   const refreshOperationalState = useCallback(async () => {
     await Promise.all([refresh(), refreshExecutions()]);
   }, [refresh, refreshExecutions]);
+  const handleApproveReviewItem = useCallback(
+    async (item: ReviewInboxItem) => {
+      try {
+        const service = await getBatchesService();
+        await service.itemAction(item.batchId, {
+          action: 'approve',
+          itemIds: [item.id],
+        });
+        await refresh();
+      } catch (error) {
+        logger.error('Approve review item failed', error);
+        notifications.error('Approve');
+      }
+    },
+    [getBatchesService, notifications, refresh],
+  );
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -770,41 +917,68 @@ export default function OperationalHomeSections({
 
   return (
     <div
-      className="grid gap-4 lg:grid-cols-2"
+      className="flex flex-col gap-4"
       data-testid="operational-home-sections"
     >
-      <ApprovalsSurface
+      <MetricSummary
+        data-testid="operational-home-metrics"
+        items={[
+          {
+            label: 'ready to review',
+            value: metricValue(isLoading, reviewInbox.readyCount),
+          },
+          {
+            label: 'pending posts',
+            value: metricValue(isLoading, analytics.pendingPosts ?? 0),
+          },
+          {
+            label: 'active',
+            value: metricValue(areExecutionsLoading, activeExecutions.length),
+          },
+          {
+            label: 'failed today',
+            value: metricValue(areExecutionsLoading, executionStats.failed),
+          },
+          {
+            label: 'need attention',
+            value: metricValue(credentialsLoading, attentionCredentials.length),
+          },
+        ]}
+      />
+
+      <NeedsYouSurface
         brandSlug={brandSlug}
+        credentials={credentials}
+        failedExecutions={failedExecutions}
         isError={isError}
-        isLoading={isLoading}
-        onRetry={refresh}
+        isLoading={isLoading || areExecutionsLoading}
+        onApprove={handleApproveReviewItem}
+        onRetry={refreshOperationalState}
         orgSlug={orgSlug}
         reviewInbox={reviewInbox}
       />
-      <PublishingSurface
-        activeExecutions={activeExecutions}
-        analyticsPendingPosts={analytics.pendingPosts ?? 0}
-        brandSlug={brandSlug}
-        failedToday={executionStats.failed}
-        isError={isError}
-        isLoading={isLoading || areExecutionsLoading}
-        onRetry={refreshOperationalState}
-        orgSlug={orgSlug}
-        executions={completedExecutions}
-      />
-      <UpcomingScheduleSurface
-        brandId={brandId}
-        brandSlug={brandSlug}
-        orgSlug={orgSlug}
-      />
-      <CredentialHealthSurface
-        brandSlug={brandSlug}
-        credentials={credentials}
-        isError={Boolean(credentialsError)}
-        isLoading={credentialsLoading}
-        onRetry={refreshBrands}
-        orgSlug={orgSlug}
-      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PublishingSurface
+          activeExecutions={activeExecutions}
+          brandId={brandId}
+          brandSlug={brandSlug}
+          executions={completedExecutions}
+          isError={isError}
+          isLoading={isLoading || areExecutionsLoading}
+          onRetry={refreshOperationalState}
+          orgSlug={orgSlug}
+        />
+        <CredentialHealthSurface
+          brandSlug={brandSlug}
+          credentials={credentials}
+          isError={Boolean(credentialsError)}
+          isLoading={credentialsLoading}
+          onRetry={refreshBrands}
+          orgSlug={orgSlug}
+        />
+      </div>
+
       <ActivitySurface activityHref={activityHref} />
     </div>
   );

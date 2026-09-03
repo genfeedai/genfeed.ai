@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { getVerifiedMcpConnection } from './operational-home.helpers';
 
-type ConnectGenfeedStatus =
+export type UseConnectGenfeedStatusResult =
   | {
       error: null;
       key: ApiKey;
@@ -33,7 +33,7 @@ type ConnectGenfeedStatus =
 
 export function useConnectGenfeedStatus(
   organizationId: string,
-): ConnectGenfeedStatus {
+): UseConnectGenfeedStatusResult {
   const { isReady } = useBrand();
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
