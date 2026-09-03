@@ -3,8 +3,18 @@
 import '@testing-library/jest-dom/vitest';
 import { ActivityKey } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type ReviewInboxItem =
+  OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
 
 const mocks = vi.hoisted(() => ({
   activities: [] as IActivity[],
@@ -13,9 +23,12 @@ const mocks = vi.hoisted(() => ({
     organizationId?: string;
   } | null,
   activityRefresh: vi.fn(async () => undefined),
+  batchItemAction: vi.fn(async () => ({})),
   cancelExecution: vi.fn(async () => undefined),
   executionsRefresh: vi.fn(async () => undefined),
   brandRefresh: vi.fn(async () => undefined),
+  loggerError: vi.fn(),
+  notificationsError: vi.fn(),
   brandState: {
     brands: [
       {
@@ -68,6 +81,8 @@ const mocks = vi.hoisted(() => ({
   },
   overviewRefresh: vi.fn(async () => undefined),
   overviewIsError: false,
+  overviewIsLoading: false,
+  reviewInboxRecentItems: [] as ReviewInboxItem[],
   translate: vi.fn((id: string, params?: Record<string, string>) =>
     params ? `catalog:${id}:${params.subject}` : `catalog:${id}`,
   ),
@@ -81,12 +96,35 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    findAll: () =>
-      mocks.upcomingReleases === null
-        ? new Promise(() => {})
-        : Promise.resolve(mocks.upcomingReleases),
-  }),
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token-1'),
+}));
+
+vi.mock('@services/content/release-groups.service', () => ({
+  ReleaseGroupsService: {
+    getInstance: () => ({
+      findAll: () =>
+        mocks.upcomingReleases === null
+          ? new Promise(() => {})
+          : Promise.resolve(mocks.upcomingReleases),
+    }),
+  },
+}));
+
+vi.mock('@services/batch/batches.service', () => ({
+  BatchesService: {
+    getInstance: () => ({ itemAction: mocks.batchItemAction }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: mocks.notificationsError }),
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -121,14 +159,14 @@ vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
     analytics: { pendingPosts: 0 },
     error: null,
     isError: mocks.overviewIsError,
-    isLoading: false,
+    isLoading: mocks.overviewIsLoading,
     refresh: mocks.overviewRefresh,
     reviewInbox: {
       approvedCount: 0,
       changesRequestedCount: 0,
       pendingCount: 0,
       readyCount: 0,
-      recentItems: [],
+      recentItems: mocks.reviewInboxRecentItems,
       rejectedCount: 0,
     },
     runs: [],
@@ -168,6 +206,20 @@ vi.mock('./use-connect-genfeed-status', () => ({
 
 const { default: OperationalHomeContent } = await import('./content');
 
+function buildReviewItem(id: string): ReviewInboxItem {
+  return {
+    batchId: 'batch_1',
+    createdAt: '2026-08-08T12:00:00.000Z',
+    format: 'image',
+    id,
+    platform: 'instagram',
+    postId: `post_${id}`,
+    reviewDecision: 'unset',
+    status: 'ready',
+    summary: `Review ${id}`,
+  };
+}
+
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -199,6 +251,8 @@ describe('OperationalHomeContent', () => {
     };
     mocks.connectionOrganizationId = '';
     mocks.overviewIsError = false;
+    mocks.overviewIsLoading = false;
+    mocks.reviewInboxRecentItems = [];
     mocks.upcomingReleases = null;
   });
 
@@ -210,10 +264,9 @@ describe('OperationalHomeContent', () => {
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
     ).toHaveClass('sr-only');
     expect(
-      screen.getByRole('heading', {
-        level: 2,
-        name: 'Connect an AI client to start operating',
-      }),
+      screen.getByText(
+        /Connect Claude Code, Codex, or another MCP client to unlock live/,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Connect Genfeed/ }),
@@ -262,7 +315,7 @@ describe('OperationalHomeContent', () => {
       screen.getByTestId('operational-home-connected'),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId('operational-home-approvals'),
+      screen.getByTestId('operational-home-needs-you'),
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-publishing'),
@@ -332,9 +385,7 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     expect(
-      screen.getByRole('heading', {
-        name: 'Connection status unavailable',
-      }),
+      screen.getByText(/Connection status unavailable/),
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
     expect(
@@ -443,7 +494,7 @@ describe('OperationalHomeContent', () => {
       screen.getByText(/Recent activity is temporarily unavailable/),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId('operational-home-approvals'),
+      screen.getByTestId('operational-home-needs-you'),
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-publishing'),
@@ -458,11 +509,13 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
+    const credentials = screen.getByTestId('operational-home-credentials');
+    expect(within(credentials).getByRole('status')).toHaveTextContent(
+      'Loading credential health',
+    );
     expect(
-      within(screen.getByTestId('operational-home-credentials')).getByRole(
-        'status',
-      ),
-    ).toHaveTextContent('Loading credential health');
+      within(credentials).getByTestId('list-rows-skeleton'),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('No publishing credentials are connected yet.'),
     ).not.toBeInTheDocument();
@@ -503,5 +556,131 @@ describe('OperationalHomeContent', () => {
       ),
     ).toBe(true);
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
+  });
+
+  it('shows the needs-you skeleton while overview data is loading', () => {
+    mocks.overviewIsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).getByTestId(
+        'list-rows-skeleton',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the metric rail chrome with skeleton values while overview data loads', () => {
+    mocks.overviewIsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    const metrics = screen.getByTestId('operational-home-metrics');
+    expect(metrics).toHaveTextContent('ready to review');
+    expect(metrics).toHaveTextContent('pending posts');
+    expect(metrics.querySelectorAll('.animate-pulse')).toHaveLength(2);
+  });
+
+  it('keeps decided review items out of the attention queue', () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        ...buildReviewItem('item_1'),
+        reviewDecision: 'approved',
+        status: 'approved',
+      },
+    ];
+
+    render(<OperationalHomeContent />);
+
+    const needsYou = screen.getByTestId('operational-home-needs-you');
+    expect(
+      within(needsYou).queryByRole('button', { name: 'Approve' }),
+    ).not.toBeInTheDocument();
+    expect(needsYou).toHaveTextContent('catalog:home.approvals.empty');
+  });
+
+  it('caps the attention queue at eight rows and links to the rest', () => {
+    mocks.reviewInboxRecentItems = Array.from({ length: 9 }, (_, index) =>
+      buildReviewItem(`item_${index + 1}`),
+    );
+
+    render(<OperationalHomeContent />);
+
+    const needsYou = screen.getByTestId('operational-home-needs-you');
+    expect(
+      within(needsYou).getAllByTestId('operational-home-needs-you-row'),
+    ).toHaveLength(8);
+    expect(
+      within(needsYou).getByTestId('operational-home-needs-you-overflow'),
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
+    expect(needsYou).toHaveTextContent('1 more waiting');
+  });
+
+  it('approves a review item and refreshes the overview on success', async () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        batchId: 'batch_1',
+        createdAt: '2026-08-08T12:00:00.000Z',
+        format: 'image',
+        id: 'item_1',
+        platform: 'instagram',
+        postId: 'post_1',
+        reviewDecision: 'unset',
+        status: 'ready',
+        summary: 'Product hero shot',
+      },
+    ];
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      within(screen.getByTestId('operational-home-needs-you')).getByRole(
+        'button',
+        { name: 'Approve' },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(mocks.batchItemAction).toHaveBeenCalledWith('batch_1', {
+        action: 'approve',
+        itemIds: ['item_1'],
+      }),
+    );
+    expect(mocks.overviewRefresh).toHaveBeenCalled();
+    expect(mocks.notificationsError).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a notification when approving a review item fails', async () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        batchId: 'batch_1',
+        createdAt: '2026-08-08T12:00:00.000Z',
+        format: 'image',
+        id: 'item_1',
+        platform: 'instagram',
+        postId: 'post_1',
+        reviewDecision: 'unset',
+        status: 'ready',
+        summary: 'Product hero shot',
+      },
+    ];
+    mocks.batchItemAction.mockRejectedValueOnce(new Error('approve failed'));
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(
+      within(screen.getByTestId('operational-home-needs-you')).getByRole(
+        'button',
+        { name: 'Approve' },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(mocks.notificationsError).toHaveBeenCalledWith('Approve'),
+    );
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'Approve review item failed',
+      expect.any(Error),
+    );
   });
 });

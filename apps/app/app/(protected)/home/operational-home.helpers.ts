@@ -157,6 +157,17 @@ export function getCredentialBadge(credential: ICredential): {
   return { label: 'Connected', variant: 'info' };
 }
 
+export function needsAttentionCredential(credential: ICredential): boolean {
+  if (!credential.isConnected) {
+    return true;
+  }
+
+  return Boolean(
+    credential.accountHealth?.holdPublishing ||
+      credential.accountHealth?.riskLevel === 'high',
+  );
+}
+
 export function getActivityBadge(activity: IActivity): {
   label: string;
   variant: 'destructive' | 'info' | 'success' | 'warning';
