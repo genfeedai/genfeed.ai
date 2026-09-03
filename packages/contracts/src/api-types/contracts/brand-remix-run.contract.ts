@@ -308,13 +308,34 @@ const durableBrandRemixGenerationBriefSchema =
     });
   });
 
+export const brandRemixVariantCreditSchema = z
+  .object({
+    amount: z.number().min(0),
+    isByokBypass: z.boolean(),
+    variantId: opaqueIdSchema,
+  })
+  .strict();
+
+export const brandRemixGenerationCreditsSchema = z
+  .object({
+    isByokBypass: z.boolean(),
+    reservedAmount: z.number().min(0),
+    settledAmount: z.number().min(0),
+    variants: z.array(brandRemixVariantCreditSchema).max(8),
+    workflowExecutionId: opaqueIdSchema.optional(),
+  })
+  .strict();
+
 export const brandRemixExecutionSchema = z
   .object({
     actualCount: z.number().int().min(0).max(8),
     generationBrief: durableBrandRemixGenerationBriefSchema,
+    generationCredits: brandRemixGenerationCreditsSchema.optional(),
     partialReason: shortTextSchema.optional(),
     requestedCount: z.number().int().min(1).max(8),
     variants: z.array(brandRemixOutputVariantSchema).max(8),
+    workflowExecutionId: opaqueIdSchema.optional(),
+    workflowId: opaqueIdSchema.optional(),
   })
   .strict();
 

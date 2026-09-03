@@ -879,6 +879,41 @@ const SYSTEM_MAINTENANCE_ACTION_DEFINITIONS = SYSTEM_MAINTENANCE_ACTIONS.map(
 
 const BRAND_REMIX_ACTIONS = [
   [
+    'brand-remix.generate.adopt-orphans',
+    'Adopt Brand Remix Orphans',
+    'Adopts orphaned remix placeholders onto claimed variants.',
+  ],
+  [
+    'brand-remix.generate.claim',
+    'Claim Brand Remix Generation',
+    'Claims one remix run for idempotent generation.',
+  ],
+  [
+    'brand-remix.generate.clear-claim',
+    'Clear Brand Remix Generation Claim',
+    'Settles generation credits and projects the remix run view.',
+  ],
+  [
+    'brand-remix.generate.dispatch-variant',
+    'Dispatch Brand Remix Variant',
+    'Dispatches one claimed remix variant to copy or media generation.',
+  ],
+  [
+    'brand-remix.generate.reconcile',
+    'Reconcile Brand Remix Generation',
+    'Reconciles remix variant state after generation.',
+  ],
+  [
+    'brand-remix.generate.reserve-credits',
+    'Reserve Brand Remix Credits',
+    'Reserves aggregate remix credits and rejects mixed BYOK billing.',
+  ],
+  [
+    'brand-remix.generate.resolve-variant-credits',
+    'Resolve Brand Remix Variant Credits',
+    'Resolves credit amount and billing mode for one remix variant.',
+  ],
+  [
     'brand-remix.meta.create-ad',
     'Create Brand Remix Meta Ad',
     'Creates one paused Meta ad from prepared remix creative.',

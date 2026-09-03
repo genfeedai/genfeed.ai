@@ -79,8 +79,6 @@ export function assembleBrandRemixRunsGraph(
     collaborators.videoGenerationService,
     collaborators.avatarVideoGenerationService,
     collaborators.contentGeneratorService,
-    collaborators.creditsUtilsService,
-    persistence,
     state,
   );
   const execution = new BrandRemixRunExecutionService(
@@ -91,6 +89,7 @@ export function assembleBrandRemixRunsGraph(
     dispatch,
     collaborators.creditsUtilsService,
     collaborators.byokService,
+    collaborators.systemWorkflowRunner,
     collaborators.runtime,
   );
   const review = new BrandRemixRunReviewService(

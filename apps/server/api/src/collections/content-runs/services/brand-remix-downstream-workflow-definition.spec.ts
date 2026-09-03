@@ -1,10 +1,14 @@
 import {
   BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
   BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
+  buildBrandRemixGenerateDispatchWorkflowDefinition,
+  buildBrandRemixGenerateResolveCreditsWorkflowDefinition,
+  buildBrandRemixGenerateWorkflowDefinition,
   buildBrandRemixMetaPausedDraftWorkflowDefinition,
   buildBrandRemixReviewWorkflowDefinition,
   buildBrandRemixXPausedDraftWorkflowDefinition,
 } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
+import { getActionDefinition } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 
 function actionIds(
@@ -99,8 +103,31 @@ describe('brand remix downstream workflow definitions', () => {
     expect(definition.definition.edges).toHaveLength(8);
   });
 
+  it('contains no legacy generate service macros', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const execution = await readFile(
+      new URL('./brand-remix-run-execution.service.ts', import.meta.url),
+      'utf8',
+    );
+    const dispatch = await readFile(
+      new URL(
+        './brand-remix-run-provider-dispatch.service.ts',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+
+    expect(execution).not.toContain('generateCopyVariants');
+    expect(execution).not.toContain('dispatchMediaVariants');
+    expect(execution).not.toContain('finalizeOutputCredits');
+    expect(execution).not.toContain('GenerationReservationBarrier');
+    expect(dispatch).not.toContain('generateCopyVariants');
+    expect(dispatch).not.toContain('persistCopyGenerationResult');
+  });
+
   it('contains no legacy macro action IDs', () => {
     const serialized = JSON.stringify([
+      buildBrandRemixGenerateWorkflowDefinition(),
       buildBrandRemixReviewWorkflowDefinition(),
       buildBrandRemixMetaPausedDraftWorkflowDefinition(),
       buildBrandRemixXPausedDraftWorkflowDefinition(),
@@ -109,5 +136,50 @@ describe('brand remix downstream workflow definitions', () => {
     expect(serialized).not.toContain('brand-remix-review-handoff');
     expect(serialized).not.toContain('brand-remix-paused-meta-draft');
     expect(serialized).not.toContain('brand-remix-paused-x-ads-draft');
+    expect(serialized).not.toContain('brand-remix.execute');
+  });
+
+  it('models generation claim, credit reservation, and per-variant dispatch as nodes', () => {
+    const definition = buildBrandRemixGenerateWorkflowDefinition();
+
+    expect(definition.canonicalId).toBe(
+      BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE,
+    );
+    expect(actionIds(definition)).toEqual([
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_CLAIM,
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_ADOPT_ORPHANS,
+      'workflow.for-each',
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_RESERVE_CREDITS,
+      'workflow.for-each',
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_RECONCILE,
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.GENERATE_CLEAR_CLAIM,
+    ]);
+    const resolveFanOut = definition.definition.nodes.find(
+      (node) => node.id === 'resolve-variant-credits',
+    );
+    const dispatchFanOut = definition.definition.nodes.find(
+      (node) => node.id === 'dispatch-variant',
+    );
+    expect(resolveFanOut?.data.config.parameters).toMatchObject({
+      childWorkflowId:
+        BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_RESOLVE_CREDITS,
+      mode: 'await',
+    });
+    expect(dispatchFanOut?.data.config.parameters).toMatchObject({
+      childWorkflowId:
+        BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.GENERATE_DISPATCH_VARIANT,
+      failureMode: 'collect',
+      mode: 'await',
+    });
+  });
+
+  it('backs every Brand Remix generation node with a registered action contract', () => {
+    const ids = [
+      ...actionIds(buildBrandRemixGenerateWorkflowDefinition()),
+      ...actionIds(buildBrandRemixGenerateResolveCreditsWorkflowDefinition()),
+      ...actionIds(buildBrandRemixGenerateDispatchWorkflowDefinition()),
+    ];
+
+    expect(ids.every((actionId) => getActionDefinition(actionId))).toBe(true);
   });
 });
