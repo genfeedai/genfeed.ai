@@ -5,6 +5,8 @@ export const API_ENDPOINTS = {
   AGENT_CAMPAIGNS: '/agent-campaigns',
   AGENT_PUBLISH_AUDITS: '/agent-publish-audits',
   AGENT_STRATEGIES: '/agent-strategies',
+  ANALYTICS: '/analytics',
+  ANALYTICS_ACCOUNTS: '/analytics/accounts',
   API_KEYS: '/api-keys',
   ARTICLES: '/articles',
   ASSETS: '/assets',

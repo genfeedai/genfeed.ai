@@ -725,6 +725,7 @@ model Organization {
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
   postAnalytics                 PostAnalytics[]
+  accountAnalyticsSnapshots     AccountAnalyticsSnapshot[]
   prompts                       Prompt[]
   folders                       Folder[]
   bookmarks                     Bookmark[]
@@ -938,6 +939,7 @@ model Brand {
   postingCadences            PostingCadence[]
   slotReservations           SlotReservation[]
   postAnalytics              PostAnalytics[]
+  accountAnalyticsSnapshots  AccountAnalyticsSnapshot[]
   prompts                    Prompt[]
   folders                    Folder[]
   tags                       Tag[]
@@ -1534,6 +1536,7 @@ model OrganizationSetting {
   defaultImageToVideoModel       String?
   defaultMusicModel              String?
   agentPolicy                    Json              @default("{}")
+  fleetEvaluationPolicy          Json              @default("{}")
   byokKeys                       Json              @default("{}")
   createdAt                      DateTime          @default(now())
   updatedAt                      DateTime          @updatedAt
@@ -1610,6 +1613,8 @@ model Credential {
   // Relations
   tags                    Tag[]                    @relation("credential_tags")
   posts                   Post[]
+  postAnalytics           PostAnalytics[]
+  accountAnalyticsSnapshots AccountAnalyticsSnapshot[]
   postingCadences         PostingCadence[]
   slotReservations        SlotReservation[]
   adBulkUploadJobs        AdBulkUploadJob[]
@@ -2696,6 +2701,16 @@ model PostAnalytics {
   totalCommentsIncrement Int                @default(0)
   totalSharesIncrement   Int                @default(0)
   totalSavesIncrement    Int                @default(0)
+  credentialId           String?
+  credential             Credential?        @relation(fields: [credentialId], references: [id])
+  impressions            Int?
+  reach                  Int?
+  clicks                 Int?
+  videoViews             Int?
+  watchTimeSeconds       Float?
+  averageWatchTimeSeconds Float?
+  metricAvailability     Json               @default("{}")
+  correctionKind         String?
   engagementRate         Float              @default(0)
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
@@ -2714,7 +2729,33 @@ model PostAnalytics {
   @@index([brandId, date(sort: Desc)])
   @@index([platform, date(sort: Desc)])
   @@index([postId, date(sort: Desc)])
+  @@index([credentialId, date(sort: Desc)])
+  @@index([organizationId, credentialId, date(sort: Desc)])
   @@map("post_analytics")
+}
+
+model AccountAnalyticsSnapshot {
+  id                 String             @id @default(cuid())
+  organizationId     String
+  organization       Organization       @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand              @relation(fields: [brandId], references: [id])
+  credentialId       String
+  credential         Credential         @relation(fields: [credentialId], references: [id])
+  platform           CredentialPlatform
+  date               DateTime
+  followers          Int?
+  subscribers        Int?
+  metricAvailability Json               @default("{}")
+  isDeleted          Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@unique([credentialId, date])
+  @@index([organizationId, isDeleted, date(sort: Desc)])
+  @@index([brandId, isDeleted, date(sort: Desc)])
+  @@index([credentialId, isDeleted, date(sort: Desc)])
+  @@map("account_analytics_snapshots")
 }
 
 model Schedule {

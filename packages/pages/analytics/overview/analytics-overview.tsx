@@ -10,6 +10,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
+import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type {
   IBrandWithStats,
@@ -19,7 +20,6 @@ import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
-
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
@@ -164,6 +164,8 @@ export default function AnalyticsOverview({
             items={secondaryKpiItems}
           />
         )}
+
+        {scope !== PageScope.SUPERADMIN ? <AnalyticsTopAccounts /> : null}
 
         {hasTimeseriesData || isTimeseriesLoading ? (
           <Card

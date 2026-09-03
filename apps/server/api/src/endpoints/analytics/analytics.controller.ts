@@ -253,6 +253,7 @@ export class AnalyticsController {
       buildAnalyticsCacheKey('timeseries', req, [
         req.query?.startDate || '',
         req.query?.endDate || '',
+        req.query?.brandId || '',
       ]),
     tags: ['analytics', 'timeseries'],
     ttl: 300,
@@ -260,15 +261,18 @@ export class AnalyticsController {
   async getTimeSeries(
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query() query: AnalyticsDateRangeDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getScopedOrganizationId(user, req);
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     // Default dates if not provided (7 days, ending yesterday)
-    let finalStartDate = startDate;
-    let finalEndDate = endDate;
+    let finalStartDate = query.startDate;
+    let finalEndDate = query.endDate;
 
     if (!finalStartDate || !finalEndDate) {
       // End date is yesterday (today's data is incomplete)
@@ -295,6 +299,7 @@ export class AnalyticsController {
       finalStartDate,
       finalEndDate,
       organizationId,
+      query.brandId,
     );
 
     return serializeSingle(

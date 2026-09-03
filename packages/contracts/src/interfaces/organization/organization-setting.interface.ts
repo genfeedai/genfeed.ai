@@ -1,5 +1,6 @@
 import type { AgentAutonomyMode } from '../..';
 import type { AppLocale } from '../../constants';
+import type { IFleetEvaluationPolicy } from '../analytics/fleet-evaluation-policy.interface';
 import type { IBaseEntity } from '../index';
 import type { IOnboardingJourneyMissionState } from '../onboarding/onboarding-journey.interface';
 
@@ -118,6 +119,7 @@ export interface IOrganizationSetting extends IBaseEntity {
   onboardingJourneyMissions?: IOnboardingJourneyMissionState[];
   onboardingJourneyCompletedAt?: string | Date | null;
   agentPolicy?: IAgentPolicy;
+  fleetEvaluationPolicy?: IFleetEvaluationPolicy;
 
   // First-asset unlock gate: durable org signal, flips true on the org's first
   // completed generation (Ingredient -> GENERATED).

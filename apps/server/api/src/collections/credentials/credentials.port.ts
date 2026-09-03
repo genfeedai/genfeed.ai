@@ -20,6 +20,11 @@ export interface ServerCredentialStore {
     brandId: string,
     platform: CredentialPlatform,
   ): Promise<CredentialDocument[]>;
+  findConnectedAccounts(
+    organizationId: string,
+    brandId: string,
+    platform: CredentialPlatform,
+  ): Promise<CredentialDocument[]>;
   findOne(query: CredentialQuery): Promise<CredentialDocument | null>;
   mergeWarmupSignals(
     id: string,

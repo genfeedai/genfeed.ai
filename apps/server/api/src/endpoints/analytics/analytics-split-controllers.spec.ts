@@ -1,4 +1,5 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { AccountAnalyticsController } from '@api/endpoints/analytics/account-analytics.controller';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
@@ -251,6 +252,10 @@ describe('Analytics split-controller HTTP contract', () => {
   it('registers the focused controller before the remaining analytics routes', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),
-    ).toEqual([AnalyticsAdminController, AnalyticsController]);
+    ).toEqual([
+      AccountAnalyticsController,
+      AnalyticsAdminController,
+      AnalyticsController,
+    ]);
   });
 });

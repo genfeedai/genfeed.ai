@@ -16,6 +16,25 @@ describe('analytics collection failure classification', () => {
     );
   });
 
+  it('preserves exact-account attribution failures', () => {
+    expect(
+      classifyAnalyticsCollectionError(
+        {
+          analyticsFailure: {
+            code: 'analytics.account_ambiguous',
+            isRetryable: false,
+            message: 'too many accounts',
+          },
+        },
+        'Instagram',
+      ),
+    ).toEqual({
+      code: 'analytics.account_ambiguous',
+      isRetryable: false,
+      message: 'too many accounts',
+    });
+  });
+
   it('represents delayed metrics as a retryable collection failure', () => {
     expect(delayedAnalyticsCollectionFailure('Twitter')).toEqual({
       code: 'analytics.metrics_delayed',

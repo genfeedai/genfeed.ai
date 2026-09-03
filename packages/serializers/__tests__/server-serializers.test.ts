@@ -17,6 +17,9 @@ import {
   ActivitySerializer,
 } from '@serializers/server/common/activity.serializer';
 import {
+  AccountAnalyticsDetailSerializer,
+  AccountAnalyticsListSerializer,
+  AccountAnalyticsTopSerializer,
   AnalyticSerializer,
   AnalyticsBrandLeaderboardSerializer,
   AnalyticsBrandStatsSerializer,
@@ -30,6 +33,7 @@ import {
   AnalyticsTimeseriesWithPlatformsSerializer,
   AnalyticsTopContentSerializer,
   AnalyticsTrendSerializer,
+  FleetEvaluationPolicySerializer,
 } from '@serializers/server/common/analytics.serializer';
 import {
   ApiKeyFullSerializer,
@@ -283,6 +287,17 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof AnalyticsOrgStatsSerializer.serialize).toBe('function');
+    });
+  });
+
+  describe('AccountAnalyticsListSerializer', () => {
+    it('serializes account list payloads', () => {
+      expect(typeof AccountAnalyticsListSerializer.serialize).toBe('function');
+      expect(typeof AccountAnalyticsTopSerializer.serialize).toBe('function');
+      expect(typeof AccountAnalyticsDetailSerializer.serialize).toBe(
+        'function',
+      );
+      expect(typeof FleetEvaluationPolicySerializer.serialize).toBe('function');
     });
   });
 

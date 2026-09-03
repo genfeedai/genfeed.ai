@@ -1,5 +1,8 @@
 import { buildSerializer } from '@serializers/builders';
 import {
+  accountAnalyticsDetailSerializerConfig,
+  accountAnalyticsListSerializerConfig,
+  accountAnalyticsTopSerializerConfig,
   analyticsBrandLeaderboardSerializerConfig,
   analyticsBrandStatsSerializerConfig,
   analyticsEngagementSerializerConfig,
@@ -13,6 +16,7 @@ import {
   analyticsTimeSeriesWithPlatformsSerializerConfig,
   analyticsTopContentSerializerConfig,
   analyticsTrendSerializerConfig,
+  fleetEvaluationPolicySerializerConfig,
 } from '@serializers/configs';
 
 export const { AnalyticSerializer } = buildSerializer(
@@ -78,4 +82,24 @@ export const { AnalyticsTopContentSerializer } = buildSerializer(
 export const { AnalyticsTrendSerializer } = buildSerializer(
   'server',
   analyticsTrendSerializerConfig,
+);
+
+export const { AccountAnalyticsListSerializer } = buildSerializer(
+  'server',
+  accountAnalyticsListSerializerConfig,
+);
+
+export const { AccountAnalyticsTopSerializer } = buildSerializer(
+  'server',
+  accountAnalyticsTopSerializerConfig,
+);
+
+export const { AccountAnalyticsDetailSerializer } = buildSerializer(
+  'server',
+  accountAnalyticsDetailSerializerConfig,
+);
+
+export const { FleetEvaluationPolicySerializer } = buildSerializer(
+  'server',
+  fleetEvaluationPolicySerializerConfig,
 );

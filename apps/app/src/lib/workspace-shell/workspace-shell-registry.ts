@@ -145,6 +145,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
     ':platform Trends',
   '/:orgSlug/:brandSlug/analytics': 'Overview',
+  '/:orgSlug/:brandSlug/analytics/accounts': 'Accounts',
+  '/:orgSlug/:brandSlug/analytics/accounts/:id': 'Account',
   '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
   '/:orgSlug/:brandSlug/library': 'Overview',
@@ -166,6 +168,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/workspace/overview': 'Overview',
   '/:orgSlug/~/overview': 'Overview',
   '/:orgSlug/~/analytics': 'Overview',
+  '/:orgSlug/~/analytics/accounts': 'Accounts',
+  '/:orgSlug/~/analytics/accounts/:id': 'Account',
   '/:orgSlug/~/automation': 'Overview',
   '/:orgSlug/:brandSlug/automation/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automation/agents': 'Agents',
@@ -525,7 +529,12 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(
-    ['/:orgSlug/~/analytics', '/:orgSlug/~/analytics/overview'],
+    [
+      '/:orgSlug/~/analytics',
+      '/:orgSlug/~/analytics/overview',
+      '/:orgSlug/~/analytics/accounts',
+      '/:orgSlug/~/analytics/accounts/:id',
+    ],
     {
       fallback: '/:orgSlug/~/analytics',
       mode: 'canvas',
@@ -891,6 +900,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/analytics',
       '/:orgSlug/:brandSlug/analytics/overview',
+      '/:orgSlug/:brandSlug/analytics/accounts',
+      '/:orgSlug/:brandSlug/analytics/accounts/:id',
       '/:orgSlug/:brandSlug/analytics/posts',
       '/:orgSlug/:brandSlug/analytics/brands',
       '/:orgSlug/:brandSlug/analytics/brands/:id',

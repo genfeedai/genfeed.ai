@@ -54,9 +54,15 @@ export class AnalyticsTwitterCollectionService {
         throw new Error('Twitter analytics action requires exactly one post');
       }
 
-      const credential: unknown = await this.credentialsService.findOne({
-        id: credentialId,
-      });
+      const firstPost = posts[0];
+      const credential = firstPost
+        ? await this.credentialsService.resolveBrandAccount({
+            brandId: firstPost.brandId,
+            credentialId,
+            organizationId: firstPost.organizationId,
+            platform: CredentialPlatform.TWITTER,
+          })
+        : null;
 
       if (!credential) {
         this.logger.error(`Credential ${credentialId} not found`);

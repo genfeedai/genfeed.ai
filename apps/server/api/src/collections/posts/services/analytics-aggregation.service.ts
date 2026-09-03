@@ -20,6 +20,7 @@ import type {
 } from '@api/collections/posts/services/analytics-aggregation.types';
 import { PostAnalyticsProjection } from '@api/collections/posts/services/post-analytics.projection';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { analyticsPeriodTotalsSql } from '@api/endpoints/analytics/analytics-period-sql';
 import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { scopedWhere } from '@api/index';
@@ -120,52 +121,86 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = DateRangeUtil.parseDateRange(startDate, endDate);
 
-    const where = this.buildPostAnalyticsWhere({
-      brandId,
-      endDate: parsedEndDate,
-      organizationId,
-      startDate: parsedStartDate,
-    });
+    const brandFilter = this.buildBrandSqlPredicate(brandId);
+    const orgFilter = Prisma.sql`AND "organizationId" = ${organizationId}`;
 
-    // Previous period
-    const prevWhere = this.buildPostAnalyticsWhere({
-      brandId,
-      endDate: previousEndDate,
-      organizationId,
-      startDate: previousStartDate,
-    });
+    const [currentRow, previousRow, platformRows] = await Promise.all([
+      this.prisma.$queryRaw<
+        Array<{
+          total_comments: number;
+          total_likes: number;
+          total_posts: number;
+          total_saves: number;
+          total_shares: number;
+          total_views: number;
+        }>
+      >(
+        analyticsPeriodTotalsSql({
+          brandFilter,
+          endDate: parsedEndDate,
+          orgFilter,
+          startDate: parsedStartDate,
+        }),
+      ),
+      this.prisma.$queryRaw<
+        Array<{
+          total_comments: number;
+          total_likes: number;
+          total_shares: number;
+          total_views: number;
+        }>
+      >(
+        analyticsPeriodTotalsSql({
+          brandFilter,
+          endDate: previousEndDate,
+          orgFilter,
+          startDate: previousStartDate,
+        }),
+      ),
+      this.prisma.postAnalytics.groupBy({
+        _sum: { totalViews: true },
+        by: ['platform'],
+        orderBy: { _sum: { totalViews: 'desc' } },
+        take: 20,
+        where: this.buildPostAnalyticsWhere({
+          brandId,
+          endDate: parsedEndDate,
+          organizationId,
+          startDate: parsedStartDate,
+        }),
+      }),
+    ]);
 
-    const [currentAggregate, previousAggregate, platformRows] =
-      await Promise.all([
-        this.prisma.postAnalytics.aggregate({
-          _avg: { engagementRate: true },
-          _count: { _all: true },
-          _sum: {
-            totalComments: true,
-            totalLikes: true,
-            totalSaves: true,
-            totalShares: true,
-            totalViews: true,
-          },
-          where,
-        }),
-        this.prisma.postAnalytics.aggregate({
-          _sum: {
-            totalComments: true,
-            totalLikes: true,
-            totalShares: true,
-            totalViews: true,
-          },
-          where: prevWhere,
-        }),
-        this.prisma.postAnalytics.groupBy({
-          _sum: { totalViews: true },
-          by: ['platform'],
-          orderBy: { _sum: { totalViews: 'desc' } },
-          take: 20,
-          where,
-        }),
-      ]);
+    const current = currentRow[0];
+    const previous = previousRow[0];
+    const currentViews = Number(current?.total_views ?? 0);
+    const currentEngagement =
+      Number(current?.total_likes ?? 0) +
+      Number(current?.total_comments ?? 0) +
+      Number(current?.total_shares ?? 0) +
+      Number(current?.total_saves ?? 0);
+    const currentAggregate = {
+      _avg: {
+        engagementRate:
+          currentViews > 0 ? (currentEngagement / currentViews) * 100 : 0,
+      },
+      _count: { _all: Number(current?.total_posts ?? 0) },
+      _sum: {
+        totalComments: Number(current?.total_comments ?? 0),
+        totalLikes: Number(current?.total_likes ?? 0),
+        totalSaves: Number(current?.total_saves ?? 0),
+        totalShares: Number(current?.total_shares ?? 0),
+        totalViews: currentViews,
+      },
+    };
+    const previousAggregate = {
+      _sum: {
+        totalComments: Number(previous?.total_comments ?? 0),
+        totalLikes: Number(previous?.total_likes ?? 0),
+        totalShares: Number(previous?.total_shares ?? 0),
+        totalViews: Number(previous?.total_views ?? 0),
+      },
+    };
 
     const postCount = await this.postsService.count(organizationId, {
       ...(brandId ? { brandId } : {}),

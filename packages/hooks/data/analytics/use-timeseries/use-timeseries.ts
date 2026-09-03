@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageScope } from '@genfeedai/contracts';
+import { PageScope } from '@genfeedai/contracts';
 import type {
   DateRange,
   ITimeSeriesApiDataPoint,
@@ -17,6 +17,7 @@ import {
   getDateRangeWithDefaults,
 } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -56,6 +57,7 @@ export function useTimeseries(
   options: UseTimeseriesOptions,
 ): UseTimeseriesReturn {
   const { scope, dateRange } = options;
+  const { brandId } = useCollectionScope();
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -82,10 +84,11 @@ export function useTimeseries(
       createCacheKey(
         'timeseries',
         scope,
+        brandId ?? 'none',
         startDateKey ?? 'none',
         endDateKey ?? 'none',
       ),
-    [scope, startDateKey, endDateKey],
+    [brandId, scope, startDateKey, endDateKey],
   );
 
   const fetchTimeseries = useCallback(async () => {
@@ -97,6 +100,7 @@ export function useTimeseries(
         dateRange?.endDate ?? undefined,
       );
       const data = await service.getTimeSeries({
+        ...(scope === PageScope.BRAND && brandId ? { brandId } : {}),
         endDate,
         startDate,
       });
@@ -152,7 +156,7 @@ export function useTimeseries(
     } finally {
       setIsTimeseriesLoading(false);
     }
-  }, [dateRange, getAnalyticsService, timeseriesCacheKey]);
+  }, [brandId, dateRange, getAnalyticsService, scope, timeseriesCacheKey]);
 
   useEffect(() => {
     if (options.initialData && options.revalidateOnMount === false) {

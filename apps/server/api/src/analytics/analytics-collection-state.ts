@@ -23,6 +23,21 @@ export function classifyAnalyticsCollectionError(
   error: unknown,
   platform: string,
 ): AnalyticsCollectionFailure {
+  const record = asRecord(error);
+  const attributed = asRecord(record?.analyticsFailure);
+  if (
+    attributed &&
+    typeof attributed.code === 'string' &&
+    typeof attributed.message === 'string' &&
+    typeof attributed.isRetryable === 'boolean'
+  ) {
+    return {
+      code: attributed.code,
+      isRetryable: attributed.isRetryable,
+      message: attributed.message,
+    };
+  }
+
   const status = readStatus(error);
   const label = platform.trim() || 'Provider';
 

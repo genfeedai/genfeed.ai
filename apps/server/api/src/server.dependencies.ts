@@ -91,6 +91,7 @@ export interface ServerYouTubeAnalytics {
     organizationId: string,
     brandId: string,
     videoIds: string[],
+    credentialId?: string,
   ): Promise<Map<string, unknown>>;
 }
 
@@ -99,6 +100,7 @@ export interface ServerSocialAnalytics {
     organizationId: string,
     brandId: string,
     externalId: string,
+    credentialId?: string,
   ): Promise<{
     clicks?: number;
     comments?: number;

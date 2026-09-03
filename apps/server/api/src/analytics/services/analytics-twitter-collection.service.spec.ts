@@ -28,10 +28,13 @@ function createHarness(analytics = new Map<string, unknown>()) {
   const credentials = {
     findAll: vi.fn(),
     findBrandAccounts: vi.fn(),
-    findOne: vi.fn().mockResolvedValue({ accessToken: 'access-token' }),
+    findConnectedAccounts: vi.fn(),
+    findOne: vi.fn(),
     mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
-    resolveBrandAccount: vi.fn(),
+    resolveBrandAccount: vi.fn().mockResolvedValue({
+      accessToken: 'access-token',
+    }),
   } satisfies ServerCredentialStore;
   const logger = {
     error: vi.fn(),

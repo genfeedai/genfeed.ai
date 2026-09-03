@@ -1,6 +1,11 @@
 import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
+  attributionFailureFor,
+  resolveAnalyticsCollectionCredential,
+} from '@api/analytics/analytics-collection-credential';
+import {
   SERVER_TOKENS,
+  type ServerCredentialStore,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerYouTubeAnalytics,
@@ -25,6 +30,8 @@ export class AnalyticsYouTubeCollectionService {
     private readonly postAnalyticsService: ServerPostAnalytics,
     @Inject(SERVER_TOKENS.analyticsCollectionState)
     private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
   ) {}
@@ -46,10 +53,32 @@ export class AnalyticsYouTubeCollectionService {
       }
 
       const videoIds = posts.map((post) => post.externalId);
+      const firstPost = posts[0];
+      const resolution = await resolveAnalyticsCollectionCredential({
+        brandId,
+        credentialId: data.credentialId ?? firstPost?.credentialId,
+        lookup: this.credentialsService,
+        organizationId,
+        platform: CredentialPlatform.YOUTUBE,
+      });
+      if (
+        resolution.kind === 'ambiguous' ||
+        resolution.kind === 'missing' ||
+        resolution.kind === 'mismatch'
+      ) {
+        throw Object.assign(
+          new Error(attributionFailureFor(resolution.kind).message),
+          {
+            analyticsFailure: attributionFailureFor(resolution.kind),
+            status: 409,
+          },
+        );
+      }
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
         organizationId,
         brandId,
         videoIds,
+        resolution.credentialId,
       );
 
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];

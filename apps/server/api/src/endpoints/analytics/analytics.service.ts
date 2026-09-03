@@ -1,4 +1,8 @@
 import {
+  analyticsPeriodSeriesSql,
+  analyticsPeriodTotalsSql,
+} from '@api/endpoints/analytics/analytics-period-sql';
+import {
   type AnalyticsBestPostingTime,
   AnalyticsResponseProjection,
   type RawAnalyticsRow,
@@ -100,30 +104,24 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     startDate: string,
     endDate: string,
     organizationId?: string,
+    brandId?: string,
   ): Promise<unknown[]> {
     // Parse dates
     const start = new Date(startDate);
     const end = new Date(endDate);
     end.setUTCHours(23, 59, 59, 999); // Include the entire end date (UTC)
 
-    // Aggregate timeseries data across all organizations and platforms using raw SQL
-    const rawResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
-      SELECT
-        TO_CHAR("date", 'YYYY-MM-DD') AS day,
-        "platform"::text AS platform,
-        SUM("totalComments") AS comments,
-        AVG("engagementRate") AS engagement_rate,
-        SUM("totalLikes") AS likes,
-        SUM("totalSaves") AS saves,
-        SUM("totalShares") AS shares,
-        SUM("totalViews") AS views
-      FROM "post_analytics"
-      WHERE "date" >= ${start}
-        AND "date" <= ${end}
-        ${this.postAnalyticsOptionalTextFilter('organizationId', organizationId)}
-      GROUP BY TO_CHAR("date", 'YYYY-MM-DD'), "platform"
-      ORDER BY day ASC
-    `;
+    const rawResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>(
+      analyticsPeriodSeriesSql({
+        brandFilter: this.postAnalyticsOptionalTextFilter('brandId', brandId),
+        endDate: end,
+        orgFilter: this.postAnalyticsOptionalTextFilter(
+          'organizationId',
+          organizationId,
+        ),
+        startDate: start,
+      }),
+    );
 
     return analyticsResponseProjection.buildTimeSeries(rawResults, start, end);
   }
@@ -185,32 +183,15 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
   ): Promise<RawAnalyticsRow> {
-    const currentMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
-      SELECT
-        AVG("engagementRate") AS avg_engagement_rate,
-        SUM("totalComments") AS total_comments,
-        SUM("totalLikes") AS total_likes,
-        COUNT(*) AS total_posts,
-        SUM("totalSaves") AS total_saves,
-        SUM("totalShares") AS total_shares,
-        SUM("totalViews") AS total_views
-      FROM "post_analytics"
-      WHERE "date" >= ${startDate} AND "date" <= ${endDate}
-        ${brandFilter}
-        ${orgFilter}
-    `;
-
-    return (
-      currentMetrics[0] || {
-        avg_engagement_rate: 0,
-        total_comments: 0,
-        total_likes: 0,
-        total_posts: 0,
-        total_saves: 0,
-        total_shares: 0,
-        total_views: 0,
-      }
+    const currentMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>(
+      analyticsPeriodTotalsSql({
+        brandFilter,
+        endDate,
+        orgFilter,
+        startDate,
+      }),
     );
+    return this.withDerivedOverviewMetrics(currentMetrics[0]);
   }
 
   private async fetchOverviewPreviousMetrics(
@@ -219,24 +200,40 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
   ): Promise<RawAnalyticsRow> {
-    const previousMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
-      SELECT
-        SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
-        COUNT(*) AS total_posts,
-        SUM("totalViews") AS total_views
-      FROM "post_analytics"
-      WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
-        ${brandFilter}
-        ${orgFilter}
-    `;
-
-    return (
-      previousMetrics[0] || {
-        total_engagement: 0,
-        total_posts: 0,
-        total_views: 0,
-      }
+    const previousMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>(
+      analyticsPeriodTotalsSql({
+        brandFilter,
+        endDate: previousEndDate,
+        orgFilter,
+        startDate: previousStartDate,
+      }),
     );
+
+    return this.withDerivedOverviewMetrics(previousMetrics[0]);
+  }
+
+  private withDerivedOverviewMetrics(
+    row: RawAnalyticsRow | undefined,
+  ): RawAnalyticsRow {
+    const totalComments = Number(row?.total_comments ?? 0);
+    const totalLikes = Number(row?.total_likes ?? 0);
+    const totalSaves = Number(row?.total_saves ?? 0);
+    const totalShares = Number(row?.total_shares ?? 0);
+    const totalViews = Number(row?.total_views ?? 0);
+    const totalEngagement =
+      totalLikes + totalComments + totalShares + totalSaves;
+
+    return {
+      avg_engagement_rate:
+        totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
+      total_comments: totalComments,
+      total_engagement: totalEngagement,
+      total_likes: totalLikes,
+      total_posts: Number(row?.total_posts ?? 0),
+      total_saves: totalSaves,
+      total_shares: totalShares,
+      total_views: totalViews,
+    };
   }
 
   private async countOverviewEntities(

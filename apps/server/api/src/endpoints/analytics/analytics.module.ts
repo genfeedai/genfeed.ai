@@ -13,6 +13,9 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { AccountAnalyticsController } from '@api/endpoints/analytics/account-analytics.controller';
+import { AccountAnalyticsService } from '@api/endpoints/analytics/account-analytics.service';
+import { AccountAnalyticsSnapshotService } from '@api/endpoints/analytics/account-analytics-snapshot.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
@@ -30,8 +33,12 @@ import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AnalyticsAdminController, AnalyticsController],
-  exports: [AnalyticsService],
+  controllers: [
+    AccountAnalyticsController,
+    AnalyticsAdminController,
+    AnalyticsController,
+  ],
+  exports: [AccountAnalyticsService, AnalyticsService],
   imports: [
     // Core modules
     CacheModule,
@@ -60,6 +67,8 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
   ],
   providers: [
+    AccountAnalyticsService,
+    AccountAnalyticsSnapshotService,
     AnalyticsAdminSummaryService,
     AnalyticsService,
     AnalyticsExportService,
