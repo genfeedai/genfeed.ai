@@ -26,6 +26,7 @@ import {
   AgentGenerationMode,
   ButtonSize,
   ButtonVariant,
+  inferAgentMediaGenerationModeFromPrompt,
   ModelCategory,
 } from '@genfeedai/contracts';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
@@ -169,12 +170,16 @@ function AgentChatInputToolbarInner({
   const capabilities =
     getAgentGenerationSetupCapabilities(activeGenerationType);
 
-  // The chip's send mode mirrors whether the operator has explicitly locked a
-  // type: unlocked stays plain conversation (the agent's own tools decide
-  // whether to generate), locked commits to a direct generation send.
+  // Locked type always generates. Unlocked Auto still generates when the
+  // prompt is an unambiguous image/video request — the LLM does not pick a tool.
   useEffect(() => {
-    onGenerationModeChange(isTypeLocked ? activeGenerationType : 'auto');
-  }, [isTypeLocked, activeGenerationType, onGenerationModeChange]);
+    onGenerationModeChange(
+      isTypeLocked
+        ? activeGenerationType
+        : (inferAgentMediaGenerationModeFromPrompt(promptText) ??
+            AgentGenerationMode.AUTO),
+    );
+  }, [activeGenerationType, isTypeLocked, onGenerationModeChange, promptText]);
 
   // Send-boundary wire shape stays the narrow ConversationComposerGenerationSettings
   // the rest of the send pipeline already expects — only its source moved.

@@ -41,6 +41,7 @@ import {
   AgentThreadStatus,
   AgentType,
   isExplicitAgentMediaGenerationMode,
+  resolveAgentTurnGenerationMode,
   toRouterPriority,
 } from '@genfeedai/contracts';
 import {
@@ -394,8 +395,18 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...(state.campaignId ? { campaignId: state.campaignId } : {}),
       ...(state.strategyId ? { strategyId: state.strategyId } : {}),
     };
-    if (isExplicitAgentMediaGenerationMode(request.generationMode)) {
-      return this.executeExplicitMediaGeneration(state, baseContext);
+    const generationMode = resolveAgentTurnGenerationMode({
+      generationMode: request.generationMode,
+      prompt: request.content,
+    });
+    if (isExplicitAgentMediaGenerationMode(generationMode)) {
+      return this.executeExplicitMediaGeneration(
+        {
+          ...state,
+          request: { ...request, generationMode },
+        },
+        baseContext,
+      );
     }
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,

@@ -262,6 +262,38 @@ describe('AgentChatInputToolbar', () => {
     });
   });
 
+  it('promotes Auto to image when the prompt is a generate request', async () => {
+    const onGenerationModeChange = vi.fn();
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({
+          onGenerationModeChange,
+          promptText: 'Generate an image of a red apple',
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onGenerationModeChange).toHaveBeenLastCalledWith('image');
+    });
+  });
+
+  it('keeps unlocked Auto for conversational prompts', async () => {
+    const onGenerationModeChange = vi.fn();
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({
+          onGenerationModeChange,
+          promptText: "what's my brand voice?",
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onGenerationModeChange).toHaveBeenLastCalledWith('auto');
+    });
+  });
+
   it('scopes the locked type to the active thread', () => {
     agentChatState.activeThreadId = 'thread-42';
     render(<AgentChatInputToolbar {...buildDefaultProps()} />);

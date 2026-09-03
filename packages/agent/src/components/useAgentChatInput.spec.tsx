@@ -236,6 +236,47 @@ describe('useAgentChatInput generation mode', () => {
     );
   });
 
+  it('promotes Auto sends to image when the prompt is a generate request', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useAgentChatInput({
+          generationMode: 'auto',
+          generationSettings: {
+            aspectRatio: '1:1',
+            outputs: 1,
+          },
+          onSend,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    act(() => {
+      result.current.editor?.commands.setContent(
+        'Generate an image of a red apple',
+      );
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Generate an image of a red apple',
+      undefined,
+      undefined,
+      expect.objectContaining({
+        generationMode: 'image',
+        generationSettings: {
+          aspectRatio: '1:1',
+          outputs: 1,
+        },
+      }),
+    );
+  });
+
   it('removes restored brand tags while preserving route brand scope', async () => {
     writeConversationComposerDocument(
       draftScopeKey,

@@ -38,7 +38,11 @@ import {
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { AgentGenerationMode } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  isExplicitAgentMediaGenerationMode,
+  resolveAgentTurnGenerationMode,
+} from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
@@ -638,6 +642,10 @@ export function useAgentChatInput({
       ...contentReferences.map(contentReferenceToMention),
     ];
     const completed = getCompletedAttachments?.();
+    const sendMode = resolveAgentTurnGenerationMode({
+      generationMode,
+      prompt: text,
+    });
     const accepted = await onSend(
       text,
       mentionData.length > 0 ? mentionData : undefined,
@@ -651,8 +659,8 @@ export function useAgentChatInput({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
-        generationMode,
-        ...(generationMode !== AgentGenerationMode.AUTO && generationSettings
+        generationMode: sendMode,
+        ...(isExplicitAgentMediaGenerationMode(sendMode) && generationSettings
           ? { generationSettings }
           : {}),
         planModeEnabled: false,
