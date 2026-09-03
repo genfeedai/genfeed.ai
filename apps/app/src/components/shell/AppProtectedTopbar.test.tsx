@@ -203,6 +203,12 @@ vi.mock('@/components/shell/TopbarActivityMenu', () => ({
   default: () => <div data-testid="topbar-activity-menu" />,
 }));
 
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt?: string; src?: string }) => (
+    <img alt={alt} src={src} />
+  ),
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -495,14 +501,23 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.getByRole('button', { name: 'Close navigation menu' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Expand sidebar' }),
-    ).toBeInTheDocument();
+    const expandToggle = screen.getByRole('button', {
+      name: 'Expand sidebar',
+    });
+    const logo = expandToggle.querySelector('img');
+
+    expect(expandToggle).toBeInTheDocument();
+    expect(logo?.getAttribute('src')).toContain('logo.svg');
+    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
+    expect(expandToggle.querySelector('svg')?.parentElement).toHaveClass(
+      'opacity-0',
+      'group-hover:opacity-100',
+    );
     expect(screen.getByTestId('app-protected-topbar-inner')).not.toHaveClass(
       'pl-14',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    fireEvent.click(expandToggle);
     expect(onSidebarToggle).toHaveBeenCalledTimes(1);
   });
 

@@ -16,7 +16,7 @@ import {
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
+import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
@@ -249,9 +249,10 @@ function AppProtectedTopbarContent({
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
           {onSidebarToggle && isSidebarCollapsed ? (
-            <SidebarToggleButton
+            <SidebarLogoToggleButton
               ariaLabel="Expand sidebar"
               className="hidden md:flex"
+              direction="expand"
               onClick={onSidebarToggle}
             />
           ) : null}
