@@ -3,6 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildThreadSummaryFromSnapshot,
+  type MappedSnapshotRunStatus,
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
@@ -19,13 +20,7 @@ export type RestoreThreadFromSnapshotDeps = {
     runId: string | null,
     meta?: {
       startedAt?: string | null;
-      status?:
-        | 'cancelled'
-        | 'cancelling'
-        | 'completed'
-        | 'failed'
-        | 'idle'
-        | 'running';
+      status?: MappedSnapshotRunStatus;
     },
   ) => void;
   setError: (error: string | null) => void;
