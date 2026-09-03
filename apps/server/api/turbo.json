@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "type-check": {
+      "dependsOn": ["build", "^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json",

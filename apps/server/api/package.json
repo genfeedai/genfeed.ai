@@ -109,7 +109,7 @@
     "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "start:prod": "node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register ../dist/apps/api/main",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json",
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts --require-turbo && tsc --noEmit -p tsconfig.typecheck.json",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "bun run test:e2e:full",
     "test:e2e:core": "bun run scripts/api-e2e-tiers.ts core",

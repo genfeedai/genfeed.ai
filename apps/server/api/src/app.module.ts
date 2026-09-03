@@ -11,6 +11,7 @@ import { AppProductServicesModule } from '@api/app-product-services.module';
 import { AuthModule } from '@api/auth/auth.module';
 import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
@@ -61,6 +62,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SharedModule,
     PrismaModule,
     OrganizationsCoreModule,
+    ApiKeysModule,
     RequestContextModule,
     EventEmitterModule.forRoot({
       delimiter: '.',
