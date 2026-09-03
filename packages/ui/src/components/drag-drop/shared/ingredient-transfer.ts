@@ -35,6 +35,22 @@ export function buildIngredientTransferData(
   };
 }
 
+function parseTransferPayload(payload: string): Partial<TransferData> | null {
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    if (
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed)
+    ) {
+      return parsed as Partial<TransferData>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function writeIngredientTransferData(
   dataTransfer: TransferWriter,
   ingredient: Pick<IIngredient, 'id' | 'folder'>,
@@ -57,18 +73,15 @@ export function readIngredientTransferData(
       continue;
     }
 
-    try {
-      const parsed = JSON.parse(payload) as Partial<TransferData>;
-
-      if (typeof parsed.id === 'string' && parsed.id !== '') {
-        return {
-          folder: normalizeFolderId(
-            parsed.folder as IFolder | string | null | undefined,
-          ),
-          id: parsed.id,
-        };
-      }
-    } catch {}
+    const parsed = parseTransferPayload(payload);
+    if (typeof parsed?.id === 'string' && parsed.id !== '') {
+      return {
+        folder: normalizeFolderId(
+          parsed.folder as IFolder | string | null | undefined,
+        ),
+        id: parsed.id,
+      };
+    }
   }
 
   const ingredientId =

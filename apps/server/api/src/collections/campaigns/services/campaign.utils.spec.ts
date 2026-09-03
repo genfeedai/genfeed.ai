@@ -6,7 +6,7 @@ import {
   ContentCampaignItemOutcomeStatus,
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('campaign.utils lifecycle helpers', () => {

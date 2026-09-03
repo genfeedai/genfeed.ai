@@ -1865,14 +1865,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
-      "fingerprint": "cfa3580fbd9e5fc54085",
-      "method": "updateMany",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "e871880a450aba6d3501",
@@ -2095,14 +2087,6 @@
       "method": "findFirst",
       "model": "Brand",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
-      "fingerprint": "482be1b32a16b5ec11c8",
-      "method": "updateMany",
-      "model": "Post",
-      "reason": "missing-is-deleted"
     },
     {
       "delegate": "member",

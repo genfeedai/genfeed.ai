@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { isRecord } from '@workers/services/provider-contract.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const RETRYABLE_ERROR_PATTERNS = [
@@ -27,10 +28,6 @@ const RETRYABLE_ERROR_PATTERNS = [
   '503',
   '504',
 ] as const;
-
-function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 export type QuotaCheckResult = {
   allowed: boolean;

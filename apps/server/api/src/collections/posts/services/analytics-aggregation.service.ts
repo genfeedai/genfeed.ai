@@ -63,7 +63,10 @@ export class AnalyticsAggregationService {
     organizationId: string | undefined,
   ): Promise<void> {
     await assertAnalyticsBrandInScope(
-      (where) => this.prisma.brand.findFirst({ select: { id: true }, where }),
+      async (where) => {
+        // tenant-scope-ignore: assertAnalyticsBrandInScope always sets id and isDeleted; organizationId is omitted only for superadmin
+        return this.prisma.brand.findFirst({ select: { id: true }, where });
+      },
       brandId,
       organizationId,
     );

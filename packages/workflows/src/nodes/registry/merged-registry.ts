@@ -78,19 +78,6 @@ export const NODE_DEFINITIONS: Record<string, MergedNodeDefinition> = {
   ...ACTION_NODE_DEFINITIONS,
 };
 
-/** Valid extended categories */
-const EXTENDED_CATEGORIES: readonly ExtendedNodeCategory[] = [
-  'input',
-  'ai',
-  'processing',
-  'output',
-  'distribution',
-  'composition',
-  'saas',
-  'automation',
-  'repurposing',
-] as const;
-
 /**
  * Get all node types grouped by category
  */
@@ -98,12 +85,20 @@ export function getNodesByExtendedCategory(): Record<
   ExtendedNodeCategory,
   MergedNodeDefinition[]
 > {
-  const categories = Object.fromEntries(
-    EXTENDED_CATEGORIES.map((category) => [category, []]),
-  ) as Record<ExtendedNodeCategory, MergedNodeDefinition[]>;
+  const categories: Record<ExtendedNodeCategory, MergedNodeDefinition[]> = {
+    ai: [],
+    automation: [],
+    composition: [],
+    distribution: [],
+    input: [],
+    output: [],
+    processing: [],
+    repurposing: [],
+    saas: [],
+  };
 
   for (const definition of Object.values(NODE_DEFINITIONS)) {
-    categories[definition.category as ExtendedNodeCategory]?.push(definition);
+    categories[definition.category]?.push(definition);
   }
 
   return categories;

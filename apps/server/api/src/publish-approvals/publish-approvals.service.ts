@@ -569,7 +569,11 @@ export class PublishApprovalsService {
           reviewDecision: null,
           reviewVersionPinId: null,
         },
-        where: { id: postId, organizationId: organizationId },
+        where: {
+          id: postId,
+          isDeleted: false,
+          organizationId: organizationId,
+        },
       });
     });
     this.recordApprovalTelemetry(

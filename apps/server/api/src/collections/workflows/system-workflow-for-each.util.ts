@@ -53,27 +53,29 @@ export function parseForEachOptions(
   const childWorkflowVersionId = optionalString(input.childWorkflowVersionId);
   const items = input.items;
   if (!Array.isArray(items)) {
-    throw new Error('workflow.for-each requires an items array');
+    throw new Error(`${WORKFLOW_FOR_EACH_ACTION_ID} requires an items array`);
   }
   if (items.length > MAX_FOR_EACH_ITEMS) {
     throw new Error(
-      `workflow.for-each accepts at most ${MAX_FOR_EACH_ITEMS} items`,
+      `${WORKFLOW_FOR_EACH_ACTION_ID} accepts at most ${MAX_FOR_EACH_ITEMS} items`,
     );
   }
 
   const mode = optionalString(input.mode) ?? 'await';
   if (mode !== 'await' && mode !== 'scheduled') {
-    throw new Error('workflow.for-each mode must be await or scheduled');
+    throw new Error(
+      `${WORKFLOW_FOR_EACH_ACTION_ID} mode must be await or scheduled`,
+    );
   }
   if (childWorkflowVersionId && mode === 'scheduled') {
     throw new Error(
-      'workflow.for-each pinned tenant workflows require await mode',
+      `${WORKFLOW_FOR_EACH_ACTION_ID} pinned tenant workflows require await mode`,
     );
   }
   const failureMode = optionalString(input.failureMode) ?? 'fail-fast';
   if (failureMode !== 'fail-fast' && failureMode !== 'collect') {
     throw new Error(
-      'workflow.for-each failureMode must be fail-fast or collect',
+      `${WORKFLOW_FOR_EACH_ACTION_ID} failureMode must be fail-fast or collect`,
     );
   }
 
@@ -91,17 +93,19 @@ export function parseForEachOptions(
   );
   if (mode === 'await' && interItemDelayMs !== 0) {
     throw new Error(
-      'workflow.for-each interItemDelayMs requires scheduled mode',
+      `${WORKFLOW_FOR_EACH_ACTION_ID} interItemDelayMs requires scheduled mode`,
     );
   }
   if (mode === 'await' && initialDelayMs !== 0) {
-    throw new Error('workflow.for-each initialDelayMs requires scheduled mode');
+    throw new Error(
+      `${WORKFLOW_FOR_EACH_ACTION_ID} initialDelayMs requires scheduled mode`,
+    );
   }
   const finalDelayMs =
     initialDelayMs + Math.max(items.length - 1, 0) * interItemDelayMs;
   if (finalDelayMs > MAX_FOR_EACH_DELAY_MS) {
     throw new Error(
-      `workflow.for-each final scheduled delay may not exceed ${MAX_FOR_EACH_DELAY_MS}ms`,
+      `${WORKFLOW_FOR_EACH_ACTION_ID} final scheduled delay may not exceed ${MAX_FOR_EACH_DELAY_MS}ms`,
     );
   }
 
@@ -153,7 +157,7 @@ export async function executeAwaitedForEach(input: {
         const childContext = input.childContexts[index];
         if (!childContext) {
           throw new Error(
-            `workflow.for-each could not resolve child context for item ${index}`,
+            `${WORKFLOW_FOR_EACH_ACTION_ID} could not resolve child context for item ${index}`,
           );
         }
         const child = await input.executeItem(index, childContext);
@@ -218,7 +222,7 @@ export async function scheduleForEach(input: {
     const childContext = input.childContexts[index];
     if (!childContext) {
       throw new Error(
-        `workflow.for-each could not resolve child context for item ${index}`,
+        `${WORKFLOW_FOR_EACH_ACTION_ID} could not resolve child context for item ${index}`,
       );
     }
     const identity = createHash('sha256')

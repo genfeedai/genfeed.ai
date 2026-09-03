@@ -1,4 +1,7 @@
-import { ContentCampaignStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  ContentCampaignStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { campaignDispatchAllowedFilter } from '@workers/services/campaign-dispatch.filter';
 import { describe, expect, it } from 'vitest';
 
