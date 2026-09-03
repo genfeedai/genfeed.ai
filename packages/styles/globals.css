@@ -6,11 +6,15 @@
 @import "./calendar.css";
 @import "./genfeed.css";
 
-/* The shared stylesheet serves the product app and public website. Disable
-   monorepo-wide auto detection so Tailwind never scans backend and generated
-   source graphs during a frontend compile. */
-@source "../../apps/app";
-@source "../../apps/website";
+/* Shared product + marketing class sources. Disable monorepo-wide auto
+   detection. Point at source trees only — a whole-app `@source` also
+   matches `.next` and SIGTERMs Turbopack's PostCSS worker. */
+@source "../../apps/app/app";
+@source "../../apps/app/src";
+@source "../../apps/app/packages";
+@source "../../apps/website/app";
+@source "../../apps/website/src";
+@source "../../apps/website/packages";
 @source "../agent";
 @source "../auth-client";
 @source "../contexts";
@@ -25,6 +29,9 @@
 @source not "../../**/*.spec.tsx";
 @source not "../../**/*.stories.ts";
 @source not "../../**/*.stories.tsx";
+@source not "../../**/.next/**";
+@source not "../../**/dist/**";
+@source not "../../**/coverage/**";
 
 /* Long-form prose (article bodies) arrives as sanitized HTML through
    `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a

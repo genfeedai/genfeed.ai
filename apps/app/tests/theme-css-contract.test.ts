@@ -10,8 +10,14 @@ describe('Tailwind theme selector contract', () => {
     );
 
     expect(source).toContain('@import "tailwindcss" source(none);');
-    expect(source).toContain('@source "../../apps/app";');
-    expect(source).toContain('@source "../../apps/website";');
+    expect(source).toContain('@source "../../apps/app/app";');
+    expect(source).toContain('@source "../../apps/app/src";');
+    expect(source).toContain('@source "../../apps/app/packages";');
+    expect(source).toContain('@source "../../apps/website/app";');
+    expect(source).toContain('@source "../../apps/website/packages";');
+    expect(source).toContain('@source not "../../**/.next/**";');
+    expect(source).not.toContain('@source "../../apps/app";');
+    expect(source).not.toContain('@source "../../apps/website";');
     expect(source).not.toContain('@source "../../apps/server";');
   });
 
