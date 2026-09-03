@@ -9,6 +9,7 @@ import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/gener
 import { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
+import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -20,6 +21,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import {
   CampaignLifecycleSerializer,
+  CampaignPerformanceSerializer,
   CampaignSerializer,
 } from '@genfeedai/serializers';
 import {
@@ -44,6 +46,7 @@ export class CampaignsController {
   constructor(
     private readonly generationService: CampaignGenerationService,
     private readonly lifecycleService: CampaignLifecycleService,
+    private readonly performanceService: CampaignPerformanceService,
     private readonly service: CampaignsService,
   ) {}
 
@@ -65,6 +68,22 @@ export class CampaignsController {
   ) {
     const data = await this.service.getOne(user.organizationId, id);
     return serializeSingle(request, CampaignSerializer, data);
+  }
+
+  @Get(':id/performance')
+  async getPerformance(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const data = await this.performanceService.getPerformance(
+      user.organizationId,
+      id,
+      { endDate, startDate },
+    );
+    return serializeSingle(request, CampaignPerformanceSerializer, data);
   }
 
   @Post()

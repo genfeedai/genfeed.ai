@@ -93,6 +93,7 @@ export * from './content/article-extended.interface';
 export * from './content/avatar-video-provider.interface';
 export * from './content/campaign.interface';
 export * from './content/campaign-lifecycle.interface';
+export * from './content/campaign-performance.interface';
 export * from './content/character-sheet.interface';
 export * from './content/clip-draft-handoff.interface';
 export * from './content/clip-reference-frame.interface';

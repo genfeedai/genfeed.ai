@@ -1,6 +1,7 @@
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
 import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
+import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   providers: [
     CampaignGenerationService,
     CampaignLifecycleService,
+    CampaignPerformanceService,
     CampaignsService,
   ],
 })

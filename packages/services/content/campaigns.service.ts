@@ -4,6 +4,7 @@ import type {
   ICampaign,
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
+  ICampaignPerformance,
   IGenerateCampaignContentInput,
   IPaginatedResponse,
 } from '@genfeedai/contracts/interfaces';
@@ -90,6 +91,22 @@ export class CampaignsService extends BaseService<
 
   async getById(id: string): Promise<Campaign> {
     return this.findOne(id);
+  }
+
+  async getPerformance(
+    id: string,
+    query: { endDate?: string; startDate?: string } = {},
+  ): Promise<ICampaignPerformance> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/${id}/performance`,
+      this.instance
+        .get<JsonApiResponseDocument>(`/${id}/performance`, {
+          params: query,
+        })
+        .then((response) =>
+          this.extractResource<ICampaignPerformance>(response.data),
+        ),
+    );
   }
 
   async create(data: CreateCampaignInput): Promise<Campaign> {

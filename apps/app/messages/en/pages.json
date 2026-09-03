@@ -602,6 +602,14 @@
       "newCampaign": "New campaign",
       "openCampaign": "Open {name}",
       "overviewDetails": "Details",
+      "performanceByPlatform": "By platform",
+      "performanceClicks": "Clicks",
+      "performanceConversions": "Conversions",
+      "performanceCounts": "Posts by status",
+      "performanceCoverage": "{available} of {total} posts",
+      "performanceEngagements": "Engagements",
+      "performanceUnavailable": "Unavailable",
+      "performanceViews": "Views",
       "pause": "Pause",
       "pauseFailed": "Could not pause this campaign.",
       "pauseMessage": "Future campaign dispatch stops. Already published posts stay live.",
@@ -624,7 +632,8 @@
       "tabs": {
         "calendar": "Calendar",
         "content": "Content",
-        "overview": "Overview"
+        "overview": "Overview",
+        "performance": "Performance"
       },
       "title": "Campaigns",
       "updated": "Campaign updated."
