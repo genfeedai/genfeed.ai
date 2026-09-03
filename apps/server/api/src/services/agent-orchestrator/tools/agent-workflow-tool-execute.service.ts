@@ -292,6 +292,11 @@ export class AgentWorkflowToolExecuteService {
       (params.variables as Record<string, unknown> | undefined) ??
       {};
 
+    const tenantScope = {
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+    };
+
     const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
     if (systemWorkflow) {
       const mergedInputValues = this.mergeSystemWorkflowInputs(
@@ -317,7 +322,7 @@ export class AgentWorkflowToolExecuteService {
           canonicalId: workflowId,
           inputValues: mergedInputValues,
           metadata: { origin: 'agent' },
-          organizationId: ctx.organizationId,
+          organizationId: tenantScope.organizationId,
           source: 'AgentWorkflowToolExecuteService.executeWorkflow',
           userId: ctx.userId,
         });
@@ -335,8 +340,7 @@ export class AgentWorkflowToolExecuteService {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
-      organizationId: ctx.organizationId,
+      ...tenantScope,
     });
 
     if (!workflow) {
