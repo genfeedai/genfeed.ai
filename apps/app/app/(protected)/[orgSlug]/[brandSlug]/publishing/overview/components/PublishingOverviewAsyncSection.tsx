@@ -2,6 +2,7 @@
 
 import type { AsyncState } from '@props/shared';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 interface PublishingOverviewAsyncSectionProps<TData> {
@@ -19,6 +20,8 @@ export default function PublishingOverviewAsyncSection<TData>({
   onRetry,
   state,
 }: PublishingOverviewAsyncSectionProps<TData>) {
+  const translate = useTranslations('common');
+
   if (state.status === 'error') {
     return (
       <div
@@ -27,7 +30,7 @@ export default function PublishingOverviewAsyncSection<TData>({
       >
         <p className="text-sm text-destructive">{errorMessage}</p>
         <Button onClick={onRetry} withWrapper={false}>
-          Try again
+          {translate('actions.retry')}
         </Button>
       </div>
     );

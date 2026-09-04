@@ -19,6 +19,11 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'actions.retry' ? 'Retry' : key,
+}));
+
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 describe('PublishingOverviewAsyncSection', () => {
@@ -52,7 +57,7 @@ describe('PublishingOverviewAsyncSection', () => {
     );
 
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load.');
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
