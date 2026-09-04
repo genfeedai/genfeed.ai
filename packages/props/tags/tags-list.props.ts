@@ -6,4 +6,5 @@ export interface TagsListProps {
   filter: 'all' | 'default' | 'organization' | 'account';
   externalFilters?: IFiltersState;
   refreshTrigger?: number;
+  onRefreshingChange?: (isRefreshing: boolean) => void;
 }

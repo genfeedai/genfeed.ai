@@ -39,8 +39,6 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
   const handleRefresh = () => {
     setIsRefreshing(true);
     setRefreshTrigger((prev) => prev + 1);
-    // Reset after a short delay
-    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const rightActions = (
@@ -81,6 +79,7 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
         filter={filter}
         externalFilters={filters}
         refreshTrigger={refreshTrigger}
+        onRefreshingChange={setIsRefreshing}
       />
     </TagsLayout>
   );

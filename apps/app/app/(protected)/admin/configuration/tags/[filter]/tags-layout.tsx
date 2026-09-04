@@ -18,9 +18,9 @@ export default function TagsLayout({
   scope,
   rightActions,
 }: ITagsLayoutProps) {
-  // Only show tabs for organization scope
+  // Both customer and admin views navigate the same tag categories.
   const tabs =
-    scope === PageScope.ORGANIZATION
+    scope === PageScope.ORGANIZATION || scope === PageScope.SUPERADMIN
       ? [
           { href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL, label: 'All' },
           {

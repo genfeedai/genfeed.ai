@@ -8,7 +8,7 @@ import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { Switch } from '@ui/primitives/switch';
 import { Pencil, Trash2 } from 'lucide-react';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 
 import {
   TagAccountCell,
@@ -30,6 +30,7 @@ function TagsListContent(props: TagsListProps) {
     handleAdminOrgChange,
     handleToggleActive,
     isLoading,
+    isRefreshing,
     openDeleteConfirm,
     openTagModal,
     organizationId,
@@ -38,6 +39,10 @@ function TagsListContent(props: TagsListProps) {
     selectedTag,
     setSelectedTag,
   } = useTagsList(props);
+
+  useEffect(() => {
+    props.onRefreshingChange?.(isRefreshing);
+  }, [isRefreshing, props.onRefreshingChange]);
 
   const columns = useMemo(
     () => [
