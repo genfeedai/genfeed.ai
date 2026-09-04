@@ -160,7 +160,8 @@ describe('AgentChatMessage', () => {
     );
     expect(
       user.container.querySelector('[data-message-role="user"]'),
-    ).toHaveClass('-mx-3', 'px-3');
+    ).toHaveClass('-mx-3');
+    expect(user.getByTestId('agent-user-prompt')).toBeTruthy();
   });
 
   it('does not truncate long assistant content', () => {
@@ -315,11 +316,13 @@ describe('AgentChatMessage', () => {
     );
 
     expect(surface).toBeTruthy();
-    expect(surface).toHaveClass('bg-card');
-    expect(surface).toHaveClass('rounded-xl');
-    expect(surface).toHaveClass('shadow-none');
-    expect(surface).not.toHaveClass('border');
-    expect(surface).not.toHaveClass('border-border-strong');
+    const card = screen.getByTestId('agent-user-prompt');
+    expect(card).toHaveClass('bg-card');
+    expect(card).toHaveClass('rounded-card');
+    expect(card).toHaveClass('shadow-border');
+    expect(card).not.toHaveClass('rounded-xl');
+    expect(card).not.toHaveClass('shadow-composer');
+    expect(surface).toContainElement(card);
     expect(surface?.parentElement).toHaveClass('sticky');
     expect(surface?.parentElement).toHaveClass('bg-background');
     expect(surface?.parentElement).not.toHaveClass('justify-end');
@@ -380,7 +383,8 @@ describe('AgentChatMessage', () => {
     );
 
     const surface = container.querySelector('[data-message-role="user"]');
-    expect(surface).toHaveClass('shadow-none');
+    const card = screen.getByTestId('agent-user-prompt');
+    expect(card).toHaveClass('shadow-border');
     expect(surface?.className).not.toContain(SCROLL_FOCUS_SURFACE_CLASS);
   });
 
