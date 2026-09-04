@@ -453,6 +453,10 @@ describe('MenuShared', () => {
     render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
 
     expect(screen.getByText('Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Workspace').parentElement).toHaveClass('pb-2');
+    expect(
+      screen.getByText('Workspace').parentElement?.parentElement,
+    ).toHaveClass('mt-3');
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
     ).not.toBeInTheDocument();
