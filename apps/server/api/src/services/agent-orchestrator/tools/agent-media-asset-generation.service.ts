@@ -340,6 +340,20 @@ export class AgentMediaAssetGenerationService {
     const onboardingNextActions = cdnUrl
       ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
       : undefined;
+    return this.buildImageGenerationResult(
+      id,
+      cdnUrl,
+      promptPreview,
+      onboardingNextActions,
+    );
+  }
+
+  private buildImageGenerationResult(
+    id: string,
+    cdnUrl: string | undefined,
+    promptPreview: string,
+    onboardingNextActions: AgentToolResult['nextActions'],
+  ): AgentToolResult {
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {

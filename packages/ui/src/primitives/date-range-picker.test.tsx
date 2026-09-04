@@ -2,6 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import DateRangePicker from './date-range-picker';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('DateRangePicker', () => {
   it('keeps quick ranges inside the calendar popover', () => {
     const onChange = vi.fn();

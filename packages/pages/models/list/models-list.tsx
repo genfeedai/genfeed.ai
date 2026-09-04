@@ -9,6 +9,7 @@ import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useMemo } from 'react';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
@@ -25,6 +26,7 @@ export default function ModelsList({
   scope?: PageScope;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
+  const translate = useTranslations('pages.models');
   const {
     isAdminScope,
     catalogOverviewCards,
@@ -128,10 +130,10 @@ export default function ModelsList({
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">
-            Model catalog
+            {translate('catalogTitle')}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Compare available models by category, quality, and credit cost.
+            {translate('catalogDescription')}
           </p>
         </div>
         <div className="w-full sm:w-64">

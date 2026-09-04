@@ -21,7 +21,7 @@ describe('SidebarActionTrigger', () => {
     expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
-      'h-7',
+      'h-control-sm',
       'gap-2',
       'px-2.5',
       'py-1',

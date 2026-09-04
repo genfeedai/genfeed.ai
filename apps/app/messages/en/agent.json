@@ -237,5 +237,12 @@
   },
   "dynamicChart": {
     "noData": "No chart data available"
+  },
+  "messageCards": {
+    "openIntegrations": "Open integrations",
+    "generationFailed": "{kind} generation failed",
+    "noPreview": "No preview is available for this asset.",
+    "unlockCredits": "Unlock more with credits",
+    "creditAmount": "{count} credits"
   }
 }

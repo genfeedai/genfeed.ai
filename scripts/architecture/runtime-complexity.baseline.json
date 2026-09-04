@@ -67,12 +67,6 @@
   },
   {
     "actual": 1010,
-    "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts"
-  },
-  {
-    "actual": 1010,
     "file": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
@@ -174,7 +168,7 @@
     "symbol": "AutoMergeService.createAndQueueMerge"
   },
   {
-    "actual": 170,
+    "actual": 169,
     "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.ts",
     "metric": "method-lines",
     "symbol": "WebhooksService.finalizeWebhookMedia"
@@ -250,12 +244,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-analytics-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
-  },
-  {
-    "actual": 157,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-media-asset-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentMediaAssetGenerationService.generateImage"
   },
   {
     "actual": 1344,
@@ -360,13 +348,13 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1082,
+    "actual": 1079,
     "file": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts"
   },
   {
-    "actual": 174,
+    "actual": 171,
     "file": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AuthorReplyLoopService.getInbox"

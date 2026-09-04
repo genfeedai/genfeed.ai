@@ -7,6 +7,13 @@ import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 const mockFindAll = vi.fn();
 const mockFindAllPages = vi.fn();
 const mockOrganizationFindOne = vi.fn();

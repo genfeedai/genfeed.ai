@@ -33,7 +33,7 @@ export default function SidebarActionTrigger({
       ariaLabel={ariaLabel ?? label}
       data-testid={testId}
       className={cn(
-        'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
+        'group relative flex h-control-sm w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
         'hover:bg-foreground/[0.06] hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,

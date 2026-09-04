@@ -188,18 +188,7 @@ export class PromptsController {
     // User prompt is the original content
     const userPrompt = createPromptDto.original;
 
-    // Derive system prompt key from model if provided
-    // Priority: 1) model-specific template, 2) explicit systemPromptKey, 3) default
-    let systemPromptKey: string = SystemPromptKey.DEFAULT;
-    if (createPromptDto.model) {
-      // Use existing utility to convert model key to template key
-      // e.g., 'black-forest-labs/flux-2-pro' -> 'system.model.flux-2-pro'
-      systemPromptKey = PromptParser.getModelSystemPromptTemplateKey(
-        createPromptDto.model,
-      );
-    } else if (createPromptDto.systemPromptKey) {
-      systemPromptKey = createPromptDto.systemPromptKey;
-    }
+    const systemPromptKey = this.resolveSystemPromptKey(createPromptDto);
 
     const systemPromptPromise = this._templatesService
       ? this._templatesService
@@ -273,6 +262,22 @@ export class PromptsController {
       });
 
     return serializeSingle(request, PromptSerializer, data);
+  }
+
+  private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {
+    // Priority: 1) model-specific template, 2) explicit systemPromptKey, 3) default
+    let systemPromptKey: string = SystemPromptKey.DEFAULT;
+    if (createPromptDto.model) {
+      // Use existing utility to convert model key to template key
+      // e.g., 'black-forest-labs/flux-2-pro' -> 'system.model.flux-2-pro'
+      systemPromptKey = PromptParser.getModelSystemPromptTemplateKey(
+        createPromptDto.model,
+      );
+    } else if (createPromptDto.systemPromptKey) {
+      systemPromptKey = createPromptDto.systemPromptKey;
+    }
+
+    return systemPromptKey;
   }
 
   @Get()

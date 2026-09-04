@@ -181,7 +181,7 @@ describe('runCheckProductRouteInventory', () => {
       appPublicRouteCount: 22,
       issues: [],
       protectedPageCount: 228,
-      protectedRouteCount: 240,
+      protectedRouteCount: 245,
       publicRouteCount: 75,
       websitePublicRouteCount: 53,
     });

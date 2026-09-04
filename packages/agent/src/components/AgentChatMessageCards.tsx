@@ -10,6 +10,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 const MAX_ASSET_RECONCILIATION_ATTEMPTS = 150;
@@ -42,6 +43,7 @@ function GenericOAuthConnectCard({
 }: {
   action: AgentUiAction;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
   const { orgHref } = useOrgUrl();
   const description =
     action.description ??
@@ -70,7 +72,7 @@ function GenericOAuthConnectCard({
           'inline-flex w-fit',
         )}
       >
-        Open integrations
+        {translate('openIntegrations')}
       </a>
     </div>
   );
@@ -169,6 +171,7 @@ export function ContentPreviewCard({
   apiService?: AgentApiService;
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
   const { href: scopedHref } = useOrgUrl();
   const [reconciledUrl, setReconciledUrl] = useState<string>();
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
@@ -329,10 +332,10 @@ export function ContentPreviewCard({
           role="status"
         >
           <p className="text-sm font-medium text-foreground">
-            {assetKindLabel} generation failed
+            {translate('generationFailed', { kind: assetKindLabel })}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            No preview is available for this asset.
+            {translate('noPreview')}
           </p>
         </div>
       )}
@@ -409,10 +412,11 @@ export function PaymentCtaCard({
   action: AgentUiAction;
   onSelect?: (pack: { label: string; price: string; credits: number }) => void;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
   return (
     <div className="mt-2 rounded-lg border border-primary/30 bg-background p-3">
       <p className="mb-3 text-sm font-medium text-foreground">
-        Unlock more with credits
+        {translate('unlockCredits')}
       </p>
       <div className="grid grid-cols-3 gap-2">
         {action.packs?.map((pack) => (
@@ -426,7 +430,7 @@ export function PaymentCtaCard({
             <p className="text-xs font-medium text-foreground">{pack.label}</p>
             <p className="text-lg font-bold text-primary">{pack.price}</p>
             <p className="text-2xs text-muted-foreground">
-              {pack.credits} credits
+              {translate('creditAmount', { count: pack.credits })}
             </p>
           </Button>
         ))}

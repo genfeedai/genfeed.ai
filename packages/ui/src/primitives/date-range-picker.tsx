@@ -5,6 +5,7 @@ import type { DateRange as AnalyticsDateRange } from '@genfeedai/contracts/inter
 import { cn } from '@genfeedai/helpers';
 import { subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
 import { Button } from './button';
@@ -94,6 +95,7 @@ export default function DateRangePicker({
   className = '',
   value,
 }: DateRangePickerProps) {
+  const translate = useTranslations('ui.dateRangePicker');
   const [selectedPreset, setSelectedPreset] = useState<
     DateRangePreset | 'custom'
   >(defaultPreset);
@@ -165,7 +167,7 @@ export default function DateRangePicker({
         >
           <div className="border-b border-border p-2">
             <fieldset className="grid grid-cols-3 gap-1">
-              <legend className="sr-only">Quick date ranges</legend>
+              <legend className="sr-only">{translate('quickRanges')}</legend>
               {PRESET_OPTIONS.map((preset) => (
                 <Button
                   key={preset}

@@ -52,7 +52,6 @@ const CARD_MIGRATION_SOURCES = [
   'app/(onboarding)/onboarding/(wizard)/providers/providers-server-list.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-status-card.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategiesEmptyState.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
@@ -198,6 +197,16 @@ describe('semantic theme surface contracts', () => {
       expect(source).toContain('<Card');
     },
   );
+
+  it('uses shared empty content for the autopilot empty state', () => {
+    const source = readSource(
+      'app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategiesEmptyState.tsx',
+    );
+    expect(source).toContain(
+      "import { CardEmptyContent } from '@ui/card/empty/CardEmpty'",
+    );
+    expect(source).toContain('<CardEmptyContent');
+  });
 
   it.each(OVERLAY_MENU_SOURCES)(
     'uses the secondary overlay plane and dropdown elevation in %s',

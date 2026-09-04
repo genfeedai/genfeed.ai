@@ -105,7 +105,10 @@ describe('ContentPreviewCard', () => {
     ).toHaveTextContent('No preview is available for this asset.');
     expect(
       screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute('href', '/library/assets?asset=image-failed');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/library/assets?asset=image-failed',
+    );
   });
 
   it('bounds reconciliation polling for an asset that never becomes readable', async () => {
@@ -230,7 +233,10 @@ describe('ContentPreviewCard', () => {
 
     expect(
       screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute('href', `/library/images?asset=${IMAGE_ID}`);
+    ).toHaveAttribute(
+      'href',
+      `/test-org/test-brand/library/images?asset=${IMAGE_ID}`,
+    );
   });
 
   it('does not scope a server-scoped Library asset link twice', () => {
