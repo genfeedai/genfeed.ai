@@ -5327,6 +5327,9 @@ model AdBulkUploadJob {
   @@map("ad_bulk_upload_jobs")
 }
 
+/// JSON lookup expression indexes are SQL-managed (Prisma cannot declare expressions).
+/// 20260904130000/130100/130200 migrations index organizationId, isDeleted, then
+/// data #> '{genfeedContentId}', '{externalAdId}', or '{adAccountId}' respectively.
 model AdCreativeMapping {
   id             String       @id @default(cuid())
   organizationId String
