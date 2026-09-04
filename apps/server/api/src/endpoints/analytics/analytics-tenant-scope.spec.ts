@@ -41,7 +41,7 @@ describe('analytics tenant scope', () => {
       expect(
         resolveAnalyticsTenantScope({ ...member, isSuperAdmin: true }, {
           query: { organizationId: 'org-2' },
-        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+        } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
       ).toEqual({
         organizationId: 'org-2',
         privilege: 'superadmin',
@@ -52,7 +52,7 @@ describe('analytics tenant scope', () => {
       expect(() =>
         resolveAnalyticsTenantScope(member, {
           query: { organizationId: 'org-2' },
-        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+        } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
       ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
     });
 
@@ -60,7 +60,7 @@ describe('analytics tenant scope', () => {
       expect(
         resolveAnalyticsTenantScope(member, {
           query: { organizationId: 'org-1' },
-        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+        } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
       ).toEqual({
         organizationId: 'org-1',
         privilege: 'customer',

@@ -240,7 +240,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
   },
   {
-    "actual": 198,
+    "actual": 196,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnWorkflowExecutionService.execute"

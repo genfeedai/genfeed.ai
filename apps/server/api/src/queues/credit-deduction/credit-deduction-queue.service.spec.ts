@@ -41,7 +41,7 @@ describe('CreditDeductionQueueService', () => {
         amount: 100,
         description: 'Test deduction',
         organizationId: 'org-123',
-        source: 'video-generation',
+        source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
       };
@@ -63,7 +63,7 @@ describe('CreditDeductionQueueService', () => {
         amount: 100,
         description: 'Test deduction',
         organizationId: 'org-123',
-        source: 'video-generation',
+        source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
       };
@@ -108,7 +108,7 @@ describe('CreditDeductionQueueService', () => {
         description: 'Fleet voice clone compute',
         idempotencyKey: 'fleet-voice-clone-job-1',
         organizationId: 'org-123',
-        source: 'video-generation',
+        source: ActivitySource.VIDEO_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
       };

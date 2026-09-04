@@ -6,7 +6,7 @@ export default defineConfig({
     alias: [
       {
         find: '@genfeedai/helpers',
-        replacement: path.resolve(__dirname, '../helpers/src/index.ts'),
+        replacement: path.resolve(__dirname, '../helpers/src'),
       },
       {
         find: /^@genfeedai\/helpers\/(.*)$/,

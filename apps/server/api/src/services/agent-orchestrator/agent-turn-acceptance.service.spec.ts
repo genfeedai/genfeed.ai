@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/contracts';
+import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AgentTurnAcceptanceService,
@@ -187,7 +187,7 @@ describe('AgentTurnAcceptanceService', () => {
       {
         clientRequestId: 'explicit-image',
         content: 'Generate a red apple',
-        generationMode: 'image',
+        generationMode: AgentGenerationMode.IMAGE,
         generationSettings: {
           aspectRatio: '1:1',
           model: 'black-forest-labs/flux-schnell',

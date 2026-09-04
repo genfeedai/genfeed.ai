@@ -395,18 +395,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...(state.campaignId ? { campaignId: state.campaignId } : {}),
       ...(state.strategyId ? { strategyId: state.strategyId } : {}),
     };
-    const generationMode = resolveAgentTurnGenerationMode({
-      generationMode: request.generationMode,
-      prompt: request.content,
-    });
-    if (isExplicitAgentMediaGenerationMode(generationMode)) {
-      return this.executeExplicitMediaGeneration(
-        {
-          ...state,
-          request: { ...request, generationMode },
-        },
-        baseContext,
-      );
+    const mediaResult = await this.tryExecuteMediaTurn(state, baseContext);
+    if (mediaResult) {
+      return mediaResult;
     }
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,
@@ -609,10 +600,17 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     });
   }
 
-  private async executeExplicitMediaGeneration(
+  private async tryExecuteMediaTurn(
     state: PreparedAgentTurnState,
     context: AgentChatContext,
-  ): Promise<AgentTurnWorkflowResult> {
+  ): Promise<AgentTurnWorkflowResult | null> {
+    const generationMode = resolveAgentTurnGenerationMode({
+      generationMode: state.request.generationMode,
+      prompt: state.request.content,
+    });
+    if (!isExplicitAgentMediaGenerationMode(generationMode)) {
+      return null;
+    }
     const settings = state.request.generationSettings;
     const result = await this.executeUiAction(
       {
@@ -630,7 +628,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           ...(settings?.duration !== undefined
             ? { duration: settings.duration }
             : {}),
-          generationType: state.request.generationMode,
+          generationType: generationMode,
           ...(settings?.model ? { model: settings.model } : {}),
           ...(settings?.outputs !== undefined
             ? { outputs: settings.outputs }

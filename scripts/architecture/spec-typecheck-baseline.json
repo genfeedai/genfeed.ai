@@ -2514,10 +2514,10 @@
     },
     {
       "code": 2820,
-      "count": 3,
+      "count": 1,
       "file": "apps/server/api/src/queues/credit-deduction/credit-deduction-queue.service.spec.ts",
       "fingerprint": "393a7a19ef8e597b97f3",
-      "message": "Type '\"video-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.VIDEO_GENERATION'?",
+      "message": "Type '\"image-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.IMAGE_GENERATION'?",
       "workspace": "api"
     },
     {

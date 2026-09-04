@@ -43,6 +43,7 @@ import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrato
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import {
+  AgentGenerationMode,
   ApiKeyScope,
   IngredientCategory,
   ReleaseStatus,
@@ -1155,7 +1156,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.PREPARE_GENERATION,
       { generationType: 'video', prompt: 'Launch-day portrait' },
       {
-        generationMode: 'image',
+        generationMode: AgentGenerationMode.IMAGE,
         organizationId: testId('org'),
         userId: testId('user'),
       },

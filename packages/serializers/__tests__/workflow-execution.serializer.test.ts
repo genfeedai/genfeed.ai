@@ -1,5 +1,8 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { WorkflowExecutionSerializer } from '@serializers/server/automation/workflow-execution.serializer';
 import { describe, expect, it } from 'vitest';
+
+const WORKFLOW_ID = testId('workflow');
 
 type SerializedDocument = {
   data: {
@@ -25,7 +28,7 @@ function makeExecution(): Record<string, unknown> {
     trigger: 'agent',
     updatedAt: '2026-09-03T10:00:05.000Z',
     userId: 'cmuser00000000000000000001',
-    workflowId: 'cmtj5f08q0006baxnuayop3xx',
+    workflowId: WORKFLOW_ID,
   };
 }
 
@@ -35,14 +38,14 @@ describe('WorkflowExecutionSerializer', () => {
       ...makeExecution(),
       workflow: {
         description: 'Generates an image from an agent tool call',
-        id: 'cmtj5f08q0006baxnuayop3xx',
+        id: WORKFLOW_ID,
         label: 'Agent Tool: generate_image',
       },
     }) as SerializedDocument;
 
-    expect(output.data.attributes.workflowId).toBe('cmtj5f08q0006baxnuayop3xx');
+    expect(output.data.attributes.workflowId).toBe(WORKFLOW_ID);
     expect(output.data.relationships?.workflow.data).toEqual({
-      id: 'cmtj5f08q0006baxnuayop3xx',
+      id: WORKFLOW_ID,
       type: 'workflow',
     });
     expect(output.included).toEqual([
@@ -51,7 +54,7 @@ describe('WorkflowExecutionSerializer', () => {
           description: 'Generates an image from an agent tool call',
           label: 'Agent Tool: generate_image',
         },
-        id: 'cmtj5f08q0006baxnuayop3xx',
+        id: WORKFLOW_ID,
         type: 'workflow',
       },
     ]);
@@ -62,7 +65,7 @@ describe('WorkflowExecutionSerializer', () => {
       makeExecution(),
     ) as SerializedDocument;
 
-    expect(output.data.attributes.workflowId).toBe('cmtj5f08q0006baxnuayop3xx');
+    expect(output.data.attributes.workflowId).toBe(WORKFLOW_ID);
     expect(output.included ?? []).toEqual([]);
   });
 });
