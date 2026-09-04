@@ -1,7 +1,11 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  AnalyticsMetric,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalyticsDetail,
@@ -13,8 +17,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
@@ -32,22 +38,40 @@ export default function AnalyticsAccountDetail() {
     AnalyticsService.getInstance(token),
   );
   const [detail, setDetail] = useState<IAccountAnalyticsDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
     void (async () => {
-      const service = await getService();
-      const { startDate, endDate } = getDateRangeWithDefaults(
-        dateRange.startDate ?? undefined,
-        dateRange.endDate ?? undefined,
-      );
-      const data = (await service.getAccountAnalyticsDetail(credentialId, {
-        brandId: brandId || undefined,
-        endDate,
-        startDate,
-      })) as IAccountAnalyticsDetail;
-      if (!controller.signal.aborted) {
-        setDetail(data);
+      setError(null);
+      setIsLoading(true);
+      try {
+        const service = await getService();
+        const { startDate, endDate } = getDateRangeWithDefaults(
+          dateRange.startDate ?? undefined,
+          dateRange.endDate ?? undefined,
+        );
+        const data = (await service.getAccountAnalyticsDetail(credentialId, {
+          brandId: brandId || undefined,
+          endDate,
+          startDate,
+        })) as IAccountAnalyticsDetail;
+        if (!controller.signal.aborted) {
+          setDetail(data);
+        }
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          logger.error(
+            'Failed to fetch account analytics detail',
+            requestError,
+          );
+          setError(translate('loadError'));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     })();
     return () => controller.abort();
@@ -57,6 +81,7 @@ export default function AnalyticsAccountDetail() {
     dateRange.endDate,
     dateRange.startDate,
     getService,
+    translate,
   ]);
 
   const title =
@@ -81,6 +106,18 @@ export default function AnalyticsAccountDetail() {
     ],
     [],
   );
+
+  if (error) {
+    return (
+      <Container label={translate('errorTitle')}>
+        <Alert type={AlertCategory.ERROR}>{error}</Alert>
+      </Container>
+    );
+  }
+
+  if (isLoading && !detail) {
+    return <Container label={translate('loading')}>{null}</Container>;
+  }
 
   return (
     <Container

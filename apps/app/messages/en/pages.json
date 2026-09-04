@@ -1,8 +1,11 @@
 {
   "analytics": {
     "accounts": {
+      "errorTitle": "Account analytics error",
       "evaluation": "Evaluation",
       "followers": "Followers",
+      "loadError": "Account analytics could not be loaded.",
+      "loading": "Loading account analytics…",
       "noTrend": "No trend data for this window",
       "posts": "Posts",
       "postsOverWeeks": "{posts, plural, one {# post} other {# posts}} over {weeks, plural, one {# week} other {# weeks}}",

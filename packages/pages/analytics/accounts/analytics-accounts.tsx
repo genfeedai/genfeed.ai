@@ -1,7 +1,11 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  AnalyticsMetric,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalytics,
@@ -14,7 +18,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import { logger } from '@services/core/logger.service';
 import Table from '@ui/display/table/Table';
+import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -52,35 +58,47 @@ export default function AnalyticsAccounts() {
   const [policy, setPolicy] = useState<IFleetEvaluationPolicy | null>(null);
   const [windowWeeks, setWindowWeeks] = useState('4');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
     async (signal: AbortSignal) => {
-      const service = await getService();
-      const { startDate, endDate } = getDateRangeWithDefaults(
-        dateRange.startDate ?? undefined,
-        dateRange.endDate ?? undefined,
-      );
-      const [accounts, evaluationPolicy] = await Promise.all([
-        service.getAccountAnalytics({
-          brandId: brandId || undefined,
-          endDate,
-          metric,
-          search: search || undefined,
-          startDate,
-        }) as Promise<IAccountAnalyticsList>,
-        service.getFleetEvaluationPolicy({
-          brandId: brandId || undefined,
-        }) as Promise<IFleetEvaluationPolicy>,
-      ]);
-      if (signal.aborted) {
-        return;
+      setError(null);
+      try {
+        const service = await getService();
+        const { startDate, endDate } = getDateRangeWithDefaults(
+          dateRange.startDate ?? undefined,
+          dateRange.endDate ?? undefined,
+        );
+        const [accounts, evaluationPolicy] = await Promise.all([
+          service.getAccountAnalytics({
+            brandId: brandId || undefined,
+            endDate,
+            metric,
+            search: search || undefined,
+            startDate,
+          }) as Promise<IAccountAnalyticsList>,
+          service.getFleetEvaluationPolicy({
+            brandId: brandId || undefined,
+          }) as Promise<IFleetEvaluationPolicy>,
+        ]);
+        if (signal.aborted) {
+          return;
+        }
+        setList(accounts);
+        setPolicy(evaluationPolicy);
+        if (evaluationPolicy?.windowWeeks) {
+          setWindowWeeks(String(evaluationPolicy.windowWeeks));
+        }
+      } catch (requestError) {
+        if (!signal.aborted) {
+          logger.error('Failed to fetch account analytics', requestError);
+          setError(translate('loadError'));
+        }
+      } finally {
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
       }
-      setList(accounts);
-      setPolicy(evaluationPolicy);
-      if (evaluationPolicy?.windowWeeks) {
-        setWindowWeeks(String(evaluationPolicy.windowWeeks));
-      }
-      setIsLoading(false);
     },
     [
       brandId,
@@ -89,6 +107,7 @@ export default function AnalyticsAccounts() {
       getService,
       metric,
       search,
+      translate,
     ],
   );
 
@@ -194,6 +213,7 @@ export default function AnalyticsAccounts() {
         </div>
       }
     >
+      {error ? <Alert type={AlertCategory.ERROR}>{error}</Alert> : null}
       <Table
         columns={columns}
         emptyLabel="No connected accounts"
