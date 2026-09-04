@@ -6717,6 +6717,8 @@ model KnowledgeSourceVersion {
   updatedAt             DateTime                 @updatedAt
   source                KnowledgeSource          @relation(fields: [sourceId, organizationId], references: [id, organizationId], onDelete: Restrict)
 
+  supersededByVersion KnowledgeSourceVersion? @relation("KnowledgeVersionSupersession", fields: [supersededByVersionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "knowledge_version_supersession_fkey")
+  supersedesVersions KnowledgeSourceVersion[] @relation("KnowledgeVersionSupersession")
   @@unique([sourceId, version])
   @@unique([id, sourceId, organizationId])
   @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")

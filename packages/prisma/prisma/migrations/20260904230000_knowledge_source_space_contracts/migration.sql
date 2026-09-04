@@ -8,9 +8,9 @@ CREATE TYPE "KnowledgeRetentionPolicy" AS ENUM ('KEEP', 'UNTIL_EXPIRY');
 
 CREATE TABLE "knowledge_sources" (
   "id" text PRIMARY KEY,
-  "organizationId" text NOT NULL REFERENCES "organizations"("id") ON DELETE RESTRICT,
+  "organizationId" text NOT NULL REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   "brandId" text,
-  "userId" text NOT NULL REFERENCES "users"("id") ON DELETE RESTRICT,
+  "userId" text NOT NULL REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   "scope" text NOT NULL,
   "title" text NOT NULL,
   "kind" "KnowledgeSourceKind" NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE "knowledge_sources" (
   "createdAt" timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp(3) NOT NULL,
   UNIQUE ("id", "organizationId"),
-  FOREIGN KEY ("brandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT,
+  FOREIGN KEY ("brandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "knowledge_sources_scope_check" CHECK (
     "scope" IN ('personal', 'brand', 'org') AND
     (("scope" = 'brand' AND "brandId" IS NOT NULL) OR
@@ -31,9 +31,9 @@ CREATE INDEX "knowledge_sources_organizationId_isDeleted_scope_brandId_idx" ON "
 
 CREATE TABLE "knowledge_spaces" (
   "id" text PRIMARY KEY,
-  "organizationId" text NOT NULL REFERENCES "organizations"("id") ON DELETE RESTRICT,
+  "organizationId" text NOT NULL REFERENCES "organizations"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   "brandId" text,
-  "userId" text NOT NULL REFERENCES "users"("id") ON DELETE RESTRICT,
+  "userId" text NOT NULL REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   "scope" text NOT NULL,
   "title" text NOT NULL,
   "isInbox" boolean NOT NULL DEFAULT false,
@@ -41,7 +41,7 @@ CREATE TABLE "knowledge_spaces" (
   "createdAt" timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp(3) NOT NULL,
   UNIQUE ("id", "organizationId"),
-  FOREIGN KEY ("brandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT,
+  FOREIGN KEY ("brandId", "organizationId") REFERENCES "brands"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "knowledge_spaces_scope_check" CHECK (
     "scope" IN ('personal', 'brand', 'org') AND
     (("scope" = 'brand' AND "brandId" IS NOT NULL) OR
@@ -79,8 +79,8 @@ CREATE TABLE "knowledge_source_versions" (
   "updatedAt" timestamp(3) NOT NULL,
   UNIQUE ("sourceId", "version"),
   UNIQUE ("id", "sourceId", "organizationId"),
-  FOREIGN KEY ("sourceId", "organizationId") REFERENCES "knowledge_sources"("id", "organizationId") ON DELETE RESTRICT,
-  FOREIGN KEY ("supersededByVersionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") DEFERRABLE INITIALLY DEFERRED,
+  FOREIGN KEY ("sourceId", "organizationId") REFERENCES "knowledge_sources"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "knowledge_version_supersession_fkey" FOREIGN KEY ("supersededByVersionId", "sourceId", "organizationId") REFERENCES "knowledge_source_versions"("id", "sourceId", "organizationId") ON DELETE RESTRICT ON UPDATE NO ACTION DEFERRABLE INITIALLY DEFERRED,
   CONSTRAINT "knowledge_version_retention_check" CHECK (
     ("retentionState" IN ('RETAINED', 'SCHEDULED_FOR_PURGE') AND "purgedAt" IS NULL AND "provenance" IS NOT NULL) OR
     ("retentionState" IN ('PAYLOAD_PURGED', 'POLICY_ERASED') AND "purgedAt" IS NOT NULL AND "payload" IS NULL AND "provenance" IS NULL)
@@ -104,8 +104,8 @@ CREATE TABLE "knowledge_space_memberships" (
   "createdAt" timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" timestamp(3) NOT NULL,
   UNIQUE ("spaceId", "sourceId"),
-  FOREIGN KEY ("sourceId", "organizationId") REFERENCES "knowledge_sources"("id", "organizationId") ON DELETE RESTRICT,
-  FOREIGN KEY ("spaceId", "organizationId") REFERENCES "knowledge_spaces"("id", "organizationId") ON DELETE RESTRICT
+  FOREIGN KEY ("sourceId", "organizationId") REFERENCES "knowledge_sources"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE,
+  FOREIGN KEY ("spaceId", "organizationId") REFERENCES "knowledge_spaces"("id", "organizationId") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE INDEX "knowledge_memberships_scope_source_idx" ON "knowledge_space_memberships"("organizationId", "sourceId", "isDeleted");
 
@@ -130,6 +130,9 @@ BEGIN
   IF ROW(NEW."id", NEW."organizationId", NEW."sourceId", NEW."version", NEW."contentHash", NEW."observedAt", NEW."createdAt") IS DISTINCT FROM
      ROW(OLD."id", OLD."organizationId", OLD."sourceId", OLD."version", OLD."contentHash", OLD."observedAt", OLD."createdAt") THEN
     RAISE EXCEPTION 'Knowledge receipt identity is immutable';
+  END IF;
+  IF OLD."retentionState" = 'POLICY_ERASED' AND NEW."retentionState" <> 'POLICY_ERASED' THEN
+    RAISE EXCEPTION 'Knowledge policy erasure is terminal';
   END IF;
   IF OLD."retentionState" IN ('PAYLOAD_PURGED', 'POLICY_ERASED') AND NEW."retentionState" NOT IN ('PAYLOAD_PURGED', 'POLICY_ERASED') THEN
     RAISE EXCEPTION 'Knowledge payload purge is irreversible';

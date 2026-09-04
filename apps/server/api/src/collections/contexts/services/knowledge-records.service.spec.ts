@@ -217,6 +217,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     await expect(
       records.deleteSpace(otherBrand, space.id),
     ).rejects.toMatchObject({ status: 404 });
+    expect((await records.updateSpace(actor, space.id, 'Renamed')).title).toBe(
+      'Renamed',
+    );
+    await expect(
+      records.updateSpace(otherBrand, space.id, 'Intrusion'),
+    ).rejects.toMatchObject({ status: 404 });
     await records.deleteSpace(actor, space.id);
     await expect(
       records.setMembership(actor, source.id, space.id, false),
@@ -241,6 +247,14 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     const current = versions.find((version) => version.version === 4);
     if (!historical || !current) throw new Error('Missing versions');
     const receipt = await records.getVersion(actor, source.id, historical.id);
+    expect(
+      (await records.listVersions(actor, source.id)).docs.map(
+        (version) => version.version,
+      ),
+    ).toEqual([4, 3, 2, 1]);
+    await expect(
+      records.listVersions(otherBrand, source.id),
+    ).rejects.toMatchObject({ status: 404 });
     expect(receipt.isCurrent).toBe(false);
     expect(receipt.retrievalState).toBe(KnowledgeRetrievalState.SUPERSEDED);
     expect(receipt.supersededByVersionId).not.toBeNull();
@@ -404,7 +418,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     const spaces = new KnowledgeSpacesController(records);
     const request = { originalUrl: '/knowledge-sources' } as Request;
     const source = await createSource();
-    const response = await sources.find(request, actor, source.id);
+    const response = await sources.find(
+      request,
+      actor,
+      source.id,
+      actor.brandId,
+    );
     expect(response).toMatchObject({
       data: {
         id: source.id,
@@ -419,9 +438,41 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     await expect(
       sources.find(request, otherBrand, source.id),
     ).rejects.toMatchObject({ status: 404 });
-    const inboxResponse = await spaces.inbox(request, actor, {
-      scope: KnowledgeMemoryScope.BRAND,
-    });
+    expect(
+      await sources.find(request, otherBrand, source.id, actor.brandId),
+    ).toMatchObject({ data: { id: source.id } });
+    const apiKeyUser = {
+      ...actor,
+      brandId: actor.organizationId,
+      isApiKey: true,
+    };
+    expect(
+      await sources.find(request, apiKeyUser, source.id, actor.brandId),
+    ).toMatchObject({ data: { id: source.id } });
+    await expect(
+      sources.find(request, apiKeyUser, source.id),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      sources.create(
+        request,
+        apiKeyUser,
+        {
+          scope: KnowledgeMemoryScope.BRAND,
+          title: 'Bad tenant',
+          kind: KnowledgeSourceKind.TEXT,
+          purpose: KnowledgeSourcePurpose.RESEARCH,
+        },
+        otherTenant.brandId,
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    const inboxResponse = await spaces.inbox(
+      request,
+      actor,
+      {
+        scope: KnowledgeMemoryScope.BRAND,
+      },
+      actor.brandId,
+    );
     expect(inboxResponse).toMatchObject({
       data: { type: 'knowledge-space', attributes: { isInbox: true } },
     });

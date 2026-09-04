@@ -262,6 +262,16 @@ export class KnowledgeRecordsService {
     });
   }
 
+  updateSpace(actor: KnowledgeActor, id: string, title: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockSpace(tx, actor, id);
+      return tx.knowledgeSpace.update({
+        where: { ...this.ownership(actor), id },
+        data: { title },
+      });
+    });
+  }
+
   deleteSpace(actor: KnowledgeActor, id: string) {
     return this.prisma.$transaction(async (tx) => {
       await this.lockSpace(tx, actor, id);
@@ -397,6 +407,37 @@ export class KnowledgeRecordsService {
         },
       });
     });
+  }
+
+  async listVersions(
+    actor: KnowledgeActor,
+    sourceId: string,
+    page = 1,
+    limit = 25,
+  ) {
+    await this.getSource(actor, sourceId);
+    const where = {
+      sourceId,
+      organizationId: actor.organizationId,
+      isDeleted: false,
+      source: this.ownership(actor),
+    };
+    const [docs, totalDocs] = await this.prisma.$transaction([
+      this.prisma.knowledgeSourceVersion.findMany({
+        where,
+        orderBy: { version: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.knowledgeSourceVersion.count({ where }),
+    ]);
+    return {
+      docs,
+      totalDocs,
+      page,
+      limit,
+      totalPages: Math.ceil(totalDocs / limit),
+    };
   }
 
   async getVersion(actor: KnowledgeActor, sourceId: string, id: string) {

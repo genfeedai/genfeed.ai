@@ -2709,12 +2709,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'retrievalState',
       'source',
       'sourceId',
+      'supersededByVersion',
       'supersededByVersionId',
       'updatedAt',
       'verifiedAt',
       'version',
     ],
-    listFields: [],
+    listFields: ['supersedesVersions'],
     enumFields: {
       processingState: {
         enumType: 'KnowledgeProcessingState',
@@ -2729,6 +2730,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     },
     relationIdFields: {
       source: 'sourceId',
+      supersededByVersion: 'supersededByVersionId',
     },
   },
   KnowledgeSpace: {

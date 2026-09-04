@@ -40,6 +40,7 @@ export enum KnowledgeRetentionState {
   RETAINED = 'RETAINED',
   SCHEDULED_FOR_PURGE = 'SCHEDULED_FOR_PURGE',
   PAYLOAD_PURGED = 'PAYLOAD_PURGED',
+  /** Reserved for explicit governance policy; payload purge never implies erasure. */
   POLICY_ERASED = 'POLICY_ERASED',
 }
 
