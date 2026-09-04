@@ -110,11 +110,6 @@ vi.mock('@pages/posts/rail/release-rail-accounts', () => ({
   default: () => <div>Accounts</div>,
 }));
 
-vi.mock('@pages/posts/rail/release-rail-segments', () => ({
-  __esModule: true,
-  default: () => <div>Segments</div>,
-}));
-
 vi.mock('@pages/posts/rail/release-rail-row', () => ({
   __esModule: true,
   default: ({
@@ -210,11 +205,11 @@ describe('ReleasePostsList', () => {
     expect(source).not.toContain('buildSourcePostVariationsHref');
   });
 
-  it('wires the rail segments control into the filters toolbar', () => {
-    expect(source).toContain('ReleaseRailSegments');
-    expect(source).toContain('deriveRailSegment');
-    expect(source).toContain('applyRailSegment');
-    expect(source).toContain('viewNode=');
+  it('keeps route-level status tabs out of the filters toolbar', () => {
+    expect(source).not.toContain('ReleaseRailSegments');
+    expect(source).not.toContain('deriveRailSegment');
+    expect(source).not.toContain('applyRailSegment');
+    expect(source).not.toContain('viewNode=');
   });
 
   it('wires account chips filtering by credentialIds', () => {

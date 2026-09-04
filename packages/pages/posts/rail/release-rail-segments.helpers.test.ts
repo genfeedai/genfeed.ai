@@ -5,6 +5,7 @@ import {
   applyRailSegment,
   RELEASE_RAIL_SEGMENTS,
   railSegmentFromFilters,
+  railSegmentFromSearchParams,
 } from './release-rail-segments.helpers';
 
 describe('release-rail-segments', () => {
@@ -35,11 +36,33 @@ describe('release-rail-segments', () => {
       expect(railSegmentFromFilters({ status })).toBe(segment);
     });
 
+    it('normalizes legacy public and in-flight statuses', () => {
+      expect(railSegmentFromFilters({ status: PostStatus.PUBLIC })).toBe(
+        'published',
+      );
+      expect(railSegmentFromFilters({ status: PostStatus.PENDING })).toBe(
+        'publishing',
+      );
+    });
+
     it('falls back to all when no canonical filter matches', () => {
       expect(railSegmentFromFilters({})).toBe('all');
-      expect(railSegmentFromFilters({ status: PostStatus.PENDING })).toBe(
+      expect(railSegmentFromFilters({ status: PostStatus.PRIVATE })).toBe(
         'all',
       );
+    });
+  });
+
+  describe('railSegmentFromSearchParams', () => {
+    it('reads the canonical lifecycle keys from the URL', () => {
+      expect(
+        railSegmentFromSearchParams(
+          new URLSearchParams('platform=youtube&publicationState=posted'),
+        ),
+      ).toBe('published');
+      expect(
+        railSegmentFromSearchParams(new URLSearchParams('status=pending')),
+      ).toBe('publishing');
     });
   });
 
