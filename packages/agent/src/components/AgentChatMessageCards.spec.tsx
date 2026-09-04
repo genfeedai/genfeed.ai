@@ -232,4 +232,29 @@ describe('ContentPreviewCard', () => {
       screen.getByRole('link', { name: 'View in Library' }),
     ).toHaveAttribute('href', `/library/images?asset=${IMAGE_ID}`);
   });
+
+  it('does not scope a server-scoped Library asset link twice', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: IMAGE_ID,
+          ctas: [
+            {
+              href: '/default/default/library/images',
+              label: 'View in Library',
+            },
+          ],
+          id: 'scoped-image-output',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'View in Library' }),
+    ).toHaveAttribute(
+      'href',
+      `/default/default/library/images?asset=${IMAGE_ID}`,
+    );
+  });
 });

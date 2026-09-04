@@ -5,6 +5,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -369,9 +370,14 @@ export function ContentPreviewCard({
 
             const normalizedHref =
               normalizeAgentAssetHref(cta.href, action.assetId) ?? cta.href;
-            const href = normalizedHref.startsWith('/')
-              ? scopedHref(normalizedHref)
-              : normalizedHref;
+            const normalizedPath = normalizedHref.split(/[?#]/u)[0] ?? '';
+            const isAlreadyScoped = Boolean(
+              parseScopedAppPath(normalizedPath).orgSlug,
+            );
+            const href =
+              normalizedHref.startsWith('/') && !isAlreadyScoped
+                ? scopedHref(normalizedHref)
+                : normalizedHref;
             const label =
               href.includes('/library/') &&
               cta.label.toLowerCase().includes('gallery')
