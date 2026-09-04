@@ -94,8 +94,8 @@ export function redactPublicEvidence(value, limit = PUBLIC_EXCERPT_LIMIT) {
   return `${redacted.slice(0, Math.max(0, limit - suffix.length)).trimEnd()}${suffix}`;
 }
 
-export function normalizeFailureSignature(value) {
-  const signature = redactPublicEvidence(value, SIGNATURE_LIMIT * 3)
+function normalizeFailureSignatureVolatility(value) {
+  return redactPublicEvidence(value, SIGNATURE_LIMIT * 3)
     .toLowerCase()
     .replace(/https?:\/\/\S+/gu, '<url>')
     .replace(/\b[0-9a-f]{40}\b/giu, '<sha>')
@@ -107,14 +107,26 @@ export function normalizeFailureSignature(value) {
       /\b\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d+)?z\b/giu,
       '<timestamp>',
     )
-    .replace(/:\d+(?::\d+)?\b/gu, ':<line>')
     .replace(
       /\b\d+(?:\.\d+)?\s*(?:ms|s|sec|seconds?|minutes?)\b/giu,
       '<duration>',
     )
-    .replace(/\b\d+\b/gu, '<n>')
     .replace(/\s+/gu, ' ')
     .trim();
+}
+
+export function normalizeFailureSignature(value) {
+  const signature = normalizeFailureSignatureVolatility(value)
+    .replace(/:\d+(?::\d+)?\b/gu, ':<line>')
+    .replace(/\b\d+\b/gu, '<n>');
+  return signature.slice(0, SIGNATURE_LIMIT);
+}
+
+function normalizeActionableScenarioSignature(value) {
+  const signature = normalizeFailureSignatureVolatility(value).replace(
+    /(\.(?:spec|test)\.[cm]?[jt]sx?):\d+(?::\d+)?\b/giu,
+    '$1:<line>',
+  );
 
   return signature.slice(0, SIGNATURE_LIMIT);
 }
@@ -149,7 +161,7 @@ export function extractActionableFailureScenarios(log) {
       continue;
     }
 
-    const signature = normalizeFailureSignature(scenario);
+    const signature = normalizeActionableScenarioSignature(scenario);
     if (!signature || signatures.has(signature)) {
       continue;
     }
@@ -233,9 +245,11 @@ export async function collectScheduledRunFailures({
     }
 
     for (const scenario of scenarios) {
+      const excerpt = `Test failed: ${scenario}`;
       failures.push({
         failedJob: job.trackerJob ?? job.name,
-        excerpt: `Test failed: ${scenario}`,
+        excerpt,
+        identitySignature: normalizeActionableScenarioSignature(excerpt),
       });
     }
   }
@@ -524,6 +538,7 @@ export async function reportScheduledFailure({
   workflowIdentity,
   failedJob,
   excerpt,
+  identitySignature,
   sha,
   runId,
   runAttempt = 1,
@@ -533,18 +548,19 @@ export async function reportScheduledFailure({
   core = console,
 }) {
   const classification = classifyScheduledFailure(excerpt);
+  const signature = identitySignature ?? classification.signature;
   const fingerprint = computeFailureFingerprint({
     workflowIdentity,
     failedJob,
     failureClass: classification.failureClass,
-    signature: classification.signature,
+    signature,
   });
   const initialState = {
     fingerprint,
     workflowIdentity,
     failedJob,
     failureClass: classification.failureClass,
-    signature: classification.signature,
+    signature,
     publicExcerpt: classification.publicExcerpt,
     occurrences: 1,
     transientStreak: classification.transient ? 1 : 0,

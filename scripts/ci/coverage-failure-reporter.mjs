@@ -33,6 +33,7 @@ export async function reportCoverageFailures({
         workflowIdentity: COVERAGE_WORKFLOW_IDENTITY,
         failedJob: failure.failedJob,
         excerpt: failure.excerpt,
+        identitySignature: failure.identitySignature,
         sha,
         runId,
         runAttempt,

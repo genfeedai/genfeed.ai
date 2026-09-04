@@ -36,6 +36,8 @@ test('nightly E2E adapter evidence maps failures and timeouts deterministically'
 
 test('nightly E2E reporter derives actionable scenarios from failed source-job logs', () => {
   assert.match(WORKFLOW, /actions: read/u);
+  assert.match(WORKFLOW, /contents: read/u);
+  assert.match(WORKFLOW, /issues: write/u);
   assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/u);
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob/u);
