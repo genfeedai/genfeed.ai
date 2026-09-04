@@ -52,7 +52,7 @@ export default function BrandDetailLatestArticles({
                     alt={article.label || 'Article'}
                     width={800}
                     height={400}
-                    className="size-full object-cover"
+                    className="size-full object-cover outline-media"
                   />
                 </div>
               ) : null}

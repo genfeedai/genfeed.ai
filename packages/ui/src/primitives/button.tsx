@@ -120,6 +120,7 @@ function Button({
   isDisabled = false,
   isLoading = false,
   isPingEnabled = false,
+  isStatic = false,
   label,
   onClick,
   onMouseDown,
@@ -179,7 +180,7 @@ function Button({
         className={cn(
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
           '[&_svg:not([class*="size-"])]:size-4',
-          buttonVariants({ size, variant: resolvedVariant }),
+          buttonVariants({ isStatic, size, variant: resolvedVariant }),
           transformClass,
           className,
         )}

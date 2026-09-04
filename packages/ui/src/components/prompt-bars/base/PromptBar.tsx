@@ -139,7 +139,7 @@ function PromptBar({
           <div
             ref={promptBarRef}
             className={cn(
-              'relative flex-shrink-0 transition-all duration-300',
+              'relative flex-shrink-0 transition-[height] duration-300',
               isCollapsed ? 'overflow-hidden' : 'overflow-visible',
             )}
           >

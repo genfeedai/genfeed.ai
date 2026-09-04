@@ -50,7 +50,7 @@ export default function ModalGalleryHeader({
               alt="Account reference"
               fill
               sizes="40px"
-              className="object-cover"
+              className="object-cover outline-media"
             />
           </div>
 

@@ -125,7 +125,7 @@ export default function ClipReferenceFrameSelector({
                   {candidate.url ? (
                     <Image
                       alt={getCandidateLabel(candidate)}
-                      className="object-cover"
+                      className="object-cover outline-media"
                       fill
                       sizes="(min-width: 640px) 240px, 50vw"
                       src={candidate.url}

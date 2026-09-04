@@ -172,8 +172,8 @@ export default function DropdownScope({
             variant={ButtonVariant.UNSTYLED}
             className={cn(
               'flex items-center gap-3 w-full px-4 py-2.5 text-sm',
-              'font-medium transition-all duration-150 cursor-pointer',
-              'hover:bg-background/80 active:scale-[0.98]',
+              'font-medium transition-colors duration-150 cursor-pointer',
+              'hover:bg-background/80',
               isActive && 'bg-background/60',
             )}
             onClick={(e) => {

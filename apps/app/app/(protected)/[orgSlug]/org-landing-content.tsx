@@ -33,7 +33,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
         {brand.logoUrl ? (
           <Image
             alt={brand.label}
-            className="size-10 rounded-lg object-cover"
+            className="size-10 rounded-lg object-cover outline-media"
             height={40}
             sizes="40px"
             src={brand.logoUrl}

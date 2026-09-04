@@ -172,7 +172,7 @@ export default function ButtonCredits({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'flex transition-all hover:bg-hover',
+            'flex transition-colors hover:bg-hover',
             isCompact
               ? 'min-h-[40px] min-w-[40px] items-center justify-center px-2 py-2'
               : 'w-full flex-col items-center gap-2 px-2 py-2.5',
@@ -185,6 +185,7 @@ export default function ButtonCredits({
             className={cn(
               'font-bold leading-none text-foreground',
               isCompact ? 'text-sm' : 'text-base',
+              'tabular-nums',
             )}
           >
             {compactBalance}
@@ -200,7 +201,7 @@ export default function ButtonCredits({
           {/* Balance Display */}
           <div className="mb-3">
             <div className="flex items-baseline gap-2 justify-center">
-              <span className="text-3xl font-bold text-foreground">
+              <span className="text-3xl font-bold text-foreground tabular-nums">
                 {fullBalance}
               </span>
               <span className="text-sm uppercase tracking-wide text-muted-foreground">
@@ -216,7 +217,7 @@ export default function ButtonCredits({
               <div className="flex h-2 w-full overflow-hidden rounded-full bg-tertiary">
                 {/* Plan section */}
                 <div
-                  className="relative transition-all duration-300"
+                  className="relative transition-[width] duration-300"
                   style={{
                     background: 'rgba(255,255,255,0.12)',
                     width:
@@ -227,7 +228,7 @@ export default function ButtonCredits({
                 >
                   {/* Plan used fill */}
                   <div
-                    className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                    className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-500"
                     style={{
                       background: 'rgba(255,255,255,0.55)',
                       width: `${planUsagePercent}%`,
@@ -237,7 +238,7 @@ export default function ButtonCredits({
                 {/* Extra credits section */}
                 {extraBalance > 0 && (
                   <div
-                    className="ml-[2px] rounded-r-full transition-all duration-300 bg-primary/40"
+                    className="ml-[2px] rounded-r-full transition-[width] duration-300 bg-primary/40"
                     style={{
                       width: `${(extraBalance / (planLimit + extraBalance)) * 100}%`,
                     }}
@@ -261,7 +262,7 @@ export default function ButtonCredits({
                     </div>
                   )}
                 </div>
-                <span className="text-2xs text-muted-foreground">
+                <span className="text-2xs text-muted-foreground tabular-nums">
                   {formatCompactNumber(planLimit - planBalance)} /{' '}
                   {formatCompactNumber(planLimit)} used
                 </span>
@@ -280,7 +281,7 @@ export default function ButtonCredits({
               }}
               isDisabled={isLoading}
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-all',
+                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-[background-color,opacity]',
                 'shadow-border hover:bg-hover',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
@@ -302,7 +303,7 @@ export default function ButtonCredits({
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-all',
+                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-colors',
                 'bg-primary/10 hover:bg-primary/20 shadow-border',
               )}
               onClick={() => setIsOpen(false)}

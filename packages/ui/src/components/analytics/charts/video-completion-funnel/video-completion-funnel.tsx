@@ -115,12 +115,12 @@ export function VideoCompletionFunnel({
                   <div className="flex-1">
                     <div className="relative h-12 bg-muted overflow-hidden">
                       <div
-                        className={`h-full ${getBarColor(stage.percentage)} transition-all duration-500 flex items-center justify-end px-4`}
+                        className={`h-full ${getBarColor(stage.percentage)} transition-[width] duration-500 flex items-center justify-end px-4`}
                         style={{ width: `${stage.percentage}%` }}
                       >
                         <span
                           className={
-                            'text-sm font-bold text-white' /* design-system-allow-content-color -- chart content */
+                            'text-sm font-bold text-white tabular-nums' /* design-system-allow-content-color -- chart content */
                           }
                         >
                           {formatPercentageSimple(stage.percentage)}
@@ -129,7 +129,7 @@ export function VideoCompletionFunnel({
                     </div>
                   </div>
                   <div className="w-24 text-right">
-                    <div className="font-mono font-semibold">
+                    <div className="font-mono font-semibold tabular-nums">
                       {formatCompactNumberIntl(stage.value)}
                     </div>
                     <div className="text-xs text-foreground/60">viewers</div>
@@ -141,10 +141,10 @@ export function VideoCompletionFunnel({
                   <div className="flex items-center gap-4 ml-32 pl-4">
                     <div className="text-xs text-error flex items-center gap-2">
                       <span>↓</span>
-                      <span className="font-semibold">
+                      <span className="font-semibold tabular-nums">
                         {formatPercentageSimple(dropOffs[index].rate)} drop-off
                       </span>
-                      <span className="text-foreground/50">
+                      <span className="text-foreground/50 tabular-nums">
                         (
                         {formatCompactNumberIntl(
                           stages[index].value - stages[index + 1].value,
@@ -164,7 +164,7 @@ export function VideoCompletionFunnel({
       {!isEmpty && !isLoading && (
         <div className="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-6">
           <div className="text-center">
-            <div className="text-2xl font-bold text-success">
+            <div className="text-2xl font-bold text-success tabular-nums">
               {formatPercentageSimple((data.completed100 / data.started) * 100)}
             </div>
             <div className="text-xs text-foreground/60 mt-1">
@@ -172,13 +172,13 @@ export function VideoCompletionFunnel({
             </div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">
+            <div className="text-2xl font-bold text-primary tabular-nums">
               {formatPercentageSimple((data.completed50 / data.started) * 100)}
             </div>
             <div className="text-xs text-foreground/60 mt-1">Watched 50%+</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-warning">
+            <div className="text-2xl font-bold text-warning tabular-nums">
               {formatCompactNumberIntl(data.started - data.completed100)}
             </div>
             <div className="text-xs text-foreground/60 mt-1">Didn't Finish</div>

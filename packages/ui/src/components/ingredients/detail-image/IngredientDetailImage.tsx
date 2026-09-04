@@ -162,7 +162,7 @@ export default function IngredientDetailImage({
         >
           <Image
             className={cn(
-              'transition-transform duration-300 group-hover:scale-105',
+              'outline-media transition-transform duration-300 group-hover:scale-105',
               'group-hover:-rotate-1 size-auto max-h-[70vh]',
             )}
             alt={metadataLabel || 'Image'}

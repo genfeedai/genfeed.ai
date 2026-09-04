@@ -217,7 +217,7 @@ export default function CreditsBarTrigger({
             <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
                 className={cn(
-                  'h-full rounded-full transition-all duration-500',
+                  'h-full rounded-full transition-[width,background-color] duration-500',
                   isCritical ? 'bg-destructive' : 'bg-foreground/45',
                 )}
                 style={{ width: `${Math.min(planUsagePercent, 100)}%` }}

@@ -184,7 +184,7 @@ export default function DropdownTagsPanel({
 
       {/* Footer */}
       <div className="p-2 border-t border-white/[0.08] flex items-center justify-between">
-        <div className="text-xs text-foreground/60">
+        <div className="text-xs text-foreground/60 tabular-nums">
           {selectedTagCount} selected
         </div>
 

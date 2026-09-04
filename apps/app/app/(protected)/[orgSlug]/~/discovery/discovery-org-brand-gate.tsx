@@ -91,10 +91,10 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
     return (
       <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
         <TrendingUp className="size-10 text-foreground/20" />
-        <h1 className="text-lg font-semibold text-foreground">
+        <h1 className="text-lg font-semibold text-foreground text-balance">
           Discovery needs a brand
         </h1>
-        <p className="max-w-md text-sm text-foreground/55">
+        <p className="max-w-md text-sm text-foreground/55 text-pretty">
           Create or connect a brand first, then open Discovery to explore trends
           and ads for that brand.
         </p>
@@ -108,7 +108,7 @@ export function DiscoveryOrgBrandGate({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10">
       <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-xl font-semibold text-foreground">
+        <h1 className="text-xl font-semibold text-foreground text-balance">
           Choose a brand for Discovery
         </h1>
         <p className="text-sm text-foreground/55">

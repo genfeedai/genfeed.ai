@@ -52,7 +52,7 @@ const TrendBadge = memo(function TrendBadge({
       )}
     >
       {showIcon && <TrendIcon className={ICON_SIZE_CLASSES[size]} />}
-      <span>{formattedValue}</span>
+      <span className="tabular-nums">{formattedValue}</span>
       {label && (
         <span className="text-muted-foreground font-normal">{label}</span>
       )}

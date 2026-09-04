@@ -162,7 +162,7 @@ export default function LocalDesktopContent() {
               <HardDrive aria-hidden="true" className="size-4" />
               {translate('eyebrow')}
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight">
+            <h1 className="text-3xl font-semibold tracking-tight text-balance">
               {translate('title')}
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-foreground/60">

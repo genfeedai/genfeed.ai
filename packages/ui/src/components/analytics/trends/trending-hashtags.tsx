@@ -145,14 +145,14 @@ export function TrendingHashtags({
               <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-foreground/60">Posts</span>
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.postCount)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-foreground/60">Views</span>
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(hashtag.viewCount)}
                   </span>
                 </div>
@@ -163,7 +163,7 @@ export function TrendingHashtags({
                     Growth
                   </span>
                   <span
-                    className={`font-semibold ${
+                    className={`font-semibold tabular-nums ${
                       hashtag.growthRate > 0
                         ? 'text-success'
                         : hashtag.growthRate < 0

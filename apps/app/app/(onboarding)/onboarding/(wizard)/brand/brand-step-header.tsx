@@ -10,7 +10,7 @@ export default function BrandStepHeader() {
         Step 1 of 3
       </div>
 
-      <h1 className="step-headline mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
+      <h1 className="step-headline mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl text-balance">
         Set up your brand.
       </h1>
 

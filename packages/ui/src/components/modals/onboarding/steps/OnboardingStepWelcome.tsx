@@ -45,7 +45,7 @@ export default function OnboardingStepWelcome() {
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="group relative flex items-start gap-4 bg-tertiary p-5 shadow-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-border-strong"
+            className="group relative flex items-start gap-4 bg-tertiary p-5 shadow-border transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-border-strong"
           >
             <div className="flex-shrink-0 size-12 bg-primary/10 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
               <feature.icon className="size-6 text-primary" />

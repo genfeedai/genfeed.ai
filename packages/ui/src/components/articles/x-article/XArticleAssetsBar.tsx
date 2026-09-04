@@ -25,8 +25,10 @@ export default function XArticleAssetsBar({
       <div className="flex flex-wrap items-center gap-4">
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm text-foreground/60">
-          <span>{metadata.wordCount.toLocaleString()} words</span>
-          <span className="flex items-center gap-1">
+          <span className="tabular-nums">
+            {metadata.wordCount.toLocaleString()} words
+          </span>
+          <span className="flex items-center gap-1 tabular-nums">
             <Clock className="size-4" />
             {metadata.estimatedReadTime} min read
           </span>
@@ -75,7 +77,7 @@ export default function XArticleAssetsBar({
                   alt={`${article.label} header`}
                   fill
                   sizes="64px"
-                  className="object-cover"
+                  className="object-cover outline-media"
                 />
               </div>
               <Button

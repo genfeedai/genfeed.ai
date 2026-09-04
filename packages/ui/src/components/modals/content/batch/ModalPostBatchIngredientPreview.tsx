@@ -69,7 +69,7 @@ export default function ModalPostBatchIngredientPreview({
               alt={ingredient.metadataLabel || 'Ingredient'}
               width={aspectRatioInfo.width}
               height={aspectRatioInfo.height}
-              className="h-auto object-contain"
+              className="h-auto object-contain outline-media"
               sizes="(max-width: 768px) 100vw, 33vw"
               style={{
                 aspectRatio: `${aspectRatioInfo.width} / ${aspectRatioInfo.height}`,

@@ -78,7 +78,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
                   alt={asset.name || getAssetRoleLabel(asset)}
                   width={isCompact ? 26 : 28}
                   height={isCompact ? 26 : 28}
-                  className="size-full object-cover"
+                  className="size-full object-cover outline-media"
                   sizes={isCompact ? '26px' : '28px'}
                 />
               ) : (

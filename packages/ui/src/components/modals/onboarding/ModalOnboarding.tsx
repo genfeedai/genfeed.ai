@@ -286,7 +286,7 @@ function ModalOnboardingContent({
                     />
                   )}
                   <div
-                    className={`flex items-center justify-center text-xs font-semibold transition-all ${
+                    className={`flex items-center justify-center text-xs font-semibold transition-[width,height,background-color,border-color] ${
                       isActive
                         ? 'size-10 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground'
                         : isCompleted

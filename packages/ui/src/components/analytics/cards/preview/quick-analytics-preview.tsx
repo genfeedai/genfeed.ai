@@ -139,12 +139,12 @@ export function QuickAnalyticsPreview({
               <stat.icon className={`size-4 ${stat.color}`} />
               <p className="text-xs text-muted-foreground">{stat.label}</p>
             </div>
-            <p className="text-2xl font-bold text-foreground mb-1">
+            <p className="text-2xl font-bold text-foreground mb-1 tabular-nums">
               {formatCompactNumberIntl(stat.value)}
             </p>
             {stat.growth !== undefined && (
               <p
-                className={`text-xs font-medium ${getTrendColor(stat.growth)}`}
+                className={`text-xs font-medium tabular-nums ${getTrendColor(stat.growth)}`}
               >
                 {formatPercentage(stat.growth)}
               </p>

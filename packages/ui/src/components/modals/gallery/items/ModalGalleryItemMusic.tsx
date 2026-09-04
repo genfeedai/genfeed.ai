@@ -23,7 +23,7 @@ export default function ModalGalleryItemMusic({
 
   return (
     <div
-      className={`relative p-4 transition-all cursor-pointer group ${
+      className={`relative p-4 transition-[box-shadow,background-color] cursor-pointer group ${
         isSelected
           ? 'shadow-border-strong bg-primary/5'
           : 'shadow-border hover:shadow-border-strong bg-background'
@@ -63,6 +63,7 @@ export default function ModalGalleryItemMusic({
         </Button>
 
         <Button
+          ariaLabel={isPlaying ? 'Pause' : 'Play'}
           label={isPlaying ? <Pause /> : <Play />}
           onClick={(e) => {
             e.stopPropagation();

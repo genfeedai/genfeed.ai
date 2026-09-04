@@ -205,7 +205,7 @@ function CharacterCounter({ state }: { state: CaptionPreviewState }) {
   return (
     <span
       className={cn(
-        'text-xs',
+        'text-xs tabular-nums',
         state.isOverLimit ? 'text-destructive' : 'text-foreground/45',
       )}
     >
@@ -303,7 +303,7 @@ function LinkPreviewCard({
           alt=""
           width={640}
           height={320}
-          className="aspect-[2/1] w-full object-cover"
+          className="aspect-[2/1] w-full object-cover outline-media"
         />
       ) : (
         <div className="flex aspect-[2/1] items-center justify-center bg-muted text-xs text-foreground/45">
@@ -355,7 +355,7 @@ function MediaTile({
           alt={item.alt ?? `Media ${index + 1}`}
           fill
           sizes="(max-width: 768px) 100vw, 360px"
-          className="object-cover"
+          className="object-cover outline-media"
         />
       ) : (
         <span className="capitalize">{label}</span>
@@ -557,7 +557,7 @@ function AuthorRow({
             alt=""
             fill
             sizes="40px"
-            className="object-cover"
+            className="object-cover outline-media"
           />
         ) : null}
       </div>
@@ -740,7 +740,7 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
             }
           >
             <span>{target.platformLabel}</span>
-            <span>
+            <span className="tabular-nums">
               {target.captionState.maxLength
                 ? `${target.captionState.count}/${target.captionState.maxLength}`
                 : target.captionState.count}

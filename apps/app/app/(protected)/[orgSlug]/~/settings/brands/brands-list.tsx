@@ -148,7 +148,7 @@ function BrandsListContent() {
             {brand.logoUrl ? (
               <Image
                 alt={brand.label}
-                className="size-6 rounded-md object-cover"
+                className="size-6 rounded-md object-cover outline-media"
                 src={brand.logoUrl}
                 sizes="24px"
                 unoptimized={!canOptimizeImageSource(brand.logoUrl)}

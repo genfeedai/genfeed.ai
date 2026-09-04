@@ -45,7 +45,7 @@ export default function ModalGalleryItemReference({
           src={`${EnvironmentService.cdnUrl}/references/${reference.id}`}
           alt={reference.id}
           fill
-          className="object-cover transition-all duration-300 transform-gpu opacity-80 hover:opacity-100 hover:rotate-1 hover:scale-[1.02] hover:translate-y-1"
+          className="object-cover outline-media transition-[opacity,transform] duration-300 transform-gpu opacity-80 hover:opacity-100 hover:rotate-1 hover:scale-[1.02] hover:translate-y-1"
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
         />
 

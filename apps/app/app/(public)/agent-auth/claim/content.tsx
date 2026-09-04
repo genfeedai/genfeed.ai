@@ -196,7 +196,7 @@ export default function AgentAuthClaimContent() {
               aria-hidden="true"
             />
           </div>
-          <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
+          <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-balance">
             {translate('title')}
           </h1>
           <p className="text-sm text-muted-foreground">

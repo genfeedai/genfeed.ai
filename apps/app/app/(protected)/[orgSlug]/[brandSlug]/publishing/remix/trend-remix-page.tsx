@@ -171,7 +171,7 @@ function TrendRemixPageContent() {
           <Layers3 className="size-4" />
           {translate('sourcePostVariations.eyebrow')}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight text-balance">
           {translate('sourcePostVariations.title')}
         </h1>
         <p className="text-sm leading-6 text-foreground/62">

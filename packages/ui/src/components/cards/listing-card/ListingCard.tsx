@@ -57,7 +57,7 @@ const ListingCard = memo(function ListingCard({
           'relative h-full overflow-hidden',
           'gen-glass',
           'shadow-border hover:shadow-border-strong',
-          'transition-all duration-400 ease-out',
+          'transition-shadow duration-400 ease-out',
           VARIANT_CLASSES[variant],
           className,
         )}
@@ -75,7 +75,7 @@ const ListingCard = memo(function ListingCard({
               alt={listing.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              className="object-cover outline-media transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/5 to-white/[0.02] dark:from-white/5 dark:to-white/[0.02]">
@@ -98,7 +98,7 @@ const ListingCard = memo(function ListingCard({
           <div className="absolute top-3 right-3">
             <span
               className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md',
+                'px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md tabular-nums',
                 isFree
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'border border-border bg-background/70 text-foreground',
@@ -139,7 +139,7 @@ const ListingCard = memo(function ListingCard({
                     alt={listing.seller.displayName}
                     width={24}
                     height={24}
-                    className="rounded-full ring-1 ring-white/10"
+                    className="rounded-full ring-1 ring-white/10 outline-media"
                   />
                 ) : (
                   <div className="flex size-6 items-center justify-center rounded-full bg-tertiary">
@@ -159,7 +159,7 @@ const ListingCard = memo(function ListingCard({
               {listing.rating && listing.rating > 0 ? (
                 <>
                   <Star className="size-3.5 text-amber-400" />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground tabular-nums">
                     {listing.rating.toFixed(1)}
                   </span>
                 </>

@@ -71,6 +71,7 @@ export default function ModalVideo({
               </p>
             </div>
             <Button
+              ariaLabel="Close"
               label={<X className="text-lg" />}
               onClick={onClose}
               variant={ButtonVariant.GHOST}
@@ -114,7 +115,7 @@ export default function ModalVideo({
                   withWrapper={false}
                 >
                   <div
-                    className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-border group-hover:shadow-border-strong transition-all group-hover:scale-105`}
+                    className={`relative ${getAspectClass()} bg-background overflow-hidden shadow-border group-hover:shadow-border-strong transition-[box-shadow,transform] group-hover:scale-105`}
                   >
                     <VideoPlayer
                       src={

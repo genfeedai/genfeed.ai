@@ -60,7 +60,8 @@ function VoteButton({ image, onVote }: VoteButtonProps): React.ReactElement {
       onClick={() => onVote(image)}
       label={
         <>
-          <ThumbsUp /> {image.totalVotes || 0}
+          <ThumbsUp />{' '}
+          <span className="tabular-nums">{image.totalVotes || 0}</span>
         </>
       }
       variant={image.hasVoted ? ButtonVariant.DEFAULT : ButtonVariant.DEFAULT}

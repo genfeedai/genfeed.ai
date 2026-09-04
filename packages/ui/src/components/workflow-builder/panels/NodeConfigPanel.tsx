@@ -253,6 +253,7 @@ export default function NodeConfigPanel({
           size={ButtonSize.SM}
           onClick={onClose}
           icon={<X className="size-4" />}
+          ariaLabel="Close panel"
         />
       </div>
 

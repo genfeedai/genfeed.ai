@@ -47,7 +47,9 @@ export default function PricingCard({
               {plan.price === 0 ? (
                 <span>Free</span>
               ) : (
-                <span>${plan.price.toLocaleString()}</span>
+                <span className="tabular-nums">
+                  ${plan.price.toLocaleString()}
+                </span>
               )}
 
               {plan.type === 'subscription' && plan.price > 0 && (
@@ -59,10 +61,10 @@ export default function PricingCard({
               {/* Output-driven display (NEW) */}
               {plan.outputs && (
                 <div className="mt-4 py-4 border-y border-white/[0.08]">
-                  <div className="text-2xl font-semibold text-primary">
+                  <div className="text-2xl font-semibold text-primary tabular-nums">
                     {plan.outputs.videoMinutes} min video
                   </div>
-                  <div className="text-sm text-foreground/60 font-normal">
+                  <div className="text-sm text-foreground/60 font-normal tabular-nums">
                     {plan.outputs.images?.toLocaleString()} images ·{' '}
                     {plan.outputs.voiceMinutes} min voice
                   </div>

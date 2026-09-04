@@ -116,7 +116,7 @@ export function ViralVideoLeaderboard({
                     alt={video.title || 'Video thumbnail'}
                     fill
                     sizes="64px"
-                    className="size-full object-cover"
+                    className="size-full object-cover outline-media"
                     unoptimized
                   />
                 ) : (
@@ -167,7 +167,7 @@ export function ViralVideoLeaderboard({
             header: 'Views',
             key: 'views',
             render: (video) => (
-              <span className="font-semibold">
+              <span className="font-semibold tabular-nums">
                 {formatCompactNumber(video.views || video.viewCount || 0)}
               </span>
             ),
@@ -177,7 +177,7 @@ export function ViralVideoLeaderboard({
             header: 'Engagement',
             key: 'engagement',
             render: (video) => (
-              <span className="font-medium">
+              <span className="font-medium tabular-nums">
                 {video.engagementRate?.toFixed(1) || '0.0'}%
               </span>
             ),

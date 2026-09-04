@@ -142,7 +142,7 @@ function TrendSoundInspirationNodeComponent({
                   alt={data.soundName || 'Sound cover'}
                   fill
                   sizes="48px"
-                  className="size-full object-cover"
+                  className="size-full object-cover outline-media"
                   unoptimized
                 />
               </div>

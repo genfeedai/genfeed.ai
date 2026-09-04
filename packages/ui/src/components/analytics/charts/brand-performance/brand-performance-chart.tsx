@@ -99,7 +99,7 @@ export function BrandPerformanceChart({
               onClick={() => setActiveMetric(metricKey)}
               isDisabled={isLoading}
               variant={ButtonVariant.UNSTYLED}
-              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-[background-color,border-color,color] ${
                 activeMetric === metricKey
                   ? 'border-border-strong bg-muted text-foreground'
                   : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'

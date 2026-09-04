@@ -45,6 +45,8 @@ export interface BaseButtonProps
   isLoading?: boolean;
   isDisabled?: boolean;
   isPingEnabled?: boolean;
+  /** Opt out of the press scale (pagination, segmented controls, toggles). */
+  isStatic?: boolean;
   textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none';
   withWrapper?: boolean;
   variant?: ButtonVariant;

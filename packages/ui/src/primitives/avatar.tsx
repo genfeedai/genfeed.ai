@@ -30,7 +30,7 @@ function AvatarImage({
   return (
     <AvatarPrimitive.Image
       ref={ref}
-      className={cn('aspect-square size-full', className)}
+      className={cn('aspect-square size-full outline-media', className)}
       {...props}
     />
   );

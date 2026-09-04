@@ -173,7 +173,7 @@ function EditorToolbar({
         />
 
         {/* Time display */}
-        <div className="ml-4 font-mono text-sm text-muted-foreground">
+        <div className="ml-4 font-mono text-sm text-muted-foreground tabular-nums">
           {formatPlaybackFrameTime(currentFrame, fps)} /{' '}
           {formatPlaybackFrameTime(totalFrames, fps)}
         </div>

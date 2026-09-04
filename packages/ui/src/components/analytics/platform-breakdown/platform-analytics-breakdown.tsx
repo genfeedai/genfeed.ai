@@ -47,31 +47,31 @@ export default function PlatformAnalyticsBreakdown({
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Views</span>{' '}
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalViews)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Likes</span>{' '}
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalLikes)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Comments</span>{' '}
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalComments)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Shares</span>{' '}
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {formatCompactNumber(stats.totalShares)}
                   </span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Engagement</span>{' '}
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums">
                     {stats.engagementRate.toFixed(2)}%
                   </span>
                 </div>

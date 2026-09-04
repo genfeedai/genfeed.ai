@@ -626,7 +626,7 @@ export default function BrandSettingsInterviewPage() {
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Brand context
               </p>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-xl font-semibold tracking-tight text-balance">
                 Interview {brand.label || 'this brand'}
               </h1>
               <p className="max-w-2xl text-sm text-muted-foreground">
@@ -675,7 +675,7 @@ export default function BrandSettingsInterviewPage() {
               <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                 Brand context
               </p>
-              <h1 className="text-xl font-semibold tracking-tight">
+              <h1 className="text-xl font-semibold tracking-tight text-balance">
                 Interview complete
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -713,7 +713,7 @@ export default function BrandSettingsInterviewPage() {
                 <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Brand context
                 </p>
-                <h1 className="text-xl font-semibold tracking-tight">
+                <h1 className="text-xl font-semibold tracking-tight text-balance">
                   {brand.label || 'Brand interview'}
                 </h1>
                 <p className="text-sm text-muted-foreground">

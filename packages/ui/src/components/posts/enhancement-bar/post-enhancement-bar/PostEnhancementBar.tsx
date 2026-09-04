@@ -271,7 +271,7 @@ export default function PostEnhancementBar({
                             : `${EnvironmentService.ingredientsEndpoint}/images/${firstMedia.id}`
                         }
                         alt="Media"
-                        className="size-full object-cover"
+                        className="size-full object-cover outline-media"
                         width={20}
                         height={20}
                         sizes="20px"
@@ -280,7 +280,7 @@ export default function PostEnhancementBar({
                       {mediaCount > 1 && (
                         <div
                           className={
-                            'absolute inset-0 flex items-center justify-center bg-black/50 text-2xs font-bold text-white' /* design-system-allow-content-color -- media overlay */
+                            'absolute inset-0 flex items-center justify-center bg-black/50 text-2xs font-bold text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
                           }
                         >
                           {mediaCount}

@@ -102,13 +102,13 @@ export function GrowthTrendsCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Views</p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.views.current)}
             </p>
           </div>
           <div className="text-right">
             <p
-              className={`text-lg font-semibold ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
+              className={`text-lg font-semibold tabular-nums ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatPercentage(growthData.views.growthPercentage)}
             </p>
@@ -118,20 +118,20 @@ export function GrowthTrendsCard({
         <div className="flex items-center gap-4 mt-3">
           <div>
             <p className="text-xs text-muted-foreground">Current</p>
-            <p className="text-sm font-medium text-foreground/80">
+            <p className="text-sm font-medium text-foreground/80 tabular-nums">
               {formatCompactNumberIntl(growthData.views.current)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Previous</p>
-            <p className="text-sm font-medium text-foreground/80">
+            <p className="text-sm font-medium text-foreground/80 tabular-nums">
               {formatCompactNumberIntl(growthData.views.previous)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Change</p>
             <p
-              className={`text-sm font-medium ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
+              className={`text-sm font-medium tabular-nums ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatCompactNumberIntl(Math.abs(growthData.views.growth))}
             </p>
@@ -144,13 +144,13 @@ export function GrowthTrendsCard({
         <div className="flex items-start justify-between mb-2">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Engagement</p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.engagement.current)}
             </p>
           </div>
           <div className="text-right">
             <p
-              className={`text-lg font-semibold ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
+              className={`text-lg font-semibold tabular-nums ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatPercentage(growthData.engagement.growthPercentage)}
             </p>
@@ -160,20 +160,20 @@ export function GrowthTrendsCard({
         <div className="flex items-center gap-4 mt-3">
           <div>
             <p className="text-xs text-muted-foreground">Current</p>
-            <p className="text-sm font-medium text-foreground/80">
+            <p className="text-sm font-medium text-foreground/80 tabular-nums">
               {formatCompactNumberIntl(growthData.engagement.current)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Previous</p>
-            <p className="text-sm font-medium text-foreground/80">
+            <p className="text-sm font-medium text-foreground/80 tabular-nums">
               {formatCompactNumberIntl(growthData.engagement.previous)}
             </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Change</p>
             <p
-              className={`text-sm font-medium ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
+              className={`text-sm font-medium tabular-nums ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatCompactNumberIntl(Math.abs(growthData.engagement.growth))}
             </p>
@@ -203,7 +203,7 @@ export function GrowthTrendsCard({
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground mb-1">Views</p>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-2xl font-bold text-foreground tabular-nums">
               {formatCompactNumberIntl(growthData.bestDay.views)}
             </p>
           </div>

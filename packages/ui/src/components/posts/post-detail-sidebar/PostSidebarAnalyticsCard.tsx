@@ -20,7 +20,9 @@ export default function PostSidebarAnalyticsCard({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-foreground/60 mb-0.5">{stat.label}</p>
-              <p className="text-xl font-bold text-foreground">{stat.value}</p>
+              <p className="text-xl font-bold text-foreground tabular-nums">
+                {stat.value}
+              </p>
             </div>
           </div>
         ))}

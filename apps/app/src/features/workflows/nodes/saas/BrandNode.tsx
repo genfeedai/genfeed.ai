@@ -105,7 +105,7 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
               <Image
                 src={data.resolvedLogoUrl}
                 alt={data.resolvedLabel || 'Brand logo'}
-                className="size-8 object-contain rounded"
+                className="size-8 object-contain rounded outline-media"
                 sizes="32px"
                 unoptimized={!canOptimizeImageSource(data.resolvedLogoUrl)}
                 width={32}

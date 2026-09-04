@@ -112,7 +112,7 @@ export function TrendingSounds({
                         alt={sound.soundName}
                         fill
                         sizes="64px"
-                        className="size-full object-cover"
+                        className="size-full object-cover outline-media"
                         unoptimized
                       />
                     ) : (
@@ -150,12 +150,14 @@ export function TrendingSounds({
                     </p>
                   )}
                   <div className="flex items-center gap-3 mt-2 text-xs text-foreground/60">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 tabular-nums">
                       <Play className="size-3.5" />
                       {formatCompactNumber(sound.usageCount)} uses
                     </span>
                     {sound.duration && (
-                      <span>{formatDuration(sound.duration)}</span>
+                      <span className="tabular-nums">
+                        {formatDuration(sound.duration)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -171,7 +173,7 @@ export function TrendingSounds({
                     }`}
                   />
                   <span
-                    className={`font-medium ${
+                    className={`font-medium tabular-nums ${
                       sound.growthRate > 0
                         ? 'text-success'
                         : sound.growthRate < 0

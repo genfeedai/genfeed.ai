@@ -222,7 +222,9 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
         <span>{trend.period}</span>
         <span>
           Confidence:{' '}
-          <span className="font-medium">{Math.round(trend.confidence)}%</span>
+          <span className="font-medium tabular-nums">
+            {Math.round(trend.confidence)}%
+          </span>
         </span>
       </div>
     </div>

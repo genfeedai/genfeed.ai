@@ -205,7 +205,9 @@ export function ExecutionPanel({
               </div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Progress</span>
-                <span className="font-medium">{execution.progress}%</span>
+                <span className="font-medium tabular-nums">
+                  {execution.progress}%
+                </span>
               </div>
               <div className="h-2 rounded-full bg-muted">
                 <div

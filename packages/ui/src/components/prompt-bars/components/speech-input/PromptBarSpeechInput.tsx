@@ -49,7 +49,7 @@ const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
       {!isAvatarRoute && (
         <span
           className={cn(
-            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs',
+            'pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums',
             isNearLimit ? 'text-warning' : 'text-foreground/60',
           )}
         >
