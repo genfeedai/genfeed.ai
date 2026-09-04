@@ -66,6 +66,27 @@ describe('SectionTopbar', () => {
     expect(screen.getByTestId('section-topbar-actions')).toContainElement(
       screen.getByRole('button', { name: 'Refresh' }),
     );
+    expect(screen.getByTestId('section-topbar-actions')).toHaveClass(
+      'max-w-full',
+      'flex-wrap',
+    );
+  });
+
+  it('keeps action-only chrome inside the available width', () => {
+    render(
+      <SectionTopbar
+        title="Content"
+        titleVisibility="sr-only"
+        actions={<div className="min-w-[60rem]">Filters</div>}
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar-actions')).toHaveClass(
+      'min-w-0',
+      'flex-1',
+      'flex-wrap',
+      'justify-start',
+    );
   });
 
   it('renders tabs inside the bordered bar rather than as a detached block', () => {

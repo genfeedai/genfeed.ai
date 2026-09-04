@@ -146,7 +146,7 @@ export default function Container({
             hasHeaderRight ? (
               <div
                 data-testid="container-header-actions"
-                className="flex shrink-0 flex-wrap items-center justify-end gap-2.5"
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
               >
                 {right}
               </div>
@@ -166,7 +166,7 @@ export default function Container({
           <ContainerTitle title={label} description={description} icon={icon} />
           <div
             data-testid="container-header-actions"
-            className="flex shrink-0 flex-wrap items-center justify-end gap-2.5"
+            className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
           >
             {right}
           </div>

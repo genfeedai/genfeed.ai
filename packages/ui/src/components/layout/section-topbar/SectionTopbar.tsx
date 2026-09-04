@@ -80,7 +80,12 @@ export default function SectionTopbar({
           {hasActions ? (
             <div
               data-testid="section-topbar-actions"
-              className="flex shrink-0 flex-wrap items-center justify-end gap-2"
+              className={cn(
+                'flex items-center gap-2',
+                hasTabs
+                  ? 'shrink-0 flex-wrap justify-end'
+                  : 'min-w-0 flex-1 flex-wrap justify-start',
+              )}
             >
               {actions}
             </div>
@@ -130,7 +135,7 @@ export default function SectionTopbar({
         {hasActions ? (
           <div
             data-testid="section-topbar-actions"
-            className="flex flex-wrap items-center justify-end gap-2"
+            className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
             {actions}
           </div>
