@@ -77,9 +77,6 @@ describe('PublicYoutubeClipsService', () => {
         }) => {
           if (input.canonicalId === 'public-youtube-clip.create') {
             const youtubeUrl = String(input.inputValues?.youtubeUrl ?? '');
-            if (!youtubeUrl.includes('youtube.com/watch?v=')) {
-              throw new BadRequestException('Unsupported YouTube URL');
-            }
             const sessionEnvelope = await actions.get(
               'youtube.clip.create-session',
             )?.(
@@ -161,6 +158,7 @@ describe('PublicYoutubeClipsService', () => {
   });
 
   it.each([
+    'not a url',
     'https://evil.example/watch?v=abc12345',
     'https://youtube.com.evil.example/watch?v=abc12345',
     'file:///etc/passwd',
@@ -171,9 +169,58 @@ describe('PublicYoutubeClipsService', () => {
       await expect(service.create(url)).rejects.toBeInstanceOf(
         BadRequestException,
       );
+      expect(runner.runWorkflow).not.toHaveBeenCalled();
       expect(scheduledAnalysisJobs).toHaveLength(0);
     },
   );
+
+  it.each([
+    'https://www.youtube.com/watch?v=abc12345',
+    'https://youtu.be/abc12345?t=10',
+    'https://www.youtube.com/shorts/abc12345',
+    'https://www.youtube.com/embed/abc12345',
+    'https://www.youtube.com/live/abc12345',
+  ])('starts the workflow for supported source %s', async (url) => {
+    await service.create(url);
+
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'public-youtube-clip.create',
+        inputValues: expect.objectContaining({
+          youtubeUrl: 'https://www.youtube.com/watch?v=abc12345',
+        }),
+      }),
+    );
+  });
+
+  it('maps a coded resolve-source failure to a bounded bad request', async () => {
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+      new Error(
+        'Nodes failed: resolve-source: youtube_source_unavailable: source rejected',
+      ),
+    );
+
+    try {
+      await service.create('https://youtu.be/abc12345');
+      expect.unreachable('Expected create to reject an unavailable source');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toEqual({
+        code: 'public_youtube_clip_source_unavailable',
+        detail: 'The YouTube video is unavailable, private, or unsupported.',
+        title: 'Bad Request',
+      });
+    }
+  });
+
+  it('preserves unrelated workflow failures', async () => {
+    const failure = new Error('Redis unavailable');
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(failure);
+
+    await expect(service.create('https://youtu.be/abc12345')).rejects.toBe(
+      failure,
+    );
+  });
 
   it('does not enqueue a second analysis for an idempotent replay', async () => {
     store.createSession.mockResolvedValue({
