@@ -132,7 +132,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
                   </span>
                   <span>
                     Confidence:{' '}
-                    <span className="font-medium">
+                    <span className="font-medium tabular-nums">
                       {Math.round(suggestion.confidence)}%
                     </span>
                   </span>

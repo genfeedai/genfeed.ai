@@ -159,7 +159,7 @@ export default function MasonryVideoMediaArea({
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className={cn(
-              'object-cover object-center',
+              'object-cover object-center outline-media',
               (isFailed || isFleetNsfwLocked) && 'blur-sm',
             )}
             loading="lazy"

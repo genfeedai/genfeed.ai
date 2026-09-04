@@ -529,7 +529,7 @@ function CliAuthPageContent() {
           <div className="inline-flex items-center justify-center size-12 rounded-xl bg-background-tertiary border border-border mb-5">
             <Terminal className="size-5 text-muted-foreground" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight mb-1.5">
+          <h1 className="text-xl font-semibold tracking-tight mb-1.5 text-balance">
             {isDesktopMode ? 'Desktop Authentication' : 'CLI Authentication'}
           </h1>
           <p className="text-sm text-muted-foreground">

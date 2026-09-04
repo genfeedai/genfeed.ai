@@ -112,7 +112,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                         : `${EnvironmentService.ingredientsEndpoint}/images/${firstReference.id}`
                     }
                     alt="Reference"
-                    className="size-full object-cover"
+                    className="size-full object-cover outline-media"
                     width={32}
                     height={32}
                     sizes="32px"
@@ -121,7 +121,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   {references.length > 1 && (
                     <div
                       className={
-                        'absolute inset-0 flex items-center justify-center text-xs font-bold text-black' /* design-system-allow-content-color -- media overlay */
+                        'absolute inset-0 flex items-center justify-center text-xs font-bold text-black tabular-nums' /* design-system-allow-content-color -- media overlay */
                       }
                     >
                       {references.length}
@@ -176,7 +176,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               tooltipPosition="top"
               ariaLabel="Stop generation"
               className={cn(
-                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
+                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
               )}
               data-testid="stop-generation-button"
             />
@@ -204,7 +204,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   : generateLabel
               }
               className={cn(
-                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-all duration-300',
+                'absolute right-1.5 top-1/2 -translate-y-1/2 size-8 p-0 transition-colors duration-300',
                 activeGenerationsCount > 0 && 'bg-warning hover:bg-warning/90',
               )}
               data-testid="generate-button"
@@ -250,7 +250,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               label={`${outputs}x`}
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-              className="h-10 px-2 gap-1"
+              className="h-10 px-2 gap-1 tabular-nums"
               tooltip="Outputs"
               tooltipPosition="left"
               icon={<LayoutGrid className="size-4" />}
@@ -270,7 +270,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
             }
             className={cn(
-              'px-4 transition-all duration-300 flex-shrink-0',
+              'px-4 transition-colors duration-300 flex-shrink-0',
               isRecording && 'animate-pulse',
             )}
             isDisabled={isGenerateBlocked || isProcessing}

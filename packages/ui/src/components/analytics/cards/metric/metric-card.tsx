@@ -64,7 +64,7 @@ export function MetricCard({
   return (
     <Button
       className={cn(
-        'w-full text-left transition-all hover:shadow-border-strong',
+        'w-full text-left transition-[box-shadow] hover:shadow-border-strong',
         className,
       )}
       onClick={onClick}

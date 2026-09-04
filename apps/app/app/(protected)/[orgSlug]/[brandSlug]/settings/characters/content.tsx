@@ -341,7 +341,7 @@ export default function BrandSettingsCharactersPage(): ReactElement {
                   {character.avatarIngredientId ? (
                     <Image
                       alt={character.label}
-                      className="size-10 rounded object-cover"
+                      className="size-10 rounded object-cover outline-media"
                       height={40}
                       src={resolveCharacterImageUrl(
                         character.avatarIngredientId,
@@ -422,7 +422,7 @@ export default function BrandSettingsCharactersPage(): ReactElement {
             <div className="mt-4 flex flex-col gap-3">
               <Image
                 alt={translate('candidate.alt')}
-                className="w-full rounded object-cover"
+                className="w-full rounded object-cover outline-media"
                 data-testid="candidate-image"
                 height={512}
                 src={candidate.url}
@@ -461,7 +461,7 @@ export default function BrandSettingsCharactersPage(): ReactElement {
             <div className="mt-4 flex flex-col gap-3">
               <Image
                 alt={translate('candidate.alt')}
-                className="w-full rounded object-cover"
+                className="w-full rounded object-cover outline-media"
                 height={512}
                 src={candidate.url}
                 width={512}

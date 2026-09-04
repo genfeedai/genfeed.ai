@@ -187,7 +187,7 @@ export default function IngredientTabs({
               alt={ingredient.metadataLabel as string}
               width={ingredient.metadataWidth || 1080}
               height={ingredient.metadataHeight || 1920}
-              className="max-w-75 h-auto"
+              className="max-w-75 h-auto outline-media"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority
             />

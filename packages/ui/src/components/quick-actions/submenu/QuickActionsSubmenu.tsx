@@ -71,7 +71,7 @@ function SubmenuPortal({
               variant={ButtonVariant.UNSTYLED}
               onClick={() => onActionClick(action)}
               isDisabled={action.isDisabled || action.isLoading}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-300 text-left text-sm font-medium cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-4 py-2.5 transition-[background-color,color] duration-300 text-left text-sm font-medium cursor-pointer ${
                 action.isDisabled || action.isLoading
                   ? 'cursor-not-allowed text-muted-foreground opacity-50'
                   : action.variant === 'error'
@@ -179,7 +179,7 @@ export default function QuickActionsSubmenu({
             className={cn(
               // Radius comes from BORDER_WHITE_30 (rounded-lg) — the shared
               // shell shape, never a pill.
-              'transition-all duration-300',
+              'transition-[box-shadow] duration-300',
               BG_BLUR,
               BORDER_WHITE_30,
               'text-foreground hover:shadow-border-strong',

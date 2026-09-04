@@ -60,7 +60,7 @@ function PostPreviewItem({ content, index, isLast }: PostPreviewItemProps) {
           )}
           <div className="mt-2 flex items-center justify-end gap-2">
             <span
-              className={`text-xs ${isOverLimit ? 'text-error font-medium' : 'text-foreground/50'}`}
+              className={`text-xs tabular-nums ${isOverLimit ? 'text-error font-medium' : 'text-foreground/50'}`}
             >
               {charCount}/{TWITTER_CHAR_LIMIT}
             </span>
@@ -89,7 +89,7 @@ export default function ThreadPreviewPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Thread Preview</h3>
-        <Badge variant="ghost">
+        <Badge variant="ghost" className="tabular-nums">
           {readyCount}/{postCount} ready
         </Badge>
       </div>

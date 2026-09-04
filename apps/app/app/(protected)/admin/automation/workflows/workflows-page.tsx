@@ -185,6 +185,7 @@ export default function WorkflowsPage() {
                       <Dropdown
                         trigger={
                           <Button
+                            ariaLabel="Open workflow actions"
                             variant={ButtonVariant.GHOST}
                             size={ButtonSize.ICON}
                           >

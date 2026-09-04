@@ -55,7 +55,7 @@ export default function ModalImageToVideo({
                   src={imageUrl}
                   alt={image.promptText || 'Selected image'}
                   fill
-                  className="object-cover"
+                  className="object-cover outline-media"
                   sizes="(max-width: 768px) 100vw, 33vw"
                   priority
                 />

@@ -39,7 +39,7 @@ const BentoItem = memo(function BentoItem({
   return (
     <div
       className={cn(
-        'transition-all duration-300',
+        'transition-[background-color,color] duration-300',
         SIZE_CLASSES[size],
         SPAN_CLASSES[span],
         ROW_SPAN_CLASSES[rowSpan],

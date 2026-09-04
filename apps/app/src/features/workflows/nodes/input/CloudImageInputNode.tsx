@@ -204,7 +204,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
                 unoptimized
                 src={mediaConfig.resolvedUrl}
                 alt={mediaConfig.label ?? 'Selected image'}
-                className="h-28 w-full object-contain"
+                className="h-28 w-full object-contain outline-media"
                 width={800}
                 height={600}
               />

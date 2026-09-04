@@ -70,19 +70,19 @@ export default function TrainingFileList({
         {files.length > 0 && (
           <div className="flex gap-2">
             {completedCount > 0 && (
-              <Badge variant="success" className="text-xs">
+              <Badge variant="success" className="text-xs tabular-nums">
                 {completedCount} completed
               </Badge>
             )}
 
             {uploadingCount > 0 && (
-              <Badge variant="info" className="text-xs">
+              <Badge variant="info" className="text-xs tabular-nums">
                 {uploadingCount} uploading
               </Badge>
             )}
 
             {failedCount > 0 && (
-              <Badge variant="error" className="text-xs">
+              <Badge variant="error" className="text-xs tabular-nums">
                 {failedCount} failed
               </Badge>
             )}
@@ -118,14 +118,14 @@ export default function TrainingFileList({
                       variant={
                         f.size > maxSize * 1024 * 1024 ? 'error' : 'ghost'
                       }
-                      className="whitespace-nowrap text-xs"
+                      className="whitespace-nowrap text-xs tabular-nums"
                     >
                       {formatSize(f.size)}
                     </Badge>
                     {fileStatus && (
                       <Badge
                         variant={getStatusBadgeVariant(fileStatus.status)}
-                        className="text-xs whitespace-nowrap"
+                        className="text-xs whitespace-nowrap tabular-nums"
                       >
                         {getStatusBadgeLabel(fileStatus)}
                       </Badge>
@@ -136,7 +136,7 @@ export default function TrainingFileList({
                 {fileStatus && fileStatus.status === UploadStatus.UPLOADING && (
                   <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                      className="bg-primary h-full rounded-full transition-[width] duration-300 ease-out"
                       style={{ width: `${fileStatus.progress}%` }}
                     />
                   </div>

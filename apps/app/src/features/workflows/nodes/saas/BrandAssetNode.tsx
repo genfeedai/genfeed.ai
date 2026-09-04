@@ -103,7 +103,7 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
           <Image
             src={data.resolvedUrl}
             alt={`${data.assetType} asset`}
-            className="h-24 w-full object-contain"
+            className="h-24 w-full object-contain outline-media"
             sizes="320px"
             unoptimized={!canOptimizeImageSource(data.resolvedUrl)}
             width={800}
@@ -111,7 +111,9 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
           />
           {data.dimensions && (
             <p className="text-2xs text-muted-foreground text-center py-1">
-              {data.dimensions.width}x{data.dimensions.height}
+              <span className="tabular-nums">
+                {data.dimensions.width}x{data.dimensions.height}
+              </span>
               {data.mimeType ? ` - ${data.mimeType}` : ''}
             </p>
           )}
@@ -131,7 +133,7 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
               <Image
                 src={url}
                 alt={`Reference ${index + 1}`}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover outline-media"
                 sizes="104px"
                 unoptimized={!canOptimizeImageSource(url)}
                 width={800}

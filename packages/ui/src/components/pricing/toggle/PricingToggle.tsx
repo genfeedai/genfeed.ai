@@ -10,7 +10,7 @@ export default function PricingToggle({
 }: PricingToggleProps) {
   return (
     <div className="flex items-center justify-center">
-      <div className="relative bg-card border border-primary/10 shadow-primary/10 p-1 w-fit transition-all duration-300">
+      <div className="relative bg-card border border-primary/10 shadow-primary/10 p-1 w-fit transition-[border-color,box-shadow] duration-300">
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}

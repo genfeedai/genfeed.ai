@@ -188,7 +188,11 @@ function PromptsPageContent() {
                       <div className="flex items-center gap-4 text-sm text-foreground/60">
                         {prompt.style && <span>Style: {prompt.style}</span>}
                         {prompt.mood && <span>Mood: {prompt.mood}</span>}
-                        {prompt.duration && <span>{prompt.duration}s</span>}
+                        {prompt.duration && (
+                          <span className="tabular-nums">
+                            {prompt.duration}s
+                          </span>
+                        )}
                         {prompt.ratio && <span>{prompt.ratio}</span>}
                       </div>
                     </div>
@@ -196,6 +200,7 @@ function PromptsPageContent() {
                     <Dropdown
                       trigger={
                         <Button
+                          ariaLabel="Open prompt actions"
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
                         >

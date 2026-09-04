@@ -234,6 +234,16 @@ body.gf-studio-app {
 @utility shadow-border-strong {
   box-shadow: inset 0 0 0 1px hsl(var(--border-strong, var(--border)));
 }
+
+/* 1px inset outline for user media (thumbnails, covers, avatars). Keeps light
+   images from bleeding into light surfaces; inset so it never grows the box. */
+@utility outline-media {
+  outline: 1px solid rgb(0 0 0 / 0.1);
+  outline-offset: -1px;
+  @variant dark {
+    outline-color: rgb(255 255 255 / 0.1);
+  }
+}
 /* Floating composer: the prompt bar hovers over content that scrolls beneath it,
    so it needs an outer lift on top of the usual containment border to read as a
    raised surface instead of a band welded to the bottom of the page. */

@@ -80,14 +80,14 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-full flex flex-col items-center gap-2 px-2 py-2.5 transition-all',
+          'w-full flex flex-col items-center gap-2 px-2 py-2.5 transition-colors',
           'hover:bg-white/10 cursor-pointer',
           isOpen && 'bg-white/10',
         )}
         title={`${fullBalance} credits`}
         aria-label={`${fullBalance} credits`}
       >
-        <span className="font-bold text-white text-base leading-none">
+        <span className="font-bold text-white text-base leading-none tabular-nums">
           {compactBalance}
         </span>
       </button>
@@ -109,7 +109,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
           >
             <div className="mb-3">
               <div className="flex items-baseline gap-2 justify-center">
-                <span className="text-3xl font-bold text-white">
+                <span className="text-3xl font-bold text-white tabular-nums">
                   {fullBalance}
                 </span>
                 <span className="text-sm text-white/60 uppercase tracking-wide">
@@ -123,7 +123,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
                 onClick={handleRefreshBalance}
                 disabled={isLoading}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
+                  'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-[background-color,opacity] text-white',
                   'hover:bg-white/10 border border-white/[0.08]',
                   isLoading && 'opacity-50 cursor-not-allowed',
                 )}
@@ -140,7 +140,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
 
               <button
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
+                  'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-colors text-white',
                   'bg-primary/10 hover:bg-primary/20 border border-primary/30',
                 )}
                 onClick={() => setIsOpen(false)}

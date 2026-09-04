@@ -57,7 +57,7 @@ export function MediaPreview({
           unoptimized
           src={src}
           alt="Preview"
-          className="h-24 w-full object-contain"
+          className="h-24 w-full object-contain outline-media"
           width={800}
           height={600}
         />

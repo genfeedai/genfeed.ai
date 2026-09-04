@@ -33,23 +33,20 @@ function SheetOverlay({
 }
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
-const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-background p-6 shadow-dialog will-change-transform',
-  {
-    defaultVariants: {
-      side: 'right',
-    },
-    variants: {
-      side: {
-        bottom: 'gen-sheet-content-bottom inset-x-0 bottom-0 border-t',
-        left: 'gen-sheet-content-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
-        right:
-          'gen-sheet-content-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
-        top: 'gen-sheet-content-top inset-x-0 top-0 border-b',
-      },
+const sheetVariants = cva('fixed z-50 gap-4 bg-background p-6 shadow-dialog', {
+  defaultVariants: {
+    side: 'right',
+  },
+  variants: {
+    side: {
+      bottom: 'gen-sheet-content-bottom inset-x-0 bottom-0 border-t',
+      left: 'gen-sheet-content-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
+      right:
+        'gen-sheet-content-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
+      top: 'gen-sheet-content-top inset-x-0 top-0 border-b',
     },
   },
-);
+});
 
 interface SheetContentProps
   extends ComponentPropsWithRef<typeof SheetPrimitive.Content>,

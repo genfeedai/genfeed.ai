@@ -113,9 +113,9 @@ export default function FrameSequenceSelector({
                 alt={`Frame ${frameIndex + 1}`}
                 fill
                 sizes="220px"
-                className="object-cover"
+                className="object-cover outline-media"
               />
-              <div className="absolute top-1 left-1 z-10 bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
+              <div className="absolute top-1 left-1 z-10 bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums">
                 {frameIndex + 1}
               </div>
               <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-background/80 opacity-0 transition-opacity group-hover:opacity-100">
@@ -166,10 +166,12 @@ export default function FrameSequenceSelector({
 
         {frames.length > 0 ? (
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{frames.length}</span>{' '}
+            <span className="font-medium text-foreground tabular-nums">
+              {frames.length}
+            </span>{' '}
             frame{frames.length !== 1 ? 's' : ''} selected.
             {frames.length >= 2 ? (
-              <span className="ml-2">
+              <span className="ml-2 tabular-nums">
                 Pairs: {frames.length - 1} transition
                 {frames.length - 1 !== 1 ? 's' : ''} (1-&gt;2, 2-&gt;3, ...)
               </span>

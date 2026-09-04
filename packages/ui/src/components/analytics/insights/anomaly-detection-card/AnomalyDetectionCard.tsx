@@ -149,17 +149,22 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
                 <div className="flex items-center gap-4 text-sm">
                   <div>
                     <span className="text-foreground/50">Current: </span>
-                    <span className="font-mono font-medium">
+                    <span className="font-mono font-medium tabular-nums">
                       {formatCompactNumberIntl(anomaly.currentValue)}
                     </span>
                   </div>
                   <div>
                     <span className="text-foreground/50">Expected: </span>
-                    <span className="font-mono font-medium">
+                    <span className="font-mono font-medium tabular-nums">
                       {formatCompactNumberIntl(anomaly.expectedValue)}
                     </span>
                   </div>
-                  <div className={cn('font-mono font-medium', styles.text)}>
+                  <div
+                    className={cn(
+                      'font-mono font-medium tabular-nums',
+                      styles.text,
+                    )}
+                  >
                     {formatPercentage(anomaly.deviation)}
                   </div>
                 </div>

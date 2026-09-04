@@ -38,7 +38,7 @@ export default function MediaPreview({
       {media[0]?.url ? (
         <Image
           alt={translate('mediaAlt')}
-          className="object-cover"
+          className="object-cover outline-media"
           fill
           sizes="(max-width: 768px) 100vw, 480px"
           src={media[0].url}

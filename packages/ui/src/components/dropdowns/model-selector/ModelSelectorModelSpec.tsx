@@ -19,7 +19,7 @@ function SpecRow({ label, value }: { label: string; value: string }) {
       <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-foreground/40">
         {label}
       </span>
-      <span className="min-w-0 flex-1 text-xs font-normal text-foreground/80">
+      <span className="min-w-0 flex-1 text-xs font-normal text-foreground/80 tabular-nums">
         {value}
       </span>
     </div>

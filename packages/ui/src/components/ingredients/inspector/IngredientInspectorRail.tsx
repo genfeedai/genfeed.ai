@@ -127,7 +127,7 @@ export default function IngredientInspectorRail({
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-foreground/4">
           <Image
             alt={ingredient.metadataLabel || translate('untitled')}
-            className="object-cover"
+            className="object-cover outline-media"
             fill
             sizes="(min-width: 1024px) 288px, 90vw"
             src={previewUrl}

@@ -55,7 +55,7 @@ export default function MenuItem({
   })();
 
   const iconWrapperClass = cn(
-    'relative flex items-center justify-center transition-all duration-200',
+    'relative flex items-center justify-center transition-[color,background-color,border-color] duration-200',
     isIconVariant
       ? isHorizontalLayout
         ? [
@@ -86,7 +86,7 @@ export default function MenuItem({
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
-          'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
+          'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-colors duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
     : 'group flex h-8 items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150';

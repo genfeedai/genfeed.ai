@@ -20,7 +20,7 @@ function CollapsibleTrigger({
     <CollapsiblePrimitive.Trigger
       ref={ref}
       className={cn(
-        'flex w-full items-center justify-between py-3 text-sm font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180',
+        'flex w-full items-center justify-between py-3 text-sm font-medium transition-colors hover:underline [&[data-state=open]>svg]:rotate-180',
         className,
       )}
       {...props}
@@ -41,15 +41,19 @@ function CollapsibleContent({
   ...props
 }: ComponentPropsWithRef<typeof CollapsiblePrimitive.Content>) {
   return (
+    // grid-rows transition from @starting-style: interruptible (retargets from
+    // the current height) and needs no keyframes; Radix unmounts on close.
     <CollapsiblePrimitive.Content
       ref={ref}
       className={cn(
-        'overflow-hidden text-sm data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down',
+        'grid grid-rows-[1fr] overflow-hidden text-sm transition-[grid-template-rows] duration-200 ease-out starting:grid-rows-[0fr]',
         className,
       )}
       {...props}
     >
-      <div className="pb-4 pt-0">{children}</div>
+      <div className="flex min-h-0 flex-col">
+        <div className="pb-4 pt-0">{children}</div>
+      </div>
     </CollapsiblePrimitive.Content>
   );
 }

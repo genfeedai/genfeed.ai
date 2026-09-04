@@ -60,7 +60,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
       className={cn(
         'group',
         'bg-foreground/[0.03]',
-        'transition-all duration-300 ease-out',
+        'transition-colors duration-300 ease-out',
         'hover:bg-foreground/[0.05]',
         prompt.isRejected && 'opacity-40 pointer-events-none',
       )}
@@ -76,7 +76,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'rounded-md p-1',
           'text-foreground/30 hover:text-foreground/70',
           'bg-foreground/[0.04] hover:bg-foreground/[0.1]',
-          'transition-all duration-200',
+          'transition-[color,background-color,opacity] duration-200',
           'opacity-0 group-hover:opacity-100',
         )}
         ariaLabel="Dismiss prompt"

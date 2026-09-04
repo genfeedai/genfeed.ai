@@ -104,7 +104,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                   className={cn('flex items-center gap-1 text-sm', growthColor)}
                 >
                   <GrowthIcon className="size-4" />
-                  <span className="font-mono">
+                  <span className="font-mono tabular-nums">
                     {formatPercentage(segment.growth)}
                   </span>
                 </div>
@@ -112,13 +112,13 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3">
                 <div className="text-center p-2 bg-muted/50">
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-2xl font-bold text-primary tabular-nums">
                     {formatCompactNumberIntl(segment.size)}
                   </p>
                   <p className="text-xs text-foreground/50">Audience Size</p>
                 </div>
                 <div className="text-center p-2 bg-muted/50">
-                  <p className="text-2xl font-bold text-secondary">
+                  <p className="text-2xl font-bold text-secondary tabular-nums">
                     {segment.engagement.toFixed(1)}%
                   </p>
                   <p className="text-xs text-foreground/50">Engagement</p>

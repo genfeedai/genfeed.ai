@@ -40,7 +40,7 @@ export function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             unoptimized
             src={model.thumbnail}
             alt={model.displayName}
-            className="w-20 shrink-0 object-cover bg-secondary"
+            className="w-20 shrink-0 object-cover bg-secondary outline-media"
             onError={() => setImgError(true)}
             width={800}
             height={600}

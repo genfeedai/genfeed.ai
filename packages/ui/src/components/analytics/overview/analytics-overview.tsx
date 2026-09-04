@@ -52,6 +52,7 @@ export default function AnalyticsOverview({
             iconClassName: 'bg-muted text-muted-foreground',
             label: 'Posts',
             value: totals.totalPosts,
+            valueClassName: 'tabular-nums',
           },
         ]
       : []),
@@ -60,30 +61,35 @@ export default function AnalyticsOverview({
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Views',
       value: formatCompactNumber(totals.totalViews),
+      valueClassName: 'tabular-nums',
     },
     {
       icon: Heart,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Likes',
       value: formatCompactNumber(totals.totalLikes),
+      valueClassName: 'tabular-nums',
     },
     {
       icon: MessageCircle,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Comments',
       value: formatCompactNumber(totals.totalComments),
+      valueClassName: 'tabular-nums',
     },
     {
       icon: Share2,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Shares',
       value: formatCompactNumber(totals.totalShares),
+      valueClassName: 'tabular-nums',
     },
     {
       icon: TrendingUp,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Avg Engagement',
       value: `${totals.avgEngagementRate.toFixed(2)}%`,
+      valueClassName: 'tabular-nums',
     },
   ];
 

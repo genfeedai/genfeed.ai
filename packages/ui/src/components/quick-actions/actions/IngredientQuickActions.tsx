@@ -261,7 +261,7 @@ export default function IngredientQuickActions(
     isMasonryCompact
       ? 'rounded-lg bg-secondary/80 p-0.5 shadow-dropdown'
       : cn(BG_BLUR, BORDER_WHITE_30, 'p-1'),
-    'quick-actions-wrapper transition-all duration-300',
+    'quick-actions-wrapper transition-colors duration-300',
   );
 
   // A masonry tile shows one control at rest: the overflow menu. Primary

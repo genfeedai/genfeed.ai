@@ -132,7 +132,7 @@ export default function ReviewItemsTable({
               <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
                 <Image
                   alt=""
-                  className="object-cover"
+                  className="object-cover outline-media"
                   fill
                   sizes="40px"
                   src={item.mediaUrl}

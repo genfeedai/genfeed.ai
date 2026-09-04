@@ -112,7 +112,7 @@ export default function TopPostsSection({
                 alt={featuredPost.label || 'Top post'}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                className="object-cover outline-media group-hover:scale-105 transition-transform duration-300"
               />
             )}
 
@@ -146,7 +146,7 @@ export default function TopPostsSection({
               </h3>
               <div
                 className={
-                  'flex items-center gap-4 text-sm text-white/90' /* design-system-allow-content-color -- media overlay */
+                  'flex items-center gap-4 text-sm text-white/90 tabular-nums' /* design-system-allow-content-color -- media overlay */
                 }
               >
                 <span className="flex items-center gap-1.5">
@@ -185,12 +185,12 @@ export default function TopPostsSection({
                     alt={post.label || `Post ${index + 2}`}
                     fill
                     sizes="(max-width: 768px) 33vw, 160px"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="object-cover outline-media group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Rank badge */}
                   <div
                     className={
-                      'absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white' /* design-system-allow-content-color -- media overlay */
+                      'absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
                     }
                   >
                     #{index + 2}
@@ -198,7 +198,7 @@ export default function TopPostsSection({
                   {/* Views badge */}
                   <div
                     className={
-                      'absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white' /* design-system-allow-content-color -- media overlay */
+                      'absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white tabular-nums' /* design-system-allow-content-color -- media overlay */
                     }
                   >
                     <Eye className="size-3" />

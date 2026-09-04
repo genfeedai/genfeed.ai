@@ -262,7 +262,7 @@ export default function MediaLightbox({
                 alt={'Video thumbnail'}
                 fill
                 sizes="96px"
-                className="object-cover"
+                className="object-cover outline-media"
                 unoptimized
               />
             );

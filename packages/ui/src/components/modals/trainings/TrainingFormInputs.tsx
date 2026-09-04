@@ -157,7 +157,7 @@ export default function TrainingFormInputs({
 
         <div
           {...getRootProps({
-            className: `file-uploader !max-w-full bg-primary/10 border-primary/10 border-2 border-dashed p-4 text-center cursor-pointer transition-all ${
+            className: `file-uploader !max-w-full bg-primary/10 border-primary/10 border-2 border-dashed p-4 text-center cursor-pointer transition-[border-color,background-color] ${
               isDragActive ? 'border-primary bg-primary/20' : ''
             }`,
           })}

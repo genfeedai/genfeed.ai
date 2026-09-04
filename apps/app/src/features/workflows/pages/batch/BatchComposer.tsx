@@ -231,7 +231,7 @@ export default function BatchComposer({
                         unoptimized
                         src={file.preview}
                         alt={file.file.name}
-                        className={`aspect-square w-full object-cover ${
+                        className={`aspect-square w-full object-cover outline-media ${
                           file.ingredientId ? '' : 'opacity-60'
                         }`}
                         width={800}

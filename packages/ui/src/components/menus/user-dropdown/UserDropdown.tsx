@@ -99,7 +99,7 @@ export default function UserDropdown({
               alt={userName}
               width={32}
               height={32}
-              className="size-8 rounded-full object-cover object-center"
+              className="size-8 rounded-full object-cover object-center outline-media"
               sizes="32px"
             />
           ) : (

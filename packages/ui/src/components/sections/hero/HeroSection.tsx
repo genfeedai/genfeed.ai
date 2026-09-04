@@ -79,7 +79,7 @@ const HeroSection = memo(function HeroSection({
                 className={cn(
                   'px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider',
                   'bg-foreground text-background',
-                  'hover:scale-105 transition-all duration-300',
+                  'hover:scale-105 transition-transform duration-300',
                 )}
               >
                 {primaryCta.label}
@@ -96,7 +96,7 @@ const HeroSection = memo(function HeroSection({
                   'px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider',
                   'border border-border text-foreground',
                   'hover:border-border-strong hover:bg-foreground/5',
-                  'transition-all duration-300',
+                  'transition-colors duration-300',
                 )}
               >
                 {secondaryCta.label}

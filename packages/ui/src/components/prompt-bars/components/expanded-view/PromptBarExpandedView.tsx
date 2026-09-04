@@ -323,7 +323,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
     >
       <div
         className={cn(
-          'absolute inset-0 z-20 rounded-3xl border border-dashed border-primary/0 bg-primary/0 opacity-0 transition-all duration-200 pointer-events-none',
+          'absolute inset-0 z-20 rounded-3xl border border-dashed border-primary/0 bg-primary/0 opacity-0 transition-[background-color,border-color,opacity] duration-200 pointer-events-none',
           ctx.isDragActive && 'border-primary/70 bg-primary/10 opacity-100',
         )}
       >

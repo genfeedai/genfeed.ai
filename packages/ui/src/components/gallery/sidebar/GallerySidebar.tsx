@@ -67,7 +67,7 @@ export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {
             key={item.href}
             href={item.href}
             onClick={onLinkClick}
-            className={`flex items-center gap-3 px-4 py-3 transition-all duration-300 ${
+            className={`flex items-center gap-3 px-4 py-3 transition-colors duration-300 ${
               item.isActive
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted'

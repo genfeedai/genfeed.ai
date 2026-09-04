@@ -60,7 +60,7 @@ export default function ChildrenList({
                     `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
                   }
                   alt={metadata.label}
-                  className="size-full object-cover"
+                  className="size-full object-cover outline-media"
                   width={80}
                   height={80}
                   sizes="80px"

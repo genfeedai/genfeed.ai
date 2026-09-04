@@ -29,10 +29,10 @@ export default function OfflineContent() {
           />
         )}
 
-        <h1 className="text-2xl md:text-4xl font-bold uppercase mb-2">
+        <h1 className="text-2xl md:text-4xl font-bold uppercase mb-2 text-balance">
           You&apos;re offline
         </h1>
-        <p className="text-foreground/70 mb-6">
+        <p className="text-foreground/70 mb-6 text-pretty">
           Genfeed needs a connection to load this page. Your work is saved.
         </p>
 
