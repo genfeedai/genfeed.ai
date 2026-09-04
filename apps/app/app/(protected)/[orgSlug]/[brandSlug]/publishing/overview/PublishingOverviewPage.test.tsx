@@ -21,6 +21,7 @@ interface MockQueryOptions {
 
 const mocks = vi.hoisted(() => ({
   brandId: 'brand-1' as string | undefined,
+  pageScope: 'brand' as 'brand' | 'org',
   queryOptions: [] as MockQueryOptions[],
   queryResults: {} as Record<string, MockQueryResult>,
 }));
@@ -36,6 +37,40 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/acme/main${path}`,
+  }),
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isBrandResourceReady: ({
+    brandId,
+    isReady,
+    organizationId,
+  }: {
+    brandId?: string;
+    isReady: boolean;
+    organizationId: string;
+  }) => Boolean(brandId && isReady && organizationId),
+  isCollectionFetchReady: ({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
+  }: {
+    brandId?: string;
+    isReady: boolean;
+    organizationId: string;
+    pageScope: 'brand' | 'org';
+  }) =>
+    Boolean(
+      isReady && organizationId && (pageScope === 'org' || Boolean(brandId)),
+    ),
+  toBrandListParams: ({ brandId }: { brandId?: string }) =>
+    brandId ? { brandId } : {},
+  useCollectionScope: () => ({
+    brandId: mocks.brandId,
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: mocks.pageScope,
   }),
 }));
 
@@ -178,6 +213,7 @@ describe('PublishingOverviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.brandId = 'brand-1';
+    mocks.pageScope = 'brand';
     mocks.queryOptions = [];
     mocks.queryResults = {
       'publish-overview-account-health': { data: [], isLoading: false },
@@ -305,26 +341,35 @@ describe('PublishingOverviewPage', () => {
     ).toBeVisible();
   });
 
-  it('disables every brand-scoped overview query until a brand is available', () => {
+  it('loads organization-wide publishing data without a selected brand', () => {
     mocks.brandId = undefined;
+    mocks.pageScope = 'org';
 
     render(<PublishingOverviewPage />);
 
-    const brandScopedQueryKeys = [
+    const organizationQueryKeys = [
+      'publish-overview-batches',
       'publish-overview-not-posted-total',
       'publish-overview-published-total',
       'publish-overview-upcoming',
       'publish-overview-failed',
       'publish-overview-posted-recent',
-      'publish-overview-account-health',
     ];
 
-    for (const key of brandScopedQueryKeys) {
+    for (const key of organizationQueryKeys) {
       const query = mocks.queryOptions.find(
         ({ queryKey }) => queryKey[0] === key,
       );
-      expect(query).toMatchObject({ enabled: false });
+      expect(query).toMatchObject({ enabled: true });
     }
+
+    expect(
+      mocks.queryOptions.find(
+        ({ queryKey }) => queryKey[0] === 'publish-overview-account-health',
+      ),
+    ).toMatchObject({ enabled: false });
+    expect(screen.queryByTestId('account-health')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cadence-gaps')).not.toBeInTheDocument();
   });
 
   it('passes the derived next-24h queue, blocked groups, cadence gaps, and health rows to their sections', () => {

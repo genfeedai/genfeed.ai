@@ -449,6 +449,11 @@ describe('ContentCalendarPage', () => {
   it('queries the scheduler read model for the visible window only', async () => {
     await renderLoaded();
 
+    expect(findArticlesMock).toHaveBeenCalledWith({
+      brandId: 'brand-123',
+      endDate: '2026-03-16T00:00:00.000Z',
+      startDate: '2026-03-10T00:00:00.000Z',
+    });
     expect(findReleasesMock).toHaveBeenCalledWith(
       {
         brandId: 'brand-123',

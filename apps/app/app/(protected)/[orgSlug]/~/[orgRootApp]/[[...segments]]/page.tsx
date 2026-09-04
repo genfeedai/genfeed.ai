@@ -25,11 +25,17 @@ import { Suspense } from 'react';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
+import PostsCalendarPage from '../../../[brandSlug]/publishing/calendar/page';
+import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
+import PublishingContentPage from '../../../[brandSlug]/publishing/content/page';
+import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
+import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import {
   type PostsListSearchParams,
   renderPostsListPage,
 } from '../../../[brandSlug]/publishing/publishing-list-page';
+import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
@@ -146,6 +152,14 @@ async function renderOrgCampaignSurface({
         <CampaignFormPage />
       </Suspense>
     );
+  }
+
+  if (campaignId === 'compare') {
+    if (campaignSection) {
+      notFound();
+    }
+
+    return <PublishingCampaignComparePage />;
   }
 
   if (!campaignSection) {
@@ -283,16 +297,64 @@ export default async function OrgRootAppPage({
     const publishingSegments = segments ?? [];
     const [section, campaignId, campaignSection] = publishingSegments;
 
-    if (
-      publishingSegments.length <= 1 &&
-      (!section || section === 'overview' || section === 'posts')
-    ) {
+    if (!section) {
+      redirect(
+        createOrganizationAppRoute(orgSlug, APP_ROUTES.PUBLISHING.OVERVIEW),
+      );
+    }
+
+    if (publishingSegments.length === 1 && section === 'overview') {
+      const overviewPage = await PublishingOverviewRoute({
+        params: Promise.resolve({ brandSlug: '~', orgSlug }),
+        searchParams: searchParams ?? Promise.resolve({}),
+      });
+
+      return <PublishingLayoutContent>{overviewPage}</PublishingLayoutContent>;
+    }
+
+    if (publishingSegments.length === 1 && section === 'posts') {
       const postsListPage = await renderPostsListPage({
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
       });
 
       return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
+    }
+
+    if (publishingSegments.length === 1 && section === 'content') {
+      return (
+        <PublishingLayoutContent>
+          <PublishingContentPage />
+        </PublishingLayoutContent>
+      );
+    }
+
+    if (publishingSegments.length === 1 && section === 'review') {
+      return (
+        <PublishingLayoutContent>
+          <PostsReviewPage />
+        </PublishingLayoutContent>
+      );
+    }
+
+    if (publishingSegments.length === 1 && section === 'calendar') {
+      return (
+        <PublishingLayoutContent>
+          <PostsCalendarPage />
+        </PublishingLayoutContent>
+      );
+    }
+
+    if (publishingSegments.length === 2 && section === 'posts' && campaignId) {
+      const detailPage = await PublishingPostPage({
+        params: Promise.resolve({
+          brandSlug: '~',
+          id: campaignId,
+          orgSlug,
+        }),
+      });
+
+      return <PublishingLayoutContent>{detailPage}</PublishingLayoutContent>;
     }
 
     if (section === 'campaigns') {

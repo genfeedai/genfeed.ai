@@ -225,6 +225,10 @@ export default function ContentCalendarPage({
           endDate: dateRange.end.toISOString(),
           startDate: dateRange.start.toISOString(),
         };
+        const articleQuery = {
+          ...window,
+          ...(brandId ? { brandId } : {}),
+        };
 
         // Empty facets are omitted rather than sent as empty arrays: the DTO
         // treats a present-but-empty filter as "match nothing".
@@ -249,7 +253,9 @@ export default function ContentCalendarPage({
           fetchedSlots,
           fetchedCadences,
         ] = await Promise.all([
-          campaignId ? Promise.resolve([]) : articlesService.findAll(window),
+          campaignId
+            ? Promise.resolve([])
+            : articlesService.findAll(articleQuery),
           releaseGroupsService.findAll(releasesQuery, controller.signal),
           brandId && !campaignId
             ? cadencesService.listSlots(
