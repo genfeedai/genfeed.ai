@@ -542,6 +542,8 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  knowledgeSources KnowledgeSource[]
+  knowledgeSpaces KnowledgeSpace[]
   id                       String          @id @default(cuid())
   handle                   String          @unique
   firstName                String?
@@ -692,6 +694,8 @@ model User {
 }
 
 model Organization {
+  knowledgeSources KnowledgeSource[]
+  knowledgeSpaces KnowledgeSpace[]
   id                        String                @id @default(cuid())
   authProviderLogoUrl       String?
   userId                    String
@@ -901,6 +905,8 @@ model McpApproval {
 }
 
 model Brand {
+  knowledgeSources KnowledgeSource[]
+  knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())
   userId                   String?
   user                     User?        @relation(fields: [userId], references: [id])
@@ -6617,4 +6623,139 @@ model AgentPublishAudit {
   @@index([postGroupId, isDeleted, createdAt(sort: Desc)])
   @@index([workflowExecutionId, isDeleted])
   @@map("agent_publish_audits")
+}
+
+enum KnowledgeSourceKind {
+  TEXT
+  URL
+  FILE
+  DOCUMENT
+  VIDEO
+  AUDIO
+  RSS
+}
+
+enum KnowledgeSourcePurpose {
+  BRAND_TRUTH
+  INSPIRATION
+  RESEARCH
+}
+
+enum KnowledgeProcessingState {
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum KnowledgeRetrievalState {
+  ACTIVE
+  STALE
+  CONTRADICTED
+  SUPERSEDED
+  QUARANTINED
+  EXPIRED
+}
+
+enum KnowledgeRetentionState {
+  RETAINED
+  SCHEDULED_FOR_PURGE
+  PAYLOAD_PURGED
+  POLICY_ERASED
+}
+
+enum KnowledgeRetentionPolicy {
+  KEEP
+  UNTIL_EXPIRY
+}
+
+model KnowledgeSource {
+  id             String                     @id @default(uuid())
+  organizationId String
+  brandId        String?
+  userId         String
+  scope          String
+  title          String
+  kind           KnowledgeSourceKind
+  purpose        KnowledgeSourcePurpose
+  isVisible      Boolean                    @default(true)
+  isDeleted      Boolean                    @default(false)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  brand          Brand?                     @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  versions       KnowledgeSourceVersion[]
+  memberships    KnowledgeSpaceMembership[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, isDeleted, scope, brandId])
+  @@map("knowledge_sources")
+}
+
+model KnowledgeSourceVersion {
+  id                    String                   @id @default(uuid())
+  organizationId        String
+  sourceId              String
+  version               Int
+  contentHash           String
+  provenance            Json?
+  payload               Json?
+  processingState       KnowledgeProcessingState @default(QUEUED)
+  retrievalState        KnowledgeRetrievalState  @default(ACTIVE)
+  retentionState        KnowledgeRetentionState  @default(RETAINED)
+  retentionPolicy       KnowledgeRetentionPolicy @default(KEEP)
+  observedAt            DateTime
+  verifiedAt            DateTime?
+  expiresAt             DateTime?
+  purgeScheduledAt DateTime?
+  purgedAt              DateTime?
+  supersededByVersionId String?
+  isCurrent             Boolean                  @default(true)
+  isDeleted             Boolean                  @default(false)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  source                KnowledgeSource          @relation(fields: [sourceId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([sourceId, version])
+  @@unique([id, sourceId, organizationId])
+  @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")
+  @@map("knowledge_source_versions")
+}
+
+model KnowledgeSpace {
+  id             String                     @id @default(uuid())
+  organizationId String
+  brandId        String?
+  userId         String
+  scope          String
+  title          String
+  isInbox        Boolean                    @default(false)
+  isDeleted      Boolean                    @default(false)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  brand          Brand?                     @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  memberships    KnowledgeSpaceMembership[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, isDeleted, scope, brandId])
+  @@map("knowledge_spaces")
+}
+
+model KnowledgeSpaceMembership {
+  id             String          @id @default(uuid())
+  organizationId String
+  sourceId       String
+  spaceId        String
+  isDeleted      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  source         KnowledgeSource @relation(fields: [sourceId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  space          KnowledgeSpace  @relation(fields: [spaceId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([spaceId, sourceId])
+  @@index([organizationId, sourceId, isDeleted], map: "knowledge_memberships_scope_source_idx")
+  @@map("knowledge_space_memberships")
 }

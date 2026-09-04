@@ -1,3 +1,8 @@
+/**
+ * Legacy Context JSON representation. Canonical first-class Knowledge records
+ * are defined in knowledge-record.interface.ts. Migration is owned by #4123;
+ * existing Context consumers continue using these shapes until that cutover.
+ */
 import type {
   KnowledgeBaseCategory,
   KnowledgeBaseScope,
