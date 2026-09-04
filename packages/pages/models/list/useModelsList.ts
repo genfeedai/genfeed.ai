@@ -220,14 +220,11 @@ export function useModelsList({
     [queryClient, modelsQueryKey],
   );
 
-  const refresh = useCallback(async () => {
-    await refetchModels();
-  }, [refetchModels]);
-
   const {
     data: catalogModels = [],
     isLoading: isLoadingCatalog,
     error: catalogModelsError,
+    refetch: refetchCatalogModels,
   } = useQuery<IModel[]>({
     queryFn: async () => {
       const query: Record<string, unknown> = {
@@ -257,6 +254,10 @@ export function useModelsList({
       buildModelCatalogOverviewCards(catalogModels, category ?? type ?? 'all'),
     [catalogModels, category, type],
   );
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refetchModels(), refetchCatalogModels()]);
+  }, [refetchCatalogModels, refetchModels]);
 
   // Mark component as mounted after first render
   useEffect(() => {

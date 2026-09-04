@@ -1,6 +1,5 @@
-import { PageScope } from '@genfeedai/contracts';
-import ModelsList from '@pages/models/list/models-list';
 import { Suspense } from 'react';
+import AdminModelsPageContent from './admin-models-page-content';
 
 export default function ModelsTypePage({
   params,
@@ -21,5 +20,5 @@ async function ModelsTypePageContent({
 }) {
   const { type } = await params;
 
-  return <ModelsList category={type} scope={PageScope.SUPERADMIN} />;
+  return <AdminModelsPageContent type={type} />;
 }
