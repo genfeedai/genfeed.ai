@@ -24,6 +24,10 @@ import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
+import OutreachSequenceNewRoute from '../../../[brandSlug]/messages/outreach/new/page';
+import OutreachSequencesRoute from '../../../[brandSlug]/messages/outreach/page';
+import RepliesRoute from '../../../[brandSlug]/messages/replies/page';
+import ReplyDripRoute from '../../../[brandSlug]/messages/reply-drip/page';
 import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PostsCalendarPage from '../../../[brandSlug]/publishing/calendar/page';
 import PublishingCampaignComparePage from '../../../[brandSlug]/publishing/campaigns/compare/page';
@@ -291,6 +295,28 @@ export default async function OrgRootAppPage({
     // Studio's org-scoped one-off generation surface was retired. Studio
     // production tooling is brand-scoped; org-scoped generation lives in Agent.
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
+  }
+
+  if (orgRootApp === 'messages') {
+    const [section, detail] = segments ?? [];
+
+    if (section === 'outreach' && detail === 'new') {
+      return <OutreachSequenceNewRoute />;
+    }
+
+    if (section === 'outreach' && !detail) {
+      return <OutreachSequencesRoute />;
+    }
+
+    if (section === 'replies' && !detail) {
+      return <RepliesRoute />;
+    }
+
+    if (section === 'reply-drip' && !detail) {
+      return <ReplyDripRoute />;
+    }
+
+    notFound();
   }
 
   if (orgRootApp === 'publishing') {

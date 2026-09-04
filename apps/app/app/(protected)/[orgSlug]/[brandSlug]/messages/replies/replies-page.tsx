@@ -13,8 +13,10 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
+import { EmptyState } from '@ui/card/EmptyState';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
@@ -28,6 +30,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { MessageCircleReply, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -61,6 +64,9 @@ const INTENT_OPTIONS: Array<{ label: string; value: ReplyIntent }> = [
   { label: 'Spam (skip auto)', value: 'spam' },
 ];
 
+const REPLIES_DESCRIPTION =
+  'Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments.';
+
 function intentBadgeVariant(
   intent: ReplyIntent,
 ): 'default' | 'success' | 'warning' | 'destructive' | 'outline' | 'info' {
@@ -80,6 +86,8 @@ function intentBadgeVariant(
 
 export default function RepliesPage() {
   const translate = useTranslations('common.automation.replies');
+  const router = useRouter();
+  const { orgSlug } = useOrgUrl();
   const { brandId: scopedBrandId, pageScope } = useCollectionScope();
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
   const getReplyBotService = useAuthedService((token: string) =>
@@ -298,10 +306,17 @@ export default function RepliesPage() {
 
   if (pageScope === 'org' && !brandId) {
     return (
-      <Container className="flex flex-col gap-6 py-6">
-        <p className="text-sm text-muted-foreground">
-          {translate('selectBrand')}
-        </p>
+      <Container label="Replies" description={REPLIES_DESCRIPTION}>
+        <EmptyState
+          title="Choose a brand to review replies"
+          description="Replies belong to a brand's connected social accounts. Select a brand in the top bar to open its inbox."
+          icon={MessageCircleReply}
+          action={{
+            label: 'Manage brands',
+            onClick: () => router.push(`/${orgSlug}/~/settings/brands`),
+            variant: ButtonVariant.SECONDARY,
+          }}
+        />
       </Container>
     );
   }
@@ -311,10 +326,13 @@ export default function RepliesPage() {
   }
 
   return (
-    <Container className="flex flex-col gap-6 py-6">
+    <Container
+      className="flex flex-col gap-6"
+      label="Replies"
+      description={REPLIES_DESCRIPTION}
+    >
       <Card
-        label="Replies"
-        description="Answer people who comment on your posts. Draft replies in your brand voice, or turn on auto-replies for new comments."
+        label="Inbox controls"
         bodyClassName="gap-4 p-4"
         headerAction={
           <div className="flex flex-wrap gap-2">

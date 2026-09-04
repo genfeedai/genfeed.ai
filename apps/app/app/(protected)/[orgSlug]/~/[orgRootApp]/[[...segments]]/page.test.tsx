@@ -120,6 +120,22 @@ vi.mock('../../../[brandSlug]/library/voices/library-voices-page', () => ({
   ),
 }));
 
+vi.mock('../../../[brandSlug]/messages/outreach/page', () => ({
+  default: () => <div data-testid="outreach-sequences-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/outreach/new/page', () => ({
+  default: () => <div data-testid="outreach-sequence-new-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/replies/page', () => ({
+  default: () => <div data-testid="replies-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/reply-drip/page', () => ({
+  default: () => <div data-testid="reply-drip-page" />,
+}));
+
 vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
   default: async ({
     params,
@@ -336,6 +352,26 @@ describe('OrgRootAppPage', () => {
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/assets');
 
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/assets');
+  });
+
+  it.each([
+    [['outreach'], 'outreach-sequences-page'],
+    [['outreach', 'new'], 'outreach-sequence-new-page'],
+    [['replies'], 'replies-page'],
+    [['reply-drip'], 'reply-drip-page'],
+  ])('renders the organization Messages route %j', async (segments, testId) => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'messages',
+        orgSlug: 'acme',
+        segments,
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId(testId)).toBeInTheDocument();
+    expect(notFoundMock).not.toHaveBeenCalled();
   });
 
   it('hands org-scoped /studio/:type off to the Agent', async () => {
