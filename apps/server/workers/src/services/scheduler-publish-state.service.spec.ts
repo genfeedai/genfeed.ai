@@ -208,6 +208,7 @@ describe('SchedulerPublishStateService', () => {
 
     expect(grouped).toBe(true);
     expect(transition).toHaveBeenCalledWith({
+      finalization: undefined,
       groupId: 'group-1',
       guard: undefined,
       organizationId: 'org-1',
@@ -216,6 +217,53 @@ describe('SchedulerPublishStateService', () => {
       update: {
         executionState: TargetExecutionState.PUBLISHED,
         visibility: PostVisibility.PUBLIC,
+      },
+    });
+  });
+
+  it('persists publication finalization in the state transition transaction', async () => {
+    const post = { findMany: vi.fn(), updateMany: vi.fn() };
+    const postGroup = { findFirst: vi.fn(), updateMany: vi.fn() };
+    const postPublishFinalization = {
+      create: vi.fn().mockResolvedValue({ id: 'finalization-1' }),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) =>
+        callback({ post, postGroup, postPublishFinalization }),
+      ),
+    };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      { warn: vi.fn() } as never,
+      createLifecycleService() as never,
+    );
+
+    await service.transitionPost(
+      { id: 'post-1', organizationId: 'org-1' },
+      {
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
+      },
+      'Provider confirmed publication',
+      {
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+      {
+        result: {
+          executionState: TargetExecutionState.PUBLISHED,
+          platform: 'tiktok',
+          success: true,
+        },
+        source: 'CronTiktokStatusService.applyStatusTransition',
+      },
+    );
+
+    expect(postPublishFinalization.create).toHaveBeenCalledWith({
+      data: {
+        organizationId: 'org-1',
+        postId: 'post-1',
+        result: expect.objectContaining({ success: true }),
+        source: 'CronTiktokStatusService.applyStatusTransition',
       },
     });
   });

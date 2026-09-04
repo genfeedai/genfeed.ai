@@ -22,6 +22,7 @@ describe('PostRepeatSchedulerService', () => {
   };
   let postsService: {
     create: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let publishApprovalsService: {
@@ -98,6 +99,7 @@ describe('PostRepeatSchedulerService', () => {
           provide: PostsService,
           useValue: {
             create: vi.fn().mockResolvedValue({ id: 'post-2' }),
+            findOne: vi.fn().mockResolvedValue(null),
             patch: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -345,15 +347,15 @@ describe('PostRepeatSchedulerService', () => {
     );
   });
 
-  it('contains parent persistence failures without changing publish completion', async () => {
+  it('contains repeat-counter persistence failures after creating the occurrence', async () => {
     postsService.patch.mockRejectedValueOnce(new Error('database unavailable'));
 
     await expect(
       service.scheduleNextRepeat(basePost as never, 'CronPostsService publish'),
     ).resolves.toBeUndefined();
 
-    expect(postsService.create).not.toHaveBeenCalled();
-    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(postsService.create).toHaveBeenCalledOnce();
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledOnce();
     expect(loggerService.error).toHaveBeenCalledWith(
       expect.stringContaining('failed to schedule next repeat'),
       expect.objectContaining({ postId: 'post-1' }),
@@ -375,6 +377,42 @@ describe('PostRepeatSchedulerService', () => {
       expect.stringContaining('failed to schedule next repeat'),
       expect.objectContaining({ postId: 'post-1' }),
     );
+  });
+
+  it('retries the same deterministic occurrence after a partial failure', async () => {
+    publishApprovalsService.createForCurrentPost
+      .mockRejectedValueOnce(new Error('version pin unavailable'))
+      .mockResolvedValueOnce({
+        artifactVersionPinId: 'pin-2',
+        id: 'approval-2',
+        operationId: 'operation-2',
+      });
+    postsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'post-2' });
+
+    await expect(
+      service.scheduleNextRepeat(basePost as never, 'TikTok finalization', {
+        rethrowFailures: true,
+      }),
+    ).rejects.toThrow('version pin unavailable');
+    await expect(
+      service.scheduleNextRepeat(basePost as never, 'TikTok finalization', {
+        rethrowFailures: true,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(postsService.create).toHaveBeenCalledOnce();
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalPostId: 'post-1',
+        targetIdempotencyKey: 'legacy-repeat:post-1:1',
+      }),
+    );
+    expect(postsService.patch).toHaveBeenCalledOnce();
+    expect(postsService.patch).toHaveBeenCalledWith('post-1', {
+      repeatCount: 1,
+    });
   });
 
   it('refuses to schedule a bare occurrence without organization or user identity', async () => {

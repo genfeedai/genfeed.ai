@@ -723,6 +723,7 @@ model Organization {
   campaigns                     Campaign[]
   campaignPaidActivations       CampaignPaidActivation[]
   posts                         Post[]
+  postPublishFinalizations      PostPublishFinalization[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
   slotReservations              SlotReservation[]
@@ -2482,6 +2483,7 @@ model Post {
 
   // Reverse relations
   postAnalytics            PostAnalytics[]
+  publishFinalizations     PostPublishFinalization[]
   contentPerformances      ContentPerformance[]
   trendRemixLineages       TrendRemixLineage[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
@@ -2513,6 +2515,30 @@ model Post {
   @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
   @@index([organizationId, campaignId, isDeleted, createdAt(sort: Desc)], map: "posts_org_campaign_created_idx")
   @@map("posts")
+}
+
+/// Durable, retryable side effects owed after a provider confirms that a post
+/// is publicly visible. The provider transition and this record commit in one
+/// transaction; workers advance each idempotent stage independently.
+model PostPublishFinalization {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  postId                String
+  post                  Post          @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  result                Json
+  source                String
+  activityCompletedAt   DateTime?
+  recurrenceCompletedAt DateTime?
+  completedAt           DateTime?
+  attempts              Int           @default(0)
+  lastError             Json?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([organizationId, postId], map: "post_publish_finalizations_org_post_key")
+  @@index([completedAt, updatedAt], map: "post_publish_finalizations_pending_idx")
+  @@map("post_publish_finalizations")
 }
 
 /// Explicit typed authority for publishing one exact canonical Post version.

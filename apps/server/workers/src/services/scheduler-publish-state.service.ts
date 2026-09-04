@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -30,6 +31,11 @@ export type SchedulerPublishTransitionGuard = {
   priorExecutionStates?: readonly TargetExecutionState[];
 };
 
+export type SchedulerPublishFinalizationInput = {
+  result: Prisma.InputJsonValue;
+  source: string;
+};
+
 export type SchedulerPublishPostIdentity = {
   groupId?: unknown;
   id: unknown;
@@ -37,6 +43,7 @@ export type SchedulerPublishPostIdentity = {
 };
 
 type SchedulerPublishStateInput = {
+  finalization?: SchedulerPublishFinalizationInput;
   groupId?: string;
   guard?: SchedulerPublishTransitionGuard;
   organizationId: string;
@@ -64,6 +71,7 @@ export class SchedulerPublishStateService {
     update: SchedulerPublishTargetUpdate,
     reason?: string,
     guard?: SchedulerPublishTransitionGuard,
+    finalization?: SchedulerPublishFinalizationInput,
   ): Promise<boolean> {
     const groupId = this.readIdentifier(post.groupId);
     const organizationId = this.readIdentifier(post.organizationId);
@@ -74,6 +82,7 @@ export class SchedulerPublishStateService {
 
     return this.transition({
       groupId,
+      finalization,
       guard,
       organizationId,
       postId,
@@ -86,125 +95,7 @@ export class SchedulerPublishStateService {
     for (let attempt = 1; attempt <= MAX_SERIALIZABLE_ATTEMPTS; attempt++) {
       try {
         const applied = await this.prisma.$transaction(
-          async (tx) => {
-            const transition = await this.postLifecycleService.transition(
-              {
-                error: input.update.error,
-                groupId: input.groupId,
-                guard: input.guard,
-                mutation: {
-                  ...(input.update.externalId !== undefined && {
-                    externalId: input.update.externalId,
-                  }),
-                  ...(input.update.externalShortcode !== undefined && {
-                    externalShortcode: input.update.externalShortcode,
-                  }),
-                  ...(input.update.lastAttemptAt !== undefined && {
-                    lastAttemptAt: input.update.lastAttemptAt,
-                  }),
-                  ...(input.update.publicationDate !== undefined && {
-                    publicationDate: input.update.publicationDate,
-                  }),
-                  ...(input.update.publishedAt !== undefined && {
-                    publishedAt: input.update.publishedAt,
-                  }),
-                  ...(input.update.retryCount !== undefined && {
-                    retryCount: input.update.retryCount,
-                  }),
-                  ...(input.update.url !== undefined && {
-                    url: input.update.url,
-                  }),
-                  ...(input.update.workflowExecutionId !== undefined && {
-                    workflowExecutionId: input.update.workflowExecutionId,
-                  }),
-                },
-                nextState: input.update.executionState,
-                organizationId: input.organizationId,
-                postId: input.postId,
-                reason: input.reason,
-                visibility: input.update.visibility,
-              },
-              tx,
-            );
-            if (transition.kind === 'stale') {
-              this.logger.warn(
-                `${this.logContext} ignored stale publish transition`,
-                {
-                  expectedWorkflowExecutionId:
-                    input.guard?.expectedWorkflowExecutionId,
-                  groupId: input.groupId,
-                  postId: input.postId,
-                  priorExecutionStates: input.guard?.priorExecutionStates,
-                },
-              );
-              return false;
-            }
-
-            if (!input.groupId) {
-              return true;
-            }
-
-            const [group, targets] = await Promise.all([
-              tx.postGroup.findFirst({
-                select: {
-                  id: true,
-                  publishedAt: true,
-                },
-                where: {
-                  id: input.groupId,
-                  isDeleted: false,
-                  organizationId: input.organizationId,
-                },
-              }) as Promise<SchedulerGroupRow | null>,
-              tx.post.findMany({
-                select: { targetExecutionState: true },
-                where: {
-                  groupId: input.groupId,
-                  isDeleted: false,
-                  organizationId: input.organizationId,
-                  parentId: null,
-                },
-              }),
-            ]);
-            if (!group) {
-              throw new Error(
-                `Scheduler release ${input.groupId} is no longer available.`,
-              );
-            }
-
-            const projection = deriveReleaseStatusProjectionFromTargets(
-              targets.map((target) => target.targetExecutionState),
-            );
-            for (const diagnostic of projection.diagnostics) {
-              this.logger.warn(
-                `${this.logContext} release status derivation failed closed`,
-                {
-                  ...diagnostic,
-                  groupId: group.id,
-                  postId: input.postId,
-                },
-              );
-            }
-            const terminalPublished =
-              projection.status === ReleaseStatus.PUBLISHED ||
-              projection.status === ReleaseStatus.PARTIALLY_PUBLISHED;
-            if (terminalPublished && !group.publishedAt) {
-              const updatedGroup = await tx.postGroup.updateMany({
-                data: { publishedAt: new Date() },
-                where: {
-                  id: input.groupId,
-                  isDeleted: false,
-                  organizationId: input.organizationId,
-                },
-              });
-              if (updatedGroup.count !== 1) {
-                throw new Error(
-                  `Scheduler release ${input.groupId} is no longer available.`,
-                );
-              }
-            }
-            return true;
-          },
+          (tx) => this.applyTransition(input, tx),
           { isolationLevel: 'Serializable' },
         );
         return applied;
@@ -223,6 +114,141 @@ export class SchedulerPublishStateService {
       }
     }
     return false;
+  }
+
+  private async applyTransition(
+    input: SchedulerPublishStateInput,
+    tx: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const transition = await this.postLifecycleService.transition(
+      {
+        error: input.update.error,
+        groupId: input.groupId,
+        guard: input.guard,
+        mutation: {
+          ...(input.update.externalId !== undefined && {
+            externalId: input.update.externalId,
+          }),
+          ...(input.update.externalShortcode !== undefined && {
+            externalShortcode: input.update.externalShortcode,
+          }),
+          ...(input.update.lastAttemptAt !== undefined && {
+            lastAttemptAt: input.update.lastAttemptAt,
+          }),
+          ...(input.update.publicationDate !== undefined && {
+            publicationDate: input.update.publicationDate,
+          }),
+          ...(input.update.publishedAt !== undefined && {
+            publishedAt: input.update.publishedAt,
+          }),
+          ...(input.update.retryCount !== undefined && {
+            retryCount: input.update.retryCount,
+          }),
+          ...(input.update.url !== undefined && {
+            url: input.update.url,
+          }),
+          ...(input.update.workflowExecutionId !== undefined && {
+            workflowExecutionId: input.update.workflowExecutionId,
+          }),
+        },
+        nextState: input.update.executionState,
+        organizationId: input.organizationId,
+        postId: input.postId,
+        reason: input.reason,
+        visibility: input.update.visibility,
+      },
+      tx,
+    );
+    if (transition.kind === 'stale') {
+      this.logger.warn(`${this.logContext} ignored stale publish transition`, {
+        expectedWorkflowExecutionId: input.guard?.expectedWorkflowExecutionId,
+        groupId: input.groupId,
+        postId: input.postId,
+        priorExecutionStates: input.guard?.priorExecutionStates,
+      });
+      return false;
+    }
+
+    if (input.finalization) {
+      await tx.postPublishFinalization.create({
+        data: {
+          organizationId: input.organizationId,
+          postId: input.postId,
+          result: input.finalization.result,
+          source: input.finalization.source,
+        },
+      });
+    }
+
+    if (input.groupId) {
+      await this.rollUpRelease({ ...input, groupId: input.groupId }, tx);
+    }
+    return true;
+  }
+
+  private async rollUpRelease(
+    input: SchedulerPublishStateInput & { groupId: string },
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const [group, targets] = await Promise.all([
+      tx.postGroup.findFirst({
+        select: {
+          id: true,
+          publishedAt: true,
+        },
+        where: {
+          id: input.groupId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      }) as Promise<SchedulerGroupRow | null>,
+      tx.post.findMany({
+        select: { targetExecutionState: true },
+        where: {
+          groupId: input.groupId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          parentId: null,
+        },
+      }),
+    ]);
+    if (!group) {
+      throw new Error(
+        `Scheduler release ${input.groupId} is no longer available.`,
+      );
+    }
+
+    const projection = deriveReleaseStatusProjectionFromTargets(
+      targets.map((target) => target.targetExecutionState),
+    );
+    for (const diagnostic of projection.diagnostics) {
+      this.logger.warn(
+        `${this.logContext} release status derivation failed closed`,
+        {
+          ...diagnostic,
+          groupId: group.id,
+          postId: input.postId,
+        },
+      );
+    }
+    const terminalPublished =
+      projection.status === ReleaseStatus.PUBLISHED ||
+      projection.status === ReleaseStatus.PARTIALLY_PUBLISHED;
+    if (terminalPublished && !group.publishedAt) {
+      const updatedGroup = await tx.postGroup.updateMany({
+        data: { publishedAt: new Date() },
+        where: {
+          id: input.groupId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      });
+      if (updatedGroup.count !== 1) {
+        throw new Error(
+          `Scheduler release ${input.groupId} is no longer available.`,
+        );
+      }
+    }
   }
 
   private readIdentifier(value: unknown): string | undefined {
