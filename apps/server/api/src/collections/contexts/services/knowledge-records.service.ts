@@ -101,7 +101,12 @@ export class KnowledgeRecordsService {
     const hash = createHash('sha256').update(key).digest('hex').slice(0, 32);
     const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`;
     return tx.knowledgeSpace.upsert({
-      where: { ...this.ownership(actor), id },
+      where: {
+        ...this.ownership(actor),
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        id,
+      },
       create: { ...data, id, title: 'Inbox', isInbox: true },
       update: {},
     });
@@ -146,7 +151,11 @@ export class KnowledgeRecordsService {
   }
 
   async listSources(actor: KnowledgeActor, page = 1, limit = 25) {
-    const where = this.ownership(actor);
+    const where = {
+      ...this.ownership(actor),
+      organizationId: actor.organizationId,
+      isDeleted: false,
+    };
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSource.findMany({
         where,
@@ -166,7 +175,11 @@ export class KnowledgeRecordsService {
   }
 
   async listSpaces(actor: KnowledgeActor, page = 1, limit = 25) {
-    const where = this.ownership(actor);
+    const where = {
+      ...this.ownership(actor),
+      organizationId: actor.organizationId,
+      isDeleted: false,
+    };
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSpace.findMany({
         where,
@@ -187,7 +200,12 @@ export class KnowledgeRecordsService {
 
   async getSource(actor: KnowledgeActor, id: string) {
     const source = await this.prisma.knowledgeSource.findFirst({
-      where: { ...this.ownership(actor), id },
+      where: {
+        ...this.ownership(actor),
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        id,
+      },
     });
     if (!source) ErrorResponse.notFound('Knowledge source', id);
     return source;
@@ -195,7 +213,12 @@ export class KnowledgeRecordsService {
 
   async getSpace(actor: KnowledgeActor, id: string) {
     const space = await this.prisma.knowledgeSpace.findFirst({
-      where: { ...this.ownership(actor), id },
+      where: {
+        ...this.ownership(actor),
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        id,
+      },
     });
     if (!space) ErrorResponse.notFound('Knowledge space', id);
     return space;
@@ -243,7 +266,12 @@ export class KnowledgeRecordsService {
     return this.prisma.$transaction(async (tx) => {
       await this.lockSource(tx, actor, id);
       return tx.knowledgeSource.update({
-        where: { ...this.ownership(actor), id },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id,
+        },
         data: {
           title: dto.title,
           purpose: dto.purpose,
@@ -261,12 +289,17 @@ export class KnowledgeRecordsService {
           organizationId: actor.organizationId,
           sourceId: id,
           isDeleted: false,
-          source: this.ownership(actor),
+          source: { is: this.ownership(actor) },
         },
         data: { isDeleted: true },
       });
       return tx.knowledgeSource.update({
-        where: { ...this.ownership(actor), id },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id,
+        },
         data: { isDeleted: true, isVisible: false },
       });
     });
@@ -276,7 +309,12 @@ export class KnowledgeRecordsService {
     return this.prisma.$transaction(async (tx) => {
       await this.lockSpace(tx, actor, id);
       return tx.knowledgeSpace.update({
-        where: { ...this.ownership(actor), id },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id,
+        },
         data: { title },
       });
     });
@@ -286,7 +324,12 @@ export class KnowledgeRecordsService {
     return this.prisma.$transaction(async (tx) => {
       await this.lockSpace(tx, actor, id);
       const space = await tx.knowledgeSpace.findFirst({
-        where: { ...this.ownership(actor), id },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id,
+        },
       });
       if (space?.isInbox)
         throw new BadRequestException('The Inbox cannot be deleted');
@@ -295,12 +338,17 @@ export class KnowledgeRecordsService {
           organizationId: actor.organizationId,
           spaceId: id,
           isDeleted: false,
-          space: this.ownership(actor),
+          space: { is: this.ownership(actor) },
         },
         data: { isDeleted: true },
       });
       return tx.knowledgeSpace.update({
-        where: { ...this.ownership(actor), id },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id,
+        },
         data: { isDeleted: true },
       });
     });
@@ -316,10 +364,20 @@ export class KnowledgeRecordsService {
       await this.lockSource(tx, actor, sourceId);
       await this.lockSpace(tx, actor, spaceId);
       const source = await tx.knowledgeSource.findFirstOrThrow({
-        where: { ...this.ownership(actor), id: sourceId },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id: sourceId,
+        },
       });
       const space = await tx.knowledgeSpace.findFirstOrThrow({
-        where: { ...this.ownership(actor), id: spaceId },
+        where: {
+          ...this.ownership(actor),
+          organizationId: actor.organizationId,
+          isDeleted: false,
+          id: spaceId,
+        },
       });
       if (
         source.scope !== space.scope ||
@@ -331,12 +389,13 @@ export class KnowledgeRecordsService {
           'Source and space must have the same ownership scope',
         );
       }
+      // tenant-scope-ignore: Restoring membership includes its tombstone; both live parents are scoped to the actor in this same mutation.
       return tx.knowledgeSpaceMembership.upsert({
         where: {
           spaceId_sourceId: { spaceId, sourceId },
           organizationId: actor.organizationId,
-          source: this.ownership(actor),
-          space: this.ownership(actor),
+          source: { is: this.ownership(actor) },
+          space: { is: this.ownership(actor) },
         },
         create: {
           organizationId: actor.organizationId,
@@ -356,8 +415,8 @@ export class KnowledgeRecordsService {
         organizationId: actor.organizationId,
         spaceId,
         isDeleted: false,
-        source: this.ownership(actor),
-        space: this.ownership(actor),
+        source: { is: this.ownership(actor) },
+        space: { is: this.ownership(actor) },
       },
       orderBy: { id: 'asc' },
     });
@@ -383,7 +442,7 @@ export class KnowledgeRecordsService {
           sourceId,
           organizationId: actor.organizationId,
           isDeleted: false,
-          source: this.ownership(actor),
+          source: { is: this.ownership(actor) },
         },
         orderBy: { version: 'desc' },
       });
@@ -394,7 +453,7 @@ export class KnowledgeRecordsService {
           organizationId: actor.organizationId,
           isDeleted: false,
           isCurrent: true,
-          source: this.ownership(actor),
+          source: { is: this.ownership(actor) },
         },
         data: {
           isCurrent: false,
@@ -430,7 +489,7 @@ export class KnowledgeRecordsService {
       sourceId,
       organizationId: actor.organizationId,
       isDeleted: false,
-      source: this.ownership(actor),
+      source: { is: this.ownership(actor) },
     };
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSourceVersion.findMany({
@@ -457,7 +516,7 @@ export class KnowledgeRecordsService {
         sourceId,
         organizationId: actor.organizationId,
         isDeleted: false,
-        source: this.ownership(actor),
+        source: { is: this.ownership(actor) },
       },
     });
     if (!version) ErrorResponse.notFound('Knowledge source version', id);
@@ -479,7 +538,7 @@ export class KnowledgeRecordsService {
         sourceId,
         organizationId: actor.organizationId,
         isDeleted: false,
-        source: this.ownership(actor),
+        source: { is: this.ownership(actor) },
       };
       const version = await tx.knowledgeSourceVersion.findFirst({ where });
       if (!version) ErrorResponse.notFound('Knowledge source version', id);
@@ -619,7 +678,7 @@ export class KnowledgeRecordsService {
         retrievalState: KnowledgeRetrievalState.ACTIVE,
         retentionState: KnowledgeRetentionState.RETAINED,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        source: { ...this.ownership(actor), isVisible: true },
+        source: { is: { ...this.ownership(actor), isVisible: true } },
       },
       orderBy: { id: 'asc' },
       take: 100,
