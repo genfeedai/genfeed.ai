@@ -86,7 +86,8 @@ function replaceOrigin(value: string, origin: string): string {
   const url = new URL(value);
   const replacement = new URL(origin);
   url.protocol = replacement.protocol;
-  url.host = replacement.host;
+  url.hostname = replacement.hostname;
+  url.port = replacement.port;
   return url.toString();
 }
 
@@ -128,7 +129,10 @@ export function isPortlessService(value: string): value is PortlessService {
 export function sanitizeNodeColorEnvironment(
   existingEnv: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv {
-  if (!existingEnv.FORCE_COLOR || !existingEnv.NO_COLOR) {
+  if (
+    !Object.hasOwn(existingEnv, 'FORCE_COLOR') ||
+    !Object.hasOwn(existingEnv, 'NO_COLOR')
+  ) {
     return existingEnv;
   }
 

@@ -1,3 +1,5 @@
+import type { AsyncState } from '../shared/async-state.types';
+
 /** One SCHEDULED channel target due within the next 24 hours. */
 export interface PublishingOverviewQueueItem {
   accountLabel: string;
@@ -15,7 +17,8 @@ export interface PublishingOverviewQueueGroup {
 }
 
 export interface PublishingOverviewQueueSectionProps {
-  groups: PublishingOverviewQueueGroup[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewQueueGroup[]>;
 }
 
 /** FAILED channel targets grouped by their structured error code. */
@@ -28,7 +31,8 @@ export interface PublishingOverviewBlockedGroup {
 }
 
 export interface PublishingOverviewBlockedSectionProps {
-  groups: PublishingOverviewBlockedGroup[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewBlockedGroup[]>;
 }
 
 /** Per-connected-account gap since the last publish, and whether one is queued. */
@@ -44,7 +48,8 @@ export interface PublishingOverviewCadenceGap {
 }
 
 export interface PublishingOverviewCadenceSectionProps {
-  gaps: PublishingOverviewCadenceGap[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewCadenceGap[]>;
 }
 
 /** One connected account's warmup and reconnect state on the Overview desk. */
@@ -64,5 +69,6 @@ export interface PublishingOverviewHealthRow {
 }
 
 export interface PublishingOverviewHealthSectionProps {
-  rows: PublishingOverviewHealthRow[];
+  onRetry: () => void;
+  state: AsyncState<PublishingOverviewHealthRow[]>;
 }

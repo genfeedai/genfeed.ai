@@ -16,8 +16,7 @@ function Slider({
     : Array.isArray(defaultValue)
       ? defaultValue.length
       : 1;
-  const thumbSlots =
-    thumbCount > 1 ? (['start', 'end'] as const) : (['value'] as const);
+  const thumbSlots = Array.from({ length: thumbCount }, (_, index) => index);
 
   return (
     <SliderPrimitive.Root
@@ -35,7 +34,7 @@ function Slider({
       </SliderPrimitive.Track>
       {thumbSlots.map((slot) => (
         <SliderPrimitive.Thumb
-          key={slot}
+          key={`thumb-${slot}`}
           className="block size-4 rounded-full border border-primary/50 bg-background shadow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

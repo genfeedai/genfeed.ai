@@ -26,16 +26,17 @@ test.describe('Posts — Management', () => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // All tabs should be visible
-    await expect(postsPage.draftsTab).toBeVisible();
-    await expect(postsPage.scheduledTab).toBeVisible();
+    await expect(postsPage.notPostedTab).toBeVisible();
     await expect(postsPage.publishedTab).toBeVisible();
     await expect(postsPage.engageTab).toBeVisible();
   });
 
-  test('should show drafts tab by default', async ({ authenticatedPage }) => {
+  test('should show not-posted posts by default', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
     const draftPosts = [
@@ -54,9 +55,9 @@ test.describe('Posts — Management', () => {
     ];
 
     await mockPostsList(authenticatedPage, draftPosts);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
-    await postsPage.assertOnDraftsTab();
+    await postsPage.assertOnNotPostedTab();
     await expect(authenticatedPage).toHaveURL(
       /publishing\/posts\?publicationState=not-posted/,
     );
@@ -66,20 +67,16 @@ test.describe('Posts — Management', () => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);
-    await postsPage.gotoDrafts();
-    await postsPage.assertOnDraftsTab();
-
-    // Navigate to scheduled
-    await postsPage.switchToScheduled();
-    await postsPage.assertOnScheduledTab();
+    await postsPage.gotoNotPosted();
+    await postsPage.assertOnNotPostedTab();
 
     // Navigate to published
     await postsPage.switchToPublished();
     await postsPage.assertOnPublishedTab();
 
-    // Navigate back to drafts
-    await postsPage.switchToDrafts();
-    await postsPage.assertOnDraftsTab();
+    // Navigate back to not posted
+    await postsPage.switchToNotPosted();
+    await postsPage.assertOnNotPostedTab();
   });
 
   test('should display post cards with content preview', async ({
@@ -105,14 +102,14 @@ test.describe('Posts — Management', () => {
     ];
 
     await mockPostsList(authenticatedPage, posts);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // Posts should be displayed (grid or table)
     const count = await postsPage.getPostCount();
     expect(count).toBeGreaterThanOrEqual(0);
 
-    // Page should be on drafts
-    await postsPage.assertOnDraftsTab();
+    // Page should remain on the not-posted filter
+    await postsPage.assertOnNotPostedTab();
   });
 
   test('should filter posts', async ({ authenticatedPage }) => {
@@ -134,7 +131,7 @@ test.describe('Posts — Management', () => {
     ];
 
     await mockPostsList(authenticatedPage, posts);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // Open filters and search
     await postsPage.openFilters().catch(() => {});
@@ -143,7 +140,7 @@ test.describe('Posts — Management', () => {
     await postsPage.search('Unique').catch(() => {});
     await authenticatedPage.waitForTimeout(500);
 
-    // Page should remain on drafts
+    // Page should remain on the not-posted filter
     await expect(authenticatedPage).toHaveURL(
       /publishing\/posts\?publicationState=not-posted/,
     );
@@ -163,7 +160,7 @@ test.describe('Posts — Management', () => {
 
     await mockPostsList(authenticatedPage, posts);
     await mockPostDetail(authenticatedPage, posts[0]);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // Click on a post to navigate to detail
     const count = await postsPage.getPostCount();
@@ -194,7 +191,7 @@ test.describe('Posts — Management', () => {
     const postsPage = new PostsPage(authenticatedPage);
 
     await mockPostsList(authenticatedPage);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // Try switching to table view
     await postsPage.switchToTableView().catch(() => {});
@@ -204,11 +201,13 @@ test.describe('Posts — Management', () => {
     await postsPage.switchToGridView().catch(() => {});
     await authenticatedPage.waitForTimeout(300);
 
-    // Should still be on drafts page
-    await postsPage.assertOnDraftsTab();
+    // Should still be on the not-posted filter
+    await postsPage.assertOnNotPostedTab();
   });
 
-  test('should show scheduled posts tab', async ({ authenticatedPage }) => {
+  test('should include scheduled posts in the not-posted filter', async ({
+    authenticatedPage,
+  }) => {
     const postsPage = new PostsPage(authenticatedPage);
 
     const scheduledPosts = [
@@ -225,9 +224,9 @@ test.describe('Posts — Management', () => {
     ];
 
     await mockPostsList(authenticatedPage, scheduledPosts);
-    await postsPage.gotoScheduled();
+    await postsPage.gotoNotPosted();
 
-    await postsPage.assertOnScheduledTab();
+    await postsPage.assertOnNotPostedTab();
     await expect(authenticatedPage).toHaveURL(
       /publishing\/posts\?publicationState=not-posted/,
     );

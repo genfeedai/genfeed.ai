@@ -8,8 +8,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface MockQueryResult {
   data?: unknown;
+  error?: Error | null;
   isError?: boolean;
   isLoading: boolean;
+  refetch?: ReturnType<typeof vi.fn>;
 }
 
 interface MockQueryOptions {
@@ -52,12 +54,14 @@ vi.mock('@services/organization/credentials.service', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: MockQueryOptions) => {
     mocks.queryOptions.push(options);
-    return (
-      mocks.queryResults[String(options.queryKey[0])] ?? {
-        data: undefined,
-        isLoading: false,
-      }
-    );
+    return {
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+      ...mocks.queryResults[String(options.queryKey[0])],
+    };
   },
 }));
 
@@ -69,14 +73,17 @@ vi.mock('@ui/card/Card', () => ({
 
 vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({
+    error,
     isLoading,
     items,
   }: {
+    error?: string | null;
     isLoading?: boolean;
     items: Array<{ isLoading?: boolean; label: string; value: ReactNode }>;
   }) => (
     <section
       aria-label="Publishing metrics"
+      data-error={error ?? ''}
       data-loading={String(Boolean(isLoading))}
     >
       {items.map((item) => (
@@ -128,28 +135,34 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('./components/Next24hQueueSection', () => ({
-  default: ({ groups }: { groups: Array<{ items: unknown[] }> }) => (
+  default: ({ state }: { state: { data?: unknown[]; status: string } }) => (
     <div data-testid="next-24h-queue">
-      {groups.reduce((total, group) => total + group.items.length, 0)}
+      {state.status === 'success' ? state.data?.length : state.status}
     </div>
   ),
 }));
 
 vi.mock('./components/BlockedTargetsSection', () => ({
-  default: ({ groups }: { groups: unknown[] }) => (
-    <div data-testid="blocked-targets">{groups.length}</div>
+  default: ({ state }: { state: { data?: unknown[]; status: string } }) => (
+    <div data-testid="blocked-targets">
+      {state.status === 'success' ? state.data?.length : state.status}
+    </div>
   ),
 }));
 
 vi.mock('./components/CadenceGapsSection', () => ({
-  default: ({ gaps }: { gaps: unknown[] }) => (
-    <div data-testid="cadence-gaps">{gaps.length}</div>
+  default: ({ state }: { state: { data?: unknown[]; status: string } }) => (
+    <div data-testid="cadence-gaps">
+      {state.status === 'success' ? state.data?.length : state.status}
+    </div>
   ),
 }));
 
 vi.mock('./components/AccountHealthSection', () => ({
-  default: ({ rows }: { rows: unknown[] }) => (
-    <div data-testid="account-health">{rows.length}</div>
+  default: ({ state }: { state: { data?: unknown[]; status: string } }) => (
+    <div data-testid="account-health">
+      {state.status === 'success' ? state.data?.length : state.status}
+    </div>
   ),
 }));
 
@@ -192,20 +205,17 @@ describe('PublishingOverviewPage', () => {
     }
   });
 
-  it('shows honest zero-value empty states when overview queries have no data', () => {
+  it('shows failures instead of presenting unavailable totals as zero', () => {
     mocks.queryResults = {
       'publish-overview-batches': {
-        data: undefined,
         isError: true,
         isLoading: false,
       },
       'publish-overview-not-posted-total': {
-        data: undefined,
         isError: true,
         isLoading: false,
       },
       'publish-overview-published-total': {
-        data: undefined,
         isError: true,
         isLoading: false,
       },
@@ -213,20 +223,38 @@ describe('PublishingOverviewPage', () => {
 
     render(<PublishingOverviewPage />);
 
-    expectMetric('Ready to review', 0);
-    expectMetric('Not posted', 0);
-    expectMetric('Published', 0);
-    expectMetric('Failed items', 0);
     expect(
-      screen.getByText(
-        'No drafts waiting — create a release when you are ready.',
-      ),
+      screen.getByRole('region', { name: 'Publishing metrics' }),
+    ).toHaveAttribute('data-error', 'Publishing metrics could not be loaded.');
+    expect(screen.getByText('Review queue could not be loaded.')).toBeVisible();
+    expect(
+      screen.getByText('Not-posted posts could not be loaded.'),
     ).toBeVisible();
     expect(
-      screen.getByText(
-        'Nothing live yet — approved work will land here after publish.',
-      ),
+      screen.getByText('Published posts could not be loaded.'),
     ).toBeVisible();
+  });
+
+  it('keeps overview section failures independent and lets cadence errors win', () => {
+    mocks.queryResults['publish-overview-failed'] = {
+      isError: true,
+      isLoading: false,
+    };
+    mocks.queryResults['publish-overview-account-health'] = {
+      isError: true,
+      isLoading: false,
+    };
+    mocks.queryResults['publish-overview-posted-recent'] = {
+      data: [],
+      isLoading: true,
+    };
+
+    render(<PublishingOverviewPage />);
+
+    expect(screen.getByTestId('next-24h-queue')).toHaveTextContent('0');
+    expect(screen.getByTestId('blocked-targets')).toHaveTextContent('error');
+    expect(screen.getByTestId('account-health')).toHaveTextContent('error');
+    expect(screen.getByTestId('cadence-gaps')).toHaveTextContent('error');
   });
 
   it('aggregates mixed batch statuses without counting reviewed items as ready', () => {

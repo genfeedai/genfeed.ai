@@ -419,6 +419,26 @@ describe('OrgRootAppPage', () => {
     },
   );
 
+  it.each([
+    ['overview', 'extra'],
+    ['posts', 'extra'],
+    ['campaigns', 'new', 'extra'],
+    ['campaigns', 'cmp-1', 'content', 'extra'],
+  ])(
+    'returns not found for surplus org publishing segments %j',
+    async (...segments) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments,
+          }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+    },
+  );
+
   it.each(['write', 'compose'])(
     'returns not found for retired org %s route',
     async (orgRootApp) => {

@@ -12,6 +12,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AsyncState } from '@props/shared';
 import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
@@ -46,6 +47,28 @@ const POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
 
 const QUEUE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+function asError(error: unknown): Error {
+  return error instanceof Error
+    ? error
+    : new Error('Publishing data unavailable');
+}
+
+function toAsyncState<T>({
+  data,
+  error,
+  isError,
+  isLoading,
+}: {
+  data: T;
+  error: unknown;
+  isError: boolean;
+  isLoading: boolean;
+}): AsyncState<T> {
+  if (isError) return { error: asError(error), status: 'error' };
+  if (isLoading) return { status: 'loading' };
+  return { data, status: 'success' };
+}
+
 async function fetchPublicationTotal(
   getReleaseGroups: () => Promise<ReleaseGroupsService>,
   brandId: string,
@@ -76,7 +99,7 @@ export default function PublishingOverviewPage() {
     CredentialsService.getInstance(token),
   );
 
-  const { data: batches = [], isLoading: isBatchesLoading } = useQuery({
+  const batchesQuery = useQuery({
     queryKey: ['publish-overview-batches'],
     queryFn: async () => {
       const service = await getBatchesService();
@@ -84,7 +107,7 @@ export default function PublishingOverviewPage() {
     },
   });
 
-  const { data: notPostedTotal = 0, isLoading: isNotPostedLoading } = useQuery({
+  const notPostedTotalQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-not-posted-total', brandId],
     queryFn: () =>
@@ -95,7 +118,7 @@ export default function PublishingOverviewPage() {
       ),
   });
 
-  const { data: publishedTotal = 0, isLoading: isPublishedLoading } = useQuery({
+  const publishedTotalQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-published-total', brandId],
     queryFn: () =>
@@ -108,7 +131,7 @@ export default function PublishingOverviewPage() {
 
   const now = useMemo(() => new Date(), []);
 
-  const { data: upcomingReleases = [] } = useQuery({
+  const upcomingReleasesQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-upcoming', brandId, now.toISOString()],
     queryFn: async ({ signal }) => {
@@ -126,7 +149,7 @@ export default function PublishingOverviewPage() {
     },
   });
 
-  const { data: failedReleases = [] } = useQuery({
+  const failedReleasesQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-failed', brandId],
     queryFn: async ({ signal }) => {
@@ -141,7 +164,7 @@ export default function PublishingOverviewPage() {
     },
   });
 
-  const { data: postedReleases = [] } = useQuery({
+  const postedReleasesQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-posted-recent', brandId],
     queryFn: async ({ signal }) => {
@@ -158,7 +181,7 @@ export default function PublishingOverviewPage() {
     },
   });
 
-  const { data: accountHealth = [] } = useQuery({
+  const accountHealthQuery = useQuery({
     enabled: isBrandReady,
     queryKey: ['publish-overview-account-health', brandId],
     queryFn: async () => {
@@ -166,6 +189,14 @@ export default function PublishingOverviewPage() {
       return service.listBrandAccountHealth(brandId as string);
     },
   });
+
+  const batches = batchesQuery.data ?? [];
+  const notPostedTotal = notPostedTotalQuery.data ?? 0;
+  const publishedTotal = publishedTotalQuery.data ?? 0;
+  const upcomingReleases = upcomingReleasesQuery.data ?? [];
+  const failedReleases = failedReleasesQuery.data ?? [];
+  const postedReleases = postedReleasesQuery.data ?? [];
+  const accountHealth = accountHealthQuery.data ?? [];
 
   const next24hQueue = useMemo(
     () => buildNext24hQueue(upcomingReleases, now),
@@ -187,6 +218,55 @@ export default function PublishingOverviewPage() {
     () => buildAccountHealthRows(accountHealth),
     [accountHealth],
   );
+
+  const queueState = toAsyncState({
+    data: next24hQueue,
+    error: upcomingReleasesQuery.error,
+    isError: upcomingReleasesQuery.isError,
+    isLoading: upcomingReleasesQuery.isLoading,
+  });
+  const blockedState = toAsyncState({
+    data: blockedTargetGroups,
+    error: failedReleasesQuery.error,
+    isError: failedReleasesQuery.isError,
+    isLoading: failedReleasesQuery.isLoading,
+  });
+  const accountHealthState = toAsyncState({
+    data: accountHealthRows,
+    error: accountHealthQuery.error,
+    isError: accountHealthQuery.isError,
+    isLoading: accountHealthQuery.isLoading,
+  });
+
+  const cadenceError =
+    accountHealthQuery.error ??
+    postedReleasesQuery.error ??
+    upcomingReleasesQuery.error;
+  const isCadenceError =
+    accountHealthQuery.isError ||
+    postedReleasesQuery.isError ||
+    upcomingReleasesQuery.isError;
+  const isCadenceLoading =
+    accountHealthQuery.isLoading ||
+    postedReleasesQuery.isLoading ||
+    upcomingReleasesQuery.isLoading;
+  const cadenceState = toAsyncState({
+    data: cadenceGaps,
+    error: cadenceError,
+    isError: isCadenceError,
+    isLoading: isCadenceLoading,
+  });
+
+  const retryQueue = () => void upcomingReleasesQuery.refetch();
+  const retryBlocked = () => void failedReleasesQuery.refetch();
+  const retryAccountHealth = () => void accountHealthQuery.refetch();
+  const retryCadence = () => {
+    void Promise.all([
+      accountHealthQuery.refetch(),
+      postedReleasesQuery.refetch(),
+      upcomingReleasesQuery.refetch(),
+    ]);
+  };
 
   const reviewPulse = useMemo(() => {
     const batchList = Array.isArray(batches) ? batches : [];
@@ -218,7 +298,13 @@ export default function PublishingOverviewPage() {
   }, [batches]);
 
   const isMetricsLoading =
-    isBatchesLoading || isNotPostedLoading || isPublishedLoading;
+    batchesQuery.isLoading ||
+    notPostedTotalQuery.isLoading ||
+    publishedTotalQuery.isLoading;
+  const isMetricsError =
+    batchesQuery.isError ||
+    notPostedTotalQuery.isError ||
+    publishedTotalQuery.isError;
 
   const kpiItems = [
     {
@@ -252,10 +338,13 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-emerald-500/12 text-emerald-300',
       cta: 'Open Review',
-      description:
-        reviewPulse.ready > 0
-          ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`
-          : 'No queue pressure — open Review when the next batch lands.',
+      description: batchesQuery.isError
+        ? 'Review queue could not be loaded.'
+        : batchesQuery.isLoading
+          ? 'Loading review queue...'
+          : reviewPulse.ready > 0
+            ? `${reviewPulse.ready} item${reviewPulse.ready === 1 ? '' : 's'} ready to approve or reject.`
+            : 'No queue pressure. Open Review when the next batch lands.',
       href: href(APP_ROUTES.PUBLISHING.REVIEW),
       icon: ClipboardCheck,
       id: 'review',
@@ -264,10 +353,13 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-amber-500/12 text-amber-300',
       cta: 'Browse drafts',
-      description:
-        notPostedTotal > 0
-          ? `${notPostedTotal} draft or scheduled post${notPostedTotal === 1 ? '' : 's'} in the pipeline.`
-          : 'No drafts waiting — create a release when you are ready.',
+      description: notPostedTotalQuery.isError
+        ? 'Not-posted posts could not be loaded.'
+        : notPostedTotalQuery.isLoading
+          ? 'Loading not-posted posts...'
+          : notPostedTotal > 0
+            ? `${notPostedTotal} draft or scheduled post${notPostedTotal === 1 ? '' : 's'} in the pipeline.`
+            : 'No drafts waiting. Create a release when you are ready.',
       href: href(NOT_POSTED_POSTS_PATH),
       icon: List,
       id: 'drafts',
@@ -285,10 +377,13 @@ export default function PublishingOverviewPage() {
     {
       color: 'bg-violet-500/12 text-violet-300',
       cta: 'View published',
-      description:
-        publishedTotal > 0
-          ? `${publishedTotal} live post${publishedTotal === 1 ? '' : 's'} across destinations.`
-          : 'Nothing live yet — approved work will land here after publish.',
+      description: publishedTotalQuery.isError
+        ? 'Published posts could not be loaded.'
+        : publishedTotalQuery.isLoading
+          ? 'Loading published posts...'
+          : publishedTotal > 0
+            ? `${publishedTotal} live post${publishedTotal === 1 ? '' : 's'} across destinations.`
+            : 'Nothing live yet. Approved work will land here after publish.',
       href: href(POSTED_POSTS_PATH),
       icon: Send,
       id: 'published',
@@ -304,14 +399,20 @@ export default function PublishingOverviewPage() {
       header={
         <div className="space-y-6">
           <KPISection
+            error={
+              isMetricsError ? 'Publishing metrics could not be loaded.' : null
+            }
             gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
             isLoading={isMetricsLoading}
             items={kpiItems}
           />
-          <Next24hQueueSection groups={next24hQueue} />
-          <BlockedTargetsSection groups={blockedTargetGroups} />
-          <AccountHealthSection rows={accountHealthRows} />
-          <CadenceGapsSection gaps={cadenceGaps} />
+          <Next24hQueueSection onRetry={retryQueue} state={queueState} />
+          <BlockedTargetsSection onRetry={retryBlocked} state={blockedState} />
+          <AccountHealthSection
+            onRetry={retryAccountHealth}
+            state={accountHealthState}
+          />
+          <CadenceGapsSection onRetry={retryCadence} state={cadenceState} />
         </div>
       }
       icon={LayoutDashboard}

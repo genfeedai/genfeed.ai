@@ -179,7 +179,7 @@ test.describe('Posts — Publishing', () => {
     ];
 
     await mockPostsList(authenticatedPage, posts);
-    await postsPage.gotoDrafts();
+    await postsPage.gotoNotPosted();
 
     // Posts list should be visible
     await expect(authenticatedPage).toHaveURL(
@@ -190,9 +190,9 @@ test.describe('Posts — Publishing', () => {
     await postsPage.switchToPublished();
     await postsPage.assertOnPublishedTab();
 
-    // Navigate to scheduled to see scheduled posts
-    await postsPage.switchToScheduled();
-    await postsPage.assertOnScheduledTab();
+    // Return to the not-posted lifecycle filter
+    await postsPage.switchToNotPosted();
+    await postsPage.assertOnNotPostedTab();
   });
 
   test('should show post detail with sidebar', async ({
