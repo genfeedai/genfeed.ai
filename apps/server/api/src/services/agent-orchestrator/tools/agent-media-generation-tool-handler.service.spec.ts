@@ -639,6 +639,50 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
     });
   });
 
+  it('does not claim success when video generation returns no asset id', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
+      data: { attributes: { status: 'processing' } },
+    });
+
+    const result = await handler.generateVideo(
+      { prompt: 'red apple' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'Video generation returned no asset id.',
+      nextActions: [
+        expect.objectContaining({
+          title: 'Video not ready',
+          type: 'completion_summary_card',
+        }),
+      ],
+      success: false,
+    });
+  });
+
+  it('turns video provider failures into a retryable agent result', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockRejectedValue(new Error('Provider unavailable'));
+
+    const result = await handler.generateVideo(
+      { prompt: 'red apple' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'Provider unavailable',
+      nextActions: [
+        expect.objectContaining({
+          title: 'Video not ready',
+          type: 'completion_summary_card',
+        }),
+      ],
+      success: false,
+    });
+  });
+
   it('forwards the thread scope brandId to POST /v1/videos', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockResolvedValue({

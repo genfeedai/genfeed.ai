@@ -240,7 +240,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage failed for org=${ctx.organizationId}: ${message}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         error: message,
         promptPreview,
         status: Status.PROCESSING,
@@ -259,7 +260,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         error: IMAGE_GENERATION_RESULT_ERROR.MISSING_ASSET_ID,
         promptPreview,
         status: Status.PROCESSING,
@@ -270,7 +272,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         assetId: id,
         error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
         promptPreview,
@@ -450,17 +453,45 @@ export class AgentMediaAssetGenerationService {
         typeof params.resolution === 'string' ? params.resolution : undefined,
       videoReferences: this.readStringArray(params.videoReferences, 10),
     });
-    const response = toMediaResponseRecord(
-      await this.generationGateway.generateVideo({
-        body,
-        principal: this.toPrincipal(ctx),
-      }),
-    );
+    const promptPreview = rawPrompt.substring(0, 80);
+    let response: Record<string, unknown>;
+    try {
+      response = toMediaResponseRecord(
+        await this.generationGateway.generateVideo({
+          body,
+          principal: this.toPrincipal(ctx),
+        }),
+      );
+    } catch (error) {
+      const message = (error as Error).message || 'Video generation failed';
+      this.loggerService.warn(
+        `generateVideo failed for org=${ctx.organizationId}: ${message}`,
+      );
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'video',
+        error: message,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
     const id = readMediaResponseString(response, 'id');
     const cdnUrl = readMediaAssetUrl(
       response,
       this.configService.ingredientsEndpoint,
     );
+
+    if (!id) {
+      const error = 'Video generation returned no asset id.';
+      this.loggerService.warn(
+        `generateVideo returned no asset for org=${ctx.organizationId}`,
+      );
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'video',
+        error,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
 
     if (id && cdnUrl) {
       // Fire-and-forget quality scoring must not delay the generation result.
@@ -477,29 +508,27 @@ export class AgentMediaAssetGenerationService {
 
     return {
       creditsUsed: 0,
-      data: id ? buildMediaAssetData(id, status, cdnUrl) : { status },
+      data: buildMediaAssetData(id, status, cdnUrl),
       isBillingDelegated: true,
-      nextActions: id
-        ? [
+      nextActions: [
+        {
+          ctas: [
             {
-              ctas: [
-                {
-                  href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-                  label: 'View in Library',
-                },
-              ],
-              assetId: id,
-              assetKind: 'video',
-              description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${(params.prompt as string).substring(0, 80)}"`,
-              id: `video-gen-${id}`,
-              status: cdnUrl ? 'completed' : 'processing',
-              title: cdnUrl ? 'Video generated' : 'Video generating',
-              type: 'content_preview_card',
-              videos: cdnUrl ? [cdnUrl] : [],
+              href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+              label: 'View in Library',
             },
-            ...(onboardingNextActions ?? []),
-          ]
-        : [],
+          ],
+          assetId: id,
+          assetKind: 'video',
+          description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
+          id: `video-gen-${id}`,
+          status: cdnUrl ? 'completed' : 'processing',
+          title: cdnUrl ? 'Video generated' : 'Video generating',
+          type: 'content_preview_card',
+          videos: cdnUrl ? [cdnUrl] : [],
+        },
+        ...(onboardingNextActions ?? []),
+      ],
       success: true,
     };
   }
@@ -776,13 +805,20 @@ export class AgentMediaAssetGenerationService {
     };
   }
 
-  /** Never mint an empty content preview for incomplete image generation. */
-  private buildImageGenerationIncompleteResult(params: {
+  /** Never mint an empty content preview for incomplete media generation. */
+  private buildMediaGenerationIncompleteResult(params: {
+    assetKind: 'image' | 'video';
     assetId?: string;
     error: string;
     promptPreview: string;
     status: string;
   }): AgentToolResult {
+    const assetLabel = params.assetKind === 'video' ? 'Video' : 'Image';
+    const category =
+      params.assetKind === 'video'
+        ? IngredientCategory.VIDEO
+        : IngredientCategory.IMAGE;
+
     return {
       creditsUsed: 0,
       data: {
@@ -794,21 +830,18 @@ export class AgentMediaAssetGenerationService {
       nextActions: [
         {
           ...(params.assetId
-            ? { assetId: params.assetId, assetKind: 'image' as const }
+            ? { assetId: params.assetId, assetKind: params.assetKind }
             : {}),
-          id: `image-gen-incomplete-${Date.now()}`,
+          id: `${params.assetKind}-gen-incomplete-${Date.now()}`,
           primaryCta: params.assetId
             ? {
-                href: createLibraryAssetRoute(
-                  IngredientCategory.IMAGE,
-                  params.assetId,
-                ),
+                href: createLibraryAssetRoute(category, params.assetId),
                 label: 'View in Library',
               }
             : { href: '/library/assets', label: 'Open Library' },
           status: 'failed',
-          summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
-          title: 'Image not ready',
+          summaryText: `${assetLabel} was not ready: "${params.promptPreview}". ${params.error}`,
+          title: `${assetLabel} not ready`,
           type: 'completion_summary_card',
         },
       ],
