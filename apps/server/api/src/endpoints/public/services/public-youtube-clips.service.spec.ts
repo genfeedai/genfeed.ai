@@ -1,3 +1,4 @@
+import { youtubeSourceUnavailableError } from '@api/collections/workflows/services/youtube-url.util';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -7,7 +8,7 @@ import type {
 } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, GoneException } from '@nestjs/common';
 
 const token = 'a'.repeat(43);
 const storedSession: StoredPublicYoutubeClipSession = {
@@ -194,10 +195,9 @@ describe('PublicYoutubeClipsService', () => {
   });
 
   it('maps a coded resolve-source failure to a bounded bad request', async () => {
+    const sourceFailure = youtubeSourceUnavailableError();
     vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
-      new Error(
-        'Nodes failed: resolve-source: youtube_source_unavailable: source rejected',
-      ),
+      new Error(`Nodes failed: resolve-source: ${sourceFailure.message}`),
     );
 
     try {
@@ -220,6 +220,117 @@ describe('PublicYoutubeClipsService', () => {
     await expect(service.create('https://youtu.be/abc12345')).rejects.toBe(
       failure,
     );
+  });
+
+  it('emits a token-free code when the read-session action is gone', async () => {
+    store.getSession.mockRejectedValueOnce(
+      new GoneException('Expired public clip session'),
+    );
+    const readSession = actions.get('youtube.clip.read-session');
+
+    try {
+      await readSession?.({ input: { previewToken: token } });
+      expect.unreachable('Expected the read-session action to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe(
+        '[public_youtube_clip_expired_or_claimed]',
+      );
+      expect((error as Error).message).not.toContain(token);
+    }
+  });
+
+  it.each(['getSession', 'reservePreview'] as const)(
+    'emits the session code when reserve-preview %s is gone',
+    async (operation) => {
+      const highlight = {
+        clip_type: 'educational',
+        end_time: 40,
+        id: 'moment-1',
+        start_time: 10,
+        summary: 'Useful moment',
+        tags: [],
+        title: 'Useful moment',
+        virality_score: 80,
+      };
+      if (operation === 'getSession') {
+        store.getSession.mockRejectedValueOnce(
+          new GoneException('Expired public clip session'),
+        );
+      } else {
+        store.getSession.mockResolvedValueOnce({
+          ...storedSession,
+          highlights: [highlight],
+          status: 'ready',
+        });
+        store.reservePreview.mockRejectedValueOnce(
+          new GoneException('Expired public clip session'),
+        );
+      }
+      const reservePreview = actions.get('youtube.clip.reserve-preview');
+
+      await expect(
+        reservePreview?.({
+          input: { previewToken: token, recommendationId: 'moment-1' },
+        }),
+      ).rejects.toThrow('[public_youtube_clip_expired_or_claimed]');
+    },
+  );
+
+  it('restores a bounded gone response from a coded read-session failure', async () => {
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+      new Error(
+        'Nodes failed: read-session: [public_youtube_clip_expired_or_claimed]',
+      ),
+    );
+
+    try {
+      await service.read(token);
+      expect.unreachable('Expected read to reject an expired session');
+    } catch (error) {
+      expect(error).toBeInstanceOf(GoneException);
+      expect((error as GoneException).getResponse()).toEqual({
+        code: 'public_youtube_clip_expired_or_claimed',
+        detail: 'This free-tool session has expired or was already claimed.',
+        title: 'Gone',
+      });
+    }
+  });
+
+  it.each([
+    [
+      'create',
+      () => service.create('https://www.youtube.com/watch?v=abc12345'),
+    ],
+    ['preview', () => service.requestPreview(token, 'moment-1')],
+  ])(
+    'restores a bounded gone response from coded %s failure',
+    async (_label, invoke) => {
+      vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+        new Error(
+          'Nodes failed: operation: [public_youtube_clip_expired_or_claimed]',
+        ),
+      );
+
+      try {
+        await invoke();
+        expect.unreachable('Expected the public operation to reject');
+      } catch (error) {
+        expect(error).toBeInstanceOf(GoneException);
+        expect((error as GoneException).getResponse()).toEqual({
+          code: 'public_youtube_clip_expired_or_claimed',
+          detail: 'This free-tool session has expired or was already claimed.',
+          title: 'Gone',
+        });
+      }
+    },
+  );
+
+  it('preserves unrelated read workflow failures', async () => {
+    const failure = new Error('Redis unavailable');
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(failure);
+
+    await expect(service.read(token)).rejects.toBe(failure);
   });
 
   it('does not enqueue a second analysis for an idempotent replay', async () => {

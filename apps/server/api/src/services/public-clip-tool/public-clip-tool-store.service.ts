@@ -1,10 +1,13 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
-import type {
-  ClipSourceArtifact,
-  IPublicYoutubeClipPreview,
-  IPublicYoutubeTranscriptSegment,
-  PublicYoutubeClipToolStatus,
+import {
+  type ClipSourceArtifact,
+  type IPublicYoutubeClipPreview,
+  type IPublicYoutubeTranscriptSegment,
+  PUBLIC_YOUTUBE_CLIP_PREVIEW_STATUSES,
+  PUBLIC_YOUTUBE_CLIP_TOOL_STATUSES,
+  type PublicYoutubeClipPreviewStatus,
+  type PublicYoutubeClipToolStatus,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
@@ -24,6 +27,14 @@ const SESSION_PREFIX = 'public-youtube-clip:session:';
 const DUPLICATE_PREFIX = 'public-youtube-clip:duplicate:';
 const IDEMPOTENCY_PREFIX = 'public-youtube-clip:idempotency:';
 const MAX_TOKEN_GENERATION_ATTEMPTS = 3;
+const SESSION_DECODE_REASONS = new Set([
+  'Invalid public clip session array',
+  'Invalid public clip session number',
+  'Invalid public clip session object',
+  'Invalid public clip session status',
+  'Invalid public clip session string',
+  'Invalid public clip preview status',
+]);
 
 const CREATE_SESSION_SCRIPT = `
 local existingToken = redis.call('GET', KEYS[3])
@@ -411,14 +422,204 @@ export class PublicClipToolStoreService {
 
   private parseSession(serialized: string): StoredPublicYoutubeClipSession {
     try {
-      const parsed = JSON.parse(serialized) as StoredPublicYoutubeClipSession;
-      if (!parsed?.id || !parsed.sourceVideoUrl || !parsed.expiresAt) {
-        throw new Error('Invalid public clip session');
-      }
-      return parsed;
-    } catch {
+      const parsed = this.readRecord(JSON.parse(serialized) as unknown);
+      const sourceArtifact =
+        parsed.sourceArtifact === undefined
+          ? undefined
+          : this.readSourceArtifact(parsed.sourceArtifact);
+      return {
+        createdAt: this.readNonEmptyString(parsed.createdAt),
+        ...(parsed.error === undefined
+          ? {}
+          : { error: this.readString(parsed.error) }),
+        expiresAt: this.readNonEmptyString(parsed.expiresAt),
+        highlights: this.readStoredArray(parsed.highlights, (value) =>
+          this.readHighlight(value),
+        ),
+        id: this.readNonEmptyString(parsed.id),
+        language: this.readNonEmptyString(parsed.language),
+        preview: this.readPreview(parsed.preview),
+        progress: this.readFiniteNumber(parsed.progress),
+        ...(sourceArtifact ? { sourceArtifact } : {}),
+        sourceFingerprint: this.readNonEmptyString(parsed.sourceFingerprint),
+        ...(parsed.sourceVideoS3Key === undefined
+          ? {}
+          : {
+              sourceVideoS3Key: this.readNonEmptyString(
+                parsed.sourceVideoS3Key,
+              ),
+            }),
+        sourceVideoUrl: this.readNonEmptyString(parsed.sourceVideoUrl),
+        status: this.readStatus(parsed.status),
+        transcriptSegments: this.readStoredArray(
+          parsed.transcriptSegments,
+          (value) => this.readTranscriptSegment(value),
+        ),
+        ...(parsed.transcriptSrt === undefined
+          ? {}
+          : { transcriptSrt: this.readString(parsed.transcriptSrt) }),
+        ...(parsed.transcriptText === undefined
+          ? {}
+          : { transcriptText: this.readString(parsed.transcriptText) }),
+      };
+    } catch (error) {
+      this.logger.warn('Invalid public YouTube clip session', {
+        code: 'public_youtube_clip_session_invalid',
+        reason: this.sessionDecodeReason(error),
+        reportToSentry: false,
+      });
       throw this.expired();
     }
+  }
+
+  private readFiniteNumber(value: unknown): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error('Invalid public clip session number');
+    }
+    return value;
+  }
+
+  private readHighlight(value: unknown): StoredPublicYoutubeHighlight {
+    const highlight = this.readRecord(value);
+    return {
+      clip_type: this.readOptionalProse(highlight.clip_type),
+      end_time: this.readFiniteNumber(highlight.end_time),
+      id: this.readNonEmptyString(highlight.id),
+      start_time: this.readFiniteNumber(highlight.start_time),
+      summary: this.readOptionalProse(highlight.summary),
+      tags: this.readStoredArray(highlight.tags, (tag) => this.readString(tag)),
+      title: this.readOptionalProse(highlight.title),
+      virality_score: this.readFiniteNumber(highlight.virality_score),
+    };
+  }
+
+  private readNonEmptyString(value: unknown): string {
+    const result = this.readString(value);
+    if (result.trim().length === 0) {
+      throw new Error('Invalid public clip session string');
+    }
+    return result;
+  }
+
+  private readOptionalProse(value: unknown): string {
+    return value === undefined ? '' : this.readString(value);
+  }
+
+  private readPreview(value: unknown): StoredPublicYoutubePreview {
+    const preview = this.readRecord(value);
+    return {
+      ...(preview.jobId === undefined
+        ? {}
+        : { jobId: this.readNonEmptyString(preview.jobId) }),
+      ...(preview.recommendationId === undefined
+        ? {}
+        : {
+            recommendationId: this.readNonEmptyString(preview.recommendationId),
+          }),
+      ...(preview.s3Key === undefined
+        ? {}
+        : { s3Key: this.readNonEmptyString(preview.s3Key) }),
+      status: this.readPreviewStatus(preview.status),
+      ...(preview.url === undefined
+        ? {}
+        : { url: this.readNonEmptyString(preview.url) }),
+    };
+  }
+
+  private readPreviewStatus(value: unknown): PublicYoutubeClipPreviewStatus {
+    if (typeof value !== 'string') {
+      throw new Error('Invalid public clip preview status');
+    }
+    const status = PUBLIC_YOUTUBE_CLIP_PREVIEW_STATUSES.find(
+      (candidate) => candidate === value,
+    );
+    if (!status) {
+      throw new Error('Invalid public clip preview status');
+    }
+    return status;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Invalid public clip session object');
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private readSourceArtifact(value: unknown): ClipSourceArtifact {
+    const artifact = this.readRecord(value);
+    return {
+      contentType: this.readNonEmptyString(artifact.contentType),
+      ...(artifact.durationSeconds === undefined
+        ? {}
+        : {
+            durationSeconds: this.readFiniteNumber(artifact.durationSeconds),
+          }),
+      mediaUrl: this.readNonEmptyString(artifact.mediaUrl),
+      ...(artifact.storageKey === undefined
+        ? {}
+        : { storageKey: this.readNonEmptyString(artifact.storageKey) }),
+    };
+  }
+
+  private readStatus(value: unknown): PublicYoutubeClipToolStatus {
+    if (typeof value !== 'string') {
+      throw new Error('Invalid public clip session status');
+    }
+    const status = PUBLIC_YOUTUBE_CLIP_TOOL_STATUSES.find(
+      (candidate) => candidate === value,
+    );
+    if (!status) {
+      throw new Error('Invalid public clip session status');
+    }
+    return status;
+  }
+
+  private readStoredArray<T>(
+    value: unknown,
+    readItem: (item: unknown) => T,
+  ): T[] {
+    if (value === undefined || this.isEmptyRecord(value)) {
+      return [];
+    }
+    if (!Array.isArray(value)) {
+      throw new Error('Invalid public clip session array');
+    }
+    return value.map((item) => readItem(item));
+  }
+
+  private readString(value: unknown): string {
+    if (typeof value !== 'string') {
+      throw new Error('Invalid public clip session string');
+    }
+    return value;
+  }
+
+  private readTranscriptSegment(
+    value: unknown,
+  ): IPublicYoutubeTranscriptSegment {
+    const segment = this.readRecord(value);
+    return {
+      end: this.readFiniteNumber(segment.end),
+      start: this.readFiniteNumber(segment.start),
+      text: this.readString(segment.text),
+    };
+  }
+
+  private sessionDecodeReason(error: unknown): string {
+    if (error instanceof Error && SESSION_DECODE_REASONS.has(error.message)) {
+      return error.message;
+    }
+    return 'Invalid public clip session JSON';
+  }
+
+  private isEmptyRecord(value: unknown): boolean {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0
+    );
   }
 
   private assertToken(token: string): void {

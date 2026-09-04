@@ -100,6 +100,19 @@ describe('PublicClipToolStoreService', () => {
       JSON.stringify(
         storedSession({
           highlights: [storedHighlight],
+          preview: {
+            jobId: 'preview-job-1',
+            recommendationId: 'moment-1',
+            s3Key: 'previews/preview-1.mp4',
+            status: 'ready',
+            url: 'https://cdn.example/preview-1.mp4',
+          },
+          sourceArtifact: {
+            contentType: 'video/mp4',
+            durationSeconds: 120,
+            mediaUrl: 'https://cdn.example/source.mp4',
+            storageKey: 'sources/source.mp4',
+          },
           transcriptSegments: [storedTranscriptSegment],
         }),
       ),
@@ -107,6 +120,19 @@ describe('PublicClipToolStoreService', () => {
 
     await expect(service.getSession(previewToken)).resolves.toMatchObject({
       highlights: [storedHighlight],
+      preview: {
+        jobId: 'preview-job-1',
+        recommendationId: 'moment-1',
+        s3Key: 'previews/preview-1.mp4',
+        status: 'ready',
+        url: 'https://cdn.example/preview-1.mp4',
+      },
+      sourceArtifact: {
+        contentType: 'video/mp4',
+        durationSeconds: 120,
+        mediaUrl: 'https://cdn.example/source.mp4',
+        storageKey: 'sources/source.mp4',
+      },
       transcriptSegments: [storedTranscriptSegment],
     });
   });
@@ -143,6 +169,59 @@ describe('PublicClipToolStoreService', () => {
     });
   });
 
+  it('normalizes missing highlight prose and preserves empty prose values', async () => {
+    redis.get.mockResolvedValue(
+      JSON.stringify(
+        storedSession({
+          highlights: [
+            {
+              end_time: 40,
+              id: 'moment-1',
+              start_time: 10,
+              tags: ['', '  '],
+              virality_score: 80,
+            },
+            {
+              clip_type: '',
+              end_time: 50,
+              id: 'moment-2',
+              start_time: 40,
+              summary: '  ',
+              tags: [],
+              title: '',
+              virality_score: 70,
+            },
+          ],
+          transcriptSegments: [
+            { end: 10, start: 0, text: '' },
+            { end: 20, start: 10, text: '  ' },
+          ],
+        }),
+      ),
+    );
+
+    await expect(service.getSession(previewToken)).resolves.toMatchObject({
+      highlights: [
+        {
+          clip_type: '',
+          summary: '',
+          tags: ['', '  '],
+          title: '',
+        },
+        {
+          clip_type: '',
+          summary: '  ',
+          tags: [],
+          title: '',
+        },
+      ],
+      transcriptSegments: [
+        { end: 10, start: 0, text: '' },
+        { end: 20, start: 10, text: '  ' },
+      ],
+    });
+  });
+
   it.each([
     ['a nonempty highlights object', { highlights: { bad: true } }],
     ['a scalar highlights value', { highlights: 'bad' }],
@@ -171,6 +250,14 @@ describe('PublicClipToolStoreService', () => {
       'a malformed transcript member',
       { transcriptSegments: [{ end: 40, start: 0 }] },
     ],
+    ['an empty required session ID', { id: '' }],
+    ['a nonnumeric progress value', { progress: null }],
+    ['an unsupported session status', { status: 'unknown' }],
+    ['an unsupported preview status', { preview: { status: 'unknown' } }],
+    [
+      'a malformed source artifact',
+      { sourceArtifact: { contentType: 'video/mp4' } },
+    ],
   ])('rejects %s with the bounded expired response', async (_label, patch) => {
     redis.get.mockResolvedValue(JSON.stringify(storedSession(patch)));
 
@@ -185,5 +272,31 @@ describe('PublicClipToolStoreService', () => {
         title: 'Gone',
       });
     }
+  });
+
+  it('logs only a stable non-reportable reason for invalid sessions', async () => {
+    redis.get.mockResolvedValue(
+      JSON.stringify(
+        storedSession({
+          highlights: { leaked: 'sensitive-session-payload' },
+        }),
+      ),
+    );
+
+    await expect(service.getSession(previewToken)).rejects.toBeInstanceOf(
+      GoneException,
+    );
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Invalid public YouTube clip session',
+      {
+        code: 'public_youtube_clip_session_invalid',
+        reason: 'Invalid public clip session array',
+        reportToSentry: false,
+      },
+    );
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).not.toContain(previewToken);
+    expect(logged).not.toContain('sensitive-session-payload');
   });
 });

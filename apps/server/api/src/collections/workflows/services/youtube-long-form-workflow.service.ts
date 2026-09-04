@@ -8,6 +8,11 @@ import {
 } from '@api/collections/workflows/services/youtube-long-form-workflow.constants';
 import { registerYoutubeLongFormWorkflowDefinitions } from '@api/collections/workflows/services/youtube-long-form-workflow.definitions';
 import {
+  normalizeYoutubeUrl,
+  YOUTUBE_URL_UNSUPPORTED_DETAIL,
+  youtubeSourceUnavailableError,
+} from '@api/collections/workflows/services/youtube-url.util';
+import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
@@ -100,13 +105,6 @@ type LongFormDocument = ResolvedYoutubeSource & {
   title: string;
 };
 
-const YOUTUBE_HOSTS = new Set([
-  'youtu.be',
-  'youtube.com',
-  'www.youtube.com',
-  'm.youtube.com',
-]);
-const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{6,20}$/;
 const SUBMIT_LONG_FORM_TOOL = 'submit_long_form_document';
 
 @Injectable()
@@ -243,7 +241,11 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<ResolvedYoutubeSource> {
     const youtubeUrl = this.requiredString(request.input, 'youtubeUrl');
-    const { normalizedUrl, videoId } = this.normalizeYoutubeUrl(youtubeUrl);
+    const normalized = normalizeYoutubeUrl(youtubeUrl);
+    if (!normalized) {
+      throw new Error(YOUTUBE_URL_UNSUPPORTED_DETAIL);
+    }
+    const { normalizedUrl, videoId } = normalized;
     try {
       const response = await firstValueFrom(
         this.httpService.get<{ title?: string }>(
@@ -260,9 +262,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         youtubeUrl: normalizedUrl,
       };
     } catch {
-      throw new Error(
-        'The YouTube video is unavailable, private, or unsupported',
-      );
+      throw youtubeSourceUnavailableError();
     }
   }
 
@@ -623,43 +623,6 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       }
     }
     return { artifactId, ingredientId, status: 'linked' };
-  }
-
-  private normalizeYoutubeUrl(input: string): {
-    normalizedUrl: string;
-    videoId: string;
-  } {
-    let url: URL;
-    try {
-      url = new URL(input.trim());
-    } catch {
-      throw new Error('Provide a supported public YouTube video URL');
-    }
-    const hostname = url.hostname.toLowerCase();
-    if (
-      !['http:', 'https:'].includes(url.protocol) ||
-      !YOUTUBE_HOSTS.has(hostname)
-    ) {
-      throw new Error('Provide a supported public YouTube video URL');
-    }
-    let videoId: string | null = null;
-    if (hostname === 'youtu.be') {
-      videoId = url.pathname.split('/').filter(Boolean)[0] ?? null;
-    } else if (url.pathname === '/watch') {
-      videoId = url.searchParams.get('v');
-    } else {
-      const [kind, candidate] = url.pathname.split('/').filter(Boolean);
-      if (['embed', 'live', 'shorts'].includes(kind ?? '')) {
-        videoId = candidate ?? null;
-      }
-    }
-    if (!videoId || !YOUTUBE_VIDEO_ID_PATTERN.test(videoId)) {
-      throw new Error('Provide a supported public YouTube video URL');
-    }
-    return {
-      normalizedUrl: `https://www.youtube.com/watch?v=${videoId}`,
-      videoId,
-    };
   }
 
   private formatInstruction(outputType: YoutubeLongFormOutputType): string {
