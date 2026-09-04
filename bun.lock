@@ -1138,7 +1138,7 @@
         "@radix-ui/react-tooltip": "1.2.8",
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",
-        "lucide-react": "1.28.0",
+        "lucide-react": ">=1.39.0",
         "next": ">=14.0.0",
         "react": ">=18",
         "react-dom": ">=18",
