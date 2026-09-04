@@ -176,6 +176,14 @@ describe('AdCreativeMappingsService', () => {
       ).resolves.toBeNull();
     });
 
+    it('returns an empty list when no row matches the ad account', async () => {
+      findMany.mockResolvedValue([]);
+
+      await expect(
+        service.findByAdAccount('account-missing', 'org-1'),
+      ).resolves.toEqual([]);
+    });
+
     it('queries ad account id inside the tenant scope', async () => {
       findMany.mockResolvedValue([
         makeRow('map-1', {
