@@ -23,6 +23,7 @@ export default function SectionTopbar({
   subtitle,
   icon: Icon,
   actions,
+  leading,
   tabs,
   titleVisibility = 'auto',
   className,
@@ -35,10 +36,11 @@ export default function SectionTopbar({
         ? false
         : !hasCanonicalBreadcrumb;
   const hasActions = Boolean(actions);
+  const hasLeading = Boolean(leading);
   const hasTabs = Boolean(tabs);
 
   // Chrome-only title with no tools: do not paint an empty border-b strip.
-  if (!hasVisibleTitle && !hasTabs && !hasActions) {
+  if (!hasVisibleTitle && !hasLeading && !hasTabs && !hasActions) {
     return (
       <h1 className="sr-only" data-testid="section-topbar">
         {title}
@@ -56,9 +58,17 @@ export default function SectionTopbar({
         <div
           className={cn(
             'flex w-full items-center gap-3 px-4 py-1.5 sm:px-6',
-            !hasTabs && hasActions && 'justify-end',
+            !hasLeading && !hasTabs && hasActions && 'justify-end',
           )}
         >
+          {hasLeading ? (
+            <div
+              data-testid="section-topbar-leading"
+              className="flex shrink-0 items-center"
+            >
+              {leading}
+            </div>
+          ) : null}
           {hasTabs ? (
             <div
               data-testid="section-topbar-tabs"
@@ -91,20 +101,30 @@ export default function SectionTopbar({
           hasActions ? 'justify-between' : 'justify-start',
         )}
       >
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <div className="flex items-center gap-2">
-            {Icon ? (
-              <Icon className="size-4 flex-shrink-0 text-foreground/60" />
-            ) : null}
-            <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
-              {title}
-            </h1>
-          </div>
-          {subtitle ? (
-            <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
-              {subtitle}
-            </p>
+        <div className="flex min-w-0 items-center gap-3">
+          {hasLeading ? (
+            <div
+              data-testid="section-topbar-leading"
+              className="flex shrink-0 items-center"
+            >
+              {leading}
+            </div>
           ) : null}
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            <div className="flex items-center gap-2">
+              {Icon ? (
+                <Icon className="size-4 flex-shrink-0 text-foreground/60" />
+              ) : null}
+              <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
+                {title}
+              </h1>
+            </div>
+            {subtitle ? (
+              <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {hasActions ? (

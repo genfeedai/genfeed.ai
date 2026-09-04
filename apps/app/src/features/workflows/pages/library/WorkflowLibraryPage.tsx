@@ -77,35 +77,35 @@ export default function WorkflowLibraryPage() {
     <SectionTopbar
       title={translate('library.title')}
       titleVisibility="sr-only"
-      tabs={
-        <div className="flex w-full max-w-md items-center gap-3">
-          <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
-            <Input
-              type="text"
-              placeholder={translate('library.searchPlaceholder')}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="h-8 rounded-md border-border bg-card py-1.5 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
-            />
-          </div>
-          {isLoading && workflows.length > 0 ? (
-            <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
-          ) : null}
-        </div>
-      }
       actions={
-        <Button
-          asChild
-          size={ButtonSize.SM}
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
-        >
-          <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
-            <Plus className="size-4" />
-            {translate('library.newWorkflow')}
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex w-64 items-center gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
+              <Input
+                type="text"
+                placeholder={translate('library.searchPlaceholder')}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-8 rounded-md border-border bg-card py-1.5 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
+              />
+            </div>
+            {isLoading && workflows.length > 0 ? (
+              <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+            ) : null}
+          </div>
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
+          >
+            <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
+              <Plus className="size-4" />
+              {translate('library.newWorkflow')}
+            </Link>
+          </Button>
+        </div>
       }
     />
   );

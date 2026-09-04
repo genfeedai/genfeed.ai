@@ -17,6 +17,8 @@ export interface SectionTopbarProps {
   icon?: ComponentType<{ className?: string }>;
   /** Right-aligned controls (refresh, filters, view toggles) */
   actions?: ReactNode;
+  /** Left-aligned non-tab navigation, such as a semantic back link */
+  leading?: ReactNode;
   /** Tab strip rendered inside the bordered bar (or same row when title is chrome-only) */
   tabs?: ReactNode;
   /**

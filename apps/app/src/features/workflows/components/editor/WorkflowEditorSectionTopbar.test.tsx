@@ -59,14 +59,15 @@ describe('WorkflowEditorSectionTopbar', () => {
     renderTopbar();
 
     const topbar = screen.getByTestId('section-topbar');
-    const tabs = screen.getByTestId('section-topbar-tabs');
+    const leading = screen.getByTestId('section-topbar-leading');
     const actions = screen.getByTestId('section-topbar-actions');
     const heading = screen.getByRole('heading', { name: 'Launch workflow' });
     const workflowsLink = screen.getByRole('link', { name: 'Workflows' });
 
     expect(topbar).toHaveClass('shrink-0');
     expect(heading).toHaveClass('sr-only');
-    expect(tabs).toContainElement(workflowsLink);
+    expect(leading).toContainElement(workflowsLink);
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
     expect(workflowsLink).toHaveAttribute(
       'href',
       '/acme/moonrise/automation/workflows',

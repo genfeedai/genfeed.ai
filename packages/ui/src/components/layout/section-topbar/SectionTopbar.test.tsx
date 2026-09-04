@@ -12,6 +12,21 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 }));
 
 describe('SectionTopbar', () => {
+  it('keeps semantic back navigation out of the tab slot', () => {
+    render(
+      <SectionTopbar
+        leading={<a href="/library">Back to library</a>}
+        title="Editor"
+        titleVisibility="sr-only"
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      screen.getByRole('link', { name: 'Back to library' }),
+    );
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     navigationState.hasCanonicalBreadcrumb = false;
   });

@@ -63,7 +63,7 @@ export function WorkflowEditorSectionTopbar({
       className="shrink-0"
       title={title}
       titleVisibility="sr-only"
-      tabs={
+      leading={
         <nav
           aria-label="Workflow editor navigation"
           className="flex min-w-max items-center"
