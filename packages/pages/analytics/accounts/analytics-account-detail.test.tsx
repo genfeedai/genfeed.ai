@@ -1,6 +1,13 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsAccountDetail from './analytics-account-detail';
+
+const requestState = vi.hoisted(() => ({ detailError: false }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'cred-1' }),
@@ -13,46 +20,50 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    getAccountAnalyticsDetail: vi.fn().mockResolvedValue({
-      coverage: 1,
-      evaluation: null,
-      freshnessHours: 1,
-      growth: [],
-      identity: {
-        brandId: 'brand-1',
-        brandLabel: 'Brand',
-        connectedAt: null,
-        credentialId: 'cred-1',
-        externalAvatar: null,
-        externalHandle: 'acct',
-        externalId: 'ext-1',
-        externalName: 'Account',
-        firstPublishedAt: null,
-        firstTrackedAt: null,
-        isConnected: true,
-        label: 'Account',
-        manageHref: '/settings/social?credential=cred-1',
-        platform: 'instagram',
-      },
-      metrics: [],
-      publishedPosts: 2,
-      series: [{ date: '2026-09-01', metrics: [] }],
-      topPosts: [
-        {
-          comments: 1,
-          description: '',
-          engagementRate: 1,
-          ingredientId: 'post-1',
-          likes: 4,
-          platform: 'instagram',
-          postId: 'post-1',
-          publishDate: '2026-09-01',
-          shares: 0,
-          title: 'Winner',
-          views: 90,
-        },
-      ],
-    }),
+    getAccountAnalyticsDetail: vi.fn(() =>
+      requestState.detailError
+        ? Promise.reject(new Error('request failed'))
+        : Promise.resolve({
+            coverage: 1,
+            evaluation: null,
+            freshnessHours: 1,
+            growth: [],
+            identity: {
+              brandId: 'brand-1',
+              brandLabel: 'Brand',
+              connectedAt: null,
+              credentialId: 'cred-1',
+              externalAvatar: null,
+              externalHandle: 'acct',
+              externalId: 'ext-1',
+              externalName: 'Account',
+              firstPublishedAt: null,
+              firstTrackedAt: null,
+              isConnected: true,
+              label: 'Account',
+              manageHref: '/settings/social?credential=cred-1',
+              platform: 'instagram',
+            },
+            metrics: [],
+            publishedPosts: 2,
+            series: [{ date: '2026-09-01', metrics: [] }],
+            topPosts: [
+              {
+                comments: 1,
+                description: '',
+                engagementRate: 1,
+                ingredientId: 'post-1',
+                likes: 4,
+                platform: 'instagram',
+                postId: 'post-1',
+                publishDate: '2026-09-01',
+                shares: 0,
+                title: 'Winner',
+                views: 90,
+              },
+            ],
+          }),
+    ),
   }),
 }));
 
@@ -61,6 +72,10 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 }));
 
 describe('AnalyticsAccountDetail', () => {
+  beforeEach(() => {
+    requestState.detailError = false;
+  });
+
   it('renders trend and top posts for the exact account', async () => {
     render(<AnalyticsAccountDetail />);
 
@@ -69,5 +84,16 @@ describe('AnalyticsAccountDetail', () => {
     expect(
       screen.getByRole('button', { name: 'Manage account' }),
     ).toBeInTheDocument();
+  });
+
+  it('renders an error instead of empty account metrics when loading fails', async () => {
+    requestState.detailError = true;
+
+    render(<AnalyticsAccountDetail />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Account analytics could not be loaded.',
+    );
+    expect(screen.queryByText('Top posts')).not.toBeInTheDocument();
   });
 });

@@ -1,9 +1,10 @@
 import { PageScope } from '@genfeedai/contracts';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { cacheStores } = vi.hoisted(() => ({
+const { cacheStores, collectionScope } = vi.hoisted(() => ({
   cacheStores: new Map<string, Map<string, unknown>>(),
+  collectionScope: { brandId: 'brand-1', organizationId: 'org-1' },
 }));
 
 const mockGetTimeSeries = vi.fn();
@@ -14,7 +15,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
-  useCollectionScope: () => ({ brandId: 'brand-1' }),
+  useCollectionScope: () => collectionScope,
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -56,6 +57,8 @@ describe('useTimeseries', () => {
       store.clear();
     }
     mockGetTimeSeries.mockResolvedValue([]);
+    collectionScope.brandId = 'brand-1';
+    collectionScope.organizationId = 'org-1';
     mockGetAnalyticsService.mockResolvedValue({
       getTimeSeries: mockGetTimeSeries,
     });
@@ -160,7 +163,7 @@ describe('useTimeseries', () => {
       twitter: 0,
       youtube: 0,
     };
-    const cacheKey = `timeseries:${PageScope.ORGANIZATION}:brand-1:2025-01-01:2025-01-07`;
+    const cacheKey = `timeseries:org-1:${PageScope.ORGANIZATION}:brand-1:2025-01-01:2025-01-07`;
     const timeseriesStore =
       cacheStores.get('analytics:timeseries:') ?? new Map<string, unknown>();
     const timeseriesMetaStore =
@@ -199,5 +202,39 @@ describe('useTimeseries', () => {
     expect(result.current.timeseriesData).toEqual([]);
     expect(result.current.isTimeseriesUsingCache).toBe(false);
     expect(result.current.timeseriesCachedAt).toBeNull();
+  });
+
+  it('ignores a stale response after the brand changes', async () => {
+    let resolveFirst: (
+      value: Array<{ date: string; instagram: { views: number } }>,
+    ) => void = () => undefined;
+    mockGetTimeSeries
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      )
+      .mockResolvedValueOnce([
+        { date: '2025-01-02', instagram: { views: 22 } },
+      ]);
+
+    const { rerender, result } = renderHook(() =>
+      useTimeseries({ dateRange: DATE_RANGE, scope: PageScope.BRAND }),
+    );
+
+    collectionScope.brandId = 'brand-2';
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.timeseriesData[0]?.instagram).toBe(22);
+    });
+
+    await act(async () => {
+      resolveFirst([{ date: '2025-01-01', instagram: { views: 11 } }]);
+      await Promise.resolve();
+    });
+
+    expect(result.current.timeseriesData[0]?.instagram).toBe(22);
   });
 });
