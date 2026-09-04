@@ -5,8 +5,10 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryCanvas from './LibraryCanvas';
 
-const { fitView, save } = vi.hoisted(() => ({
+const { board, fitView, refresh, save } = vi.hoisted(() => ({
+  board: { id: 'board-1', layout: [] },
   fitView: vi.fn(),
+  refresh: vi.fn(),
   save: vi.fn(),
 }));
 
@@ -41,10 +43,10 @@ vi.mock('@xyflow/react', () => ({
 
 vi.mock('@genfeedai/hooks/data/content/use-mood-board/use-mood-board', () => ({
   useMoodBoard: () => ({
-    board: { id: 'board-1', layout: [] },
+    board,
     error: null,
     isLoading: false,
-    refresh: vi.fn(),
+    refresh,
     save,
   }),
 }));
