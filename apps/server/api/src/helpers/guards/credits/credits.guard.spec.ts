@@ -117,6 +117,44 @@ describe('CreditsGuard', () => {
     );
   });
 
+  it('skips credit admission and reservation for an opted-out body attribute', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 1,
+      description: 'Prompt enhancement',
+      skipWhenBodyAttribute: 'isSkipEnhancement',
+    });
+    const context = createContext({ isSkipEnhancement: true });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      amount: 0,
+      skipWhenBodyAttribute: 'isSkipEnhancement',
+    });
+  });
+
+  it('reads the opt-out body attribute from JSON:API attributes', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 1,
+      description: 'Prompt enhancement',
+      skipWhenBodyAttribute: 'isSkipEnhancement',
+    });
+    const context = createContext({
+      data: { attributes: { isSkipEnhancement: true } },
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+  });
+
   it('stores the reservation identity for settlement after generation', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
       amount: 10,

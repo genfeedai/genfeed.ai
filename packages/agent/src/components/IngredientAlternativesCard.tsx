@@ -4,9 +4,16 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { usePromptModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/contracts';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { Image, RefreshCw, Video } from 'lucide-react';
+import { Expand, Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
@@ -22,6 +29,8 @@ export function IngredientAlternativesCard({
   action,
   apiService,
 }: IngredientAlternativesCardProps): ReactElement {
+  const { openPromptModal } = usePromptModal();
+  const { href } = useOrgUrl();
   const alternatives = action.alternatives ?? [];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [status, setStatus] = useState<CardStatus>('idle');
@@ -44,22 +53,22 @@ export function IngredientAlternativesCard({
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const promptDoc = await apiService.createPrompt(
-        {
-          category: getPromptCategoryForGenerationType(alt.generationType),
-          isSkipEnhancement: true,
-          original: alt.prompt,
-        },
-        controller.signal,
-      );
-
-      const body = buildAgentGenerationRequestBody({
-        aspectRatio: '1:1',
-        promptId: promptDoc.id,
-        promptText: alt.prompt,
-      });
-
       try {
+        const promptDoc = await apiService.createPrompt(
+          {
+            category: getPromptCategoryForGenerationType(alt.generationType),
+            isSkipEnhancement: true,
+            original: alt.prompt,
+          },
+          controller.signal,
+        );
+
+        const body = buildAgentGenerationRequestBody({
+          aspectRatio: '1:1',
+          promptId: promptDoc.id,
+          promptText: alt.prompt,
+        });
+
         const result = await apiService.generateIngredient(
           alt.generationType,
           body,
@@ -75,18 +84,42 @@ export function IngredientAlternativesCard({
         if (controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : 'Generation failed');
         setStatus('error');
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
       }
     },
     [alternatives, status, apiService],
   );
 
-  const handleRetry = useCallback(() => {
+  const handleViewPrompt = useCallback(
+    (index: number) => {
+      const alternative = alternatives[index];
+      if (!alternative) return;
+
+      openPromptModal({
+        originalPrompt: alternative.prompt,
+        onConfirm: () => {
+          void handleSelect(index);
+        },
+      });
+    },
+    [alternatives, handleSelect, openPromptModal],
+  );
+
+  const handleReset = useCallback(() => {
     setStatus('idle');
     setSelectedIndex(null);
     setResultUrl(null);
     setResultId(null);
     setError(null);
   }, []);
+
+  const handleRetry = useCallback(() => {
+    if (selectedIndex === null) return;
+    void handleSelect(selectedIndex);
+  }, [handleSelect, selectedIndex]);
 
   const generationType =
     alternatives[selectedIndex ?? 0]?.generationType ?? 'image';
@@ -115,13 +148,9 @@ export function IngredientAlternativesCard({
             const isDimmed = status === 'generating' && !isSelected;
 
             return (
-              <Button
+              <div
                 key={alt.label}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                isDisabled={status === 'generating'}
-                onClick={() => handleSelect(index)}
-                className={`relative border p-2.5 text-left transition-all disabled:cursor-not-allowed ${
+                className={`relative border p-2.5 text-left transition-all ${
                   isSelected && status !== 'idle'
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50 hover:bg-accent'
@@ -132,13 +161,33 @@ export function IngredientAlternativesCard({
                     <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 )}
-                <p className="mb-1 text-xs font-semibold text-foreground">
-                  {alt.label}
-                </p>
-                <p className="line-clamp-2 text-2xs leading-relaxed text-muted-foreground">
-                  {alt.prompt}
-                </p>
-              </Button>
+                <Button
+                  ariaLabel={`Generate ${alt.label}`}
+                  className="block w-full text-left"
+                  isDisabled={status === 'generating'}
+                  onClick={() => handleSelect(index)}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  <span className="mb-1 block text-xs font-semibold text-foreground">
+                    {alt.label}
+                  </span>
+                  <span className="line-clamp-2 text-2xs leading-relaxed text-muted-foreground">
+                    {alt.prompt}
+                  </span>
+                </Button>
+                <Button
+                  ariaLabel={`View full prompt for ${alt.label}`}
+                  className="mt-2 h-7 px-0 text-2xs"
+                  icon={<Expand className="size-3" />}
+                  isDisabled={status === 'generating'}
+                  label="View full prompt"
+                  onClick={() => handleViewPrompt(index)}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              </div>
             );
           })}
         </div>
@@ -181,7 +230,14 @@ export function IngredientAlternativesCard({
             </div>
             <div className="flex gap-2">
               <a
-                href={`/${isImage ? 'images' : 'videos'}/${resultId}`}
+                href={href(
+                  createLibraryAssetRoute(
+                    isImage
+                      ? IngredientCategory.IMAGE
+                      : IngredientCategory.VIDEO,
+                    resultId ?? undefined,
+                  ),
+                )}
                 className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 Open in Library
@@ -189,7 +245,7 @@ export function IngredientAlternativesCard({
               <Button
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
-                onClick={handleRetry}
+                onClick={handleReset}
                 className="flex-1"
               >
                 <RefreshCw className="size-3" />

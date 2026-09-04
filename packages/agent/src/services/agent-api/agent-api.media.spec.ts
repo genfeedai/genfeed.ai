@@ -123,16 +123,30 @@ describe('agent-api.media', () => {
   });
 
   it('generateIngredient targets images or videos by type', async () => {
-    mockOk({ id: 'ing-1', status: 'completed' });
-    await generateIngredient(makeApi(), 'image', { prompt: 'sunset' });
+    mockJsonApiResource(
+      {
+        cdnUrl: 'https://cdn.test/ing-1.png',
+        id: 'ing-1',
+        status: 'completed',
+      },
+      'ingredient',
+    );
+    await expect(
+      generateIngredient(makeApi(), 'image', { prompt: 'sunset' }),
+    ).resolves.toEqual({
+      id: 'ing-1',
+      url: 'https://cdn.test/ing-1.png',
+    });
     expect(lastRequest().url).toBe('http://api.test/images');
     expect(JSON.parse(lastRequest().body ?? '{}')).toMatchObject({
       prompt: 'sunset',
       waitForCompletion: true,
     });
 
-    mockOk({ id: 'ing-2', status: 'completed' });
-    await generateIngredient(makeApi(), 'video', { prompt: 'waves' });
+    mockJsonApiResource({ id: 'ing-2', status: 'completed' }, 'ingredient');
+    await expect(
+      generateIngredient(makeApi(), 'video', { prompt: 'waves' }),
+    ).resolves.toMatchObject({ id: 'ing-2' });
     expect(lastRequest().url).toBe('http://api.test/videos');
   });
 

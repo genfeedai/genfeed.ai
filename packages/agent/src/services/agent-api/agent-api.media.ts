@@ -157,7 +157,7 @@ export async function generateIngredient(
   signal?: AbortSignal,
 ): Promise<GenerateIngredientResult> {
   const endpoint = type === 'video' ? '/videos' : '/images';
-  return api.fetchJson<GenerateIngredientResult>(
+  const asset = await api.fetchResource<AgentGeneratedAsset>(
     `${api.config.baseUrl}${endpoint}`,
     {
       body: JSON.stringify({
@@ -168,7 +168,10 @@ export async function generateIngredient(
       signal,
     },
     'Generation failed',
+    'Failed to deserialize generated asset',
   );
+
+  return { id: asset.id, url: asset.url ?? asset.cdnUrl };
 }
 
 export async function cloneVoice(

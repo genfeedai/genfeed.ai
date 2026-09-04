@@ -66,7 +66,7 @@ export class CreditBalanceService {
     const client = tx ?? this.prisma;
     if (billingAccountId) {
       const shared = await client.creditBalance.findFirst({
-        where: { billingAccountId, isDeleted: false },
+        where: scopedWhere(organizationId, { billingAccountId }),
       });
       if (shared) {
         return shared;
@@ -92,7 +92,7 @@ export class CreditBalanceService {
     if (billingAccountId && !balance.billingAccountId) {
       return client.creditBalance.update({
         data: { billingAccountId },
-        where: { id: balance.id },
+        where: scopedWhere(organizationId, { id: balance.id }),
       });
     }
 
@@ -142,6 +142,7 @@ export class CreditBalanceService {
           "version" = "version" + 1,
           "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = ${balance.id}
+          AND "organizationId" = ${organizationId}
           AND "isDeleted" = false
           AND "heldAmount" + ${heldDelta} >= 0
           AND ("balance" + ${balanceDelta}) - ("heldAmount" + ${heldDelta}) >= ${-maxOverdraftCredits}
@@ -163,7 +164,7 @@ export class CreditBalanceService {
     }
 
     const next = await client.creditBalance.findFirst({
-      where: { id: balance.id, isDeleted: false },
+      where: scopedWhere(organizationId, { id: balance.id }),
     });
     if (!next) {
       throw new BusinessLogicException(
@@ -195,7 +196,7 @@ export class CreditBalanceService {
       tx,
     );
     const next = await (tx ?? this.prisma).creditBalance.findFirst({
-      where: { id: snapshot.id, isDeleted: false },
+      where: scopedWhere(organizationId, { id: snapshot.id }),
     });
     if (!next) {
       throw new BusinessLogicException(

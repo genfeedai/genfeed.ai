@@ -514,6 +514,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     );
     const currentBalance = wallet.available;
     const newBalance = currentBalance + input.creditsToAdd;
+    const newSettledBalance = wallet.settled + input.creditsToAdd;
     const transactionOptions =
       input.options?.idempotencyKey ||
       input.options?.referenceId ||
@@ -537,7 +538,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
     await this.creditBalanceService.updateBalance(
       input.organizationId,
-      newBalance,
+      newSettledBalance,
       wallet.billingAccountId,
       tx,
     );
@@ -610,12 +611,12 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       const refundCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
-
         const newBalance = currentBalance + creditsToRefund;
+        const newSettledBalance = wallet.settled + creditsToRefund;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
-          newBalance,
+          newSettledBalance,
           wallet.billingAccountId,
           tx,
         );

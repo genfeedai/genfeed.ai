@@ -223,9 +223,19 @@ export class CreditsGuard implements CanActivate {
 
       // Hoisted model reference for BYOK provider resolution
       let resolvedModel: ModelDocument | null = null;
+      const deserializedBody = body as Record<string, unknown> | null;
+      const skipWhenBodyAttribute = creditsConfig.skipWhenBodyAttribute;
+      const shouldSkipCredits = Boolean(
+        skipWhenBodyAttribute &&
+          (deserializedBody?.[skipWhenBodyAttribute] === true ||
+            rawBody?.[skipWhenBodyAttribute] === true ||
+            rawAttributes?.[skipWhenBodyAttribute] === true),
+      );
 
       // Determine credits required: from model in body, modelKey in decorator, or fixed amount
-      if (modelKey) {
+      if (shouldSkipCredits) {
+        requiredCredits = 0;
+      } else if (modelKey) {
         const normalized = baseModelKey(modelKey);
         // Special handling for Replicate training model (trainer): credits scale with steps
         if (isTrainerKey(normalized)) {
@@ -549,6 +559,11 @@ export class CreditsGuard implements CanActivate {
           },
           HttpStatus.BAD_REQUEST,
         );
+      }
+
+      if (shouldSkipCredits) {
+        request.creditsConfig = { ...creditsConfig, amount: 0 };
+        return true;
       }
 
       // --- Per-provider BYOK bypass ---

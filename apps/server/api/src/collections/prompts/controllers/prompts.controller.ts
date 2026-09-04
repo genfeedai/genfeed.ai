@@ -127,6 +127,7 @@ export class PromptsController {
   @Credits({
     amount: 1,
     description: 'Prompt creation and enhancement using OpenRouter free',
+    skipWhenBodyAttribute: 'isSkipEnhancement',
     source: ActivitySource.PROMPT_CREATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -157,6 +158,7 @@ export class PromptsController {
       originalPrompt: createPromptDto.original,
     });
 
+    const isSkipEnhancement = createPromptDto.isSkipEnhancement === true;
     const enrichedDto = {
       ...createPromptDto,
       brandId: isEntityId(createPromptDto.brandId)
@@ -164,13 +166,22 @@ export class PromptsController {
         : undefined,
       category: normalizedType,
       organizationId: user.organizationId,
-      status: PromptStatus.PROCESSING,
+      enhanced: isSkipEnhancement
+        ? createPromptDto.original
+        : createPromptDto.enhanced,
+      status: isSkipEnhancement
+        ? PromptStatus.GENERATED
+        : PromptStatus.PROCESSING,
       userId: user.userId ?? user.id,
     } as CreatePromptDto;
 
     const data = await this.promptsService.create(enrichedDto, [
       { path: 'ingredients' },
     ]);
+
+    if (isSkipEnhancement) {
+      return serializeSingle(request, PromptSerializer, data);
+    }
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

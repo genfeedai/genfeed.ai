@@ -22,6 +22,8 @@ export interface CreditsConfig {
   amount?: number;
   modelKey?: string;
   description: string;
+  /** Boolean request-body attribute that makes this route non-billable. */
+  skipWhenBodyAttribute?: string;
   source?: ActivitySource;
   provider?: ByokProvider;
   isByokBypass?: boolean;

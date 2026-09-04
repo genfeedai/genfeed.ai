@@ -10,6 +10,23 @@ import {
 } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+const { openPromptModal } = vi.hoisted(() => ({
+  openPromptModal: vi.fn(),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    usePromptModal: () => ({ openPromptModal }),
+  }),
+);
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/default/default${path}`,
+  }),
+}));
+
 interface ApiOverrides {
   createPrompt?: ReturnType<typeof vi.fn>;
   generateIngredient?: ReturnType<typeof vi.fn>;
@@ -50,6 +67,10 @@ function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
 }
 
 describe('IngredientAlternativesCard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders the alternatives with labels and prompts', () => {
     render(
       <IngredientAlternativesCard
@@ -105,7 +126,7 @@ describe('IngredientAlternativesCard', () => {
     );
     expect(screen.getByText('Open in Library')).toHaveAttribute(
       'href',
-      '/images/gen-1',
+      '/default/default/library/images?asset=gen-1',
     );
   });
 
@@ -132,14 +153,41 @@ describe('IngredientAlternativesCard', () => {
     );
     expect(screen.getByText('Open in Library')).toHaveAttribute(
       'href',
-      '/videos/gen-2',
+      '/default/default/library/videos?asset=gen-2',
     );
   });
 
-  it('shows the error state with retry when generation fails', async () => {
+  it('opens the shared prompt modal without starting generation', () => {
+    const createPrompt = vi.fn();
+    render(
+      <IngredientAlternativesCard
+        action={makeAction()}
+        apiService={makeApiService({ createPrompt })}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'View full prompt for Bold colors',
+      }),
+    );
+
+    expect(openPromptModal).toHaveBeenCalledWith({
+      originalPrompt: 'A bold colorful poster',
+      onConfirm: expect.any(Function),
+    });
+    expect(createPrompt).not.toHaveBeenCalled();
+  });
+
+  it('retries the selected generation after an error', async () => {
     const generateIngredient = vi
       .fn()
-      .mockRejectedValue(new Error('generation blew up'));
+      .mockRejectedValueOnce(new Error('generation blew up'))
+      .mockResolvedValueOnce({
+        id: 'gen-retried',
+        status: 'completed',
+        url: 'https://cdn.test/gen-retried.png',
+      });
     render(
       <IngredientAlternativesCard
         action={makeAction()}
@@ -156,7 +204,13 @@ describe('IngredientAlternativesCard', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
-    expect(screen.queryByText(/generation blew up/i)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByAltText('Generated result')).toHaveAttribute(
+        'src',
+        'https://cdn.test/gen-retried.png',
+      ),
+    );
+    expect(generateIngredient).toHaveBeenCalledTimes(2);
   });
 
   it('Try Another resets back to the idle grid', async () => {

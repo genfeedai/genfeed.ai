@@ -168,6 +168,32 @@ describe('PromptsController', () => {
       );
       expect(result).toBeDefined();
     });
+
+    it('stores a skipped prompt as generated without calling the enhancement provider', async () => {
+      const createPromptDto: CreatePromptDto = {
+        category: PromptCategory.MODELS_PROMPT_IMAGE,
+        isSkipEnhancement: true,
+        original: 'Use this exact image prompt',
+      };
+      mockPromptsService.create.mockResolvedValue(mockPrompt);
+
+      const result = await controller.create(
+        mockReq,
+        createPromptDto,
+        mockUser,
+      );
+
+      expect(mockPromptsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          enhanced: createPromptDto.original,
+          isSkipEnhancement: true,
+          status: 'GENERATED',
+        }),
+        [{ path: 'ingredients' }],
+      );
+      expect(mockOpenRouterService.chatCompletion).not.toHaveBeenCalled();
+      expect(result).toBe(mockPrompt);
+    });
   });
 
   describe('findAll', () => {
