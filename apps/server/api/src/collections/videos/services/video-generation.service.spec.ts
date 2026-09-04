@@ -165,6 +165,9 @@ describe('VideoGenerationService', () => {
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
     };
+    const replicatePollQueueService = {
+      schedule: vi.fn().mockResolvedValue('poll-job-1'),
+    };
     const routerService = {
       getDefaultModel: vi.fn().mockResolvedValue(NON_BATCH_MODEL),
       selectModel: vi.fn(),
@@ -241,6 +244,7 @@ describe('VideoGenerationService', () => {
       loggerService,
       metadataService as never,
       providerDispatchService,
+      replicatePollQueueService as never,
       sharedService as never,
       videosService as never,
       websocketService as never,
@@ -279,6 +283,7 @@ describe('VideoGenerationService', () => {
       promptBuilderService,
       promptsService,
       replicateService,
+      replicatePollQueueService,
       service,
       sharedService,
       videosService,
@@ -656,7 +661,12 @@ describe('VideoGenerationService', () => {
 
   // Finding 5 — every batch placeholder gets its own indexed external id.
   it('patches an indexed external id onto every batch placeholder (finding 5)', async () => {
-    const { service, replicateService, metadataService } = createService();
+    const {
+      service,
+      replicateService,
+      replicatePollQueueService,
+      metadataService,
+    } = createService();
     replicateService.generateTextToVideo.mockResolvedValue('gen');
 
     await service.generateVideo(
@@ -671,6 +681,15 @@ describe('VideoGenerationService', () => {
     expect(externalIds).toContain('gen_0');
     expect(externalIds).toContain('gen_1');
     expect(externalIds).toContain('gen_2');
+    expect(replicatePollQueueService.schedule).toHaveBeenCalledTimes(3);
+    expect(replicatePollQueueService.schedule).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        externalId: 'gen',
+        ingredientId: 'ing-0',
+        outputIndex: 0,
+      }),
+    );
   });
 
   // Finding 6 — non-batch outputs are tracked before the call and fail on null.

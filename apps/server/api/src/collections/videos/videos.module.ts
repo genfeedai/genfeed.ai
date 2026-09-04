@@ -41,6 +41,7 @@ import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
@@ -104,6 +105,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     PromptBuilderModule,
     PromptsModule,
+    QueuesModule,
     ReplicateModule,
     RouterModule,
     VotesModule,

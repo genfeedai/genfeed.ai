@@ -15,6 +15,7 @@ export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 
 // ---------- Platform ----------
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
+export const REPLICATE_POLL_QUEUE = 'replicate-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 
 export const ALL_QUEUE_NAMES = [
@@ -23,6 +24,7 @@ export const ALL_QUEUE_NAMES = [
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  REPLICATE_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
 ] as const;
 
