@@ -248,7 +248,16 @@ export function useGenerationActionCard({
     setModelsLoading(true);
     setModelsError(null);
     apiService
-      .getModels(controller.signal)
+      .getModels(
+        {
+          category:
+            generationType === 'video'
+              ? ModelCategory.VIDEO
+              : ModelCategory.IMAGE,
+          organizationId,
+        },
+        controller.signal,
+      )
       .then((data) => {
         setModels(data);
         setModelsError(null);
@@ -269,7 +278,7 @@ export function useGenerationActionCard({
         }
       });
     return () => controller.abort();
-  }, [apiService, modelsReloadToken]);
+  }, [apiService, generationType, modelsReloadToken, organizationId]);
 
   const retryLoadModels = useCallback(
     () => setModelsReloadToken((token) => token + 1),

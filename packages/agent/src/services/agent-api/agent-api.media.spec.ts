@@ -19,6 +19,7 @@ import {
   uploadAttachment,
 } from '@genfeedai/agent/services/agent-api/agent-api.media';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
+import { ModelCategory } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeApi(): AgentBaseApiService {
@@ -41,13 +42,16 @@ describe('agent-api.media', () => {
   it('getModels fetches the active model catalog', async () => {
     mockJsonApiCollection([{ id: 'model-1', name: 'Test Model' }], 'model');
 
-    const result = await getModels(makeApi());
+    const result = await getModels(makeApi(), {
+      category: ModelCategory.IMAGE,
+      organizationId: 'org-1',
+    });
 
     expect(result).toEqual([
       expect.objectContaining({ id: 'model-1', name: 'Test Model' }),
     ]);
     expect(lastRequest().url).toContain(
-      'http://api.test/models?isActive=true&limit=',
+      'http://api.test/models?isActive=true&limit=100&category=image&organizationId=org-1',
     );
   });
 

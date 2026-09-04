@@ -12,6 +12,7 @@ export type {
   CredentialMentionItem,
   GenerateIngredientResult,
   GenerationModel,
+  GetGenerationModelsParams,
   ManualReviewBatchPayload,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,

@@ -196,6 +196,11 @@ function AgentChatInputToolbarInner({
   // duration / output UI is now owned by GenerationSetupCustomizePanel).
   const [registryModels, setRegistryModels] = useState<GenerationModel[]>([]);
 
+  const category =
+    activeGenerationType === 'video'
+      ? ModelCategory.VIDEO
+      : ModelCategory.IMAGE;
+
   useEffect(() => {
     if (!apiService) {
       setRegistryModels([]);
@@ -204,18 +209,13 @@ function AgentChatInputToolbarInner({
 
     const controller = new AbortController();
     apiService
-      .getModels(controller.signal)
+      .getModels({ category, organizationId }, controller.signal)
       .then(setRegistryModels)
       .catch(() => {
         if (!controller.signal.aborted) setRegistryModels([]);
       });
     return () => controller.abort();
-  }, [apiService]);
-
-  const category =
-    activeGenerationType === 'video'
-      ? ModelCategory.VIDEO
-      : ModelCategory.IMAGE;
+  }, [apiService, category, organizationId]);
   const filteredModels = useMemo(
     () =>
       resolveOrgAllowlistedModels(registryModels, {

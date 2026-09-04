@@ -1,3 +1,4 @@
+import type { ModelCategory } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
 export interface CredentialMentionItem {
@@ -41,6 +42,11 @@ export interface AgentInstallReadiness {
 }
 
 export type GenerationModel = IModel;
+
+export interface GetGenerationModelsParams {
+  category?: ModelCategory;
+  organizationId?: string;
+}
 
 export interface GenerateIngredientResult {
   id: string;
