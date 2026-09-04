@@ -7,7 +7,10 @@ import type { AnalyticsTopAccountsProps } from '@genfeedai/props/analytics/analy
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -25,12 +28,20 @@ export default function AnalyticsTopAccounts({
   const scope = useCollectionScope();
   const brandId = scope.brandId;
   const organizationId = organizationIdProp ?? scope.organizationId;
+  // The brand context resolves the org id asynchronously. Fetching before it
+  // lands puts `organizationId=` on the wire and the query DTO rejects it.
+  const isFetchReady =
+    Boolean(organizationIdProp) || isCollectionFetchReady(scope);
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
   const [accounts, setAccounts] = useState<IAccountAnalytics[]>([]);
 
   useEffect(() => {
+    if (!isFetchReady) {
+      return;
+    }
+
     const controller = new AbortController();
     void (async () => {
       try {
@@ -54,7 +65,7 @@ export default function AnalyticsTopAccounts({
       }
     })();
     return () => controller.abort();
-  }, [brandId, getService, organizationId]);
+  }, [brandId, getService, isFetchReady, organizationId]);
 
   if (accounts.length === 0) {
     return null;

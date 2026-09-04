@@ -11,7 +11,10 @@ import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
 import type {
   BrandPerformanceData,
@@ -169,6 +172,10 @@ export default function AnalyticsOrganizationOverview({
   const { isSignedIn } = useAuthIdentity();
   const scope = useCollectionScope();
   const organizationId = organizationIdProp ?? scope.organizationId;
+  // The brand context resolves the org id asynchronously. Fetching before it
+  // lands puts `organizationId=` on the wire and the query DTO rejects it.
+  const isFetchReady =
+    Boolean(organizationIdProp) || isCollectionFetchReady(scope);
   const router = useRouter();
   const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
@@ -193,7 +200,7 @@ export default function AnalyticsOrganizationOverview({
 
   useEffect(() => {
     const fetchBrandsData = async () => {
-      if (!isSignedIn) {
+      if (!isSignedIn || !isFetchReady) {
         return;
       }
       if (!dateRange.startDate || !dateRange.endDate) {
@@ -223,6 +230,7 @@ export default function AnalyticsOrganizationOverview({
     fetchBrandsData();
   }, [
     isSignedIn,
+    isFetchReady,
     dateRange,
     getAnalyticsService,
     endDate,
