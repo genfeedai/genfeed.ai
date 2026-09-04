@@ -1,5 +1,8 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  type PostCreateInput,
+  PostsService,
+} from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublishApprovalsService } from '@api/index';
 import {
@@ -26,6 +29,10 @@ type CronPostChild = {
   ingredients?: unknown[];
   label?: string;
   order?: number;
+};
+
+type ScheduleNextRepeatOptions = {
+  rethrowFailures?: boolean;
 };
 
 @Injectable()
@@ -61,7 +68,11 @@ export class PostRepeatSchedulerService implements OnModuleInit {
     );
   }
 
-  async scheduleNextRepeat(post: PostEntity, url: string): Promise<void> {
+  async scheduleNextRepeat(
+    post: PostEntity,
+    url: string,
+    options: ScheduleNextRepeatOptions = {},
+  ): Promise<void> {
     await this.materializeRecurrence(post);
     if (!post.isRepeat || !post.repeatFrequency) {
       return;
@@ -72,11 +83,10 @@ export class PostRepeatSchedulerService implements OnModuleInit {
       const nextRepeatCount = currentCount + 1;
       const maxRepeats = post.maxRepeats || 0;
 
-      await this.postsService.patch(post.id.toString(), {
-        repeatCount: nextRepeatCount,
-      });
-
       if (maxRepeats > 0 && nextRepeatCount >= maxRepeats) {
+        await this.postsService.patch(post.id.toString(), {
+          repeatCount: nextRepeatCount,
+        });
         this.logger.log(`${url} maximum repeats reached`, {
           maxRepeats,
           postId: post.id,
@@ -86,6 +96,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
       }
 
       if (post.repeatEndDate && new Date() >= new Date(post.repeatEndDate)) {
+        await this.postsService.patch(post.id.toString(), {
+          repeatCount: nextRepeatCount,
+        });
         this.logger.log(`${url} repeat end date reached`, {
           endDate: post.repeatEndDate,
           postId: post.id,
@@ -95,6 +108,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
 
       const nextDate = this.calculateNextScheduleDate(post);
       if (!nextDate) {
+        await this.postsService.patch(post.id.toString(), {
+          repeatCount: nextRepeatCount,
+        });
         this.logger.warn(`${url} unable to calculate next schedule date`, {
           postId: post.id,
         });
@@ -112,6 +128,8 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         );
       }
       const timezone = post.timezone;
+      const sourcePostId = post.id.toString();
+      const occurrenceKey = `legacy-repeat:${sourcePostId}:${nextRepeatCount}`;
 
       const postData = {
         ...(post.agentThreadId
@@ -130,6 +148,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         label: post.label,
         maxRepeats: post.maxRepeats,
         organizationId,
+        originalPostId: sourcePostId,
         platform: post.platform ?? undefined,
         repeatCount: nextRepeatCount,
         repeatDaysOfWeek: post.repeatDaysOfWeek,
@@ -138,13 +157,18 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         repeatInterval: post.repeatInterval,
         scheduledDate: nextDate,
         targetExecutionState: TargetExecutionState.SCHEDULED,
+        targetIdempotencyKey: occurrenceKey,
         tags: post.tags,
         ...(timezone ? { timezone } : {}),
         userId: actorUserId,
         visibility: resolvePostVisibility(post.visibility),
       };
 
-      const newPost = await this.postsService.create(postData);
+      const newPost = await this.findOrCreateRepeatPost(
+        organizationId,
+        occurrenceKey,
+        postData,
+      );
       const newPostId = newPost.id.toString();
 
       await this.publishApprovalsService.createForCurrentPost({
@@ -154,7 +178,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         postId: newPostId,
         provenance: {
           occurrenceIndex: nextRepeatCount,
-          sourcePostId: post.id.toString(),
+          sourcePostId,
           surface: 'legacy-repeat',
         },
       });
@@ -167,8 +191,13 @@ export class PostRepeatSchedulerService implements OnModuleInit {
           post,
           nextDate,
           url,
+          nextRepeatCount,
         );
       }
+
+      await this.postsService.patch(post.id.toString(), {
+        repeatCount: nextRepeatCount,
+      });
 
       this.logger.log(`${url} scheduled next repeat post`, {
         childrenCloned: children.length,
@@ -182,7 +211,51 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         error,
         postId: post.id,
       });
+      if (options.rethrowFailures) {
+        throw error;
+      }
     }
+  }
+
+  private async findOrCreateRepeatPost(
+    organizationId: string,
+    targetIdempotencyKey: string,
+    postData: PostCreateInput,
+  ): Promise<Pick<PostEntity, 'id'>> {
+    const existing = await this.postsService.findOne({
+      isDeleted: false,
+      organizationId,
+      targetIdempotencyKey,
+    });
+    if (existing) {
+      return existing;
+    }
+
+    try {
+      return await this.postsService.create(postData);
+    } catch (error: unknown) {
+      if (!this.isUniqueConflict(error)) {
+        throw error;
+      }
+      const concurrent = await this.postsService.findOne({
+        isDeleted: false,
+        organizationId,
+        targetIdempotencyKey,
+      });
+      if (!concurrent) {
+        throw error;
+      }
+      return concurrent;
+    }
+  }
+
+  private isUniqueConflict(error: unknown): boolean {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   async materializeRecurrence(post: PostEntity): Promise<void> {
@@ -220,8 +293,10 @@ export class PostRepeatSchedulerService implements OnModuleInit {
     originalParent: PostEntity,
     newScheduledDate: Date,
     url: string,
+    nextRepeatCount: number,
   ): Promise<void> {
-    for (const child of children) {
+    let firstError: unknown;
+    for (const [index, child] of children.entries()) {
       try {
         const ingredientIds = (child.ingredients || [])
           .map((ingredient: unknown) =>
@@ -235,37 +310,56 @@ export class PostRepeatSchedulerService implements OnModuleInit {
           continue;
         }
 
-        await this.postsService.create({
-          ...(originalParent.agentThreadId
-            ? {
-                agentContextSource: originalParent.agentContextSource,
-                agentContextVersion: originalParent.agentContextVersion,
-                agentThreadId: originalParent.agentThreadId,
-              }
-            : {}),
-          brandId: originalParent.brandId,
-          category:
-            (child.category as PostCategory | undefined) || PostCategory.TEXT,
-          credentialId: originalParent.credentialId,
-          description: child.description || '',
-          ingredients: ingredientIds,
-          label: child.label || '',
-          order: child.order || 0,
-          organizationId: originalParent.organizationId,
-          parentId: newParentId,
-          platform: originalParent.platform,
-          scheduledDate: newScheduledDate,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-          userId: originalParent.userId,
-          visibility: resolvePostVisibility(originalParent.visibility),
-        });
+        const organizationId = originalParent.organizationId;
+        if (!organizationId) {
+          continue;
+        }
+        const childIdentity = String(child.id ?? child.order ?? index);
+        const targetIdempotencyKey = `legacy-repeat-child:${originalParent.id}:${nextRepeatCount}:${childIdentity}`;
+        await this.findOrCreateRepeatPost(
+          organizationId,
+          targetIdempotencyKey,
+          {
+            ...(originalParent.agentThreadId
+              ? {
+                  agentContextSource: originalParent.agentContextSource,
+                  agentContextVersion: originalParent.agentContextVersion,
+                  agentThreadId: originalParent.agentThreadId,
+                }
+              : {}),
+            brandId: originalParent.brandId,
+            category:
+              (child.category as PostCategory | undefined) || PostCategory.TEXT,
+            credentialId: originalParent.credentialId,
+            description: child.description || '',
+            ingredients: ingredientIds,
+            label: child.label || '',
+            order: child.order || 0,
+            originalPostId: String(child.id ?? originalParent.id),
+            organizationId: originalParent.organizationId,
+            parentId: newParentId,
+            platform: originalParent.platform,
+            scheduledDate: newScheduledDate,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            targetIdempotencyKey,
+            userId: originalParent.userId,
+            visibility: resolvePostVisibility(originalParent.visibility),
+          },
+        );
       } catch (error: unknown) {
+        if (firstError === undefined) {
+          firstError = error;
+        }
         this.logger.error(`${url} failed to clone child for repeat`, {
           error: getErrorMessage(error, { fallback: () => undefined }),
           newParentId,
           originalChildId: String(child.id),
         });
       }
+    }
+
+    if (firstError !== undefined) {
+      throw firstError;
     }
   }
 

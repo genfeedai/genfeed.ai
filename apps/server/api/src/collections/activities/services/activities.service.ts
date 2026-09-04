@@ -24,6 +24,7 @@ type ActivityMutationInput = Partial<CreateActivityDto> &
   Partial<UpdateActivityDto> & {
     action?: string | null;
     data?: Record<string, unknown>;
+    id?: string;
   };
 
 @Injectable()
@@ -105,6 +106,7 @@ export class ActivitiesService extends BaseService<
       entityModel: input.entityModel ?? existing?.entityModel ?? null,
       organizationId: input.organizationId ?? existing?.organizationId ?? null,
       userId: input.userId ?? existing?.userId ?? null,
+      ...(input.id ? { id: input.id } : {}),
     };
 
     if (Object.keys(trustedData).length > 0) {

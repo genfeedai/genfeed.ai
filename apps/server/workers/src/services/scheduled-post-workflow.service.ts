@@ -19,7 +19,9 @@ import {
   PublishApprovalStatus,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -43,6 +45,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     private readonly executionGuard: ScheduledPostExecutionGuardService,
     private readonly logger: LoggerService,
     private readonly publishApprovalsService: PublishApprovalsService,
+    private readonly prisma: PrismaService,
     private readonly repeatScheduler: PostRepeatSchedulerService,
     private readonly runner: SystemWorkflowRunnerService,
   ) {}
@@ -152,9 +155,9 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
    * Safe to call from both the synchronous publish path (`finalize()` above)
    * and asynchronous confirmation paths, such as the TikTok status cron
    * transitioning a post out of PUBLISHING once TikTok reports it live.
-   * Idempotency is the caller's responsibility: callers must only invoke
-   * this once per post, guarded on a state transition that itself only
-   * succeeds once (see `SchedulerPublishStateService`'s prior-state guard).
+   * The synchronous path uses deterministic activity and recurrence identities.
+   * Asynchronous confirmation additionally persists a transactional outbox row
+   * and retries each incomplete finalization stage.
    */
   async finalizePublishedPost(
     post: PostEntity,
@@ -168,19 +171,121 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     ) {
       return;
     }
-    await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: readPostString(post, ['brandId']) ?? undefined,
-        entityId: post.id,
-        entityModel: ActivityEntityModel.POST,
-        key: ActivityKey.POST_PUBLISHED,
-        organizationId: readPostString(post, ['organizationId']) ?? undefined,
-        source: ActivitySource.POST,
-        userId: readPostString(post, ['userId']) ?? undefined,
-        value: `Published to ${result.platform}: ${result.url}`,
-      }),
+    await this.ensurePublishedActivity(post, result);
+    await this.repeatScheduler.scheduleNextRepeat(post, source, {
+      rethrowFailures: true,
+    });
+  }
+
+  async processPendingPublishedFinalization(
+    post: PostEntity,
+  ): Promise<boolean> {
+    const organizationId = readPostString(post, ['organizationId']);
+    if (!organizationId) {
+      throw new Error('Published finalization requires an organization.');
+    }
+    const finalization = await this.prisma.postPublishFinalization.findUnique({
+      where: {
+        organizationId_postId: {
+          organizationId,
+          postId: post.id.toString(),
+        },
+      },
+    });
+    if (!finalization || finalization.completedAt) {
+      return false;
+    }
+
+    try {
+      const result = this.readPublishResult(finalization.result);
+      if (!finalization.activityCompletedAt) {
+        await this.ensurePublishedActivity(post, result);
+        await this.prisma.postPublishFinalization.updateMany({
+          data: {
+            activityCompletedAt: new Date(),
+            lastError: Prisma.JsonNull,
+          },
+          where: { activityCompletedAt: null, id: finalization.id },
+        });
+      }
+      if (!finalization.recurrenceCompletedAt) {
+        await this.repeatScheduler.scheduleNextRepeat(
+          post,
+          finalization.source,
+          {
+            rethrowFailures: true,
+          },
+        );
+        await this.prisma.postPublishFinalization.updateMany({
+          data: {
+            lastError: Prisma.JsonNull,
+            recurrenceCompletedAt: new Date(),
+          },
+          where: { id: finalization.id, recurrenceCompletedAt: null },
+        });
+      }
+      await this.prisma.postPublishFinalization.updateMany({
+        data: { completedAt: new Date(), lastError: Prisma.JsonNull },
+        where: { completedAt: null, id: finalization.id },
+      });
+      return true;
+    } catch (error: unknown) {
+      await this.prisma.postPublishFinalization.updateMany({
+        data: {
+          attempts: { increment: 1 },
+          lastError: {
+            message: getErrorMessage(error, {
+              fallback: () => 'Published finalization failed',
+            }),
+          },
+        },
+        where: { id: finalization.id },
+      });
+      throw error;
+    }
+  }
+
+  private async ensurePublishedActivity(
+    post: PostEntity,
+    result: PublishResult,
+  ): Promise<void> {
+    const activityId = `post-published:${post.id}`;
+    const existing = await this.activitiesService.findOne({
+      id: activityId,
+      isDeleted: false,
+    });
+    if (existing) {
+      return;
+    }
+
+    try {
+      await this.activitiesService.create(
+        new ActivityEntity({
+          id: activityId,
+          brandId: readPostString(post, ['brandId']) ?? undefined,
+          entityId: post.id,
+          entityModel: ActivityEntityModel.POST,
+          key: ActivityKey.POST_PUBLISHED,
+          organizationId: readPostString(post, ['organizationId']) ?? undefined,
+          source: ActivitySource.POST,
+          userId: readPostString(post, ['userId']) ?? undefined,
+          value: `Published to ${result.platform}: ${result.url}`,
+        }),
+      );
+    } catch (error: unknown) {
+      if (!this.isUniqueConflict(error)) {
+        throw error;
+      }
+    }
+  }
+
+  private isUniqueConflict(error: unknown): boolean {
+    return (
+      error !== null &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'P2002'
     );
-    await this.repeatScheduler.scheduleNextRepeat(post, source);
   }
 
   private async fail(

@@ -6,11 +6,7 @@ import {
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
-import {
-  type PublishResult,
-  SERVER_TOKENS,
-  type ServerCredentialStore,
-} from '@api/index';
+import { SERVER_TOKENS, type ServerCredentialStore } from '@api/index';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
@@ -49,6 +45,7 @@ type TiktokPost = PostEntity & {
     externalHandle?: string | null;
     isConnected?: boolean;
   };
+  publishFinalizations?: Array<{ id: string }>;
 };
 
 const TIKTOK_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
@@ -164,12 +161,25 @@ export class CronTiktokStatusService implements OnModuleInit {
     );
     const posts = (await this.postsService.findAll(
       {
-        include: { credential: true },
+        include: {
+          credential: true,
+          publishFinalizations: {
+            select: { id: true },
+            where: { completedAt: null },
+          },
+        },
         where: {
           externalId: { not: null },
           isDeleted: false,
+          OR: [
+            { targetExecutionState: TargetExecutionState.PUBLISHING },
+            {
+              publishFinalizations: {
+                some: { completedAt: null },
+              },
+            },
+          ],
           platform: CredentialPlatform.TIKTOK,
-          targetExecutionState: TargetExecutionState.PUBLISHING,
         },
       },
       { customLabels, limit: 50 },
@@ -180,6 +190,7 @@ export class CronTiktokStatusService implements OnModuleInit {
         now: now.toISOString(),
         organizationId: post.organizationId,
         postId: String(post.id),
+        finalizationPending: (post.publishFinalizations?.length ?? 0) > 0,
       })),
     };
   }
@@ -445,24 +456,9 @@ export class CronTiktokStatusService implements OnModuleInit {
       post,
     );
 
-    // The transition guard (SchedulerPublishStateService, PUBLISHING ->
-    // PUBLISHED via a Serializable transaction) only reports `transitioned`
-    // once per post: a stale or repeat transition returns false. That makes
-    // it the idempotency marker for finalize - no separate "already
-    // finalized" flag is needed.
-    if (outcome === 'published' && transitioned) {
-      const result: PublishResult = {
-        executionState: TargetExecutionState.PUBLISHED,
-        externalId: String(transitionInput.externalPostId ?? ''),
-        isProviderDraft: false,
-        platform: CredentialPlatform.TIKTOK,
-        success: true,
-        url: String(transitionInput.postUrl ?? ''),
-      };
-      await this.scheduledPostWorkflowService.finalizePublishedPost(
+    if (outcome === 'published') {
+      await this.scheduledPostWorkflowService.processPendingPublishedFinalization(
         post,
-        result,
-        'CronTiktokStatusService.applyStatusTransition',
       );
     }
 
@@ -481,6 +477,12 @@ export class CronTiktokStatusService implements OnModuleInit {
     )) as TiktokPost | null;
     if (!post) {
       throw new Error(`TikTok reconciliation post ${postId} not found`);
+    }
+
+    if (input.finalizationPending === true) {
+      return this.scheduledPostWorkflowService.processPendingPublishedFinalization(
+        post,
+      );
     }
 
     const now = new Date(String(input.now ?? ''));
@@ -544,6 +546,19 @@ export class CronTiktokStatusService implements OnModuleInit {
         expectedWorkflowExecutionId: provenance.executionId,
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
+      isPublished
+        ? {
+            result: {
+              executionState: TargetExecutionState.PUBLISHED,
+              externalId: String(input.externalPostId ?? ''),
+              isProviderDraft: false,
+              platform: CredentialPlatform.TIKTOK,
+              success: true,
+              url: String(input.postUrl ?? ''),
+            },
+            source: 'CronTiktokStatusService.applyStatusTransition',
+          }
+        : undefined,
     );
     if (!grouped) {
       this.logger.warn('Ignored stale TikTok status transition', {

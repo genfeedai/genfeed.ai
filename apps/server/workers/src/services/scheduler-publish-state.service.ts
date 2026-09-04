@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -30,6 +31,11 @@ export type SchedulerPublishTransitionGuard = {
   priorExecutionStates?: readonly TargetExecutionState[];
 };
 
+export type SchedulerPublishFinalizationInput = {
+  result: Prisma.InputJsonValue;
+  source: string;
+};
+
 export type SchedulerPublishPostIdentity = {
   groupId?: unknown;
   id: unknown;
@@ -37,6 +43,7 @@ export type SchedulerPublishPostIdentity = {
 };
 
 type SchedulerPublishStateInput = {
+  finalization?: SchedulerPublishFinalizationInput;
   groupId?: string;
   guard?: SchedulerPublishTransitionGuard;
   organizationId: string;
@@ -64,6 +71,7 @@ export class SchedulerPublishStateService {
     update: SchedulerPublishTargetUpdate,
     reason?: string,
     guard?: SchedulerPublishTransitionGuard,
+    finalization?: SchedulerPublishFinalizationInput,
   ): Promise<boolean> {
     const groupId = this.readIdentifier(post.groupId);
     const organizationId = this.readIdentifier(post.organizationId);
@@ -74,6 +82,7 @@ export class SchedulerPublishStateService {
 
     return this.transition({
       groupId,
+      finalization,
       guard,
       organizationId,
       postId,
@@ -138,6 +147,17 @@ export class SchedulerPublishStateService {
                 },
               );
               return false;
+            }
+
+            if (input.finalization) {
+              await tx.postPublishFinalization.create({
+                data: {
+                  organizationId: input.organizationId,
+                  postId: input.postId,
+                  result: input.finalization.result,
+                  source: input.finalization.source,
+                },
+              });
             }
 
             if (!input.groupId) {

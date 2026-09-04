@@ -59,7 +59,7 @@ function createHarness() {
   };
   const schedulerPublishStateService = { transitionPost: vi.fn() };
   const scheduledPostWorkflowService = {
-    finalizePublishedPost: vi.fn().mockResolvedValue(undefined),
+    processPendingPublishedFinalization: vi.fn().mockResolvedValue(true),
   };
 
   const service = new CronTiktokStatusService(
@@ -159,23 +159,23 @@ describe('CronTiktokStatusService', () => {
       expect.objectContaining({
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       }),
+      expect.objectContaining({
+        result: expect.objectContaining({
+          executionState: TargetExecutionState.PUBLISHED,
+          externalId: 'tiktok-post-1',
+          isProviderDraft: false,
+          platform: CredentialPlatform.TIKTOK,
+          success: true,
+        }),
+        source: 'CronTiktokStatusService.applyStatusTransition',
+      }),
     );
     expect(
-      harness.scheduledPostWorkflowService.finalizePublishedPost,
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
     ).toHaveBeenCalledOnce();
     expect(
-      harness.scheduledPostWorkflowService.finalizePublishedPost,
-    ).toHaveBeenCalledWith(
-      post,
-      expect.objectContaining({
-        executionState: TargetExecutionState.PUBLISHED,
-        externalId: 'tiktok-post-1',
-        isProviderDraft: false,
-        platform: CredentialPlatform.TIKTOK,
-        success: true,
-      }),
-      'CronTiktokStatusService.applyStatusTransition',
-    );
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
+    ).toHaveBeenCalledWith(post);
     expect(
       harness.publishEventWebhookService.emitLegacyPostPublished,
     ).toHaveBeenCalledOnce();
@@ -201,9 +201,10 @@ describe('CronTiktokStatusService', () => {
       expect.objectContaining({
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       }),
+      undefined,
     );
     expect(
-      harness.scheduledPostWorkflowService.finalizePublishedPost,
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
     ).not.toHaveBeenCalled();
     expect(
       harness.publishEventWebhookService.emitLegacyPostFailed,
@@ -213,7 +214,7 @@ describe('CronTiktokStatusService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('does not double-finalize when the confirmation is reconciled twice', async () => {
+  it('reprocesses the durable finalization when confirmation is reconciled twice', async () => {
     const harness = createHarness();
     const post = makeTiktokPost();
     harness.postsService.findOne.mockResolvedValue(post);
@@ -232,8 +233,8 @@ describe('CronTiktokStatusService', () => {
       harness.schedulerPublishStateService.transitionPost,
     ).toHaveBeenCalledTimes(2);
     expect(
-      harness.scheduledPostWorkflowService.finalizePublishedPost,
-    ).toHaveBeenCalledTimes(1);
+      harness.scheduledPostWorkflowService.processPendingPublishedFinalization,
+    ).toHaveBeenCalledTimes(2);
     expect(
       harness.publishEventWebhookService.emitLegacyPostPublished,
     ).toHaveBeenCalledTimes(1);

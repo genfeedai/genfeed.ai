@@ -78,6 +78,22 @@ describe('ActivitiesService action origin', () => {
     });
   });
 
+  it('preserves a deterministic activity identity', async () => {
+    const { activity, service } = makeService();
+
+    await service.create({
+      id: 'post-published:post-1',
+      key: ActivityKey.POST_PUBLISHED,
+      organizationId: 'org-1',
+      source: ActivitySource.POST,
+      userId: 'user-1',
+    } as never);
+
+    expect(activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ id: 'post-published:post-1' }),
+    });
+  });
+
   it('exposes legacy records with explicit unknown origin', async () => {
     const { activity, service } = makeService();
     activity.findFirst.mockResolvedValue({
