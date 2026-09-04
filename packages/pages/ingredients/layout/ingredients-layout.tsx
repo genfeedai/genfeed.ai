@@ -3,6 +3,7 @@
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IFilters,
   IFiltersState,
@@ -30,10 +31,8 @@ export default function IngredientsLayout({
     handleRefresh,
     handleUpload,
     headerMeta,
-    ingredientType,
     isRefreshing,
     setHeaderMeta,
-    setIngredientType,
   } = useIngredientsLayout({ scope, defaultType });
 
   const description = headerMeta ? (
@@ -66,14 +65,27 @@ export default function IngredientsLayout({
           {...(hideTypeTabs
             ? {}
             : {
-                activeTab: ingredientType,
-                onTabChange: setIngredientType,
-                tabs: [
-                  { id: 'videos', label: 'Videos' },
-                  { id: 'images', label: 'Images' },
-                  { id: 'gifs', label: 'GIFs' },
-                  { id: 'musics', label: 'Music' },
-                ],
+                headerTabs: {
+                  fullWidth: false,
+                  tabs: [
+                    {
+                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/videos`,
+                      label: 'Videos',
+                    },
+                    {
+                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/images`,
+                      label: 'Images',
+                    },
+                    {
+                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/gifs`,
+                      label: 'GIFs',
+                    },
+                    {
+                      href: `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/musics`,
+                      label: 'Music',
+                    },
+                  ],
+                },
               })}
           right={
             <IngredientsLayoutToolbar
