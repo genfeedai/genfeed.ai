@@ -327,7 +327,10 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       },
       {
         provide: ActivitiesService,
-        useValue: { create: vi.fn().mockResolvedValue(undefined) },
+        useValue: {
+          create: vi.fn().mockResolvedValue(undefined),
+          findOne: vi.fn().mockResolvedValue(null),
+        },
       },
       {
         provide: AgentScopeContextService,
