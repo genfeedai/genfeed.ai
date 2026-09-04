@@ -18,11 +18,11 @@ base_url = "https://genfeed.ai"
 
 # Source pointers in docs use GitHub blob/master URLs so they stay clickable
 # on the docs site. During a path-move PR those URLs 404 against live master
-# even when the file exists on the branch. Remap them to the working tree so
-# lychee checks the file is in the repo at that path.
-remap = [
-  "https://github.com/genfeedai/genfeed.ai/blob/master .",
-]
+# even when the file exists on the branch, so they are remapped onto the
+# checked-out tree. lychee requires the remap target to be an absolute URL
+# (a bare "." is rejected as "Invalid remap pattern"), and only the workflow
+# knows the runner path, so that rule is passed as `--remap` with a
+# `file://<workspace>` target in .github/workflows/link-check.yml.
 
 # Cache results between runs to cut external requests and flake.
 cache = true

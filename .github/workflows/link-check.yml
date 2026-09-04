@@ -134,6 +134,7 @@ jobs:
         with:
           args: >-
             --config lychee.toml
+            --remap 'https://github.com/genfeedai/genfeed.ai/blob/master file://${{ github.workspace }}'
             'apps/docs/content/**/*.md'
             'apps/docs/content/**/*.mdx'
             'README.md'
