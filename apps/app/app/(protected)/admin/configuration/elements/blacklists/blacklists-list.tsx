@@ -84,6 +84,7 @@ function blacklistsReducer(
 }
 
 function BlacklistsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -248,6 +249,8 @@ function BlacklistsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
+          type: filters?.type || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -278,6 +281,8 @@ function BlacklistsListContent({
     },
     [
       currentPage,
+      filters?.search,
+      filters?.type,
       getBlacklistsService,
       notificationsService.error,
       notificationsService.success,

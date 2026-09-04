@@ -34,6 +34,7 @@ import {
 } from 'react';
 
 function LightingsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -114,12 +115,20 @@ function LightingsListContent({
     error: lightingsError,
     refetch: refreshLightings,
   } = useQuery({
-    queryKey: ['lightings', currentPage, scope, adminOrg, adminBrand],
+    queryKey: [
+      'lightings',
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+      filters?.search,
+    ],
     queryFn: async () => {
       const service = await getLightingsService();
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        search: filters?.search || undefined,
       };
 
       if (scope === PageScope.SUPERADMIN) {

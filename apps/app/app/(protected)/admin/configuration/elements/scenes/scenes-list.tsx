@@ -72,9 +72,11 @@ function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
 }
 
 function ScenesListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
+  onRefresh,
 }: IElementContentProps): ReactNode {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -171,6 +173,7 @@ function ScenesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -200,6 +203,7 @@ function ScenesListContent({
     },
     [
       currentPage,
+      filters?.search,
       getScenesService,
       notificationsService.error,
       notificationsService.success,
@@ -212,6 +216,12 @@ function ScenesListContent({
   useEffect(() => {
     findAllScenes();
   }, [findAllScenes]);
+
+  useEffect(() => {
+    if (onRefresh) {
+      return onRefresh(() => findAllScenes(true));
+    }
+  }, [onRefresh, findAllScenes]);
 
   function openSceneModal(modalId: ModalEnum, scene?: IElementScene): void {
     dispatch({ type: 'SET_SELECTED_SCENE', scene: scene ?? null });

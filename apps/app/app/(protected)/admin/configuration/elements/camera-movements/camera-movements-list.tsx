@@ -78,9 +78,11 @@ function cameraMovementsReducer(
 }
 
 function CameraMovementsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
+  onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -224,6 +226,7 @@ function CameraMovementsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -254,6 +257,7 @@ function CameraMovementsListContent({
     },
     [
       currentPage,
+      filters?.search,
       getCameraMovementsService,
       notificationsService.error,
       notificationsService.success,
@@ -267,6 +271,12 @@ function CameraMovementsListContent({
   useEffect(() => {
     findAllCameraMovements();
   }, [findAllCameraMovements]);
+
+  useEffect(() => {
+    if (onRefresh) {
+      return onRefresh(() => findAllCameraMovements(true));
+    }
+  }, [onRefresh, findAllCameraMovements]);
 
   const openCameraMovementModal = (
     modalId: ModalEnum,

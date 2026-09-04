@@ -65,6 +65,7 @@ function moodsListReducer(
 }
 
 function MoodsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -162,6 +163,7 @@ function MoodsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -191,6 +193,7 @@ function MoodsListContent({
     },
     [
       currentPage,
+      filters?.search,
       getMoodsService,
       notificationsService.error,
       notificationsService.success,

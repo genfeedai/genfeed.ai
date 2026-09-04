@@ -5,10 +5,11 @@ import { useElementsContext } from '@providers/elements/elements.context';
 import LensesList from './lenses-list';
 
 export default function LensesPage() {
-  const { onRefresh, setIsRefreshing } = useElementsContext();
+  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
 
   return (
     <LensesList
+      filters={filters}
       scope={PageScope.SUPERADMIN}
       onRefresh={onRefresh}
       onRefreshingChange={setIsRefreshing}

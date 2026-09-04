@@ -33,6 +33,7 @@ import {
 } from 'react';
 
 function LensesListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -123,13 +124,21 @@ function LensesListContent({
     error: lensesError,
     refetch: refreshLenses,
   } = useQuery({
-    queryKey: ['lenses', currentPage, scope, adminOrg, adminBrand],
+    queryKey: [
+      'lenses',
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+      filters?.search,
+    ],
     queryFn: async () => {
       const service = await getLensesService();
 
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        search: filters?.search || undefined,
       };
 
       if (scope === PageScope.SUPERADMIN) {

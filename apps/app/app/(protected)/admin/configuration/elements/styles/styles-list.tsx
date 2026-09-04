@@ -77,6 +77,7 @@ function stylesListReducer(
 }
 
 function StylesListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -217,6 +218,7 @@ function StylesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -247,6 +249,7 @@ function StylesListContent({
     },
     [
       currentPage,
+      filters?.search,
       getStylesService,
       notificationsService.error,
       notificationsService.success,

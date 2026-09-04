@@ -5,10 +5,11 @@ import { useElementsContext } from '@providers/elements/elements.context';
 import BlacklistsList from './blacklists-list';
 
 export default function BlacklistsPage() {
-  const { onRefresh, setIsRefreshing } = useElementsContext();
+  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
 
   return (
     <BlacklistsList
+      filters={filters}
       scope={PageScope.SUPERADMIN}
       onRefresh={onRefresh}
       onRefreshingChange={setIsRefreshing}
