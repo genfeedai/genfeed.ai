@@ -525,6 +525,7 @@ export function buildReport({
   ]);
   surfaces = surfaces.map((surface) =>
     surface.result === 'success' &&
+    surface.status === 'no-coverage' &&
     !hasChangedSurfaceCode(surface.name, changedFiles)
       ? { ...surface, status: 'no-changed-code' }
       : { ...surface },

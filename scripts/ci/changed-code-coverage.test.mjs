@@ -1029,7 +1029,7 @@ test('the workflow skips only empty scopes and retains real merge failures', () 
       name: 'other surface',
       file: 'packages/workflows/src/run.ts',
       mode: 'empty',
-      merged: false,
+      merged: true,
       exit: 0,
       status: 'no-changed-code',
     },
@@ -1037,9 +1037,18 @@ test('the workflow skips only empty scopes and retains real merge failures', () 
       name: 'test only',
       file: 'apps/server/api/src/run.test.ts',
       mode: 'empty',
-      merged: false,
+      merged: true,
       exit: 0,
       status: 'no-changed-code',
+    },
+    {
+      name: 'app covers changed package',
+      surface: 'app',
+      file: 'packages/workflows/src/run.ts',
+      mode: 'valid',
+      merged: true,
+      exit: 0,
+      status: 'reported',
     },
     {
       name: 'measured',
@@ -1078,13 +1087,15 @@ test('the workflow skips only empty scopes and retains real merge failures', () 
       exit: 1,
     },
   ]) {
+    const measuredSurface = scenario.surface ?? 'api';
+    const surfaceIndex = measuredSurface === 'api' ? 0 : 1;
     const root = mkdtempSync(path.join(tmpdir(), 'coverage-workflow-'));
     try {
       for (const directory of [
         'bin',
         'scripts/ci',
-        '.changed-coverage/api/shard-1',
-        'apps/server/api',
+        `.changed-coverage/${measuredSurface}/shard-1`,
+        measuredSurface === 'api' ? 'apps/server/api' : 'apps/app',
       ]) {
         mkdirSync(path.join(root, directory), { recursive: true });
       }
@@ -1099,11 +1110,14 @@ test('the workflow skips only empty scopes and retains real merge failures', () 
         );
       }
       writeFileSync(
-        path.join(root, '.changed-coverage/api/shard-1/outcome'),
+        path.join(root, `.changed-coverage/${measuredSurface}/shard-1/outcome`),
         'success',
       );
       writeFileSync(
-        path.join(root, '.changed-coverage/api/shard-1/blob-1.json'),
+        path.join(
+          root,
+          `.changed-coverage/${measuredSurface}/shard-1/blob-1.json`,
+        ),
         '{}',
       );
       writeFileSync(
@@ -1126,7 +1140,7 @@ if [ "$MODE" = failed ]; then exit 1; fi
 if [ "$MODE" = missing ]; then exit 0; fi
 mkdir -p coverage
 if [ "$MODE" = empty ]; then touch coverage/lcov.info; else
-  printf 'SF:apps/server/api/src/run.ts\nDA:1,1\nend_of_record\n' > coverage/lcov.info
+  printf 'SF:%s\nDA:1,1\nend_of_record\n' "$SOURCE_FILE" > coverage/lcov.info
 fi
 `,
         { mode: 0o755 },
@@ -1139,8 +1153,9 @@ fi
           PATH: `${root}/bin:${process.env.PATH}`,
           FIXTURE: root,
           MODE: scenario.mode,
-          APP_RESULT: 'skipped',
-          API_RESULT: 'success',
+          SOURCE_FILE: scenario.file,
+          APP_RESULT: measuredSurface === 'app' ? 'success' : 'skipped',
+          API_RESULT: measuredSurface === 'api' ? 'success' : 'skipped',
           CI_BASE_SHA: 'base',
           GITHUB_STEP_SUMMARY: '',
         },
@@ -1160,11 +1175,18 @@ fi
           readFileSync(path.join(root, 'changed-code-coverage.json'), 'utf8'),
         );
         assert.equal(
-          result.normalized.surfaces[0].status,
+          result.normalized.surfaces[surfaceIndex].status,
           scenario.status,
           scenario.name,
         );
-        assert.equal(result.normalized.surfaces[1].status, 'not-applicable');
+        assert.equal(
+          result.normalized.surfaces[1 - surfaceIndex].status,
+          'not-applicable',
+        );
+        if (scenario.mode === 'valid') {
+          assert.equal(result.normalized.totals.lines.measured, 1);
+          assert.equal(result.normalized.totals.lines.percent, 100);
+        }
       }
       if (scenario.name === 'empty LCOV') {
         assert.match(
@@ -1176,4 +1198,23 @@ fi
       rmSync(root, { recursive: true, force: true });
     }
   }
+});
+
+test('package-only changes retain coverage reported by the app surface', () => {
+  const built = report({
+    changedFiles: [['packages/workflows/src/run.ts', [1]]],
+    surfaces: [
+      surface(
+        'app',
+        'success',
+        'SF:packages/workflows/src/run.ts\nDA:1,1\nend_of_record\n',
+      ),
+      surface('api', 'success', ''),
+    ],
+  });
+  assert.equal(built.normalized.surfaces[0].status, 'no-changed-code');
+  assert.equal(built.normalized.surfaces[1].status, 'reported');
+  assert.equal(built.normalized.totals.lines.measured, 1);
+  assert.equal(built.normalized.totals.lines.percent, 100);
+  assert.equal(built.normalized.disposition, 'observation-only');
 });
