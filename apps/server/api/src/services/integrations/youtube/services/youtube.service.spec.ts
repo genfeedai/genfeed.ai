@@ -109,7 +109,7 @@ describe('YoutubeService', () => {
   });
 
   it('should delegate analytics operations', async () => {
-    await service.getMediaAnalytics('org', 'brand', 'vid');
+    await service.getMediaAnalytics('org', 'brand', 'vid', 'credential');
     expect(analyticsService.getMediaAnalytics).toHaveBeenCalled();
   });
 

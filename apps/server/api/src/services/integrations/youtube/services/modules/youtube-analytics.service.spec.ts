@@ -210,7 +210,12 @@ describe('YoutubeAnalyticsService', () => {
       },
     });
 
-    const result = await service.getMediaAnalytics('org-1', 'brand-1', 'vid-1');
+    const result = await service.getMediaAnalytics(
+      'org-1',
+      'brand-1',
+      'vid-1',
+      'credential-1',
+    );
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -227,21 +232,31 @@ describe('YoutubeAnalyticsService', () => {
     mockVideosList.mockResolvedValueOnce({ data: { items: [] } });
 
     await expect(
-      service.getMediaAnalytics('org-1', 'brand-1', 'vid-missing'),
+      service.getMediaAnalytics(
+        'org-1',
+        'brand-1',
+        'vid-missing',
+        'credential-1',
+      ),
     ).rejects.toThrow('Statistics not found');
   });
 
   // --- getMediaAnalyticsBatch ---
 
   it('should return empty map for empty videoIds array', async () => {
-    const result = await service.getMediaAnalyticsBatch('org-1', 'brand-1', []);
+    const result = await service.getMediaAnalyticsBatch(
+      'org-1',
+      'brand-1',
+      [],
+      'credential-1',
+    );
     expect(result.size).toBe(0);
   });
 
   it('should throw when more than 50 video IDs are provided', async () => {
     const ids = Array.from({ length: 51 }, (_, i) => `vid-${i}`);
     await expect(
-      service.getMediaAnalyticsBatch('org-1', 'brand-1', ids),
+      service.getMediaAnalyticsBatch('org-1', 'brand-1', ids, 'credential-1'),
     ).rejects.toThrow('YouTube API supports maximum 50 video IDs per request');
   });
 
@@ -264,9 +279,12 @@ describe('YoutubeAnalyticsService', () => {
       },
     });
 
-    const result = await service.getMediaAnalyticsBatch('org-1', 'brand-1', [
-      'short-vid',
-    ]);
+    const result = await service.getMediaAnalyticsBatch(
+      'org-1',
+      'brand-1',
+      ['short-vid'],
+      'credential-1',
+    );
     const stats = result.get('short-vid') as IYouTubeVideoStats;
     expect(stats.mediaType).toBe('short');
     expect(stats.duration).toBe(45);
@@ -291,9 +309,12 @@ describe('YoutubeAnalyticsService', () => {
       },
     });
 
-    const result = await service.getMediaAnalyticsBatch('org-1', 'brand-1', [
-      'long-vid',
-    ]);
+    const result = await service.getMediaAnalyticsBatch(
+      'org-1',
+      'brand-1',
+      ['long-vid'],
+      'credential-1',
+    );
     const stats = result.get('long-vid') as IYouTubeVideoStats;
     expect(stats.mediaType).toBe('video');
     expect(stats.duration).toBe(2 * 3600 + 15 * 60 + 10);
@@ -318,9 +339,12 @@ describe('YoutubeAnalyticsService', () => {
       },
     });
 
-    const result = await service.getMediaAnalyticsBatch('org-1', 'brand-1', [
-      'eng-vid',
-    ]);
+    const result = await service.getMediaAnalyticsBatch(
+      'org-1',
+      'brand-1',
+      ['eng-vid'],
+      'credential-1',
+    );
     const stats = result.get('eng-vid') as IYouTubeVideoStats;
     // engagement = (50 + 30 + 20) / 1000 * 100 = 10.00
     expect(stats.engagementRate).toBe(10);
@@ -351,9 +375,12 @@ describe('YoutubeAnalyticsService', () => {
       },
     });
 
-    const result = await service.getMediaAnalyticsBatch('org-1', 'brand-1', [
-      'valid',
-    ]);
+    const result = await service.getMediaAnalyticsBatch(
+      'org-1',
+      'brand-1',
+      ['valid'],
+      'credential-1',
+    );
     expect(result.size).toBe(1);
     expect(result.has('valid')).toBe(true);
   });
@@ -362,7 +389,12 @@ describe('YoutubeAnalyticsService', () => {
     mockVideosList.mockRejectedValueOnce(new Error('API rate limit'));
 
     await expect(
-      service.getMediaAnalyticsBatch('org-1', 'brand-1', ['vid-1']),
+      service.getMediaAnalyticsBatch(
+        'org-1',
+        'brand-1',
+        ['vid-1'],
+        'credential-1',
+      ),
     ).rejects.toThrow('API rate limit');
     expect(loggerService.error).toHaveBeenCalled();
   });

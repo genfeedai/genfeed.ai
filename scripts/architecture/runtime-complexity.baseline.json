@@ -78,7 +78,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1064,
+    "actual": 1029,
     "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/post-analytics.service.ts"

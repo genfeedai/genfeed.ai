@@ -3,6 +3,13 @@ import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-a
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
+import {
+  mapTikTokPostMetrics,
+  mapYouTubePostMetrics,
+  type TikTokPostMetrics,
+  type UpdateTodayAnalyticsMetrics,
+  type YouTubePostMetrics,
+} from '@api/collections/posts/services/post-analytics-platform-metrics';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
@@ -29,26 +36,6 @@ const CREDENTIAL_PLATFORM = {
   TWITTER: 'TWITTER' as CredentialPlatform,
   YOUTUBE: 'YOUTUBE' as CredentialPlatform,
 };
-
-interface UpdateTodayAnalyticsMetrics {
-  averageWatchTimeSeconds?: number | null;
-  clicks?: number | null;
-  credentialId?: string | null;
-  impressions?: number | null;
-  metricAvailability?: Record<string, string>;
-  reach?: number | null;
-  totalComments: number;
-  totalLikes: number;
-  totalSaves?: number;
-  totalShares?: number;
-  totalViews: number;
-  videoViews?: number | null;
-  watchTimeSeconds?: number | null;
-}
-
-function minutesToSeconds(value: number | null | undefined): number | null {
-  return value == null ? null : value * 60;
-}
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<
@@ -701,49 +688,14 @@ export class PostAnalyticsService extends BaseService<
    */
   async processYouTubeAnalytics(
     postId: string,
-    analytics: {
-      views: number;
-      likes: number;
-      comments: number;
-      dislikes?: number;
-      favorites?: number;
-      shares?: number;
-      estimatedMinutesWatched?: number;
-      averageViewDuration?: number;
-      averageViewPercentage?: number;
-      subscribersGained?: number;
-      subscribersLost?: number;
-      impressions?: number;
-      clickThroughRate?: number;
-      engagementRate?: number;
-      mediaType?: 'video' | 'short';
-      duration?: number;
-    },
+    analytics: YouTubePostMetrics,
   ): Promise<void> {
     try {
-      const averageWatchTimeSeconds = analytics.averageViewDuration ?? null;
-      const watchTimeSeconds = minutesToSeconds(
-        analytics.estimatedMinutesWatched,
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.YOUTUBE,
+        mapYouTubePostMetrics(analytics),
       );
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.YOUTUBE, {
-        averageWatchTimeSeconds,
-        impressions: analytics.impressions ?? null,
-        metricAvailability: {
-          averageWatchTimeSeconds:
-            averageWatchTimeSeconds === null ? 'unavailable' : 'observed',
-          impressions:
-            analytics.impressions == null ? 'unavailable' : 'observed',
-          videoViews: 'observed',
-          watchTimeSeconds:
-            watchTimeSeconds === null ? 'unavailable' : 'observed',
-        },
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalShares: analytics.shares || 0,
-        totalViews: analytics.views,
-        videoViews: analytics.views,
-        watchTimeSeconds,
-      });
 
       this.logger.log(`Updated YouTube analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -806,40 +758,14 @@ export class PostAnalyticsService extends BaseService<
    */
   async processTikTokAnalytics(
     postId: string,
-    analytics: {
-      views: number;
-      likes: number;
-      comments: number;
-      shares: number;
-      saves?: number;
-      totalPlayTime?: number;
-      averagePlayTime?: number;
-      reach?: number;
-      engagementRate?: number;
-    },
+    analytics: TikTokPostMetrics,
   ): Promise<void> {
     try {
-      const averageWatchTimeSeconds = analytics.averagePlayTime ?? null;
-      const watchTimeSeconds = analytics.totalPlayTime ?? null;
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TIKTOK, {
-        averageWatchTimeSeconds,
-        metricAvailability: {
-          averageWatchTimeSeconds:
-            averageWatchTimeSeconds === null ? 'unavailable' : 'observed',
-          reach: analytics.reach == null ? 'unavailable' : 'observed',
-          videoViews: 'observed',
-          watchTimeSeconds:
-            watchTimeSeconds === null ? 'unavailable' : 'observed',
-        },
-        reach: analytics.reach ?? null,
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalSaves: analytics.saves || 0,
-        totalShares: analytics.shares,
-        totalViews: analytics.views,
-        videoViews: analytics.views,
-        watchTimeSeconds,
-      });
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.TIKTOK,
+        mapTikTokPostMetrics(analytics),
+      );
 
       this.logger.log(`Updated TikTok analytics for post ${postId}`);
     } catch (error: unknown) {

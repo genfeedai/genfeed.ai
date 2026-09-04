@@ -751,6 +751,7 @@ describe('TiktokService', () => {
         testId('org'),
         testId('brand'),
         'v',
+        testId('credential'),
       );
 
       expect(httpService.get).toHaveBeenCalled();
