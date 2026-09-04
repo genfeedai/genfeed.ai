@@ -10,12 +10,9 @@ import type {
   IModel,
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  IFilters,
-  IFiltersState,
-} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { Model } from '@models/ai/model.model';
 import type { TableSortDirection } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
@@ -25,27 +22,21 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorHandler } from '@utils/error/error-handler.util';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildModelsTableColumns } from './components/ModelsTableColumns';
-import {
-  buildDefaultModelCards,
-  buildDefaultModelMap,
-} from './components/models-admin-header.helpers';
+import { buildModelCatalogOverviewCards } from './components/models-catalog-overview.helpers';
 
 export function useModelsList({
   type,
   category,
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
-  filters,
 }: {
   type?: string;
   category?: string;
   scope?: PageScope;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
-  filters?: IFiltersState;
-  onFiltersChange?: (filters: IFiltersState, query: IFilters) => void;
 }) {
   const { organizationId } = useBrand();
   const notificationsService = useMemo(
@@ -64,12 +55,16 @@ export function useModelsList({
   );
 
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { replace } = useRouter();
   const searchParamsString = searchParams?.toString() ?? '';
   const parsedSearchParams = useMemo(
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
   const currentPage = Number(searchParams?.get('page')) || 1;
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm.trim(), 250);
 
   const isAdminScope = scope === PageScope.SUPERADMIN;
 
@@ -151,8 +146,8 @@ export function useModelsList({
     if (isAdminScope && category) {
       return category === 'all' ? null : category;
     }
-    return categoryFromType || filters?.category;
-  }, [isAdminScope, category, categoryFromType, filters?.category]);
+    return categoryFromType;
+  }, [isAdminScope, category, categoryFromType]);
 
   // Fetch all system models with pagination
   const modelsQueryKey = [
@@ -162,6 +157,7 @@ export function useModelsList({
     isAdminScope,
     adminOrg,
     adminBrand,
+    debouncedSearchTerm,
     sortKey,
     sortDirection,
   ] as const;
@@ -190,12 +186,16 @@ export function useModelsList({
         query.category = categoryFilter;
       }
 
+      if (debouncedSearchTerm) {
+        query.search = debouncedSearchTerm;
+      }
+
       if (isAdminScope) {
         if (adminOrg) {
-          query.organization = adminOrg;
+          query.organizationId = adminOrg;
         }
         if (adminBrand) {
-          query.brand = adminBrand;
+          query.brandId = adminBrand;
         }
       }
 
@@ -224,46 +224,38 @@ export function useModelsList({
     await refetchModels();
   }, [refetchModels]);
 
-  // Fetch default models for admin cards
   const {
-    data: defaultModelsData = [],
-    isLoading: isLoadingDefaults,
-    error: defaultModelsError,
+    data: catalogModels = [],
+    isLoading: isLoadingCatalog,
+    error: catalogModelsError,
   } = useQuery<IModel[]>({
-    enabled: isAdminScope,
     queryFn: async () => {
+      const query: Record<string, unknown> = {
+        sort: 'label: 1',
+      };
       if (!isAdminScope) {
-        return [];
+        query.isActive = true;
+      }
+      if (isAdminScope && adminOrg) {
+        query.organizationId = adminOrg;
       }
       const service = await getModelsService();
-      // The cards filter isDefault client-side, so they need the whole
-      // catalog — HTTP list endpoints are always paginated, hence the walk.
-      const allModels: IModel[] = await service.findAllPages();
-      // Instantiate Model class for each item to enable getter methods
+      const allModels: IModel[] = await service.findAllPages(query);
       return allModels.map((m) => new Model(m));
     },
-    queryKey: ['studio-models-defaults'],
+    queryKey: ['studio-models-catalog-overview', isAdminScope, adminOrg],
   });
 
   useEffect(() => {
-    if (defaultModelsError instanceof Error) {
-      logger.error('Failed to load default models', defaultModelsError);
+    if (catalogModelsError instanceof Error) {
+      logger.error('Failed to load model catalog overview', catalogModelsError);
     }
-  }, [defaultModelsError]);
+  }, [catalogModelsError]);
 
-  // Process default models for admin cards
-  const defaultModels = useMemo(
+  const catalogOverviewCards = useMemo(
     () =>
-      isAdminScope && defaultModelsData
-        ? buildDefaultModelMap(defaultModelsData)
-        : {},
-    [isAdminScope, defaultModelsData],
-  );
-
-  // Transform default models to MetricCard tiles (admin only)
-  const defaultModelCards = useMemo(
-    () => (isAdminScope ? buildDefaultModelCards(defaultModels, category) : []),
-    [isAdminScope, category, defaultModels],
+      buildModelCatalogOverviewCards(catalogModels, category ?? type ?? 'all'),
+    [catalogModels, category, type],
   );
 
   // Mark component as mounted after first render
@@ -327,20 +319,21 @@ export function useModelsList({
     [isAdminScope, models, settings],
   );
 
-  const filteredModels = useMemo(() => {
-    if (!models) {
-      return [];
-    }
-    const searchTerm = filters?.search?.toLowerCase() || '';
-
-    return models.filter(
-      (m) =>
-        m.label?.toLowerCase().includes(searchTerm) ||
-        m.description?.toLowerCase().includes(searchTerm) ||
-        m.key?.toLowerCase().includes(searchTerm) ||
-        m.provider?.toLowerCase().includes(searchTerm),
-    );
-  }, [models, filters?.search]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchTerm(value);
+      if (currentPage === 1) {
+        return;
+      }
+      const params = new URLSearchParams(searchParamsString);
+      params.delete('page');
+      const queryString = params.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [currentPage, pathname, replace, searchParamsString],
+  );
 
   // Helper to check if a model is the only default in its category (admin only)
   const isOnlyDefaultInCategory = useCallback(
@@ -615,11 +608,12 @@ export function useModelsList({
     isAdminScope,
     adminOrg,
     adminBrand,
-    defaultModelCards,
-    isLoadingDefaults,
+    catalogOverviewCards,
+    isLoadingCatalog,
     isLoading,
     columns,
-    filteredModels,
+    models,
+    searchTerm,
     sortKey,
     sortDirection,
     selectedModel,
@@ -630,6 +624,7 @@ export function useModelsList({
     handleApproveRegistryModel,
     handleRejectRegistryModel,
     handleSortChange,
+    handleSearchChange,
     openConfirm,
   };
 }

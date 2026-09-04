@@ -291,6 +291,31 @@ describe('ModelsController', () => {
         },
       });
     });
+
+    it('should search model identity fields without replacing other filters', () => {
+      const query: ModelsQueryDto = {
+        isActive: true,
+        search: '  flux  ',
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result).toMatchObject({
+        where: {
+          AND: [
+            {
+              OR: [
+                { label: { contains: 'flux', mode: 'insensitive' } },
+                { key: { contains: 'flux', mode: 'insensitive' } },
+                { description: { contains: 'flux', mode: 'insensitive' } },
+              ],
+            },
+          ],
+          isActive: true,
+          isDeleted: false,
+        },
+      });
+    });
   });
 
   describe('getPopulateForOwnershipCheck', () => {

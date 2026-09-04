@@ -112,6 +112,19 @@ export class ModelsController extends BaseCRUDController<
       };
     }
 
+    if (query.search?.trim()) {
+      const search = query.search.trim();
+      matchConditions.AND = [
+        {
+          OR: [
+            { label: { contains: search, mode: 'insensitive' } },
+            { key: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ],
+        },
+      ];
+    }
+
     // Add category filter if provided
     if (query.category) {
       // Handle "other" category as a special case - match multiple categories
@@ -255,7 +268,9 @@ export class ModelsController extends BaseCRUDController<
       const enabledModelIds = organizationSettings?.enabledModelIds ?? [];
 
       if (enabledModelIds.length > 0) {
+        const existingAnd = Array.isArray(where.AND) ? where.AND : [];
         where.AND = [
+          ...existingAnd,
           {
             OR: [
               { id: { in: enabledModelIds } },

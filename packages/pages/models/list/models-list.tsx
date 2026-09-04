@@ -1,20 +1,17 @@
 'use client';
 
-import { ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import type {
-  IFilters,
-  IFiltersState,
-} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { TableAction } from '@props/ui/display/table.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ChangeEvent, useMemo } from 'react';
 
-import ModelsAdminHeader from './components/ModelsAdminHeader';
+import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
 
 export default function ModelsList({
@@ -22,22 +19,20 @@ export default function ModelsList({
   category,
   scope = PageScope.ORGANIZATION,
   onRefreshRegister,
-  filters,
 }: {
   type?: string;
   category?: string;
   scope?: PageScope;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
-  filters?: IFiltersState;
-  onFiltersChange?: (filters: IFiltersState, query: IFilters) => void;
 }) {
   const {
     isAdminScope,
-    defaultModelCards,
-    isLoadingDefaults,
+    catalogOverviewCards,
+    isLoadingCatalog,
     isLoading,
     columns,
-    filteredModels,
+    models,
+    searchTerm,
     sortKey,
     sortDirection,
     selectedModel,
@@ -48,13 +43,13 @@ export default function ModelsList({
     handleApproveRegistryModel,
     handleRejectRegistryModel,
     handleSortChange,
+    handleSearchChange,
     openConfirm,
   } = useModelsList({
     type,
     category,
     scope,
     onRefreshRegister,
-    filters,
   });
 
   // Actions - info button for all users, delete for admin only
@@ -130,12 +125,34 @@ export default function ModelsList({
 
   return (
     <>
-      {isAdminScope && (
-        <ModelsAdminHeader
-          defaultModelCards={defaultModelCards}
-          isLoadingDefaults={isLoadingDefaults}
-        />
-      )}
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">
+            Model catalog
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Compare available models by category, quality, and credit cost.
+          </p>
+        </div>
+        <div className="w-full sm:w-64">
+          <FormSearchbar
+            className="w-full"
+            inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              handleSearchChange(event.target.value)
+            }
+            onClear={() => handleSearchChange('')}
+            placeholder="Search models"
+            size={ComponentSize.SM}
+            value={searchTerm}
+          />
+        </div>
+      </div>
+
+      <ModelsCatalogOverview
+        cards={catalogOverviewCards}
+        isLoading={isLoadingCatalog}
+      />
 
       <AppTable<IModel>
         isLoading={isLoading}
@@ -158,7 +175,7 @@ export default function ModelsList({
             }}
           />
         }
-        items={filteredModels}
+        items={models}
         sortKey={sortKey}
         sortDirection={sortDirection}
         onSortChange={handleSortChange}

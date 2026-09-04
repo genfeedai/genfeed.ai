@@ -63,6 +63,7 @@ vi.mock('next/navigation', () => ({
 function buildModel(overrides: Partial<IModel> = {}): IModel {
   return {
     category: 'image',
+    cost: 1,
     id: 'model-1',
     isActive: true,
     isDeleted: false,
@@ -91,7 +92,7 @@ describe('ModelsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindAll.mockResolvedValue([buildModel()]);
-    mockFindAllPages.mockResolvedValue([]);
+    mockFindAllPages.mockResolvedValue([buildModel({ isDefault: true })]);
     mockOrganizationFindOne.mockResolvedValue({ settings: null });
   });
 
@@ -143,12 +144,27 @@ describe('ModelsList', () => {
     });
   });
 
-  it('does not render the admin header outside the superadmin scope', async () => {
+  it('renders the shared category overview outside the superadmin scope', async () => {
     renderModelsList();
 
     await waitFor(() => {
-      expect(screen.getByText('Flux Dev')).toBeInTheDocument();
+      expect(screen.getByText('Default: Flux Dev')).toBeInTheDocument();
     });
-    expect(screen.queryByText(/default models/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Model catalog')).toBeInTheDocument();
+    expect(screen.getByText('Image')).toBeInTheDocument();
+  });
+
+  it('searches the complete model catalog through the API', async () => {
+    renderModelsList();
+
+    fireEvent.change(screen.getByPlaceholderText('Search models'), {
+      target: { value: 'claude' },
+    });
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'claude' }),
+      );
+    });
   });
 });

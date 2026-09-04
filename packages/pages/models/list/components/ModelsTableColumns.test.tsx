@@ -95,11 +95,33 @@ describe('buildModelsTableColumns', () => {
     expect(screen.getByText('$$$')).toBeInTheDocument();
   });
 
-  it('renders an em dash when quality or cost is missing', () => {
+  it('labels an explicitly basic model without promoting it to premium', () => {
+    renderColumn('Quality', buildModel({ qualityTier: QualityTier.BASIC }));
+
+    expect(screen.getByText('Basic')).toBeInTheDocument();
+  });
+
+  it('renders canonical quality and exact credit cost when tiers are missing', () => {
     renderColumn('Quality', buildModel({ qualityTier: undefined }));
     renderColumn('Cost', buildModel({ costTier: undefined }));
 
-    expect(screen.getAllByText('—')).toHaveLength(2);
+    expect(screen.getByRole('meter', { name: 'Quality' })).toHaveAttribute(
+      'aria-valuenow',
+      '3',
+    );
+    expect(screen.getByText('Premium')).toBeInTheDocument();
+    expect(screen.getByText('1 credit')).toBeInTheDocument();
+  });
+
+  it('distinguishes a zero credit price from an explicitly free model', () => {
+    renderColumn('Cost', buildModel({ cost: 0, costTier: undefined }));
+    renderColumn(
+      'Cost',
+      buildModel({ cost: 0, costTier: undefined, isFree: true }),
+    );
+
+    expect(screen.getByText('0 credits')).toBeInTheDocument();
+    expect(screen.getByText('Free')).toBeInTheDocument();
   });
 
   it('opens model details from the label', () => {
