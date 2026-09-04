@@ -37,6 +37,36 @@ describe('analytics tenant scope', () => {
       });
     });
 
+    it('narrows a superadmin to the organization named on the request', () => {
+      expect(
+        resolveAnalyticsTenantScope({ ...member, isSuperAdmin: true }, {
+          query: { organizationId: 'org-2' },
+        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+      ).toEqual({
+        organizationId: 'org-2',
+        privilege: 'superadmin',
+      });
+    });
+
+    it('rejects a customer naming another organization', () => {
+      expect(() =>
+        resolveAnalyticsTenantScope(member, {
+          query: { organizationId: 'org-2' },
+        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+      ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+    });
+
+    it('lets a customer name their own organization', () => {
+      expect(
+        resolveAnalyticsTenantScope(member, {
+          query: { organizationId: 'org-1' },
+        } as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+      ).toEqual({
+        organizationId: 'org-1',
+        privilege: 'customer',
+      });
+    });
+
     it('rejects a customer without an organization before any read', () => {
       expect(() =>
         resolveAnalyticsTenantScope({
@@ -110,6 +140,19 @@ describe('analytics tenant scope', () => {
       expect(superadminKey).toBe(
         'analytics:growth:superadmin:all:2025-01-01:2025-01-31:brand-1',
       );
+    });
+
+    it('keys a narrowed superadmin read by the requested organization', () => {
+      expect(
+        buildAnalyticsCacheKey(
+          'brands',
+          {
+            query: { organizationId: 'org-2' },
+            user: { isSuperAdmin: true, organizationId: 'org-1' },
+          },
+          ['default', 'default'],
+        ),
+      ).toBe('analytics:brands:superadmin:org-2:default:default');
     });
 
     it('honors request-context superadmin over the user flag', () => {

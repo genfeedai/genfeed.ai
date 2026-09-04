@@ -7,7 +7,7 @@ import {
   AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
-  AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS,
+  AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS,
 } from './conversation-layout.constant';
 
 describe('conversation-layout.constant', () => {
@@ -19,8 +19,8 @@ describe('conversation-layout.constant', () => {
   });
 
   it('shares solid surface chrome without blur stack', () => {
-    expect(AGENT_CONVERSATION_SURFACE_CLASS).toContain('bg-tertiary');
-    expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('bg-card');
+    expect(AGENT_CONVERSATION_SURFACE_CLASS).toContain('bg-card');
+    expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('bg-tertiary');
     expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('backdrop-blur');
   });
 
@@ -29,23 +29,19 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_INLINE_ROW_CLASS).not.toContain('border');
   });
 
-  it('highlights the sticky user prompt as a tertiary card, not a You label', () => {
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('bg-tertiary');
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
-      'border-border-strong',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
-      'text-foreground',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('rounded-xl');
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('shadow-none');
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
-      'bg-transparent',
-    );
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('-mx-3');
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
+  it('bleeds the user prompt to the conversation track without owning card chrome', () => {
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).toContain('-mx-3');
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).toContain(
       'w-[calc(100%+1.5rem)]',
     );
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain(
+      'bg-card',
+    );
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain(
+      'rounded-xl',
+    );
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain('border');
+    expect(AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS).not.toContain('shadow');
   });
 
   it('keeps a masked spacing step above the sticky user prompt', () => {

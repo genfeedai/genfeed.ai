@@ -71,6 +71,59 @@ describe('GenerationSetupTrigger', () => {
     expect(button).toHaveClass('border-primary/30', 'bg-primary/5');
   });
 
+  it('labels the Studio Auto sentinel as Auto instead of the raw token', () => {
+    render(
+      <GenerationSetupTrigger
+        isOpen={false}
+        models={[]}
+        setup={createSetup({
+          values: {
+            aspectRatio: '1:1',
+            brandingMode: 'off',
+            isPromptEnhanceEnabled: false,
+            modelKey: '__auto_model__',
+            outputs: 1,
+            prioritize: RouterPriority.BALANCED,
+            type: 'image',
+          },
+        })}
+        typeOptions={typeOptions}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole('button')).getByText('Image · Auto · 1:1'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/__auto_model__/)).toBeNull();
+  });
+
+  it('omits aspect ratio when the type has no ratio control', () => {
+    render(
+      <GenerationSetupTrigger
+        hasAspectRatio={false}
+        isOpen={false}
+        models={[]}
+        setup={createSetup({
+          values: {
+            aspectRatio: '1:1',
+            brandingMode: 'off',
+            isPromptEnhanceEnabled: false,
+            modelKey: '',
+            outputs: 1,
+            prioritize: RouterPriority.BALANCED,
+            type: 'music',
+          },
+        })}
+        typeOptions={[...typeOptions, { label: 'Music', value: 'music' }]}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole('button')).getByText('Music · Auto'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/1:1/)).toBeNull();
+  });
+
   it('shows the selected model label and drops the accent once a field is user-owned', () => {
     const sources: GenerationSetupSources = { modelKey: 'user' };
     render(

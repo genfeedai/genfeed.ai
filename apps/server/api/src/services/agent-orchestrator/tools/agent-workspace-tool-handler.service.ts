@@ -2,8 +2,9 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import { IngredientCategory, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
   serializeAgentBrand,
@@ -186,26 +187,51 @@ export class AgentWorkspaceToolHandler {
     params: Record<string, unknown>,
   ): Promise<AgentToolResult> {
     const ingredientId = params.ingredientId
-      ? String(params.ingredientId)
-      : null;
+      ? String(params.ingredientId).trim()
+      : '';
+    if (!ingredientId) {
+      return {
+        creditsUsed: 0,
+        error:
+          'open_studio_handoff requires ingredientId of an existing asset. To generate a new image or video, call prepare_generation. One-off generation stays in Agent.',
+        success: false,
+      };
+    }
+
     const type = String(params.type || 'image');
-    const href = ingredientId
-      ? `/g/${type}/${ingredientId}`
-      : `/studio?type=${type}`;
+    const href = createLibraryAssetRoute(
+      studioHandoffCategory(type),
+      ingredientId,
+    );
 
     return {
       creditsUsed: 0,
       data: { href, ingredientId, type },
       nextActions: [
         {
-          ctas: [{ href, label: 'Open in Studio' }],
+          ctas: [{ href, label: 'View in Library' }],
           data: { href, ingredientId, type },
-          id: `studio-handoff-${Date.now()}`,
-          title: 'Continue in Studio',
-          type: 'image_transform_card',
+          editorType: type,
+          id: `studio-handoff-${ingredientId}`,
+          studioUrl: href,
+          title: 'Open in Library',
+          type: 'studio_handoff_card',
         },
       ],
       success: true,
     };
+  }
+}
+
+function studioHandoffCategory(type: string): IngredientCategory {
+  switch (type) {
+    case 'avatar':
+      return IngredientCategory.AVATAR;
+    case 'music':
+      return IngredientCategory.MUSIC;
+    case 'video':
+      return IngredientCategory.VIDEO;
+    default:
+      return IngredientCategory.IMAGE;
   }
 }

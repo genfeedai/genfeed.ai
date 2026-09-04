@@ -77,6 +77,23 @@ describe('Table', () => {
     expect(onRowClick).toHaveBeenCalledTimes(2);
   });
 
+  it('renders empty without card chrome or a doubled border', () => {
+    render(
+      <Table
+        items={[]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        emptyLabel="No unread items"
+        emptyDescription="Items waiting for your attention will show up here."
+      />,
+    );
+
+    const empty = screen.getByTestId('table-empty');
+    expect(empty).not.toHaveClass('border');
+    expect(empty).not.toHaveClass('shadow-border');
+    expect(empty).not.toHaveClass('bg-card');
+    expect(screen.getByText('No unread items')).toBeInTheDocument();
+  });
+
   it('uses one hairline system for header and rows', () => {
     const { container } = render(
       <Table
@@ -92,7 +109,8 @@ describe('Table', () => {
     const body = container.querySelector('tbody');
 
     expect(table).toHaveClass('border-collapse');
-    expect(card).toHaveClass('border', 'border-border', 'rounded-card');
+    expect(card).toHaveClass('rounded-card', 'shadow-border', 'bg-card');
+    expect(card).not.toHaveClass('border-border');
     expect(head).toHaveClass('border-b', 'border-border');
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');

@@ -1,4 +1,4 @@
-import { ALL_ACTIONS } from '@genfeedai/actions';
+import { ALL_ACTIONS, getActionDefinition } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 import { compileActionContract } from './action-contract';
 
@@ -24,5 +24,49 @@ describe('published action catalog', () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+
+  it('accepts an in-flight generate_image result without a CDN url', () => {
+    const action = getActionDefinition('generate_image');
+    expect(action).toBeDefined();
+    const contract = compileActionContract('generate_image', {
+      inputSchema: action?.inputSchema ?? {},
+      outputSchema: action?.outputSchema ?? {},
+    });
+    const provenance = {
+      nodeId: 'execute-tool',
+      runId: 'run-1',
+      workflowId: 'agent.tool.generate_image',
+      workflowVersionId: 'v1',
+    };
+
+    expect(() =>
+      contract.validateOutput(
+        {
+          creditsUsed: 0,
+          data: { id: 'img-1', status: 'processing' },
+          isBillingDelegated: true,
+          nextActions: [],
+          success: true,
+        },
+        provenance,
+      ),
+    ).not.toThrow();
+
+    expect(() =>
+      contract.validateOutput(
+        {
+          creditsUsed: 0,
+          data: {
+            id: 'img-1',
+            status: 'processing',
+            url: undefined,
+          },
+          isBillingDelegated: true,
+          success: true,
+        },
+        provenance,
+      ),
+    ).toThrow('Action contract output validation failed');
   });
 });

@@ -47,6 +47,15 @@ export class AnalyticsDateRangeDto {
   @IsOptional()
   @IsEntityId()
   brandId?: string;
+
+  @ApiProperty({
+    description:
+      'Organization ID. Narrows a superadmin read to one tenant; customers may only name their own.',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  organizationId?: string;
 }
 
 export class LeaderboardQueryDto extends AnalyticsDateRangeDto {
@@ -198,14 +207,6 @@ export class AnalyticsExportQueryDto extends AnalyticsFilterQueryDto {
   @IsString()
   @MaxLength(500)
   fields?: string;
-
-  @ApiProperty({
-    description: 'Organization ID (superadmin only)',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  organizationId?: string;
 }
 
 export class TopContentQueryDto extends AnalyticsDateRangeDto {
@@ -286,12 +287,4 @@ export class ViralHooksQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEntityId()
   declare brandId?: string;
-
-  @ApiProperty({
-    description: 'Organization ID to filter by',
-    required: false,
-  })
-  @IsOptional()
-  @IsEntityId()
-  organizationId?: string;
 }

@@ -39,12 +39,15 @@ function formatRelativeTime(date: string): string {
   return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
 }
 
-function getExecutionLabel(execution: IWorkflowExecution): string {
+function getExecutionLabel(
+  execution: IWorkflowExecution,
+  fallback: string,
+): string {
   const metadataLabel = execution.metadata?.label;
   return (
     execution.workflow?.label ??
     (typeof metadataLabel === 'string' ? metadataLabel : undefined) ??
-    execution.workflowId
+    fallback
   );
 }
 
@@ -72,7 +75,7 @@ export default function WorkflowExecutionCard({
             {STATUS_LABELS[execution.status]}
           </Badge>
           <span className="truncate text-sm font-medium">
-            {getExecutionLabel(execution)}
+            {getExecutionLabel(execution, translate('unavailableWorkflow'))}
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">

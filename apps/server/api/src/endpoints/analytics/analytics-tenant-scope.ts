@@ -18,7 +18,7 @@ export type AnalyticsTenantScope =
       readonly privilege: 'customer';
     }
   | {
-      readonly organizationId: undefined;
+      readonly organizationId: string | undefined;
       readonly privilege: 'superadmin';
     };
 
@@ -37,19 +37,33 @@ export function throwAnalyticsTenantForbidden(): never {
   throw new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN);
 }
 
+/**
+ * Superadmins read every organization unless the request names one
+ * (`?organizationId=`), which narrows them to that tenant. Customers are always
+ * bound to their session organization; naming any other one is forbidden.
+ */
 export function resolveAnalyticsTenantScope(
   user: AuthenticatedUser,
   request?: Parameters<typeof getIsSuperAdmin>[1],
 ): AnalyticsTenantScope {
+  const requestedOrganizationId = readRequestedOrganizationId(request);
+
   if (getIsSuperAdmin(user, request)) {
     return {
-      organizationId: undefined,
+      organizationId: requestedOrganizationId,
       privilege: 'superadmin',
     };
   }
 
   if (!user.organizationId) {
     throw new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE);
+  }
+
+  if (
+    requestedOrganizationId &&
+    requestedOrganizationId !== user.organizationId
+  ) {
+    throwAnalyticsTenantForbidden();
   }
 
   return {
@@ -66,7 +80,7 @@ export function buildAnalyticsCacheKey(
   const privilege = readAnalyticsPrivilege(request);
   const organizationKey =
     privilege === 'superadmin'
-      ? 'all'
+      ? (readRequestedOrganizationId(request) ?? 'all')
       : (request.user?.organizationId ?? 'anonymous');
 
   return [
@@ -110,4 +124,13 @@ function readAnalyticsPrivilege(
   }
 
   return request.user?.isSuperAdmin === true ? 'superadmin' : 'customer';
+}
+
+function readRequestedOrganizationId(
+  request: Pick<AnalyticsCacheRequest, 'query'> | undefined,
+): string | undefined {
+  const organizationId = request?.query?.organizationId;
+  return typeof organizationId === 'string' && organizationId.length > 0
+    ? organizationId
+    : undefined;
 }

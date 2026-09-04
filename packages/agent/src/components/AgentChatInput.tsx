@@ -9,6 +9,7 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentGenerationMode } from '@genfeedai/contracts';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
@@ -105,7 +106,7 @@ export function AgentChatInput({
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
   const [generationMode, setGenerationMode] =
-    useState<ConversationComposerGenerationMode>('auto');
+    useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
   const [generationSettings, setGenerationSettings] =
     useState<ConversationComposerGenerationSettings>({
       aspectRatio: '1:1',

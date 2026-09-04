@@ -3,90 +3,113 @@
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAccountAnalytics } from '@genfeedai/contracts/interfaces';
+import type { AnalyticsTopAccountsProps } from '@genfeedai/props/analytics/analytics.props';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { AnalyticsService } from '@services/analytics/analytics.service';
-import Card from '@ui/card/Card';
+import { logger } from '@services/core/logger.service';
+import { ListRow } from '@ui/lists/list-row/ListRow';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-export default function AnalyticsTopAccounts() {
+export default function AnalyticsTopAccounts({
+  organizationId: organizationIdProp,
+}: AnalyticsTopAccountsProps) {
   const translate = useTranslations('pages.analytics.accounts');
   const router = useRouter();
-  const { brandId } = useCollectionScope();
+  const scope = useCollectionScope();
+  const brandId = scope.brandId;
+  const organizationId = organizationIdProp ?? scope.organizationId;
+  // The brand context resolves the org id asynchronously. Fetching before it
+  // lands puts `organizationId=` on the wire and the query DTO rejects it.
+  const isFetchReady =
+    Boolean(organizationIdProp) || isCollectionFetchReady(scope);
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
   const [accounts, setAccounts] = useState<IAccountAnalytics[]>([]);
 
   useEffect(() => {
+    if (!isFetchReady) {
+      return;
+    }
+
     const controller = new AbortController();
     void (async () => {
-      const service = await getService();
-      const { startDate, endDate } = getDateRangeWithDefaults();
-      const data = (await service.getTopAccounts({
-        brandId: brandId || undefined,
-        endDate,
-        metric: AnalyticsMetric.VIEWS,
-        startDate,
-      })) as { accounts?: IAccountAnalytics[] };
-      if (!controller.signal.aborted) {
-        setAccounts(data.accounts ?? []);
+      try {
+        const service = await getService();
+        const { startDate, endDate } = getDateRangeWithDefaults();
+        const data = (await service.getTopAccounts({
+          brandId: brandId || undefined,
+          endDate,
+          metric: AnalyticsMetric.VIEWS,
+          organizationId,
+          startDate,
+        })) as { accounts?: IAccountAnalytics[] };
+        if (!controller.signal.aborted) {
+          setAccounts(data.accounts ?? []);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          logger.error('Failed to fetch top accounts analytics', error);
+          setAccounts([]);
+        }
       }
     })();
     return () => controller.abort();
-  }, [brandId, getService]);
+  }, [brandId, getService, isFetchReady, organizationId]);
 
   if (accounts.length === 0) {
     return null;
   }
 
   return (
-    <Card>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg">{translate('topAccounts')}</h2>
+    <WorkspaceSurface
+      actions={
         <Button
           label="View all"
           variant={ButtonVariant.GHOST}
           onClick={() => router.push(APP_ROUTES.ANALYTICS.ACCOUNTS)}
         />
-      </div>
-      <ul className="space-y-2">
+      }
+      density="compact"
+      flush
+      title={translate('topAccounts')}
+    >
+      <div>
         {accounts.map((account) => {
           const views = account.metrics.find(
             (item) => item.metric === AnalyticsMetric.VIEWS,
           );
           return (
-            <li key={account.identity.credentialId}>
-              <Button
-                className="flex w-full items-center justify-between text-left"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() =>
-                  router.push(
-                    `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${account.identity.credentialId}`,
-                  )
-                }
-              >
-                <span>
-                  {account.identity.label ||
-                    account.identity.externalHandle ||
-                    account.identity.externalName}
-                </span>
-                <span>
+            <ListRow
+              key={account.identity.credentialId}
+              density="compact"
+              href={`${APP_ROUTES.ANALYTICS.ACCOUNTS}/${account.identity.credentialId}`}
+              title={
+                account.identity.label ||
+                account.identity.externalHandle ||
+                account.identity.externalName
+              }
+              trailing={
+                <span className="text-sm text-foreground/55">
                   {views?.availability === 'observed' && views.change !== null
                     ? formatCompactNumberIntl(views.change)
                     : 'Unavailable'}
                 </span>
-              </Button>
-            </li>
+              }
+            />
           );
         })}
-      </ul>
-    </Card>
+      </div>
+    </WorkspaceSurface>
   );
 }

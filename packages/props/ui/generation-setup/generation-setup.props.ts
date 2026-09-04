@@ -81,6 +81,8 @@ export interface GenerationSetupTriggerProps {
   isOpen: boolean;
   isDisabled?: boolean;
   className?: string;
+  /** When false, the chip omits aspect ratio (music / voice / avatar). */
+  hasAspectRatio?: boolean;
 }
 
 export interface GenerationSetupFieldIconProps {

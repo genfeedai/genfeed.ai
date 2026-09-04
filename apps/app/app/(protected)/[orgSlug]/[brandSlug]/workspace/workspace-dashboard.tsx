@@ -20,22 +20,17 @@ import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { ArrowRight, Cpu } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
+
+const DASHBOARD_ROW_LIMIT = 5;
 
 interface ReviewInboxSummary {
   approvedCount: number;
@@ -294,7 +289,7 @@ export function DashboardRecentActivity({
             new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
             new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
         )
-        .slice(0, 8),
+        .slice(0, DASHBOARD_ROW_LIMIT),
     [workspaceTasks],
   );
 
@@ -305,6 +300,7 @@ export function DashboardRecentActivity({
       density="compact"
       className="h-full"
       data-testid="dashboard-recent-activity"
+      flush
       actions={
         <Button
           asChild
@@ -319,63 +315,45 @@ export function DashboardRecentActivity({
       }
     >
       {isLoading && sortedTasks.length === 0 ? (
-        <div className="py-2">
-          <WorkspaceTaskRowsSkeleton rows={4} />
-        </div>
+        <WorkspaceTaskRowsSkeleton rows={4} />
       ) : sortedTasks.length > 0 ? (
-        <Table>
-          <TableHeader className="sr-only">
-            <TableRow>
-              <TableHead>Status</TableHead>
-              <TableHead>Activity</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedTasks.map((task) => {
-              const latestEvent = task.eventStream?.at(-1);
-              const message =
-                typeof latestEvent?.payload?.summary === 'string'
-                  ? latestEvent.payload.summary
-                  : typeof latestEvent?.payload?.message === 'string'
-                    ? latestEvent.payload.message
-                    : task.progress?.message || task.request;
+        <div>
+          {sortedTasks.map((task) => {
+            const latestEvent = task.eventStream?.at(-1);
+            const message =
+              typeof latestEvent?.payload?.summary === 'string'
+                ? latestEvent.payload.summary
+                : typeof latestEvent?.payload?.message === 'string'
+                  ? latestEvent.payload.message
+                  : task.progress?.message || task.request;
 
-              return (
-                <TableRow key={task.id}>
-                  <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
-                    <Badge status={task.status} size={ComponentSize.SM}>
-                      {task.status.replaceAll('_', ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-0 w-full">
-                    <div className="truncate text-xs text-foreground">
-                      {task.title}
-                      {' — '}
-                      <span className="text-foreground/50">
-                        {formatTaskEventLabel(task)}
-                      </span>
-                    </div>
-                    {message ? (
-                      <div className="truncate text-2xs text-foreground/45">
-                        {message}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="w-px whitespace-nowrap text-right text-2xs text-foreground/35">
+            return (
+              <ListRow
+                density="compact"
+                description={message}
+                key={task.id}
+                leading={
+                  <Badge status={task.status} size={ComponentSize.SM}>
+                    {task.status.replaceAll('_', ' ')}
+                  </Badge>
+                }
+                meta={formatTaskEventLabel(task)}
+                title={task.title}
+                trailing={
+                  <span className="text-2xs text-foreground/35">
                     {formatOptionalRelativeTime(
                       task.updatedAt ?? task.createdAt,
                     )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="py-6 text-center text-xs text-foreground/45">
-          No activity yet.
+                  </span>
+                }
+              />
+            );
+          })}
         </div>
+      ) : (
+        <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
+          No activity yet.
+        </p>
       )}
     </WorkspaceSurface>
   );
@@ -397,7 +375,7 @@ export function DashboardRecentTasks({
             new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
             new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
         )
-        .slice(0, 8),
+        .slice(0, DASHBOARD_ROW_LIMIT),
     [workspaceTasks],
   );
 
@@ -408,6 +386,7 @@ export function DashboardRecentTasks({
       density="compact"
       className="h-full"
       data-testid="dashboard-recent-tasks"
+      flush
       actions={
         <Button
           asChild
@@ -422,48 +401,32 @@ export function DashboardRecentTasks({
       }
     >
       {isLoading && sortedTasks.length === 0 ? (
-        <div className="py-2">
-          <WorkspaceTaskRowsSkeleton rows={4} />
-        </div>
+        <WorkspaceTaskRowsSkeleton rows={4} />
       ) : sortedTasks.length > 0 ? (
-        <Table>
-          <TableHeader className="sr-only">
-            <TableRow>
-              <TableHead>Status</TableHead>
-              <TableHead>Task</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedTasks.map((task) => (
-              <TableRow key={task.id}>
-                <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
-                  <Badge status={task.status} size={ComponentSize.SM}>
-                    {task.status.replaceAll('_', ' ')}
-                  </Badge>
-                </TableCell>
-                <TableCell className="max-w-0 w-full">
-                  <div className="truncate text-xs text-foreground">
-                    {task.title}
-                  </div>
-                  <div className="truncate text-2xs text-foreground/45">
-                    {task.status.replaceAll('_', ' ')} &middot;{' '}
-                    {formatOptionalRelativeTime(
-                      task.updatedAt ?? task.createdAt,
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="w-px whitespace-nowrap text-right text-2xs text-foreground/35 align-top pt-2.5">
+        <div>
+          {sortedTasks.map((task) => (
+            <ListRow
+              density="compact"
+              key={task.id}
+              leading={
+                <Badge status={task.status} size={ComponentSize.SM}>
+                  {task.status.replaceAll('_', ' ')}
+                </Badge>
+              }
+              meta={task.status.replaceAll('_', ' ')}
+              title={task.title}
+              trailing={
+                <span className="text-2xs text-foreground/35">
                   {formatOptionalRelativeTime(task.updatedAt ?? task.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="py-6 text-center text-xs text-foreground/45">
-          No recent tasks.
+                </span>
+              }
+            />
+          ))}
         </div>
+      ) : (
+        <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
+          No recent tasks.
+        </p>
       )}
     </WorkspaceSurface>
   );

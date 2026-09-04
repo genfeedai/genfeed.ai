@@ -316,15 +316,16 @@ describe('StudioGenerateWorkspace', () => {
     );
   });
 
-  it('uses the same composer track as the Agent surface', () => {
+  it('floats the composer over the gallery like the Agent dock', () => {
     render(<StudioGenerateWorkspace />);
 
     const container = screen
       .getByTestId('studio-composer')
       .closest('[data-layout-mode]');
 
-    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
+    expect(container).toHaveAttribute('data-layout-mode', 'surface-fixed');
     expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(container).not.toHaveClass('bg-background');
     expect(container).toContainElement(
       document.querySelector('[data-composer-top-fade]'),
     );

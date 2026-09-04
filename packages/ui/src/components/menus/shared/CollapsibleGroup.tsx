@@ -114,10 +114,10 @@ export default function CollapsibleGroup({
 
   if (!isCollapsible) {
     return (
-      <div className={cn('mt-2', className)}>
+      <div className={cn('mt-3', className)}>
         <div
           className={cn(
-            'flex w-full items-center p-1 text-foreground/30',
+            'flex w-full items-center px-1 pb-2 pt-1 text-foreground/30',
             headerClassName,
           )}
         >
@@ -132,10 +132,10 @@ export default function CollapsibleGroup({
   }
 
   return (
-    <div className={cn('mt-2', className)}>
+    <div className={cn('mt-3', className)}>
       <div
         className={cn(
-          'group/collapsible flex w-full items-center p-1 text-foreground/30',
+          'group/collapsible flex w-full items-center px-1 pb-2 pt-1 text-foreground/30',
           headerClassName,
         )}
       >

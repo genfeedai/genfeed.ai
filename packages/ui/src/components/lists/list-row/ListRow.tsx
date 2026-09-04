@@ -7,7 +7,7 @@ import type { ReactElement } from 'react';
 
 const DENSITY_CLASSES: Record<'compact' | 'comfortable', string> = {
   comfortable: 'p-4',
-  compact: 'px-4 py-3',
+  compact: 'px-4 py-2.5 sm:px-5',
 };
 
 const BASE_CLASSES =
@@ -32,12 +32,14 @@ function ListRowContent({
           {title}
         </p>
         {description ? (
-          <p className="mt-1 line-clamp-2 text-sm text-foreground/55">
+          <p className="mt-0.5 line-clamp-2 text-sm text-foreground/55">
             {description}
           </p>
         ) : null}
         {meta ? (
-          <div className="mt-1 text-xs text-foreground/40">{meta}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/40">
+            {meta}
+          </div>
         ) : null}
       </div>
 

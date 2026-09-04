@@ -34,6 +34,7 @@ import {
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
 
+const RECENT_INBOX_LIMIT = 5;
 const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
 const WORKSPACE_OVERVIEW_LOAD_WARNING =
   'Workspace data is taking longer than expected. You can keep this page open or try again.';
@@ -178,7 +179,10 @@ export function useWorkspacePageContent({
     [queueTasks],
   );
 
-  const recentInboxTasks = useMemo(() => queueTasks.slice(0, 8), [queueTasks]);
+  const recentInboxTasks = useMemo(
+    () => queueTasks.slice(0, RECENT_INBOX_LIMIT),
+    [queueTasks],
+  );
 
   const inProgressTasks = useMemo(
     () =>

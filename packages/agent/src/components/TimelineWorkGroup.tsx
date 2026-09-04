@@ -8,7 +8,6 @@ import {
   isGenericRunLifecycleEvent,
   type TimelineWorkGroup as TimelineWorkGroupEntry,
 } from '@genfeedai/agent/utils/derive-timeline';
-import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -128,16 +127,6 @@ function TimelineWorkGroupInner({
       ? `Working for ${liveElapsedLabel}`
       : 'Working…';
 
-  const failureDetail = useMemo(() => {
-    if (terminalStatus !== 'failed') {
-      return null;
-    }
-    const failed = [...entry.events]
-      .reverse()
-      .find((event) => event.status === AgentWorkEventStatus.FAILED);
-    return formatAgentErrorDetail(failed?.detail ?? failed?.label ?? null);
-  }, [entry.events, terminalStatus]);
-
   const stepCount = stepEvents.length;
   const statusLabel =
     terminalStatus === 'failed'
@@ -158,14 +147,16 @@ function TimelineWorkGroupInner({
   const durationFooter = (
     <div
       className={cn(
-        'flex items-center justify-between gap-2 px-1 py-1',
+        'flex w-full items-center gap-2 px-1 py-1',
         showSteps && 'mt-0.5 border-t border-border/40 pt-1.5',
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-xs text-gray-900">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-gray-900">
         <Clock className="size-3.5 shrink-0 text-gray-800" />
         {/* Duration is secondary type — never text-muted/text-secondary fill tokens */}
-        <span className="font-medium text-gray-900">{durationPhrase}</span>
+        <span className="shrink-0 font-medium text-gray-900">
+          {durationPhrase}
+        </span>
         {isTerminal ? (
           <>
             <span aria-hidden="true" className="text-gray-700">
@@ -173,7 +164,7 @@ function TimelineWorkGroupInner({
             </span>
             <span
               className={cn(
-                'inline-flex items-center gap-1 text-2xs',
+                'inline-flex shrink-0 items-center gap-1 text-2xs',
                 terminalStatus === 'failed'
                   ? 'font-medium text-destructive'
                   : 'text-gray-900',
@@ -191,7 +182,7 @@ function TimelineWorkGroupInner({
                 <span aria-hidden="true" className="text-gray-700">
                   ·
                 </span>
-                <span className="text-2xs text-gray-800">
+                <span className="shrink-0 text-2xs text-gray-800">
                   {stepCount} step{stepCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -202,28 +193,20 @@ function TimelineWorkGroupInner({
             <span aria-hidden="true" className="text-gray-700">
               ·
             </span>
-            <span className="text-2xs text-gray-800">
+            <span className="shrink-0 text-2xs text-gray-800">
               {stepCount} step{stepCount !== 1 ? 's' : ''}
-            </span>
-          </>
-        ) : null}
-        {failureDetail && !showSteps ? (
-          <>
-            <span aria-hidden="true" className="text-gray-700">
-              ·
-            </span>
-            <span className="truncate text-2xs text-gray-800">
-              {failureDetail}
             </span>
           </>
         ) : null}
       </div>
       {isCollapsible && stepCount > 0 ? (
         <ChevronDown
+          aria-hidden="true"
           className={cn(
             'size-3.5 shrink-0 text-gray-800 transition-transform',
             isExpanded ? 'rotate-180' : '',
           )}
+          data-testid="timeline-work-group-chevron"
         />
       ) : null}
     </div>
@@ -260,7 +243,7 @@ function TimelineWorkGroupInner({
             textTransform="none"
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
-            className="w-full rounded-md text-left transition-colors hover:bg-foreground/[0.04]"
+            className="flex w-full min-w-0 items-center rounded-md text-left transition-colors hover:bg-foreground/[0.04]"
           >
             {durationFooter}
           </Button>

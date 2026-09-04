@@ -8,6 +8,7 @@ import type {
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
+import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -37,11 +38,10 @@ export default function GenerationSetupFrontDoor({
     typeOptions.find((option) => option.value === setup.values.type)?.label ??
     setup.values.type;
 
-  const modelLabel =
-    setup.values.modelKey === ''
-      ? translate('auto')
-      : (models.find((model) => model.key === setup.values.modelKey)?.label ??
-        setup.values.modelKey);
+  const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
+    ? translate('auto')
+    : (models.find((model) => model.key === setup.values.modelKey)?.label ??
+      setup.values.modelKey);
 
   const summaryRows: Array<{
     key: GenerationSetupFieldKey;

@@ -8,6 +8,7 @@ import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorMo
 import {
   AUTO_PRIORITY_LABELS,
   AUTO_PRIORITY_OPTIONS,
+  isAutoGenerationModelKey,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   sortModelOptions,
@@ -48,7 +49,7 @@ export default function GenerationSetupModelSection({
     return null;
   }
 
-  const isAutoSelected = setup.values.modelKey === '';
+  const isAutoSelected = isAutoGenerationModelKey(setup.values.modelKey);
   const options = sortModelOptions(
     transformModelsToOptions(models, favoriteModelKeys),
   );

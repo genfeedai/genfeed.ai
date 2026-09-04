@@ -160,7 +160,8 @@ describe('AgentChatMessage', () => {
     );
     expect(
       user.container.querySelector('[data-message-role="user"]'),
-    ).toHaveClass('-mx-3', 'px-3');
+    ).toHaveClass('-mx-3');
+    expect(user.getByTestId('agent-user-prompt')).toBeTruthy();
   });
 
   it('does not truncate long assistant content', () => {
@@ -315,17 +316,21 @@ describe('AgentChatMessage', () => {
     );
 
     expect(surface).toBeTruthy();
-    expect(surface).toHaveClass('bg-tertiary');
-    expect(surface).toHaveClass('rounded-xl');
-    expect(surface).toHaveClass('shadow-none');
+    const card = screen.getByTestId('agent-user-prompt');
+    expect(card).toHaveClass('bg-card');
+    expect(card).toHaveClass('rounded-card');
+    expect(card).toHaveClass('shadow-border');
+    expect(card).not.toHaveClass('rounded-xl');
+    expect(card).not.toHaveClass('shadow-composer');
+    expect(surface).toContainElement(card);
     expect(surface?.parentElement).toHaveClass('sticky');
     expect(surface?.parentElement).toHaveClass('bg-background');
     expect(surface?.parentElement).not.toHaveClass('justify-end');
     expect(surface?.parentElement).toHaveClass('justify-start');
   });
 
-  it('keeps user prompt actions available but reveals them on hover or focus', () => {
-    render(
+  it('keeps user prompt actions below the card and reveals them on hover or focus', () => {
+    const { container } = render(
       <AgentChatMessage
         message={buildMessage('user', 'Copy this prompt')}
         onCopy={vi.fn()}
@@ -333,6 +338,10 @@ describe('AgentChatMessage', () => {
     );
 
     const copyButton = screen.getByRole('button', { name: 'Copy message' });
+    const surface = container.querySelector(
+      '[data-message-role="user"][data-message-surface="prompt"]',
+    );
+    expect(surface?.contains(copyButton)).toBe(false);
     const actions = copyButton.closest('.opacity-0');
     expect(actions).toBeTruthy();
     expect(actions).toHaveClass('opacity-0');
@@ -374,7 +383,8 @@ describe('AgentChatMessage', () => {
     );
 
     const surface = container.querySelector('[data-message-role="user"]');
-    expect(surface).toHaveClass('shadow-none');
+    const card = screen.getByTestId('agent-user-prompt');
+    expect(card).toHaveClass('shadow-border');
     expect(surface?.className).not.toContain(SCROLL_FOCUS_SURFACE_CLASS);
   });
 

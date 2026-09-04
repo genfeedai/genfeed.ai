@@ -1,6 +1,6 @@
 /**
  * Single width owner for agent transcript cards and the floating composer.
- * Keep padding identical so borders line up; min-w-0 prevents flex overflow
+ * Keep padding identical so the column lines up; min-w-0 prevents flex overflow
  * (min-width:auto on flex children is what creates the horizontal scrollbar).
  *
  * T3/Codex density: max-w-3xl (~48rem) conversation track — not full canvas.
@@ -32,17 +32,15 @@ export const AGENT_CONVERSATION_SCROLL_CLASS =
 export const AGENT_TIMELINE_DEFERRED_CLASS =
   '[content-visibility:auto] [contain-intrinsic-size:auto_160px]';
 
-/** Shared card/composer border radius so edges match visually. */
+/** Timeline product cards — not the docked composer (`--radius-workspace-composer`). */
 export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
 
 /**
- * Sticky user prompt card (Cursor). Solid tertiary fill so the turn header
- * occludes scrolling assistant text; no "You" label — the card is the highlight.
+ * Bleed the user Card to the conversation track so it shares *width* with the
+ * composer. Chrome comes from `@ui/card/Card`, not this string.
  */
-export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
-  AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
-].join(' ');
+export const AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS =
+  '-mx-3 w-[calc(100%+1.5rem)] max-w-none sm:-mx-4 sm:w-[calc(100%+2rem)]';
 
 /** Assistant body — solid foreground so faded /90–/92 type cannot wash out. */
 export const AGENT_ASSISTANT_PROSE_CLASS = 'text-md leading-6 text-foreground';
@@ -58,11 +56,11 @@ export const AGENT_CONVERSATION_STICKY_USER_TURN_CLASS = [
 ].join(' ');
 
 /**
- * Shared agent timeline card chrome — solid surface, T3/Codex density
+ * Shared agent timeline card chrome — card plane, T3/Codex density
  * (tighter radius, no translucent blur stack).
  */
 export const AGENT_CONVERSATION_SURFACE_CLASS = [
-  'border border-border-strong bg-tertiary text-foreground',
+  'border border-border-strong bg-card text-foreground',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 

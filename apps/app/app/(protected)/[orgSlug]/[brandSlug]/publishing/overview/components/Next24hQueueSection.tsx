@@ -2,9 +2,9 @@
 
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewQueueSectionProps } from '@props/publisher/publishing-overview.props';
-import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -22,17 +22,18 @@ export default function Next24hQueueSection({
   const hasItems = groups.some((group) => group.items.length > 0);
 
   return (
-    <Card
-      bodyClassName="flex flex-col gap-4 p-5"
+    <WorkspaceSurface
       data-testid="publishing-overview-next-24h"
+      density="compact"
       description={translate('queueDescription')}
-      label={translate('queueTitle')}
+      flush
+      title={translate('queueTitle')}
     >
       {hasItems ? (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col">
           {groups.map((group) => (
-            <div key={group.bucket} className="space-y-2">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <div key={group.bucket}>
+              <p className="border-b border-border bg-background-secondary/40 px-4 py-2 text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground sm:px-5">
                 {translate(BUCKET_LABEL_KEYS[group.bucket])}
               </p>
               <div>
@@ -64,10 +65,10 @@ export default function Next24hQueueSection({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
           {translate('queueEmpty')}
         </p>
       )}
-    </Card>
+    </WorkspaceSurface>
   );
 }

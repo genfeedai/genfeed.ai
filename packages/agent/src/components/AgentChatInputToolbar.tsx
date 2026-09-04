@@ -22,7 +22,13 @@ import {
   isAgentGenerationType,
 } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  ButtonSize,
+  ButtonVariant,
+  inferAgentMediaGenerationModeFromPrompt,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
@@ -146,7 +152,11 @@ function AgentChatInputToolbarInner({
   // starts on image, matching the shared store's own default aspect ratio.
   const [activeGenerationType, setActiveGenerationType] = useState<
     'image' | 'video'
-  >(generationMode === 'video' ? 'video' : 'image');
+  >(
+    generationMode === AgentGenerationMode.VIDEO
+      ? AgentGenerationMode.VIDEO
+      : AgentGenerationMode.IMAGE,
+  );
 
   const scope = buildAgentGenerationSetupScope(threadId, activeGenerationType);
   const defaults = buildDefaultAgentGenerationSetupValues(activeGenerationType);
@@ -160,12 +170,16 @@ function AgentChatInputToolbarInner({
   const capabilities =
     getAgentGenerationSetupCapabilities(activeGenerationType);
 
-  // The chip's send mode mirrors whether the operator has explicitly locked a
-  // type: unlocked stays plain conversation (the agent's own tools decide
-  // whether to generate), locked commits to a direct generation send.
+  // Locked type always generates. Unlocked Auto still generates when the
+  // prompt is an unambiguous image/video request — the LLM does not pick a tool.
   useEffect(() => {
-    onGenerationModeChange(isTypeLocked ? activeGenerationType : 'auto');
-  }, [isTypeLocked, activeGenerationType, onGenerationModeChange]);
+    onGenerationModeChange(
+      isTypeLocked
+        ? activeGenerationType
+        : (inferAgentMediaGenerationModeFromPrompt(promptText) ??
+            AgentGenerationMode.AUTO),
+    );
+  }, [activeGenerationType, isTypeLocked, onGenerationModeChange, promptText]);
 
   // Send-boundary wire shape stays the narrow ConversationComposerGenerationSettings
   // the rest of the send pipeline already expects — only its source moved.
@@ -409,9 +423,9 @@ function AgentChatInputToolbarInner({
           ariaLabel={
             willQueueFollowUp
               ? 'Queue follow-up'
-              : generationMode === 'image'
+              : generationMode === AgentGenerationMode.IMAGE
                 ? 'Generate image'
-                : generationMode === 'video'
+                : generationMode === AgentGenerationMode.VIDEO
                   ? 'Generate video'
                   : 'Send message'
           }

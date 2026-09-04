@@ -487,6 +487,7 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Candidates')).toBeInTheDocument();
     expect(screen.getByText('Jobs')).toBeInTheDocument();
+    expect(screen.getByText('ATS').parentElement).toHaveClass('pb-2');
   });
 
   it('collapses named menu groups only when the first item opts in', () => {

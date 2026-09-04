@@ -63,21 +63,21 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Return deep links for handing off image/video editing to Studio UX.',
+      'Open an existing Library asset by ingredientId. Never use this to create a new image or video — call prepare_generation. One-off generation stays in Agent. Do not invent /studio?type= or /g/ routes.',
     name: 'open_studio_handoff',
     parameters: {
       properties: {
         ingredientId: {
-          description: 'Optional ingredient/image ID to open directly',
+          description: 'Existing ingredient/image ID to open in Library',
           type: 'string',
         },
         type: {
-          description: 'Studio generator type to open',
+          description: 'Asset kind for the Library deep link',
           enum: ['image', 'video', 'avatar', 'music'],
           type: 'string',
         },
       },
-      required: [],
+      required: ['ingredientId'],
       type: 'object',
     },
     requiredRole: 'user',

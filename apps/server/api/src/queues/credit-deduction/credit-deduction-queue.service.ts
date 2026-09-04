@@ -7,6 +7,10 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
+function toBullMqJobId(value: string): string {
+  return value.replaceAll(':', '-');
+}
+
 @Injectable()
 export class CreditDeductionQueueService {
   private readonly constructorName = 'CreditDeductionQueueService';
@@ -21,9 +25,11 @@ export class CreditDeductionQueueService {
       ...(data.settlementAssetId
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
         : {}),
-      jobId: data.idempotencyKey
-        ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
-        : `credit-deduct-${data.organizationId}-${Date.now()}`,
+      jobId: toBullMqJobId(
+        data.idempotencyKey
+          ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
+          : `credit-deduct-${data.organizationId}-${Date.now()}`,
+      ),
     });
 
     this.logger.log(`${this.constructorName} credit deduction job queued`, {
@@ -36,9 +42,11 @@ export class CreditDeductionQueueService {
 
   async queueByokUsage(data: CreditDeductionJobData): Promise<void> {
     await this.queue.add('record-byok-usage', data, {
-      jobId: data.idempotencyKey
-        ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
-        : `byok-usage-${data.organizationId}-${Date.now()}`,
+      jobId: toBullMqJobId(
+        data.idempotencyKey
+          ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
+          : `byok-usage-${data.organizationId}-${Date.now()}`,
+      ),
     });
 
     this.logger.log(`${this.constructorName} BYOK usage job queued`, {

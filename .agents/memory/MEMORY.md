@@ -75,12 +75,15 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_generation_card_prompt_bar_send](feedback_generation_card_prompt_bar_send.md) — generation card uses the prompt-bar toolbar and square ArrowUp send
 - [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
 - [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; dock uses a top-transparent / bottom-black gradient; do not slab the full stack
+- [feedback_studio_generate_agent_dock](feedback_studio_generate_agent_dock.md) — Studio generate floats the composer over the masonry like Agent; no inflow black slab; card click opens inspector
+- [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — docked prompt bar lifts with outer --shadow-lg only; no inset or 1px ring hairline
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — post-brand /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_brand_shared](feedback_onboarding_brand_shared.md) — `/onboarding/brand` is shared across Cloud and Desktop; Skip completes the gate, brand stays re-enterable
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
 - [feedback_prompt_bar_drop_placeholder](feedback_prompt_bar_drop_placeholder.md) — file drag over the prompt bar swaps the empty placeholder to "drop it here?"
 - [feedback_overlay_menus_elevated_surface](feedback_overlay_menus_elevated_surface.md) — dropdowns and popovers use bg-secondary + shadow-dropdown, never elevated or canvas
 - [feedback_conversation_contrast](feedback_conversation_contrast.md) — void chrome stays dark; conversation type is AA white/gray; chroma comes from media
+- [feedback_user_prompt_no_composer_chrome](feedback_user_prompt_no_composer_chrome.md) — agent user prompts render through @ui/card/Card; not PromptBarComposer chrome
 - [feedback_generation_card_retry_after_failure](feedback_generation_card_retry_after_failure.md) — failed generate keeps Generate on the card; UI-action false is not Done
 - [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
 - [feedback_generation_card_manual_collapse_on_error](feedback_generation_card_manual_collapse_on_error.md) — failed generation cards stay expandable; the operator can collapse them by hand

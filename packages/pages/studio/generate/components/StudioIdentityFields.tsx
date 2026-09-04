@@ -67,6 +67,7 @@ export default function StudioIdentityFields({
           isDisabled={isDisabled}
           label={summary}
           size={ButtonSize.SM}
+          textTransform="none"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />

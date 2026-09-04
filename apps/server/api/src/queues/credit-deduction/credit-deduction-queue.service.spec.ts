@@ -124,6 +124,29 @@ describe('CreditDeductionQueueService', () => {
       );
     });
 
+    it('strips colons from idempotency keys so BullMQ accepts the job id', async () => {
+      const jobData: CreditDeductionJobData = {
+        amount: 2,
+        description: 'Composer image generation',
+        idempotencyKey: 'generation:composer-generation-execution-1',
+        organizationId: 'org-123',
+        source: 'image-generation',
+        type: 'deduct-credits',
+        userId: 'user-456',
+      };
+
+      await service.queueDeduction(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'deduct-credits',
+        jobData,
+        expect.objectContaining({
+          jobId:
+            'credit-deduct-org-123-generation-composer-generation-execution-1',
+        }),
+      );
+    });
+
     it('keeps media settlement retryable through the stuck-asset reconciliation window', async () => {
       const jobData: CreditDeductionJobData = {
         amount: 18,

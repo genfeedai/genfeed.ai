@@ -11,6 +11,36 @@ import { CircleDollarSign, History, Volume2, Zap } from 'lucide-react';
 
 export const AUTO_MODEL_OPTION_VALUE = '__auto_model__';
 
+/** Legacy Studio localStorage wrote this before `__auto_model__`. */
+const LEGACY_AUTO_MODEL_KEY = 'auto';
+
+export function isAutoGenerationModelKey(
+  modelKey: string | undefined | null,
+): boolean {
+  return (
+    modelKey == null ||
+    modelKey === '' ||
+    modelKey === AUTO_MODEL_OPTION_VALUE ||
+    modelKey === LEGACY_AUTO_MODEL_KEY
+  );
+}
+
+/** Generation-setup store sentinel for Auto is an empty string. */
+export function toGenerationSetupModelKey(
+  modelKey: string | undefined | null,
+): string {
+  return isAutoGenerationModelKey(modelKey) ? '' : (modelKey ?? '');
+}
+
+/** Studio settings persist Auto as `__auto_model__`. */
+export function toStudioSettingsModelKey(
+  modelKey: string | undefined | null,
+): string {
+  return isAutoGenerationModelKey(modelKey)
+    ? AUTO_MODEL_OPTION_VALUE
+    : (modelKey ?? AUTO_MODEL_OPTION_VALUE);
+}
+
 export const AUTO_PRIORITY_LABELS: Record<RouterPriority, string> = {
   [RouterPriority.BALANCED]: 'Balanced',
   [RouterPriority.QUALITY]: 'Best Quality',

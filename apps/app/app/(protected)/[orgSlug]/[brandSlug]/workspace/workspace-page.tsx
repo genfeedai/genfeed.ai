@@ -8,6 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
@@ -15,7 +16,7 @@ import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import { LayoutGrid } from 'lucide-react';
+import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
 
@@ -238,17 +239,17 @@ function WorkspacePageContentContent({
   const inboxEmpty =
     section === 'inbox' && defaultInboxView === 'unread'
       ? {
-          description: 'Items waiting for your attention will show up here.',
-          label: 'No unread items',
+          description: 'New work will land here when something needs you.',
+          label: "You're caught up",
         }
       : section === 'inbox' && defaultInboxView === 'recent'
         ? {
             description: 'Recent inbox activity will show up here.',
-            label: 'No recent items',
+            label: 'No recent activity',
           }
         : {
             description: 'Review and approval items will show up here.',
-            label: 'No inbox items yet',
+            label: 'Inbox is empty',
           };
 
   const inboxTable = (
@@ -259,6 +260,13 @@ function WorkspacePageContentContent({
       isLoading={isWorkspaceTasksLoading}
       emptyLabel={inboxEmpty.label}
       emptyDescription={inboxEmpty.description}
+      emptyState={
+        <CardEmptyContent
+          description={inboxEmpty.description}
+          icon={Inbox}
+          label={inboxEmpty.label}
+        />
+      }
       getRowKey={(task) => task.id}
       getItemId={(task) => task.id}
       onRowClick={(task) => {
@@ -335,17 +343,18 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              {section === 'inbox' ? (
-                <div className="w-full">{inboxTable}</div>
-              ) : (
-                <WorkspaceSurface
-                  title="Inbox"
-                  description="Latest items waiting on your review."
-                  density="compact"
-                >
-                  {inboxTable}
-                </WorkspaceSurface>
-              )}
+              <WorkspaceSurface
+                density="compact"
+                description={
+                  section === 'inbox'
+                    ? sectionCopy.description
+                    : 'Latest items waiting on your review.'
+                }
+                framed={false}
+                title={section === 'inbox' ? sectionCopy.title : 'Inbox'}
+              >
+                {inboxTable}
+              </WorkspaceSurface>
             </section>
           ) : null}
         </div>

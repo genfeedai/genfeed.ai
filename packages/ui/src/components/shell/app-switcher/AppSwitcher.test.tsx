@@ -294,6 +294,17 @@ describe('AppSwitcher', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders Library with the stacked-assets icon, not a briefcase', () => {
+    render(<AppSwitcher orgSlug="acme" />);
+
+    const libraryLink = screen.getByRole('link', { name: 'Library' });
+    const icon = libraryLink.querySelector('svg');
+
+    expect(icon).not.toBeNull();
+    expect(icon?.classList.toString()).toMatch(/lucide-layers/);
+    expect(icon?.classList.toString()).not.toMatch(/lucide-briefcase/);
+  });
+
   it('keeps a fixed launcher width and shows app details outside the panel', () => {
     const { container } = render(<AppSwitcher orgSlug="acme" />);
 

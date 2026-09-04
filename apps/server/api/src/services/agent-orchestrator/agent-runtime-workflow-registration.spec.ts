@@ -144,7 +144,7 @@ describe('agent runtime workflow registration contract', () => {
           outputs: 1,
           prioritize: 'speed',
           prompt: 'Generate a red apple',
-          sourceActionId: 'composer-generation:execution-1',
+          sourceActionId: 'composer-generation-execution-1',
         },
         threadId: 'thread-1',
       },

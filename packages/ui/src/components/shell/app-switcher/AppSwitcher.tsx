@@ -17,7 +17,6 @@ import type {
   AppSwitcherProps,
 } from '@genfeedai/props/ui/app-switcher.props';
 import {
-  Briefcase,
   ChartNoAxesColumn,
   ChevronsUpDown,
   Grip,
@@ -213,7 +212,6 @@ const APP_SWITCHER_ICON_OVERRIDES: Partial<
   Record<string, LifecycleAppSwitcherItemConfig['icon']>
 > = {
   automation: Workflow,
-  library: Briefcase,
   studio: Sparkles,
 };
 

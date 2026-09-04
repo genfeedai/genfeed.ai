@@ -1,4 +1,8 @@
-import type { RouterPriority, UploadStatus } from '@genfeedai/contracts';
+import type {
+  AgentGenerationMode,
+  RouterPriority,
+  UploadStatus,
+} from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   ResearchFindingReferenceKind,
@@ -22,7 +26,7 @@ export type ConversationComposerActionName =
 
 export type ConversationComposerScope = 'brand' | 'organization';
 
-export type ConversationComposerGenerationMode = 'auto' | 'image' | 'video';
+export type ConversationComposerGenerationMode = AgentGenerationMode;
 
 export interface ConversationComposerGenerationSettings {
   aspectRatio: string;

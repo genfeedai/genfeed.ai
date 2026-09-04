@@ -66,6 +66,7 @@ describe('agent semantic theme contract', () => {
   });
 
   it.each([
+    'components/AgentChatMessage.tsx',
     'components/AnalyticsSnapshotCard.tsx',
     'workflow/components/ApproachCard.tsx',
     'workflow/components/QuestionCard.tsx',
