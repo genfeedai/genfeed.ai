@@ -214,7 +214,7 @@ Color system status:
 Product UI baseline:
 
 - Dark-first canvas; Light mirrors the same jobs with inverted values.
-- One ten-step neutral ladder drives both themes; chrome is grayscale by design and generated media is the only colour.
+- One ten-step neutral ladder drives both themes; chrome is grayscale except for the semantic status colours, and generated media is the only other source of colour.
 - Compact, information-dense controls.
 - White or near-white primary CTAs.
 - Semantic status colors for success, warning, danger, info, agent, and done.
@@ -297,7 +297,7 @@ Font-by-size rule:
 
 - Product UI typography stays on the app scale.
 - Campaign typography should be assigned by semantic role, not by arbitrary px values.
-- Until the final marketing typeface is selected, use the role scale with system sans and mono.
+- Campaign type uses the role scale with Satoshi; Zodiak is reserved for the single editorial role; a system mono carries labels and code.
 - Do not copy a competitor's font-size/typeface pairing.
 
 Element size contract:
@@ -354,8 +354,6 @@ First launch campaign:
 
 ## Open Questions
 
-- Whether Genfeed uses an illustrated agent/mascot in campaigns or stays tool/system-first.
-- Final public marketing campaign palette after Wada/Sanzo source matching and accessibility review; the product ladder is settled.
-- Which source-backed references become visible in the public generator UI.
-
-Resolve each with a showcase render pass (`brand-showcase-prompt.md`), one candidate slot per run, before touching tokens.
+- Whether Genfeed uses an illustrated agent/mascot in campaigns or stays tool/system-first. Resolve with showcase render passes (`brand-showcase-prompt.md`), one `candidate` value in the founder-or-mascot slot per run.
+- Final public marketing campaign palette after Wada/Sanzo source matching and accessibility review; the product ladder is settled. Resolve with showcase render passes, one `candidate` campaign palette per run, before touching tokens.
+- Which source-backed references become visible in the public generator UI. This is a generator product decision, not a render question; the showcase prompt only fixes that each preview card carries its source and label.
