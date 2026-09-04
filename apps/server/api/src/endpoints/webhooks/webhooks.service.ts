@@ -153,13 +153,14 @@ export class WebhooksService {
     });
 
     // 2. S3 upload + dimension update
-    await this.mediaUploadService.uploadAndUpdateMetadata(
-      input.ingredientId,
-      input.categoryValue,
-      input.url,
-      input.metadataId,
-      input.externalId,
-    );
+    const uploadMetadata =
+      await this.mediaUploadService.uploadAndUpdateMetadata(
+        input.ingredientId,
+        input.categoryValue,
+        input.url,
+        input.metadataId,
+        input.externalId,
+      );
 
     // Re-populate the user after patch to preserve the canonical relation.
     const ingredient = await this.ingredientsService.findOne({
@@ -191,7 +192,18 @@ export class WebhooksService {
     }
 
     // 3. Mark ingredient as GENERATED
+    const cdnUrl =
+      typeof uploadMetadata.publicUrl === 'string'
+        ? uploadMetadata.publicUrl
+        : undefined;
+    const s3Key =
+      typeof uploadMetadata.s3Key === 'string'
+        ? uploadMetadata.s3Key
+        : undefined;
+
     await this.ingredientsService.patch(input.ingredientId, {
+      ...(cdnUrl ? { cdnUrl } : {}),
+      ...(s3Key ? { s3Key } : {}),
       status: IngredientStatus.GENERATED,
     });
 

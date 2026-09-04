@@ -5,6 +5,7 @@ import {
   FileInputType,
   IngredientCategory,
 } from '@genfeedai/contracts';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -28,7 +29,7 @@ export class MediaUploadService {
     url: string,
     metadataId: string,
     externalId?: string,
-  ): Promise<void> {
+  ): Promise<IFileMetadata> {
     const uploadMeta = await this.filesClientService.uploadToS3(
       ingredientId,
       categoryToPlural(category),
@@ -66,5 +67,7 @@ export class MediaUploadService {
     }
 
     await this.metadataService.patch(metadataId, updateData);
+
+    return uploadMeta;
   }
 }
