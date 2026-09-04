@@ -558,6 +558,12 @@ export function buildReport({
       }
       coverageByFile.set(file, merged);
     }
+    if (
+      surface.sourceFiles === 0 &&
+      !hasChangedSurfaceCode(surface.name, changedFiles)
+    ) {
+      surface.status = 'no-changed-code';
+    }
   }
 
   const changedLinesByFile = new Map(

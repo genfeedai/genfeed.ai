@@ -1218,3 +1218,21 @@ test('package-only changes retain coverage reported by the app surface', () => {
   assert.equal(built.normalized.totals.lines.percent, 100);
   assert.equal(built.normalized.disposition, 'observation-only');
 });
+
+test('unrelated LCOV distinguishes unchanged surfaces from missing changed coverage', () => {
+  const lcov = 'SF:apps/server/api/src/unrelated.ts\nDA:1,1\nend_of_record\n';
+  const unchanged = report({
+    changedFiles: [['packages/workflows/src/run.ts', [1]]],
+    surfaces: [surface('api', 'success', lcov)],
+  });
+  assert.equal(unchanged.normalized.surfaces[0].status, 'no-changed-code');
+  assert.equal(unchanged.normalized.totals.lines.unmeasured, 1);
+
+  const missing = report({
+    changedFiles: [['apps/server/api/src/changed.ts', [1]]],
+    surfaces: [surface('api', 'success', lcov)],
+  });
+  assert.equal(missing.normalized.surfaces[0].status, 'reported');
+  assert.equal(missing.normalized.totals.lines.unmeasured, 1);
+  assert.equal(missing.normalized.disposition, 'unmeasured');
+});
