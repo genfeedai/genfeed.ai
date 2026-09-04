@@ -48,6 +48,7 @@ import {
   buildPromptBuilderBrandContext,
 } from '@api/services/harness/harness-brief.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -508,7 +509,7 @@ export class ArticlesContentService {
     const content = htmlParts.join('\n');
 
     // Calculate word count and estimated read time
-    const plainText = content.replace(/<[^>]*>/g, '').replace(/[<>]/g, '');
+    const plainText = htmlToText(content);
     const wordCount = plainText.split(/\s+/).filter(Boolean).length;
     const estimatedReadTime = Math.ceil(wordCount / 250);
 

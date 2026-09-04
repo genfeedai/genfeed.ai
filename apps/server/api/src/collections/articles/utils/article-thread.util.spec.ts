@@ -55,15 +55,17 @@ describe('article-thread.util', () => {
       expect(tweets[1].content).toBe('Hi there');
     });
 
-    it('drops leftover angle brackets after incomplete HTML tags', () => {
+    it('parses quoted tag brackets and drops executable element bodies', () => {
       const tweets = buildTwitterThreadTweets({
-        content: '<p>Hi<script there',
+        content:
+          '<a title="a>b">Visible</a><script>alert(1)</script><style>hidden</style>',
         label: 'Title',
         summary: '',
       });
 
-      expect(tweets[1].content).toBe('Hiscript there');
-      expect(tweets[1].content).not.toContain('<');
+      expect(tweets[1].content).toBe('Visible');
+      expect(tweets[1].content).not.toContain('alert');
+      expect(tweets[1].content).not.toContain('hidden');
     });
 
     it('splits a paragraph longer than the limit into sentence-sized tweets', () => {

@@ -1,4 +1,5 @@
 import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 
 /**
  * Pure Twitter/X thread builder for articles.
@@ -81,11 +82,7 @@ export function buildTwitterThreadTweets(params: {
   /** Fully-resolved public/preview article URL; omit to skip the link tweet. */
   articleUrl?: string;
 }): TwitterThreadResponse['tweets'] {
-  const content = params.content
-    .replace(/<[^>]*>/g, '')
-    .replace(/[<>]/g, '')
-    .replace(/\n+/g, '\n')
-    .trim();
+  const content = htmlToText(params.content).replace(/\n+/g, '\n').trim();
 
   // Split by double newlines (paragraphs) or by sentences if no paragraphs
   const paragraphs = content
