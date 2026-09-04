@@ -510,6 +510,25 @@ describe('app next.config', () => {
     ).toBe(true);
   });
 
+  it('leaves scoped legacy workflows to the scope-aware proxy', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).not.toContainEqual(
+      expect.objectContaining({
+        source: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          LEGACY_APP_ROUTES.WORKFLOWS,
+        ),
+      }),
+    );
+    expect(redirects).not.toContainEqual(
+      expect.objectContaining({
+        source: APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS,
+      }),
+    );
+  });
+
   it('rewrites clean local workspace routes into the default local shell scope', async () => {
     const rewrites = await config.rewrites?.();
     expect(rewrites).toContainEqual({

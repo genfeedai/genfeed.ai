@@ -123,7 +123,13 @@ function appHomeRedirects(
 }
 
 /** Permanent hard-cut of a legacy path (and nested segments) onto a new prefix. */
-function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
+function legacyPathRedirects(
+  fromPrefix: `/${string}`,
+  toPrefix: `/${string}`,
+  options: { includeBrandScope?: boolean } = {},
+) {
+  const { includeBrandScope = true } = options;
+
   return [
     {
       destination: toPrefix,
@@ -135,24 +141,32 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
       permanent: true,
       source: `${fromPrefix}/:path*`,
     },
-    {
-      destination: createBrandAppRoute(':orgSlug', ':brandSlug', toPrefix),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', fromPrefix),
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${toPrefix}/:path*`,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${fromPrefix}/:path*`,
-      ),
-    },
+    ...(includeBrandScope
+      ? [
+          {
+            destination: createBrandAppRoute(
+              ':orgSlug',
+              ':brandSlug',
+              toPrefix,
+            ),
+            permanent: true,
+            source: createBrandAppRoute(':orgSlug', ':brandSlug', fromPrefix),
+          },
+          {
+            destination: createBrandAppRoute(
+              ':orgSlug',
+              ':brandSlug',
+              `${toPrefix}/:path*`,
+            ),
+            permanent: true,
+            source: createBrandAppRoute(
+              ':orgSlug',
+              ':brandSlug',
+              `${fromPrefix}/:path*`,
+            ),
+          },
+        ]
+      : []),
   ];
 }
 
@@ -523,6 +537,10 @@ const config = createAppNextConfig({
     ...legacyPathRedirects(
       LEGACY_APP_ROUTES.WORKFLOWS,
       APP_ROUTES.AUTOMATION.WORKFLOWS,
+      // The generic /:org/:brand/workflows redirect also matches the real
+      // /admin/automation/workflows page before filesystem routing. The proxy
+      // owns this scoped compatibility edge so it can reject global roots.
+      { includeBrandScope: false },
     ),
   ],
   sentryProject: 'app-genfeed-ai',
