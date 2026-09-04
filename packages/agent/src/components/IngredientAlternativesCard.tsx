@@ -5,6 +5,7 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { usePromptModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -30,6 +31,7 @@ export function IngredientAlternativesCard({
   apiService,
 }: IngredientAlternativesCardProps): ReactElement {
   const { openPromptModal } = usePromptModal();
+  const { brandId } = useBrand();
   const { href } = useOrgUrl();
   const alternatives = action.alternatives ?? [];
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -65,6 +67,7 @@ export function IngredientAlternativesCard({
 
         const body = buildAgentGenerationRequestBody({
           aspectRatio: '1:1',
+          brandId: brandId || undefined,
           promptId: promptDoc.id,
           promptText: alt.prompt,
         });
@@ -75,10 +78,12 @@ export function IngredientAlternativesCard({
           controller.signal,
         );
         setResultId(result.id);
-        const mediaPath = alt.generationType === 'video' ? 'videos' : 'images';
-        setResultUrl(
-          result.url || `${apiService.baseUrl}/${mediaPath}/${result.id}`,
-        );
+        if (!result.url) {
+          throw new Error(
+            'Generation completed without a renderable asset preview.',
+          );
+        }
+        setResultUrl(result.url);
         setStatus('done');
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
@@ -90,7 +95,7 @@ export function IngredientAlternativesCard({
         }
       }
     },
-    [alternatives, status, apiService],
+    [alternatives, apiService, brandId, status],
   );
 
   const handleViewPrompt = useCallback(

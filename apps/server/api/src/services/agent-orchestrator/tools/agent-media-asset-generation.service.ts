@@ -30,6 +30,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+interface AgentBrandsServiceLike {
+  findOne: (
+    params: Record<string, unknown>,
+    context?: string,
+  ) => Promise<Record<string, unknown> | null>;
+}
+
 @Injectable()
 export class AgentMediaAssetGenerationService {
   constructor(
@@ -38,6 +45,8 @@ export class AgentMediaAssetGenerationService {
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingHandler: AgentOnboardingToolHandler,
+    @Inject('AGENT_BRANDS_SERVICE')
+    private readonly brandsService: AgentBrandsServiceLike,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
     @Optional()
@@ -58,6 +67,40 @@ export class AgentMediaAssetGenerationService {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     };
+  }
+
+  private async resolveMediaBrandContext(
+    ctx: ToolExecutionContext,
+  ): Promise<{ context: ToolExecutionContext } | { error: AgentToolResult }> {
+    if (ctx.brandId) {
+      return { context: ctx };
+    }
+
+    const selectedBrand = await this.brandsService.findOne({
+      isDeleted: false,
+      isSelected: true,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    const organizationBrand =
+      selectedBrand ??
+      (await this.brandsService.findOne({
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      }));
+    const brandId = organizationBrand?.id;
+
+    if (typeof brandId !== 'string' || brandId.length === 0) {
+      return {
+        error: {
+          creditsUsed: 0,
+          error: 'Create a brand before generating organization media.',
+          success: false,
+        },
+      };
+    }
+
+    return { context: { ...ctx, brandId } };
   }
 
   private readStringArray(value: unknown, max: number): string[] {
@@ -158,6 +201,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
+
     const rawPrompt =
       (params.prompt as string | undefined) ??
       (params.description as string | undefined) ??
@@ -408,6 +457,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
+
     const requestedModel =
       ctx.generationSettings?.model ??
       (typeof params.model === 'string' && params.model.trim().length > 0

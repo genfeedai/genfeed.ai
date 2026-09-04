@@ -1029,6 +1029,7 @@ describe('AgentToolExecutorService', () => {
         configService as never,
         generationGateway as never,
         onboardingHandler,
+        brandsService as never,
         contentQualityScorerService as never,
       ),
       new AgentMediaBatchGenerationService(
@@ -5480,6 +5481,7 @@ describe('AgentToolExecutorService', () => {
           { get: vi.fn() } as never,
           generationGatewayWithoutScorer as never,
           onboardingWithoutScorer,
+          brandsService as never,
           undefined, // contentQualityScorerService intentionally absent
         ),
         new AgentMediaBatchGenerationService(

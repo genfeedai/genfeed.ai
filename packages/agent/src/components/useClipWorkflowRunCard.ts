@@ -5,6 +5,7 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
@@ -77,6 +78,7 @@ export function useClipWorkflowRunCard({
   apiService,
   hrefFn,
 }: UseClipWorkflowRunCardParams) {
+  const { brandId } = useBrand();
   const clipRun = action.clipRun ?? {};
   const identity = clipRun.identity;
   const [autonomousMode, setAutonomousMode] = useState(
@@ -200,6 +202,7 @@ export function useClipWorkflowRunCard({
       'video',
       buildAgentGenerationRequestBody({
         aspectRatio: '16:9',
+        brandId: brandId || undefined,
         duration: Math.max(5, Math.min(60, durationSeconds)),
         identity,
         modelKey: clipRun.model || undefined,
@@ -210,7 +213,15 @@ export function useClipWorkflowRunCard({
     );
     setGeneratedVideoIds((prev) => [...prev, result.id]);
     setStep('generate_clip', 'completed');
-  }, [apiService, clipRun.model, durationSeconds, identity, prompt, setStep]);
+  }, [
+    apiService,
+    brandId,
+    clipRun.model,
+    durationSeconds,
+    identity,
+    prompt,
+    setStep,
+  ]);
 
   const runMerge = useCallback(async () => {
     if (!mergeGeneratedVideos || generatedVideoIds.length < 2) {

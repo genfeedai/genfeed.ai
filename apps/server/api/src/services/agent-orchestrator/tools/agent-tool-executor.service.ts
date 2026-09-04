@@ -124,6 +124,8 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.GET_TRENDS,
   AgentToolName.GET_WORKFLOW_INPUTS,
   AgentToolName.GET_WORKFLOW_RUN,
+  AgentToolName.GENERATE_IMAGE,
+  AgentToolName.GENERATE_VIDEO,
   AgentToolName.INSPECT_WORKFLOW,
   AgentToolName.LIST_ADS_RESEARCH,
   AgentToolName.LIST_AGENT_CONVERSATIONS,

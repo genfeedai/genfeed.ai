@@ -29,6 +29,9 @@ function createHandler() {
     checkOnboardingStatus: vi.fn().mockResolvedValue({ nextActions: [] }),
     completeJourneyMission: vi.fn().mockResolvedValue(undefined),
   };
+  const brandsService = {
+    findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }),
+  };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
@@ -42,6 +45,7 @@ function createHandler() {
       { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
       gateway as never,
       onboardingHandler as never,
+      brandsService as never,
     ),
     new AgentMediaBatchGenerationService(
       logger as never,
@@ -52,6 +56,7 @@ function createHandler() {
 
   return {
     aiActionsService,
+    brandsService,
     contentGeneratorService,
     gateway,
     handler,
@@ -359,6 +364,29 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateImage', () => {
+  it('resolves an organization brand before generating from an unscoped thread', async () => {
+    const { brandsService, gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.com/logo.png' },
+        id: 'ingredient-1',
+      },
+    });
+
+    await handler.generateImage(
+      { prompt: 'organization launch image' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(brandsService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'organization-1' }),
+    );
+    expect(gateway.generateImage).toHaveBeenCalledWith({
+      body: expect.objectContaining({ brandId: 'brand-selected' }),
+      principal: expect.objectContaining({ brandId: 'brand-selected' }),
+    });
+  });
+
   it('accepts confirmed image generation without synchronously waiting for the provider', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateImage.mockResolvedValue({
@@ -617,6 +645,26 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateVideo', () => {
+  it('resolves an organization brand before generating from an unscoped thread', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.com/clip.mp4' },
+        id: 'video-1',
+      },
+    });
+
+    await handler.generateVideo(
+      { prompt: 'organization launch video' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({ brandId: 'brand-selected' }),
+      principal: expect.objectContaining({ brandId: 'brand-selected' }),
+    });
+  });
+
   it('accepts confirmed video generation without synchronously waiting for the provider', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockResolvedValue({
