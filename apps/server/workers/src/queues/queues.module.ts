@@ -9,11 +9,13 @@
 import { SERVER_TOKENS } from '@api/index';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
+  REPLICATE_POLL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
@@ -31,7 +33,7 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [QueueService, HeygenPollQueueService],
+  exports: [QueueService, HeygenPollQueueService, ReplicatePollQueueService],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -103,11 +105,21 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: HEYGEN_POLL_QUEUE,
       },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: REPLICATE_POLL_QUEUE,
+      },
     ),
   ],
   providers: [
     QueueService,
     HeygenPollQueueService,
+    ReplicatePollQueueService,
     // Schedule 24h reply post-watch series after successful X publish.
     {
       provide: SERVER_TOKENS.logger,

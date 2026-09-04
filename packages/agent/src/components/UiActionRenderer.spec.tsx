@@ -406,6 +406,45 @@ describe('UiActionRenderer', () => {
     },
   );
 
+  it('routes generation confirmation through the live thread action handler', () => {
+    const apiService = { marker: 'generation' };
+    const onUiAction = vi.fn();
+    const action = {
+      id: 'generation-action-1',
+      type: 'generation_action_card',
+    } as AgentUiAction;
+    cardPropsSpies.generationAction.mockClear();
+
+    const { rerender } = render(
+      <UiActionRenderer
+        action={action}
+        apiService={apiService as never}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    expect(
+      cardPropsSpies.generationAction.mock.calls.at(-1)?.[0],
+    ).toMatchObject({
+      apiService,
+      onUiAction,
+    });
+
+    cardPropsSpies.generationAction.mockClear();
+    rerender(
+      <UiActionRenderer
+        action={action}
+        apiService={apiService as never}
+        isDisabled
+        onUiAction={onUiAction}
+      />,
+    );
+
+    expect(
+      cardPropsSpies.generationAction.mock.calls.at(-1)?.[0].onUiAction,
+    ).toBeUndefined();
+  });
+
   it('adapts a successful onUiAction outcome for brand identity confirmation cards', async () => {
     const onUiAction = vi.fn().mockResolvedValue(true);
     const action = {

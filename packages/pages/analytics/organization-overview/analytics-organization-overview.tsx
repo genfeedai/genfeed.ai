@@ -29,7 +29,7 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { ArrowRight, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -176,7 +176,6 @@ export default function AnalyticsOrganizationOverview({
   // lands puts `organizationId=` on the wire and the query DTO rejects it.
   const isFetchReady =
     Boolean(organizationIdProp) || isCollectionFetchReady(scope);
-  const router = useRouter();
   const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange?.startDate ?? undefined,
@@ -311,16 +310,18 @@ export default function AnalyticsOrganizationOverview({
 
       <WorkspaceSurface
         density="compact"
-        framed={false}
+        flush
+        tone="outlined"
         title={`All Brands (${formatCompactNumberIntl(analytics?.totalBrands)})`}
       >
         <Table
+          framed={false}
           items={brandsData}
           isLoading={loadingBrands}
           emptyLabel="No brands found"
           getRowKey={(brand) => brand.id}
           getRowLink={(brand) => ({
-            href: `/analytics/brands/${brand.id}`,
+            href: `${basePath}/brands/${brand.id}`,
             label: `Open ${brand.name} analytics`,
           })}
           columns={[
@@ -333,12 +334,12 @@ export default function AnalyticsOrganizationOverview({
                     <Image
                       src={brand.logo}
                       alt={brand.name}
-                      width={32}
-                      height={32}
-                      className="size-8 rounded-full object-cover"
+                      width={40}
+                      height={40}
+                      className="size-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary">
                       {brand.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -353,57 +354,55 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Posts',
               key: 'totalPosts',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalPosts)}
                 </span>
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Views',
               key: 'totalViews',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalViews)}
                 </span>
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Engagement',
               key: 'totalEngagement',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalEngagement)}
                 </span>
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Eng. Rate',
               key: 'avgEngagementRate',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatPercentageSimple(brand.avgEngagementRate, 2)}
                 </span>
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Growth',
               key: 'growth',
               render: (brand) => (
-                <span className={`font-mono ${getGrowthClass(brand.growth)}`}>
+                <span className={`font-medium ${getGrowthClass(brand.growth)}`}>
                   {brand.growth > 0 ? '+' : ''}
                   {formatPercentageSimple(brand.growth, 2)}
                 </span>
               ),
-            },
-          ]}
-          actions={[
-            {
-              icon: <ArrowRight className="size-4" />,
-              onClick: (brand) => router.push(`${basePath}/brands/${brand.id}`),
-              tooltip: 'View Details',
             },
           ]}
         />

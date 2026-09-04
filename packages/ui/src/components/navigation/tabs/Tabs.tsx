@@ -55,16 +55,12 @@ function NavigationTabLink({
   children,
   isActive,
   itemKey,
-  size,
   tab,
-  variant,
 }: {
   children: ReactNode;
   isActive: boolean;
   itemKey: string;
-  size: TabsEnhancedProps['size'];
   tab: RouteTabItem;
-  variant: TabsEnhancedProps['variant'];
 }) {
   const prefetchHref = useNavigationPrefetch(tab.href);
 
@@ -73,9 +69,7 @@ function NavigationTabLink({
       key={itemKey}
       href={tab.href}
       aria-current={isActive ? 'page' : undefined}
-      data-size={size}
       data-state={isActive ? 'active' : 'inactive'}
-      data-variant={variant}
       prefetch={false}
       onFocus={prefetchHref}
       onMouseEnter={prefetchHref}
@@ -87,6 +81,7 @@ function NavigationTabLink({
 }
 
 function TabsContent({
+  ariaLabel,
   children,
   items,
   tabs,
@@ -94,10 +89,8 @@ function TabsContent({
   onTabChange,
   className = '',
   contentClassName,
-  listClassName,
-  variant = 'default',
-  size = 'md',
   fullWidth = true,
+  stopClickPropagation = false,
 }: TabsEnhancedProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -209,17 +202,11 @@ function TabsContent({
 
   if (hasNavigationTabs) {
     return (
-      <nav className={cn('inline-flex', fullWidth && 'w-full', className)}>
-        <div
-          className={cn(
-            getTabsListClassName(
-              cn(fullWidth && 'w-full', listClassName),
-              variant,
-            ),
-          )}
-          data-size={size}
-          data-variant={variant}
-        >
+      <nav
+        aria-label={ariaLabel}
+        className={cn('inline-flex', fullWidth && 'w-full', className)}
+      >
+        <div className={cn(getTabsListClassName(cn(fullWidth && 'w-full')))}>
           {normalizedTabs.map((tab) => {
             const key = getTabId(tab);
             const value = getTabId(tab);
@@ -233,9 +220,7 @@ function TabsContent({
                 <button
                   key={key}
                   type="button"
-                  data-size={size}
                   data-state={isActive ? 'active' : 'inactive'}
-                  data-variant={variant}
                   disabled={tabItem.isDisabled}
                   className={getTabsTriggerClassName(
                     cn(tabItem.isDisabled && 'opacity-50 cursor-not-allowed'),
@@ -269,9 +254,7 @@ function TabsContent({
                 <span
                   key={key}
                   aria-disabled="true"
-                  data-size={size}
                   data-state={isActive ? 'active' : 'inactive'}
-                  data-variant={variant}
                   className={getTabsTriggerClassName(
                     'cursor-not-allowed opacity-50',
                   )}
@@ -286,9 +269,7 @@ function TabsContent({
                 key={key}
                 itemKey={key}
                 isActive={isActive}
-                size={size}
                 tab={tab}
-                variant={variant}
               >
                 {content}
               </NavigationTabLink>
@@ -309,11 +290,7 @@ function TabsContent({
         className,
       )}
     >
-      <TabsList
-        data-variant={variant}
-        data-size={size}
-        className={cn(fullWidth && 'w-full', listClassName)}
-      >
+      <TabsList aria-label={ariaLabel} className={cn(fullWidth && 'w-full')}>
         {normalizedTabs.map((tab) => {
           const tabItem =
             typeof tab === 'string'
@@ -336,10 +313,13 @@ function TabsContent({
             <TabsTrigger
               key={key}
               value={value}
-              data-variant={variant}
-              data-size={size}
               disabled={tab.isDisabled}
               className={cn(tab.isDisabled && 'opacity-50 cursor-not-allowed')}
+              onClick={(event) => {
+                if (stopClickPropagation) {
+                  event.stopPropagation();
+                }
+              }}
             >
               {triggerContent}
             </TabsTrigger>

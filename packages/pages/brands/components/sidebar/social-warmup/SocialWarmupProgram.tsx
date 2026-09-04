@@ -17,13 +17,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Skeleton } from '@ui/primitives/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SocialWarmupCheckItem from './SocialWarmupCheckItem';
@@ -80,7 +80,6 @@ export default function SocialWarmupProgram({
   health,
   onOverrideRequest,
   onReconnect,
-  variant = 'compact',
 }: SocialWarmupProgramProps) {
   const translate = useTranslations('pages.socialWarmup');
   const { getToken } = useAuthIdentity();
@@ -297,8 +296,6 @@ export default function SocialWarmupProgram({
   const readinessKey = health
     ? STATE_MESSAGE_KEYS[health.state]
     : STATE_MESSAGE_KEYS.warming;
-  const isCompact = variant === 'compact';
-
   return (
     <section className="space-y-4" aria-label={translate('programTitle')}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -447,23 +444,22 @@ export default function SocialWarmupProgram({
       ) : null}
 
       <Tabs
-        onValueChange={(nextView) => {
+        activeTab={view}
+        ariaLabel={translate('programTitle')}
+        contentClassName={view === 'today' ? 'space-y-2' : 'space-y-4'}
+        fullWidth={false}
+        items={[
+          { id: 'today', label: translate('today') },
+          { id: 'full', label: translate('fullBlueprint') },
+        ]}
+        onTabChange={(nextView) => {
           if (nextView === 'today' || nextView === 'full') {
             setView(nextView);
           }
         }}
-        value={view}
       >
-        <TabsList aria-label={translate('programTitle')}>
-          <TabsTrigger data-size={isCompact ? 'sm' : 'md'} value="today">
-            {translate('today')}
-          </TabsTrigger>
-          <TabsTrigger data-size={isCompact ? 'sm' : 'md'} value="full">
-            {translate('fullBlueprint')}
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="today" className="space-y-2">
-          {model.todayChecks.map((check) => (
+        {view === 'today' ? (
+          model.todayChecks.map((check) => (
             <SocialWarmupCheckItem
               check={check}
               focusedCheckId={focusedCheckId}
@@ -480,22 +476,50 @@ export default function SocialWarmupProgram({
               }
               onReopen={handleReopen}
             />
-          ))}
-        </TabsContent>
-        <TabsContent value="full" className="space-y-4">
-          {blueprint.phases.map((phase) => {
-            const phaseChecks = fullChecks.filter(
-              (check) => check.phaseId === phase.id,
-            );
-            return (
-              <section className="space-y-2" key={phase.id}>
-                <div>
-                  <h4 className="text-sm font-medium">{phase.title}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {phase.description}
-                  </p>
-                </div>
-                {phaseChecks.map((check) => (
+          ))
+        ) : (
+          <>
+            {blueprint.phases.map((phase) => {
+              const phaseChecks = fullChecks.filter(
+                (check) => check.phaseId === phase.id,
+              );
+              return (
+                <section className="space-y-2" key={phase.id}>
+                  <div>
+                    <h4 className="text-sm font-medium">{phase.title}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {phase.description}
+                    </p>
+                  </div>
+                  {phaseChecks.map((check) => (
+                    <SocialWarmupCheckItem
+                      check={check}
+                      focusedCheckId={focusedCheckId}
+                      isPending={pendingItemId === check.id}
+                      key={check.id}
+                      onComplete={handleComplete}
+                      onReconnect={
+                        onReconnect ? () => onReconnect(platform) : undefined
+                      }
+                      onRefreshSignals={
+                        canRefreshAuthorizedSignals(platform)
+                          ? handleRefreshSignals
+                          : undefined
+                      }
+                      onReopen={handleReopen}
+                    />
+                  ))}
+                </section>
+              );
+            })}
+            <section className="space-y-2">
+              <h4 className="text-sm font-medium">{translate('graduation')}</h4>
+              <p className="text-xs text-muted-foreground">
+                {blueprint.graduation.disclaimer}
+              </p>
+              {fullChecks
+                .filter((check) => check.kind === 'graduation')
+                .map((check) => (
                   <SocialWarmupCheckItem
                     check={check}
                     focusedCheckId={focusedCheckId}
@@ -513,36 +537,9 @@ export default function SocialWarmupProgram({
                     onReopen={handleReopen}
                   />
                 ))}
-              </section>
-            );
-          })}
-          <section className="space-y-2">
-            <h4 className="text-sm font-medium">{translate('graduation')}</h4>
-            <p className="text-xs text-muted-foreground">
-              {blueprint.graduation.disclaimer}
-            </p>
-            {fullChecks
-              .filter((check) => check.kind === 'graduation')
-              .map((check) => (
-                <SocialWarmupCheckItem
-                  check={check}
-                  focusedCheckId={focusedCheckId}
-                  isPending={pendingItemId === check.id}
-                  key={check.id}
-                  onComplete={handleComplete}
-                  onReconnect={
-                    onReconnect ? () => onReconnect(platform) : undefined
-                  }
-                  onRefreshSignals={
-                    canRefreshAuthorizedSignals(platform)
-                      ? handleRefreshSignals
-                      : undefined
-                  }
-                  onReopen={handleReopen}
-                />
-              ))}
-          </section>
-        </TabsContent>
+            </section>
+          </>
+        )}
       </Tabs>
     </section>
   );

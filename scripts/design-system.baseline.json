@@ -1,9 +1,6 @@
 {
   "version": 1,
   "files": {
-    "packages/ui/src/components/agent-panel/AgentPanelShell.tsx": {
-      "undersized-control-height": 2
-    },
     "packages/ui/src/components/ai/hashtag-generator/HashtagGeneratorButton.tsx": {
       "undersized-control-height": 1
     },

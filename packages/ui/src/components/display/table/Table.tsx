@@ -3,7 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { TableProps } from '@genfeedai/props/ui/display/table.props';
+import type {
+  TableColumn,
+  TableProps,
+} from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
@@ -47,11 +50,44 @@ function TableSectionHeader({
   );
 }
 
+function TableCellContent<T>({
+  column,
+  item,
+}: {
+  column: TableColumn<T>;
+  item: T;
+}) {
+  const primary = column.render
+    ? column.render(item)
+    : String(item[column.key as keyof T]);
+  const subtext = column.subtext?.(item);
+  const hasSubtext =
+    subtext !== null &&
+    subtext !== undefined &&
+    (typeof subtext !== 'string' || subtext.trim().length > 0);
+
+  if (!hasSubtext) {
+    return primary;
+  }
+
+  return (
+    <div className="min-w-0">
+      <div className="min-w-0 truncate text-sm font-medium text-foreground">
+        {primary}
+      </div>
+      <div className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
+        {subtext}
+      </div>
+    </div>
+  );
+}
+
 export default function AppTable<T>({
   items = EMPTY_ARRAY,
   isLoading = false,
   columns,
   actions = EMPTY_ARRAY,
+  framed = true,
 
   getRowKey,
   getRowClassName,
@@ -182,6 +218,7 @@ export default function AppTable<T>({
     // SkeletonTable already owns the card shell — do not wrap it again.
     return (
       <SkeletonTable
+        className={framed ? undefined : 'rounded-none border-0 shadow-none'}
         rows={Math.max(items?.length ?? 0, 6)}
         columns={Math.max(columns.length, 1)}
       />
@@ -189,10 +226,16 @@ export default function AppTable<T>({
   }
 
   if (items?.length === 0) {
-    // Empty is not a card. Pairing border + shadow-border painted a 2px slab
-    // around "No unread items". Host already owns the page surface.
     return (
-      <div className="w-full" data-testid="table-empty">
+      <div
+        className={cn(
+          'relative w-full overflow-hidden bg-card',
+          framed
+            ? 'rounded-card border border-border'
+            : 'rounded-none border-0 shadow-none',
+        )}
+        data-testid="table-empty"
+      >
         <TableSectionHeader label={label} description={description} />
         {emptyState ?? (
           <CardEmptyContent
@@ -206,13 +249,20 @@ export default function AppTable<T>({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-card bg-card shadow-border">
+    <div
+      className={cn(
+        'relative overflow-hidden bg-card',
+        framed
+          ? 'rounded-card border border-border'
+          : 'rounded-none border-0 shadow-none',
+      )}
+    >
       <TableSectionHeader label={label} description={description} />
       <div className="overflow-x-auto">
         <table className="w-full caption-bottom border-collapse">
           <thead
             className={cn(
-              'sticky top-0 z-10 border-b border-border bg-card',
+              'sticky top-0 z-10 border-b border-border bg-background-secondary/60',
               hideHeader && 'sr-only',
             )}
           >
@@ -353,14 +403,10 @@ export default function AppTable<T>({
                             className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             href={rowLink.href}
                           />
-                          {column.render
-                            ? column.render(item)
-                            : String(item[column.key as keyof T])}
+                          <TableCellContent column={column} item={item} />
                         </>
-                      ) : column.render ? (
-                        column.render(item)
                       ) : (
-                        String(item[column.key as keyof T])
+                        <TableCellContent column={column} item={item} />
                       )}
                     </td>
                   ))}

@@ -72,9 +72,11 @@ function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
 }
 
 function ScenesListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
+  onRefresh,
 }: IElementContentProps): ReactNode {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -152,13 +154,12 @@ function ScenesListContent({
   });
 
   const columns: TableColumn<ElementScene>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (scene: ElementScene) => scene.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (scene: ElementScene) => scene.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const findAllScenes = useCallback(
@@ -172,6 +173,7 @@ function ScenesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -201,6 +203,7 @@ function ScenesListContent({
     },
     [
       currentPage,
+      filters?.search,
       getScenesService,
       notificationsService.error,
       notificationsService.success,
@@ -213,6 +216,12 @@ function ScenesListContent({
   useEffect(() => {
     findAllScenes();
   }, [findAllScenes]);
+
+  useEffect(() => {
+    if (onRefresh) {
+      return onRefresh(() => findAllScenes(true));
+    }
+  }, [onRefresh, findAllScenes]);
 
   function openSceneModal(modalId: ModalEnum, scene?: IElementScene): void {
     dispatch({ type: 'SET_SELECTED_SCENE', scene: scene ?? null });

@@ -79,11 +79,16 @@ export default function TrainingsList({
     () =>
       buildTrainingsTableActions({
         onEdit: openTrainingModal,
-        onView: (training: ITraining) =>
-          router.push(`/trainings/${training.id}`),
+        onView:
+          scope === PageScope.SUPERADMIN
+            ? (training: ITraining) =>
+                router.push(
+                  `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${training.id}/images`,
+                )
+            : undefined,
         onDelete: openDeleteConfirmation,
       }),
-    [openTrainingModal, openDeleteConfirmation, router],
+    [openTrainingModal, openDeleteConfirmation, router, scope],
   );
 
   if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {

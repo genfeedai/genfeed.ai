@@ -112,11 +112,8 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
-  default: ({ actions, tabs }: { actions?: ReactNode; tabs?: ReactNode }) => (
-    <header data-testid="section-topbar">
-      {tabs}
-      {actions}
-    </header>
+  default: ({ actions }: { actions?: ReactNode }) => (
+    <header data-testid="section-topbar">{actions}</header>
   ),
 }));
 

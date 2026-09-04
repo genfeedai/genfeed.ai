@@ -28,12 +28,6 @@ import AccountGrid from '@pages/posts/grid/account-grid';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
-import ReleaseRailSegments from '@pages/posts/rail/release-rail-segments';
-import {
-  applyRailSegment,
-  type ReleaseRailSegment,
-  railSegmentFromFilters,
-} from '@pages/posts/rail/release-rail-segments.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
@@ -96,24 +90,6 @@ function viewMessageKey(
     return 'notPosted';
   }
   return 'all';
-}
-
-function deriveRailSegment(
-  publicationState: ReleasePostsPublicationState | undefined,
-  executionStates: TargetExecutionState[] | undefined,
-): ReleaseRailSegment {
-  return railSegmentFromFilters({
-    publicationState,
-    status: executionStates?.includes(TargetState.FAILED)
-      ? PostStatus.FAILED
-      : executionStates?.includes(TargetState.SCHEDULED)
-        ? PostStatus.SCHEDULED
-        : executionStates?.includes(TargetState.PUBLISHING)
-          ? PostStatus.PROCESSING
-          : executionStates?.includes(TargetState.DRAFT)
-            ? PostStatus.DRAFT
-            : undefined,
-  });
 }
 
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
@@ -251,7 +227,6 @@ export default function ReleasePostsList({
       ? PostStatus.FAILED
       : publicationState;
   const viewKey = viewMessageKey(publishingView);
-  const railSegment = deriveRailSegment(publicationState, executionStates);
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParamsString);
@@ -361,20 +336,6 @@ export default function ReleasePostsList({
     [runMutation, selectedReleaseId],
   );
 
-  const handleSegmentChange = useCallback(
-    (segment: ReleaseRailSegment) => {
-      const params = new URLSearchParams(searchParamsString);
-      params.delete('page');
-      const nextParams = applyRailSegment(params, segment);
-      const queryString = nextParams.toString();
-      const destination = queryString
-        ? `${APP_ROUTES.PUBLISHING.POSTS}?${queryString}`
-        : APP_ROUTES.PUBLISHING.POSTS;
-      router.replace(href(destination), { scroll: false });
-    },
-    [href, router, searchParamsString],
-  );
-
   const handleAccountToggle = useCallback(
     (credentialId: string) => {
       replaceSearchParams((params) => {
@@ -458,23 +419,10 @@ export default function ReleasePostsList({
         searchValue={toolbarSearchValue}
         sortOptions={RELEASE_POSTS_SORT_OPTIONS}
         sortValue={sort}
-        viewNode={
-          <ReleaseRailSegments
-            onSegmentChange={handleSegmentChange}
-            segment={railSegment}
-          />
-        }
       />,
     );
     return () => setFiltersNode(null);
-  }, [
-    handleSegmentChange,
-    railSegment,
-    replaceSearchParams,
-    setFiltersNode,
-    sort,
-    toolbarSearchValue,
-  ]);
+  }, [replaceSearchParams, setFiltersNode, sort, toolbarSearchValue]);
 
   useEffect(() => {
     setViewToggleNode(

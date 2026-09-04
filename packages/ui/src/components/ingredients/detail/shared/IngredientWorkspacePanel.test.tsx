@@ -6,21 +6,11 @@ import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWo
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({
-    children,
-    contentClassName,
-    fullWidth,
-    listClassName,
-    size,
-    variant,
-  }: TabsEnhancedProps) => (
+  default: ({ children, contentClassName, fullWidth }: TabsEnhancedProps) => (
     <div
       data-content-class={contentClassName}
       data-full-width={String(fullWidth)}
-      data-list-class={listClassName}
-      data-size={size}
       data-testid="workspace-tabs"
-      data-variant={variant}
     >
       {children}
     </div>
@@ -28,7 +18,7 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
 }));
 
 describe('IngredientWorkspacePanel', () => {
-  it('uses compact underline navigation for dense asset details', () => {
+  it('uses shared navigation for dense asset details', () => {
     render(
       <IngredientWorkspacePanel
         activeTab="info"
@@ -44,20 +34,8 @@ describe('IngredientWorkspacePanel', () => {
     );
 
     expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
-      'data-variant',
-      'underline',
-    );
-    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
-      'data-size',
-      'sm',
-    );
-    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
       'data-full-width',
       'false',
-    );
-    expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
-      'data-list-class',
-      '-m-1 max-w-full overflow-x-auto p-1',
     );
     expect(screen.getByTestId('workspace-tabs')).toHaveAttribute(
       'data-content-class',

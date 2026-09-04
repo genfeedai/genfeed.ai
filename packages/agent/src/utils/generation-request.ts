@@ -31,6 +31,7 @@ export function getDimensionsForAspectRatio(ratio: string): {
 
 export function buildAgentGenerationRequestBody({
   aspectRatio,
+  brandId,
   duration,
   endFrame,
   identity,
@@ -45,6 +46,7 @@ export function buildAgentGenerationRequestBody({
   waitForCompletion,
 }: {
   aspectRatio: string;
+  brandId?: string;
   duration?: number;
   endFrame?: string;
   identity?: AgentClipRunIdentity;
@@ -68,6 +70,10 @@ export function buildAgentGenerationRequestBody({
     text: promptText,
     width,
   };
+
+  if (brandId) {
+    body.brandId = brandId;
+  }
 
   if (modelKey) {
     body.model = modelKey;

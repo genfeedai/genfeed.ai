@@ -1,6 +1,7 @@
 import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnapshotCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -38,7 +39,8 @@ describe('AnalyticsSnapshotCard', () => {
     ).toHaveAttribute('href', '/acme/~/analytics/overview');
   });
 
-  it('toggles between period snapshots without rendering two cards', () => {
+  it('toggles between period snapshots without rendering two cards', async () => {
+    const user = userEvent.setup();
     const action: AgentUiAction = {
       data: {
         period: '30d',
@@ -67,7 +69,7 @@ describe('AnalyticsSnapshotCard', () => {
     expect(screen.getByRole('tab', { name: '30d' })).toBeTruthy();
     expect(screen.getByText('99')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('tab', { name: '7d' }));
+    await user.click(screen.getByRole('tab', { name: '7d' }));
     expect(screen.getByText('10')).toBeTruthy();
   });
 

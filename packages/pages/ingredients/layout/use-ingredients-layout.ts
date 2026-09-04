@@ -27,6 +27,19 @@ const DEFAULT_LIBRARY_ASSET_STATUSES = [
   IngredientStatus.VALIDATED,
 ] as const;
 
+function getIngredientTypeFromPathname(pathname: string | null): string | null {
+  if (!pathname) {
+    return null;
+  }
+
+  const segments = pathname.split('/');
+  const ingredientsIndex = segments.indexOf('ingredients');
+
+  return ingredientsIndex !== -1 && segments[ingredientsIndex + 1]
+    ? segments[ingredientsIndex + 1]
+    : null;
+}
+
 function getDefaultStatusesForType(ingredientType: string): string[] {
   if (ingredientType === 'voices') {
     return [];
@@ -71,20 +84,13 @@ export function useIngredientsLayout({
     const brandParam = searchParams?.get('brand');
 
     // Determine ingredient type from pathname for default format
-    let _ingredientCategory: string | null = null;
-    if (pathname) {
-      const segments = pathname.split('/');
-      const ingredientsIndex = segments.indexOf('ingredients');
-      if (ingredientsIndex !== -1 && segments[ingredientsIndex + 1]) {
-        _ingredientCategory = segments[ingredientsIndex + 1];
-      }
-    }
+    const routeIngredientType = getIngredientTypeFromPathname(pathname);
 
     // Default format to "all" (empty string) - don't force format filter
     const defaultFormat = formatParam || '';
 
     const initialIngredientType =
-      defaultType ?? _ingredientCategory ?? 'videos';
+      defaultType ?? routeIngredientType ?? 'videos';
 
     // Default statuses live in state only (not URL) so clean library links
     // stay clean. Voices load without implicit status narrowing.
@@ -124,7 +130,15 @@ export function useIngredientsLayout({
     () => getInitialState().filters,
   );
   const [query, setQuery] = useState<IFilters>(() => getInitialState().query);
-  const [ingredientType, setIngredientType] = useState(defaultType ?? 'videos');
+  const [selectedIngredientType, setIngredientType] = useState(
+    defaultType ?? 'videos',
+  );
+  const routeIngredientType = useMemo(
+    () => getIngredientTypeFromPathname(pathname),
+    [pathname],
+  );
+  const ingredientType =
+    defaultType ?? routeIngredientType ?? selectedIngredientType;
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const onRefreshCallbackRef = useRef<(() => void) | undefined>(undefined);
@@ -212,24 +226,7 @@ export function useIngredientsLayout({
   }, []);
 
   // Determine which ingredient type we're on — prefer state, fallback to URL
-  const ingredientCategory = useMemo(() => {
-    if (ingredientType) {
-      return ingredientType;
-    }
-
-    if (!pathname) {
-      return null;
-    }
-
-    const segments = pathname.split('/');
-    const ingredientsIndex = segments.indexOf('ingredients');
-
-    if (ingredientsIndex !== -1 && segments[ingredientsIndex + 1]) {
-      return segments[ingredientsIndex + 1];
-    }
-
-    return null;
-  }, [ingredientType, pathname]);
+  const ingredientCategory = ingredientType || null;
 
   const currentIngredient =
     ingredientCategory && INGREDIENT_LABELS[ingredientCategory]

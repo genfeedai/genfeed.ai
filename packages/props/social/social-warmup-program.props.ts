@@ -135,5 +135,4 @@ export interface SocialWarmupProgramProps {
   onHealthUpdated?: (summary: AccountHealthSummary) => void;
   onOverrideRequest?: (request: SocialWarmupOverrideRequest) => void;
   onReconnect?: (platform: CredentialPlatform | string) => void;
-  variant?: 'compact' | 'page';
 }

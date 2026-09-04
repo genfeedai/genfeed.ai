@@ -499,34 +499,10 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "1446068cc593cf818eda",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "c08ddddba8d0f07791f8",
       "method": "findFirst",
       "model": "CreditBalance",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "e3f9eabfb953280323e1",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "1b0c14ee812ff12245ce",
-      "method": "update",
-      "model": "CreditBalance",
-      "reason": "missing-is-deleted"
     },
     {
       "delegate": "creditBalance",
@@ -540,14 +516,6 @@
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "11cebaa96443457191eb",
-      "method": "update",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "be5d58bcc4a7866e9c1b",
       "method": "update",
       "model": "CreditBalance",
       "reason": "missing-organization-id"

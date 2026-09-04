@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent } from 'react';
 
 export interface PostsListToolbarOption {
   label: string;
@@ -38,7 +38,6 @@ export interface PostsListToolbarProps {
   onSortChange: (value: string) => void;
   onPublishingViewChange?: (value: PublishingPostsView) => void;
   publishingView?: PublishingPostsView;
-  viewNode?: ReactNode;
 }
 
 export default function PostsListToolbar({
@@ -49,7 +48,6 @@ export default function PostsListToolbar({
   onSortChange,
   onPublishingViewChange,
   publishingView,
-  viewNode,
 }: PostsListToolbarProps) {
   const translate = useTranslations('pages.posts.list');
 
@@ -70,9 +68,7 @@ export default function PostsListToolbar({
         />
       </div>
 
-      {viewNode}
-
-      {!viewNode && publishingView && onPublishingViewChange ? (
+      {publishingView && onPublishingViewChange ? (
         <Select
           value={publishingView}
           onValueChange={(value) =>

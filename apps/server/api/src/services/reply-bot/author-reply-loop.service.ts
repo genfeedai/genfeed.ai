@@ -359,6 +359,11 @@ export class AuthorReplyLoopService implements OnModuleInit {
       params.platform === 'youtube'
         ? clampReplyMaxAgeHours(params.hours ?? 48)
         : clampReplyMaxAgeHours(params.hours);
+    const emptyInbox = (): AuthorReplyInboxResult => ({
+      hours,
+      items: [],
+      platform: replyPlatform,
+    });
 
     const credential =
       replyPlatform === ReplyBotPlatform.YOUTUBE
@@ -372,11 +377,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
           );
 
     if (!credential) {
-      throw new BadRequestException(
-        replyPlatform === ReplyBotPlatform.YOUTUBE
-          ? 'No active YouTube credential for this brand'
-          : 'No active X credential with username for this brand',
-      );
+      return emptyInbox();
     }
 
     const timelineHandle =
@@ -385,9 +386,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
       (replyPlatform === ReplyBotPlatform.YOUTUBE ? 'me' : '');
 
     if (!timelineHandle && replyPlatform === ReplyBotPlatform.TWITTER) {
-      throw new BadRequestException(
-        'No active X credential with username for this brand',
-      );
+      return emptyInbox();
     }
 
     // YouTube Apify handlers expect full channel/video URLs, not bare ids.
@@ -397,9 +396,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
         : timelineHandle || 'me';
 
     if (replyPlatform === ReplyBotPlatform.YOUTUBE && !timelineTarget) {
-      throw new BadRequestException(
-        'No active YouTube credential channel for this brand',
-      );
+      return emptyInbox();
     }
 
     const cutoff = Date.now() - hours * 60 * 60 * 1000;

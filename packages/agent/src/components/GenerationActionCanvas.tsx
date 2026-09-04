@@ -11,6 +11,7 @@ import {
   createLibraryAssetRoute,
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import {
   Check,
@@ -66,6 +67,7 @@ export function GenerationActionCanvas({
   selectionLabel,
 }: GenerationActionCanvasProps): ReactElement | null {
   const translate = useTranslations('agent.generationActionCard.canvas');
+  const { href } = useOrgUrl();
   const messages = useAgentChatStore((state) => state.messages);
   const resolvedSelectionLabel =
     selectionLabel ?? translate('generationReference');
@@ -205,7 +207,7 @@ export function GenerationActionCanvas({
 
               <div className="flex border-t border-border">
                 <Link
-                  href={libraryHref(asset.type, asset.id)}
+                  href={href(libraryHref(asset.type, asset.id))}
                   className="flex flex-1 items-center justify-center gap-0.5 px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title={translate('openLibraryTitle')}
                 >
@@ -213,7 +215,7 @@ export function GenerationActionCanvas({
                   {translate('library')}
                 </Link>
                 <Link
-                  href={studioEditHref(asset.type, asset.id)}
+                  href={href(studioEditHref(asset.type, asset.id))}
                   className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title={translate('openStudioTitle')}
                 >

@@ -76,6 +76,7 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
   '/:orgSlug/~/library/:type',
+  '/:orgSlug/~/library/shelf/:shelf',
   '/:orgSlug/~/studio/edit',
   '/:orgSlug/~/studio/edit/projects',
   '/:orgSlug/~/studio/edit/new',
@@ -83,6 +84,10 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/publishing',
   '/:orgSlug/~/publishing/overview',
   '/:orgSlug/~/publishing/posts',
+  '/:orgSlug/~/publishing/posts/:id',
+  '/:orgSlug/~/publishing/calendar',
+  '/:orgSlug/~/publishing/content',
+  '/:orgSlug/~/publishing/review',
   '/:orgSlug/~/publishing/campaigns',
   '/:orgSlug/~/publishing/campaigns/new',
   '/:orgSlug/~/publishing/campaigns/compare',

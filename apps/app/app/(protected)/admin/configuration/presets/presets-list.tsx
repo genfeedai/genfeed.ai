@@ -27,7 +27,6 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
-  PresetDescriptionCell,
   PresetLabelCell,
   PresetOrganizationCell,
 } from './presets-list-columns';
@@ -204,11 +203,7 @@ function PresetsListContent({
       header: 'Label',
       key: 'label',
       render: (preset: Preset) => <PresetLabelCell preset={preset} />,
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (preset: Preset) => <PresetDescriptionCell preset={preset} />,
+      subtext: (preset: Preset) => preset.description,
     },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
@@ -267,6 +262,8 @@ function PresetsListContent({
 
   return (
     <Container
+      label="Presets"
+      description="Reusable generation settings and defaults."
       right={
         <>
           <ButtonRefresh

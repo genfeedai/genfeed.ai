@@ -1,8 +1,6 @@
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { ComponentType, ReactNode } from 'react';
 
-export type TabsVariant = 'default' | 'pills' | 'underline' | 'segmented';
-export type TabsSize = 'md' | 'sm';
 export type TabsMatchMode = 'exact' | 'prefix';
 
 export interface TabItem {
@@ -22,6 +20,7 @@ export interface RouteTabItem extends NavigationTab {
 export type TabsItem = TabItem | RouteTabItem | string;
 
 export interface TabsProps {
+  ariaLabel?: string;
   children?: ReactNode;
   items?: TabsItem[];
   tabs?: TabsItem[];
@@ -29,10 +28,8 @@ export interface TabsProps {
   onTabChange?: (tabId: string) => void;
   className?: string;
   contentClassName?: string;
-  listClassName?: string;
-  variant?: TabsVariant;
-  size?: TabsSize;
   fullWidth?: boolean;
+  stopClickPropagation?: boolean;
 }
 
 export type TabsEnhancedProps = TabsProps;

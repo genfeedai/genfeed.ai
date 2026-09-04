@@ -120,6 +120,22 @@ vi.mock('../../../[brandSlug]/library/voices/library-voices-page', () => ({
   ),
 }));
 
+vi.mock('../../../[brandSlug]/messages/outreach/page', () => ({
+  default: () => <div data-testid="outreach-sequences-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/outreach/new/page', () => ({
+  default: () => <div data-testid="outreach-sequence-new-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/replies/page', () => ({
+  default: () => <div data-testid="replies-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/messages/reply-drip/page', () => ({
+  default: () => <div data-testid="reply-drip-page" />,
+}));
+
 vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
   default: async ({
     params,
@@ -152,6 +168,33 @@ vi.mock('../../../[brandSlug]/publishing/publishing-layout-content', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <section data-testid="posts-layout-content">{children}</section>
   ),
+}));
+
+vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
+  default: () => <div data-testid="publishing-overview-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/publishing/content/page', () => ({
+  default: () => <div data-testid="publishing-content-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
+  default: () => <div data-testid="publishing-review-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/publishing/calendar/page', () => ({
+  default: () => <div data-testid="publishing-calendar-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
+  default: async ({ params }: { params: Promise<{ id: string }> }) => {
+    const { id } = await params;
+    return <div data-content-id={id} data-testid="publishing-content-detail" />;
+  },
+}));
+
+vi.mock('../../../[brandSlug]/publishing/campaigns/compare/page', () => ({
+  default: () => <div data-testid="publishing-campaign-compare" />,
 }));
 
 vi.mock(
@@ -311,6 +354,26 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/assets');
   });
 
+  it.each([
+    [['outreach'], 'outreach-sequences-page'],
+    [['outreach', 'new'], 'outreach-sequence-new-page'],
+    [['replies'], 'replies-page'],
+    [['reply-drip'], 'reply-drip-page'],
+  ])('renders the organization Messages route %j', async (segments, testId) => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'messages',
+        orgSlug: 'acme',
+        segments,
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId(testId)).toBeInTheDocument();
+    expect(notFoundMock).not.toHaveBeenCalled();
+  });
+
   it('hands org-scoped /studio/:type off to the Agent', async () => {
     await expect(
       OrgRootAppPage({
@@ -325,29 +388,92 @@ describe('OrgRootAppPage', () => {
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
-  it.each([undefined, ['overview'], ['posts']] as const)(
-    'renders the canonical org posts list for /publishing segments %s',
-    async (segments) => {
-      const searchParams = Promise.resolve({ page: '2' });
+  it('redirects bare org Publishing to its canonical overview', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+        }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/publishing/overview');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/publishing/overview');
+  });
+
+  it('renders the canonical organization publishing overview', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['overview'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
+    expect(screen.getByTestId('publishing-overview-page')).toBeInTheDocument();
+  });
+
+  it('renders the canonical org posts list', async () => {
+    const searchParams = Promise.resolve({ page: '2' });
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['posts'],
+      }),
+      searchParams,
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
+    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
+    expect(renderPostsListPageMock).toHaveBeenCalledWith({
+      scope: PageScope.ORGANIZATION,
+      searchParams,
+    });
+  });
+
+  it.each([
+    ['content', 'publishing-content-page'],
+    ['review', 'publishing-review-page'],
+    ['calendar', 'publishing-calendar-page'],
+  ])(
+    'renders the canonical org publishing %s page',
+    async (segment, testId) => {
       const element = await OrgRootAppPage({
         params: Promise.resolve({
           orgRootApp: 'publishing',
           orgSlug: 'acme',
-          segments,
+          segments: [segment],
         }),
-        searchParams,
       });
 
       render(element);
 
       expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-      expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
-      expect(renderPostsListPageMock).toHaveBeenCalledWith({
-        scope: PageScope.ORGANIZATION,
-        searchParams,
-      });
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
     },
   );
+
+  it('renders organization content detail through the canonical publishing editor', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['posts', 'content-1'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('publishing-content-detail')).toHaveAttribute(
+      'data-content-id',
+      'content-1',
+    );
+  });
 
   it('renders org-scoped Publish Campaigns', async () => {
     const element = await OrgRootAppPage({
@@ -362,6 +488,22 @@ describe('OrgRootAppPage', () => {
 
     expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('campaigns-list-page')).toBeInTheDocument();
+  });
+
+  it('renders the organization campaign comparison page', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'publishing',
+        orgSlug: 'acme',
+        segments: ['campaigns', 'compare'],
+      }),
+    });
+
+    render(element);
+
+    expect(
+      screen.getByTestId('publishing-campaign-compare'),
+    ).toBeInTheDocument();
   });
 
   it('renders an org-scoped campaign detail without leaking Automate Programs', async () => {
@@ -421,7 +563,11 @@ describe('OrgRootAppPage', () => {
 
   it.each([
     ['overview', 'extra'],
-    ['posts', 'extra'],
+    ['posts', 'content-1', 'extra'],
+    ['content', 'extra'],
+    ['review', 'extra'],
+    ['calendar', 'extra'],
+    ['campaigns', 'compare', 'extra'],
     ['campaigns', 'new', 'extra'],
     ['campaigns', 'cmp-1', 'content', 'extra'],
   ])(

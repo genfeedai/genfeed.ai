@@ -24,14 +24,6 @@ export function TagLabelCell({ tag }: TagCellProps) {
   );
 }
 
-export function TagDescriptionCell({ tag }: TagCellProps) {
-  return (
-    <span className="text-sm text-foreground/70 line-clamp-2">
-      {tag.description || '-'}
-    </span>
-  );
-}
-
 export function TagKeyCell({ tag }: TagCellProps) {
   return <span className="font-mono text-sm">{tag.key || '-'}</span>;
 }

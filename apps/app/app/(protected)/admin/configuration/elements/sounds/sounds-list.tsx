@@ -85,9 +85,11 @@ function soundsListReducer(
 }
 
 function SoundsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
+  onRefresh,
 }: IElementContentProps) {
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
@@ -191,6 +193,8 @@ function SoundsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
+          type: filters?.type || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -221,6 +225,8 @@ function SoundsListContent({
     },
     [
       currentPage,
+      filters?.search,
+      filters?.type,
       getSoundsService,
       notificationsService.error,
       notificationsService.success,
@@ -234,6 +240,13 @@ function SoundsListContent({
   useEffect(() => {
     findAllSounds();
   }, [findAllSounds]);
+
+  useEffect(() => {
+    if (onRefresh) {
+      return onRefresh(() => findAllSounds(true));
+    }
+  }, [onRefresh, findAllSounds]);
+
   const openSoundModal = (modalId: ModalEnum, sound?: Sound) => {
     dispatch({ type: 'SET_SELECTED_SOUND', sound: sound || null });
     openModal(modalId);

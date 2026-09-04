@@ -197,25 +197,40 @@ function canonicalizeLegacyScopedProtectedPath(
   pathname: string,
 ): string | null {
   const segments = pathname.split('/').filter(Boolean);
-  const [orgSlug, brandSlug, section, taskId] = segments;
+  const [orgSlug, brandSlug, section, ...rest] = segments;
 
   if (
-    (segments.length !== 3 && segments.length !== 4) ||
-    section !== LEGACY_APP_ROUTES.TASKS.slice(1) ||
+    segments.length < 3 ||
     !orgSlug ||
     !brandSlug ||
     !SLUG_RE.test(orgSlug) ||
-    !SLUG_RE.test(brandSlug)
+    (brandSlug !== '~' && !SLUG_RE.test(brandSlug)) ||
+    Object.values(APP_ROUTE_PREFIXES).some(
+      (prefix) => prefix.slice(1).split('/')[0] === orgSlug,
+    )
   ) {
     return null;
   }
 
-  const taskPath = taskId ? `/${taskId}` : '';
-  return createBrandAppRoute(
-    orgSlug,
-    brandSlug,
-    `${APP_ROUTES.WORKSPACE.TASKS}${taskPath}`,
-  );
+  if (section === LEGACY_APP_ROUTES.TASKS.slice(1) && rest.length <= 1) {
+    const taskPath = rest[0] ? `/${rest[0]}` : '';
+    return createBrandAppRoute(
+      orgSlug,
+      brandSlug,
+      `${APP_ROUTES.WORKSPACE.TASKS}${taskPath}`,
+    );
+  }
+
+  if (section === LEGACY_APP_ROUTES.WORKFLOWS.slice(1)) {
+    const workflowPath = rest.length > 0 ? `/${rest.join('/')}` : '';
+    return createBrandAppRoute(
+      orgSlug,
+      brandSlug,
+      `${APP_ROUTES.AUTOMATION.WORKFLOWS}${workflowPath}`,
+    );
+  }
+
+  return null;
 }
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {

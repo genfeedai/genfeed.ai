@@ -3,6 +3,13 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    usePromptModal: () => ({ openPromptModal: vi.fn() }),
+  }),
+);
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../apps/app/tests/next-intl.stub'

@@ -623,7 +623,6 @@ export default function BrandDetailSocialMediaCard({
                 void handleConnectPlatform(item);
               }
             }}
-            variant={isPageVariant ? 'page' : 'compact'}
           />
         ) : null}
         {compactUnsupportedHealth.length > 0 ? (

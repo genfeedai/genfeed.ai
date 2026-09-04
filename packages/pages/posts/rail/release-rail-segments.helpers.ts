@@ -27,7 +27,7 @@ export function railSegmentFromFilters({
   publicationState,
   status,
 }: RailSegmentFilters): ReleaseRailSegment {
-  if (publicationState === 'posted') {
+  if (publicationState === 'posted' || status === PostStatus.PUBLIC) {
     return 'published';
   }
   if (status === PostStatus.DRAFT) {
@@ -36,13 +36,24 @@ export function railSegmentFromFilters({
   if (status === PostStatus.SCHEDULED) {
     return 'scheduled';
   }
-  if (status === PostStatus.PROCESSING) {
+  if (status === PostStatus.PENDING || status === PostStatus.PROCESSING) {
     return 'publishing';
   }
   if (status === PostStatus.FAILED) {
     return 'failed';
   }
   return 'all';
+}
+
+/** Resolve the active segment from the canonical and legacy URL filters. */
+export function railSegmentFromSearchParams(
+  params: URLSearchParams,
+): ReleaseRailSegment {
+  return railSegmentFromFilters({
+    publicationState:
+      params.get(PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE) ?? undefined,
+    status: params.get(PUBLISHING_POSTS_QUERY_KEYS.STATUS) ?? undefined,
+  });
 }
 
 /**

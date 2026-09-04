@@ -15,11 +15,7 @@ export function buildFoldersColumns(
       header: 'Label',
       key: 'label',
       render: (folder: Folder) => folder.label || '-',
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (folder: Folder) => folder.description || '-',
+      subtext: (folder: Folder) => folder.description,
     },
     {
       header: 'Brand',

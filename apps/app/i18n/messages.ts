@@ -2,6 +2,7 @@ import { type AppLocale, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
 import agent from '../messages/en/agent.json';
 import common from '../messages/en/common.json';
 import pages from '../messages/en/pages.json';
+import ui from '../messages/en/ui.json';
 import { pseudoLocalizeMessages } from './pseudo';
 
 /**
@@ -23,6 +24,7 @@ const EN_MESSAGES = {
   agent,
   common,
   pages,
+  ui,
 } as const;
 
 export type AppMessages = typeof EN_MESSAGES;

@@ -5,6 +5,7 @@ import type { DateRange as AnalyticsDateRange } from '@genfeedai/contracts/inter
 import { cn } from '@genfeedai/helpers';
 import { subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
 import { Button } from './button';
@@ -94,6 +95,7 @@ export default function DateRangePicker({
   className = '',
   value,
 }: DateRangePickerProps) {
+  const translate = useTranslations('ui.dateRangePicker');
   const [selectedPreset, setSelectedPreset] = useState<
     DateRangePreset | 'custom'
   >(defaultPreset);
@@ -128,6 +130,7 @@ export default function DateRangePicker({
 
     setDateRange({ from: startDate, to: endDate });
     onChange({ endDate, startDate: startDate ?? null });
+    setOpen(false);
   };
 
   const handleDateChange = (range: CalendarDateRange | undefined) => {
@@ -143,27 +146,7 @@ export default function DateRangePicker({
   };
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <div className="inline-flex overflow-hidden rounded-md border border-border bg-background shadow-sm">
-        {PRESET_OPTIONS.map((preset, index) => (
-          <Button
-            key={preset}
-            onClick={() => handlePresetChange(preset)}
-            variant={ButtonVariant.UNSTYLED}
-            className={cn(
-              'h-9 rounded-none border-0 px-4 text-sm',
-              index > 0 && 'border-l border-border',
-              selectedPreset === preset
-                ? 'bg-accent text-accent-foreground'
-                : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )}
-            withWrapper={false}
-          >
-            {preset}
-          </Button>
-        ))}
-      </div>
-
+    <div className={cn('flex items-center', className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -182,6 +165,28 @@ export default function DateRangePicker({
           className={cn('w-auto p-0', fieldControlPopoverClassName)}
           align="end"
         >
+          <div className="border-b border-border p-2">
+            <fieldset className="grid grid-cols-3 gap-1">
+              <legend className="sr-only">{translate('quickRanges')}</legend>
+              {PRESET_OPTIONS.map((preset) => (
+                <Button
+                  key={preset}
+                  ariaLabel={`Last ${preset.replace('d', '')} days`}
+                  className={cn(
+                    'h-8 px-3 text-xs',
+                    selectedPreset === preset
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground',
+                  )}
+                  onClick={() => handlePresetChange(preset)}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                >
+                  {preset}
+                </Button>
+              ))}
+            </fieldset>
+          </div>
           <Calendar
             mode="range"
             selected={dateRange}

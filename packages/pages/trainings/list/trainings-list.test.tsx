@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
 import type { ITraining } from '@genfeedai/contracts/interfaces';
 import TrainingsList from '@pages/trainings/list/trainings-list';
@@ -100,6 +102,17 @@ function renderTrainingsList(scope: PageScope = PageScope.ORGANIZATION) {
 }
 
 describe('TrainingsList', () => {
+  it('uses the canonical admin images route for training details', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, 'trainings-list.tsx'),
+      'utf8',
+    );
+
+    expect(source).toContain('APP_ROUTES.ADMIN.AUTOMATION.TRAININGS');
+    expect(source).toMatch(/training\.id}\/images/);
+    expect(source).not.toMatch(/router\.push\(`\/trainings\//);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     brandState.settings = { subscriptionTier: SubscriptionTier.PRO };

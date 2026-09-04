@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import { TableCell, TableRow } from '@ui/primitives/table';
 import { Pencil } from 'lucide-react';
 
 interface SettingRowProps {
@@ -33,12 +34,12 @@ function formatValue(value: unknown, type: string): string {
 
 export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
   return (
-    <tr className="border-b border-border">
-      <td className="px-4 py-3">{label}</td>
-      <td className="px-4 py-3">
+    <TableRow className="border-b border-border">
+      <TableCell className="px-4 py-3">{label}</TableCell>
+      <TableCell className="px-4 py-3">
         <span className="font-mono text-sm">{formatValue(value, type)}</span>
-      </td>
-      <td className="px-4 py-3 text-right">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-right">
         <Button
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
@@ -48,7 +49,7 @@ export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
         >
           <Pencil className="size-4" />
         </Button>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

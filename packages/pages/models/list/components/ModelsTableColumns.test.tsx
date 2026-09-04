@@ -67,6 +67,7 @@ describe('buildModelsTableColumns', () => {
 
     expect(columns.map((column) => column.header)).toContain('Quality');
     expect(columns.map((column) => column.header)).toContain('Cost');
+    expect(columns.map((column) => column.header)).not.toContain('Description');
     expect(columns.map((column) => column.header)).not.toContain('Value');
     expect(
       columns
@@ -95,11 +96,33 @@ describe('buildModelsTableColumns', () => {
     expect(screen.getByText('$$$')).toBeInTheDocument();
   });
 
-  it('renders an em dash when quality or cost is missing', () => {
+  it('labels an explicitly basic model without promoting it to premium', () => {
+    renderColumn('Quality', buildModel({ qualityTier: QualityTier.BASIC }));
+
+    expect(screen.getByText('Basic')).toBeInTheDocument();
+  });
+
+  it('renders canonical quality and exact credit cost when tiers are missing', () => {
     renderColumn('Quality', buildModel({ qualityTier: undefined }));
     renderColumn('Cost', buildModel({ costTier: undefined }));
 
-    expect(screen.getAllByText('—')).toHaveLength(2);
+    expect(screen.getByRole('meter', { name: 'Quality' })).toHaveAttribute(
+      'aria-valuenow',
+      '3',
+    );
+    expect(screen.getByText('Premium')).toBeInTheDocument();
+    expect(screen.getByText('1 credit')).toBeInTheDocument();
+  });
+
+  it('distinguishes a zero credit price from an explicitly free model', () => {
+    renderColumn('Cost', buildModel({ cost: 0, costTier: undefined }));
+    renderColumn(
+      'Cost',
+      buildModel({ cost: 0, costTier: undefined, isFree: true }),
+    );
+
+    expect(screen.getByText('0 credits')).toBeInTheDocument();
+    expect(screen.getByText('Free')).toBeInTheDocument();
   });
 
   it('opens model details from the label', () => {
@@ -115,5 +138,24 @@ describe('buildModelsTableColumns', () => {
     expect(onOpenDetails).toHaveBeenCalledWith(
       expect.objectContaining({ label: 'Flux Dev' }),
     );
+  });
+
+  it('places the model description under its label', () => {
+    const model = buildModel({ description: 'Detailed model description' });
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: true,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
+      togglingModelId: null,
+      models: [model],
+    });
+
+    const labelColumn = columns.find((column) => column.header === 'Label');
+
+    expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');
   });
 });

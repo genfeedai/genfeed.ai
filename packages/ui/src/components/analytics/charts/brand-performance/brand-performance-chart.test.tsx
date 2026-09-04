@@ -121,8 +121,16 @@ describe('BrandPerformanceChart', () => {
     });
 
     it('renders default title', () => {
-      render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByText('Top Brands Performance')).toBeInTheDocument();
+      const { container } = render(<BrandPerformanceChart data={mockData} />);
+      const heading = screen.getByRole('heading', {
+        name: 'Top Brands Performance',
+      });
+
+      expect(heading).toBeInTheDocument();
+      expect(screen.getByTestId('card')).not.toContainElement(heading);
+      expect(
+        container.querySelector('[data-slot="workspace-surface-body"]'),
+      ).not.toContainElement(heading);
     });
 
     it('renders custom title', () => {

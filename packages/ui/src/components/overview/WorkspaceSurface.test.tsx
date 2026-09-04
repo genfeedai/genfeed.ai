@@ -117,6 +117,21 @@ describe('WorkspaceSurface', () => {
     expect(section).not.toHaveClass('rounded-md');
   });
 
+  it('supports an explicit outlined frame for tables', () => {
+    const { container } = render(
+      <WorkspaceSurface tone="outlined">Body</WorkspaceSurface>,
+    );
+
+    const section = body(container);
+    expect(section).toHaveClass(
+      'rounded-card',
+      'border',
+      'border-border',
+      'bg-card',
+    );
+    expect(section).not.toHaveClass('shadow-border');
+  });
+
   it('does not render legacy rounded treatment for any tone', () => {
     for (const tone of ['default', 'muted', 'elevated'] as const) {
       const { container, unmount } = render(

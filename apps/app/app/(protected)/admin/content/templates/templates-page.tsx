@@ -7,7 +7,7 @@ import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -68,7 +68,7 @@ export default function TemplatesPage() {
           data-testid="content-templates-surface"
         >
           {(templates ?? []).length === 0 ? (
-            <CardEmpty label="No templates yet" />
+            <CardEmptyContent label="No templates yet" />
           ) : (
             <div
               data-testid="templates-grid"

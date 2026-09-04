@@ -29,6 +29,9 @@ function createHandler() {
     checkOnboardingStatus: vi.fn().mockResolvedValue({ nextActions: [] }),
     completeJourneyMission: vi.fn().mockResolvedValue(undefined),
   };
+  const brandsService = {
+    findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }),
+  };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
@@ -42,6 +45,7 @@ function createHandler() {
       { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
       gateway as never,
       onboardingHandler as never,
+      brandsService as never,
     ),
     new AgentMediaBatchGenerationService(
       logger as never,
@@ -52,6 +56,7 @@ function createHandler() {
 
   return {
     aiActionsService,
+    brandsService,
     contentGeneratorService,
     gateway,
     handler,
@@ -359,6 +364,29 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateImage', () => {
+  it('resolves an organization brand before generating from an unscoped thread', async () => {
+    const { brandsService, gateway, handler } = createHandler();
+    gateway.generateImage.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.com/logo.png' },
+        id: 'ingredient-1',
+      },
+    });
+
+    await handler.generateImage(
+      { prompt: 'organization launch image' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(brandsService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'organization-1' }),
+    );
+    expect(gateway.generateImage).toHaveBeenCalledWith({
+      body: expect.objectContaining({ brandId: 'brand-selected' }),
+      principal: expect.objectContaining({ brandId: 'brand-selected' }),
+    });
+  });
+
   it('accepts confirmed image generation without synchronously waiting for the provider', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateImage.mockResolvedValue({
@@ -448,7 +476,7 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
         expect.objectContaining({
           assetId: 'ingredient-1',
           primaryCta: {
-            href: '/library/assets',
+            href: '/library/images?asset=ingredient-1',
             label: 'View in Library',
           },
         }),
@@ -617,6 +645,26 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateVideo', () => {
+  it('resolves an organization brand before generating from an unscoped thread', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.com/clip.mp4' },
+        id: 'video-1',
+      },
+    });
+
+    await handler.generateVideo(
+      { prompt: 'organization launch video' },
+      { ...context, brandId: undefined },
+    );
+
+    expect(gateway.generateVideo).toHaveBeenCalledWith({
+      body: expect.objectContaining({ brandId: 'brand-selected' }),
+      principal: expect.objectContaining({ brandId: 'brand-selected' }),
+    });
+  });
+
   it('accepts confirmed video generation without synchronously waiting for the provider', async () => {
     const { gateway, handler } = createHandler();
     gateway.generateVideo.mockResolvedValue({
@@ -636,6 +684,50 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       assetId: 'video-queued',
       assetKind: 'video',
       status: 'processing',
+    });
+  });
+
+  it('does not claim success when video generation returns no asset id', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockResolvedValue({
+      data: { attributes: { status: 'processing' } },
+    });
+
+    const result = await handler.generateVideo(
+      { prompt: 'red apple' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'Video generation returned no asset id.',
+      nextActions: [
+        expect.objectContaining({
+          title: 'Video not ready',
+          type: 'completion_summary_card',
+        }),
+      ],
+      success: false,
+    });
+  });
+
+  it('turns video provider failures into a retryable agent result', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateVideo.mockRejectedValue(new Error('Provider unavailable'));
+
+    const result = await handler.generateVideo(
+      { prompt: 'red apple' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'Provider unavailable',
+      nextActions: [
+        expect.objectContaining({
+          title: 'Video not ready',
+          type: 'completion_summary_card',
+        }),
+      ],
+      success: false,
     });
   });
 

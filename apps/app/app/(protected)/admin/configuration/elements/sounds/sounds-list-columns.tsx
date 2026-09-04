@@ -25,10 +25,6 @@ export function SoundCategoryCell({ sound }: SoundCellProps) {
   );
 }
 
-export function SoundDescriptionCell({ sound }: SoundCellProps) {
-  return <>{sound.description || '-'}</>;
-}
-
 export function SoundActiveCell({
   sound,
   updatingIds,

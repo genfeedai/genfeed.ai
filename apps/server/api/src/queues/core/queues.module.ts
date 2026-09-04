@@ -13,10 +13,12 @@ import { SERVER_TOKENS } from '@api/index';
 import { QueueService } from '@api/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
+  REPLICATE_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { ConfigModule } from '@libs/config/config.module';
@@ -33,6 +35,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     HeygenPollQueueService,
+    ReplicatePollQueueService,
     ScheduledPostWorkflowQueueService,
     QueueService,
     WorkspaceTaskWorkflowQueueService,
@@ -77,6 +80,15 @@ import { Module } from '@nestjs/common';
         },
         name: HEYGEN_POLL_QUEUE,
       },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: REPLICATE_POLL_QUEUE,
+      },
     ),
   ],
   controllers: [QueueDiagnosticsController],
@@ -84,6 +96,7 @@ import { Module } from '@nestjs/common';
     QueueService,
     WorkspaceTaskWorkflowQueueService,
     HeygenPollQueueService,
+    ReplicatePollQueueService,
     ScheduledPostWorkflowQueueService,
     WorkflowExecutionQueueService,
     {

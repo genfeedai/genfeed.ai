@@ -194,6 +194,7 @@ export function useTagsList({
   });
 
   const wasFetchingRef = useRef(false);
+  const isRefreshing = isFetching;
 
   useEffect(() => {
     if (wasFetchingRef.current && !isFetching && !isLoading) {
@@ -307,6 +308,7 @@ export function useTagsList({
     handleDeleteTag,
     handleToggleActive,
     isLoading,
+    isRefreshing,
     openDeleteConfirm,
     openTagModal,
     organizationId,

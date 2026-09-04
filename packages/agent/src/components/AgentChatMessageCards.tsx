@@ -3,12 +3,14 @@ import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextA
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
-import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
+import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 const MAX_ASSET_RECONCILIATION_ATTEMPTS = 150;
@@ -41,6 +43,7 @@ function GenericOAuthConnectCard({
 }: {
   action: AgentUiAction;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
   const { orgHref } = useOrgUrl();
   const description =
     action.description ??
@@ -69,7 +72,7 @@ function GenericOAuthConnectCard({
           'inline-flex w-fit',
         )}
       >
-        Open integrations
+        {translate('openIntegrations')}
       </a>
     </div>
   );
@@ -168,6 +171,8 @@ export function ContentPreviewCard({
   apiService?: AgentApiService;
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
+  const { href: scopedHref } = useOrgUrl();
   const [reconciledUrl, setReconciledUrl] = useState<string>();
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
   const [reconciliationError, setReconciliationError] = useState<string>();
@@ -245,6 +250,18 @@ export function ContentPreviewCard({
     (!action.tweets || action.tweets.length === 0) &&
     !action.textContent?.trim();
   const isProcessing = reconciledStatus?.toLowerCase() === 'processing';
+  const isUnavailable = [
+    'archived',
+    'cancelled',
+    'failed',
+    'rejected',
+  ].includes(reconciledStatus?.toLowerCase() ?? '');
+  const assetKindLabel =
+    action.assetKind === 'video'
+      ? 'Video'
+      : action.assetKind === 'voice'
+        ? 'Audio'
+        : 'Image';
   const textOutputs = action.tweets?.length
     ? action.tweets
     : action.textContent?.trim()
@@ -301,11 +318,25 @@ export function ContentPreviewCard({
       {/* Skeleton placeholder when card has no media yet (processing state) */}
       {hasNoMedia && isProcessing && (
         <div
-          aria-label={`${action.assetKind === 'video' ? 'Video' : action.assetKind === 'voice' ? 'Voice' : 'Image'} generation in progress`}
+          aria-label={`${assetKindLabel} generation in progress`}
           className="grid grid-cols-3 gap-2"
           role="status"
         >
           <div className="aspect-square w-full animate-pulse rounded-lg border border-border bg-muted" />
+        </div>
+      )}
+      {hasNoMedia && isUnavailable && (
+        <div
+          aria-label={`${assetKindLabel} generation failed`}
+          className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2"
+          role="status"
+        >
+          <p className="text-sm font-medium text-foreground">
+            {translate('generationFailed', { kind: assetKindLabel })}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {translate('noPreview')}
+          </p>
         </div>
       )}
       {reconciliationError && (
@@ -340,7 +371,16 @@ export function ContentPreviewCard({
               return null;
             }
 
-            const href = normalizeAgentAppHref(cta.href) ?? cta.href;
+            const normalizedHref =
+              normalizeAgentAssetHref(cta.href, action.assetId) ?? cta.href;
+            const normalizedPath = normalizedHref.split(/[?#]/u)[0] ?? '';
+            const isAlreadyScoped = Boolean(
+              parseScopedAppPath(normalizedPath).orgSlug,
+            );
+            const href =
+              normalizedHref.startsWith('/') && !isAlreadyScoped
+                ? scopedHref(normalizedHref)
+                : normalizedHref;
             const label =
               href.includes('/library/') &&
               cta.label.toLowerCase().includes('gallery')
@@ -372,10 +412,11 @@ export function PaymentCtaCard({
   action: AgentUiAction;
   onSelect?: (pack: { label: string; price: string; credits: number }) => void;
 }): ReactElement {
+  const translate = useTranslations('agent.messageCards');
   return (
     <div className="mt-2 rounded-lg border border-primary/30 bg-background p-3">
       <p className="mb-3 text-sm font-medium text-foreground">
-        Unlock more with credits
+        {translate('unlockCredits')}
       </p>
       <div className="grid grid-cols-3 gap-2">
         {action.packs?.map((pack) => (
@@ -389,7 +430,7 @@ export function PaymentCtaCard({
             <p className="text-xs font-medium text-foreground">{pack.label}</p>
             <p className="text-lg font-bold text-primary">{pack.price}</p>
             <p className="text-2xs text-muted-foreground">
-              {pack.credits} credits
+              {translate('creditAmount', { count: pack.credits })}
             </p>
           </Button>
         ))}

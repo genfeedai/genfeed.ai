@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   afterAll,
   afterEach,
@@ -518,6 +519,50 @@ describe('proxy', () => {
       expect(response.headers.get('location')).toBeNull();
     },
   );
+
+  it.each([
+    ['/acme/~/workflows', '/acme/~/automation/workflows'],
+    [
+      '/acme/~/workflows/workflow-42',
+      '/acme/~/automation/workflows/workflow-42',
+    ],
+    [
+      '/acme/moonrise-studio/workflows',
+      '/acme/moonrise-studio/automation/workflows',
+    ],
+    [
+      '/acme/moonrise-studio/workflows/workflow-42',
+      '/acme/moonrise-studio/automation/workflows/workflow-42',
+    ],
+  ])(
+    'redirects legacy scoped workflow route %s to %s',
+    async (pathname, canonicalPathname) => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(
+        makeSignedInRequest(pathname, { search: '?view=runs' }),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        `http://localhost:3000${canonicalPathname}?view=runs`,
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not interpret the platform Admin workflow page as tenant scope', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest(APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
 
   it('does not treat the deleted request-access route as public', async () => {
     const { default: proxy } = await import('./proxy');

@@ -7,6 +7,7 @@ import type {
   ReplyCampaignDraft,
   ReplyCampaignsPageProps,
 } from '@genfeedai/props/social/reply-campaigns-panel.props';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { SocialReplyCampaignTransition } from '@services/social/reply-campaigns.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -24,7 +25,6 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { RefreshCw } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useReplyCampaigns } from './use-reply-campaigns';
 
@@ -182,7 +182,7 @@ function ReplyCampaignsContent({
   onRefresh,
   onTransition,
 }: ReplyCampaignsPageProps) {
-  const translate = useTranslations('pages.replyDrip');
+  const { pageScope } = useCollectionScope();
   const [draft, setDraft] = useState<ReplyCampaignDraft>(EMPTY_DRAFT);
 
   const platformOptions = useMemo(() => {
@@ -234,15 +234,6 @@ function ReplyCampaignsContent({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-foreground">
-          {translate('title')}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-foreground/55">
-          {translate('description')}
-        </p>
-      </div>
-
       {error ? (
         <p
           className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
@@ -370,7 +361,8 @@ function ReplyCampaignsContent({
           data-testid="reply-campaign-roster"
         >
           {enrolledIds.length} open conversation
-          {enrolledIds.length === 1 ? '' : 's'} on this brand
+          {enrolledIds.length === 1 ? '' : 's'}{' '}
+          {pageScope === 'org' ? 'across this organization' : 'on this brand'}
           {selectedPlatform ? ` · ${selectedPlatform}` : ''} will be enrolled.
         </p>
 
@@ -428,7 +420,10 @@ export default function ReplyCampaignsPage() {
   const replyCampaigns = useReplyCampaigns();
 
   return (
-    <Container className="py-5 sm:py-6">
+    <Container
+      label="Reply drip"
+      description="Create and monitor throttled reply campaigns across open conversations."
+    >
       <ReplyCampaignsContent
         busyCampaignId={replyCampaigns.busyCampaignId}
         campaigns={replyCampaigns.campaigns}

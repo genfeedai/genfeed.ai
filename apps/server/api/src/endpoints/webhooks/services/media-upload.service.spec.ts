@@ -46,7 +46,7 @@ describe('MediaUploadService', () => {
         width: 1280,
       });
 
-      await service.uploadAndUpdateMetadata(
+      const result = await service.uploadAndUpdateMetadata(
         'ing-123',
         'video',
         'http://example.com/video.mp4',
@@ -58,6 +58,13 @@ describe('MediaUploadService', () => {
         'videos',
         { type: 'url', url: 'http://example.com/video.mp4' },
       );
+      expect(result).toEqual({
+        duration: 10,
+        hasAudio: true,
+        height: 720,
+        size: 1024,
+        width: 1280,
+      });
     });
 
     it('should update metadata with valid dimensions', async () => {

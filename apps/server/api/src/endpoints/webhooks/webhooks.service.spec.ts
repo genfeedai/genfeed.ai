@@ -247,7 +247,7 @@ describe('WebhooksService', () => {
         {
           provide: MediaUploadService,
           useValue: {
-            uploadAndUpdateMetadata: vi.fn().mockResolvedValue(undefined),
+            uploadAndUpdateMetadata: vi.fn().mockResolvedValue(mockUploadMeta),
           },
         },
         {
@@ -340,7 +340,10 @@ describe('WebhooksService', () => {
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(
         mockIngredientId.toString(),
-        { status: IngredientStatus.GENERATED },
+        {
+          cdnUrl: mockUploadMeta.publicUrl,
+          status: IngredientStatus.GENERATED,
+        },
       );
       expect(websocketService.publishVideoComplete).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);
@@ -371,7 +374,7 @@ describe('WebhooksService', () => {
       expect(mediaUploadService.uploadAndUpdateMetadata).not.toHaveBeenCalled();
       expect(ingredientsService.patch).not.toHaveBeenCalledWith(
         mockIngredientId.toString(),
-        { status: IngredientStatus.GENERATED },
+        expect.objectContaining({ status: IngredientStatus.GENERATED }),
       );
     });
 
@@ -425,7 +428,10 @@ describe('WebhooksService', () => {
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(
         mockIngredientId.toString(),
-        { status: IngredientStatus.GENERATED },
+        {
+          cdnUrl: mockUploadMeta.publicUrl,
+          status: IngredientStatus.GENERATED,
+        },
       );
     });
 

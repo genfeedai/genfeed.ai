@@ -1,6 +1,7 @@
 'use client';
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AgentPanelShell from './AgentPanelShell';
 
@@ -89,12 +90,12 @@ describe('AgentPanelShell', () => {
     expect(body).toHaveClass('opacity-0');
   });
 
-  it('switches to Outputs tab and shows outputsContent', () => {
+  it('switches to Outputs tab and shows outputsContent', async () => {
     const outputsContent = <div data-testid="outputs-content">Outputs</div>;
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Outputs' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
     expect(screen.getByTestId('outputs-content')).toBeInTheDocument();
     // chat tab slot should be hidden
     expect(screen.getByTestId('chat-content').parentElement).toHaveClass(
@@ -102,13 +103,13 @@ describe('AgentPanelShell', () => {
     );
   });
 
-  it('switches back to Chat tab', () => {
+  it('switches back to Chat tab', async () => {
     const outputsContent = <div data-testid="outputs-content">Outputs</div>;
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Outputs' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Terminal' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Terminal' }));
     expect(screen.getByTestId('chat-content').parentElement).not.toHaveClass(
       'hidden',
     );

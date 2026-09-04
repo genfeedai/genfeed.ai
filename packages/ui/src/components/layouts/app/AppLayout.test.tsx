@@ -42,10 +42,13 @@ describe('AppLayout', () => {
     expect(mainContent).toBeInTheDocument();
     expect(contentShell).toHaveClass(
       'relative',
+      'flex',
+      'flex-col',
       'min-h-screen',
       'bg-background',
     );
     expect(contentShell).toHaveClass('md:pl-[var(--desktop-sidebar-width)]');
+    expect(mainContent).toHaveClass('flex', 'flex-1', 'flex-col');
     expect(mainContent).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
@@ -85,11 +88,16 @@ describe('AppLayout', () => {
       'bg-background',
     );
     expect(layoutRoot).not.toHaveClass('h-dvh', 'overflow-hidden');
-    expect(contentShell).not.toHaveClass(
-      'overflow-y-auto',
-      'min-h-0',
+    expect(contentShell).toHaveClass('flex', 'flex-col');
+    expect(contentShell).not.toHaveClass('overflow-y-auto', 'min-h-0');
+    expect(screen.getByTestId('app-main-content')).toHaveClass(
       'flex',
+      'flex-1',
       'flex-col',
+    );
+    expect(screen.getByTestId('app-main-content')).not.toHaveClass(
+      'min-h-0',
+      'overflow-hidden',
     );
   });
 

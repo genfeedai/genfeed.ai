@@ -136,7 +136,7 @@ export function useGenerationActionCard({
   onRegenerate: onRegenerateProp,
   onUiAction,
 }: UseGenerationActionCardParams) {
-  const { organizationId, settings, settingsLoading } = useBrand();
+  const { brandId, organizationId, settings, settingsLoading } = useBrand();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -248,7 +248,16 @@ export function useGenerationActionCard({
     setModelsLoading(true);
     setModelsError(null);
     apiService
-      .getModels(controller.signal)
+      .getModels(
+        {
+          category:
+            generationType === 'video'
+              ? ModelCategory.VIDEO
+              : ModelCategory.IMAGE,
+          organizationId,
+        },
+        controller.signal,
+      )
       .then((data) => {
         setModels(data);
         setModelsError(null);
@@ -269,7 +278,7 @@ export function useGenerationActionCard({
         }
       });
     return () => controller.abort();
-  }, [apiService, modelsReloadToken]);
+  }, [apiService, generationType, modelsReloadToken, organizationId]);
 
   const retryLoadModels = useCallback(
     () => setModelsReloadToken((token) => token + 1),
@@ -612,6 +621,7 @@ export function useGenerationActionCard({
 
       const body = buildAgentGenerationRequestBody({
         aspectRatio,
+        brandId: brandId || undefined,
         duration: requestDuration,
         endFrame: endFrameId ?? undefined,
         modelKey: !isAutoMode && modelKey ? modelKey : undefined,
@@ -628,7 +638,6 @@ export function useGenerationActionCard({
         resolution: resolution || undefined,
         videoReferences:
           videoReferenceIds.length > 0 ? videoReferenceIds : undefined,
-        waitForCompletion: false,
       });
 
       const result = await apiService.generateIngredient(
@@ -637,10 +646,12 @@ export function useGenerationActionCard({
         controller.signal,
       );
       setResultId(result.id);
-      const mediaPath = generationType === 'video' ? 'videos' : 'images';
-      setResultUrl(
-        result.url || `${apiService.baseUrl}/${mediaPath}/${result.id}`,
-      );
+      if (!result.url) {
+        throw new Error(
+          'Generation completed without a renderable asset preview.',
+        );
+      }
+      setResultUrl(result.url);
       isFullRunRef.current = false;
       setStatus(!isFullRun && pilotDuration !== null ? 'pilot_review' : 'done');
     } catch (err: unknown) {
@@ -668,6 +679,7 @@ export function useGenerationActionCard({
   }, [
     activeThreadId,
     action.id,
+    brandId,
     prompt,
     status,
     isAutoMode,

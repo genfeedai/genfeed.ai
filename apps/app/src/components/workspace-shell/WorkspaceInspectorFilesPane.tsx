@@ -3,10 +3,10 @@
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { FolderOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -101,34 +101,20 @@ export default function WorkspaceInspectorFilesPane() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <div
-          aria-label={translate('categoryAria')}
-          className="flex min-w-0 flex-wrap gap-1"
-          role="group"
-        >
-          {LIBRARY_PICKER_CATEGORIES.map((candidate) => {
-            const isActive = category === candidate.key;
-            return (
-              <Button
-                key={candidate.key}
-                aria-pressed={isActive}
-                data-variant="underline"
-                className={cn(
-                  'h-8 rounded-none border-b-2 px-2.5 text-xs shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
-                  isActive
-                    ? 'border-foreground text-foreground'
-                    : 'border-transparent text-foreground/55 hover:text-foreground',
-                )}
-                onClick={() => setCategory(candidate.key)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              >
-                {translate(candidate.key)}
-              </Button>
-            );
-          })}
-        </div>
+        <Tabs
+          activeTab={category}
+          ariaLabel={translate('categoryAria')}
+          fullWidth={false}
+          items={LIBRARY_PICKER_CATEGORIES.map((candidate) => ({
+            id: candidate.key,
+            label: translate(candidate.key),
+          }))}
+          onTabChange={(value) =>
+            setCategory(
+              value as (typeof LIBRARY_PICKER_CATEGORIES)[number]['key'],
+            )
+          }
+        />
         <Button
           asChild
           className="shrink-0 text-xs font-medium"

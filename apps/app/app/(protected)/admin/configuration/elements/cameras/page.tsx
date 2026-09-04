@@ -5,10 +5,11 @@ import { useElementsContext } from '@providers/elements/elements.context';
 import CamerasList from './cameras-list';
 
 export default function CamerasPage() {
-  const { onRefresh, setIsRefreshing } = useElementsContext();
+  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
 
   return (
     <CamerasList
+      filters={filters}
       scope={PageScope.SUPERADMIN}
       onRefresh={onRefresh}
       onRefreshingChange={setIsRefreshing}

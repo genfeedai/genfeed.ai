@@ -19,6 +19,7 @@ export interface UseStudioGenerateModelsReturn {
  */
 export function useStudioGenerateModels(
   category: ModelCategory | null,
+  organizationId: string | undefined,
 ): UseStudioGenerateModelsReturn {
   const [models, setModels] = useState<readonly IModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(Boolean(category));
@@ -28,7 +29,7 @@ export function useStudioGenerateModels(
   );
 
   useEffect(() => {
-    if (!category) {
+    if (!category || !organizationId) {
       setModels([]);
       setIsLoadingModels(false);
       return;
@@ -51,6 +52,7 @@ export function useStudioGenerateModels(
             category,
             isActive: true,
             limit: MODEL_PAGE_LIMIT,
+            organizationId,
             sort: 'label: 1',
           },
           controller.signal,
@@ -76,7 +78,7 @@ export function useStudioGenerateModels(
       isCancelled = true;
       controller.abort();
     };
-  }, [category, getModelsService]);
+  }, [category, getModelsService, organizationId]);
 
   return { isLoadingModels, models };
 }

@@ -9,7 +9,7 @@ import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -142,7 +142,7 @@ export default function WorkflowsPage() {
         >
           <div className="grid gap-4">
             {workflows.length === 0 ? (
-              <CardEmpty label="No workflows found" />
+              <CardEmptyContent label="No workflows found" />
             ) : (
               workflows.map((workflow: Workflow) => (
                 <Card key={workflow.id}>

@@ -11,6 +11,7 @@ import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
 import {
   createContext,
+  type ReactNode,
   use,
   useCallback,
   useEffect,
@@ -18,7 +19,12 @@ import {
   useState,
 } from 'react';
 
-const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
+interface AnalyticsRuntimeContext extends AnalyticsContextType {
+  toolbarNode: ReactNode;
+  setToolbarNode: (node: ReactNode) => void;
+}
+
+const AnalyticsContext = createContext<AnalyticsRuntimeContext | undefined>(
   undefined,
 );
 
@@ -57,6 +63,7 @@ export function AnalyticsProvider({
   );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [toolbarNode, setToolbarNode] = useState<ReactNode>(null);
 
   const brandContext = useBrand();
   const contextBrandId = syncWithBrandContext
@@ -138,6 +145,8 @@ export function AnalyticsProvider({
       setBrandId,
       setDateRange,
       setFilter,
+      setToolbarNode,
+      toolbarNode,
       triggerRefresh,
     }),
     [
@@ -150,6 +159,7 @@ export function AnalyticsProvider({
       setBrandId,
       setDateRange,
       setFilter,
+      toolbarNode,
     ],
   );
 

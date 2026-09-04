@@ -6,6 +6,7 @@ import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
+import type { TabsProps } from '@props/ui/navigation/tabs.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
@@ -13,8 +14,8 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -156,43 +157,40 @@ function WorkspacePageContentContent({
     };
   }, [isOverviewSection, selectedArtifactReferences, surfaceSelection]);
 
-  const inboxViewTabs = useMemo(() => {
+  const inboxHeaderTabs = useMemo<TabsProps | undefined>(() => {
     if (!isInboxSection) {
-      return null;
+      return undefined;
     }
 
-    return (
-      <Tabs
-        activeTab={defaultInboxView}
-        fullWidth={false}
-        size="sm"
-        variant="default"
-        items={INBOX_VIEW_OPTIONS.map((option) => {
-          const count =
-            option.id === 'unread'
-              ? unreadInboxTasks.length
-              : option.id === 'recent'
-                ? recentInboxTasks.length
-                : queueTasks.length;
+    return {
+      activeTab: defaultInboxView,
+      ariaLabel: 'Inbox views',
+      fullWidth: false,
+      items: INBOX_VIEW_OPTIONS.map((option) => {
+        const count =
+          option.id === 'unread'
+            ? unreadInboxTasks.length
+            : option.id === 'recent'
+              ? recentInboxTasks.length
+              : queueTasks.length;
 
-          return {
-            badge: isWorkspaceTasksLoading ? (
-              <Skeleton
-                variant="text"
-                width={14}
-                height={12}
-                className="opacity-70"
-              />
-            ) : (
-              <span className="text-2xs opacity-70">{count}</span>
-            ),
-            href: href(`/workspace/inbox/${option.id}`),
-            id: option.id,
-            label: option.label,
-          };
-        })}
-      />
-    );
+        return {
+          badge: isWorkspaceTasksLoading ? (
+            <Skeleton
+              variant="text"
+              width={14}
+              height={12}
+              className="opacity-70"
+            />
+          ) : (
+            <Badge variant="outline">{count}</Badge>
+          ),
+          href: href(`/workspace/inbox/${option.id}`),
+          id: option.id,
+          label: option.label,
+        };
+      }),
+    };
   }, [
     defaultInboxView,
     href,
@@ -203,14 +201,17 @@ function WorkspacePageContentContent({
     unreadInboxTasks.length,
   ]);
 
+  const activeInboxView = INBOX_VIEW_OPTIONS.find(
+    (option) => option.id === defaultInboxView,
+  );
+
   const workspaceHeaderActions = useMemo(() => {
-    if (!inboxViewTabs && !shouldShowComposer && isOverviewSection) {
+    if (!shouldShowComposer && isOverviewSection) {
       return undefined;
     }
 
     return (
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {inboxViewTabs}
         <ButtonRefresh
           onClick={() => void refreshWorkspaceTasks()}
           isRefreshing={isWorkspaceRefreshing}
@@ -228,7 +229,6 @@ function WorkspacePageContentContent({
       </div>
     );
   }, [
-    inboxViewTabs,
     isOverviewSection,
     isWorkspaceRefreshing,
     refreshWorkspaceTasks,
@@ -244,11 +244,13 @@ function WorkspacePageContentContent({
         }
       : section === 'inbox' && defaultInboxView === 'recent'
         ? {
-            description: 'Recent inbox activity will show up here.',
-            label: 'No recent activity',
+            description:
+              'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
+            label: 'No inbox activity yet',
           }
         : {
-            description: 'Review and approval items will show up here.',
+            description:
+              'Tasks enter the inbox when they need review, a decision, or follow-up.',
             label: 'Inbox is empty',
           };
 
@@ -284,6 +286,7 @@ function WorkspacePageContentContent({
       icon={LayoutGrid}
       fullWidth
       titleVisibility="sr-only"
+      headerTabs={inboxHeaderTabs}
       right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {workspaceActionError ? (
@@ -347,7 +350,7 @@ function WorkspacePageContentContent({
                 density="compact"
                 description={
                   section === 'inbox'
-                    ? sectionCopy.description
+                    ? (activeInboxView?.description ?? sectionCopy.description)
                     : 'Latest items waiting on your review.'
                 }
                 framed={false}

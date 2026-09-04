@@ -83,6 +83,11 @@ vi.mock('next/dynamic', () => ({
 const mockData: PlatformTimeSeriesDataPoint[] = [
   {
     date: '2024-01-01',
+    facebook: 800,
+    linkedin: 700,
+    reddit: 600,
+    pinterest: 500,
+    medium: 400,
     instagram: 5000,
     tiktok: 3000,
     twitter: 1500,
@@ -164,7 +169,12 @@ describe('PlatformTimeSeriesChart', () => {
   describe('Empty State', () => {
     it('shows empty message when data is empty array', () => {
       render(<PlatformTimeSeriesChart data={[]} />);
-      expect(screen.getByText('No data available')).toBeInTheDocument();
+      expect(screen.getByText('No performance trends yet')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Publish content to build a performance trend for this date range.',
+        ),
+      ).toBeInTheDocument();
     });
 
     it('shows empty message when data is undefined', () => {
@@ -174,20 +184,35 @@ describe('PlatformTimeSeriesChart', () => {
           data={undefined as unknown as PlatformTimeSeriesDataPoint[]}
         />,
       );
-      expect(screen.getByText('No data available')).toBeInTheDocument();
+      expect(screen.getByText('No performance trends yet')).toBeInTheDocument();
     });
 
-    it('disables platform buttons when empty', () => {
+    it('shows a connected-platform empty state when dated points have no series', () => {
+      render(<PlatformTimeSeriesChart data={mockData} platforms={[]} />);
+
+      expect(
+        screen.getByText('No connected platforms yet'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Connect at least one channel to start tracking performance over time.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('responsive-container'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides platform toggles when there is nothing to chart', () => {
       render(<PlatformTimeSeriesChart data={[]} />);
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toBeDisabled();
-      });
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
     });
 
     it('does not show empty message when loading', () => {
       render(<PlatformTimeSeriesChart data={[]} isLoading />);
-      expect(screen.queryByText('No data available')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('No performance trends yet'),
+      ).not.toBeInTheDocument();
     });
 
     it('does not render chart when empty', () => {
@@ -542,7 +567,8 @@ describe('PlatformTimeSeriesChart', () => {
         { date: '2024-01-02', instagram: 0, tiktok: 0, twitter: 0, youtube: 0 },
       ];
       render(<PlatformTimeSeriesChart data={zeroData} />);
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByText('No performance trends yet')).toBeInTheDocument();
+      expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();
     });
 
     it('handles very large numbers', () => {

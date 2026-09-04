@@ -155,6 +155,7 @@ export class AccountAnalyticsService {
     const accounts = await this.loadAccounts(organizationId, {
       ...query,
       search: undefined,
+      status: 'connected',
     });
     const account = accounts.find(
       (item) => item.identity.credentialId === credentialId,
@@ -246,15 +247,11 @@ export class AccountAnalyticsService {
     return this.readPolicy(next, brandId) ?? next;
   }
 
-  private async loadAccounts(
+  private loadCredentials(
     organizationId: string,
     query: AccountAnalyticsQueryDto,
-  ): Promise<IAccountAnalytics[]> {
-    const { startDate, endDate } = DateRangeUtil.parseDateRange(
-      query.startDate,
-      query.endDate,
-    );
-    const credentials = await this.prisma.credential.findMany({
+  ) {
+    return this.prisma.credential.findMany({
       select: {
         brand: { select: { label: true } },
         brandId: true,
@@ -273,11 +270,24 @@ export class AccountAnalyticsService {
         ...(query.platform
           ? { platform: toPrismaCredentialPlatform(query.platform) }
           : {}),
-        ...(query.status === 'connected' ? { isConnected: true } : {}),
+        ...(query.status !== 'all' && query.status !== 'disconnected'
+          ? { isConnected: true }
+          : {}),
         ...(query.status === 'disconnected' ? { isConnected: false } : {}),
         externalId: { not: null },
       }),
     });
+  }
+
+  private async loadAccounts(
+    organizationId: string,
+    query: AccountAnalyticsQueryDto,
+  ): Promise<IAccountAnalytics[]> {
+    const { startDate, endDate } = DateRangeUtil.parseDateRange(
+      query.startDate,
+      query.endDate,
+    );
+    const credentials = await this.loadCredentials(organizationId, query);
 
     const credentialIds = credentials.map((row) => row.id);
     const [periodRows, startSnapshots, endSnapshots, publishedSummary, policy] =

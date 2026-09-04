@@ -3,17 +3,13 @@ import Badge from '@ui/display/badge/Badge';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { useState } from 'react';
 
-/**
- * Tabs component for organizing content into separate views.
- * Uses a modern pill variant for a clean, intuitive interface.
- */
 const meta = {
   component: Tabs,
   parameters: {
     docs: {
       description: {
         component:
-          'Modern pill-style tabs component for organizing content. Supports string or object tabs, badges, and disabled states.',
+          'Shared outlined tabs component for organizing content. Supports string or object tabs, badges, and disabled states.',
       },
     },
     layout: 'padded',
@@ -115,9 +111,6 @@ export const WithBadges: Story = {
   },
 };
 
-/**
- * Modern pill variant with count badges (like Articles/Posts list)
- */
 export const WithCounts: Story = {
   args: {
     activeTab: 'drafts',

@@ -338,7 +338,7 @@ export default defineConfig({
         replacement: EMPTY_STYLE_MOCK,
       },
       {
-        find: /src\/flows\/flows\.css$/,
+        find: /^.*\/src\/flows\/flows\.css$/,
         replacement: EMPTY_STYLE_MOCK,
       },
       {

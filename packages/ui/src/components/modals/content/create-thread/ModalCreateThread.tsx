@@ -179,7 +179,6 @@ export default function ModalCreateThread({
             { id: 'preview', label: `Preview (${fields.length})` },
           ]}
           onTabChange={(tab) => setActiveTab(tab as 'compose' | 'preview')}
-          variant="segmented"
         />
 
         {hasFormErrors(form.formState.errors) && (

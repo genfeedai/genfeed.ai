@@ -77,6 +77,7 @@ function stylesListReducer(
 }
 
 function StylesListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -156,14 +157,12 @@ function StylesListContent({
   });
 
   const columns: TableColumn<ElementStyle>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      className: 'max-w-48 truncate',
-      header: 'Description',
-      key: 'description',
-      render: (style: IElementStyle) => style.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (style: ElementStyle) => style.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
       className: 'min-w-32 max-w-xs',
       header: 'Model',
@@ -219,6 +218,7 @@ function StylesListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -249,6 +249,7 @@ function StylesListContent({
     },
     [
       currentPage,
+      filters?.search,
       getStylesService,
       notificationsService.error,
       notificationsService.success,

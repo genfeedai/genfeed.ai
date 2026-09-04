@@ -4,6 +4,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
@@ -352,6 +353,10 @@ describe('VideosController', () => {
               .fn()
               .mockResolvedValue('replicate-generation-id-123'),
           },
+        },
+        {
+          provide: ReplicatePollQueueService,
+          useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },
         },
         {
           provide: SharedService,
@@ -1532,6 +1537,10 @@ beforeAll(async () => {
       {
         provide: ReplicateService,
         useValue: { generateTextToVideo: vi.fn() },
+      },
+      {
+        provide: ReplicatePollQueueService,
+        useValue: { schedule: vi.fn().mockResolvedValue('poll-job-1') },
       },
       { provide: SharedService, useValue: { createMediaDocuments: vi.fn() } },
       {

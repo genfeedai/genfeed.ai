@@ -65,6 +65,7 @@ function moodsListReducer(
 }
 
 function MoodsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -143,13 +144,12 @@ function MoodsListContent({
   });
 
   const columns: TableColumn<ElementMood>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (mood: ElementMood) => mood.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (mood: ElementMood) => mood.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const findAllMoods = useCallback(
@@ -163,6 +163,7 @@ function MoodsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -192,6 +193,7 @@ function MoodsListContent({
     },
     [
       currentPage,
+      filters?.search,
       getMoodsService,
       notificationsService.error,
       notificationsService.success,

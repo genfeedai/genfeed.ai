@@ -77,7 +77,7 @@ describe('Table', () => {
     expect(onRowClick).toHaveBeenCalledTimes(2);
   });
 
-  it('renders empty without card chrome or a doubled border', () => {
+  it('keeps the default table frame while empty', () => {
     render(
       <Table
         items={[]}
@@ -88,10 +88,27 @@ describe('Table', () => {
     );
 
     const empty = screen.getByTestId('table-empty');
-    expect(empty).not.toHaveClass('border');
+    expect(empty).toHaveClass('rounded-card', 'border', 'border-border');
     expect(empty).not.toHaveClass('shadow-border');
-    expect(empty).not.toHaveClass('bg-card');
+    expect(empty).toHaveClass('bg-card');
     expect(screen.getByText('No unread items')).toBeInTheDocument();
+  });
+
+  it('keeps a delegated empty table frameless', () => {
+    render(
+      <Table
+        framed={false}
+        items={[]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        emptyLabel="No unread items"
+      />,
+    );
+
+    expect(screen.getByTestId('table-empty')).toHaveClass(
+      'rounded-none',
+      'border-0',
+      'shadow-none',
+    );
   });
 
   it('uses one hairline system for header and rows', () => {
@@ -109,11 +126,52 @@ describe('Table', () => {
     const body = container.querySelector('tbody');
 
     expect(table).toHaveClass('border-collapse');
-    expect(card).toHaveClass('rounded-card', 'shadow-border', 'bg-card');
-    expect(card).not.toHaveClass('border-border');
-    expect(head).toHaveClass('border-b', 'border-border');
+    expect(card).toHaveClass(
+      'rounded-card',
+      'border',
+      'border-border',
+      'bg-card',
+    );
+    expect(card).not.toHaveClass('shadow-border');
+    expect(head).toHaveClass(
+      'border-b',
+      'border-border',
+      'bg-background-secondary/60',
+    );
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');
+  });
+
+  it('can delegate its frame to a shared section surface', () => {
+    const { container } = render(
+      <Table
+        framed={false}
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const card = container.querySelector('table')?.closest('div.relative');
+    expect(card).toHaveClass('rounded-none', 'border-0', 'shadow-none');
+    expect(card).not.toHaveClass('border-border', 'rounded-card');
+  });
+
+  it('keeps delegated loading chrome frameless', () => {
+    render(
+      <Table
+        framed={false}
+        isLoading
+        items={[]}
+        columns={[{ header: 'Name', key: 'name' }]}
+      />,
+    );
+
+    expect(screen.getByTestId('skeleton-table')).toHaveClass(
+      'rounded-none',
+      'border-0',
+      'shadow-none',
+    );
   });
 
   it('exposes controlled sortable column headers', () => {
@@ -150,6 +208,35 @@ describe('Table', () => {
     );
   });
 
+  it('renders supporting text below a primary cell value', () => {
+    render(
+      <Table
+        items={[
+          {
+            description: 'Supporting context for the first item',
+            id: 'item-1',
+            name: 'First item',
+          },
+        ]}
+        columns={[
+          {
+            header: 'Name',
+            key: 'name',
+            subtext: (item) => item.description,
+          },
+        ]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const primary = screen.getByText('First item');
+    const subtext = screen.getByText('Supporting context for the first item');
+
+    expect(primary.parentElement).toBe(subtext.parentElement);
+    expect(primary).toHaveClass('font-medium', 'text-foreground');
+    expect(subtext).toHaveClass('text-xs', 'text-muted-foreground');
+  });
+
   it('does not fire onRowClick when keyboard targets a nested button', () => {
     const onRowClick = vi.fn();
     const onAction = vi.fn();
@@ -182,7 +269,13 @@ describe('Table', () => {
           { id: 'item-1', name: 'First item' },
           { id: 'item-2', name: 'Second item' },
         ]}
-        columns={[{ header: 'Name', key: 'name' }]}
+        columns={[
+          {
+            header: 'Name',
+            key: 'name',
+            subtext: (item) => `Details for ${item.name}`,
+          },
+        ]}
         getRowKey={(item) => item.id}
         getRowLink={(item) =>
           item.id === 'item-1'
@@ -197,6 +290,7 @@ describe('Table', () => {
     const link = screen.getByRole('link', { name: 'Open First item' });
     expect(link).toHaveAttribute('href', '/items/item-1');
     expect(link).toHaveClass('absolute', 'inset-0');
+    expect(screen.getByText('Details for First item')).toBeInTheDocument();
 
     // The anchor owns activation and keyboard focus; the row must not also be
     // a tab stop, or every row would be reachable twice.

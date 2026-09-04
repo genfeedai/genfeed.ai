@@ -3,8 +3,15 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { selectActiveWorkEvent } from './AgentChatContainerThreadView';
+
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    usePromptModal: () => ({ openPromptModal: vi.fn() }),
+  }),
+);
 
 function makeWorkEvent(
   overrides: Partial<AgentWorkEvent> = {},

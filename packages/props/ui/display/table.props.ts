@@ -5,6 +5,7 @@ export interface TableColumn<T> {
   key: keyof T | string;
   header: ReactNode;
   render?: (item: T) => ReactNode;
+  subtext?: (item: T) => ReactNode;
   className?: string;
   actions?: TableAction<T>[];
   sortable?: boolean;
@@ -30,6 +31,8 @@ export interface TableProps<T> {
   isLoading?: boolean;
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];
+  /** Render the shared table frame. Disable when a parent surface owns it. */
+  framed?: boolean;
 
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;

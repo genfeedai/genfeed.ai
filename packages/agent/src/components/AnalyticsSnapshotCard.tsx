@@ -7,6 +7,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -158,38 +159,19 @@ export function AnalyticsSnapshotCard({
           Analytics summary
         </h3>
         {periodSnapshots.length > 1 ? (
-          <div
-            className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-background p-0.5"
-            role="tablist"
-            aria-label="Analytics period"
-          >
-            {periodSnapshots.map((snapshot) => {
-              const isActive = snapshot.period === selectedPeriod;
-              return (
-                <Button
-                  key={snapshot.period}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  size={ButtonSize.XS}
-                  aria-selected={isActive}
-                  role="tab"
-                  className={cn(
-                    'px-2.5 text-2xs font-medium',
-                    isActive
-                      ? 'bg-foreground/10 text-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                  onClick={() => {
-                    setSelectedPeriod(snapshot.period);
-                    setIsExpanded(true);
-                  }}
-                >
-                  {snapshot.period}
-                </Button>
-              );
-            })}
-          </div>
+          <Tabs
+            activeTab={selectedPeriod}
+            ariaLabel="Analytics period"
+            fullWidth={false}
+            items={periodSnapshots.map((snapshot) => ({
+              id: snapshot.period,
+              label: snapshot.period,
+            }))}
+            onTabChange={(period) => {
+              setSelectedPeriod(period);
+              setIsExpanded(true);
+            }}
+          />
         ) : (
           <span className="shrink-0 text-2xs font-medium text-muted-foreground">
             {selectedPeriod}

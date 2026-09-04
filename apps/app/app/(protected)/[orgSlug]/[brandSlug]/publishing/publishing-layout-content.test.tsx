@@ -31,6 +31,13 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalPost: () => null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => usePathnameMock(),
@@ -77,7 +84,7 @@ describe('PublishingLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders list actions without route-level status tabs', () => {
+  it('renders list actions with shared route-level status tabs', () => {
     render(
       <PublishingLayoutContent>
         <div>child content</div>
@@ -91,15 +98,33 @@ describe('PublishingLayoutContent', () => {
     expect(
       screen.queryByRole('link', { name: /new content/i }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^draft$/i })).toHaveAttribute(
+      'href',
+      '/publishing/posts?platform=youtube&status=draft',
+    );
     expect(
-      screen.queryByRole('link', { name: /drafts/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: /scheduled/i }),
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /scheduled/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /published/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: /published/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('normalizes the active tab from legacy query state', () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('status=public&platform=youtube'),
+    );
+
+    render(
+      <PublishingLayoutContent>
+        <div>child content</div>
+      </PublishingLayoutContent>,
+    );
+
+    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 
   it('seeds the agent composer without leaving Publishing', async () => {

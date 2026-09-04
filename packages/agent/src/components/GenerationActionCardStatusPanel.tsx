@@ -8,6 +8,7 @@ import {
   APP_ROUTES,
   createLibraryAssetRoute,
 } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { Check, ImagePlus, Paintbrush, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -54,6 +55,7 @@ export function GenerationActionCardStatusPanel({
   paidRejectedCount,
 }: GenerationActionCardStatusPanelProps): ReactElement | null {
   const translate = useTranslations('agent.generationActionCard');
+  const { href } = useOrgUrl();
 
   if (status === 'idle') return null;
 
@@ -123,13 +125,17 @@ export function GenerationActionCardStatusPanel({
   }
 
   if (status === 'done' && resultUrl) {
-    const libraryHref = createLibraryAssetRoute(
-      generationType === 'video'
-        ? IngredientCategory.VIDEO
-        : IngredientCategory.IMAGE,
-      resultId ?? '',
+    const libraryHref = href(
+      createLibraryAssetRoute(
+        generationType === 'video'
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE,
+        resultId ?? '',
+      ),
     );
-    const studioHref = `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`;
+    const studioHref = href(
+      `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`,
+    );
 
     return (
       <div className="space-y-2">

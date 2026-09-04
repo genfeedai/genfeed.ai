@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
 import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
+import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -288,6 +288,32 @@ describe('ModelsController', () => {
           isDeleted: false,
           isDiscovered: true,
           reviewStatus: 'pending',
+        },
+      });
+    });
+
+    it('should search model identity fields without replacing other filters', () => {
+      const query: ModelsQueryDto = {
+        ...new ModelsQueryDto(),
+        isActive: true,
+        search: '  flux  ',
+      };
+
+      const result = controller.buildFindAllQuery(mockRegularUser, query);
+
+      expect(result).toMatchObject({
+        where: {
+          AND: [
+            {
+              OR: [
+                { label: { contains: 'flux', mode: 'insensitive' } },
+                { key: { contains: 'flux', mode: 'insensitive' } },
+                { description: { contains: 'flux', mode: 'insensitive' } },
+              ],
+            },
+          ],
+          isActive: true,
+          isDeleted: false,
         },
       });
     });

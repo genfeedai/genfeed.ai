@@ -276,9 +276,17 @@ export function useIngredientsLoading({
 
         if (scope === PageScope.ORGANIZATION && organizationId) {
           const organizationsService = await getOrganizationsService();
+          // The unified `ingredients` route represents every asset category.
+          // Its derived singular type is the generic `INGREDIENT` enum member,
+          // which must not become a category filter or the organization-wide
+          // All assets view excludes images, videos, audio, and other media.
+          const organizationQuery =
+            type === 'ingredients'
+              ? queryParams
+              : { ...queryParams, category: singularType };
           data = await organizationsService.findOrganizationIngredients(
             organizationId,
-            { ...queryParams, category: singularType },
+            organizationQuery,
           );
         } else {
           const service = await getIngredientsService();

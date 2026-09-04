@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsIn,
   IsOptional,
+  IsString,
   ValidateIf,
 } from 'class-validator';
 
@@ -26,6 +27,14 @@ export type ModelRegistryStatus = (typeof MODEL_REGISTRY_STATUSES)[number];
  * Inherits pagination, sorting, and common filters from BaseQueryDto
  */
 export class ModelsQueryDto extends BaseQueryDto {
+  @ApiProperty({
+    description: 'Search across model label, key, and description',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiProperty({
     description: 'Filter by model category',
     enum: ModelCategory,

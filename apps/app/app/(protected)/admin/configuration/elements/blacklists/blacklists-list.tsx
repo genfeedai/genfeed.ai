@@ -84,6 +84,7 @@ function blacklistsReducer(
 }
 
 function BlacklistsListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -171,7 +172,11 @@ function BlacklistsListContent({
   });
 
   const columns: TableColumn<ElementBlacklist>[] = [
-    { header: 'Label', key: 'label' },
+    {
+      header: 'Label',
+      key: 'label',
+      subtext: (blacklist: ElementBlacklist) => blacklist.description,
+    },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
       header: 'Category',
@@ -197,11 +202,6 @@ function BlacklistsListContent({
           onChange={() => handleToggleDefault(blacklist)}
         />
       ),
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (blacklist: ElementBlacklist) => blacklist.description || '-',
     },
   ];
 
@@ -249,6 +249,8 @@ function BlacklistsListContent({
         const query: IQueryParams = {
           limit: ITEMS_PER_PAGE,
           page: currentPage,
+          search: filters?.search || undefined,
+          type: filters?.type || undefined,
         };
 
         if (scope === PageScope.SUPERADMIN) {
@@ -279,6 +281,8 @@ function BlacklistsListContent({
     },
     [
       currentPage,
+      filters?.search,
+      filters?.type,
       getBlacklistsService,
       notificationsService.error,
       notificationsService.success,

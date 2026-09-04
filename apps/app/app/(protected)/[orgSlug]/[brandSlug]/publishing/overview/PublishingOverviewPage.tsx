@@ -9,6 +9,8 @@ import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-c
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isBrandResourceReady,
+  isCollectionFetchReady,
+  toBrandListParams,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -71,12 +73,12 @@ function toAsyncState<T>({
 
 async function fetchPublicationTotal(
   getReleaseGroups: () => Promise<ReleaseGroupsService>,
-  brandId: string,
+  brandId: string | undefined,
   publicationState: 'posted' | 'not-posted',
 ): Promise<number> {
   const service = await getReleaseGroups();
   const page = await service.findAllPage({
-    brandId,
+    ...toBrandListParams({ brandId }),
     limit: 1,
     page: 1,
     publicationState,
@@ -87,7 +89,8 @@ async function fetchPublicationTotal(
 export default function PublishingOverviewPage() {
   const { href } = useOrgUrl();
   const collectionScope = useCollectionScope();
-  const { brandId } = collectionScope;
+  const { brandId, organizationId } = collectionScope;
+  const isCollectionReady = isCollectionFetchReady(collectionScope);
   const isBrandReady = isBrandResourceReady(collectionScope);
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
@@ -100,7 +103,8 @@ export default function PublishingOverviewPage() {
   );
 
   const batchesQuery = useQuery({
-    queryKey: ['publish-overview-batches'],
+    enabled: isCollectionReady,
+    queryKey: ['publish-overview-batches', organizationId],
     queryFn: async () => {
       const service = await getBatchesService();
       return service.getBatches();
@@ -108,37 +112,34 @@ export default function PublishingOverviewPage() {
   });
 
   const notPostedTotalQuery = useQuery({
-    enabled: isBrandReady,
-    queryKey: ['publish-overview-not-posted-total', brandId],
+    enabled: isCollectionReady,
+    queryKey: ['publish-overview-not-posted-total', organizationId, brandId],
     queryFn: () =>
-      fetchPublicationTotal(
-        getReleaseGroupsService,
-        brandId as string,
-        'not-posted',
-      ),
+      fetchPublicationTotal(getReleaseGroupsService, brandId, 'not-posted'),
   });
 
   const publishedTotalQuery = useQuery({
-    enabled: isBrandReady,
-    queryKey: ['publish-overview-published-total', brandId],
+    enabled: isCollectionReady,
+    queryKey: ['publish-overview-published-total', organizationId, brandId],
     queryFn: () =>
-      fetchPublicationTotal(
-        getReleaseGroupsService,
-        brandId as string,
-        'posted',
-      ),
+      fetchPublicationTotal(getReleaseGroupsService, brandId, 'posted'),
   });
 
   const now = useMemo(() => new Date(), []);
 
   const upcomingReleasesQuery = useQuery({
-    enabled: isBrandReady,
-    queryKey: ['publish-overview-upcoming', brandId, now.toISOString()],
+    enabled: isCollectionReady,
+    queryKey: [
+      'publish-overview-upcoming',
+      organizationId,
+      brandId,
+      now.toISOString(),
+    ],
     queryFn: async ({ signal }) => {
       const service = await getReleaseGroupsService();
       return service.findAll(
         {
-          brandId: brandId as string,
+          ...toBrandListParams({ brandId }),
           endDate: new Date(now.getTime() + QUEUE_WINDOW_MS).toISOString(),
           executionState: [TargetExecutionState.SCHEDULED],
           sort: 'scheduledDate: 1',
@@ -150,13 +151,13 @@ export default function PublishingOverviewPage() {
   });
 
   const failedReleasesQuery = useQuery({
-    enabled: isBrandReady,
-    queryKey: ['publish-overview-failed', brandId],
+    enabled: isCollectionReady,
+    queryKey: ['publish-overview-failed', organizationId, brandId],
     queryFn: async ({ signal }) => {
       const service = await getReleaseGroupsService();
       return service.findAll(
         {
-          brandId: brandId as string,
+          ...toBrandListParams({ brandId }),
           executionState: [TargetExecutionState.FAILED],
         },
         signal,
@@ -165,13 +166,13 @@ export default function PublishingOverviewPage() {
   });
 
   const postedReleasesQuery = useQuery({
-    enabled: isBrandReady,
-    queryKey: ['publish-overview-posted-recent', brandId],
+    enabled: isCollectionReady,
+    queryKey: ['publish-overview-posted-recent', organizationId, brandId],
     queryFn: async ({ signal }) => {
       const service = await getReleaseGroupsService();
       return service.findAll(
         {
-          brandId: brandId as string,
+          ...toBrandListParams({ brandId }),
           limit: 100,
           publicationState: 'posted',
           sort: 'updatedAt: -1',
@@ -183,7 +184,7 @@ export default function PublishingOverviewPage() {
 
   const accountHealthQuery = useQuery({
     enabled: isBrandReady,
-    queryKey: ['publish-overview-account-health', brandId],
+    queryKey: ['publish-overview-account-health', organizationId, brandId],
     queryFn: async () => {
       const service = await getCredentialsService();
       return service.listBrandAccountHealth(brandId as string);
@@ -408,11 +409,15 @@ export default function PublishingOverviewPage() {
           />
           <Next24hQueueSection onRetry={retryQueue} state={queueState} />
           <BlockedTargetsSection onRetry={retryBlocked} state={blockedState} />
-          <AccountHealthSection
-            onRetry={retryAccountHealth}
-            state={accountHealthState}
-          />
-          <CadenceGapsSection onRetry={retryCadence} state={cadenceState} />
+          {isBrandReady ? (
+            <>
+              <AccountHealthSection
+                onRetry={retryAccountHealth}
+                state={accountHealthState}
+              />
+              <CadenceGapsSection onRetry={retryCadence} state={cadenceState} />
+            </>
+          ) : null}
         </div>
       }
       icon={LayoutDashboard}

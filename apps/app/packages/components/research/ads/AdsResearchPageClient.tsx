@@ -203,7 +203,6 @@ export default function AdsResearchPageClient() {
               ],
               onTabChange: (value) =>
                 setPlatform(value as AdsResearchPlatform | 'all'),
-              variant: 'default',
             }
       }
       icon={Megaphone}

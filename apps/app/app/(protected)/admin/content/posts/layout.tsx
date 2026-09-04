@@ -223,9 +223,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
                 activeTab,
                 fullWidth: false,
                 onTabChange: handleTabChange,
-                size: 'sm',
                 tabs: getPostPlatformTabs(),
-                variant: 'underline',
               }
             : undefined
         }

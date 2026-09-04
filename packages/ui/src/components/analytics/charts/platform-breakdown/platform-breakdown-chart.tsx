@@ -5,6 +5,7 @@ import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/ana
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
 
@@ -84,75 +85,80 @@ export function PlatformBreakdownChart({
   const dataWithTotal = filteredData.map((item) => ({ ...item, total }));
 
   return (
-    <Card className={className} label={title} bodyClassName="gap-3 p-4">
-      <div className="relative" style={{ height }}>
-        {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
-            <span className="size-12 animate-pulse rounded-full bg-primary/30" />
-          </div>
-        )}
+    <WorkspaceSurface density="compact" framed={false} title={title}>
+      <Card className={className} bodyClassName="gap-3 p-4">
+        <div className="relative" style={{ height }}>
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
+              <span className="size-12 animate-pulse rounded-full bg-primary/30" />
+            </div>
+          )}
 
-        {isEmpty && !isLoading ? (
-          <CardEmptyContent
-            className="absolute inset-0 py-0"
-            label="No platform distribution yet"
-            description="Connect channels and publish content to see how views split across platforms."
-          />
-        ) : null}
+          {isEmpty && !isLoading ? (
+            <CardEmptyContent
+              className="absolute inset-0 py-0"
+              label="No platform distribution yet"
+              description="Connect channels and publish content to see how views split across platforms."
+            />
+          ) : null}
 
-        {!isEmpty ? (
-          <ChartContainer
-            config={Object.fromEntries(
-              dataWithTotal.map((item) => [
-                item.platform,
-                {
-                  color: getColor(item.platform),
-                  label: getLabel(item.platform),
-                },
-              ]),
-            )}
-            className="border-0 bg-transparent p-0 shadow-none"
-            height="100%"
-            style={{ minWidth: 0 }}
-          >
-            <PieChart>
-              <Pie
-                data={dataWithTotal}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={renderLabel}
-                outerRadius={80}
-                fill="hsl(var(--muted-foreground))"
-                dataKey="value"
-              >
-                {dataWithTotal.map((entry) => (
-                  <Cell key={entry.platform} fill={getColor(entry.platform)} />
-                ))}
-              </Pie>
+          {!isEmpty ? (
+            <ChartContainer
+              config={Object.fromEntries(
+                dataWithTotal.map((item) => [
+                  item.platform,
+                  {
+                    color: getColor(item.platform),
+                    label: getLabel(item.platform),
+                  },
+                ]),
+              )}
+              className="border-0 bg-transparent p-0 shadow-none"
+              height="100%"
+              style={{ minWidth: 0 }}
+            >
+              <PieChart>
+                <Pie
+                  data={dataWithTotal}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderLabel}
+                  outerRadius={80}
+                  fill="hsl(var(--muted-foreground))"
+                  dataKey="value"
+                >
+                  {dataWithTotal.map((entry) => (
+                    <Cell
+                      key={entry.platform}
+                      fill={getColor(entry.platform)}
+                    />
+                  ))}
+                </Pie>
 
-              <Tooltip
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(_label, payload) =>
-                      getLabel(String(payload?.[0]?.payload?.platform ?? ''))
-                    }
-                    valueFormatter={(value) =>
-                      formatFullNumber(
-                        typeof value === 'number'
-                          ? value
-                          : typeof value === 'string'
-                            ? Number(value)
-                            : undefined,
-                      )
-                    }
-                  />
-                }
-              />
-            </PieChart>
-          </ChartContainer>
-        ) : null}
-      </div>
-    </Card>
+                <Tooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_label, payload) =>
+                        getLabel(String(payload?.[0]?.payload?.platform ?? ''))
+                      }
+                      valueFormatter={(value) =>
+                        formatFullNumber(
+                          typeof value === 'number'
+                            ? value
+                            : typeof value === 'string'
+                              ? Number(value)
+                              : undefined,
+                        )
+                      }
+                    />
+                  }
+                />
+              </PieChart>
+            </ChartContainer>
+          ) : null}
+        </div>
+      </Card>
+    </WorkspaceSurface>
   );
 }

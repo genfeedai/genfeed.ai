@@ -30,6 +30,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
+interface AgentBrandsServiceLike {
+  findOne: (
+    params: Record<string, unknown>,
+    context?: string,
+  ) => Promise<Record<string, unknown> | null>;
+}
+
 @Injectable()
 export class AgentMediaAssetGenerationService {
   constructor(
@@ -38,6 +45,8 @@ export class AgentMediaAssetGenerationService {
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingHandler: AgentOnboardingToolHandler,
+    @Inject('AGENT_BRANDS_SERVICE')
+    private readonly brandsService: AgentBrandsServiceLike,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
     @Optional()
@@ -58,6 +67,40 @@ export class AgentMediaAssetGenerationService {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     };
+  }
+
+  private async resolveMediaBrandContext(
+    ctx: ToolExecutionContext,
+  ): Promise<{ context: ToolExecutionContext } | { error: AgentToolResult }> {
+    if (ctx.brandId) {
+      return { context: ctx };
+    }
+
+    const selectedBrand = await this.brandsService.findOne({
+      isDeleted: false,
+      isSelected: true,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+    const organizationBrand =
+      selectedBrand ??
+      (await this.brandsService.findOne({
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      }));
+    const brandId = organizationBrand?.id;
+
+    if (typeof brandId !== 'string' || brandId.length === 0) {
+      return {
+        error: {
+          creditsUsed: 0,
+          error: 'Create a brand before generating organization media.',
+          success: false,
+        },
+      };
+    }
+
+    return { context: { ...ctx, brandId } };
   }
 
   private readStringArray(value: unknown, max: number): string[] {
@@ -158,6 +201,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
+
     const rawPrompt =
       (params.prompt as string | undefined) ??
       (params.description as string | undefined) ??
@@ -240,7 +289,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage failed for org=${ctx.organizationId}: ${message}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         error: message,
         promptPreview,
         status: Status.PROCESSING,
@@ -259,7 +309,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         error: IMAGE_GENERATION_RESULT_ERROR.MISSING_ASSET_ID,
         promptPreview,
         status: Status.PROCESSING,
@@ -270,7 +321,8 @@ export class AgentMediaAssetGenerationService {
       this.loggerService.warn(
         `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
       );
-      return this.buildImageGenerationIncompleteResult({
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'image',
         assetId: id,
         error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
         promptPreview,
@@ -288,6 +340,20 @@ export class AgentMediaAssetGenerationService {
     const onboardingNextActions = cdnUrl
       ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
       : undefined;
+    return this.buildImageGenerationResult(
+      id,
+      cdnUrl,
+      promptPreview,
+      onboardingNextActions,
+    );
+  }
+
+  private buildImageGenerationResult(
+    id: string,
+    cdnUrl: string | undefined,
+    promptPreview: string,
+    onboardingNextActions: AgentToolResult['nextActions'],
+  ): AgentToolResult {
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {
@@ -296,7 +362,12 @@ export class AgentMediaAssetGenerationService {
       isBillingDelegated: true,
       nextActions: [
         {
-          ctas: [{ href: '/library/assets', label: 'View in Library' }],
+          ctas: [
+            {
+              href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
+              label: 'View in Library',
+            },
+          ],
           assetId: id,
           assetKind: 'image',
           description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
@@ -349,7 +420,14 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: '/library/assets', label: 'View in Library' }],
+              assetId: id,
+              assetKind: 'image',
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
+                  label: 'View in Library',
+                },
+              ],
               description: `Reframed to ${aspectRatio}`,
               id: `image-reframe-${id}`,
               images: cdnUrl ? [cdnUrl] : [],
@@ -393,6 +471,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
+
     const requestedModel =
       ctx.generationSettings?.model ??
       (typeof params.model === 'string' && params.model.trim().length > 0
@@ -438,17 +522,45 @@ export class AgentMediaAssetGenerationService {
         typeof params.resolution === 'string' ? params.resolution : undefined,
       videoReferences: this.readStringArray(params.videoReferences, 10),
     });
-    const response = toMediaResponseRecord(
-      await this.generationGateway.generateVideo({
-        body,
-        principal: this.toPrincipal(ctx),
-      }),
-    );
+    const promptPreview = rawPrompt.substring(0, 80);
+    let response: Record<string, unknown>;
+    try {
+      response = toMediaResponseRecord(
+        await this.generationGateway.generateVideo({
+          body,
+          principal: this.toPrincipal(ctx),
+        }),
+      );
+    } catch (error) {
+      const message = (error as Error).message || 'Video generation failed';
+      this.loggerService.warn(
+        `generateVideo failed for org=${ctx.organizationId}: ${message}`,
+      );
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'video',
+        error: message,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
     const id = readMediaResponseString(response, 'id');
     const cdnUrl = readMediaAssetUrl(
       response,
       this.configService.ingredientsEndpoint,
     );
+
+    if (!id) {
+      const error = 'Video generation returned no asset id.';
+      this.loggerService.warn(
+        `generateVideo returned no asset for org=${ctx.organizationId}`,
+      );
+      return this.buildMediaGenerationIncompleteResult({
+        assetKind: 'video',
+        error,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
 
     if (id && cdnUrl) {
       // Fire-and-forget quality scoring must not delay the generation result.
@@ -465,24 +577,27 @@ export class AgentMediaAssetGenerationService {
 
     return {
       creditsUsed: 0,
-      data: id ? buildMediaAssetData(id, status, cdnUrl) : { status },
+      data: buildMediaAssetData(id, status, cdnUrl),
       isBillingDelegated: true,
-      nextActions: id
-        ? [
+      nextActions: [
+        {
+          ctas: [
             {
-              ctas: [{ href: '/library/assets', label: 'View in Library' }],
-              assetId: id,
-              assetKind: 'video',
-              description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${(params.prompt as string).substring(0, 80)}"`,
-              id: `video-gen-${id}`,
-              status: cdnUrl ? 'completed' : 'processing',
-              title: cdnUrl ? 'Video generated' : 'Video generating',
-              type: 'content_preview_card',
-              videos: cdnUrl ? [cdnUrl] : [],
+              href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+              label: 'View in Library',
             },
-            ...(onboardingNextActions ?? []),
-          ]
-        : [],
+          ],
+          assetId: id,
+          assetKind: 'video',
+          description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
+          id: `video-gen-${id}`,
+          status: cdnUrl ? 'completed' : 'processing',
+          title: cdnUrl ? 'Video generated' : 'Video generating',
+          type: 'content_preview_card',
+          videos: cdnUrl ? [cdnUrl] : [],
+        },
+        ...(onboardingNextActions ?? []),
+      ],
       success: true,
     };
   }
@@ -591,7 +706,14 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: '/library/videos', label: 'View in Library' }],
+              assetId: id,
+              assetKind: 'video',
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+                  label: 'View in Library',
+                },
+              ],
               description: `Avatar video generating: "${text.substring(0, 80)}"`,
               id: `identity-gen-${id}`,
               title: 'Identity video generating',
@@ -752,13 +874,20 @@ export class AgentMediaAssetGenerationService {
     };
   }
 
-  /** Never mint an empty content preview for incomplete image generation. */
-  private buildImageGenerationIncompleteResult(params: {
+  /** Never mint an empty content preview for incomplete media generation. */
+  private buildMediaGenerationIncompleteResult(params: {
+    assetKind: 'image' | 'video';
     assetId?: string;
     error: string;
     promptPreview: string;
     status: string;
   }): AgentToolResult {
+    const assetLabel = params.assetKind === 'video' ? 'Video' : 'Image';
+    const category =
+      params.assetKind === 'video'
+        ? IngredientCategory.VIDEO
+        : IngredientCategory.IMAGE;
+
     return {
       creditsUsed: 0,
       data: {
@@ -770,18 +899,18 @@ export class AgentMediaAssetGenerationService {
       nextActions: [
         {
           ...(params.assetId
-            ? { assetId: params.assetId, assetKind: 'image' as const }
+            ? { assetId: params.assetId, assetKind: params.assetKind }
             : {}),
-          id: `image-gen-incomplete-${Date.now()}`,
+          id: `${params.assetKind}-gen-incomplete-${Date.now()}`,
           primaryCta: params.assetId
             ? {
-                href: '/library/assets',
+                href: createLibraryAssetRoute(category, params.assetId),
                 label: 'View in Library',
               }
             : { href: '/library/assets', label: 'Open Library' },
           status: 'failed',
-          summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
-          title: 'Image not ready',
+          summaryText: `${assetLabel} was not ready: "${params.promptPreview}". ${params.error}`,
+          title: `${assetLabel} not ready`,
           type: 'completion_summary_card',
         },
       ],

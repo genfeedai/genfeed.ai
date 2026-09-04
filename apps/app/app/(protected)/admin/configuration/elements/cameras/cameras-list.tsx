@@ -33,6 +33,7 @@ import {
 } from 'react';
 
 function CamerasListContent({
+  filters,
   scope = PageScope.BRAND,
   onLoadingChange,
   onRefreshingChange,
@@ -118,13 +119,21 @@ function CamerasListContent({
     error: camerasError,
     refetch: refreshCameras,
   } = useQuery({
-    queryKey: ['cameras', currentPage, scope, adminOrg, adminBrand],
+    queryKey: [
+      'cameras',
+      currentPage,
+      scope,
+      adminOrg,
+      adminBrand,
+      filters?.search,
+    ],
     queryFn: async () => {
       const service = await getCamerasService();
 
       const query: IQueryParams = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
+        search: filters?.search || undefined,
       };
 
       if (scope === PageScope.SUPERADMIN) {
@@ -162,13 +171,12 @@ function CamerasListContent({
   }, [isRefreshing]);
 
   const columns: TableColumn<ElementCamera>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (camera: ElementCamera) => camera.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (camera: ElementCamera) => camera.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const actions =

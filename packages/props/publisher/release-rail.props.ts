@@ -1,12 +1,4 @@
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
-import type { ReleaseRailSegment } from '@pages/posts/rail/release-rail-segments.helpers';
-
-export interface ReleaseRailSegmentsProps {
-  counts?: Partial<Record<ReleaseRailSegment, number>>;
-  onSegmentChange: (segment: ReleaseRailSegment) => void;
-  segment: ReleaseRailSegment;
-}
-
 export interface ReleaseRailAccountsProps {
   brandId?: string | null;
   onToggle: (credentialId: string) => void;

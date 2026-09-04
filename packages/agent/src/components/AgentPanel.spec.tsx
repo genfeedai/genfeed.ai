@@ -26,6 +26,7 @@ const xtermMocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
   useParams: () => ({
     brandSlug: 'test-brand',
     orgSlug: 'test-org',
@@ -314,10 +315,8 @@ describe('AgentPanel', () => {
       <AgentPanel apiService={createCreditsInfoApiService() as never} />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Terminal' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Terminal' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });
 

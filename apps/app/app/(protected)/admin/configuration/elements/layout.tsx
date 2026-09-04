@@ -10,37 +10,26 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
+import { useElementsContext } from '@providers/elements/elements.context';
 import ElementsProvider from '@providers/elements/elements.provider';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ELEMENT_LABELS } from '@ui-constants/element.constant';
 import { Plus, Tag } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 
-export default function ElementsLayout({ children }: LayoutProps) {
+function ElementsLayoutContent({ children }: LayoutProps) {
   const pathname = usePathname();
-
-  const [filters, setFilters] = useState<IFiltersState>({
-    format: '',
-    provider: '',
-    search: '',
-    status: '',
-    type: '',
-  });
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { filters, isRefreshing, refetch, setFilters } = useElementsContext();
 
   const elementType = useMemo(() => {
     const segments = pathname.split('/').filter(Boolean);
     return segments[segments.length - 1];
   }, [pathname]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  }, []);
 
   const filterConfig = useMemo(() => {
     switch (elementType) {
@@ -137,57 +126,74 @@ export default function ElementsLayout({ children }: LayoutProps) {
   };
 
   return (
-    <ElementsProvider>
-      <Container
-        label={currentElement.label}
-        description={currentElement.description}
-        icon={Tag}
-        headerTabs={{
-          fullWidth: false,
-          tabs: Object.keys(ELEMENT_LABELS).reduce<
-            Array<{ href: string; label: string }>
-          >((tabs, type) => {
-            if (type !== 'font-families') {
-              tabs.push({
-                href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
-                label: ELEMENT_LABELS[type].label,
-              });
-            }
-            return tabs;
-          }, []),
-        }}
-        right={
-          <div className="flex items-center gap-2">
-            <FiltersButton
-              filters={filters}
-              visibleFilters={filterConfig.visibleFilters}
-              filterOptions={filterConfig.filterOptions}
-              onFiltersChange={(f: IFiltersState) => {
-                setFilters(f);
+    <Container
+      label={currentElement.label}
+      description={currentElement.description}
+      icon={Tag}
+      headerTabs={{
+        fullWidth: false,
+        tabs: Object.keys(ELEMENT_LABELS).reduce<
+          Array<{ href: string; label: string }>
+        >((tabs, type) => {
+          if (type !== 'font-families') {
+            tabs.push({
+              href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
+              label: ELEMENT_LABELS[type].label,
+            });
+          }
+          return tabs;
+        }, []),
+      }}
+      right={
+        <div className="flex items-center gap-2">
+          <FiltersButton
+            filters={filters}
+            visibleFilters={filterConfig.visibleFilters}
+            filterOptions={filterConfig.filterOptions}
+            onFiltersChange={(nextFilters: IFiltersState) => {
+              setFilters(nextFilters);
+              if (searchParams.has('page')) {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('page');
+                const queryString = params.toString();
+                router.replace(
+                  queryString ? `${pathname}?${queryString}` : pathname,
+                  { scroll: false },
+                );
+              }
+            }}
+          />
+
+          <ButtonRefresh
+            onClick={() => {
+              void refetch();
+            }}
+            isRefreshing={isRefreshing}
+          />
+
+          {filterConfig.addButtonLabel && filterConfig.modalId && (
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              onClick={() => {
+                openModal(filterConfig.modalId);
               }}
-            />
+            >
+              <Plus />
+              {filterConfig.addButtonLabel}
+            </Button>
+          )}
+        </div>
+      }
+    >
+      {children}
+    </Container>
+  );
+}
 
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
-
-            {filterConfig.addButtonLabel && filterConfig.modalId && (
-              <Button
-                variant={ButtonVariant.DEFAULT}
-                onClick={() => {
-                  openModal(filterConfig.modalId);
-                }}
-              >
-                <Plus />
-                {filterConfig.addButtonLabel}
-              </Button>
-            )}
-          </div>
-        }
-      >
-        {children}
-      </Container>
+export default function ElementsLayout({ children }: LayoutProps) {
+  return (
+    <ElementsProvider>
+      <ElementsLayoutContent>{children}</ElementsLayoutContent>
     </ElementsProvider>
   );
 }

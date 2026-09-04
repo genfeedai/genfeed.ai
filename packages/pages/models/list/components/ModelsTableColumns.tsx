@@ -1,7 +1,15 @@
 'use client';
 
-import { ButtonVariant, ModelLifecycle } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  ModelLifecycle,
+  QualityTier,
+} from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import {
+  getQualityTierForModel,
+  getQualityTierLabel,
+} from '@genfeedai/helpers/quality-routing.helper';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
@@ -16,6 +24,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { useState } from 'react';
+import { getModelCategoryBadgeClass } from './models-catalog-overview.helpers';
 
 export type BuildModelsTableColumnsParams = {
   isAdminScope: boolean;
@@ -118,6 +127,20 @@ function ModelLifecycleControl({
   );
 }
 
+function formatModelCreditCost(model: IModel): string {
+  if (model.isFree) {
+    return 'Free';
+  }
+
+  return `${model.cost.toLocaleString()} ${model.cost === 1 ? 'credit' : 'credits'}`;
+}
+
+function formatModelQuality(qualityTier: QualityTier): string {
+  return qualityTier === QualityTier.BASIC
+    ? 'Basic'
+    : getQualityTierLabel(qualityTier);
+}
+
 export function buildModelsTableColumns({
   isAdminScope,
   isModelEnabled,
@@ -181,13 +204,7 @@ export function buildModelsTableColumns({
           {model.label}
         </Button>
       ),
-    },
-    {
-      className: 'truncate max-w-40',
-      header: 'Description',
-      key: 'description',
-      sortable: true,
-      render: (model: IModel) => model.description || '-',
+      subtext: (model: IModel) => model.description,
     },
     ...(isAdminScope
       ? [
@@ -233,7 +250,9 @@ export function buildModelsTableColumns({
       key: 'category',
       sortable: true,
       render: (model: IModel) => (
-        <Badge className={`text-xs uppercase ${model.categoryBadgeClass}`}>
+        <Badge
+          className={`text-xs uppercase ${getModelCategoryBadgeClass(model.category)}`}
+        >
           {model.category}
         </Badge>
       ),
@@ -242,23 +261,35 @@ export function buildModelsTableColumns({
       header: 'Quality',
       key: 'qualityTier',
       sortable: true,
-      render: (model: IModel) =>
-        model.qualityTier ? (
-          <ModelSelectorQualityBar qualityTier={model.qualityTier} />
-        ) : (
-          <span className="text-gray-800">—</span>
-        ),
+      render: (model: IModel) => {
+        const qualityTier =
+          model.qualityTier ??
+          getQualityTierForModel(model.key, model.category);
+
+        return (
+          <div className="flex items-center gap-2">
+            <ModelSelectorQualityBar qualityTier={qualityTier} />
+            <span className="text-xs text-muted-foreground">
+              {formatModelQuality(qualityTier)}
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: 'Cost',
-      key: 'costTier',
+      key: 'cost',
       sortable: true,
-      render: (model: IModel) =>
-        model.costTier ? (
-          <ModelSelectorCostBadge costTier={model.costTier} />
-        ) : (
-          <span className="text-gray-800">—</span>
-        ),
+      render: (model: IModel) => (
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          {model.costTier ? (
+            <ModelSelectorCostBadge costTier={model.costTier} />
+          ) : null}
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {formatModelCreditCost(model)}
+          </span>
+        </div>
+      ),
     },
     ...(isAdminScope
       ? [

@@ -1,5 +1,6 @@
 'use client';
 
+import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
@@ -51,32 +51,25 @@ export default function AddAgentDialog({
         </DialogHeader>
 
         <Tabs
-          value={mode}
-          onValueChange={(value) => setMode(value as AddAgentMode)}
+          activeTab={mode}
+          ariaLabel={translate('modeLabel')}
+          contentClassName="mt-4"
+          fullWidth={false}
+          items={[
+            { id: 'library', label: translate('library') },
+            { id: 'custom', label: translate('custom') },
+          ]}
+          onTabChange={(value) => setMode(value as AddAgentMode)}
         >
-          <TabsList
-            aria-label={translate('modeLabel')}
-            data-variant="segmented"
-          >
-            <TabsTrigger value="library" data-variant="segmented">
-              {translate('library')}
-            </TabsTrigger>
-            <TabsTrigger value="custom" data-variant="segmented">
-              {translate('custom')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="library" className="mt-4">
+          {mode === 'library' ? (
             <ContentTeamHirePage
               isEmbedded
               onCancel={() => onOpenChange(false)}
               onCreated={handleCreated}
             />
-          </TabsContent>
-
-          <TabsContent value="custom" className="mt-4">
+          ) : (
             <AgentWizardPage isEmbedded onCreated={handleCreated} />
-          </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>

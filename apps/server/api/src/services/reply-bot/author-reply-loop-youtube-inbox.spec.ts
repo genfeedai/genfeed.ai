@@ -117,7 +117,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
     expect(result.platform).toBe('youtube');
   });
 
-  it('throws a clear error when no YouTube credential exists', async () => {
+  it('returns an empty inbox when no YouTube credential exists', async () => {
     prisma.credential.findMany.mockResolvedValue([]);
     credentialsService.findOne.mockResolvedValue(null);
 
@@ -127,7 +127,8 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
         organizationId: 'org-1',
         platform: 'youtube',
       }),
-    ).rejects.toThrow(/YouTube credential/i);
+    ).resolves.toEqual({ hours: 48, items: [], platform: 'youtube' });
+    expect(socialMonitorService.getUserTimeline).not.toHaveBeenCalled();
   });
 
   it('normalizes UC channel ids to /channel/ URLs for timeline', async () => {

@@ -402,7 +402,7 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently aliases /workflows onto Automation workflows', async () => {
+  it('keeps flat workflow redirects and leaves scoped routes to the proxy', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
@@ -410,7 +410,7 @@ describe('app next.config', () => {
       permanent: true,
       source: LEGACY_APP_ROUTES.WORKFLOWS,
     });
-    expect(redirects).toContainEqual({
+    expect(redirects).not.toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
@@ -423,7 +423,7 @@ describe('app next.config', () => {
         LEGACY_APP_ROUTES.WORKFLOWS,
       ),
     });
-    expect(redirects).toContainEqual({
+    expect(redirects).not.toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
@@ -508,6 +508,25 @@ describe('app next.config', () => {
         String(redirect.destination).includes(APP_ROUTES.AUTOMATION.WORKFLOWS),
       ),
     ).toBe(true);
+  });
+
+  it('leaves scoped legacy workflows to the scope-aware proxy', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).not.toContainEqual(
+      expect.objectContaining({
+        source: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          LEGACY_APP_ROUTES.WORKFLOWS,
+        ),
+      }),
+    );
+    expect(redirects).not.toContainEqual(
+      expect.objectContaining({
+        source: APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS,
+      }),
+    );
   });
 
   it('rewrites clean local workspace routes into the default local shell scope', async () => {

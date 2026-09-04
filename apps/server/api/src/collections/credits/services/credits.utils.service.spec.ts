@@ -360,6 +360,46 @@ describe('CreditsUtilsService', () => {
       );
     });
 
+    it('preserves active holds when adding settled credits', async () => {
+      const service = buildService();
+      creditBalanceService.getOrCreateBalance.mockResolvedValue({
+        balance: 100,
+        billingAccountId: 'ba_1',
+        heldAmount: 20,
+        id: 'bal_1',
+        organizationId: 'org_1',
+        version: 1,
+      });
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_1',
+        50,
+        'stripe',
+        'renewal credits',
+        new Date('2027-01-01T00:00:00Z'),
+      );
+
+      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
+        'org_1',
+        150,
+        'ba_1',
+        txClient,
+      );
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        50,
+        80,
+        130,
+        'stripe',
+        'renewal credits',
+        expect.any(Date),
+        txClient,
+      );
+    });
+
     it('reuses a global idempotency row without mutating a fallback organization', async () => {
       const service = buildService();
       txCreditTransactionFindFirst.mockResolvedValue({
@@ -431,8 +471,16 @@ describe('CreditsUtilsService', () => {
   });
 
   describe('refundOrganizationCredits', () => {
-    it('threads the transaction client', async () => {
+    it('threads the transaction client and preserves active holds', async () => {
       const service = buildService();
+      creditBalanceService.getOrCreateBalance.mockResolvedValue({
+        balance: 100,
+        billingAccountId: 'ba_1',
+        heldAmount: 20,
+        id: 'bal_1',
+        organizationId: 'org_1',
+        version: 1,
+      });
 
       await service.refundOrganizationCredits(
         'org_1',
@@ -446,6 +494,19 @@ describe('CreditsUtilsService', () => {
         'org_1',
         110,
         'ba_1',
+        txClient,
+      );
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        10,
+        80,
+        90,
+        'system',
+        'refund',
+        expect.any(Date),
         txClient,
       );
     });

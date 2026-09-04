@@ -73,7 +73,31 @@ describe('AccountAnalyticsService', () => {
 
     expect(result.accounts).toEqual([]);
     expect(result.unattributedPostCount).toBe(0);
-    expect(prisma.credential.findMany).toHaveBeenCalled();
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isConnected: true }),
+      }),
+    );
+  });
+
+  it('only includes disconnected accounts when explicitly requested', async () => {
+    await service.listAccounts('org-1', { status: 'disconnected' });
+
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isConnected: false }),
+      }),
+    );
+  });
+
+  it('always requires a connected account on drill-down', async () => {
+    await service.getAccount('org-1', 'cred-1', { status: 'all' });
+
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isConnected: true }),
+      }),
+    );
   });
 
   it('lists fifty accounts in one page', async () => {

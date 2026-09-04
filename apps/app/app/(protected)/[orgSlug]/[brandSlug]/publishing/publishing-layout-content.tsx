@@ -13,13 +13,20 @@ import {
   PostFormat,
 } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import {
+  applyRailSegment,
+  RELEASE_RAIL_SEGMENTS,
+  railSegmentFromSearchParams,
+} from '@pages/posts/rail/release-rail-segments.helpers';
+import type { TabsProps } from '@props/ui/navigation/tabs.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
@@ -108,6 +115,9 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() ?? '';
+  const translateRail = useTranslations('pages.posts.list.rail');
   const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
 
@@ -134,6 +144,35 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const isDetailRoute =
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
     routeSuffix[0] === 'campaigns';
+  const isPostsListRoute =
+    routeSuffix[0] === 'posts' && routeSuffix.length === 1;
+  const publishingHeaderTabs = useMemo<TabsProps | undefined>(() => {
+    if (!isPostsListRoute || !pathname) {
+      return undefined;
+    }
+
+    const activeSegment = railSegmentFromSearchParams(
+      new URLSearchParams(searchParamsString),
+    );
+
+    return {
+      activeTab: activeSegment,
+      ariaLabel: 'Publishing status',
+      fullWidth: false,
+      items: RELEASE_RAIL_SEGMENTS.map((segment) => {
+        const params = new URLSearchParams(searchParamsString);
+        params.delete('page');
+        const queryString = applyRailSegment(params, segment).toString();
+
+        return {
+          href: queryString ? `${pathname}?${queryString}` : pathname,
+          id: segment,
+          label: translateRail(`segments.${segment}`),
+          matchMode: 'exact' as const,
+        };
+      }),
+    };
+  }, [isPostsListRoute, pathname, searchParamsString, translateRail]);
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
@@ -227,6 +266,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         description="Manage and publish across platforms."
         icon={Newspaper}
         titleVisibility="sr-only"
+        headerTabs={publishingHeaderTabs}
         right={
           <div className="flex items-center gap-2">
             {filtersNode}

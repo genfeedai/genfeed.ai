@@ -1,6 +1,7 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ReplyIntent } from '@api/services/reply-bot/reply-intent.util';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
@@ -85,6 +86,7 @@ export class AuthorReplyInboxQueryDto {
   brandId!: string;
 
   @IsNumber()
+  @Type(() => Number)
   @Min(1)
   @Max(48)
   @IsOptional()

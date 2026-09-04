@@ -28,6 +28,7 @@ import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
+import { ReplicatePollModule } from '@api/queues/replicate-poll/replicate-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -59,6 +60,7 @@ import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
+import { ReplicatePollProcessor } from '@workers/processors/api/queues/replicate-poll/replicate-poll.processor';
 // --- services/ processors ---
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -114,6 +116,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => SkillWorkflowModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
+    ReplicatePollModule,
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WhisperModule),
@@ -122,6 +125,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     // --- queues/ processors ---
     CreditDeductionProcessor,
     HeygenPollProcessor,
+    ReplicatePollProcessor,
     NotificationDeliveryProcessor,
 
     // --- services/ processors ---

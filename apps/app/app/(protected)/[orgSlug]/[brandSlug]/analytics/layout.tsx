@@ -13,7 +13,7 @@ import { ChartColumn } from 'lucide-react';
 import AnalyticsWorkSurfaceAdapter from './_surface/analytics-work-surface-adapter';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
-  const { dateRange, setDateRange, triggerRefresh, isRefreshing } =
+  const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
     useAnalyticsContext();
 
   return (
@@ -22,7 +22,8 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       description="Track your brand performance, content analytics, and growth metrics"
       icon={ChartColumn}
       right={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {toolbarNode}
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

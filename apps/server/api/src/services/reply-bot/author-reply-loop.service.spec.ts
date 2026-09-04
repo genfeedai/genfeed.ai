@@ -168,6 +168,23 @@ describe('AuthorReplyLoopService', () => {
     });
   });
 
+  it('returns an empty inbox when the brand has no connected account', async () => {
+    replyBotConfigsService.find.mockResolvedValue([]);
+    prisma.credential.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.getInbox({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      hours: 24,
+      items: [],
+      platform: 'twitter',
+    });
+    expect(socialMonitorService.getUserTimeline).not.toHaveBeenCalled();
+  });
+
   it('records author closed loops on content performance', async () => {
     prisma.contentPerformance.findFirst.mockResolvedValue({
       data: { authorClosedLoops: 1 },

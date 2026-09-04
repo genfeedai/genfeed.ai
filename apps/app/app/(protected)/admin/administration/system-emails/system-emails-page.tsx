@@ -11,7 +11,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -104,7 +104,7 @@ export default function SystemEmailsPage() {
         >
           <div className="grid gap-4">
             {emails.length === 0 ? (
-              <CardEmpty label="No system emails registered" />
+              <CardEmptyContent label="No system emails registered" />
             ) : (
               emails.map((email) => (
                 <Card key={email.id}>

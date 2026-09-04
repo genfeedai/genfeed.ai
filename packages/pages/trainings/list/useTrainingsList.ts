@@ -104,13 +104,10 @@ export function useTrainingsList({
 
   const queryClient = useQueryClient();
 
-  const trainingsQueryKey = [
-    'trainings-list',
-    scope,
-    brandId,
-    adminOrg,
-    adminBrand,
-  ] as const;
+  const trainingsQueryKey = useMemo(
+    () => ['trainings-list', scope, brandId, adminOrg, adminBrand] as const,
+    [adminBrand, adminOrg, brandId, scope],
+  );
 
   const {
     data: trainings = [] as Training[],
@@ -154,13 +151,16 @@ export function useTrainingsList({
     }
   }, [fetchError, notificationsService]);
 
-  const refreshTrainings = async () => {
+  const refreshTrainings = useCallback(async () => {
     await refetchTrainings();
-  };
+  }, [refetchTrainings]);
 
-  const setTrainings = (updatedTrainings: Training[]) => {
-    queryClient.setQueryData(trainingsQueryKey, updatedTrainings);
-  };
+  const setTrainings = useCallback(
+    (updatedTrainings: Training[]) => {
+      queryClient.setQueryData(trainingsQueryKey, updatedTrainings);
+    },
+    [queryClient, trainingsQueryKey],
+  );
 
   const error = fetchError
     ? getErrorMessage(fetchError, 'Failed to load trainings')
@@ -223,7 +223,9 @@ export function useTrainingsList({
     });
 
     return () => {
-      unsubscribers.forEach((unsub: () => void) => unsub());
+      unsubscribers.forEach((unsub: () => void) => {
+        unsub();
+      });
     };
   }, [trainings, subscribe, notificationsService, setTrainings]);
 

@@ -22,6 +22,7 @@ import {
   IngredientStatus,
   normalizeCategory,
 } from '@genfeedai/contracts';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -31,6 +32,26 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class WebhooksService {
   private readonly constructorName: string = String(this.constructor.name);
+
+  private async markMediaGenerated(
+    ingredientId: string,
+    uploadMetadata: IFileMetadata,
+  ): Promise<void> {
+    const cdnUrl =
+      typeof uploadMetadata.publicUrl === 'string'
+        ? uploadMetadata.publicUrl
+        : undefined;
+    const s3Key =
+      typeof uploadMetadata.s3Key === 'string'
+        ? uploadMetadata.s3Key
+        : undefined;
+
+    await this.ingredientsService.patch(ingredientId, {
+      ...(cdnUrl ? { cdnUrl } : {}),
+      ...(s3Key ? { s3Key } : {}),
+      status: IngredientStatus.GENERATED,
+    });
+  }
 
   constructor(
     private readonly activityUpdateService: ActivityUpdateService,
@@ -153,13 +174,14 @@ export class WebhooksService {
     });
 
     // 2. S3 upload + dimension update
-    await this.mediaUploadService.uploadAndUpdateMetadata(
-      input.ingredientId,
-      input.categoryValue,
-      input.url,
-      input.metadataId,
-      input.externalId,
-    );
+    const uploadMetadata =
+      await this.mediaUploadService.uploadAndUpdateMetadata(
+        input.ingredientId,
+        input.categoryValue,
+        input.url,
+        input.metadataId,
+        input.externalId,
+      );
 
     // Re-populate the user after patch to preserve the canonical relation.
     const ingredient = await this.ingredientsService.findOne({
@@ -191,9 +213,7 @@ export class WebhooksService {
     }
 
     // 3. Mark ingredient as GENERATED
-    await this.ingredientsService.patch(input.ingredientId, {
-      status: IngredientStatus.GENERATED,
-    });
+    await this.markMediaGenerated(input.ingredientId, uploadMetadata);
 
     // 3.5 Vendor-cost ledger row from the realized output (fire-and-forget;
     // the service swallows every failure so it can never break finalization).

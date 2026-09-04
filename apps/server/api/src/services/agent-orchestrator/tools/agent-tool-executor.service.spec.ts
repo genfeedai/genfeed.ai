@@ -1029,6 +1029,7 @@ describe('AgentToolExecutorService', () => {
         configService as never,
         generationGateway as never,
         onboardingHandler,
+        brandsService as never,
         contentQualityScorerService as never,
       ),
       new AgentMediaBatchGenerationService(
@@ -5084,6 +5085,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'podcast host portrait' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org'),
         userId: testId('user'),
       },
@@ -5116,6 +5118,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { description: 'podcast host portrait' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org'),
         userId: testId('user'),
       },
@@ -5149,6 +5152,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'product photo' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org2'),
         userId: testId('user'),
       },
@@ -5161,7 +5165,12 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(result.nextActions?.[0]).toMatchObject({
-      ctas: [{ href: '/library/assets', label: 'View in Library' }],
+      ctas: [
+        {
+          href: '/library/images?asset=img-root-123',
+          label: 'View in Library',
+        },
+      ],
       id: 'image-gen-img-root-123',
     });
   });
@@ -5475,6 +5484,7 @@ describe('AgentToolExecutorService', () => {
           { get: vi.fn() } as never,
           generationGatewayWithoutScorer as never,
           onboardingWithoutScorer,
+          brandsService as never,
           undefined, // contentQualityScorerService intentionally absent
         ),
         new AgentMediaBatchGenerationService(

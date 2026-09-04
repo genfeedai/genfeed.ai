@@ -1136,5 +1136,9 @@
       "pass": "Pass",
       "resolutionFallback": "Resolution: —"
     }
+  },
+  "models": {
+    "catalogTitle": "Model catalog",
+    "catalogDescription": "Compare available models by category, quality, and credit cost."
   }
 }

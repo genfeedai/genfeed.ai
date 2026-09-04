@@ -15,13 +15,15 @@ import type {
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import Table from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
-import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -47,8 +49,10 @@ function metricLabel(
 
 export default function AnalyticsAccounts() {
   const translate = useTranslations('pages.analytics.accounts');
-  const { brandId } = useCollectionScope();
-  const { dateRange } = useAnalyticsContext();
+  const scope = useCollectionScope();
+  const { brandId, organizationId } = scope;
+  const isFetchReady = isCollectionFetchReady(scope);
+  const { dateRange, setToolbarNode } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -62,6 +66,10 @@ export default function AnalyticsAccounts() {
 
   const load = useCallback(
     async (signal: AbortSignal) => {
+      if (!isFetchReady || !organizationId) {
+        return;
+      }
+
       setError(null);
       try {
         const service = await getService();
@@ -74,11 +82,13 @@ export default function AnalyticsAccounts() {
             brandId: brandId || undefined,
             endDate,
             metric,
+            organizationId,
             search: search || undefined,
             startDate,
           }) as Promise<IAccountAnalyticsList>,
           service.getFleetEvaluationPolicy({
             brandId: brandId || undefined,
+            organizationId,
           }) as Promise<IFleetEvaluationPolicy>,
         ]);
         if (signal.aborted) {
@@ -105,18 +115,106 @@ export default function AnalyticsAccounts() {
       dateRange.endDate,
       dateRange.startDate,
       getService,
+      isFetchReady,
       metric,
+      organizationId,
       search,
       translate,
     ],
   );
 
   useEffect(() => {
+    if (!isFetchReady) {
+      return;
+    }
+
     const controller = new AbortController();
     setIsLoading(true);
     void load(controller.signal);
     return () => controller.abort();
-  }, [load]);
+  }, [isFetchReady, load]);
+
+  const accountToolbar = useMemo(
+    () => (
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Input
+          aria-label="Search accounts"
+          className="h-9 w-44"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search accounts"
+        />
+        <Select
+          value={metric}
+          onValueChange={(value) => setMetric(value as AnalyticsMetric)}
+        >
+          <SelectTrigger aria-label="Rank by metric" className="h-9 w-32">
+            <SelectValue placeholder="Metric" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={AnalyticsMetric.VIEWS}>
+              {translate('views')}
+            </SelectItem>
+            <SelectItem value={AnalyticsMetric.FOLLOWERS}>
+              {translate('followers')}
+            </SelectItem>
+            <SelectItem value={AnalyticsMetric.POSTS}>
+              {translate('posts')}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          aria-label="Evaluation weeks"
+          className="h-9 w-20"
+          min={1}
+          placeholder="Weeks"
+          type="number"
+          value={windowWeeks}
+          onChange={(event) => setWindowWeeks(event.target.value)}
+        />
+        <Button
+          label="Save evaluation"
+          variant={ButtonVariant.SECONDARY}
+          onClick={async () => {
+            if (!organizationId) {
+              return;
+            }
+            const service = await getService();
+            await service.saveFleetEvaluationPolicy(
+              {
+                brandId: brandId || undefined,
+                healthyMin: policy?.healthyMin ?? 1000,
+                isEnabled: true,
+                metric,
+                minPublishedPosts: policy?.minPublishedPosts ?? 8,
+                watchMin: policy?.watchMin ?? 400,
+                windowWeeks: Number(windowWeeks) || 4,
+              },
+              { organizationId },
+            );
+          }}
+        />
+      </div>
+    ),
+    [
+      brandId,
+      getService,
+      metric,
+      organizationId,
+      policy,
+      search,
+      translate,
+      windowWeeks,
+    ],
+  );
+
+  const hasAccountToolbar =
+    Boolean(list?.accounts.length) || search.trim().length > 0;
+
+  useEffect(() => {
+    setToolbarNode(hasAccountToolbar ? accountToolbar : null);
+    return () => setToolbarNode(null);
+  }, [accountToolbar, hasAccountToolbar, setToolbarNode]);
 
   const columns: TableColumn<IAccountAnalytics>[] = useMemo(
     () => [
@@ -158,74 +256,21 @@ export default function AnalyticsAccounts() {
     [metric],
   );
 
+  if (error) {
+    return <Alert type={AlertCategory.ERROR}>{error}</Alert>;
+  }
+
   return (
-    <Container
-      titleVisibility="sr-only"
-      headerTabs={undefined}
-      right={
-        <div className="flex items-center gap-2">
-          <Input
-            aria-label="Search accounts"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search accounts"
-          />
-          <Select
-            value={metric}
-            onValueChange={(value) => setMetric(value as AnalyticsMetric)}
-          >
-            <SelectTrigger aria-label="Rank by metric">
-              <SelectValue placeholder="Metric" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={AnalyticsMetric.VIEWS}>
-                {translate('views')}
-              </SelectItem>
-              <SelectItem value={AnalyticsMetric.FOLLOWERS}>
-                {translate('followers')}
-              </SelectItem>
-              <SelectItem value={AnalyticsMetric.POSTS}>
-                {translate('posts')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            aria-label="Evaluation weeks"
-            value={windowWeeks}
-            onChange={(event) => setWindowWeeks(event.target.value)}
-          />
-          <Button
-            label="Save evaluation"
-            variant={ButtonVariant.SECONDARY}
-            onClick={async () => {
-              const service = await getService();
-              await service.saveFleetEvaluationPolicy({
-                brandId: brandId || undefined,
-                healthyMin: policy?.healthyMin ?? 1000,
-                isEnabled: true,
-                metric,
-                minPublishedPosts: policy?.minPublishedPosts ?? 8,
-                watchMin: policy?.watchMin ?? 400,
-                windowWeeks: Number(windowWeeks) || 4,
-              });
-            }}
-          />
-        </div>
-      }
-    >
-      {error ? <Alert type={AlertCategory.ERROR}>{error}</Alert> : null}
-      <Table
-        columns={columns}
-        emptyLabel="No connected accounts"
-        getRowKey={(row) => row.identity.credentialId}
-        getRowLink={(row) => ({
-          href: `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`,
-          label: row.identity.label || row.identity.externalHandle || 'Account',
-        })}
-        isLoading={isLoading}
-        items={list?.accounts ?? []}
-        label="Accounts"
-      />
-    </Container>
+    <Table
+      columns={columns}
+      emptyLabel="No connected accounts"
+      getRowKey={(row) => row.identity.credentialId}
+      getRowLink={(row) => ({
+        href: `${APP_ROUTES.ANALYTICS.ACCOUNTS}/${row.identity.credentialId}`,
+        label: row.identity.label || row.identity.externalHandle || 'Account',
+      })}
+      isLoading={isLoading}
+      items={list?.accounts ?? []}
+    />
   );
 }

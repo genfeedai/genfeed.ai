@@ -80,6 +80,37 @@ describe('ContentPreviewCard', () => {
     );
   });
 
+  it('shows a terminal generation failure instead of an empty result card', async () => {
+    const getGeneratedAsset = vi.fn().mockResolvedValue({
+      id: 'image-failed',
+      status: 'FAILED',
+    });
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'image-failed',
+          assetKind: 'image',
+          ctas: [{ href: '/library/assets', label: 'View in Library' }],
+          id: 'image-failed-card',
+          status: 'completed',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAsset } as never}
+      />,
+    );
+
+    expect(
+      await screen.findByLabelText('Image generation failed'),
+    ).toHaveTextContent('No preview is available for this asset.');
+    expect(
+      screen.getByRole('link', { name: 'View in Library' }),
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/library/assets?asset=image-failed',
+    );
+  });
+
   it('bounds reconciliation polling for an asset that never becomes readable', async () => {
     vi.useFakeTimers();
     const getGeneratedAsset = vi
@@ -193,6 +224,7 @@ describe('ContentPreviewCard', () => {
               label: 'View in gallery',
             },
           ],
+          assetId: IMAGE_ID,
           id: 'legacy-image-output',
           type: 'content_preview_card',
         }}
@@ -201,6 +233,34 @@ describe('ContentPreviewCard', () => {
 
     expect(
       screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute('href', `/library/images?asset=${IMAGE_ID}`);
+    ).toHaveAttribute(
+      'href',
+      `/test-org/test-brand/library/images?asset=${IMAGE_ID}`,
+    );
+  });
+
+  it('does not scope a server-scoped Library asset link twice', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: IMAGE_ID,
+          ctas: [
+            {
+              href: '/default/default/library/images',
+              label: 'View in Library',
+            },
+          ],
+          id: 'scoped-image-output',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'View in Library' }),
+    ).toHaveAttribute(
+      'href',
+      `/default/default/library/images?asset=${IMAGE_ID}`,
+    );
   });
 });

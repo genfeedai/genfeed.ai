@@ -3,6 +3,7 @@ import type {
   AgentGeneratedAsset,
   GenerateIngredientResult,
   GenerationModel,
+  GetGenerationModelsParams,
   PresignedUploadResponse,
 } from '@genfeedai/agent/services/agent-api.types';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
@@ -12,12 +13,25 @@ import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.he
 
 export async function getModels(
   api: AgentBaseApiService,
+  params?: GetGenerationModelsParams,
   signal?: AbortSignal,
 ): Promise<GenerationModel[]> {
-  // List endpoints are always paginated server-side (HTTP does not accept a
-  // `pagination` flag) — the active model catalog fits in one max-size page.
+  const query = new URLSearchParams({
+    isActive: 'true',
+    limit: String(MAX_PAGE_SIZE),
+  });
+  if (params?.category) {
+    query.set('category', params.category);
+  }
+  if (params?.organizationId) {
+    query.set('organizationId', params.organizationId);
+  }
+
+  // Category scoping keeps the server-paginated catalog below the maximum page
+  // size and prevents later categories from disappearing before client-side
+  // organization filtering runs.
   return api.fetchCollection<GenerationModel>(
-    `${api.config.baseUrl}/models?isActive=true&limit=${MAX_PAGE_SIZE}`,
+    `${api.config.baseUrl}/models?${query.toString()}`,
     { signal },
     'Failed to fetch models',
     'Failed to deserialize models',
@@ -157,7 +171,7 @@ export async function generateIngredient(
   signal?: AbortSignal,
 ): Promise<GenerateIngredientResult> {
   const endpoint = type === 'video' ? '/videos' : '/images';
-  return api.fetchJson<GenerateIngredientResult>(
+  const asset = await api.fetchResource<AgentGeneratedAsset>(
     `${api.config.baseUrl}${endpoint}`,
     {
       body: JSON.stringify({
@@ -168,7 +182,10 @@ export async function generateIngredient(
       signal,
     },
     'Generation failed',
+    'Failed to deserialize generated asset',
   );
+
+  return { id: asset.id, url: asset.url ?? asset.cdnUrl };
 }
 
 export async function cloneVoice(

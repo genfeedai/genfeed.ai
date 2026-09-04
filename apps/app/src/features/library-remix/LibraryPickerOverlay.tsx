@@ -9,8 +9,8 @@ import type {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Tabs, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
@@ -111,17 +111,15 @@ export default function LibraryPickerOverlay({
     <div className="flex min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
         <Tabs
-          onValueChange={(value) => setCategory(value as LibraryPickerCategory)}
-          value={category}
-        >
-          <TabsList aria-label="Library media type">
-            {LIBRARY_PICKER_CATEGORIES.map((candidate) => (
-              <TabsTrigger key={candidate.key} value={candidate.key}>
-                {candidate.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+          activeTab={category}
+          ariaLabel="Library media type"
+          fullWidth={false}
+          items={LIBRARY_PICKER_CATEGORIES.map((candidate) => ({
+            id: candidate.key,
+            label: candidate.label,
+          }))}
+          onTabChange={(value) => setCategory(value as LibraryPickerCategory)}
+        />
         <Link
           className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           href={managementHref}

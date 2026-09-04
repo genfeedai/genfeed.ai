@@ -20,7 +20,7 @@ import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
@@ -156,7 +156,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         getRowLink={getRowLink}
         emptyLabel="No articles found"
         emptyState={
-          <CardEmpty
+          <CardEmptyContent
             icon={Newspaper}
             label="No articles yet"
             description="Create your first article to start building your content library."

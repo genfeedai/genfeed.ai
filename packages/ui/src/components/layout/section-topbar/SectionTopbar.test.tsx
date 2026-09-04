@@ -12,6 +12,21 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 }));
 
 describe('SectionTopbar', () => {
+  it('keeps semantic back navigation out of the tab slot', () => {
+    render(
+      <SectionTopbar
+        leading={<a href="/library">Back to library</a>}
+        title="Editor"
+        titleVisibility="sr-only"
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      screen.getByRole('link', { name: 'Back to library' }),
+    );
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     navigationState.hasCanonicalBreadcrumb = false;
   });
@@ -50,6 +65,27 @@ describe('SectionTopbar', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('section-topbar-actions')).toContainElement(
       screen.getByRole('button', { name: 'Refresh' }),
+    );
+    expect(screen.getByTestId('section-topbar-actions')).toHaveClass(
+      'max-w-full',
+      'flex-wrap',
+    );
+  });
+
+  it('keeps action-only chrome inside the available width', () => {
+    render(
+      <SectionTopbar
+        title="Content"
+        titleVisibility="sr-only"
+        actions={<div className="min-w-[60rem]">Filters</div>}
+      />,
+    );
+
+    expect(screen.getByTestId('section-topbar-actions')).toHaveClass(
+      'min-w-0',
+      'flex-1',
+      'flex-wrap',
+      'justify-start',
     );
   });
 

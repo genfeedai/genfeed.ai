@@ -1,6 +1,10 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import {
+  ModelsProvider,
+  useModelsContext,
+} from '@contexts/models/models-context/models-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { openModal } from '@helpers/ui/modal/modal.helper';
@@ -10,14 +14,14 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo } from 'react';
 
 function ModelsLayoutContent({ children }: LayoutProps) {
-  const { refresh, replace } = useRouter();
+  const { replace } = useRouter();
+  const { isRefreshing, refreshModels } = useModelsContext();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const adminOrg = useMemo(
     () => new URLSearchParams(searchParamsString).get('organization') || '',
@@ -63,12 +67,6 @@ function ModelsLayoutContent({ children }: LayoutProps) {
     [pathname, replace, searchParamsString],
   );
 
-  function handleRefresh(): void {
-    setIsRefreshing(true);
-    refresh();
-    setTimeout(() => setIsRefreshing(false), 500);
-  }
-
   return (
     <Container
       label="Models"
@@ -105,7 +103,10 @@ function ModelsLayoutContent({ children }: LayoutProps) {
             onOrganizationChange={handleAdminOrgChange}
             onBrandChange={handleAdminBrandChange}
           />
-          <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+          <ButtonRefresh
+            onClick={() => refreshModels?.()}
+            isRefreshing={isRefreshing}
+          />
           <Button
             variant={ButtonVariant.DEFAULT}
             onClick={() => openModal(ModalEnum.MODEL)}
@@ -123,8 +124,10 @@ function ModelsLayoutContent({ children }: LayoutProps) {
 
 export default function ModelsLayout(props: LayoutProps) {
   return (
-    <Suspense fallback={null}>
-      <ModelsLayoutContent {...props} />
-    </Suspense>
+    <ModelsProvider>
+      <Suspense fallback={null}>
+        <ModelsLayoutContent {...props} />
+      </Suspense>
+    </ModelsProvider>
   );
 }

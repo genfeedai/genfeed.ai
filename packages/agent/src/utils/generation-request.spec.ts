@@ -49,6 +49,7 @@ describe('generation-request', () => {
     expect(
       buildAgentGenerationRequestBody({
         aspectRatio: '16:9',
+        brandId: 'brand-1',
         duration: 8,
         modelKey: 'video-model',
         prioritize: RouterPriority.SPEED,
@@ -58,6 +59,7 @@ describe('generation-request', () => {
       }),
     ).toEqual({
       autoSelectModel: false,
+      brandId: 'brand-1',
       duration: 8,
       height: 576,
       model: 'video-model',

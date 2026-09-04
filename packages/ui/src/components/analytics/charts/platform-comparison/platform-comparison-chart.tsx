@@ -136,7 +136,7 @@ export function PlatformComparisonChart({
         {!isEmpty && (
           <ChartContainer
             config={chartConfig}
-            className="bg-card shadow-border p-3"
+            className="h-full border-0 bg-transparent p-0 shadow-none"
             height="100%"
             style={{ minWidth: 0 }}
           >

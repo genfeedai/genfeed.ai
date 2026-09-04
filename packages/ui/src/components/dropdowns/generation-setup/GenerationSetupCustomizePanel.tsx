@@ -12,6 +12,7 @@ import GenerationSetupLookSection from '@ui/dropdowns/generation-setup/Generatio
 import GenerationSetupModelSection from '@ui/dropdowns/generation-setup/GenerationSetupModelSection';
 import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
 import GenerationSetupSavePresetRow from '@ui/dropdowns/generation-setup/GenerationSetupSavePresetRow';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -127,25 +128,20 @@ export default function GenerationSetupCustomizePanel({
           </Select>
         ) : null}
 
-        <div className="ml-auto flex items-center gap-0.5">
-          {availableSections.map((section) => (
-            <Button
-              ariaLabel={`${SECTION_LABELS[section]} tab`}
-              className={cn(
-                'h-control-sm px-2 text-2xs text-muted-foreground',
-                resolvedSection === section &&
-                  'bg-background-tertiary text-foreground',
-              )}
-              isDisabled={isDisabled}
-              key={section}
-              label={SECTION_LABELS[section]}
-              onClick={() => setActiveSection(section)}
-              size={ButtonSize.XS}
-              textTransform="none"
-              variant={ButtonVariant.GHOST}
-            />
-          ))}
-        </div>
+        <Tabs
+          activeTab={resolvedSection}
+          ariaLabel="Generation settings section"
+          className="ml-auto"
+          fullWidth={false}
+          items={availableSections.map((section) => ({
+            id: section,
+            isDisabled,
+            label: SECTION_LABELS[section],
+          }))}
+          onTabChange={(section) =>
+            setActiveSection(section as GenerationSetupCustomizeSectionId)
+          }
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">

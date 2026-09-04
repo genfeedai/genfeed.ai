@@ -5,6 +5,11 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import {
+  normalizeDoc,
+  normalizeDocs,
+  parseConfig,
+} from '@api/collections/outreach-campaigns/services/outreach-campaign-document.util';
+import {
   DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
   isScheduledBlastDueForDispatch,
   type PersistedCampaignSchedule,
@@ -26,6 +31,7 @@ import {
 } from '@api/services/campaign/outreach-capability.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { BaseQueryNormalizationAdapter } from '@api/shared/services/base/base-query-normalization.adapter';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   CampaignStatus,
@@ -56,54 +62,11 @@ function isPrismaSerializationFailure(error: unknown): boolean {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helper: defensively parse the `config` JSON column
-// ---------------------------------------------------------------------------
-function parseConfig(raw: unknown): Record<string, unknown> {
-  if (!raw) return {};
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw) as Record<string, unknown>;
-    } catch {
-      return {};
-    }
-  }
-  if (typeof raw === 'object' && !Array.isArray(raw)) {
-    return { ...(raw as Record<string, unknown>) };
-  }
-  return {};
-}
-
-// ---------------------------------------------------------------------------
-// Helper: normalize a raw Prisma record → OutreachCampaignDocument
-// The Prisma model owns all relation ids. Domain-only settings live in config.
-// ---------------------------------------------------------------------------
-function normalizeDoc(row: Record<string, unknown>): OutreachCampaignDocument {
-  const cfg = parseConfig(row.config);
-  return {
-    ...cfg,
-    brandId: row.brandId,
-    campaignType: row.campaignType,
-    config: cfg,
-    createdAt: row.createdAt,
-    credentialId: row.credentialId,
-    id: row.id as string,
-    isActive: row.isActive,
-    isDeleted: row.isDeleted,
-    organizationId: row.organizationId,
-    platform: row.platform,
-    status: (row.status as string) ?? (cfg.status as string),
-    updatedAt: row.updatedAt,
-    userId: row.userId,
-  } as OutreachCampaignDocument;
-}
-
-function normalizeDocs(rows: unknown[]): OutreachCampaignDocument[] {
-  return rows.map((r) => normalizeDoc(r as Record<string, unknown>));
-}
-
 @Injectable()
 export class OutreachCampaignsService {
+  private readonly queryNormalizationAdapter =
+    new BaseQueryNormalizationAdapter('outreachCampaign');
+
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
@@ -932,8 +895,7 @@ export class OutreachCampaignsService {
 
     const [rows, totalDocs] = await Promise.all([
       this.prisma.outreachCampaign.findMany({
-        orderBy:
-          query.orderBy as Prisma.OutreachCampaignOrderByWithRelationInput,
+        orderBy: this.queryNormalizationAdapter.normalizeSort(query.orderBy),
         skip,
         take,
         where: scopedWhere(organizationId, filters),
