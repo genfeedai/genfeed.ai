@@ -68,6 +68,15 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => ({
+    brandId: undefined,
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'org',
+  }),
+}));
+
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ isLoaded: true, isSignedIn: true }),
 }));

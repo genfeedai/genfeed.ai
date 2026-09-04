@@ -11,6 +11,7 @@ import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import AnalyticsTopAccounts from '@pages/analytics/accounts/analytics-top-accounts';
 import type {
   BrandPerformanceData,
@@ -24,6 +25,7 @@ import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { ArrowRight, Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -162,8 +164,11 @@ function OrganizationMetricStrip({
 
 export default function AnalyticsOrganizationOverview({
   basePath = '/analytics',
+  organizationId: organizationIdProp,
 }: AnalyticsOrganizationOverviewProps) {
   const { isSignedIn } = useAuthIdentity();
+  const scope = useCollectionScope();
+  const organizationId = organizationIdProp ?? scope.organizationId;
   const router = useRouter();
   const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
@@ -201,6 +206,7 @@ export default function AnalyticsOrganizationOverview({
         const response = await service.getBrandsWithStats({
           endDate,
           limit: ITEMS_PER_PAGE,
+          organizationId,
           page: 1,
           sort: AnalyticsMetric.ENGAGEMENT,
           startDate,
@@ -215,7 +221,14 @@ export default function AnalyticsOrganizationOverview({
     };
 
     fetchBrandsData();
-  }, [isSignedIn, dateRange, getAnalyticsService, endDate, startDate]);
+  }, [
+    isSignedIn,
+    dateRange,
+    getAnalyticsService,
+    endDate,
+    organizationId,
+    startDate,
+  ]);
 
   useEffect(() => {
     const fetchPlatformData = async () => {
@@ -272,7 +285,7 @@ export default function AnalyticsOrganizationOverview({
   return (
     <div className="space-y-6">
       <OrganizationMetricStrip analytics={analytics} isLoading={isLoading} />
-      <AnalyticsTopAccounts />
+      <AnalyticsTopAccounts organizationId={organizationId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BrandPerformanceChart
@@ -288,107 +301,105 @@ export default function AnalyticsOrganizationOverview({
         />
       </div>
 
-      <Card
-        label={`All Brands (${formatCompactNumberIntl(analytics?.totalBrands)})`}
-        bodyClassName="gap-3 p-4 pb-0"
+      <WorkspaceSurface
+        density="compact"
+        framed={false}
+        title={`All Brands (${formatCompactNumberIntl(analytics?.totalBrands)})`}
       >
-        <div className="-mx-4 overflow-x-auto">
-          <Table
-            items={brandsData}
-            isLoading={loadingBrands}
-            emptyLabel="No brands found"
-            getRowKey={(brand) => brand.id}
-            getRowLink={(brand) => ({
-              href: `/analytics/brands/${brand.id}`,
-              label: `Open ${brand.name} analytics`,
-            })}
-            columns={[
-              {
-                header: 'Brand',
-                key: 'name',
-                render: (brand) => (
-                  <div className="flex items-center gap-3">
-                    {brand.logo ? (
-                      <Image
-                        src={brand.logo}
-                        alt={brand.name}
-                        width={32}
-                        height={32}
-                        className="size-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-                        {brand.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium">{brand.name}</div>
-                      <div className="text-xs text-foreground/60">
-                        {brand.activePlatforms.length} platform
-                        {brand.activePlatforms.length !== 1 ? 's' : ''}
-                      </div>
+        <Table
+          items={brandsData}
+          isLoading={loadingBrands}
+          emptyLabel="No brands found"
+          getRowKey={(brand) => brand.id}
+          getRowLink={(brand) => ({
+            href: `/analytics/brands/${brand.id}`,
+            label: `Open ${brand.name} analytics`,
+          })}
+          columns={[
+            {
+              header: 'Brand',
+              key: 'name',
+              render: (brand) => (
+                <div className="flex items-center gap-3">
+                  {brand.logo ? (
+                    <Image
+                      src={brand.logo}
+                      alt={brand.name}
+                      width={32}
+                      height={32}
+                      className="size-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                      {brand.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-medium">{brand.name}</div>
+                    <div className="text-xs text-foreground/60">
+                      {brand.activePlatforms.length} platform
+                      {brand.activePlatforms.length !== 1 ? 's' : ''}
                     </div>
                   </div>
-                ),
-              },
-              {
-                header: 'Posts',
-                key: 'totalPosts',
-                render: (brand) => (
-                  <span className="font-mono">
-                    {formatCompactNumberIntl(brand.totalPosts)}
-                  </span>
-                ),
-              },
-              {
-                header: 'Views',
-                key: 'totalViews',
-                render: (brand) => (
-                  <span className="font-mono">
-                    {formatCompactNumberIntl(brand.totalViews)}
-                  </span>
-                ),
-              },
-              {
-                header: 'Engagement',
-                key: 'totalEngagement',
-                render: (brand) => (
-                  <span className="font-mono">
-                    {formatCompactNumberIntl(brand.totalEngagement)}
-                  </span>
-                ),
-              },
-              {
-                header: 'Eng. Rate',
-                key: 'avgEngagementRate',
-                render: (brand) => (
-                  <span className="font-mono">
-                    {formatPercentageSimple(brand.avgEngagementRate, 2)}
-                  </span>
-                ),
-              },
-              {
-                header: 'Growth',
-                key: 'growth',
-                render: (brand) => (
-                  <span className={`font-mono ${getGrowthClass(brand.growth)}`}>
-                    {brand.growth > 0 ? '+' : ''}
-                    {formatPercentageSimple(brand.growth, 2)}
-                  </span>
-                ),
-              },
-            ]}
-            actions={[
-              {
-                icon: <ArrowRight className="size-4" />,
-                onClick: (brand) =>
-                  router.push(`${basePath}/brands/${brand.id}`),
-                tooltip: 'View Details',
-              },
-            ]}
-          />
-        </div>
-      </Card>
+                </div>
+              ),
+            },
+            {
+              header: 'Posts',
+              key: 'totalPosts',
+              render: (brand) => (
+                <span className="font-mono">
+                  {formatCompactNumberIntl(brand.totalPosts)}
+                </span>
+              ),
+            },
+            {
+              header: 'Views',
+              key: 'totalViews',
+              render: (brand) => (
+                <span className="font-mono">
+                  {formatCompactNumberIntl(brand.totalViews)}
+                </span>
+              ),
+            },
+            {
+              header: 'Engagement',
+              key: 'totalEngagement',
+              render: (brand) => (
+                <span className="font-mono">
+                  {formatCompactNumberIntl(brand.totalEngagement)}
+                </span>
+              ),
+            },
+            {
+              header: 'Eng. Rate',
+              key: 'avgEngagementRate',
+              render: (brand) => (
+                <span className="font-mono">
+                  {formatPercentageSimple(brand.avgEngagementRate, 2)}
+                </span>
+              ),
+            },
+            {
+              header: 'Growth',
+              key: 'growth',
+              render: (brand) => (
+                <span className={`font-mono ${getGrowthClass(brand.growth)}`}>
+                  {brand.growth > 0 ? '+' : ''}
+                  {formatPercentageSimple(brand.growth, 2)}
+                </span>
+              ),
+            },
+          ]}
+          actions={[
+            {
+              icon: <ArrowRight className="size-4" />,
+              onClick: (brand) => router.push(`${basePath}/brands/${brand.id}`),
+              tooltip: 'View Details',
+            },
+          ]}
+        />
+      </WorkspaceSurface>
     </div>
   );
 }

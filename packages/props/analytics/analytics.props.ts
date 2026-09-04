@@ -123,6 +123,10 @@ export interface TimeSeriesChartProps {
   className?: string;
 }
 
+export interface AnalyticsTopAccountsProps {
+  organizationId?: string;
+}
+
 export interface BrandOverviewProps {
   brandId: string;
 }

@@ -58,6 +58,7 @@ export interface ILeaderboardQueryParams extends IAnalyticsDateRange {
 }
 
 export interface IAdminOrgsQueryParams extends IAnalyticsDateRange {
+  organizationId?: string;
   page?: number;
   limit?: number;
   sort?:
