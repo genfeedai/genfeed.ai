@@ -12,7 +12,7 @@ metadata:
 
 Use this skill to create or review Genfeed-branded content and product messaging. Treat this as Brand OS v0: derived from the current Genfeed.ai repo, product memory, README, DESIGN.md, and public skills positioning.
 
-For the full artifact, read `references/brand-os.md`.
+For the full artifact, read `references/brand-os.md`. To render the identity as a one-image bento showcase, or to spec the Brand OS generator preview, read `references/brand-showcase-prompt.md`.
 
 ## Compact AI Context
 

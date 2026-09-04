@@ -213,35 +213,35 @@ Color system status:
 
 Product UI baseline:
 
-- Dark-first canvas.
-- Layered near-black backgrounds.
+- Dark-first canvas; Light mirrors the same jobs with inverted values.
+- One ten-step neutral ladder drives both themes; chrome is grayscale by design and generated media is the only colour.
 - Compact, information-dense controls.
 - White or near-white primary CTAs.
 - Semantic status colors for success, warning, danger, info, agent, and done.
 - Radius stays restrained: 2px, 6px, 8px, 10px.
 - Base spacing uses a 4px grid.
 
-Current product tokens:
+Current product tokens (Dark reference; `DESIGN.md` is the source of truth):
 
-- Primary background: `#050607`
-- Secondary background: `#0c0d10`
-- Tertiary background: `#131518`
-- Elevated background: `#1a1c21`
-- Hover background: `#20232a`
-- Primary text: `#f4f4f5`
-- Secondary text: `#b4b4bc`
-- Muted text: `#6b6b78`
-- Accent: `#fafafa`
-- Agent: `#38bdf8`
-- Done: `#a855f7`
-- Success: `#10b981`
-- Warning: `#f59e0b`
-- Danger: `#ef4444`
-- Info: `#3b82f6`
+- Primary background: `#0A0A0A`
+- Secondary / card background: `#161616`
+- Tertiary background: `#1F1F1F`
+- Hover background: `#2A2A2A`
+- Border: `#333333`, strong `#4A4A4A`
+- Primary text: `#EDEDED`
+- Secondary text: `#A1A1A1`
+- Muted text: `#949494`
+- Primary action: `#EDEDED` on `#0A0A0A`
+- Agent: `#38BDF8`
+- Done: `#C084FC`
+- Success: `#10B981`
+- Warning: `#F59E0B`
+- Danger: `#FF6166`
+- Info: `#52A8FF`
 
 Wada/Sanzo audit note:
 
-- A 2026-06-24 diagnostic pass against the public Wada Sanzo Colors swatches found no exact match for the current Genfeed product tokens above.
+- A 2026-06-24 diagnostic pass against the public Wada Sanzo Colors swatches found no exact match for the Genfeed product tokens of that date. The neutral ladder above landed later and has not been re-audited; the anchors below are still nearest-colour diagnostics only.
 - Useful nearest anchors for future marketing exploration include Black `#111314` near the dark surfaces, Deep Indigo `#051230` as a campaign-canvas candidate, Neutral Gray `#b6bfc1` near secondary text, and Yellow Orange `#f99d1b` near warning.
 - Candidate Wada-informed campaign modes to test visually:
   - System calm: Classic #139, Deep Indigo `#051230`, Salvia Blue `#97acc8`, Neutral Gray `#b6bfc1`.
@@ -250,8 +250,8 @@ Wada/Sanzo audit note:
 
 Typography direction:
 
-- Product UI: system sans and mono for speed, density, and native feel.
-- Marketing: can introduce a distinctive display direction later, but must remain technical, precise, and readable.
+- Product UI: Satoshi (400 to 600, tight tracking) with a system mono for code and labels; every size ships with its own leading.
+- Editorial and marketing: Zodiak serif for the single editorial role, warm ivory on near-black, as approved in the article-card system. Everything else stays on Satoshi.
 - Do not adopt a competitor's font pairing as the default.
 
 Image/video direction:
@@ -260,6 +260,12 @@ Image/video direction:
 - Favor inspectable interfaces and launch-story scenes over abstract AI blobs.
 - Use motion to clarify state transitions: scan, draft, review, accepted, scheduled, published, learning.
 - Avoid decorative mascot-first visuals unless a specific campaign calls for it.
+
+Brand showcase render:
+
+- `brand-showcase-prompt.md` renders this Brand OS as one eight-card bento grid, extract phase first, then render.
+- Use it to compare candidates for the open questions below and as the completeness checklist for the Brand OS generator preview.
+- Showcase renders present the identity; they never change product tokens.
 
 Scale tokens:
 
@@ -348,7 +354,8 @@ First launch campaign:
 
 ## Open Questions
 
-- Final public marketing typeface direction.
 - Whether Genfeed uses an illustrated agent/mascot in campaigns or stays tool/system-first.
-- Final public marketing palette after Wada/Sanzo source matching and accessibility review.
+- Final public marketing campaign palette after Wada/Sanzo source matching and accessibility review; the product ladder is settled.
 - Which source-backed references become visible in the public generator UI.
+
+Resolve each with a showcase render pass (`brand-showcase-prompt.md`), one candidate slot per run, before touching tokens.
