@@ -72,8 +72,15 @@ describe('PlatformBreakdownChart', () => {
     });
 
     it('renders default title', () => {
-      render(<PlatformBreakdownChart data={mockData} />);
-      expect(screen.getByText('Platform Distribution')).toBeInTheDocument();
+      const { container } = render(<PlatformBreakdownChart data={mockData} />);
+      const heading = screen.getByRole('heading', {
+        name: 'Platform Distribution',
+      });
+
+      expect(heading).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-slot="workspace-surface-body"]'),
+      ).not.toContainElement(heading);
     });
 
     it('renders custom title', () => {

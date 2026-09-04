@@ -29,7 +29,7 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { ArrowRight, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -176,7 +176,6 @@ export default function AnalyticsOrganizationOverview({
   // lands puts `organizationId=` on the wire and the query DTO rejects it.
   const isFetchReady =
     Boolean(organizationIdProp) || isCollectionFetchReady(scope);
-  const router = useRouter();
   const { dateRange, brandId } = useAnalyticsContext();
   const { startDate, endDate } = getDateRangeWithDefaults(
     dateRange?.startDate ?? undefined,
@@ -320,7 +319,7 @@ export default function AnalyticsOrganizationOverview({
           emptyLabel="No brands found"
           getRowKey={(brand) => brand.id}
           getRowLink={(brand) => ({
-            href: `/analytics/brands/${brand.id}`,
+            href: `${basePath}/brands/${brand.id}`,
             label: `Open ${brand.name} analytics`,
           })}
           columns={[
@@ -353,6 +352,7 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Posts',
               key: 'totalPosts',
               render: (brand) => (
@@ -362,6 +362,7 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Views',
               key: 'totalViews',
               render: (brand) => (
@@ -371,6 +372,7 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Engagement',
               key: 'totalEngagement',
               render: (brand) => (
@@ -380,6 +382,7 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Eng. Rate',
               key: 'avgEngagementRate',
               render: (brand) => (
@@ -389,6 +392,7 @@ export default function AnalyticsOrganizationOverview({
               ),
             },
             {
+              className: 'text-right tabular-nums',
               header: 'Growth',
               key: 'growth',
               render: (brand) => (
@@ -397,13 +401,6 @@ export default function AnalyticsOrganizationOverview({
                   {formatPercentageSimple(brand.growth, 2)}
                 </span>
               ),
-            },
-          ]}
-          actions={[
-            {
-              icon: <ArrowRight className="size-4" />,
-              onClick: (brand) => router.push(`${basePath}/brands/${brand.id}`),
-              tooltip: 'View Details',
             },
           ]}
         />
