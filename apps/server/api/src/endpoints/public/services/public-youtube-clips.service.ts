@@ -7,6 +7,12 @@ import {
   YOUTUBE_LONG_FORM_ACTION_IDS,
 } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
 import {
+  isYoutubeSourceUnavailableError,
+  normalizeYoutubeUrl,
+  YOUTUBE_SOURCE_UNAVAILABLE_DETAIL,
+  YOUTUBE_URL_UNSUPPORTED_DETAIL,
+} from '@api/collections/workflows/services/youtube-url.util';
+import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
@@ -25,6 +31,7 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  GoneException,
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
@@ -36,6 +43,8 @@ const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const PUBLIC_YOUTUBE_CLIP_CREATE_WORKFLOW_ID = 'public-youtube-clip.create';
 const PUBLIC_YOUTUBE_CLIP_READ_WORKFLOW_ID = 'public-youtube-clip.read';
 const PUBLIC_YOUTUBE_CLIP_PREVIEW_WORKFLOW_ID = 'public-youtube-clip.preview';
+const PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE =
+  'public_youtube_clip_expired_or_claimed';
 
 const PUBLIC_YOUTUBE_CLIP_ACTION_IDS = {
   CREATE_SESSION: 'youtube.clip.create-session',
@@ -289,58 +298,94 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     youtubeUrl: string,
     idempotencyKey?: string,
   ): Promise<IPublicYoutubeClipToolSession> {
+    const normalizedYoutubeUrl = normalizeYoutubeUrl(youtubeUrl);
+    if (!normalizedYoutubeUrl) {
+      throw new BadRequestException({
+        code: 'public_youtube_clip_url_unsupported',
+        detail: YOUTUBE_URL_UNSUPPORTED_DETAIL,
+        title: 'Bad Request',
+      });
+    }
     const normalizedIdempotencyKey =
       this.normalizeIdempotencyKey(idempotencyKey);
-    const { result } =
-      await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
-        actionType: 'public-youtube-clip-create',
-        canonicalId: PUBLIC_YOUTUBE_CLIP_CREATE_WORKFLOW_ID,
-        inputValues: {
-          ...(normalizedIdempotencyKey
-            ? { idempotencyKey: normalizedIdempotencyKey }
-            : {}),
-          youtubeUrl,
-        },
-        metadata: { origin: 'website-free-tool' },
-        organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
-        source: 'PublicYoutubeClipsService.create',
-        userId: PUBLIC_LONG_FORM_USER_ID,
-      });
-    return result;
+    try {
+      const { result } =
+        await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
+          actionType: 'public-youtube-clip-create',
+          canonicalId: PUBLIC_YOUTUBE_CLIP_CREATE_WORKFLOW_ID,
+          inputValues: {
+            ...(normalizedIdempotencyKey
+              ? { idempotencyKey: normalizedIdempotencyKey }
+              : {}),
+            youtubeUrl: normalizedYoutubeUrl.normalizedUrl,
+          },
+          metadata: { origin: 'website-free-tool' },
+          organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
+          source: 'PublicYoutubeClipsService.create',
+          userId: PUBLIC_LONG_FORM_USER_ID,
+        });
+      return result;
+    } catch (error) {
+      if (this.hasErrorCode(error, PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE)) {
+        throw this.expiredSession();
+      }
+      if (isYoutubeSourceUnavailableError(error)) {
+        throw new BadRequestException({
+          code: 'public_youtube_clip_source_unavailable',
+          detail: YOUTUBE_SOURCE_UNAVAILABLE_DETAIL,
+          title: 'Bad Request',
+        });
+      }
+      throw error;
+    }
   }
 
   async read(previewToken: string): Promise<IPublicYoutubeClipToolSession> {
-    const { result } =
-      await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
-        actionType: 'public-youtube-clip-read',
-        canonicalId: PUBLIC_YOUTUBE_CLIP_READ_WORKFLOW_ID,
-        inputValues: { previewToken },
-        metadata: { origin: 'website-free-tool' },
-        organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
-        source: 'PublicYoutubeClipsService.read',
-        userId: PUBLIC_LONG_FORM_USER_ID,
-      });
-    return result;
+    try {
+      const { result } =
+        await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
+          actionType: 'public-youtube-clip-read',
+          canonicalId: PUBLIC_YOUTUBE_CLIP_READ_WORKFLOW_ID,
+          inputValues: { previewToken },
+          metadata: { origin: 'website-free-tool' },
+          organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
+          source: 'PublicYoutubeClipsService.read',
+          userId: PUBLIC_LONG_FORM_USER_ID,
+        });
+      return result;
+    } catch (error) {
+      if (this.hasErrorCode(error, PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE)) {
+        throw this.expiredSession();
+      }
+      throw error;
+    }
   }
 
   async requestPreview(
     previewToken: string,
     requestedRecommendationId?: string,
   ): Promise<IPublicYoutubeClipToolSession> {
-    const { result } =
-      await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
-        actionType: 'public-youtube-clip-preview',
-        canonicalId: PUBLIC_YOUTUBE_CLIP_PREVIEW_WORKFLOW_ID,
-        inputValues: {
-          previewToken,
-          recommendationId: requestedRecommendationId,
-        },
-        metadata: { origin: 'website-free-tool' },
-        organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
-        source: 'PublicYoutubeClipsService.requestPreview',
-        userId: PUBLIC_LONG_FORM_USER_ID,
-      });
-    return result;
+    try {
+      const { result } =
+        await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
+          actionType: 'public-youtube-clip-preview',
+          canonicalId: PUBLIC_YOUTUBE_CLIP_PREVIEW_WORKFLOW_ID,
+          inputValues: {
+            previewToken,
+            recommendationId: requestedRecommendationId,
+          },
+          metadata: { origin: 'website-free-tool' },
+          organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
+          source: 'PublicYoutubeClipsService.requestPreview',
+          userId: PUBLIC_LONG_FORM_USER_ID,
+        });
+      return result;
+    } catch (error) {
+      if (this.hasErrorCode(error, PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE)) {
+        throw this.expiredSession();
+      }
+      throw error;
+    }
   }
 
   private async createSessionAction(
@@ -388,9 +433,11 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       request.input.previewToken,
       'previewToken',
     );
-    let session = await this.store.getSession(previewToken);
-    session = await this.reconcilePreview(previewToken, session);
-    return this.toResponse(previewToken, session);
+    return this.withSessionGoneMarker(async () => {
+      let session = await this.store.getSession(previewToken);
+      session = await this.reconcilePreview(previewToken, session);
+      return this.toResponse(previewToken, session);
+    });
   }
 
   private async releaseSessionAction(
@@ -427,27 +474,29 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       request.input.previewToken,
       'previewToken',
     );
-    const current = await this.store.getSession(previewToken);
-    const recommendationId =
-      (typeof request.input.recommendationId === 'string'
-        ? request.input.recommendationId
-        : undefined) ?? current.highlights[0]?.id;
-    if (!recommendationId) {
-      throw this.noRecommendation();
-    }
-    const jobId = `public-youtube-preview-${current.id}`;
-    const reserved = await this.store.reservePreview(
-      previewToken,
-      recommendationId,
-      jobId,
-    );
-    const highlight = reserved.highlights.find(
-      (candidate) => candidate.id === recommendationId,
-    );
-    if (!highlight) {
-      throw this.noRecommendation();
-    }
-    return { highlight, jobId, previewToken, reserved };
+    return this.withSessionGoneMarker(async () => {
+      const current = await this.store.getSession(previewToken);
+      const recommendationId =
+        (typeof request.input.recommendationId === 'string'
+          ? request.input.recommendationId
+          : undefined) ?? current.highlights[0]?.id;
+      if (!recommendationId) {
+        throw this.noRecommendation();
+      }
+      const jobId = `public-youtube-preview-${current.id}`;
+      const reserved = await this.store.reservePreview(
+        previewToken,
+        recommendationId,
+        jobId,
+      );
+      const highlight = reserved.highlights.find(
+        (candidate) => candidate.id === recommendationId,
+      );
+      if (!highlight) {
+        throw this.noRecommendation();
+      }
+      return { highlight, jobId, previewToken, reserved };
+    });
   }
 
   private async dispatchPreviewAction(
@@ -475,23 +524,30 @@ export class PublicYoutubeClipsService implements OnModuleInit {
         type: 'clip-trim',
         userId: PUBLIC_LONG_FORM_USER_ID,
       });
-      const updated = await this.store.patchByToken(previewToken, {
-        preview: {
-          jobId: response.jobId || jobId,
-          recommendationId: highlight.id,
-          status: 'generating',
-        },
-      });
+      const updated = await this.withSessionGoneMarker(() =>
+        this.store.patchByToken(previewToken, {
+          preview: {
+            jobId: response.jobId || jobId,
+            recommendationId: highlight.id,
+            status: 'generating',
+          },
+        }),
+      );
       return this.toResponse(previewToken, updated);
     } catch (error) {
+      if (this.hasErrorCode(error, PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE)) {
+        throw error;
+      }
       this.logger.warn('Public YouTube preview dispatch failed', {
         code: 'public_youtube_preview_dispatch_failed',
         error,
         sessionId: reserved.id,
       });
-      const failed = await this.store.patchByToken(previewToken, {
-        preview: { recommendationId: highlight.id, status: 'failed' },
-      });
+      const failed = await this.withSessionGoneMarker(() =>
+        this.store.patchByToken(previewToken, {
+          preview: { recommendationId: highlight.id, status: 'failed' },
+        }),
+      );
       return this.toResponse(previewToken, failed);
     }
   }
@@ -604,6 +660,31 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       });
     }
     return key;
+  }
+
+  private expiredSession(): GoneException {
+    return new GoneException({
+      code: PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE,
+      detail: 'This free-tool session has expired or was already claimed.',
+      title: 'Gone',
+    });
+  }
+
+  private hasErrorCode(error: unknown, code: string): boolean {
+    return error instanceof Error && error.message.includes(`[${code}]`);
+  }
+
+  private async withSessionGoneMarker<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error instanceof GoneException) {
+        throw new Error(`[${PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE}]`);
+      }
+      throw error;
+    }
   }
 
   private noRecommendation(): BadRequestException {

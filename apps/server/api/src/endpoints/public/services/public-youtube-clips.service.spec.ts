@@ -1,3 +1,4 @@
+import { youtubeSourceUnavailableError } from '@api/collections/workflows/services/youtube-url.util';
 import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -7,7 +8,7 @@ import type {
 } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, GoneException } from '@nestjs/common';
 
 const token = 'a'.repeat(43);
 const storedSession: StoredPublicYoutubeClipSession = {
@@ -77,9 +78,6 @@ describe('PublicYoutubeClipsService', () => {
         }) => {
           if (input.canonicalId === 'public-youtube-clip.create') {
             const youtubeUrl = String(input.inputValues?.youtubeUrl ?? '');
-            if (!youtubeUrl.includes('youtube.com/watch?v=')) {
-              throw new BadRequestException('Unsupported YouTube URL');
-            }
             const sessionEnvelope = await actions.get(
               'youtube.clip.create-session',
             )?.(
@@ -161,6 +159,7 @@ describe('PublicYoutubeClipsService', () => {
   });
 
   it.each([
+    'not a url',
     'https://evil.example/watch?v=abc12345',
     'https://youtube.com.evil.example/watch?v=abc12345',
     'file:///etc/passwd',
@@ -171,9 +170,168 @@ describe('PublicYoutubeClipsService', () => {
       await expect(service.create(url)).rejects.toBeInstanceOf(
         BadRequestException,
       );
+      expect(runner.runWorkflow).not.toHaveBeenCalled();
       expect(scheduledAnalysisJobs).toHaveLength(0);
     },
   );
+
+  it.each([
+    'https://www.youtube.com/watch?v=abc12345',
+    'https://youtu.be/abc12345?t=10',
+    'https://www.youtube.com/shorts/abc12345',
+    'https://www.youtube.com/embed/abc12345',
+    'https://www.youtube.com/live/abc12345',
+  ])('starts the workflow for supported source %s', async (url) => {
+    await service.create(url);
+
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'public-youtube-clip.create',
+        inputValues: expect.objectContaining({
+          youtubeUrl: 'https://www.youtube.com/watch?v=abc12345',
+        }),
+      }),
+    );
+  });
+
+  it('maps a coded resolve-source failure to a bounded bad request', async () => {
+    const sourceFailure = youtubeSourceUnavailableError();
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+      new Error(`Nodes failed: resolve-source: ${sourceFailure.message}`),
+    );
+
+    try {
+      await service.create('https://youtu.be/abc12345');
+      expect.unreachable('Expected create to reject an unavailable source');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toEqual({
+        code: 'public_youtube_clip_source_unavailable',
+        detail: 'The YouTube video is unavailable, private, or unsupported.',
+        title: 'Bad Request',
+      });
+    }
+  });
+
+  it('preserves unrelated workflow failures', async () => {
+    const failure = new Error('Redis unavailable');
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(failure);
+
+    await expect(service.create('https://youtu.be/abc12345')).rejects.toBe(
+      failure,
+    );
+  });
+
+  it('emits a token-free code when the read-session action is gone', async () => {
+    store.getSession.mockRejectedValueOnce(
+      new GoneException('Expired public clip session'),
+    );
+    const readSession = actions.get('youtube.clip.read-session');
+
+    try {
+      await readSession?.({ input: { previewToken: token } });
+      expect.unreachable('Expected the read-session action to reject');
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe(
+        '[public_youtube_clip_expired_or_claimed]',
+      );
+      expect((error as Error).message).not.toContain(token);
+    }
+  });
+
+  it.each(['getSession', 'reservePreview'] as const)(
+    'emits the session code when reserve-preview %s is gone',
+    async (operation) => {
+      const highlight = {
+        clip_type: 'educational',
+        end_time: 40,
+        id: 'moment-1',
+        start_time: 10,
+        summary: 'Useful moment',
+        tags: [],
+        title: 'Useful moment',
+        virality_score: 80,
+      };
+      if (operation === 'getSession') {
+        store.getSession.mockRejectedValueOnce(
+          new GoneException('Expired public clip session'),
+        );
+      } else {
+        store.getSession.mockResolvedValueOnce({
+          ...storedSession,
+          highlights: [highlight],
+          status: 'ready',
+        });
+        store.reservePreview.mockRejectedValueOnce(
+          new GoneException('Expired public clip session'),
+        );
+      }
+      const reservePreview = actions.get('youtube.clip.reserve-preview');
+
+      await expect(
+        reservePreview?.({
+          input: { previewToken: token, recommendationId: 'moment-1' },
+        }),
+      ).rejects.toThrow('[public_youtube_clip_expired_or_claimed]');
+    },
+  );
+
+  it('restores a bounded gone response from a coded read-session failure', async () => {
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+      new Error(
+        'Nodes failed: read-session: [public_youtube_clip_expired_or_claimed]',
+      ),
+    );
+
+    try {
+      await service.read(token);
+      expect.unreachable('Expected read to reject an expired session');
+    } catch (error) {
+      expect(error).toBeInstanceOf(GoneException);
+      expect((error as GoneException).getResponse()).toEqual({
+        code: 'public_youtube_clip_expired_or_claimed',
+        detail: 'This free-tool session has expired or was already claimed.',
+        title: 'Gone',
+      });
+    }
+  });
+
+  it.each([
+    [
+      'create',
+      () => service.create('https://www.youtube.com/watch?v=abc12345'),
+    ],
+    ['preview', () => service.requestPreview(token, 'moment-1')],
+  ])(
+    'restores a bounded gone response from coded %s failure',
+    async (_label, invoke) => {
+      vi.mocked(runner.runWorkflow).mockRejectedValueOnce(
+        new Error(
+          'Nodes failed: operation: [public_youtube_clip_expired_or_claimed]',
+        ),
+      );
+
+      try {
+        await invoke();
+        expect.unreachable('Expected the public operation to reject');
+      } catch (error) {
+        expect(error).toBeInstanceOf(GoneException);
+        expect((error as GoneException).getResponse()).toEqual({
+          code: 'public_youtube_clip_expired_or_claimed',
+          detail: 'This free-tool session has expired or was already claimed.',
+          title: 'Gone',
+        });
+      }
+    },
+  );
+
+  it('preserves unrelated read workflow failures', async () => {
+    const failure = new Error('Redis unavailable');
+    vi.mocked(runner.runWorkflow).mockRejectedValueOnce(failure);
+
+    await expect(service.read(token)).rejects.toBe(failure);
+  });
 
   it('does not enqueue a second analysis for an idempotent replay', async () => {
     store.createSession.mockResolvedValue({
@@ -228,6 +386,54 @@ describe('PublicYoutubeClipsService', () => {
       'request-key-1',
     );
   });
+
+  it.each(['generating patch', 'failure patch'] as const)(
+    'emits the session code when the dispatch %s is gone',
+    async (stage) => {
+      const highlight = {
+        clip_type: 'educational',
+        end_time: 40,
+        id: 'moment-1',
+        start_time: 10,
+        summary: 'Useful moment',
+        tags: [],
+        title: 'Useful moment',
+        virality_score: 80,
+      };
+      const readySession = {
+        ...storedSession,
+        highlights: [highlight],
+        sourceVideoS3Key: 'videos/public-source.mp4',
+        status: 'ready' as const,
+      };
+      if (stage === 'generating patch') {
+        files.processVideo.mockResolvedValueOnce({
+          jobId: 'public-youtube-preview-session-1',
+        });
+      } else {
+        files.processVideo.mockRejectedValueOnce(
+          new Error('Files queue unavailable'),
+        );
+      }
+      store.patchByToken.mockRejectedValueOnce(
+        new GoneException('Expired public clip session'),
+      );
+      const dispatchPreview = actions.get('youtube.clip.dispatch-preview');
+
+      await expect(
+        dispatchPreview?.({
+          input: {
+            previewEnvelope: {
+              highlight,
+              jobId: 'public-youtube-preview-session-1',
+              previewToken: token,
+              reserved: readySession,
+            },
+          },
+        }),
+      ).rejects.toThrow('[public_youtube_clip_expired_or_claimed]');
+    },
+  );
 
   it('renders the one preview from the durable source artifact', async () => {
     const readySession = {

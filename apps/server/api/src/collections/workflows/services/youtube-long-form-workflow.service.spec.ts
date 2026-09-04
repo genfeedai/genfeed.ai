@@ -6,12 +6,14 @@ import {
   YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
   YoutubeLongFormWorkflowService,
 } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
+import { YOUTUBE_SOURCE_UNAVAILABLE_CODE } from '@api/collections/workflows/services/youtube-url.util';
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowActionRequest,
   SystemWorkflowGraphDefinition,
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { testId } from '@helpers/testing/test-id.helper';
+import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const INGREDIENT_ID = testId('ingredient');
@@ -39,6 +41,7 @@ describe('YoutubeLongFormWorkflowService', () => {
     }),
     runWorkflow: vi.fn(),
   };
+  const http = { get: vi.fn() };
   const prisma = {
     $transaction: vi.fn(),
     article: { create: vi.fn() },
@@ -64,7 +67,7 @@ describe('YoutubeLongFormWorkflowService', () => {
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     service = new YoutubeLongFormWorkflowService(
       { processVideo: vi.fn(), waitForJob: vi.fn() } as never,
-      { get: vi.fn() } as never,
+      http as never,
       { chatCompletion: vi.fn() } as never,
       prisma as never,
       runner as never,
@@ -135,6 +138,49 @@ describe('YoutubeLongFormWorkflowService', () => {
         },
       },
     });
+  });
+
+  it('canonicalizes an alternate YouTube URL before resolving its source', async () => {
+    http.get.mockReturnValue(of({ data: { title: 'Canonical source title' } }));
+    const resolveSource = actions.get(
+      YOUTUBE_LONG_FORM_ACTION_IDS.RESOLVE_SOURCE,
+    );
+
+    const result = await resolveSource?.(
+      actionRequest({ youtubeUrl: 'https://youtu.be/abc12345?t=10' }),
+    );
+
+    expect(http.get).toHaveBeenCalledWith('https://www.youtube.com/oembed', {
+      params: {
+        format: 'json',
+        url: 'https://www.youtube.com/watch?v=abc12345',
+      },
+      timeout: 5_000,
+    });
+    expect(result).toEqual({
+      title: 'Canonical source title',
+      videoId: 'abc12345',
+      youtubeUrl: 'https://www.youtube.com/watch?v=abc12345',
+    });
+  });
+
+  it('tags unavailable resolved sources with the stable workflow code', async () => {
+    http.get.mockReturnValue(
+      throwError(() => new Error('YouTube source is private')),
+    );
+    const resolveSource = actions.get(
+      YOUTUBE_LONG_FORM_ACTION_IDS.RESOLVE_SOURCE,
+    );
+
+    await expect(
+      resolveSource?.(
+        actionRequest({
+          youtubeUrl: 'https://www.youtube.com/watch?v=abc12345',
+        }),
+      ),
+    ).rejects.toThrow(
+      `[${YOUTUBE_SOURCE_UNAVAILABLE_CODE}] The YouTube video is unavailable, private, or unsupported.`,
+    );
   });
 
   it('runs the public tool as an ephemeral preview under the public workflow principal', async () => {
