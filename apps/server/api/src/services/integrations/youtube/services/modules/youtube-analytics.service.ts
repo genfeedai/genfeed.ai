@@ -113,7 +113,7 @@ export class YoutubeAnalyticsService {
     organizationId: string,
     brandId: string,
     videoId: string,
-    credentialId?: string,
+    credentialId: string,
   ) {
     const results = await this.getMediaAnalyticsBatch(
       organizationId,
@@ -134,7 +134,7 @@ export class YoutubeAnalyticsService {
     organizationId: string,
     brandId: string,
     videoIds: string[],
-    credentialId?: string,
+    credentialId: string,
   ): Promise<Map<string, IYouTubeVideoStats>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

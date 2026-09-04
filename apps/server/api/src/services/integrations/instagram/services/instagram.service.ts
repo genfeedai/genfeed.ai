@@ -775,7 +775,7 @@ export class InstagramService {
     organizationId: string,
     brandId: string,
     mediaId: string,
-    credentialId?: string,
+    credentialId: string,
   ): Promise<InstagramMediaAnalytics> {
     return this.analyticsService.getMediaAnalytics(
       organizationId,

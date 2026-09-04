@@ -13,10 +13,13 @@ import {
 } from '@api/endpoints/analytics/dto/account-analytics-query.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { CacheTagsService } from '@api/services/cache/cache-tags.service';
+import { MemberRole } from '@genfeedai/contracts';
 import {
   AccountAnalyticsDetailSerializer,
   AccountAnalyticsListSerializer,
@@ -46,6 +49,7 @@ export class AccountAnalyticsController {
   constructor(
     private readonly accountAnalyticsService: AccountAnalyticsService,
     private readonly loggerService: LoggerService,
+    private readonly cacheTagsService: CacheTagsService,
   ) {}
 
   private organizationId(user: User, request: ExpressRequest): string {
@@ -183,6 +187,7 @@ export class AccountAnalyticsController {
   }
 
   @Patch('fleet-evaluation-policy')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   async savePolicy(
     @CurrentUser() user: User,
     @Req() req: ExpressRequest,
@@ -206,6 +211,7 @@ export class AccountAnalyticsController {
       },
       body.brandId,
     );
+    await this.cacheTagsService.invalidateByTags(['accounts']);
     return serializeSingle(req, FleetEvaluationPolicySerializer, data);
   }
 }

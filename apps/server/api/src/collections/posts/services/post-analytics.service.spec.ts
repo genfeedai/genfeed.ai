@@ -126,3 +126,66 @@ describe('PostAnalyticsService.trackPostAnalytics', () => {
     );
   });
 });
+
+describe('PostAnalyticsService provider metric mapping', () => {
+  it('converts YouTube total watch minutes while preserving average seconds', async () => {
+    const { service } = createHarness(null);
+    const update = vi
+      .spyOn(service, 'updateTodayAnalytics')
+      .mockResolvedValue(null);
+
+    await service.processYouTubeAnalytics('post_1', {
+      averageViewDuration: 12,
+      comments: 3,
+      estimatedMinutesWatched: 2.5,
+      impressions: 80,
+      likes: 20,
+      views: 100,
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      'post_1',
+      'YOUTUBE',
+      expect.objectContaining({
+        averageWatchTimeSeconds: 12,
+        impressions: 80,
+        metricAvailability: expect.objectContaining({
+          averageWatchTimeSeconds: 'observed',
+          watchTimeSeconds: 'observed',
+        }),
+        videoViews: 100,
+        watchTimeSeconds: 150,
+      }),
+    );
+  });
+
+  it('preserves TikTok watch seconds and availability independently', async () => {
+    const { service } = createHarness(null);
+    const update = vi
+      .spyOn(service, 'updateTodayAnalytics')
+      .mockResolvedValue(null);
+
+    await service.processTikTokAnalytics('post_1', {
+      comments: 3,
+      likes: 20,
+      reach: 75,
+      shares: 4,
+      totalPlayTime: 240,
+      views: 100,
+    });
+
+    expect(update).toHaveBeenCalledWith(
+      'post_1',
+      'TIKTOK',
+      expect.objectContaining({
+        averageWatchTimeSeconds: null,
+        reach: 75,
+        watchTimeSeconds: 240,
+        metricAvailability: expect.objectContaining({
+          averageWatchTimeSeconds: 'unavailable',
+          watchTimeSeconds: 'observed',
+        }),
+      }),
+    );
+  });
+});

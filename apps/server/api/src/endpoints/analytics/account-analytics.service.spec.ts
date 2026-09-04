@@ -60,6 +60,7 @@ describe('AccountAnalyticsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.$queryRaw.mockResolvedValue([]);
+    prisma.post.groupBy.mockResolvedValue([]);
     service = new AccountAnalyticsService(prisma as never);
   });
 
@@ -192,6 +193,45 @@ describe('AccountAnalyticsService', () => {
     expect(
       result.accounts.map((account) => account.identity.credentialId),
     ).toEqual(['cred-2', 'cred-1']);
+  });
+
+  it('reports partial analytics coverage against all published posts', async () => {
+    prisma.credential.findMany.mockResolvedValue([credential(1)]);
+    prisma.post.groupBy.mockResolvedValue([
+      {
+        _count: { _all: 4 },
+        _min: { publishedAt: new Date('2026-08-01T00:00:00.000Z') },
+        credentialId: 'cred-1',
+      },
+    ]);
+    prisma.$queryRaw.mockImplementation(async (query: unknown) => {
+      if (!sqlText(query).includes('COUNT(DISTINCT')) {
+        return [];
+      }
+      return [
+        {
+          comments: 0,
+          credentialId: 'cred-1',
+          likes: 0,
+          posts: 1,
+          prevComments: 0,
+          prevLikes: 0,
+          prevSaves: 0,
+          prevShares: 0,
+          prevViews: 0,
+          saves: 0,
+          shares: 0,
+          views: 10,
+        },
+      ];
+    });
+
+    const result = await service.listAccounts('org-1', {});
+
+    expect(result.accounts[0]).toMatchObject({
+      coverage: 0.25,
+      publishedPosts: 4,
+    });
   });
 
   it('creates an organization setting when saving a fleet policy for the first time', async () => {

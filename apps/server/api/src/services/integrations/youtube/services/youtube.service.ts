@@ -167,7 +167,7 @@ export class YoutubeService {
     organizationId: string,
     brandId: string,
     videoId: string,
-    credentialId?: string,
+    credentialId: string,
   ) {
     return this.analyticsService.getMediaAnalytics(
       organizationId,
@@ -181,7 +181,7 @@ export class YoutubeService {
     organizationId: string,
     brandId: string,
     videoIds: string[],
-    credentialId?: string,
+    credentialId: string,
   ) {
     return this.analyticsService.getMediaAnalyticsBatch(
       organizationId,

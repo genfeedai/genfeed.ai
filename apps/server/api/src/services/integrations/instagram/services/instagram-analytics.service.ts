@@ -21,7 +21,7 @@ export interface InstagramMediaAnalytics {
 type ResolveInstagramCredential = (
   organizationId: string,
   brandId: string,
-  credentialId?: string,
+  credentialId: string,
 ) => Promise<InstagramCredentialResponse>;
 
 export class InstagramAnalyticsService {
@@ -37,7 +37,7 @@ export class InstagramAnalyticsService {
     organizationId: string,
     brandId: string,
     mediaId: string,
-    credentialId?: string,
+    credentialId: string,
   ): Promise<InstagramMediaAnalytics> {
     const url = `InstagramService ${CallerUtil.getCallerName()}`;
 

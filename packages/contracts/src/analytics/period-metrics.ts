@@ -64,10 +64,16 @@ export function periodMetricGain(options: {
     return lifetime;
   }
 
+  if (startAvailability !== AnalyticsMetricAvailability.OBSERVED) {
+    return {
+      availability: startAvailability,
+      correctionKind: null,
+      value: null,
+    };
+  }
+
   const startValue = options.startValue;
-  const hasStart =
-    startAvailability === AnalyticsMetricAvailability.OBSERVED &&
-    isObservedNumber(startValue);
+  const hasStart = isObservedNumber(startValue);
 
   if (!hasStart) {
     return {
