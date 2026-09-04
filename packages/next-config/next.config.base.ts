@@ -127,18 +127,6 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     typescript: {
       ignoreBuildErrors: true,
     },
-    // Suppress noisy OpenTelemetry/Sentry instrumentation warnings
-    webpack: (config) => {
-      config.ignoreWarnings = [
-        // OpenTelemetry dynamic requires
-        { module: /@opentelemetry\/instrumentation/ },
-        // require-in-the-middle dynamic requires
-        { module: /require-in-the-middle/ },
-        // Prisma instrumentation
-        { module: /@prisma\/instrumentation/ },
-      ];
-      return config;
-    },
   };
 
   if (env) {
@@ -179,6 +167,9 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       sourcemaps: {
         deleteSourcemapsAfterUpload: true,
       },
+      // Sentry's own option namespace, not a Next `webpack` config. Every app
+      // here builds with `--turbopack`, so Next ignores a real `webpack` key —
+      // these two still reach the Sentry plugin. Do not delete as dead config.
       webpack: {
         automaticVercelMonitors: true,
         treeshake: {
