@@ -973,6 +973,13 @@ test('surface scope uses changed lines and the reviewed coverage exclusions', ()
   ]);
   assert.equal(hasChangedSurfaceCode('api', files), false);
   assert.equal(hasChangedSurfaceCode('app', files), false);
+  assert.equal(
+    hasChangedSurfaceCode(
+      'api',
+      new Map([['./apps/server/api/src/service.ts', [1]]]),
+    ),
+    true,
+  );
   files.set('apps/server/api/src/service.ts', [1]);
   assert.equal(hasChangedSurfaceCode('api', files), true);
   assert.throws(

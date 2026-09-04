@@ -105,10 +105,12 @@ export function parseUnifiedDiff(rawDiff) {
 export function hasChangedSurfaceCode(name, changedFiles) {
   const prefix = { app: 'apps/app/', api: 'apps/server/api/' }[name];
   if (!prefix) throw new Error(`Unknown coverage surface: ${name}`);
-  const { included } = partitionChangedFiles([...changedFiles.keys()]);
-  return included.some(
-    (file) => file.startsWith(prefix) && changedFiles.get(file).length > 0,
+  const { included } = partitionChangedFiles(
+    [...changedFiles]
+      .filter(([, lines]) => lines.length > 0)
+      .map(([file]) => file),
   );
+  return included.some((file) => file.startsWith(prefix));
 }
 
 // ── LCOV ────────────────────────────────────────────────────────────────────
