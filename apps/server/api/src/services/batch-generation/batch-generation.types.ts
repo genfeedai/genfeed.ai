@@ -197,13 +197,131 @@ export function cloneBatchItems(
   }));
 }
 
-/**
- * Reader ratchet: prefer typed `batch_items` rows when present, otherwise
- * fall back to `Batch.items` JSON. A later PR can drop the JSON blob once
- * every writer and backfill goes through the typed table.
- */
-function isBatchConfig(value: unknown): value is BatchConfig {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function readStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+    ? value
+    : undefined;
+}
+
+function readContentMix(value: unknown): ContentMixConfig | undefined {
+  if (
+    !isRecord(value) ||
+    !isFiniteNumber(value.carouselPercent) ||
+    !isFiniteNumber(value.imagePercent) ||
+    !isFiniteNumber(value.reelPercent) ||
+    !isFiniteNumber(value.storyPercent) ||
+    !isFiniteNumber(value.videoPercent)
+  ) {
+    return undefined;
+  }
+
+  return {
+    carouselPercent: value.carouselPercent,
+    imagePercent: value.imagePercent,
+    reelPercent: value.reelPercent,
+    storyPercent: value.storyPercent,
+    videoPercent: value.videoPercent,
+  };
+}
+
+function readCredits(value: unknown): BatchCreditsLedger | undefined {
+  if (!isRecord(value) || !isFiniteNumber(value.chargedCredits)) {
+    return undefined;
+  }
+
+  const credits: BatchCreditsLedger = {
+    chargedCredits: value.chargedCredits,
+  };
+  if (isFiniteNumber(value.refundedCredits)) {
+    credits.refundedCredits = value.refundedCredits;
+  }
+  if (typeof value.reservationId === 'string') {
+    credits.reservationId = value.reservationId;
+  }
+  if (typeof value.reservationSettledAt === 'string') {
+    credits.reservationSettledAt = value.reservationSettledAt;
+  }
+  if (typeof value.settledAt === 'string') {
+    credits.settledAt = value.settledAt;
+  }
+  if (isFiniteNumber(value.settlementSeq)) {
+    credits.settlementSeq = value.settlementSeq;
+  }
+  return credits;
+}
+
+function readPricing(value: unknown): BatchPricingOptions | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const pricing: BatchPricingOptions = {};
+  if (
+    value.chatModelRoundCredits === null ||
+    isFiniteNumber(value.chatModelRoundCredits)
+  ) {
+    pricing.chatModelRoundCredits = value.chatModelRoundCredits;
+  }
+  if (typeof value.includeMedia === 'boolean') {
+    pricing.includeMedia = value.includeMedia;
+  }
+  if (value.qualityTier === null || typeof value.qualityTier === 'string') {
+    pricing.qualityTier = value.qualityTier;
+  }
+  return Object.keys(pricing).length > 0 ? pricing : undefined;
+}
+
+function normalizeBatchConfig(value: unknown): BatchConfig {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const config: BatchConfig = {};
+  const contentMix = readContentMix(value.contentMix);
+  const credits = readCredits(value.credits);
+  const platforms = readStringArray(value.platforms);
+  const pricing = readPricing(value.pricing);
+  const topics = readStringArray(value.topics);
+
+  if (contentMix) config.contentMix = contentMix;
+  if (credits) config.credits = credits;
+  if (platforms) config.platforms = platforms;
+  if (pricing) config.pricing = pricing;
+  if (topics) config.topics = topics;
+
+  if (typeof value.dateRangeStart === 'string') {
+    config.dateRangeStart = value.dateRangeStart;
+  }
+  if (typeof value.dateRangeEnd === 'string') {
+    config.dateRangeEnd = value.dateRangeEnd;
+  }
+  if (typeof value.completedAt === 'string') {
+    config.completedAt = value.completedAt;
+  }
+  if (typeof value.source === 'string') config.source = value.source;
+  if (typeof value.style === 'string') config.style = value.style;
+  if (typeof value.queuedAt === 'string') config.queuedAt = value.queuedAt;
+
+  if (isFiniteNumber(value.completedCount)) {
+    config.completedCount = value.completedCount;
+  }
+  if (isFiniteNumber(value.failedCount)) {
+    config.failedCount = value.failedCount;
+  }
+  if (isFiniteNumber(value.totalCount)) config.totalCount = value.totalCount;
+  if (isFiniteNumber(value.resumeCount)) {
+    config.resumeCount = value.resumeCount;
+  }
+
+  return config;
 }
 
 export function toBatchWithConfig(
@@ -212,31 +330,50 @@ export function toBatchWithConfig(
   return {
     ...batch,
     batchItems: batch.batchItems ?? undefined,
-    config: isBatchConfig(batch.config) ? batch.config : {},
+    config: normalizeBatchConfig(batch.config),
     items: resolveBatchItems(batch),
   } as unknown as BatchWithConfig;
 }
 
+/**
+ * Reader ratchet: typed rows are authoritative for every identity they
+ * represent, including tombstones. Legacy JSON contributes only identities
+ * that have not migrated yet, so partial backfills neither truncate old items
+ * nor resurrect deleted ones.
+ */
 export function resolveBatchItems(batch: {
   batchItems?: BatchItemTypedRow[] | null;
   items?: Batch['items'] | null;
 }): BatchItemFull[] {
-  const liveRows = (batch.batchItems ?? []).filter(
-    (row) => row.isDeleted !== true,
-  );
-  if (liveRows.length > 0) {
-    return cloneBatchItems(
-      liveRows.map((row) => overlayTypedAssignee(row)) as Batch['items'],
-    );
+  const typedRows = batch.batchItems ?? [];
+  if (typedRows.length === 0) {
+    return cloneBatchItems(batch.items);
   }
-  return cloneBatchItems(batch.items);
+
+  const representedIds = new Set(
+    typedRows
+      .map((row) => readBatchItemId(row.data))
+      .filter((id): id is string => id !== undefined),
+  );
+  const liveTypedItems = typedRows
+    .filter((row) => row.isDeleted !== true)
+    .map((row) => overlayTypedAssignee(row));
+  const legacyOnlyItems = cloneBatchItems(batch.items).filter(
+    (item) => !representedIds.has(item.id),
+  );
+
+  return [
+    ...cloneBatchItems(liveTypedItems as Batch['items']),
+    ...legacyOnlyItems,
+  ];
+}
+
+function readBatchItemId(value: unknown): string | undefined {
+  return isRecord(value) && typeof value.id === 'string' ? value.id : undefined;
 }
 
 function overlayTypedAssignee(row: BatchItemTypedRow): unknown {
-  const data =
-    row.data && typeof row.data === 'object' && !Array.isArray(row.data)
-      ? (row.data as Record<string, unknown>)
-      : {};
+  const data = isRecord(row.data) ? row.data : {};
   const safeData = { ...data };
   delete safeData.assignee;
 
