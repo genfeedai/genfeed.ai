@@ -315,7 +315,7 @@ describe('AgentChatMessage', () => {
     );
 
     expect(surface).toBeTruthy();
-    expect(surface).toHaveClass('bg-tertiary');
+    expect(surface).toHaveClass('bg-card');
     expect(surface).toHaveClass('rounded-xl');
     expect(surface).toHaveClass('shadow-none');
     expect(surface?.parentElement).toHaveClass('sticky');

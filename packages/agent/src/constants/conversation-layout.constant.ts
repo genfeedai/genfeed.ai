@@ -36,11 +36,11 @@ export const AGENT_TIMELINE_DEFERRED_CLASS =
 export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
 
 /**
- * Sticky user prompt card (Cursor). Solid tertiary fill so the turn header
- * occludes scrolling assistant text; no "You" label — the card is the highlight.
+ * Sticky user prompt card (Cursor). Uses the card plane (`--card`) so a token
+ * change reaches these surfaces; no "You" label — the card is the highlight.
  */
 export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
+  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-card px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 
@@ -58,11 +58,11 @@ export const AGENT_CONVERSATION_STICKY_USER_TURN_CLASS = [
 ].join(' ');
 
 /**
- * Shared agent timeline card chrome — solid surface, T3/Codex density
+ * Shared agent timeline card chrome — card plane, T3/Codex density
  * (tighter radius, no translucent blur stack).
  */
 export const AGENT_CONVERSATION_SURFACE_CLASS = [
-  'border border-border-strong bg-tertiary text-foreground',
+  'border border-border-strong bg-card text-foreground',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 

@@ -19,8 +19,8 @@ describe('conversation-layout.constant', () => {
   });
 
   it('shares solid surface chrome without blur stack', () => {
-    expect(AGENT_CONVERSATION_SURFACE_CLASS).toContain('bg-tertiary');
-    expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('bg-card');
+    expect(AGENT_CONVERSATION_SURFACE_CLASS).toContain('bg-card');
+    expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('bg-tertiary');
     expect(AGENT_CONVERSATION_SURFACE_CLASS).not.toContain('backdrop-blur');
   });
 
@@ -29,8 +29,11 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_INLINE_ROW_CLASS).not.toContain('border');
   });
 
-  it('highlights the sticky user prompt as a tertiary card, not a You label', () => {
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('bg-tertiary');
+  it('highlights the sticky user prompt as a card-plane surface, not a You label', () => {
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('bg-card');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
+      'bg-tertiary',
+    );
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
       'border-border-strong',
     );
