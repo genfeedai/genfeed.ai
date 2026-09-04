@@ -14,7 +14,7 @@ interface ListRowBaseProps {
   /** Trailing slot — badges, actions. Never centered, always shrink-0. */
   trailing?: ReactNode;
   className?: string;
-  /** `compact` = px-4 py-3, `comfortable` (default) = p-4. */
+  /** `compact` = py-2.5 with no horizontal padding (flush inside padded surfaces), `comfortable` (default) = p-4. */
   density?: ListRowDensity;
   'data-testid'?: string;
 }

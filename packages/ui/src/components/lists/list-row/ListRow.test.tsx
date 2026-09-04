@@ -78,8 +78,8 @@ describe('ListRow', () => {
 
   it('applies compact density padding', () => {
     const { container } = render(<ListRow title="Row" density="compact" />);
-    expect(container.firstChild).toHaveClass('px-4');
-    expect(container.firstChild).toHaveClass('py-3');
+    expect(container.firstChild).toHaveClass('py-2.5');
+    expect(container.firstChild).not.toHaveClass('px-4');
   });
 
   it('applies comfortable density padding by default', () => {

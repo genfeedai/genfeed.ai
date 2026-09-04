@@ -13,12 +13,12 @@ const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
   comfortable: 'mb-5 gap-3',
-  compact: 'mb-4 gap-2.5',
+  compact: 'mb-3 gap-2',
 };
 
 const CONTENT_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
   comfortable: 'gap-5 px-5 py-5 sm:px-6 sm:py-6',
-  compact: 'gap-4 px-4 py-4 sm:px-5 sm:py-5',
+  compact: 'gap-3 px-4 py-3 sm:px-5 sm:py-4',
 };
 
 export interface WorkspaceSurfaceProps
@@ -76,7 +76,14 @@ export function WorkspaceSurface({
                   </p>
                 ) : null}
                 {title ? (
-                  <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
+                  <h2
+                    className={cn(
+                      'font-semibold tracking-[-0.02em] text-foreground',
+                      density === 'compact'
+                        ? 'text-base sm:text-lg'
+                        : 'text-lg sm:text-xl',
+                    )}
+                  >
                     {title}
                   </h2>
                 ) : null}

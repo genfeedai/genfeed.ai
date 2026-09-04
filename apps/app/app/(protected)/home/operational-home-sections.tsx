@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
   formatPlatformLabel,
   normalizeReviewDecision,
   PageScope,
@@ -32,6 +33,7 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
@@ -39,6 +41,7 @@ import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -122,7 +125,7 @@ function EmptyLine({
   description: ReactNode;
 }) {
   return (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-4 text-sm text-foreground/55">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm text-foreground/55">
       <span>{description}</span>
       {actionHref && actionLabel ? (
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
@@ -132,7 +135,7 @@ function EmptyLine({
           </Link>
         </Button>
       ) : null}
-    </p>
+    </div>
   );
 }
 
@@ -275,7 +278,7 @@ function NeedsYouSurface({
         </Button>
       }
       data-testid="operational-home-needs-you"
-      description="Reviews, failures, and accounts waiting on you."
+      density="compact"
       eyebrow="Needs you"
       title="Attention queue"
     >
@@ -305,12 +308,37 @@ function NeedsYouSurface({
                 <ListRow
                   data-testid="operational-home-needs-you-row"
                   density="compact"
-                  description={`${item.format}${item.platform ? ` · ${formatPlatformLabel(item.platform) ?? item.platform}` : ''}`}
                   key={needsYouItem.key}
+                  leading={
+                    item.mediaUrl ? (
+                      <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
+                        <Image
+                          alt=""
+                          className="object-cover"
+                          fill
+                          sizes="40px"
+                          src={item.mediaUrl}
+                        />
+                      </span>
+                    ) : (
+                      <span className="inline-flex size-10 items-center justify-center rounded-md border border-dashed border-border text-2xs text-muted-foreground">
+                        —
+                      </span>
+                    )
+                  }
                   meta={
-                    <Badge variant="info">
-                      {translate('home.approvals.readyToReview')}
-                    </Badge>
+                    <span className="flex flex-wrap items-center gap-2">
+                      {item.platform ? (
+                        <PlatformBadge
+                          platform={item.platform}
+                          size={ComponentSize.SM}
+                        />
+                      ) : null}
+                      <span>{item.format}</span>
+                      <Badge variant="info">
+                        {translate('home.approvals.readyToReview')}
+                      </Badge>
+                    </span>
                   }
                   title={item.summary}
                   trailing={
@@ -379,11 +407,13 @@ function NeedsYouSurface({
               <ListRow
                 data-testid="operational-home-needs-you-row"
                 density="compact"
-                description={
-                  formatPlatformLabel(credential.platform) ??
-                  credential.platform
-                }
                 key={needsYouItem.key}
+                leading={
+                  <PlatformBadge
+                    platform={credential.platform}
+                    showLabel={false}
+                  />
+                }
                 meta={<Badge variant={badge.variant}>{badge.label}</Badge>}
                 title={getCredentialLabel(credential)}
                 trailing={
@@ -624,7 +654,7 @@ function PublishingSurface({
       }
       className="h-full"
       data-testid="operational-home-publishing"
-      description="Recent executions and the sends scheduled this week."
+      density="compact"
       eyebrow="Publishing state"
       title="Distribution operations"
     >
@@ -728,7 +758,7 @@ function CredentialHealthSurface({
       }
       className="h-full"
       data-testid="operational-home-credentials"
-      description="Connected accounts and the ones that need a reconnect."
+      density="compact"
       eyebrow="Credential health"
       title="Channel readiness"
     >
@@ -794,7 +824,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
         </Button>
       }
       data-testid="operational-home-activity"
-      description="Organization-scoped actions and system events."
+      density="compact"
       eyebrow="Recent activity"
       title="What changed"
     >
