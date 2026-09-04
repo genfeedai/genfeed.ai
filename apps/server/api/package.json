@@ -97,6 +97,8 @@
     "seed:articles": "bun run scripts/seeds/articles.seed.ts --live",
     "seed:articles:compiled": "node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register ../dist/apps/api-articles-seed/main",
     "seed:articles:dry": "bun run scripts/seeds/articles.seed.ts",
+    "seed:local-debug": "bun run scripts/seeds/local-debug-data.seed.ts",
+    "seed:local-debug:live": "bun run scripts/seeds/local-debug-data.seed.ts --live",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",
     "seed:workflows:dry": "bun run scripts/seeds/workflows.seed.ts --dry-run",
     "purge:prelaunch-corpus": "bun run scripts/seeds/purge-prelaunch-reference-corpus.ts --live",
