@@ -4,9 +4,9 @@ import { ButtonSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewCadenceSectionProps } from '@props/publisher/publishing-overview.props';
-import Card from '@ui/card/Card';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -19,11 +19,12 @@ export default function CadenceGapsSection({
   const { href } = useOrgUrl();
 
   return (
-    <Card
-      bodyClassName="flex flex-col gap-4 p-5"
+    <WorkspaceSurface
       data-testid="publishing-overview-cadence"
+      density="compact"
       description={translate('cadenceDescription')}
-      label={translate('cadenceTitle')}
+      flush
+      title={translate('cadenceTitle')}
     >
       {gaps.length > 0 ? (
         <div>
@@ -69,10 +70,10 @@ export default function CadenceGapsSection({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
           {translate('cadenceEmpty')}
         </p>
       )}
-    </Card>
+    </WorkspaceSurface>
   );
 }

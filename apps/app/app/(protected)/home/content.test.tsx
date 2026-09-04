@@ -599,7 +599,7 @@ describe('OperationalHomeContent', () => {
     expect(needsYou).toHaveTextContent('catalog:home.approvals.empty');
   });
 
-  it('caps the attention queue at eight rows and links to the rest', () => {
+  it('caps the attention queue at five rows and links to the rest', () => {
     mocks.reviewInboxRecentItems = Array.from({ length: 9 }, (_, index) =>
       buildReviewItem(`item_${index + 1}`),
     );
@@ -609,7 +609,7 @@ describe('OperationalHomeContent', () => {
     const needsYou = screen.getByTestId('operational-home-needs-you');
     expect(
       within(needsYou).getAllByTestId('operational-home-needs-you-row'),
-    ).toHaveLength(8);
+    ).toHaveLength(5);
     expect(
       within(needsYou).getByTestId('operational-home-needs-you-overflow'),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');

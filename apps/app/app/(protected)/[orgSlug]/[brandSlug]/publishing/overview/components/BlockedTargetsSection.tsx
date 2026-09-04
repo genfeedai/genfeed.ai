@@ -2,8 +2,8 @@
 
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewBlockedSectionProps } from '@props/publisher/publishing-overview.props';
-import Card from '@ui/card/Card';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -16,11 +16,12 @@ export default function BlockedTargetsSection({
   const { href } = useOrgUrl();
 
   return (
-    <Card
-      bodyClassName="flex flex-col gap-4 p-5"
+    <WorkspaceSurface
       data-testid="publishing-overview-blocked"
+      density="compact"
       description={translate('blockedDescription')}
-      label={translate('blockedTitle')}
+      flush
+      title={translate('blockedTitle')}
     >
       {groups.length > 0 ? (
         <div>
@@ -48,10 +49,10 @@ export default function BlockedTargetsSection({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
           {translate('blockedEmpty')}
         </p>
       )}
-    </Card>
+    </WorkspaceSurface>
   );
 }

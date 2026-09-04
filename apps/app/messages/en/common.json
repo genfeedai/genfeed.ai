@@ -564,7 +564,8 @@
       "creditsSuffix": "credits",
       "empty": "No workflow executions yet",
       "historyTitle": "Workflow execution history",
-      "noNodeResults": "No node results recorded yet."
+      "noNodeResults": "No node results recorded yet.",
+      "unavailableWorkflow": "Workflow unavailable"
     },
     "workflowRun": {
       "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",

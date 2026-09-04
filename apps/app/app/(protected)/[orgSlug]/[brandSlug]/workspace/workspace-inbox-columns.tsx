@@ -40,7 +40,7 @@ export const workspaceInboxTableColumns = [
     className: 'w-36 hidden lg:table-cell',
     render: (task: Task) => (
       <span className="text-xs text-foreground/45">
-        {task.executionPathUsed?.replaceAll('_', ' ') ?? ':'}
+        {task.executionPathUsed?.replaceAll('_', ' ') ?? ''}
       </span>
     ),
   },

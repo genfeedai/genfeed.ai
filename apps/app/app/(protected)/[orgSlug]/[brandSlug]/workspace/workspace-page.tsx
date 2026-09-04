@@ -343,17 +343,18 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              {section === 'inbox' ? (
-                <div className="w-full">{inboxTable}</div>
-              ) : (
-                <WorkspaceSurface
-                  title="Inbox"
-                  description="Latest items waiting on your review."
-                  density="compact"
-                >
-                  {inboxTable}
-                </WorkspaceSurface>
-              )}
+              <WorkspaceSurface
+                density="compact"
+                description={
+                  section === 'inbox'
+                    ? sectionCopy.description
+                    : 'Latest items waiting on your review.'
+                }
+                framed={false}
+                title={section === 'inbox' ? sectionCopy.title : 'Inbox'}
+              >
+                {inboxTable}
+              </WorkspaceSurface>
             </section>
           ) : null}
         </div>

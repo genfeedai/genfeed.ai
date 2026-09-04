@@ -1,7 +1,7 @@
 'use client';
 
 import type { Task, TasksService } from '@services/management/tasks.service';
-import Card from '@ui/card/Card';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { WorkspaceTaskCard } from './workspace-task-card';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
@@ -29,15 +29,16 @@ export function WorkspaceTaskQueueCard({
       id="task-queue"
       data-testid="workspace-task-list"
     >
-      <Card
-        label="Task queue"
+      <WorkspaceSurface
+        density="compact"
         description="Recent task requests across triage, active work, review, and completed output."
-        bodyClassName="space-y-3 p-4"
+        flush
+        title="Task queue"
       >
         {isLoading && items.length === 0 ? (
           <WorkspaceTaskRowsSkeleton rows={4} />
         ) : items.length > 0 ? (
-          <div className="divide-y divide-border/60">
+          <div className="divide-y divide-border">
             {items.map((task) => (
               <WorkspaceTaskCard
                 key={task.id}
@@ -62,11 +63,11 @@ export function WorkspaceTaskQueueCard({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-foreground/45">
+          <p className="px-4 py-3 text-sm text-foreground/45 sm:px-5">
             No tasks yet. Start the first one from New Task.
           </p>
         )}
-      </Card>
+      </WorkspaceSurface>
     </section>
   );
 }

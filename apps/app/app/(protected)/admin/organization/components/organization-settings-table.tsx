@@ -217,8 +217,7 @@ export function OrganizationSettingsTable({
         eyebrow="Organization Controls"
         title="Settings Matrix"
         tone="muted"
-        className="overflow-hidden"
-        contentClassName="p-0"
+        flush
         data-testid="organization-settings-surface"
       >
         <div className="overflow-x-auto">

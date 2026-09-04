@@ -31,7 +31,7 @@ export function WorkspaceTaskCard({
   const showReviewActions = task.reviewState === 'pending_approval';
 
   return (
-    <article className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+    <article className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{task.title}</p>

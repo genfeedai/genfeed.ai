@@ -40,7 +40,7 @@ import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ArrowRight, ImageOff, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -76,10 +76,11 @@ const EXECUTION_STATUS_VARIANTS: Record<
   [WorkflowExecutionStatus.RUNNING]: 'info',
 };
 
-const CREDENTIAL_ROW_LIMIT = 6;
+const CREDENTIAL_ROW_LIMIT = 5;
 const ACTIVITY_ROW_LIMIT = 5;
-const RECENT_EXECUTION_LIMIT = 3;
-const NEEDS_YOU_LIMIT = 8;
+const RECENT_EXECUTION_LIMIT = 5;
+const NEEDS_YOU_LIMIT = 5;
+const WORKFLOW_UNAVAILABLE_LABEL = 'Workflow unavailable';
 const UPCOMING_SCHEDULE_DAYS = 7;
 
 function ErrorLine({
@@ -93,7 +94,7 @@ function ErrorLine({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-3 border-l-2 border-destructive py-1 pl-3 text-sm text-foreground/70"
+      className="mx-4 my-3 flex flex-wrap items-center gap-3 border-l-2 border-destructive py-1 pl-3 text-sm text-foreground/70 sm:mx-5"
       role="alert"
     >
       <TriangleAlert
@@ -125,7 +126,7 @@ function EmptyLine({
   description: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 text-sm text-foreground/55">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm text-foreground/55 sm:px-5">
       <span>{description}</span>
       {actionHref && actionLabel ? (
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
@@ -279,6 +280,7 @@ function NeedsYouSurface({
       }
       data-testid="operational-home-needs-you"
       density="compact"
+      flush
       eyebrow="Needs you"
       title="Attention queue"
     >
@@ -321,8 +323,12 @@ function NeedsYouSurface({
                         />
                       </span>
                     ) : (
-                      <span className="inline-flex size-10 items-center justify-center rounded-md border border-dashed border-border text-2xs text-muted-foreground">
-                        —
+                      <span
+                        aria-label="No media"
+                        className="inline-flex size-10 items-center justify-center rounded-md bg-background-secondary text-muted-foreground shadow-border"
+                        role="img"
+                      >
+                        <ImageOff aria-hidden="true" className="size-4" />
                       </span>
                     )
                   }
@@ -384,7 +390,9 @@ function NeedsYouSurface({
                       value={getExecutionTimestamp(execution)}
                     />
                   }
-                  title={execution.workflow?.label ?? execution.workflowId}
+                  title={
+                    execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL
+                  }
                   trailing={
                     <Button
                       asChild
@@ -540,7 +548,7 @@ function UpcomingScheduleBlock({
 
   return (
     <div
-      className="flex flex-col gap-3 border-t border-border pt-4"
+      className="flex flex-col gap-3 border-t border-border px-4 py-4 sm:px-5"
       data-testid="operational-home-upcoming"
     >
       <div className="flex items-center justify-between gap-3">
@@ -655,6 +663,7 @@ function PublishingSurface({
       className="h-full"
       data-testid="operational-home-publishing"
       density="compact"
+      flush
       eyebrow="Publishing state"
       title="Distribution operations"
     >
@@ -686,7 +695,7 @@ function PublishingSurface({
                   value={getExecutionTimestamp(execution)}
                 />
               }
-              title={execution.workflow?.label ?? execution.workflowId}
+              title={execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL}
               trailing={
                 <Badge
                   variant={
@@ -759,6 +768,7 @@ function CredentialHealthSurface({
       className="h-full"
       data-testid="operational-home-credentials"
       density="compact"
+      flush
       eyebrow="Credential health"
       title="Channel readiness"
     >
@@ -825,6 +835,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
       }
       data-testid="operational-home-activity"
       density="compact"
+      flush
       eyebrow="Recent activity"
       title="What changed"
     >
