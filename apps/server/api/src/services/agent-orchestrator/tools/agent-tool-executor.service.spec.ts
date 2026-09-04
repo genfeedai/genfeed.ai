@@ -4642,12 +4642,12 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         editorUrl: `/genfeed-ai/genfeed/automation/workflows/${recurringWorkflowId}`,
         label: 'Weekly Content Planner',
-        nextRunAt: expect.any(Date),
+        nextRunAt: expect.any(String),
         schedule: '0 9 * * 1',
         timezone: 'Europe/Malta',
       }),
     );
-    expect(result.data?.nextRunAt).toBeInstanceOf(Date);
+    expect(Date.parse(String(result.data?.nextRunAt))).not.toBeNaN();
     expect(result.nextActions?.[0]).toEqual(
       expect.objectContaining({
         ctas: [
