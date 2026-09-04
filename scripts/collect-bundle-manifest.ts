@@ -8,9 +8,9 @@
  * before that route becomes interactive. That is the number a reviewer needs
  * when a pull request statically imports a heavy library onto a hot route.
  *
- * It reads Next's own manifest rather than an analyzer plugin report:
- * `@next/bundle-analyzer` is a webpack plugin, and `apps/app` builds with
- * `--turbopack`, so the plugin never runs there. Next.js 16 removed the
+ * It reads Next's own manifest rather than an analyzer plugin report: every
+ * Next app here builds with `--turbopack`, and the webpack-only
+ * `@next/bundle-analyzer` is gone. Next.js 16 removed the
  * standalone `app-build-manifest.json` and folded App Router entries into
  * `build-manifest.json`'s `pages` map (both bundlers write that file), so
  * this reads `build-manifest.json` alone and keeps only the `/page` and
