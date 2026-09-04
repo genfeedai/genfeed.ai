@@ -207,7 +207,12 @@ export class KnowledgeRecordsService {
     id: string,
   ) {
     const changed = await tx.knowledgeSource.updateMany({
-      where: { ...this.ownership(actor), id },
+      where: {
+        ...this.ownership(actor),
+        id,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+      },
       data: { updatedAt: new Date() },
     });
     if (!changed.count) ErrorResponse.notFound('Knowledge source', id);
@@ -219,7 +224,12 @@ export class KnowledgeRecordsService {
     id: string,
   ) {
     const changed = await tx.knowledgeSpace.updateMany({
-      where: { ...this.ownership(actor), id },
+      where: {
+        ...this.ownership(actor),
+        id,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+      },
       data: { updatedAt: new Date() },
     });
     if (!changed.count) ErrorResponse.notFound('Knowledge space', id);
