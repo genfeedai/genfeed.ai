@@ -94,7 +94,7 @@ describe('AgentPanelShell', () => {
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Outputs' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
     expect(screen.getByTestId('outputs-content')).toBeInTheDocument();
     // chat tab slot should be hidden
     expect(screen.getByTestId('chat-content').parentElement).toHaveClass(
@@ -107,8 +107,8 @@ describe('AgentPanelShell', () => {
     render(
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Outputs' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Terminal' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Outputs' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Terminal' }));
     expect(screen.getByTestId('chat-content').parentElement).not.toHaveClass(
       'hidden',
     );

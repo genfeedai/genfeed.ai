@@ -39,7 +39,8 @@ export type ControlGuardCategory =
   | 'raw-input'
   | 'raw-select'
   | 'raw-button'
-  | 'styled-anchor';
+  | 'styled-anchor'
+  | 'tabs-bypass';
 
 export type ControlGuardSeverity = 'required' | 'advisory';
 
@@ -123,6 +124,10 @@ export const ALLOWLIST = {
    * is already covered by the shared test-file exclusion.
    */
   selfReferenceFiles: new Set<string>(['scripts/ui/control-guard.ts']),
+  sharedTabsFiles: new Set<string>([
+    'packages/ui/src/components/navigation/tabs/Tabs.tsx',
+    'packages/ui/src/primitives/tabs.tsx',
+  ]),
 } as const;
 
 // ─── Shared scope helpers ─────────────────────────────────────────────────────
@@ -177,6 +182,11 @@ function lineOf(content: string, index: number): number {
 // ─── Rule definitions ─────────────────────────────────────────────────────────
 
 const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
+const PRODUCT_UI_PREFIXES = [
+  ...APP_PAGES_PREFIXES,
+  'packages/agent/src/',
+  'packages/ui/src/',
+] as const;
 // `packages/ui/workflow-builder/` currently resolves to nothing on disk; it is
 // carried forward verbatim from check-raw-ui-controls so scope parity is exact
 // and the entry starts enforcing the moment that directory is (re)introduced.
@@ -228,6 +238,11 @@ const BANNED_IMPORT_PATTERNS = [
   /@\/features\/workflows\/components\/ui\/inputs\/input\/Input/g,
   /@\/features\/workflows\/components\/ui\/inputs\/textarea\/Textarea/g,
   /@\/features\/workflows\/components\/ui\/inputs\/select\/Select/g,
+];
+const TABS_BYPASS_PATTERNS = [
+  /primitives\/tabs(?:\.styles)?/g,
+  /@radix-ui\/react-tabs/g,
+  /role\s*=\s*(?:["']tab(?:list)?["']|\{["']tab(?:list)?["']\})/g,
 ];
 
 function isButtonLikeClassName(className: string): boolean {
@@ -388,6 +403,17 @@ const RULES: readonly Rule[] = [
     },
   },
   {
+    category: 'tabs-bypass',
+    severity: 'required',
+    scope: { prefixes: PRODUCT_UI_PREFIXES, exts: JSX_EXTS },
+    detect: (rel, content) =>
+      ALLOWLIST.sharedTabsFiles.has(rel)
+        ? []
+        : TABS_BYPASS_PATTERNS.flatMap((pattern) =>
+            matchLines(content, pattern),
+          ),
+  },
+  {
     category: 'banned-import',
     severity: 'required',
     scope: {
@@ -461,7 +487,9 @@ export function detectViolations(
 // (which carry no element tag for git-grep to key on) are never missed.
 const BOUNDED_GLOBS = [
   'apps/app/**/*.{tsx,jsx}',
+  'packages/agent/src/**/*.{tsx,jsx}',
   'packages/pages/**/*.{tsx,jsx}',
+  'packages/ui/src/**/*.{tsx,jsx}',
   'packages/ui/workflow-builder/**/*.{tsx,jsx}',
 ];
 const BOUNDED_GLOB_IGNORE = [
@@ -488,6 +516,10 @@ function repoWideGitGrepFilter(): string {
     '@/features/workflows/components/ui/inputs/input/Input',
     '@/features/workflows/components/ui/inputs/textarea/Textarea',
     '@/features/workflows/components/ui/inputs/select/Select',
+    '@ui/primitives/tabs',
+    '@ui/primitives/tabs.styles',
+    '@radix-ui/react-tabs',
+    'role=',
   ].join('|');
   return `<(${elements})|${imports}`;
 }
@@ -549,6 +581,7 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
   'legacy-import',
   'raw-input',
   'raw-select',
+  'tabs-bypass',
   'raw-button',
   'styled-anchor',
 ];
@@ -560,6 +593,8 @@ const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'legacy-import': 'Replace @ui/inputs/* legacy imports with @ui/primitives/*.',
   'raw-input': 'Use the shared Input primitive (hidden/file inputs excepted).',
   'raw-select': 'Use the shared Select primitive.',
+  'tabs-bypass':
+    'Use @ui/navigation/tabs/Tabs instead of primitive or hand-rolled tabs.',
   'raw-button': 'Use the shared Button primitive.',
   'styled-anchor': 'Use Button/AppLink instead of a button-styled anchor.',
 };

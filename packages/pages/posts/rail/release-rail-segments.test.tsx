@@ -10,17 +10,14 @@ vi.mock('next-intl', async () => {
 });
 
 describe('ReleaseRailSegments', () => {
-  it('uses the shared outline tabs and changes the active segment', () => {
+  it('uses the shared tabs and changes the active segment', () => {
     const onSegmentChange = vi.fn();
 
     render(
       <ReleaseRailSegments onSegmentChange={onSegmentChange} segment="all" />,
     );
 
-    expect(screen.getByRole('tablist')).toHaveAttribute(
-      'data-variant',
-      'outline',
-    );
+    expect(screen.getByRole('tablist')).toHaveClass('gap-1');
     screen.getByRole('tab', { name: /published/i }).click();
     expect(onSegmentChange).toHaveBeenCalledWith('published');
   });

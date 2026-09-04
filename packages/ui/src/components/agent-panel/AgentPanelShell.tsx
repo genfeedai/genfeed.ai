@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Maximize2, Sparkles } from 'lucide-react';
 import {
@@ -70,26 +71,17 @@ function AgentPanelShell({
 
         <div className="flex shrink-0 items-center gap-0.5">
           {isOpen && outputsContent && (
-            <div className="gen-shell-segmented mr-1 flex gap-0.5 rounded-md p-0.5">
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => handleTabChange('chat')}
-                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-2xs font-semibold uppercase tracking-[0.12em]"
-                data-active={activeTab === 'chat' ? 'true' : 'false'}
-              >
-                Terminal
-              </Button>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => handleTabChange('outputs')}
-                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-2xs font-semibold uppercase tracking-[0.12em]"
-                data-active={activeTab === 'outputs' ? 'true' : 'false'}
-              >
-                Outputs
-              </Button>
-            </div>
+            <Tabs
+              activeTab={activeTab}
+              ariaLabel="Agent panel view"
+              className="mr-1"
+              fullWidth={false}
+              items={[
+                { id: 'chat', label: 'Terminal' },
+                { id: 'outputs', label: 'Outputs' },
+              ]}
+              onTabChange={(tab) => handleTabChange(tab as AgentRailTab)}
+            />
           )}
 
           {isOpen && onExpand && (

@@ -552,8 +552,8 @@ describe('WorkspacePageContent', () => {
       '/acme-org/acme-creator/workspace/inbox/unread',
     );
     expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
-      'data-variant',
-      'outline',
+      'data-state',
+      'active',
     );
     expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',

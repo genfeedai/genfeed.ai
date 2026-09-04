@@ -31,8 +31,6 @@ export default function ReleaseRailSegments({
       onTabChange={(value) =>
         onSegmentChange(value as (typeof RELEASE_RAIL_SEGMENTS)[number])
       }
-      size="sm"
-      variant="outline"
     />
   );
 }

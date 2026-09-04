@@ -246,8 +246,6 @@ export default function CampaignDetailShell({
             matchMode: 'exact',
           },
         ],
-        size: 'sm',
-        variant: 'underline',
       }}
       icon={Flag}
       label={resolvedCampaign.name}

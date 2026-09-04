@@ -166,8 +166,6 @@ function WorkspacePageContentContent({
       <Tabs
         activeTab={defaultInboxView}
         fullWidth={false}
-        size="sm"
-        variant="outline"
         items={INBOX_VIEW_OPTIONS.map((option) => {
           const count =
             option.id === 'unread'

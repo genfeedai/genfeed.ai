@@ -35,11 +35,8 @@ export default function IngredientWorkspacePanel({
           activeTab={activeTab}
           contentClassName="mt-5 space-y-5"
           fullWidth={false}
-          listClassName="-m-1 max-w-full overflow-x-auto p-1"
           onTabChange={onTabChange}
-          size="sm"
           tabs={tabs}
-          variant="underline"
         >
           {children}
         </Tabs>

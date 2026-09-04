@@ -7,52 +7,31 @@ import { getTabsListClassName, getTabsTriggerClassName } from './tabs.styles';
 
 const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;
 
-type TabsListProps = ComponentPropsWithRef<typeof TabsPrimitive.List> & {
-  'data-variant'?: 'default' | 'outline' | 'pills' | 'segmented' | 'underline';
-};
-
 function TabsList({
   ref,
   className,
-  'data-variant': dataVariant,
   ...props
-}: TabsListProps) {
+}: ComponentPropsWithRef<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
       ref={ref}
-      className={getTabsListClassName(className, dataVariant)}
-      data-variant={dataVariant}
+      className={getTabsListClassName(className)}
       {...props}
     />
   );
 }
 TabsList.displayName = TabsPrimitive.List.displayName;
 
-// React allows arbitrary `data-*` in JSX but not on a destructured props
-// object, so the two attributes tabs.styles.ts reads are declared explicitly.
-// The variant names mirror the `data-[variant=…]` rules in that file.
-type TabsTriggerProps = ComponentPropsWithRef<typeof TabsPrimitive.Trigger> & {
-  'data-size'?: 'md' | 'sm';
-  'data-variant'?: 'default' | 'outline' | 'pills' | 'segmented' | 'underline';
-};
-
-function TabsTrigger({ ref, className, ...props }: TabsTriggerProps) {
-  // Styles in tabs.styles.ts are gated on data-variant / data-size. The
-  // enhanced navigation Tabs always set these; bare @radix TabsTrigger
-  // consumers must default them or every tab looks like plain text + focus ring.
-  const {
-    'data-variant': dataVariant = 'default',
-    'data-size': dataSize,
-    ...rest
-  } = props;
-
+function TabsTrigger({
+  ref,
+  className,
+  ...props
+}: ComponentPropsWithRef<typeof TabsPrimitive.Trigger>) {
   return (
     <TabsPrimitive.Trigger
       ref={ref}
-      data-variant={dataVariant}
-      data-size={dataSize}
       className={getTabsTriggerClassName(className)}
-      {...rest}
+      {...props}
     />
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   InstagramIcon,
   LinkedinIcon,
@@ -11,10 +10,9 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
-import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { LayoutGrid } from 'lucide-react';
-import Link from 'next/link';
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 export type SocialsNavigationBasePath = '/discovery' | '/analytics/trends';
 
@@ -27,17 +25,14 @@ interface SocialsNavigationItem {
 
 type IconComponent = ComponentType<{ className?: string }>;
 
-const PLATFORM_ICONS: Record<
-  TrendPlatform,
-  { Icon: IconComponent; iconClass: string }
-> = {
-  instagram: { Icon: InstagramIcon, iconClass: 'text-pink-500' },
-  linkedin: { Icon: LinkedinIcon, iconClass: 'text-blue-600' },
-  pinterest: { Icon: PinterestIcon, iconClass: 'text-red-600' },
-  reddit: { Icon: RedditIcon, iconClass: 'text-orange-500' },
-  tiktok: { Icon: TiktokIcon, iconClass: 'text-foreground' },
-  twitter: { Icon: XTwitterIcon, iconClass: 'text-foreground' },
-  youtube: { Icon: YoutubeIcon, iconClass: 'text-red-500' },
+const PLATFORM_ICONS: Record<TrendPlatform, IconComponent> = {
+  instagram: InstagramIcon,
+  linkedin: LinkedinIcon,
+  pinterest: PinterestIcon,
+  reddit: RedditIcon,
+  tiktok: TiktokIcon,
+  twitter: XTwitterIcon,
+  youtube: YoutubeIcon,
 };
 
 /**
@@ -96,47 +91,6 @@ function buildSocialsNavItems(
 
 export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
-/**
- * Menu-row local nav: icon + label, underline active state — not filter pills.
- * Prefer Discovery sidebar menu items for platform destinations; keep this for
- * analytics/trends section chrome and tests.
- */
-function SocialsNavItem({
-  children,
-  href,
-  isActive,
-  label,
-}: {
-  children: ReactNode;
-  href: string;
-  isActive: boolean;
-  label: string;
-}) {
-  const prefetchHref = useNavigationPrefetch(href);
-
-  return (
-    <Link
-      href={href}
-      aria-current={isActive ? 'page' : undefined}
-      aria-label={label}
-      data-state={isActive ? 'active' : 'inactive'}
-      prefetch={false}
-      onFocus={prefetchHref}
-      onMouseEnter={prefetchHref}
-      title={label}
-      className={cn(
-        'inline-flex h-8 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-xs font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        isActive
-          ? 'border-foreground text-foreground'
-          : 'border-transparent text-foreground/55 hover:border-border hover:text-foreground/85',
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
 export function SocialsNavigation({
   active,
   basePath = '/discovery',
@@ -147,56 +101,15 @@ export function SocialsNavigation({
   const items = buildSocialsNavItems(basePath);
 
   return (
-    <nav
-      aria-label="Social platforms"
-      className="flex max-w-full flex-wrap items-center gap-0.5"
-      data-testid="socials-platform-filter"
-    >
-      {items.map((item) => {
-        const isActive = item.id === active;
-
-        if (item.id === 'overview') {
-          return (
-            <SocialsNavItem
-              key={item.id}
-              href={item.href}
-              isActive={isActive}
-              label={item.label}
-            >
-              <LayoutGrid
-                aria-hidden="true"
-                className={cn(
-                  'size-3.5',
-                  isActive ? 'text-foreground' : 'text-foreground/50',
-                )}
-              />
-              <span>{item.label}</span>
-            </SocialsNavItem>
-          );
-        }
-
-        const platform = PLATFORM_ICONS[item.id];
-        const Icon = platform.Icon;
-
-        return (
-          <SocialsNavItem
-            key={item.id}
-            href={item.href}
-            isActive={isActive}
-            label={item.label}
-          >
-            <Icon
-              aria-hidden="true"
-              className={cn(
-                'size-3.5',
-                platform.iconClass,
-                !isActive && 'opacity-70',
-              )}
-            />
-            <span className="max-w-[7rem] truncate">{item.label}</span>
-          </SocialsNavItem>
-        );
-      })}
-    </nav>
+    <Tabs
+      activeTab={active}
+      ariaLabel="Social platforms"
+      className="max-w-full"
+      fullWidth={false}
+      items={items.map((item) => ({
+        ...item,
+        icon: item.id === 'overview' ? LayoutGrid : PLATFORM_ICONS[item.id],
+      }))}
+    />
   );
 }

@@ -76,11 +76,11 @@ describe('SocialsNavigation', () => {
     );
   });
 
-  it('uses underline menu rows, not rounded filter pills', () => {
+  it('uses the shared outlined navigation style', () => {
     render(<SocialsNavigation active="overview" />);
 
     const allPlatforms = screen.getByRole('link', { name: 'All platforms' });
-    expect(allPlatforms.className).toMatch(/border-b-2/);
+    expect(allPlatforms.className).toMatch(/border-input/);
     expect(allPlatforms.className).not.toMatch(/rounded-full/);
   });
 

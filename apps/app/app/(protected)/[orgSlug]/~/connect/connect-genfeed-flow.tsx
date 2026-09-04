@@ -21,10 +21,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import {
   ArrowRight,
   CircleCheck,
@@ -351,21 +351,19 @@ export default function ConnectGenfeedFlow() {
       </ol>
 
       <Card bodyClassName="p-5" label="1. Choose your MCP client">
-        <Tabs value={client} onValueChange={handleClientChange}>
-          <TabsList aria-label="MCP client">
-            {CLIENTS.map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {CLIENTS.map((item) => (
-            <TabsContent key={item.value} value={item.value}>
-              <p className="pt-2 text-xs text-muted-foreground">
-                {item.description}
-              </p>
-            </TabsContent>
-          ))}
+        <Tabs
+          activeTab={client}
+          ariaLabel="MCP client"
+          fullWidth={false}
+          items={CLIENTS.map((item) => ({
+            id: item.value,
+            label: item.label,
+          }))}
+          onTabChange={handleClientChange}
+        >
+          <p className="pt-2 text-xs text-muted-foreground">
+            {CLIENTS.find((item) => item.value === client)?.description}
+          </p>
         </Tabs>
       </Card>
 

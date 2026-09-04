@@ -209,23 +209,24 @@ describe('Tabs', () => {
     expect(tabsContainer).toBeInTheDocument();
   });
 
-  it('applies pills variant classes', () => {
+  it('applies the canonical outlined appearance', () => {
     const handleTabChange = vi.fn();
     render(
       <Tabs
         tabs={['home', 'profile']}
         activeTab="home"
         onTabChange={handleTabChange}
-        variant="pills"
       />,
     );
 
     const tabList = screen.getByRole('tablist');
     const activeTab = screen.getByRole('tab', { name: /home/i });
 
-    expect(tabList).toHaveAttribute('data-variant', 'pills');
-    expect(tabList).toHaveClass('rounded-2xl');
-    expect(activeTab).toHaveAttribute('data-variant', 'pills');
+    expect(tabList).toHaveClass('gap-1', 'overflow-x-auto');
+    expect(activeTab).toHaveClass(
+      'border-input',
+      'data-[state=active]:bg-accent',
+    );
   });
 
   it('renders navigation tabs with href as links', () => {
@@ -260,12 +261,8 @@ describe('Tabs', () => {
 
     const inactiveTab = screen.getByRole('link', { name: /settings/i });
 
-    expect(inactiveTab).toHaveClass(
-      'data-[variant=default]:text-foreground/70',
-    );
-    expect(inactiveTab).not.toHaveClass(
-      'data-[variant=default]:text-secondary',
-    );
+    expect(inactiveTab).toHaveClass('text-foreground');
+    expect(inactiveTab).not.toHaveClass('text-secondary');
   });
 
   it('marks the active navigation tab with aria-current instead of tab semantics', () => {
@@ -319,7 +316,6 @@ describe('Tabs', () => {
             matchMode: 'exact',
           },
         ]}
-        variant="pills"
       />,
     );
 
@@ -348,7 +344,6 @@ describe('Tabs', () => {
           },
           { href: '/discovery/twitter', id: 'twitter', label: 'X' },
         ]}
-        variant="pills"
       />,
     );
 
@@ -358,38 +353,11 @@ describe('Tabs', () => {
     );
   });
 
-  it('applies underline variant classes', () => {
-    mockPathname = '/dashboard';
-    mockSearch = '';
-
-    render(
-      <Tabs
-        items={[
-          { id: 'selected', label: 'Selected' },
-          { id: 'review', label: 'Review' },
-        ]}
-        activeTab="selected"
-        variant="underline"
-        onTabChange={vi.fn()}
-      />,
-    );
-
-    const tabList = screen.getByRole('tablist');
-    expect(tabList).toHaveAttribute('data-variant', 'underline');
-    expect(tabList).toHaveClass('border-b', 'border-border');
-    expect(tabList).not.toHaveClass('border-0');
-    expect(screen.getByRole('tab', { name: /selected/i })).toHaveAttribute(
-      'data-variant',
-      'underline',
-    );
-  });
-
   it('connects active content to its tab with Radix tabpanel semantics', () => {
     render(
       <Tabs
         activeTab="home"
         contentClassName="panel-class"
-        listClassName="list-class"
         onTabChange={vi.fn()}
         tabs={['home', 'profile']}
       >
@@ -403,7 +371,6 @@ describe('Tabs', () => {
     expect(activeTab).toHaveAttribute('aria-controls', panel.id);
     expect(panel).toHaveAttribute('aria-labelledby', activeTab.id);
     expect(panel).toHaveClass('panel-class');
-    expect(screen.getByRole('tablist')).toHaveClass('list-class');
     expect(panel).toHaveTextContent('Home panel');
   });
 
@@ -435,36 +402,7 @@ describe('Tabs', () => {
     expect(handleTabChange).toHaveBeenLastCalledWith('info');
   });
 
-  it('applies segmented variant and compact sizing', () => {
-    mockPathname = '/dashboard';
-    mockSearch = '';
-
-    render(
-      <Tabs
-        items={[
-          { id: 'compose', label: 'Compose' },
-          { id: 'preview', label: 'Preview' },
-        ]}
-        activeTab="compose"
-        size="sm"
-        variant="segmented"
-        fullWidth={false}
-        onTabChange={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole('tablist')).toHaveAttribute(
-      'data-variant',
-      'segmented',
-    );
-    expect(screen.getByRole('tablist')).toHaveAttribute('data-size', 'sm');
-    expect(screen.getByRole('tab', { name: /compose/i })).toHaveAttribute(
-      'data-size',
-      'sm',
-    );
-  });
-
-  it('applies outline variant classes to the tab group and triggers', () => {
+  it('does not expose visual variant or size attributes', () => {
     render(
       <Tabs
         items={[
@@ -472,20 +410,16 @@ describe('Tabs', () => {
           { id: 'all', label: 'All' },
         ]}
         activeTab="recent"
-        size="sm"
-        variant="outline"
         fullWidth={false}
         onTabChange={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole('tablist')).toHaveAttribute(
-      'data-variant',
-      'outline',
-    );
+    expect(screen.getByRole('tablist')).not.toHaveAttribute('data-variant');
+    expect(screen.getByRole('tablist')).not.toHaveAttribute('data-size');
     expect(screen.getByRole('tab', { name: /recent/i })).toHaveClass(
-      'data-[variant=outline]:border-input',
-      'data-[variant=outline]:data-[state=active]:bg-accent',
+      'border-input',
+      'data-[state=active]:bg-accent',
     );
   });
 });

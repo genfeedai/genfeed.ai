@@ -1,8 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers';
-import { Button } from './button';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import type { DropdownFieldTab } from './dropdown-field';
 
 type DropdownTabBarProps = {
@@ -21,26 +19,15 @@ export default function DropdownTabBar({
   }
 
   return (
-    <div className="mb-2 flex items-center gap-2 border-b border-border px-3 pb-2">
-      {tabs.map((tab) => (
-        <Button
-          key={tab.id}
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          onClick={(event) => {
-            event.stopPropagation();
-            onTabChange(tab.id);
-          }}
-          className={cn(
-            'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-            activeTab === tab.id
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-          )}
-        >
-          {tab.label}
-        </Button>
-      ))}
+    <div className="mb-2 border-b border-border px-3 pb-2">
+      <Tabs
+        activeTab={activeTab}
+        ariaLabel="Option category"
+        fullWidth={false}
+        items={tabs}
+        onTabChange={onTabChange}
+        stopClickPropagation
+      />
     </div>
   );
 }

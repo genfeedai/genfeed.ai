@@ -17,8 +17,8 @@ import {
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -50,6 +50,11 @@ export default function StudioGenerateInspector({
   const [children, setChildren] = useState<IIngredient[]>([]);
   const [isLoadingUsedIn, setIsLoadingUsedIn] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [tabSelection, setTabSelection] = useState<{
+    jobId: string;
+    tab: 'history' | 'recipe' | 'used-in';
+  }>({ jobId: job.id, tab: 'recipe' });
+  const activeTab = tabSelection.jobId === job.id ? tabSelection.tab : 'recipe';
 
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -130,31 +135,25 @@ export default function StudioGenerateInspector({
       </div>
 
       <Tabs
+        activeTab={activeTab}
+        ariaLabel={translate('inspector.title')}
         className="flex min-h-0 flex-1 flex-col"
-        defaultValue="recipe"
+        contentClassName="min-h-0 flex-1 overflow-y-auto px-4 py-3"
+        items={[
+          { id: 'recipe', label: translate('inspector.recipe') },
+          { id: 'used-in', label: translate('inspector.usedIn') },
+          { id: 'history', label: translate('inspector.history') },
+        ]}
         key={job.id}
+        onTabChange={(tab) =>
+          setTabSelection({
+            jobId: job.id,
+            tab: tab as 'history' | 'recipe' | 'used-in',
+          })
+        }
       >
-        <TabsList
-          aria-label={translate('inspector.title')}
-          className="w-full justify-start px-2"
-          data-variant="underline"
-        >
-          <TabsTrigger data-size="sm" data-variant="underline" value="recipe">
-            {translate('inspector.recipe')}
-          </TabsTrigger>
-          <TabsTrigger data-size="sm" data-variant="underline" value="used-in">
-            {translate('inspector.usedIn')}
-          </TabsTrigger>
-          <TabsTrigger data-size="sm" data-variant="underline" value="history">
-            {translate('inspector.history')}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
-          value="recipe"
-        >
-          {promptText ? (
+        {activeTab === 'recipe' ? (
+          promptText ? (
             <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">
               {promptText}
             </pre>
@@ -162,14 +161,11 @@ export default function StudioGenerateInspector({
             <p className="text-xs text-muted-foreground">
               {translate('inspector.emptyRecipe')}
             </p>
-          )}
-        </TabsContent>
+          )
+        ) : null}
 
-        <TabsContent
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
-          value="used-in"
-        >
-          {isLoadingUsedIn ? (
+        {activeTab === 'used-in' ? (
+          isLoadingUsedIn ? (
             <p className="text-xs text-muted-foreground">
               {translate('inspector.loading')}
             </p>
@@ -190,14 +186,11 @@ export default function StudioGenerateInspector({
                 </li>
               ))}
             </ul>
-          )}
-        </TabsContent>
+          )
+        ) : null}
 
-        <TabsContent
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
-          value="history"
-        >
-          {siblingJobs.length === 0 &&
+        {activeTab === 'history' ? (
+          siblingJobs.length === 0 &&
           children.length === 0 &&
           !isLoadingHistory ? (
             <p className="text-xs text-muted-foreground">
@@ -247,8 +240,8 @@ export default function StudioGenerateInspector({
                 </div>
               ) : null}
             </div>
-          )}
-        </TabsContent>
+          )
+        ) : null}
       </Tabs>
 
       {job.status !== IngredientStatus.PROCESSING ? (
