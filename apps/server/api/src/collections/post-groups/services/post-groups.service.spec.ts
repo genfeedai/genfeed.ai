@@ -6,6 +6,7 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PostLifecycleService } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -42,6 +43,7 @@ type MockPostGroup = {
   attachments: unknown;
   baseContent: string;
   brandId: string | null;
+  campaignId: string | null;
   createdAt: Date;
   id: string;
   idempotencyKey: string | null;
@@ -134,6 +136,7 @@ describe('PostGroupsService', () => {
     $queryRaw: ReturnType<typeof vi.fn>;
     $transaction: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
+    campaign: { findFirst: ReturnType<typeof vi.fn> };
     credential: { findMany: ReturnType<typeof vi.fn> };
     post: {
       create: ReturnType<typeof vi.fn>;
@@ -166,6 +169,9 @@ describe('PostGroupsService', () => {
       $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
       brand: {
         findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+      },
+      campaign: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
       },
       credential: {
         findMany: vi.fn().mockResolvedValue([makeCredential()]),
@@ -880,6 +886,30 @@ describe('PostGroupsService', () => {
       }),
     });
 
+    expect(prisma.postGroup.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects campaign updates outside the release organization and brand', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ campaignId: null, id: 'group-1' }),
+    );
+    prisma.campaign.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.update('org-1', 'user-1', 'group-1', {
+        campaignId: 'campaign-1',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.campaign.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'campaign-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(prisma.postGroup.update).not.toHaveBeenCalled();
   });
 
@@ -2137,6 +2167,7 @@ function makeGroup(overrides: Partial<MockPostGroup> = {}): MockPostGroup {
     attachments: [],
     baseContent: 'Base content',
     brandId: 'brand-1',
+    campaignId: null,
     createdAt: new Date('2026-07-08T22:25:13.000Z'),
     id: 'group-1',
     idempotencyKey: null,

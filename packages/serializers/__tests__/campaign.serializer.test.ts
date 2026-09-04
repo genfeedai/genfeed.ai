@@ -3,6 +3,14 @@ import { campaignAttributes } from '@serializers/attributes/content/campaign.att
 import { CampaignSerializer } from '@serializers/server/content/campaign.serializer';
 import { describe, expect, it } from 'vitest';
 
+type SerializedCampaign = {
+  data: {
+    attributes: Record<string, unknown>;
+    id: string;
+    type: string;
+  };
+};
+
 describe('CampaignSerializer publish content-campaign contract', () => {
   it('serializes the campaign brief, window, and scope without relations', () => {
     const output = CampaignSerializer.serialize({
@@ -19,13 +27,7 @@ describe('CampaignSerializer publish content-campaign contract', () => {
       status: ContentCampaignStatus.SCHEDULED,
       updatedAt: new Date('2026-09-02T00:00:00.000Z'),
       userId: 'opaque-user',
-    }) as {
-      data: {
-        attributes: Record<string, unknown>;
-        id: string;
-        type: string;
-      };
-    };
+    }) as SerializedCampaign;
 
     expect(campaignAttributes).toEqual(
       expect.arrayContaining([
@@ -74,7 +76,7 @@ describe('CampaignSerializer publish content-campaign contract', () => {
       startDate: null,
       status: ContentCampaignStatus.DRAFT,
       userId: 'opaque-user',
-    }) as { data: { attributes: Record<string, unknown>; id: string } };
+    }) as SerializedCampaign;
 
     expect(output.data.id).toBe('campaign-2');
     expect(output.data.attributes).toMatchObject({

@@ -6,6 +6,7 @@ import {
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
 } from '@genfeedai/contracts';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ORG_ID = 'org-1';
@@ -41,6 +42,7 @@ function asMock(fn: unknown) {
 
 describe('CampaignsService', () => {
   const prisma = {
+    $transaction: vi.fn(),
     brand: { findFirst: vi.fn() },
     campaign: {
       count: vi.fn(),
@@ -57,6 +59,10 @@ describe('CampaignsService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     service = new CampaignsService(prisma);
+    asMock(prisma.$transaction).mockImplementation(
+      async (callback: (tx: PrismaService) => Promise<unknown>) =>
+        callback(prisma),
+    );
     asMock(prisma.brand.findFirst).mockResolvedValue({ id: BRAND_ID });
   });
 
@@ -176,6 +182,36 @@ describe('CampaignsService', () => {
     expect(prisma.campaign.create).not.toHaveBeenCalled();
   });
 
+  it('rejects brand reassignment after campaign membership exists', async () => {
+    asMock(prisma.campaign.findFirst)
+      .mockResolvedValueOnce(campaignRow())
+      .mockResolvedValueOnce({
+        _count: { paidActivations: 0, postGroups: 0, posts: 1 },
+      });
+
+    await expect(
+      service.update(ORG_ID, CAMPAIGN_ID, { brandId: OTHER_BRAND_ID }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.campaign.update).not.toHaveBeenCalled();
+    expect(asMock(prisma.campaign.findFirst).mock.calls[1]?.[0]).toEqual({
+      select: {
+        _count: {
+          select: {
+            paidActivations: true,
+            postGroups: true,
+            posts: true,
+          },
+        },
+      },
+      where: {
+        id: CAMPAIGN_ID,
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
+  });
+
   it('soft deletes without touching posts or releases', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(campaignRow());
     asMock(prisma.campaign.update).mockResolvedValue(
@@ -219,7 +255,7 @@ describe('CampaignsService', () => {
       data: { campaignId: CAMPAIGN_ID },
       where: {
         brandId: BRAND_ID,
-        id: { in: ['cpost00000001'] },
+        groupId: { in: ['cgroup0000001'] },
         isDeleted: false,
         organizationId: ORG_ID,
       },
@@ -227,6 +263,41 @@ describe('CampaignsService', () => {
     expect(asMock(prisma.postGroup.updateMany).mock.calls[0][0]).toEqual({
       data: { campaignId: CAMPAIGN_ID },
       where: {
+        brandId: BRAND_ID,
+        id: { in: ['cgroup0000001'] },
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
+  });
+
+  it('unassigns every target when one member of a release is selected', async () => {
+    asMock(prisma.campaign.findFirst).mockResolvedValue(campaignRow());
+    asMock(prisma.post.findMany).mockResolvedValue([
+      { groupId: 'cgroup0000001', id: 'cpost00000001' },
+    ]);
+    asMock(prisma.post.updateMany).mockResolvedValue({ count: 2 });
+    asMock(prisma.postGroup.updateMany).mockResolvedValue({ count: 1 });
+
+    await service.unassignPosts(ORG_ID, CAMPAIGN_ID, {
+      postIds: ['cpost00000001'],
+    });
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      data: { campaignId: null },
+      where: {
+        brandId: BRAND_ID,
+        campaignId: CAMPAIGN_ID,
+        groupId: { in: ['cgroup0000001'] },
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
+    expect(prisma.postGroup.updateMany).toHaveBeenCalledWith({
+      data: { campaignId: null },
+      where: {
+        brandId: BRAND_ID,
+        campaignId: CAMPAIGN_ID,
         id: { in: ['cgroup0000001'] },
         isDeleted: false,
         organizationId: ORG_ID,

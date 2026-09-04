@@ -21,7 +21,7 @@ import type {
   ICampaignLifecycleResult,
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -122,6 +122,7 @@ export class CampaignsService {
     const existing = await this.requireCampaign(organizationId, id);
     if (dto.brandId && dto.brandId !== existing.brandId) {
       await this.assertBrand(organizationId, dto.brandId);
+      await this.assertBrandChangeAllowed(organizationId, id);
     }
 
     const updated = await this.prisma.campaign.update({
@@ -233,25 +234,52 @@ export class CampaignsService {
     const ownedIds = uniqueIds.filter((postId) => found.has(postId));
     if (ownedIds.length > 0) {
       const isAssign = action === ContentCampaignLifecycleAction.ASSIGN;
-      await this.prisma.post.updateMany({
-        data: { campaignId: isAssign ? campaign.id : null },
-        where: scopedWhere(organizationId, {
-          brandId: campaign.brandId,
-          ...(isAssign ? {} : { campaignId: campaign.id }),
-          id: { in: ownedIds },
-        }),
+      const ownedRows = rows.filter((row) => ownedIds.includes(row.id));
+      const groupIds = [
+        ...new Set(
+          ownedRows
+            .map((row) => row.groupId)
+            .filter((groupId): groupId is string => Boolean(groupId)),
+        ),
+      ];
+      const standaloneIds = ownedRows
+        .filter((row) => !row.groupId)
+        .map((row) => row.id);
+      await this.prisma.$transaction(async (tx) => {
+        if (standaloneIds.length > 0) {
+          await tx.post.updateMany({
+            data: { campaignId: isAssign ? campaign.id : null },
+            where: scopedWhere(organizationId, {
+              brandId: campaign.brandId,
+              ...(isAssign ? {} : { campaignId: campaign.id }),
+              id: { in: standaloneIds },
+            }),
+          });
+        }
+        if (groupIds.length > 0) {
+          await tx.post.updateMany({
+            data: { campaignId: isAssign ? campaign.id : null },
+            where: scopedWhere(organizationId, {
+              brandId: campaign.brandId,
+              ...(isAssign ? {} : { campaignId: campaign.id }),
+              groupId: { in: groupIds },
+            }),
+          });
+          const updatedGroups = await tx.postGroup.updateMany({
+            data: { campaignId: isAssign ? campaign.id : null },
+            where: scopedWhere(organizationId, {
+              brandId: campaign.brandId,
+              ...(isAssign ? {} : { campaignId: campaign.id }),
+              id: { in: groupIds },
+            }),
+          });
+          if (updatedGroups.count !== groupIds.length) {
+            throw new BadRequestException(
+              'Every selected post must belong to a release in the campaign brand.',
+            );
+          }
+        }
       });
-      await this.syncPostGroupMembership(
-        organizationId,
-        campaign.id,
-        rows
-          .filter(
-            (row): row is { groupId: string; id: string } =>
-              ownedIds.includes(row.id) && Boolean(row.groupId),
-          )
-          .map((row) => row.groupId),
-        isAssign,
-      );
     }
 
     return {
@@ -262,45 +290,28 @@ export class CampaignsService {
     };
   }
 
-  private async syncPostGroupMembership(
+  private async assertBrandChangeAllowed(
     organizationId: string,
     campaignId: string,
-    groupIds: string[],
-    isAssign: boolean,
   ): Promise<void> {
-    const uniqueGroupIds = [...new Set(groupIds)];
-    if (uniqueGroupIds.length === 0) {
-      return;
-    }
-    if (isAssign) {
-      await this.prisma.postGroup.updateMany({
-        data: { campaignId },
-        where: scopedWhere(organizationId, { id: { in: uniqueGroupIds } }),
-      });
-      return;
-    }
-    const remaining = await this.prisma.post.findMany({
-      select: { groupId: true },
-      where: scopedWhere(organizationId, {
-        campaignId,
-        groupId: { in: uniqueGroupIds },
-      }),
+    const membership = await this.prisma.campaign.findFirst({
+      select: {
+        _count: {
+          select: {
+            paidActivations: true,
+            postGroups: true,
+            posts: true,
+          },
+        },
+      },
+      where: scopedWhere(organizationId, { id: campaignId }),
     });
-    const stillMember = new Set(
-      remaining
-        .map((row) => row.groupId)
-        .filter((groupId): groupId is string => Boolean(groupId)),
-    );
-    const clearIds = uniqueGroupIds.filter(
-      (groupId) => !stillMember.has(groupId),
-    );
-    if (clearIds.length === 0) {
-      return;
+    const count = membership?._count;
+    if (count && count.posts + count.postGroups + count.paidActivations > 0) {
+      throw new BadRequestException(
+        'A campaign with existing content or paid activations cannot change brands.',
+      );
     }
-    await this.prisma.postGroup.updateMany({
-      data: { campaignId: null },
-      where: scopedWhere(organizationId, { id: { in: clearIds } }),
-    });
   }
 
   private async setStatus(

@@ -172,16 +172,12 @@ export class PostGroupPersistenceService {
       credentials,
     );
     if (params.input.campaignId) {
-      const campaign = await tx.campaign.findFirst({
-        select: { id: true },
-        where: scopedWhere(params.organizationId, {
-          ...(brandId ? { brandId } : {}),
-          id: params.input.campaignId,
-        }),
-      });
-      if (!campaign) {
-        throw new NotFoundException('Campaign', params.input.campaignId);
-      }
+      await this.assertCampaignScope(
+        tx,
+        params.organizationId,
+        params.input.campaignId,
+        brandId,
+      );
     }
     const isDraft = params.status === ReleaseStatus.DRAFT;
     const readinessByCredential =
@@ -247,6 +243,24 @@ export class PostGroupPersistenceService {
     });
 
     return this.contractService.toReleaseGroup(group, targets);
+  }
+
+  async assertCampaignScope(
+    tx: SchedulerTx,
+    organizationId: string,
+    campaignId: string,
+    brandId: string | null,
+  ): Promise<void> {
+    if (!brandId) {
+      throw new NotFoundException('Campaign', campaignId);
+    }
+    const campaign = await tx.campaign.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { brandId, id: campaignId }),
+    });
+    if (!campaign) {
+      throw new NotFoundException('Campaign', campaignId);
+    }
   }
 
   private async createPostGroupTargets(
