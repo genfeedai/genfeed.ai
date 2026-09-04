@@ -103,7 +103,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/artifact-history-overlay.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/content.tsx": 1,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": 14,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-field.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx": 1,

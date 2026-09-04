@@ -16,7 +16,11 @@ import type {
 import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { UNTRUSTED_USER_DATA_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  AgentMessageRole,
+  AgentType,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -501,8 +505,8 @@ describe('AgentOrchestratorContextService jailbreak hardening', () => {
 
 describe('AgentOrchestratorContextService generation mode', () => {
   it.each([
-    ['image', 'generationType=image', 'Do not choose video'],
-    ['video', 'generationType=video', 'Do not choose image'],
+    [AgentGenerationMode.IMAGE, 'generationType=image', 'Do not choose video'],
+    [AgentGenerationMode.VIDEO, 'generationType=video', 'Do not choose image'],
   ] as const)(
     'adds the explicit %s mode to the orchestration prompt',
     async (generationMode, expectedType, oppositeGuard) => {

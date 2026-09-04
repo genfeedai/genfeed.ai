@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
-import { RouterPriority } from '@genfeedai/contracts';
+import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -120,7 +120,7 @@ describe('agent runtime workflow registration contract', () => {
       request: {
         content: 'Generate a red apple',
         expectedContextVersion: 4,
-        generationMode: 'image',
+        generationMode: AgentGenerationMode.IMAGE,
         generationSettings: {
           aspectRatio: '1:1',
           model: 'black-forest-labs/flux-schnell',
