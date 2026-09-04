@@ -2,13 +2,20 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 
 type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
-export type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated' | 'card';
+export type WorkspaceSurfaceTone =
+  | 'default'
+  | 'muted'
+  | 'elevated'
+  | 'card'
+  | 'outlined';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
   card: 'rounded-card bg-card text-card-foreground shadow-border',
   default: 'rounded-card bg-card text-card-foreground shadow-border',
   elevated: 'rounded-card bg-card text-card-foreground shadow-border-strong',
   muted: 'rounded-card bg-card text-card-foreground shadow-border',
+  outlined:
+    'rounded-card border border-border bg-card text-card-foreground shadow-none',
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {

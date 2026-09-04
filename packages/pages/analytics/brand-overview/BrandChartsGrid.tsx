@@ -4,7 +4,7 @@ import { ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
-import Card from '@ui/card/Card';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -53,7 +53,7 @@ export default function BrandChartsGrid({
 }: BrandChartsGridProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card label="Platform Comparison">
+      <WorkspaceSurface density="compact" title="Platform Comparison">
         <PlatformComparisonChart
           data={platformComparisonData}
           isLoading={isLoading}
@@ -80,9 +80,9 @@ export default function BrandChartsGrid({
             ))}
           </div>
         )}
-      </Card>
+      </WorkspaceSurface>
 
-      <Card label="Performance Trends">
+      <WorkspaceSurface density="compact" title="Performance Trends">
         <PlatformTimeSeriesChart
           data={timeSeriesData}
           platforms={connectedPlatforms.flatMap((platform) => {
@@ -92,7 +92,7 @@ export default function BrandChartsGrid({
           isLoading={isLoadingTimeSeries}
           height={300}
         />
-      </Card>
+      </WorkspaceSurface>
     </div>
   );
 }

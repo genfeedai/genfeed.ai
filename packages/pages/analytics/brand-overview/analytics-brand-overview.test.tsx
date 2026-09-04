@@ -131,4 +131,23 @@ describe('AnalyticsBrandOverview', () => {
       'post-2',
     );
   });
+
+  it('keeps analytics section titles outside their framed bodies', () => {
+    render(<AnalyticsBrandOverview brandId="brand-1" />);
+
+    for (const name of [
+      'Platform Comparison',
+      'Performance Trends',
+      'Recent Posts (Top 5)',
+    ]) {
+      const heading = screen.getByRole('heading', { name });
+      const section = heading.closest('section');
+      const body = section?.querySelector(
+        '[data-slot="workspace-surface-body"]',
+      );
+
+      expect(body).toBeInTheDocument();
+      expect(body).not.toContainElement(heading);
+    }
+  });
 });

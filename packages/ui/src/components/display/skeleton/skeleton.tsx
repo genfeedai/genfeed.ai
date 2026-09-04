@@ -138,13 +138,20 @@ export function SkeletonList({ count = 3 }: SkeletonListProps) {
   );
 }
 
-export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
+export function SkeletonTable({
+  rows = 5,
+  columns = 4,
+  className,
+}: SkeletonTableProps) {
   // Same card chrome as CardEmpty / AppTable so loading → empty/list does not clip.
   return (
     <div
       aria-busy="true"
       aria-label="Loading table"
-      className="relative min-h-[12rem] w-full overflow-hidden rounded-card border border-border bg-card p-4 text-card-foreground shadow-border"
+      className={cn(
+        'relative min-h-[12rem] w-full overflow-hidden rounded-card border border-border bg-card p-4 text-card-foreground',
+        className,
+      )}
       data-testid="skeleton-table"
       role="status"
     >

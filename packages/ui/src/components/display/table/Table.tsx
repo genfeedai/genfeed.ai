@@ -52,6 +52,7 @@ export default function AppTable<T>({
   isLoading = false,
   columns,
   actions = EMPTY_ARRAY,
+  framed = true,
 
   getRowKey,
   getRowClassName,
@@ -182,6 +183,7 @@ export default function AppTable<T>({
     // SkeletonTable already owns the card shell — do not wrap it again.
     return (
       <SkeletonTable
+        className={framed ? undefined : 'rounded-none border-0 shadow-none'}
         rows={Math.max(items?.length ?? 0, 6)}
         columns={Math.max(columns.length, 1)}
       />
@@ -206,13 +208,20 @@ export default function AppTable<T>({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-card bg-card shadow-border">
+    <div
+      className={cn(
+        'relative overflow-hidden bg-card',
+        framed
+          ? 'rounded-card border border-border'
+          : 'rounded-none border-0 shadow-none',
+      )}
+    >
       <TableSectionHeader label={label} description={description} />
       <div className="overflow-x-auto">
         <table className="w-full caption-bottom border-collapse">
           <thead
             className={cn(
-              'sticky top-0 z-10 border-b border-border bg-card',
+              'sticky top-0 z-10 border-b border-border bg-background-secondary/60',
               hideHeader && 'sr-only',
             )}
           >

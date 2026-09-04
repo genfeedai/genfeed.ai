@@ -30,6 +30,8 @@ export interface TableProps<T> {
   isLoading?: boolean;
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];
+  /** Render the shared table frame. Disable when a parent surface owns it. */
+  framed?: boolean;
 
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;

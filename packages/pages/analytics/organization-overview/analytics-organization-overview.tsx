@@ -310,10 +310,12 @@ export default function AnalyticsOrganizationOverview({
 
       <WorkspaceSurface
         density="compact"
-        framed={false}
+        flush
+        tone="outlined"
         title={`All Brands (${formatCompactNumberIntl(analytics?.totalBrands)})`}
       >
         <Table
+          framed={false}
           items={brandsData}
           isLoading={loadingBrands}
           emptyLabel="No brands found"
@@ -332,12 +334,12 @@ export default function AnalyticsOrganizationOverview({
                     <Image
                       src={brand.logo}
                       alt={brand.name}
-                      width={32}
-                      height={32}
-                      className="size-8 rounded-full object-cover"
+                      width={40}
+                      height={40}
+                      className="size-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary">
                       {brand.name.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -356,7 +358,7 @@ export default function AnalyticsOrganizationOverview({
               header: 'Posts',
               key: 'totalPosts',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalPosts)}
                 </span>
               ),
@@ -366,7 +368,7 @@ export default function AnalyticsOrganizationOverview({
               header: 'Views',
               key: 'totalViews',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalViews)}
                 </span>
               ),
@@ -376,7 +378,7 @@ export default function AnalyticsOrganizationOverview({
               header: 'Engagement',
               key: 'totalEngagement',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatCompactNumberIntl(brand.totalEngagement)}
                 </span>
               ),
@@ -386,7 +388,7 @@ export default function AnalyticsOrganizationOverview({
               header: 'Eng. Rate',
               key: 'avgEngagementRate',
               render: (brand) => (
-                <span className="font-mono">
+                <span className="font-medium">
                   {formatPercentageSimple(brand.avgEngagementRate, 2)}
                 </span>
               ),
@@ -396,7 +398,7 @@ export default function AnalyticsOrganizationOverview({
               header: 'Growth',
               key: 'growth',
               render: (brand) => (
-                <span className={`font-mono ${getGrowthClass(brand.growth)}`}>
+                <span className={`font-medium ${getGrowthClass(brand.growth)}`}>
                   {brand.growth > 0 ? '+' : ''}
                   {formatPercentageSimple(brand.growth, 2)}
                 </span>

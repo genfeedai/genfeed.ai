@@ -179,5 +179,14 @@ describe('AnalyticsOrganizationOverview', () => {
     await waitFor(() => {
       expect(screen.getByText('Acme')).toBeInTheDocument();
     });
+
+    const heading = screen.getByRole('heading', { name: 'All Brands (3)' });
+    const surface = heading
+      .closest('section')
+      ?.querySelector('[data-slot="workspace-surface-body"]');
+    const tableFrame = screen.getByRole('table').closest('div.relative');
+
+    expect(surface).toHaveClass('border', 'border-border', 'rounded-card');
+    expect(tableFrame).toHaveClass('border-0', 'rounded-none');
   });
 });

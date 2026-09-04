@@ -109,11 +109,52 @@ describe('Table', () => {
     const body = container.querySelector('tbody');
 
     expect(table).toHaveClass('border-collapse');
-    expect(card).toHaveClass('rounded-card', 'shadow-border', 'bg-card');
-    expect(card).not.toHaveClass('border-border');
-    expect(head).toHaveClass('border-b', 'border-border');
+    expect(card).toHaveClass(
+      'rounded-card',
+      'border',
+      'border-border',
+      'bg-card',
+    );
+    expect(card).not.toHaveClass('shadow-border');
+    expect(head).toHaveClass(
+      'border-b',
+      'border-border',
+      'bg-background-secondary/60',
+    );
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');
+  });
+
+  it('can delegate its frame to a shared section surface', () => {
+    const { container } = render(
+      <Table
+        framed={false}
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const card = container.querySelector('table')?.closest('div.relative');
+    expect(card).toHaveClass('rounded-none', 'border-0', 'shadow-none');
+    expect(card).not.toHaveClass('border-border', 'rounded-card');
+  });
+
+  it('keeps delegated loading chrome frameless', () => {
+    render(
+      <Table
+        framed={false}
+        isLoading
+        items={[]}
+        columns={[{ header: 'Name', key: 'name' }]}
+      />,
+    );
+
+    expect(screen.getByTestId('skeleton-table')).toHaveClass(
+      'rounded-none',
+      'border-0',
+      'shadow-none',
+    );
   });
 
   it('exposes controlled sortable column headers', () => {

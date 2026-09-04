@@ -10,6 +10,7 @@ import {
   formatCompactNumberIntl,
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -108,7 +109,16 @@ export function PlatformTimeSeriesChart({
     [platforms],
   );
 
-  const isEmpty = !data || data.length === 0;
+  const hasConnectedPlatforms = platforms.length > 0;
+  const hasSignal =
+    hasConnectedPlatforms &&
+    data?.some((point) =>
+      platforms.some((platform) => {
+        const value: unknown = point[platform as keyof typeof point];
+        return typeof value === 'number' && value > 0;
+      }),
+    );
+  const isEmpty = !data || data.length === 0 || !hasSignal;
 
   const togglePlatform = (platform: Platform) => {
     const nextInactivePlatforms = inactivePlatforms.includes(platform)
@@ -127,29 +137,30 @@ export function PlatformTimeSeriesChart({
 
   return (
     <div className={className}>
-      {/* Platform Toggles */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {platforms.map((platform) => (
-          <Button
-            type="button"
-            key={platform}
-            onClick={() => togglePlatform(platform)}
-            isDisabled={isLoading || isEmpty}
-            variant={ButtonVariant.UNSTYLED}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-[background-color,border-color,color] border ${
-              activePlatforms.includes(platform)
-                ? 'border-border-strong bg-muted text-foreground'
-                : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
-            } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span
-              className="inline-block size-3 rounded-full mr-2"
-              style={{ backgroundColor: chartPlatformColor(platform) }}
-            />
-            {chartPlatformLabel(platform)}
-          </Button>
-        ))}
-      </div>
+      {!isEmpty ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {platforms.map((platform) => (
+            <Button
+              type="button"
+              key={platform}
+              onClick={() => togglePlatform(platform)}
+              isDisabled={isLoading || isEmpty}
+              variant={ButtonVariant.UNSTYLED}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-[background-color,border-color,color] border ${
+                activePlatforms.includes(platform)
+                  ? 'border-border-strong bg-muted text-foreground'
+                  : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
+              } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className="inline-block size-3 rounded-full mr-2"
+                style={{ backgroundColor: chartPlatformColor(platform) }}
+              />
+              {chartPlatformLabel(platform)}
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
       {/* Chart */}
       <div className="relative" style={{ height }}>
@@ -159,16 +170,26 @@ export function PlatformTimeSeriesChart({
           </div>
         )}
 
-        {isEmpty && !isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
-            No data available
-          </div>
-        )}
+        {isEmpty && !isLoading ? (
+          <CardEmptyContent
+            className="absolute inset-0 py-0"
+            label={
+              hasConnectedPlatforms
+                ? 'No performance trends yet'
+                : 'No connected platforms yet'
+            }
+            description={
+              hasConnectedPlatforms
+                ? 'Publish content to build a performance trend for this date range.'
+                : 'Connect at least one channel to start tracking performance over time.'
+            }
+          />
+        ) : null}
 
         {!isEmpty && (
           <ChartContainer
             config={chartConfig}
-            className="bg-card shadow-border p-3"
+            className="h-full border-0 bg-transparent p-0 shadow-none"
             height="100%"
             style={{ minWidth: 0 }}
           >
