@@ -79,6 +79,7 @@ import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
 // Service tokens for dependency injection
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService as LibsPrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
@@ -621,7 +622,7 @@ export class E2ETestModule {
 
     return {
       controllers,
-      exports: [PrismaService],
+      exports: [LibsPrismaService, PrismaService],
       imports: [],
       module: E2ETestModule,
       providers: [
@@ -635,6 +636,7 @@ export class E2ETestModule {
           return provider;
         }),
         PrismaService,
+        { provide: LibsPrismaService, useExisting: PrismaService },
         ...guardProviders,
         ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         ...COLLECTION_E2E_MOCK_PROVIDERS,
