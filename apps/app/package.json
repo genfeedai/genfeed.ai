@@ -62,7 +62,7 @@
     "test:cov:shard": "vitest run --coverage --config ./vitest.config.mts --maxWorkers=2",
     "test:watch": "vitest --config ./vitest.config.mts",
     "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && rm -rf .next && next typegen && tsc --noEmit",
-    "dev:process": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-service.ts app -- next dev --webpack",
+    "dev:process": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-service.ts app -- next dev --turbopack",
     "dev:debug": "bun run dev:process"
   },
   "version": "1.0.0"
