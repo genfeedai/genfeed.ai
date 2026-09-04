@@ -14,7 +14,10 @@ import type {
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
@@ -32,7 +35,9 @@ export default function AnalyticsAccountDetail() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const credentialId = params.id;
-  const { brandId } = useCollectionScope();
+  const scope = useCollectionScope();
+  const { brandId, organizationId } = scope;
+  const isFetchReady = isCollectionFetchReady(scope);
   const { dateRange } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -42,6 +47,10 @@ export default function AnalyticsAccountDetail() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isFetchReady || !organizationId) {
+      return;
+    }
+
     const controller = new AbortController();
     void (async () => {
       setError(null);
@@ -55,6 +64,7 @@ export default function AnalyticsAccountDetail() {
         const data = (await service.getAccountAnalyticsDetail(credentialId, {
           brandId: brandId || undefined,
           endDate,
+          organizationId,
           startDate,
         })) as IAccountAnalyticsDetail;
         if (!controller.signal.aborted) {
@@ -81,6 +91,8 @@ export default function AnalyticsAccountDetail() {
     dateRange.endDate,
     dateRange.startDate,
     getService,
+    isFetchReady,
+    organizationId,
     translate,
   ]);
 

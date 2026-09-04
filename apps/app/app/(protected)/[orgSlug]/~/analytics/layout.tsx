@@ -14,7 +14,8 @@ import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
-  const { setDateRange, triggerRefresh, isRefreshing } = useAnalyticsContext();
+  const { setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
+    useAnalyticsContext();
 
   return (
     <Container
@@ -22,7 +23,8 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
       description="Aggregate analytics across all brands"
       icon={ChartColumn}
       right={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {toolbarNode}
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

@@ -79,6 +79,23 @@ describe('AnalyticsService', () => {
       },
     );
 
+    it('scopes fleet evaluation policy updates to the selected organization', async () => {
+      http.patch.mockResolvedValue(
+        axiosResponse(resourceDocument({ windowWeeks: 4 }, { id: 'policy-1' })),
+      );
+
+      await service.saveFleetEvaluationPolicy(
+        { brandId: 'brand-1', windowWeeks: 4 },
+        { organizationId: 'org-1' },
+      );
+
+      expect(http.patch).toHaveBeenCalledWith(
+        'fleet-evaluation-policy',
+        { brandId: 'brand-1', windowWeeks: 4 },
+        { params: { organizationId: 'org-1' } },
+      );
+    });
+
     it('getTopContent GETs top and deserializes the collection', async () => {
       http.get.mockResolvedValue(
         axiosResponse(collectionDocument([{ id: 'c_1', views: 9 }])),

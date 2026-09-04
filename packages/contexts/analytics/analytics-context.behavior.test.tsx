@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contexts/analytics/analytics-context';
 import type { AnalyticsContextType } from '@genfeedai/contracts/interfaces/analytics/analytics-context.interface';
 import { act, render, renderHook } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useBrandMock = vi.fn();
@@ -16,7 +17,12 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
 }));
 
-let contextValue: AnalyticsContextType;
+type AnalyticsRuntimeContext = AnalyticsContextType & {
+  toolbarNode: ReactNode;
+  setToolbarNode: (node: ReactNode) => void;
+};
+
+let contextValue: AnalyticsRuntimeContext;
 
 function Consumer(): null {
   contextValue = useAnalyticsContext();
@@ -126,6 +132,20 @@ describe('AnalyticsProvider behavior', () => {
     });
     expect(contextValue.filters).toEqual({});
     expect(onFilterChange).toHaveBeenLastCalledWith('platform', undefined);
+  });
+
+  it('registers page filters for the analytics layout toolbar', () => {
+    render(
+      <AnalyticsProvider>
+        <Consumer />
+      </AnalyticsProvider>,
+    );
+
+    act(() => {
+      contextValue.setToolbarNode(<span>Account filters</span>);
+    });
+
+    expect(contextValue.toolbarNode).toEqual(<span>Account filters</span>);
   });
 
   it('triggerRefresh bumps the trigger and clears the refreshing flag after 1s', () => {

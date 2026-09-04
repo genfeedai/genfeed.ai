@@ -234,9 +234,12 @@ export class AnalyticsService extends HTTPBaseService {
 
   public async saveFleetEvaluationPolicy(
     body: Record<string, unknown>,
+    query?: IQueryParams,
   ): Promise<unknown> {
     return await this.instance
-      .patch<JsonApiResponseDocument>('fleet-evaluation-policy', body)
+      .patch<JsonApiResponseDocument>('fleet-evaluation-policy', body, {
+        params: query,
+      })
       .then((res) => deserializeResource<unknown>(res.data));
   }
 
