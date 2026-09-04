@@ -292,7 +292,7 @@ export class AgentMediaAssetGenerationService {
 
     return {
       creditsUsed: 0,
-      data: { id, status, url: cdnUrl },
+      data: buildMediaAssetData(id, status, cdnUrl),
       isBillingDelegated: true,
       nextActions: [
         {
@@ -465,7 +465,7 @@ export class AgentMediaAssetGenerationService {
 
     return {
       creditsUsed: 0,
-      data: { id, status, url: cdnUrl },
+      data: buildMediaAssetData(id, status, cdnUrl),
       isBillingDelegated: true,
       nextActions: id
         ? [
@@ -537,7 +537,7 @@ export class AgentMediaAssetGenerationService {
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
     return {
       creditsUsed: 0,
-      data: { id, status, url: cdnUrl },
+      data: id ? buildMediaAssetData(id, status, cdnUrl) : { status },
       isBillingDelegated: true,
       nextActions: id
         ? [
@@ -724,7 +724,9 @@ export class AgentMediaAssetGenerationService {
       );
     return {
       creditsUsed: 0,
-      data: { id, status: Status.GENERATED, url: assetUrl },
+      data: id
+        ? buildMediaAssetData(id, Status.GENERATED, assetUrl)
+        : { status: Status.GENERATED },
       ...(params.billingDelegated ? { isBillingDelegated: true } : {}),
       nextActions: id
         ? [
@@ -815,6 +817,14 @@ export class AgentMediaAssetGenerationService {
     };
     return map[ratio] || map['1:1'];
   }
+}
+
+function buildMediaAssetData(
+  id: string,
+  status: Status,
+  url?: string,
+): Record<string, unknown> {
+  return url ? { id, status, url } : { id, status };
 }
 
 function mediaAssetLibraryCategory(

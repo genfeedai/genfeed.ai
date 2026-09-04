@@ -61,6 +61,7 @@ import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export interface ToolExecutionContext {
   apiKeyContext?: ApiKeyPublishingContext;
@@ -335,7 +336,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         this.constructorName,
       );
 
-      return scopedResult;
+      return toPlainJson(scopedResult);
     } catch (error: unknown) {
       const durationMs = Date.now() - startTime;
       const errorMessage =
