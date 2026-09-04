@@ -6,7 +6,7 @@ import { Eye, Pencil, Trash2 } from 'lucide-react';
 
 export type BuildTrainingsTableActionsParams = {
   onEdit: (training: ITraining) => void;
-  onView: (training: ITraining) => void;
+  onView?: (training: ITraining) => void;
   onDelete: (training: ITraining) => void;
 };
 
@@ -23,11 +23,15 @@ export function buildTrainingsTableActions({
       },
       tooltip: 'Edit',
     },
-    {
-      icon: () => <Eye />,
-      onClick: (training: ITraining) => onView(training),
-      tooltip: 'Details',
-    },
+    ...(onView
+      ? [
+          {
+            icon: () => <Eye />,
+            onClick: (training: ITraining) => onView(training),
+            tooltip: 'Details',
+          },
+        ]
+      : []),
     {
       className: 'text-error hover:text-error',
       icon: () => <Trash2 />,
