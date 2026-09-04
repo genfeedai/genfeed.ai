@@ -211,8 +211,12 @@ describe('Serializer Attributes', () => {
         ]),
       );
       expect(workflowExecutionAttributes).not.toEqual(
-        expect.arrayContaining(['workflow', 'user', 'organization']),
+        expect.arrayContaining(['user', 'organization']),
       );
+    });
+
+    it('keeps the hydrated workflow relation so lists can show its label', () => {
+      expect(workflowExecutionAttributes).toContain('workflow');
     });
 
     it('should not contain duplicates', () => {
