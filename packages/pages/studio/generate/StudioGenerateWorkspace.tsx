@@ -83,7 +83,11 @@ interface StudioContentReference {
  */
 export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
-  const { brandId, settings: organizationSettings } = useBrand();
+  const {
+    brandId,
+    organizationId,
+    settings: organizationSettings,
+  } = useBrand();
   const agentApiService = useAgentApiService();
   const { extraExtensions, resolveSubmit: resolveCharacterMentions } =
     useStudioCharacterMentions(agentApiService);
@@ -188,7 +192,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
   });
 
   const { capabilities, modelCategory } = getStudioGenerateTypeConfig(type);
-  const { isLoadingModels, models } = useStudioGenerateModels(modelCategory);
+  const { isLoadingModels, models } = useStudioGenerateModels(
+    modelCategory,
+    organizationId,
+  );
   const { isLoadingGallery, refresh, storedJobs } = useStudioGenerateGallery({
     brandId,
     filter: 'all',
