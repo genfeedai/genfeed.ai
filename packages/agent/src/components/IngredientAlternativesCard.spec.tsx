@@ -130,7 +130,7 @@ describe('IngredientAlternativesCard', () => {
     );
   });
 
-  it('falls back to the API media URL when the result has no url', async () => {
+  it('shows a retryable error when the result has no renderable URL', async () => {
     const generateIngredient = vi
       .fn()
       .mockResolvedValue({ id: 'gen-2', status: 'completed', url: '' });
@@ -145,16 +145,12 @@ describe('IngredientAlternativesCard', () => {
       fireEvent.click(screen.getByText('Motion teaser'));
     });
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('Generated result')).toHaveAttribute(
-        'src',
-        'http://api.test/videos/gen-2',
-      ),
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Generation completed without a renderable asset preview.',
     );
-    expect(screen.getByText('Open in Library')).toHaveAttribute(
-      'href',
-      '/default/default/library/videos?asset=gen-2',
-    );
+    expect(screen.getByRole('button', { name: 'Try Again' })).toBeEnabled();
+    expect(screen.queryByLabelText('Generated result')).not.toBeInTheDocument();
+    expect(screen.queryByText('Open in Library')).not.toBeInTheDocument();
   });
 
   it('opens the shared prompt modal without starting generation', () => {

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    href: (path: string) => `/test-org/~${path}`,
     orgHref: (path: string) => `/test-org/~${path}`,
   }),
 }));
@@ -415,11 +416,11 @@ describe('AgentChatMessage', () => {
 
     expect(screen.getByRole('link', { name: 'Open posts' })).toHaveAttribute(
       'href',
-      '/publishing',
+      '/test-org/~/publishing',
     );
     expect(
       screen.getByRole('link', { name: 'Open analytics' }),
-    ).toHaveAttribute('href', '/analytics/posts?postId=post-1');
+    ).toHaveAttribute('href', '/test-org/~/analytics/posts?postId=post-1');
   });
 
   it('renders batch generation result cards inline with assistant messages', () => {
