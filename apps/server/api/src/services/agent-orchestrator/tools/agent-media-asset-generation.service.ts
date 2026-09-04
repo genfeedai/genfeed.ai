@@ -296,7 +296,12 @@ export class AgentMediaAssetGenerationService {
       isBillingDelegated: true,
       nextActions: [
         {
-          ctas: [{ href: '/library/assets', label: 'View in Library' }],
+          ctas: [
+            {
+              href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
+              label: 'View in Library',
+            },
+          ],
           assetId: id,
           assetKind: 'image',
           description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
@@ -349,7 +354,14 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: '/library/assets', label: 'View in Library' }],
+              assetId: id,
+              assetKind: 'image',
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.IMAGE, id),
+                  label: 'View in Library',
+                },
+              ],
               description: `Reframed to ${aspectRatio}`,
               id: `image-reframe-${id}`,
               images: cdnUrl ? [cdnUrl] : [],
@@ -470,7 +482,12 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: '/library/assets', label: 'View in Library' }],
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+                  label: 'View in Library',
+                },
+              ],
               assetId: id,
               assetKind: 'video',
               description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${(params.prompt as string).substring(0, 80)}"`,
@@ -591,7 +608,14 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: '/library/videos', label: 'View in Library' }],
+              assetId: id,
+              assetKind: 'video',
+              ctas: [
+                {
+                  href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+                  label: 'View in Library',
+                },
+              ],
               description: `Avatar video generating: "${text.substring(0, 80)}"`,
               id: `identity-gen-${id}`,
               title: 'Identity video generating',
@@ -775,7 +799,10 @@ export class AgentMediaAssetGenerationService {
           id: `image-gen-incomplete-${Date.now()}`,
           primaryCta: params.assetId
             ? {
-                href: '/library/assets',
+                href: createLibraryAssetRoute(
+                  IngredientCategory.IMAGE,
+                  params.assetId,
+                ),
                 label: 'View in Library',
               }
             : { href: '/library/assets', label: 'Open Library' },

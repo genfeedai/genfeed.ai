@@ -5161,7 +5161,12 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(result.nextActions?.[0]).toMatchObject({
-      ctas: [{ href: '/library/assets', label: 'View in Library' }],
+      ctas: [
+        {
+          href: '/library/images?asset=img-root-123',
+          label: 'View in Library',
+        },
+      ],
       id: 'image-gen-img-root-123',
     });
   });

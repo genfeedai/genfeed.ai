@@ -1,7 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
-import { normalizeAgentAppHref } from './normalize-agent-app-href';
+import {
+  normalizeAgentAppHref,
+  normalizeAgentAssetHref,
+} from './normalize-agent-app-href';
 
 const IMAGE_ID = testId('image');
 
@@ -53,5 +56,28 @@ describe('normalizeAgentAppHref', () => {
       APP_ROUTES.PUBLISHING.REVIEW,
     );
     expect(normalizeAgentAppHref('/studio/images')).toBe('/studio/images');
+  });
+});
+
+describe('normalizeAgentAssetHref', () => {
+  it('repairs a persisted bare Library CTA with its exact asset id', () => {
+    expect(
+      normalizeAgentAssetHref('/library/assets', 'generated image/1'),
+    ).toBe('/library/assets?asset=generated+image%2F1');
+  });
+
+  it('preserves scope, filters, and hash while replacing a stale asset id', () => {
+    expect(
+      normalizeAgentAssetHref(
+        '/acme/launch/library/images?folder=hero&asset=old#details',
+        IMAGE_ID,
+      ),
+    ).toBe(`/acme/launch/library/images?folder=hero&asset=${IMAGE_ID}#details`);
+  });
+
+  it('leaves non-Library CTAs unchanged', () => {
+    expect(normalizeAgentAssetHref('/publishing/review', IMAGE_ID)).toBe(
+      '/publishing/review',
+    );
   });
 });
