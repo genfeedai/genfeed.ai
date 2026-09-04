@@ -130,10 +130,8 @@ export default function AppLayout({
         <section
           data-testid="app-content-shell"
           className={cn(
-            'relative bg-background md:pl-[var(--desktop-sidebar-width)] xl:pr-[var(--workspace-inspector-width,0px)]',
-            lockViewportHeight
-              ? 'flex h-dvh flex-col overflow-hidden'
-              : 'min-h-screen',
+            'relative flex flex-col bg-background md:pl-[var(--desktop-sidebar-width)] xl:pr-[var(--workspace-inspector-width,0px)]',
+            lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
           style={{ transition: sidebarOffsetTransition }}
         >
@@ -155,9 +153,8 @@ export default function AppLayout({
           <main
             data-testid="app-main-content"
             className={cn(
-              'relative z-0 bg-background',
-              lockViewportHeight &&
-                'flex min-h-0 flex-1 flex-col overflow-hidden',
+              'relative z-0 flex flex-1 flex-col bg-background',
+              lockViewportHeight && 'min-h-0 overflow-hidden',
             )}
             style={{
               paddingTop: topbarContent
