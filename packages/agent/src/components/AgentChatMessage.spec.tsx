@@ -324,8 +324,8 @@ describe('AgentChatMessage', () => {
     expect(surface?.parentElement).toHaveClass('justify-start');
   });
 
-  it('keeps user prompt actions available but reveals them on hover or focus', () => {
-    render(
+  it('keeps user prompt actions below the card and reveals them on hover or focus', () => {
+    const { container } = render(
       <AgentChatMessage
         message={buildMessage('user', 'Copy this prompt')}
         onCopy={vi.fn()}
@@ -333,6 +333,10 @@ describe('AgentChatMessage', () => {
     );
 
     const copyButton = screen.getByRole('button', { name: 'Copy message' });
+    const surface = container.querySelector(
+      '[data-message-role="user"][data-message-surface="prompt"]',
+    );
+    expect(surface?.contains(copyButton)).toBe(false);
     const actions = copyButton.closest('.opacity-0');
     expect(actions).toBeTruthy();
     expect(actions).toHaveClass('opacity-0');

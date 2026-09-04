@@ -263,8 +263,10 @@ function AgentChatMessageInner({
     <div
       id={messageAnchorId}
       className={cn(
-        'mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
-        isUser ? AGENT_CONVERSATION_STICKY_USER_TURN_CLASS : 'justify-start',
+        'group mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
+        isUser
+          ? cn(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS, 'flex-col')
+          : 'justify-start',
       )}
       style={entranceAnimationStyle}
     >
@@ -272,7 +274,7 @@ function AgentChatMessageInner({
         data-message-role={message.role}
         data-message-surface={isUser ? 'prompt' : 'inline'}
         className={cn(
-          'group relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
+          'relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && !isUser && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
             ? AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS
@@ -405,18 +407,33 @@ function AgentChatMessageInner({
             />
           ))}
 
+        {isUser ? null : (
+          <AgentChatMessageFooter
+            isUser={isUser}
+            metaItems={metaItems}
+            shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
+            isBusy={isBusy || isReadOnly}
+            copyContent={copyContent}
+            message={message}
+            onCopy={onCopy}
+            onRetry={undefined}
+            onRemember={isReadOnly ? undefined : onRemember}
+          />
+        )}
+      </div>
+      {isUser ? (
         <AgentChatMessageFooter
-          isUser={isUser}
+          isUser
           metaItems={metaItems}
-          shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
+          shouldShowAssistantActions={false}
           isBusy={isBusy || isReadOnly}
           copyContent={copyContent}
           message={message}
           onCopy={onCopy}
           onRetry={!isReadOnly && isRetryableUserPrompt ? onRetry : undefined}
-          onRemember={isReadOnly ? undefined : onRemember}
+          onRemember={undefined}
         />
-      </div>
+      ) : null}
     </div>
   );
 }
