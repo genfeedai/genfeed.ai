@@ -19,6 +19,13 @@ describe('isValidNodeType', () => {
   it('true for catalog actions', () =>
     expect(isValidNodeType('brand')).toBe(true));
   it('false for unknown', () => expect(isValidNodeType('xxx')).toBe(false));
+
+  it.each(['constructor', '__proto__', 'toString'])(
+    'rejects inherited object key %s',
+    (type) => {
+      expect(isValidNodeType(type)).toBe(false);
+    },
+  );
 });
 
 describe('getNodeDefinition', () => {

@@ -31,15 +31,15 @@ export { ACTION_NODE_DEFINITIONS, CORE_NODE_DEFINITIONS };
  * Check if a node type is a core engine-native definition from @genfeedai/types.
  */
 export function isCoreNode(type: string): type is CoreNodeType {
-  return type in ENGINE_NATIVE_CORE_DEFINITIONS;
+  return Object.hasOwn(ENGINE_NATIVE_CORE_DEFINITIONS, type);
 }
 
 export function isCatalogActionNode(type: string): boolean {
-  return type in ACTION_NODE_DEFINITIONS;
+  return Object.hasOwn(ACTION_NODE_DEFINITIONS, type);
 }
 
 export function isEngineNativeCatalogNode(type: string): boolean {
-  return type in ENGINE_NATIVE_NODE_DEFINITIONS;
+  return Object.hasOwn(ENGINE_NATIVE_NODE_DEFINITIONS, type);
 }
 
 /**
