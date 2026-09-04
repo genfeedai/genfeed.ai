@@ -226,6 +226,7 @@ describe('Tabs', () => {
     expect(activeTab).toHaveClass(
       'border-input',
       'data-[state=active]:bg-accent',
+      'shrink-0',
     );
   });
 
