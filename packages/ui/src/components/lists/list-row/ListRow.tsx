@@ -7,7 +7,7 @@ import type { ReactElement } from 'react';
 
 const DENSITY_CLASSES: Record<'compact' | 'comfortable', string> = {
   comfortable: 'p-4',
-  compact: 'py-2.5',
+  compact: 'px-4 py-2.5 sm:px-5',
 };
 
 const BASE_CLASSES =

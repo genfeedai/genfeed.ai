@@ -12,8 +12,8 @@ const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
-  comfortable: 'mb-5 gap-3',
-  compact: 'mb-3 gap-2',
+  comfortable: 'mb-4 gap-2',
+  compact: 'mb-3 gap-1.5',
 };
 
 const CONTENT_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
@@ -30,11 +30,19 @@ export interface WorkspaceSurfaceProps
   density?: WorkspaceSurfaceDensity;
   description?: ReactNode;
   eyebrow?: ReactNode;
+  /** Drops the frame around the body. Use when the child brings its own frame (a Table). */
   framed?: boolean;
+  /** Removes body padding so rows and tables run border to border inside the frame. */
+  flush?: boolean;
   title?: ReactNode;
   tone?: WorkspaceSurfaceTone;
 }
 
+/**
+ * Section heading outside the frame, body inside it (Vercel dashboard layout).
+ * The header is never part of the card, so list rows and tables own the full
+ * card width.
+ */
 export function WorkspaceSurface({
   actions,
   children,
@@ -43,65 +51,66 @@ export function WorkspaceSurface({
   density = 'comfortable',
   description,
   eyebrow,
+  flush = false,
   framed = true,
   title,
   tone = 'default',
   ...props
 }: WorkspaceSurfaceProps): ReactElement {
+  const hasHeader = Boolean(eyebrow || title || description || actions);
+
   return (
-    <section
-      {...props}
-      className={cn(
-        framed
-          ? FRAME_TONE_CLASSES[tone]
-          : 'border-0 bg-transparent shadow-none',
-        className,
-      )}
-    >
-      <div
-        className={cn(
-          'flex h-full flex-col',
-          framed ? CONTENT_GAP_CLASSES[density] : 'gap-4',
-          contentClassName,
-        )}
-      >
-        {eyebrow || title || description || actions ? (
-          <div className={cn('flex flex-col', HEADER_GAP_CLASSES[density])}>
-            {/* Title row: actions always sit on one line with the title block. */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                {eyebrow ? (
-                  <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
-                    {eyebrow}
-                  </p>
-                ) : null}
-                {title ? (
-                  <h2
-                    className={cn(
-                      'font-semibold tracking-[-0.02em] text-foreground',
-                      density === 'compact'
-                        ? 'text-base sm:text-lg'
-                        : 'text-lg sm:text-xl',
-                    )}
-                  >
-                    {title}
-                  </h2>
-                ) : null}
-              </div>
-              {actions ? (
-                <div className="flex shrink-0 flex-nowrap items-center gap-2">
-                  {actions}
-                </div>
+    <section {...props} className={cn('flex flex-col', className)}>
+      {hasHeader ? (
+        <div className={cn('flex flex-col', HEADER_GAP_CLASSES[density])}>
+          {/* Title row: actions always sit on one line with the title block. */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              {eyebrow ? (
+                <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
+                  {eyebrow}
+                </p>
+              ) : null}
+              {title ? (
+                <h2
+                  className={cn(
+                    'font-semibold tracking-[-0.02em] text-foreground',
+                    density === 'compact'
+                      ? 'text-base'
+                      : 'text-base sm:text-lg',
+                  )}
+                >
+                  {title}
+                </h2>
               ) : null}
             </div>
-            {description ? (
-              <p className="text-sm leading-6 text-foreground/55">
-                {description}
-              </p>
+            {actions ? (
+              <div className="flex shrink-0 flex-nowrap items-center gap-2">
+                {actions}
+              </div>
             ) : null}
           </div>
-        ) : null}
+          {description ? (
+            <p className="text-sm leading-6 text-foreground/55">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
+      <div
+        className={cn(
+          'flex min-h-0 flex-1 flex-col',
+          framed
+            ? FRAME_TONE_CLASSES[tone]
+            : 'border-0 bg-transparent shadow-none',
+          framed && flush && 'overflow-hidden',
+          framed && !flush && CONTENT_GAP_CLASSES[density],
+          !framed && 'gap-4',
+          contentClassName,
+        )}
+        data-slot="workspace-surface-body"
+      >
         {children}
       </div>
     </section>

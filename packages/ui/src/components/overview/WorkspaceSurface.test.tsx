@@ -2,12 +2,16 @@ import { render, screen } from '@testing-library/react';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { describe, expect, it } from 'vitest';
 
+function body(container: HTMLElement): Element | null {
+  return container.querySelector('[data-slot="workspace-surface-body"]');
+}
+
 describe('WorkspaceSurface', () => {
   it('renders framed surface styling by default', () => {
     const { container } = render(<WorkspaceSurface>Body</WorkspaceSurface>);
-    expect(container.querySelector('section')).toHaveClass('rounded-card');
-    expect(container.querySelector('section')).toHaveClass('bg-card');
-    expect(container.querySelector('section')).toHaveClass('shadow-border');
+    expect(body(container)).toHaveClass('rounded-card');
+    expect(body(container)).toHaveClass('bg-card');
+    expect(body(container)).toHaveClass('shadow-border');
   });
 
   it('renders eyebrow, title, description, and actions on a title row', () => {
@@ -45,11 +49,33 @@ describe('WorkspaceSurface', () => {
       </WorkspaceSurface>,
     );
 
-    const section = container.querySelector('section');
+    const section = body(container);
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('rounded-card');
     expect(section).toHaveClass('shadow-border');
     expect(container.querySelector('.px-4')).toBeInTheDocument();
+  });
+
+  it('renders the header outside the framed body', () => {
+    const { container } = render(
+      <WorkspaceSurface title="Recent Runs">Body</WorkspaceSurface>,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'Recent Runs' });
+    expect(body(container)).not.toContainElement(heading);
+    expect(body(container)).toHaveTextContent('Body');
+  });
+
+  it('drops body padding when flush', () => {
+    const { container } = render(
+      <WorkspaceSurface density="compact" flush>
+        Body
+      </WorkspaceSurface>,
+    );
+
+    expect(body(container)).toHaveClass('overflow-hidden');
+    expect(body(container)).not.toHaveClass('px-4');
+    expect(body(container)).toHaveClass('rounded-card');
   });
 
   it('renders the canonical dashboard card surface for the card tone', () => {
@@ -57,7 +83,7 @@ describe('WorkspaceSurface', () => {
       <WorkspaceSurface tone="card">Body</WorkspaceSurface>,
     );
 
-    const section = container.querySelector('section');
+    const section = body(container);
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('shadow-border');
     expect(section).toHaveClass('rounded-card');
@@ -70,7 +96,7 @@ describe('WorkspaceSurface', () => {
         <WorkspaceSurface tone={tone}>Body</WorkspaceSurface>,
       );
 
-      const section = container.querySelector('section');
+      const section = body(container);
       expect(section).toHaveClass('bg-card');
       expect(section).toHaveClass('rounded-card');
       expect(section).toHaveClass('shadow-border');
@@ -84,7 +110,7 @@ describe('WorkspaceSurface', () => {
       <WorkspaceSurface tone="elevated">Body</WorkspaceSurface>,
     );
 
-    const section = container.querySelector('section');
+    const section = body(container);
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('rounded-card');
     expect(section).toHaveClass('shadow-border-strong');
@@ -97,7 +123,7 @@ describe('WorkspaceSurface', () => {
         <WorkspaceSurface tone={tone}>Body</WorkspaceSurface>,
       );
 
-      const section = container.querySelector('section');
+      const section = body(container);
       expect(section).toHaveClass('rounded-card');
       expect(section).not.toHaveClass('rounded-md');
       unmount();
@@ -108,7 +134,7 @@ describe('WorkspaceSurface', () => {
     const { container } = render(
       <WorkspaceSurface framed={false}>Body</WorkspaceSurface>,
     );
-    expect(container.querySelector('section')).toHaveClass('border-0');
-    expect(container.querySelector('section')).toHaveClass('bg-transparent');
+    expect(body(container)).toHaveClass('border-0');
+    expect(body(container)).toHaveClass('bg-transparent');
   });
 });
