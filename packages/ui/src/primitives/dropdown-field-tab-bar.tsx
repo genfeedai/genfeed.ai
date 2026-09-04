@@ -1,7 +1,7 @@
 'use client';
 
-import Tabs from '@ui/navigation/tabs/Tabs';
 import type { DropdownFieldTab } from './dropdown-field';
+import { Tabs, TabsList, TabsTrigger } from './tabs';
 
 type DropdownTabBarProps = {
   tabs: DropdownFieldTab[];
@@ -20,14 +20,19 @@ export default function DropdownTabBar({
 
   return (
     <div className="mb-2 border-b border-border px-3 pb-2">
-      <Tabs
-        activeTab={activeTab}
-        ariaLabel="Option category"
-        fullWidth={false}
-        items={tabs}
-        onTabChange={onTabChange}
-        stopClickPropagation
-      />
+      <Tabs value={activeTab} onValueChange={onTabChange}>
+        <TabsList aria-label="Option category">
+          {tabs.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
     </div>
   );
 }

@@ -379,8 +379,9 @@ describe('GenerationSetupPopover', () => {
       RouterPriority.QUALITY,
     );
     expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Model tab' })).toHaveClass(
-      'bg-background-tertiary',
+    expect(screen.getByRole('tab', { name: 'Model' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
   });
 
@@ -392,12 +393,8 @@ describe('GenerationSetupPopover', () => {
     await openPopover(user);
     await user.click(screen.getByRole('button', { name: 'Customize setup' }));
 
-    expect(
-      screen.getByRole('button', { name: 'Model tab' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Brand tab' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Model' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Brand' })).toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', { name: 'Reset all fields to agent' }),
@@ -413,8 +410,9 @@ describe('GenerationSetupPopover', () => {
     await openPopover(user);
     await user.click(screen.getByRole('button', { name: 'Edit Aspect ratio' }));
 
-    expect(screen.getByRole('button', { name: 'Output tab' })).toHaveClass(
-      'bg-background-tertiary',
+    expect(screen.getByRole('tab', { name: 'Output' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
     expect(
       screen.getByRole('combobox', { name: 'Aspect ratio' }),

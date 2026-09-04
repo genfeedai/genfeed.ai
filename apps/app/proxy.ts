@@ -204,7 +204,7 @@ function canonicalizeLegacyScopedProtectedPath(
     !orgSlug ||
     !brandSlug ||
     !SLUG_RE.test(orgSlug) ||
-    !SLUG_RE.test(brandSlug) ||
+    (brandSlug !== '~' && !SLUG_RE.test(brandSlug)) ||
     Object.values(APP_ROUTE_PREFIXES).some(
       (prefix) => prefix.slice(1).split('/')[0] === orgSlug,
     )

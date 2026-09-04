@@ -39,6 +39,7 @@ const storeState = {
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     push: mockPush,
   }),

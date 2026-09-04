@@ -21,7 +21,7 @@ describe('CreditBalanceService', () => {
     vi.clearAllMocks();
   });
 
-  it('tenant-scopes the billing-account wallet lookup', async () => {
+  it('finds a shared billing-account wallet owned by another organization', async () => {
     prisma.creditBalance.findFirst.mockResolvedValue({
       balance: 100,
       billingAccountId: 'ba_1',
@@ -32,43 +32,48 @@ describe('CreditBalanceService', () => {
       version: 1,
     });
 
-    await service.getOrCreateBalance('org_1', undefined, 'ba_1');
+    await service.getOrCreateBalance('org_2', undefined, 'ba_1');
 
     expect(prisma.creditBalance.findFirst).toHaveBeenCalledWith({
       where: {
         billingAccountId: 'ba_1',
         isDeleted: false,
-        organizationId: 'org_1',
       },
     });
   });
 
-  it('tenant-scopes the wallet read after a balance mutation', async () => {
-    const balance = {
-      balance: 100,
-      billingAccountId: 'ba_1',
-      heldAmount: 6,
-      id: 'balance_1',
-      isDeleted: false,
-      organizationId: 'org_1',
-      version: 1,
-    };
-    prisma.creditBalance.findFirst
-      .mockResolvedValueOnce(balance)
-      .mockResolvedValueOnce({ ...balance, heldAmount: 4, version: 2 });
-    prisma.$executeRaw.mockResolvedValue(1);
-
-    await service.applyDelta('org_1', {
-      billingAccountId: 'ba_1',
-      heldDelta: -2,
-    });
-
-    expect(prisma.creditBalance.findFirst).toHaveBeenNthCalledWith(2, {
-      where: {
+  it.each(['org_1', null])(
+    'mutates the shared wallet owned by %s',
+    async (walletOrganizationId) => {
+      const balance = {
+        balance: 100,
+        billingAccountId: 'ba_1',
+        heldAmount: 6,
         id: 'balance_1',
         isDeleted: false,
-        organizationId: 'org_1',
-      },
-    });
-  });
+        organizationId: walletOrganizationId,
+        version: 1,
+      };
+      prisma.creditBalance.findFirst
+        .mockResolvedValueOnce(balance)
+        .mockResolvedValueOnce({ ...balance, heldAmount: 4, version: 2 });
+      prisma.$executeRaw.mockResolvedValue(1);
+
+      await service.applyDelta('org_2', {
+        billingAccountId: 'ba_1',
+        heldDelta: -2,
+      });
+
+      const mutation = prisma.$executeRaw.mock.calls[0]?.[0];
+      expect(mutation.values).toContain(walletOrganizationId);
+      expect(mutation.values).not.toContain('org_2');
+      expect(prisma.creditBalance.findFirst).toHaveBeenNthCalledWith(2, {
+        where: {
+          id: 'balance_1',
+          isDeleted: false,
+          organizationId: walletOrganizationId,
+        },
+      });
+    },
+  );
 });

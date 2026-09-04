@@ -66,7 +66,7 @@ export class CreditBalanceService {
     const client = tx ?? this.prisma;
     if (billingAccountId) {
       const shared = await client.creditBalance.findFirst({
-        where: scopedWhere(organizationId, { billingAccountId }),
+        where: { billingAccountId, isDeleted: false },
       });
       if (shared) {
         return shared;
@@ -142,7 +142,7 @@ export class CreditBalanceService {
           "version" = "version" + 1,
           "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = ${balance.id}
-          AND "organizationId" = ${organizationId}
+          AND "organizationId" IS NOT DISTINCT FROM ${balance.organizationId}
           AND "isDeleted" = false
           AND "heldAmount" + ${heldDelta} >= 0
           AND ("balance" + ${balanceDelta}) - ("heldAmount" + ${heldDelta}) >= ${-maxOverdraftCredits}
@@ -164,7 +164,11 @@ export class CreditBalanceService {
     }
 
     const next = await client.creditBalance.findFirst({
-      where: scopedWhere(organizationId, { id: balance.id }),
+      where: {
+        id: balance.id,
+        isDeleted: false,
+        organizationId: balance.organizationId,
+      },
     });
     if (!next) {
       throw new BusinessLogicException(
@@ -196,7 +200,11 @@ export class CreditBalanceService {
       tx,
     );
     const next = await (tx ?? this.prisma).creditBalance.findFirst({
-      where: scopedWhere(organizationId, { id: snapshot.id }),
+      where: {
+        id: snapshot.id,
+        isDeleted: false,
+        organizationId: current.organizationId,
+      },
     });
     if (!next) {
       throw new BusinessLogicException(

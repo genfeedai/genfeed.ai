@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,
+} from './heygen-poll-job.interface';
+import {
   REPLICATE_POLL_DELAY_MS,
   REPLICATE_POLL_MAX_ATTEMPTS,
-} from './heygen-poll-job.interface';
+} from './replicate-poll-job.interface';
 
 describe('job-data constants', () => {
   it('preserves the heygen-poll cadence contract', () => {

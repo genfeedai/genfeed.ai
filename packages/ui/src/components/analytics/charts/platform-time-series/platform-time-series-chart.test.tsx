@@ -83,6 +83,11 @@ vi.mock('next/dynamic', () => ({
 const mockData: PlatformTimeSeriesDataPoint[] = [
   {
     date: '2024-01-01',
+    facebook: 800,
+    linkedin: 700,
+    reddit: 600,
+    pinterest: 500,
+    medium: 400,
     instagram: 5000,
     tiktok: 3000,
     twitter: 1500,
@@ -562,7 +567,8 @@ describe('PlatformTimeSeriesChart', () => {
         { date: '2024-01-02', instagram: 0, tiktok: 0, twitter: 0, youtube: 0 },
       ];
       render(<PlatformTimeSeriesChart data={zeroData} />);
-      expect(screen.getByTestId('area-chart')).toBeInTheDocument();
+      expect(screen.getByText('No performance trends yet')).toBeInTheDocument();
+      expect(screen.queryByTestId('area-chart')).not.toBeInTheDocument();
     });
 
     it('handles very large numbers', () => {

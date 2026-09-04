@@ -742,6 +742,18 @@ function UniversalWorkspaceShellContent({
       }
 
       const trustedAction = resolvedAction.action;
+      if (
+        trustedAction.requiredScope === 'brand' &&
+        !brandSlug?.trim() &&
+        !selectedBrand?.slug?.trim()
+      ) {
+        return {
+          message:
+            'Choose a brand before opening this action. Your draft is unchanged.',
+          status: 'unauthorized',
+        };
+      }
+
       const overlayResult = resolveNamedComposerOverlay({
         actionName: trustedAction.name,
         openLibraryPicker: () =>

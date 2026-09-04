@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   afterAll,
   afterEach,
@@ -520,6 +521,11 @@ describe('proxy', () => {
   );
 
   it.each([
+    ['/acme/~/workflows', '/acme/~/automation/workflows'],
+    [
+      '/acme/~/workflows/workflow-42',
+      '/acme/~/automation/workflows/workflow-42',
+    ],
     [
       '/acme/moonrise-studio/workflows',
       '/acme/moonrise-studio/automation/workflows',

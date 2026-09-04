@@ -402,7 +402,7 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently aliases /workflows onto Automation workflows', async () => {
+  it('keeps flat workflow redirects and leaves scoped routes to the proxy', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
@@ -410,7 +410,7 @@ describe('app next.config', () => {
       permanent: true,
       source: LEGACY_APP_ROUTES.WORKFLOWS,
     });
-    expect(redirects).toContainEqual({
+    expect(redirects).not.toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
@@ -423,7 +423,7 @@ describe('app next.config', () => {
         LEGACY_APP_ROUTES.WORKFLOWS,
       ),
     });
-    expect(redirects).toContainEqual({
+    expect(redirects).not.toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',

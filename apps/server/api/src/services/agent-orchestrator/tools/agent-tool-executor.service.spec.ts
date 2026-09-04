@@ -5085,6 +5085,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'podcast host portrait' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org'),
         userId: testId('user'),
       },
@@ -5117,6 +5118,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { description: 'podcast host portrait' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org'),
         userId: testId('user'),
       },
@@ -5150,6 +5152,7 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'product photo' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org2'),
         userId: testId('user'),
       },
