@@ -95,12 +95,13 @@ describe('StudioGenerateCard', () => {
     ).toHaveClass('absolute', 'opacity-0', 'group-hover:opacity-100');
     expect(container.querySelector('[data-asset-caption]')).toBeNull();
     expect(container.querySelector('[data-asset-footer]')).toBeNull();
-
-    fireEvent.click(
-      screen.getByRole('button', {
+    expect(
+      screen.queryByRole('button', {
         name: `Inspect Image generation: ${generatedJob.prompt}`,
       }),
-    );
+    ).toBeNull();
+
+    fireEvent.click(screen.getByTestId('studio-asset-job-1'));
 
     expect(onSelect).toHaveBeenCalledWith(generatedJob);
   });
@@ -266,11 +267,7 @@ describe('StudioGenerateCard', () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: `Inspect Image generation: ${job.prompt}`,
-      }),
-    );
+    fireEvent.click(screen.getByTestId('studio-asset-job-1'));
 
     expect(onSelect).toHaveBeenCalledWith(job);
   });

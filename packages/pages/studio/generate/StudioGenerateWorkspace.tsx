@@ -789,49 +789,98 @@ export default function StudioGenerateWorkspace(): ReactElement {
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="flex-1 overflow-auto px-6 py-6">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-            {remixRun ? (
-              <StudioRemixRunPanel
-                error={remixError}
-                isWorking={remixStatus === 'working'}
-                onReview={(variantIds) => {
-                  void submitForReview(variantIds);
-                }}
-                onPreparePaidDraft={() => {
-                  const selector = remixRun.sourceSnapshot.selector;
-                  if (
-                    selector.kind !== 'connected_ad' ||
-                    selector.platform !== 'meta'
-                  ) {
-                    return;
-                  }
-                  void preparePausedDraft({
-                    destination: {
-                      adAccountId: selector.adAccountId,
-                      credentialId: selector.credentialId,
-                    },
-                  });
-                }}
-                onVary={() => {
-                  void vary();
-                }}
-                run={remixRun}
-              />
-            ) : remixError ? (
-              <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
-            ) : null}
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div className="h-full overflow-auto px-6 py-6 pb-40">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+              {remixRun ? (
+                <StudioRemixRunPanel
+                  error={remixError}
+                  isWorking={remixStatus === 'working'}
+                  onReview={(variantIds) => {
+                    void submitForReview(variantIds);
+                  }}
+                  onPreparePaidDraft={() => {
+                    const selector = remixRun.sourceSnapshot.selector;
+                    if (
+                      selector.kind !== 'connected_ad' ||
+                      selector.platform !== 'meta'
+                    ) {
+                      return;
+                    }
+                    void preparePausedDraft({
+                      destination: {
+                        adAccountId: selector.adAccountId,
+                        credentialId: selector.credentialId,
+                      },
+                    });
+                  }}
+                  onVary={() => {
+                    void vary();
+                  }}
+                  run={remixRun}
+                />
+              ) : remixError ? (
+                <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
+              ) : null}
 
-            <StudioGenerateResults
-              assetActions={assetActions}
-              isLoading={isLoadingGallery}
-              jobs={visibleJobs}
-              onReprompt={handleVaryRecipe}
-              onSelect={(job) => setSelectedJobId(job.id)}
-              selectedJobId={selectedJobId}
-              view={resultsView}
-            />
+              <StudioGenerateResults
+                assetActions={assetActions}
+                isLoading={isLoadingGallery}
+                jobs={visibleJobs}
+                onReprompt={handleVaryRecipe}
+                onSelect={(job) => setSelectedJobId(job.id)}
+                selectedJobId={selectedJobId}
+                view={resultsView}
+              />
+            </div>
           </div>
+          <PromptBarContainer
+            className="px-5 pb-5"
+            layoutMode="surface-fixed"
+            maxWidth="4xl"
+            showTopFade
+          >
+            <div {...(capabilities.hasReferences ? dragHandlers : {})}>
+              <StudioRemixRunScope
+                canSelectAvatar={Boolean(
+                  remixRun &&
+                    resolvePairedRemixIdentity(remixRun.draft.identity),
+                )}
+                isActive={Boolean(remixRun)}
+              >
+                <StudioGenerateComposer
+                  attachedAssets={attachedAssets}
+                  extraExtensions={extraExtensions}
+                  isDragActive={
+                    capabilities.hasReferences && dragState.isActive
+                  }
+                  isGenerating={isGenerating || remixStatus === 'working'}
+                  isListening={isListening}
+                  isLoadingModels={isLoadingModels}
+                  isTranscribing={isTranscribing}
+                  isUploading={isUploading}
+                  models={models}
+                  onAddFiles={handleAddFiles}
+                  onOpenLibrary={handleOpenLibrary}
+                  onPromptChange={setPrompt}
+                  onPromptDocumentChange={(document) => {
+                    promptDocumentRef.current = document;
+                  }}
+                  onRemoveAttachedAsset={handleRemoveAttachedAsset}
+                  onResetSettings={handleResetSettings}
+                  onSettingsChange={updateSettings}
+                  onStartListening={startListening}
+                  onStopListening={stopListening}
+                  onSubmit={handleSubmit}
+                  onTypeChange={setType}
+                  prompt={prompt}
+                  settings={settings}
+                  shouldShowVoiceInput={shouldShowVoiceInput}
+                  type={type}
+                />
+              </StudioRemixRunScope>
+            </div>
+          </PromptBarContainer>
         </div>
         {selectedJob ? (
           <StudioGenerateInspector
@@ -843,51 +892,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
           />
         ) : null}
       </div>
-
-      <PromptBarContainer
-        className="shrink-0 bg-background px-5 pb-5 pt-3"
-        layoutMode="inflow"
-        maxWidth="4xl"
-        showTopFade
-      >
-        <div {...(capabilities.hasReferences ? dragHandlers : {})}>
-          <StudioRemixRunScope
-            canSelectAvatar={Boolean(
-              remixRun && resolvePairedRemixIdentity(remixRun.draft.identity),
-            )}
-            isActive={Boolean(remixRun)}
-          >
-            <StudioGenerateComposer
-              attachedAssets={attachedAssets}
-              extraExtensions={extraExtensions}
-              isDragActive={capabilities.hasReferences && dragState.isActive}
-              isGenerating={isGenerating || remixStatus === 'working'}
-              isListening={isListening}
-              isLoadingModels={isLoadingModels}
-              isTranscribing={isTranscribing}
-              isUploading={isUploading}
-              models={models}
-              onAddFiles={handleAddFiles}
-              onOpenLibrary={handleOpenLibrary}
-              onPromptChange={setPrompt}
-              onPromptDocumentChange={(document) => {
-                promptDocumentRef.current = document;
-              }}
-              onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onResetSettings={handleResetSettings}
-              onSettingsChange={updateSettings}
-              onStartListening={startListening}
-              onStopListening={stopListening}
-              onSubmit={handleSubmit}
-              onTypeChange={setType}
-              prompt={prompt}
-              settings={settings}
-              shouldShowVoiceInput={shouldShowVoiceInput}
-              type={type}
-            />
-          </StudioRemixRunScope>
-        </div>
-      </PromptBarContainer>
 
       <ContentLibraryPicker
         isLoading={isContentLibraryLoading}

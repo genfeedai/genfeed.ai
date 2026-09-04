@@ -24,7 +24,6 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   AlertTriangle,
-  Eye,
   ImageOff,
   Loader2,
   RotateCcw,
@@ -32,7 +31,13 @@ import {
 } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type MouseEvent,
+  type ReactElement,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
 const VIDEO_TYPES = new Set(['video', 'avatar']);
@@ -137,6 +142,16 @@ export default function StudioGenerateCard({
     }
   }, [job.url]);
 
+  const handleCardActivate = useCallback(
+    (event: MouseEvent<HTMLElement>) => {
+      if (event.target instanceof Element && event.target.closest('button')) {
+        return;
+      }
+      onSelect(job);
+    },
+    [job, onSelect],
+  );
+
   function renderDetails(showLifecycleActions = false): ReactElement {
     return (
       <div
@@ -164,20 +179,6 @@ export default function StudioGenerateCard({
         >
           {job.prompt}
         </p>
-
-        <Button
-          ariaLabel={translate('selectGenerationAria', {
-            prompt: job.prompt || job.id,
-            type: label,
-          })}
-          className="h-auto w-fit px-0 text-xs text-muted-foreground hover:text-foreground"
-          icon={<Eye className="size-3.5" />}
-          label={translate('inspectPrompt')}
-          onClick={() => onSelect(job)}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
 
         {showLifecycleActions ? (
           <div className="flex items-center gap-1 border-t border-border pt-2">
@@ -219,36 +220,23 @@ export default function StudioGenerateCard({
     return (
       <AssetHoverDetails
         actions={
-          <>
-            <Button
-              ariaLabel={translate('selectGenerationAria', {
-                prompt: job.prompt || job.id,
-                type: label,
-              })}
-              className="h-auto px-0 text-xs text-foreground/75 hover:text-foreground"
-              icon={<Eye className="size-3.5" />}
-              label={translate('inspectPrompt')}
-              onClick={() => onSelect(job)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-            {showLifecycleActions && isFailed ? (
-              <Button
-                ariaLabel={translate('removeGenerationAria', {
-                  prompt: job.prompt || job.id,
-                  type: label,
-                })}
-                className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
-                icon={<Trash2 className="size-3.5" />}
-                label={translate('remove')}
-                onClick={() => assetActions.onRemoveGeneration(job)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            ) : null}
-            {showLifecycleActions ? (
+          showLifecycleActions ? (
+            <>
+              {isFailed ? (
+                <Button
+                  ariaLabel={translate('removeGenerationAria', {
+                    prompt: job.prompt || job.id,
+                    type: label,
+                  })}
+                  className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                  icon={<Trash2 className="size-3.5" />}
+                  label={translate('remove')}
+                  onClick={() => assetActions.onRemoveGeneration(job)}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
               <Button
                 ariaLabel={translate('repromptGenerationAria', {
                   prompt: job.prompt || job.id,
@@ -262,8 +250,8 @@ export default function StudioGenerateCard({
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
               />
-            ) : null}
-          </>
+            </>
+          ) : undefined
         }
         label={job.prompt}
         metadata={job.modelKey || 'Auto'}
@@ -292,7 +280,7 @@ export default function StudioGenerateCard({
     return (
       <article
         aria-label={`${label} generation`}
-        className={`group relative w-full rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+        className={`group relative w-full cursor-pointer rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
           isListView
             ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
             : 'overflow-hidden'
@@ -300,6 +288,7 @@ export default function StudioGenerateCard({
         data-asset-media-state={mediaState}
         data-selected={isSelected ? 'true' : 'false'}
         data-testid={`studio-asset-${job.id}`}
+        onClick={handleCardActivate}
       >
         <div
           className={
@@ -334,7 +323,7 @@ export default function StudioGenerateCard({
   return (
     <article
       aria-label={`${label} generation`}
-      className={`group relative w-full overflow-hidden rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+      className={`group relative w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
         isListView
           ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
           : ''
@@ -342,6 +331,7 @@ export default function StudioGenerateCard({
       data-asset-media-state={mediaState}
       data-selected={isSelected ? 'true' : 'false'}
       data-testid={`studio-asset-${job.id}`}
+      onClick={handleCardActivate}
     >
       <div
         className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/[0.04] ${
