@@ -60,6 +60,8 @@ test('full-tier adapter produces deterministic bounded assertion evidence', () =
 
 test('full-tier reporter separates failed scenarios from matrix job logs', () => {
   assert.match(WORKFLOW, /actions: read/u);
+  assert.match(WORKFLOW, /contents: read/u);
+  assert.match(WORKFLOW, /issues: write/u);
   assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/u);
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob: 'e2e-frontend-full'/u);

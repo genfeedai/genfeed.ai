@@ -13,6 +13,7 @@ import {
   collectScheduledRunFailures,
   computeFailureFingerprint,
   extractActionableFailureScenarios,
+  normalizeFailureSignature,
   PUBLIC_EXCERPT_LIMIT,
   parseTrackerState,
   recordScheduledWorkflowGreen,
@@ -142,6 +143,28 @@ function failure(overrides = {}) {
   };
 }
 
+async function collectScenarioFailures(fixture, log) {
+  fixture.github.request = async (_route, input) => {
+    fixture.calls.logDownloads.push(input.job_id);
+    return { data: log };
+  };
+
+  return collectScheduledRunFailures({
+    github: fixture.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    jobs: [
+      {
+        conclusion: 'failure',
+        databaseId: 9001,
+        fallbackExcerpt: 'Playwright full tier failed.',
+        name: 'Playwright Full (Shard 1/8)',
+        trackerJob: 'e2e-frontend-full',
+      },
+    ],
+  });
+}
+
 test('classifies deterministic failure classes', () => {
   assert.equal(
     classifyScheduledFailure('Expected 2, received 3').failureClass,
@@ -211,6 +234,18 @@ test('extracts distinct actionable Playwright scenarios from one failed job log'
   ]);
 });
 
+test('preserves authored numbers when deduplicating actionable scenarios', () => {
+  const scenarios = extractActionableFailureScenarios(`
+2026-09-01T08:03:05.9916708Z     [app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:42:7 › Workflows › handles case 1
+2026-09-01T08:03:05.9917390Z     [app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:99:2 › Workflows › handles case 2
+`);
+
+  assert.deepEqual(scenarios, [
+    '[app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:42:7 › Workflows › handles case 1',
+    '[app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:99:2 › Workflows › handles case 2',
+  ]);
+});
+
 test('collects one stable failure per actionable scenario and ignores shard identity', async () => {
   const fixture = githubFixture();
   fixture.github.request = async (_route, input) => {
@@ -246,6 +281,10 @@ test('collects one stable failure per actionable scenario and ignores shard iden
   );
   assert.match(failures[0].excerpt, /restores editor chrome/u);
   assert.match(failures[1].excerpt, /sends a queued follow-up/u);
+  assert.equal(
+    failures[0].identitySignature,
+    normalizeFailureSignature(failures[0].excerpt),
+  );
 });
 
 test('body carries a parseable marker and implementation-ready bounded contract', () => {
@@ -325,6 +364,60 @@ test('different test scenarios in one job create distinct named trackers', async
   assert.equal(fixture.issues.length, 2);
   assert.match(fixture.issues[0].body, /restores editor chrome/u);
   assert.match(fixture.issues[1].body, /sends a queued follow-up/u);
+});
+
+test('authored scenario numbers create distinct trackers', async () => {
+  const fixture = githubFixture();
+  const failures = await collectScenarioFailures(
+    fixture,
+    [
+      '[app-core] › workflows.spec.ts:42:7 › Workflows › handles case 1',
+      '[app-core] › workflows.spec.ts:99:2 › Workflows › handles case 2',
+    ].join('\n'),
+  );
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure(failures[0]),
+  });
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      ...failures[1],
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    }),
+  });
+
+  assert.notEqual(first.fingerprint, second.fingerprint);
+  assert.equal(fixture.issues.length, 2);
+});
+
+test('a relocated numbered scenario updates its existing tracker', async () => {
+  const fixture = githubFixture();
+  const [firstFailure] = await collectScenarioFailures(
+    fixture,
+    '[app-core] › workflows.spec.ts:42:7 › Workflows › handles case 1',
+  );
+  const [secondFailure] = await collectScenarioFailures(
+    fixture,
+    '[app-core] › workflows.spec.ts:99:2 › Workflows › handles case 1',
+  );
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure(firstFailure),
+  });
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      ...secondFailure,
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    }),
+  });
+
+  assert.equal(first.fingerprint, second.fingerprint);
+  assert.equal(second.action, 'updated');
+  assert.equal(fixture.issues.length, 1);
 });
 
 test('recurrence finds an unlabeled canonical tracker and reopens it after recovery', async () => {

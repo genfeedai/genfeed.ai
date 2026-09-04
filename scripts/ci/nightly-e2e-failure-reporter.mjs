@@ -34,6 +34,7 @@ export async function reportNightlyE2eFailure({
         workflowIdentity: NIGHTLY_E2E_WORKFLOW_IDENTITY,
         failedJob: failure.failedJob,
         excerpt: failure.excerpt,
+        identitySignature: failure.identitySignature,
         sha,
         runId,
         runAttempt,
