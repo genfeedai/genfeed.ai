@@ -75,6 +75,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_generation_card_prompt_bar_send](feedback_generation_card_prompt_bar_send.md) — generation card uses the prompt-bar toolbar and square ArrowUp send
 - [feedback_composer_docked_cards](feedback_composer_docked_cards.md) — composer-top cards sit flush on the prompt bar at full width; keep the generate form open
 - [feedback_composer_opaque_dock](feedback_composer_opaque_dock.md) — prompt bar is opaque; dock uses a top-transparent / bottom-black gradient; do not slab the full stack
+- [feedback_composer_outer_shadow](feedback_composer_outer_shadow.md) — docked prompt bar lifts with outer --shadow-lg only; no inset or 1px ring hairline
 - [feedback_onboarding_conversation_prompt_card](feedback_onboarding_conversation_prompt_card.md) — post-brand /agent/onboarding is a conversation; compact card sits on the prompt bar
 - [feedback_onboarding_brand_shared](feedback_onboarding_brand_shared.md) — `/onboarding/brand` is shared across Cloud and Desktop; Skip completes the gate, brand stays re-enterable
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org

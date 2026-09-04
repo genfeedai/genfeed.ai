@@ -35,6 +35,25 @@ describe('Tailwind theme selector contract', () => {
     );
   });
 
+  it('lifts the docked composer with an outer shadow, not an inset hairline', () => {
+    const source = readFileSync(
+      join(process.cwd(), '../../packages/styles/globals.css'),
+      'utf8',
+    );
+
+    const composer = source.match(
+      /@utility shadow-composer \{\s*(?<body>[^}]*)\}/,
+    )?.groups?.body;
+    const composerStrong = source.match(
+      /@utility shadow-composer-strong \{\s*(?<body>[^}]*)\}/,
+    )?.groups?.body;
+
+    expect(composer).toContain('var(--shadow-lg)');
+    expect(composer).not.toContain('inset');
+    expect(composerStrong).toContain('var(--shadow-lg)');
+    expect(composerStrong).not.toContain('inset');
+  });
+
   it('keeps opt-in opacity and transform transitions available on buttons', () => {
     const source = readFileSync(
       join(process.cwd(), '../../packages/styles/globals.css'),
