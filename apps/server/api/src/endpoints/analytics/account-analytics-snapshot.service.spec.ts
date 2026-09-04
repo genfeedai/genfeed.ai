@@ -23,8 +23,9 @@ describe('extractProfileCounts', () => {
 describe('AccountAnalyticsSnapshotService', () => {
   const prisma = {
     accountAnalyticsSnapshot: {
-      findFirst: vi.fn(),
-      upsert: vi.fn().mockResolvedValue(undefined),
+      create: vi.fn().mockResolvedValue(undefined),
+      findFirst: vi.fn().mockResolvedValue(null),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
 
@@ -35,7 +36,7 @@ describe('AccountAnalyticsSnapshotService', () => {
     service = new AccountAnalyticsSnapshotService(prisma as never);
   });
 
-  it('upserts a daily snapshot for the exact credential', async () => {
+  it('creates a daily snapshot for the exact credential', async () => {
     await service.upsertDailySnapshot({
       brandId: 'brand-1',
       credentialId: 'cred-1',
@@ -45,19 +46,14 @@ describe('AccountAnalyticsSnapshotService', () => {
       subscribers: null,
     });
 
-    expect(prisma.accountAnalyticsSnapshot.upsert).toHaveBeenCalledWith(
+    expect(prisma.accountAnalyticsSnapshot.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           credentialId: 'cred-1',
           followers: 1500,
           organizationId: 'org-1',
           platform: 'INSTAGRAM',
         }),
-        where: {
-          credentialId_date: expect.objectContaining({
-            credentialId: 'cred-1',
-          }),
-        },
       }),
     );
   });
