@@ -1114,6 +1114,14 @@ jobs:
               return
             fi
 
+            local has_changed_code
+            has_changed_code=$(node scripts/ci/changed-code-coverage.mjs \
+              --base "$CI_BASE_SHA" --head HEAD --has-changed-code "$surface")
+            if [ "$has_changed_code" = 'false' ]; then
+              echo "$surface: no changed code on this surface"
+              return
+            fi
+
             mkdir -p "$workspace/.vitest-reports"
             cp "${reports[@]}" "$workspace/.vitest-reports/"
             (
