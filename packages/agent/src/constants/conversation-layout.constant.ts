@@ -36,11 +36,11 @@ export const AGENT_TIMELINE_DEFERRED_CLASS =
 export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
 
 /**
- * Sticky user prompt card (Cursor). Uses the card plane (`--card`) so a token
- * change reaches these surfaces; no "You" label — the card is the highlight.
+ * Sticky user prompt. Card plane, no hairline — a bordered rounded box clones
+ * the docked composer and makes history look like extra prompt bars.
  */
 export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-card px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
+  '-mx-3 w-[calc(100%+1.5rem)] max-w-none bg-card px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 

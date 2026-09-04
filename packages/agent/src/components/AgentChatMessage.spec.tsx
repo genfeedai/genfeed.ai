@@ -318,6 +318,8 @@ describe('AgentChatMessage', () => {
     expect(surface).toHaveClass('bg-card');
     expect(surface).toHaveClass('rounded-xl');
     expect(surface).toHaveClass('shadow-none');
+    expect(surface).not.toHaveClass('border');
+    expect(surface).not.toHaveClass('border-border-strong');
     expect(surface?.parentElement).toHaveClass('sticky');
     expect(surface?.parentElement).toHaveClass('bg-background');
     expect(surface?.parentElement).not.toHaveClass('justify-end');

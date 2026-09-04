@@ -34,9 +34,7 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
       'bg-tertiary',
     );
-    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
-      'border-border-strong',
-    );
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain('border');
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
       'text-foreground',
     );
