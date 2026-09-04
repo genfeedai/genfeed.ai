@@ -21,8 +21,13 @@ vi.mock('@helpers/data/cache/cache.helper', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn((fn: (token: string) => unknown) => {
-    const service = fn('test-token');
-    if ((service as { findAll?: unknown }).findAll) {
+    const service = fn('test-token') as {
+      serviceKind?: 'folders' | 'ingredients' | 'organizations';
+    };
+    if (service.serviceKind === 'organizations') {
+      return mockGetOrganizationsService;
+    }
+    if (service.serviceKind === 'ingredients') {
       return mockGetIngredientsService;
     }
     return mockGetFoldersService;
@@ -33,6 +38,7 @@ vi.mock('@genfeedai/services/content/folders.service', () => ({
   FoldersService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
+      serviceKind: 'folders',
     })),
   },
 }));
@@ -41,6 +47,7 @@ vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
+      serviceKind: 'ingredients',
     })),
   },
 }));
@@ -48,7 +55,8 @@ vi.mock('@genfeedai/services/content/ingredients.service', () => ({
 vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(() => ({
-      findAll: vi.fn().mockResolvedValue([]),
+      findOrganizationIngredients: vi.fn().mockResolvedValue([]),
+      serviceKind: 'organizations',
     })),
   },
 }));
@@ -155,6 +163,34 @@ describe('useIngredientsLoading', () => {
       lightweight?: boolean;
     };
     expect(firstCallParams.lightweight).toBe(true);
+  });
+
+  it('keeps the organization-wide ingredients route unfiltered by category', async () => {
+    const findOrganizationIngredients = vi.fn().mockResolvedValue([]);
+    mockGetOrganizationsService.mockResolvedValue({
+      findOrganizationIngredients,
+    });
+
+    renderHook(() =>
+      useIngredientsLoading({
+        ...baseProps,
+        query: {},
+        scope: PageScope.ORGANIZATION,
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(findOrganizationIngredients).toHaveBeenCalled();
+    });
+
+    expect(findOrganizationIngredients).toHaveBeenCalledWith(
+      'org-1',
+      expect.not.objectContaining({
+        category: IngredientCategory.INGREDIENT,
+      }),
+    );
   });
 
   it('strips empty query params before requesting ingredients', async () => {
