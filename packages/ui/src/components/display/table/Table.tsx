@@ -189,27 +189,24 @@ export default function AppTable<T>({
   }
 
   if (items?.length === 0) {
-    if (emptyState) {
-      return <>{emptyState}</>;
-    }
-    // Same single shell as the populated table — never a second nested CardEmpty.
+    // Empty is not a card. Pairing border + shadow-border painted a 2px slab
+    // around "No unread items". Host already owns the page surface.
     return (
-      <div
-        className="relative min-h-[12rem] w-full overflow-hidden rounded-card border border-border bg-card shadow-border"
-        data-testid="table-empty"
-      >
+      <div className="w-full" data-testid="table-empty">
         <TableSectionHeader label={label} description={description} />
-        <CardEmptyContent
-          label={emptyLabel}
-          description={emptyDescription}
-          className="min-h-[12rem] w-full"
-        />
+        {emptyState ?? (
+          <CardEmptyContent
+            label={emptyLabel}
+            description={emptyDescription}
+            className="min-h-[12rem] w-full"
+          />
+        )}
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded-card border border-border bg-card shadow-border">
+    <div className="relative overflow-hidden rounded-card bg-card shadow-border">
       <TableSectionHeader label={label} description={description} />
       <div className="overflow-x-auto">
         <table className="w-full caption-bottom border-collapse">
