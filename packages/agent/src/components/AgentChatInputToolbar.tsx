@@ -175,7 +175,9 @@ function AgentChatInputToolbarInner({
   useEffect(() => {
     onGenerationModeChange(
       isTypeLocked
-        ? activeGenerationType
+        ? activeGenerationType === 'video'
+          ? AgentGenerationMode.VIDEO
+          : AgentGenerationMode.IMAGE
         : (inferAgentMediaGenerationModeFromPrompt(promptText) ??
             AgentGenerationMode.AUTO),
     );

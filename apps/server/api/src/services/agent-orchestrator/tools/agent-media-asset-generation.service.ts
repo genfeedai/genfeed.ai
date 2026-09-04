@@ -465,7 +465,7 @@ export class AgentMediaAssetGenerationService {
 
     return {
       creditsUsed: 0,
-      data: buildMediaAssetData(id, status, cdnUrl),
+      data: id ? buildMediaAssetData(id, status, cdnUrl) : { status },
       isBillingDelegated: true,
       nextActions: id
         ? [

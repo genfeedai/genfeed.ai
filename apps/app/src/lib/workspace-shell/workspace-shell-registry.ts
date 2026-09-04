@@ -170,6 +170,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/analytics': 'Overview',
   '/:orgSlug/~/analytics/accounts': 'Accounts',
   '/:orgSlug/~/analytics/accounts/:id': 'Account',
+  '/:orgSlug/~/analytics/brands/:id': 'Brand Details',
   '/:orgSlug/~/automation': 'Overview',
   '/:orgSlug/:brandSlug/automation/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automation/agents': 'Agents',
@@ -553,6 +554,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/analytics/overview',
       '/:orgSlug/~/analytics/accounts',
       '/:orgSlug/~/analytics/accounts/:id',
+      '/:orgSlug/~/analytics/brands/:id',
     ],
     {
       fallback: '/:orgSlug/~/analytics',

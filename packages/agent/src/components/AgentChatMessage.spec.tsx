@@ -731,15 +731,14 @@ describe('AgentChatMessage', () => {
   });
 
   it('applies the shared scroll-focus shadow when highlighted', () => {
-    render(
+    const { container } = render(
       <AgentChatMessage
         isHighlighted={true}
         message={buildMessage('assistant', 'Focused message')}
       />,
     );
 
-    expect(
-      screen.getByText('Focused message').closest('.group')?.className,
-    ).toContain(SCROLL_FOCUS_SURFACE_CLASS);
+    const surface = container.querySelector('[data-message-role="assistant"]');
+    expect(surface?.className).toContain(SCROLL_FOCUS_SURFACE_CLASS);
   });
 });
