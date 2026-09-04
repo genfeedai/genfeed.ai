@@ -78,6 +78,28 @@ describe('Portless local-development environment', () => {
     });
   });
 
+  it('treats empty color flags as defined environment variables', () => {
+    expect(
+      sanitizeNodeColorEnvironment({
+        FORCE_COLOR: '',
+        NO_COLOR: '',
+        PATH: '/usr/bin',
+      }),
+    ).toEqual({
+      FORCE_COLOR: '',
+      PATH: '/usr/bin',
+    });
+    expect(
+      sanitizeNodeColorEnvironment({
+        FORCE_COLOR: '',
+        PATH: '/usr/bin',
+      }),
+    ).toEqual({
+      FORCE_COLOR: '',
+      PATH: '/usr/bin',
+    });
+  });
+
   it('pins canonical HTTPS proxy settings without hosts-file synchronization', () => {
     expect(PORTLESS_PROXY_ENVIRONMENT).toEqual({
       PORTLESS_HTTPS: '1',

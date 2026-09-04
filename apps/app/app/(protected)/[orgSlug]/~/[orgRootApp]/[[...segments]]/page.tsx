@@ -280,9 +280,13 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'publishing') {
-    const [section, campaignId, campaignSection] = segments ?? [];
+    const publishingSegments = segments ?? [];
+    const [section, campaignId, campaignSection] = publishingSegments;
 
-    if (!section || section === 'overview' || section === 'posts') {
+    if (
+      publishingSegments.length <= 1 &&
+      (!section || section === 'overview' || section === 'posts')
+    ) {
       const postsListPage = await renderPostsListPage({
         searchParams: searchParams ?? Promise.resolve({}),
         scope: PageScope.ORGANIZATION,
@@ -292,6 +296,14 @@ export default async function OrgRootAppPage({
     }
 
     if (section === 'campaigns') {
+      const hasSurplusSegments =
+        publishingSegments.length > 3 ||
+        (campaignId === 'new' && publishingSegments.length > 2);
+
+      if (hasSurplusSegments) {
+        notFound();
+      }
+
       return (
         <PublishingLayoutContent>
           {

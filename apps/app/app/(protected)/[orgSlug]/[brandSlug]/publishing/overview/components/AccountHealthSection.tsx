@@ -11,6 +11,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 const STATE_BADGE_VARIANT = {
   healthy: 'success',
@@ -37,7 +38,8 @@ const RISK_MESSAGE_KEYS = {
 } as const;
 
 export default function AccountHealthSection({
-  rows,
+  onRetry,
+  state,
 }: PublishingOverviewHealthSectionProps) {
   const translate = useTranslations('pages.publishing.overview');
   const { href } = useOrgUrl();
@@ -50,65 +52,81 @@ export default function AccountHealthSection({
       flush
       title={translate('healthTitle')}
     >
-      {rows.length > 0 ? (
-        <div>
-          {rows.map((row) => (
-            <ListRow
-              key={row.credentialId}
-              density="compact"
-              leading={
-                <PlatformBadge platform={row.platform} showLabel={false} />
-              }
-              title={
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 truncate">{row.accountLabel}</span>
-                  <Badge variant={STATE_BADGE_VARIANT[row.state]}>
-                    {translate(STATE_MESSAGE_KEYS[row.state])}
-                  </Badge>
-                  {row.riskLevel === 'high' || row.riskLevel === 'medium' ? (
-                    <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
-                      {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
-                    </Badge>
-                  ) : null}
-                  {row.needsReconnect ? (
-                    <Badge variant="destructive">
-                      {translate('healthReconnect')}
-                    </Badge>
-                  ) : null}
-                  {row.holdPublishing ? (
-                    <Badge variant="warning">{translate('healthHold')}</Badge>
-                  ) : null}
-                </span>
-              }
-              meta={
-                <span className="flex flex-wrap gap-x-3 gap-y-1">
-                  <span>{translate('healthScore', { score: row.score })}</span>
-                  <span>
-                    {translate('healthSignals', {
-                      days: row.connectedDays,
-                      failures: row.recentFailures,
-                      posts: row.publishedPosts,
-                    })}
-                  </span>
-                </span>
-              }
-              trailing={
-                row.needsReconnect ? (
-                  <Button asChild size={ButtonSize.SM} withWrapper={false}>
-                    <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
-                      {translate('healthReconnectAction')}
-                    </Link>
-                  </Button>
-                ) : null
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
-          {translate('healthEmpty')}
-        </p>
-      )}
+      <PublishingOverviewAsyncSection
+        errorMessage="Account health could not be loaded."
+        loadingLabel="Loading account health"
+        onRetry={onRetry}
+        state={state}
+      >
+        {(rows) =>
+          rows.length > 0 ? (
+            <div>
+              {rows.map((row) => (
+                <ListRow
+                  key={row.credentialId}
+                  density="compact"
+                  leading={
+                    <PlatformBadge platform={row.platform} showLabel={false} />
+                  }
+                  title={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 truncate">
+                        {row.accountLabel}
+                      </span>
+                      <Badge variant={STATE_BADGE_VARIANT[row.state]}>
+                        {translate(STATE_MESSAGE_KEYS[row.state])}
+                      </Badge>
+                      {row.riskLevel === 'high' ||
+                      row.riskLevel === 'medium' ? (
+                        <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
+                          {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
+                        </Badge>
+                      ) : null}
+                      {row.needsReconnect ? (
+                        <Badge variant="destructive">
+                          {translate('healthReconnect')}
+                        </Badge>
+                      ) : null}
+                      {row.holdPublishing ? (
+                        <Badge variant="warning">
+                          {translate('healthHold')}
+                        </Badge>
+                      ) : null}
+                    </span>
+                  }
+                  meta={
+                    <span className="flex flex-wrap gap-x-3 gap-y-1">
+                      <span>
+                        {translate('healthScore', { score: row.score })}
+                      </span>
+                      <span>
+                        {translate('healthSignals', {
+                          days: row.connectedDays,
+                          failures: row.recentFailures,
+                          posts: row.publishedPosts,
+                        })}
+                      </span>
+                    </span>
+                  }
+                  trailing={
+                    row.needsReconnect ? (
+                      <Button asChild size={ButtonSize.SM} withWrapper={false}>
+                        <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
+                          {translate('healthReconnectAction')}
+                        </Link>
+                      </Button>
+                    ) : null
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
+              {translate('healthEmpty')}
+            </p>
+          )
+        }
+      </PublishingOverviewAsyncSection>
     </WorkspaceSurface>
   );
 }

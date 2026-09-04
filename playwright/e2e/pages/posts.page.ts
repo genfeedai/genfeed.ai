@@ -23,8 +23,7 @@ export class PostsPage {
   readonly pageTitle: Locator;
 
   // Tabs
-  readonly draftsTab: Locator;
-  readonly scheduledTab: Locator;
+  readonly notPostedTab: Locator;
   readonly publishedTab: Locator;
   readonly engageTab: Locator;
 
@@ -93,20 +92,15 @@ export class PostsPage {
     );
 
     // Tabs
-    this.draftsTab = page
-      .locator(
-        `a[href$="${APP_ROUTES.PUBLISHING.ROOT}"], a[href$="${APP_ROUTES.PUBLISHING.OVERVIEW}"], a[href$="${APP_ROUTES.PUBLISHING.POSTS}"], [role="tab"]:has-text("Drafts")`,
-      )
-      .first();
     const notPostedFilterPath = createPublishingPostsFilterRoute({
       publicationState: 'not-posted',
     });
     const postedFilterPath = createPublishingPostsFilterRoute({
       publicationState: 'posted',
     });
-    this.scheduledTab = page
+    this.notPostedTab = page
       .locator(
-        `a[href$="${notPostedFilterPath}"], a[href*="${notPostedFilterPath}"], [role="tab"]:has-text("Scheduled")`,
+        `a[href$="${notPostedFilterPath}"], a[href*="${notPostedFilterPath}"], [role="tab"]:has-text("Not posted")`,
       )
       .first();
     this.publishedTab = page
@@ -252,14 +246,7 @@ export class PostsPage {
 
   // ── Navigation ──────────────────────────────────────────
 
-  async gotoDrafts(): Promise<void> {
-    await this.page.goto(
-      `${brandPath(APP_ROUTES.PUBLISHING.POSTS)}?publicationState=not-posted`,
-    );
-    await this.waitForPageLoad();
-  }
-
-  async gotoScheduled(): Promise<void> {
+  async gotoNotPosted(): Promise<void> {
     await this.page.goto(
       brandPath(
         createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
@@ -314,13 +301,8 @@ export class PostsPage {
 
   // ── Tab interactions ────────────────────────────────────
 
-  async switchToDrafts(): Promise<void> {
-    await this.draftsTab.click();
-    await this.waitForPageLoad();
-  }
-
-  async switchToScheduled(): Promise<void> {
-    await this.scheduledTab.click();
+  async switchToNotPosted(): Promise<void> {
+    await this.notPostedTab.click();
     await this.waitForPageLoad();
   }
 
@@ -401,13 +383,7 @@ export class PostsPage {
 
   // ── Assertions ─────────────────────────────────────────
 
-  async assertOnDraftsTab(): Promise<void> {
-    await expect(this.page).toHaveURL(
-      /\/publishing\/posts\?publicationState=not-posted(?:&|$)/,
-    );
-  }
-
-  async assertOnScheduledTab(): Promise<void> {
+  async assertOnNotPostedTab(): Promise<void> {
     await expect(this.page).toHaveURL(
       /\/publishing\/posts\?publicationState=not-posted(?:&|$)/,
     );

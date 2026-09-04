@@ -3,7 +3,7 @@ set -eu
 
 # Node warns when both variables are set. FORCE_COLOR already wins, so drop
 # NO_COLOR only in that conflicting case.
-if [ -n "${FORCE_COLOR:-}" ]; then
+if [ "${FORCE_COLOR+x}" = x ] && [ "${NO_COLOR+x}" = x ]; then
   unset NO_COLOR
 fi
 

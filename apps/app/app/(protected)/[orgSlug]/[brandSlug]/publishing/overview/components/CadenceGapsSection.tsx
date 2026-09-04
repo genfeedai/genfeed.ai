@@ -11,9 +11,11 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 export default function CadenceGapsSection({
-  gaps,
+  onRetry,
+  state,
 }: PublishingOverviewCadenceSectionProps) {
   const translate = useTranslations('pages.publishing.overview');
   const { href } = useOrgUrl();
@@ -26,54 +28,67 @@ export default function CadenceGapsSection({
       flush
       title={translate('cadenceTitle')}
     >
-      {gaps.length > 0 ? (
-        <div>
-          {gaps.map((gap) => (
-            <ListRow
-              key={gap.credentialId}
-              density="compact"
-              leading={
-                <PlatformBadge platform={gap.platform} showLabel={false} />
-              }
-              title={
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 truncate">{gap.accountLabel}</span>
-                  {gap.hasUpcoming ? (
-                    <Badge variant="success">
-                      {translate('cadenceScheduled')}
-                    </Badge>
-                  ) : null}
-                  {gap.needsReconnect ? (
-                    <Badge variant="destructive">
-                      {translate('cadenceReconnect')}
-                    </Badge>
-                  ) : gap.holdPublishing ? (
-                    <Badge variant="warning">{translate('cadenceHold')}</Badge>
-                  ) : null}
-                </span>
-              }
-              meta={
-                gap.gapDays === null
-                  ? translate('cadenceNeverPublished')
-                  : translate('cadenceGapDays', { count: gap.gapDays })
-              }
-              trailing={
-                gap.needsReconnect ? (
-                  <Button asChild size={ButtonSize.SM} withWrapper={false}>
-                    <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
-                      {translate('cadenceReconnectAction')}
-                    </Link>
-                  </Button>
-                ) : null
-              }
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
-          {translate('cadenceEmpty')}
-        </p>
-      )}
+      <PublishingOverviewAsyncSection
+        errorMessage="Publishing cadence could not be loaded."
+        loadingLabel="Loading publishing cadence"
+        onRetry={onRetry}
+        state={state}
+      >
+        {(gaps) =>
+          gaps.length > 0 ? (
+            <div>
+              {gaps.map((gap) => (
+                <ListRow
+                  key={gap.credentialId}
+                  density="compact"
+                  leading={
+                    <PlatformBadge platform={gap.platform} showLabel={false} />
+                  }
+                  title={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 truncate">
+                        {gap.accountLabel}
+                      </span>
+                      {gap.hasUpcoming ? (
+                        <Badge variant="success">
+                          {translate('cadenceScheduled')}
+                        </Badge>
+                      ) : null}
+                      {gap.needsReconnect ? (
+                        <Badge variant="destructive">
+                          {translate('cadenceReconnect')}
+                        </Badge>
+                      ) : gap.holdPublishing ? (
+                        <Badge variant="warning">
+                          {translate('cadenceHold')}
+                        </Badge>
+                      ) : null}
+                    </span>
+                  }
+                  meta={
+                    gap.gapDays === null
+                      ? translate('cadenceNeverPublished')
+                      : translate('cadenceGapDays', { count: gap.gapDays })
+                  }
+                  trailing={
+                    gap.needsReconnect ? (
+                      <Button asChild size={ButtonSize.SM} withWrapper={false}>
+                        <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
+                          {translate('cadenceReconnectAction')}
+                        </Link>
+                      </Button>
+                    ) : null
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
+              {translate('cadenceEmpty')}
+            </p>
+          )
+        }
+      </PublishingOverviewAsyncSection>
     </WorkspaceSurface>
   );
 }
