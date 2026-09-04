@@ -2395,7 +2395,7 @@ model Post {
   quoteTweetId                   String?
   groupId                        String?
   campaignId                     String?
-  campaign                       Campaign?          @relation(fields: [campaignId], references: [id])
+  campaign                       Campaign?          @relation(fields: [campaignId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
   url                            String?
   // Drifted enum collapsed to String (lowercase canonical value). See platform note.
   status                         String             @default("draft")
@@ -2608,6 +2608,7 @@ model Campaign {
   paidActivations CampaignPaidActivation[]
 
   @@unique([organizationId, idempotencyKey], map: "campaigns_organizationId_idempotencyKey_key")
+  @@unique([id, organizationId, brandId], map: "campaigns_id_organizationId_brandId_key")
   @@index([organizationId, isDeleted, brandId, status, createdAt(sort: Desc), id], map: "campaigns_org_brand_status_idx")
   @@map("campaigns")
 }
@@ -2619,7 +2620,7 @@ model CampaignPaidActivation {
   brandId               String
   brand                 Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   campaignId            String
-  campaign              Campaign     @relation(fields: [campaignId], references: [id])
+  campaign              Campaign     @relation(fields: [campaignId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
   userId                String
   user                  User         @relation(fields: [userId], references: [id])
   credentialId          String
@@ -2654,7 +2655,7 @@ model PostGroup {
   brandId            String?
   brand              Brand?              @relation(fields: [brandId], references: [id])
   campaignId         String?
-  campaign           Campaign?           @relation(fields: [campaignId], references: [id])
+  campaign           Campaign?           @relation(fields: [campaignId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
   title              String
   baseContent        String
   media              Json                @default("[]")

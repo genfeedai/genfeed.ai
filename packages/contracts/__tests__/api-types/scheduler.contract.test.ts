@@ -55,6 +55,9 @@ describe('createReleaseGroupSchema', () => {
     });
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.campaignId).toBe('cmp_spring');
+    }
   });
 
   test('accepts a posting set provenance id', () => {

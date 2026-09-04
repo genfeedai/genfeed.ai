@@ -7,6 +7,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -41,6 +42,7 @@ describe('PostGroupPersistenceService', () => {
   let prisma: {
     $queryRaw: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
+    campaign: { findFirst: ReturnType<typeof vi.fn> };
     credential: { findMany: ReturnType<typeof vi.fn> };
     post: {
       create: ReturnType<typeof vi.fn>;
@@ -59,6 +61,7 @@ describe('PostGroupPersistenceService', () => {
     prisma = {
       $queryRaw: vi.fn().mockResolvedValue([]),
       brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
+      campaign: { findFirst: vi.fn().mockResolvedValue({ id: 'campaign-1' }) },
       credential: { findMany: vi.fn().mockResolvedValue([]) },
       post: {
         create: vi.fn().mockResolvedValue(undefined),
@@ -86,6 +89,29 @@ describe('PostGroupPersistenceService', () => {
         ),
       ),
     );
+  });
+
+  it('requires campaign membership to match the organization and brand', async () => {
+    prisma.campaign.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assertCampaignScope(
+        prisma as never,
+        'org-1',
+        'campaign-1',
+        'brand-1',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.campaign.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'campaign-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('hydrates an idempotent release through organization-scoped rows', async () => {

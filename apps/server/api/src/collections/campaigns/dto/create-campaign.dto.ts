@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -35,11 +36,13 @@ export class CreateCampaignDto {
    */
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(255)
   @ApiProperty({ required: false })
   readonly idempotencyKey?: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   @ApiProperty()
   readonly name!: string;

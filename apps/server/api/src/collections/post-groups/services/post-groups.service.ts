@@ -364,6 +364,20 @@ export class PostGroupsService {
         organizationId,
         groupId,
       );
+      const nextBrandId = input.brandId ?? existing.brandId;
+      const nextCampaignId =
+        input.campaignId === undefined ? existing.campaignId : input.campaignId;
+      const changesCampaignScope =
+        input.campaignId !== undefined ||
+        (input.brandId !== undefined && existing.campaignId !== null);
+      if (nextCampaignId && changesCampaignScope) {
+        await this.persistenceService.assertCampaignScope(
+          tx,
+          organizationId,
+          nextCampaignId,
+          nextBrandId,
+        );
+      }
       const currentTargets = await this.persistenceService.getTargets(
         tx,
         organizationId,
