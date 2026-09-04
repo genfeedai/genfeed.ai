@@ -15,6 +15,7 @@ import {
   buildStudioGenerationSetupScope,
   useGenerationSetupStore,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const settings = {
@@ -42,7 +43,7 @@ describe('getDefaultGenerationSetupValues', () => {
       isPromptEnhanceEnabled: true,
       lens: defaults.lens,
       lighting: defaults.lighting,
-      modelKey: defaults.modelKey,
+      modelKey: '',
       mood: defaults.mood,
       outputs: defaults.outputs,
       prioritize: defaults.prioritize,
@@ -67,7 +68,7 @@ describe('studioSettingsFieldsToGenerationSetupPatch', () => {
       aspectRatio: '1:1',
       brandingMode: 'brand',
       camera: 'low angle',
-      modelKey: 'auto',
+      modelKey: '',
       outputs: 1,
       prioritize: RouterPriority.BALANCED,
       resolution: '1K',
@@ -118,6 +119,15 @@ describe('generationSetupValuesToStudioSettingsPatch', () => {
     });
 
     expect(patch).not.toHaveProperty('camera');
+  });
+
+  it('writes Auto back as the Studio persist sentinel', () => {
+    const patch = generationSetupValuesToStudioSettingsPatch({
+      ...values,
+      modelKey: '',
+    });
+
+    expect(patch.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
   });
 });
 

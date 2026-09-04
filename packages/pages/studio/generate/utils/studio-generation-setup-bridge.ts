@@ -26,6 +26,10 @@ import {
   buildStudioGenerationSetupScope,
   useGenerationSetupStore,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
+import {
+  toGenerationSetupModelKey,
+  toStudioSettingsModelKey,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /** Fields present on both shapes — bridged through the shared store. */
 export const STUDIO_BRIDGED_SETTINGS_KEYS = [
@@ -73,7 +77,7 @@ export function getDefaultGenerationSetupValues(
     isPromptEnhanceEnabled: true,
     lens: defaults.lens,
     lighting: defaults.lighting,
-    modelKey: defaults.modelKey,
+    modelKey: toGenerationSetupModelKey(defaults.modelKey),
     mood: defaults.mood,
     outputs: defaults.outputs,
     prioritize: defaults.prioritize,
@@ -93,9 +97,14 @@ export function studioSettingsFieldsToGenerationSetupPatch(
 
   for (const key of STUDIO_BRIDGED_SETTINGS_KEYS) {
     const value = settings[key];
-    if (value !== undefined) {
-      (patch as Record<string, unknown>)[key] = value;
+    if (value === undefined) {
+      continue;
     }
+    if (key === 'modelKey' && typeof value === 'string') {
+      patch.modelKey = toGenerationSetupModelKey(value);
+      continue;
+    }
+    (patch as Record<string, unknown>)[key] = value;
   }
 
   return patch;
@@ -118,9 +127,14 @@ export function generationSetupValuesToStudioSettingsPatch(
       continue;
     }
     const value = values[key];
-    if (value !== undefined) {
-      (patch as Record<string, unknown>)[key] = value;
+    if (value === undefined) {
+      continue;
     }
+    if (key === 'modelKey' && typeof value === 'string') {
+      patch.modelKey = toStudioSettingsModelKey(value);
+      continue;
+    }
+    (patch as Record<string, unknown>)[key] = value;
   }
 
   patch.brandingMode = values.isPromptEnhanceEnabled

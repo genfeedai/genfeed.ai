@@ -7,6 +7,7 @@ import {
   SHELL_CONTROL_HEIGHT_CLASS,
   SHELL_ICON_CLASS,
 } from '@ui/constants/shell-chrome.constant';
+import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Sparkles } from 'lucide-react';
@@ -20,6 +21,7 @@ import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
  */
 const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   className,
+  hasAspectRatio = true,
   isDisabled,
   isOpen: _isOpen,
   models,
@@ -33,15 +35,16 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
     typeOptions.find((option) => option.value === setup.values.type)?.label ??
     setup.values.type;
 
-  const modelLabel =
-    setup.values.modelKey === ''
-      ? 'Auto'
-      : (models.find((model) => model.key === setup.values.modelKey)?.label ??
-        setup.values.modelKey);
+  const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
+    ? 'Auto'
+    : (models.find((model) => model.key === setup.values.modelKey)?.label ??
+      setup.values.modelKey);
 
-  const summaryParts = [typeLabel, modelLabel, setup.values.aspectRatio].filter(
-    (part): part is string => Boolean(part),
-  );
+  const summaryParts = [
+    typeLabel,
+    modelLabel,
+    hasAspectRatio ? setup.values.aspectRatio : undefined,
+  ].filter((part): part is string => Boolean(part));
 
   const isFullyAgentOwned =
     Object.keys(setup.sources).length === 0 && !setup.presetId;

@@ -94,6 +94,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
       <PopoverTrigger asChild>
         <GenerationSetupTrigger
           className={className}
+          hasAspectRatio={capabilities.hasAspectRatio}
           isDisabled={isDisabled}
           isOpen={isOpen}
           models={models}

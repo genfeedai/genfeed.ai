@@ -170,6 +170,10 @@ export default function StudioGenerateComposer({
   const reasons =
     useGenerationSetupStore((state) => state.reasonsByScope[scope]) ?? {};
   const setup = setupFromStore ?? { sources: {}, values: defaults };
+  const setupForComposer = {
+    ...setup,
+    values: { ...setup.values, type },
+  };
   const {
     deleteLook,
     isLoading: isPresetsLoading,
@@ -362,7 +366,7 @@ export default function StudioGenerateComposer({
               presets={presets}
               reasons={reasons}
               scopeKey={scope}
-              setup={setup}
+              setup={setupForComposer}
               typeOptions={typeOptions}
             />
           )}
