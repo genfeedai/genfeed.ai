@@ -155,6 +155,7 @@ export class AccountAnalyticsService {
     const accounts = await this.loadAccounts(organizationId, {
       ...query,
       search: undefined,
+      status: 'connected',
     });
     const account = accounts.find(
       (item) => item.identity.credentialId === credentialId,
@@ -273,7 +274,9 @@ export class AccountAnalyticsService {
         ...(query.platform
           ? { platform: toPrismaCredentialPlatform(query.platform) }
           : {}),
-        ...(query.status === 'connected' ? { isConnected: true } : {}),
+        ...(query.status !== 'all' && query.status !== 'disconnected'
+          ? { isConnected: true }
+          : {}),
         ...(query.status === 'disconnected' ? { isConnected: false } : {}),
         externalId: { not: null },
       }),
