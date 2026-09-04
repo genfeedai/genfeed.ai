@@ -9,10 +9,15 @@ const migration = readFileSync(
   ),
   'utf8',
 );
-const describePostgres = process.env.DATABASE_URL ? describe : describe.skip;
+const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
+  ? describe
+  : describe.skip;
 
 async function fixture(run: (client: PoolClient) => Promise<void>) {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+  const pool = new Pool({
+    connectionString: process.env.KNOWLEDGE_TEST_DATABASE_URL,
+    max: 1,
+  });
   const client = await pool.connect();
   const schema = `knowledge_contract_${process.pid}_${Date.now()}`;
   try {
