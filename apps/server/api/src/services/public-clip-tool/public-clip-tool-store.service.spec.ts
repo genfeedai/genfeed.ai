@@ -222,6 +222,38 @@ describe('PublicClipToolStoreService', () => {
     });
   });
 
+  it('normalizes null highlight prose without normalizing transcript text', async () => {
+    redis.get.mockResolvedValue(
+      JSON.stringify(
+        storedSession({
+          highlights: [
+            {
+              clip_type: null,
+              end_time: 40,
+              id: 'moment-1',
+              start_time: 10,
+              summary: null,
+              tags: null,
+              title: null,
+              virality_score: 80,
+            },
+          ],
+        }),
+      ),
+    );
+
+    await expect(service.getSession(previewToken)).resolves.toMatchObject({
+      highlights: [
+        {
+          clip_type: '',
+          summary: '',
+          tags: [],
+          title: '',
+        },
+      ],
+    });
+  });
+
   it.each([
     ['a nonempty highlights object', { highlights: { bad: true } }],
     ['a scalar highlights value', { highlights: 'bad' }],
@@ -249,6 +281,15 @@ describe('PublicClipToolStoreService', () => {
     [
       'a malformed transcript member',
       { transcriptSegments: [{ end: 40, start: 0 }] },
+    ],
+    [
+      'a null transcript text value',
+      { transcriptSegments: [{ end: 40, start: 0, text: null }] },
+    ],
+    ['a null highlights field', { highlights: null }],
+    [
+      'a null structural highlight ID',
+      { highlights: [{ ...storedHighlight, id: null }] },
     ],
     ['an empty required session ID', { id: '' }],
     ['a nonnumeric progress value', { progress: null }],

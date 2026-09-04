@@ -487,7 +487,7 @@ export class PublicClipToolStoreService {
       id: this.readNonEmptyString(highlight.id),
       start_time: this.readFiniteNumber(highlight.start_time),
       summary: this.readOptionalProse(highlight.summary),
-      tags: this.readStoredArray(highlight.tags, (tag) => this.readString(tag)),
+      tags: this.readStoredTags(highlight.tags),
       title: this.readOptionalProse(highlight.title),
       virality_score: this.readFiniteNumber(highlight.virality_score),
     };
@@ -502,7 +502,7 @@ export class PublicClipToolStoreService {
   }
 
   private readOptionalProse(value: unknown): string {
-    return value === undefined ? '' : this.readString(value);
+    return value === undefined || value === null ? '' : this.readString(value);
   }
 
   private readPreview(value: unknown): StoredPublicYoutubePreview {
@@ -593,6 +593,13 @@ export class PublicClipToolStoreService {
       throw new Error('Invalid public clip session string');
     }
     return value;
+  }
+
+  private readStoredTags(value: unknown): string[] {
+    if (value === null) {
+      return [];
+    }
+    return this.readStoredArray(value, (tag) => this.readString(tag));
   }
 
   private readTranscriptSegment(

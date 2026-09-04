@@ -387,6 +387,54 @@ describe('PublicYoutubeClipsService', () => {
     );
   });
 
+  it.each(['generating patch', 'failure patch'] as const)(
+    'emits the session code when the dispatch %s is gone',
+    async (stage) => {
+      const highlight = {
+        clip_type: 'educational',
+        end_time: 40,
+        id: 'moment-1',
+        start_time: 10,
+        summary: 'Useful moment',
+        tags: [],
+        title: 'Useful moment',
+        virality_score: 80,
+      };
+      const readySession = {
+        ...storedSession,
+        highlights: [highlight],
+        sourceVideoS3Key: 'videos/public-source.mp4',
+        status: 'ready' as const,
+      };
+      if (stage === 'generating patch') {
+        files.processVideo.mockResolvedValueOnce({
+          jobId: 'public-youtube-preview-session-1',
+        });
+      } else {
+        files.processVideo.mockRejectedValueOnce(
+          new Error('Files queue unavailable'),
+        );
+      }
+      store.patchByToken.mockRejectedValueOnce(
+        new GoneException('Expired public clip session'),
+      );
+      const dispatchPreview = actions.get('youtube.clip.dispatch-preview');
+
+      await expect(
+        dispatchPreview?.({
+          input: {
+            previewEnvelope: {
+              highlight,
+              jobId: 'public-youtube-preview-session-1',
+              previewToken: token,
+              reserved: readySession,
+            },
+          },
+        }),
+      ).rejects.toThrow('[public_youtube_clip_expired_or_claimed]');
+    },
+  );
+
   it('renders the one preview from the durable source artifact', async () => {
     const readySession = {
       ...storedSession,

@@ -524,23 +524,30 @@ export class PublicYoutubeClipsService implements OnModuleInit {
         type: 'clip-trim',
         userId: PUBLIC_LONG_FORM_USER_ID,
       });
-      const updated = await this.store.patchByToken(previewToken, {
-        preview: {
-          jobId: response.jobId || jobId,
-          recommendationId: highlight.id,
-          status: 'generating',
-        },
-      });
+      const updated = await this.withSessionGoneMarker(() =>
+        this.store.patchByToken(previewToken, {
+          preview: {
+            jobId: response.jobId || jobId,
+            recommendationId: highlight.id,
+            status: 'generating',
+          },
+        }),
+      );
       return this.toResponse(previewToken, updated);
     } catch (error) {
+      if (this.hasErrorCode(error, PUBLIC_YOUTUBE_CLIP_SESSION_GONE_CODE)) {
+        throw error;
+      }
       this.logger.warn('Public YouTube preview dispatch failed', {
         code: 'public_youtube_preview_dispatch_failed',
         error,
         sessionId: reserved.id,
       });
-      const failed = await this.store.patchByToken(previewToken, {
-        preview: { recommendationId: highlight.id, status: 'failed' },
-      });
+      const failed = await this.withSessionGoneMarker(() =>
+        this.store.patchByToken(previewToken, {
+          preview: { recommendationId: highlight.id, status: 'failed' },
+        }),
+      );
       return this.toResponse(previewToken, failed);
     }
   }
