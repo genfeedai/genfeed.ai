@@ -428,6 +428,18 @@ describe('workspace shell trusted registry', () => {
     ).toBe('placeholder');
   });
 
+  it.each([
+    '/acme/~/library/shelf/approved',
+    '/acme/~/publishing/content',
+    '/acme/~/publishing/review',
+    '/acme/~/publishing/calendar',
+    '/acme/~/publishing/posts/post-1',
+  ])('registers the organization collection surface %s', (pathname) => {
+    expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
+      scope: 'organization',
+    });
+  });
+
   it('registers the Connect Genfeed resolver and organization flow explicitly', () => {
     expect(resolveWorkspaceShellRoute('/connect')).toMatchObject({
       accessPolicy: 'authenticated',

@@ -197,6 +197,11 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/performance': 'Performance',
   '/:orgSlug/~/publishing/campaigns/:id/ads': 'Ads',
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Edit',
+  '/:orgSlug/~/publishing/posts': 'Posts',
+  '/:orgSlug/~/publishing/posts/:id': 'Content',
+  '/:orgSlug/~/publishing/content': 'Content',
+  '/:orgSlug/~/publishing/review': 'Review',
+  '/:orgSlug/~/publishing/calendar': 'Calendar',
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
   '/:orgSlug/:brandSlug/automation/campaigns/:id': 'Program',
@@ -223,6 +228,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/new': 'New Conversation',
   '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
   '/:orgSlug/~/library/:type': ':type',
+  '/:orgSlug/~/library/shelf/:shelf': ':shelf',
   '/:orgSlug/~/settings': 'Settings',
   '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
@@ -279,10 +285,12 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/overview',
+  '/:orgSlug/~/publishing/posts/:id': '/publishing/overview',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publishing/posts/:id': '/publishing/posts',
+  '/:orgSlug/~/publishing/posts/:id': '/publishing/posts',
   '/:orgSlug/:brandSlug/publishing/campaigns/new': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/compare': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/publishing/campaigns/:id': '/publishing/campaigns',
@@ -653,20 +661,31 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       telemetryClass: 'management',
     },
   ),
-  ...registerRoutes(['/:orgSlug/~/library', '/:orgSlug/~/library/:type'], {
-    fallback: '/:orgSlug/~/library',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'library',
-    switcherItems: ['library'],
-    telemetryClass: 'product',
-  }),
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/library',
+      '/:orgSlug/~/library/:type',
+      '/:orgSlug/~/library/shelf/:shelf',
+    ],
+    {
+      fallback: '/:orgSlug/~/library',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'library',
+      switcherItems: ['library'],
+      telemetryClass: 'product',
+    },
+  ),
   ...registerRoutes(
     [
       '/:orgSlug/~/publishing',
       '/:orgSlug/~/publishing/overview',
       '/:orgSlug/~/publishing/posts',
+      '/:orgSlug/~/publishing/posts/:id',
+      '/:orgSlug/~/publishing/content',
+      '/:orgSlug/~/publishing/review',
+      '/:orgSlug/~/publishing/calendar',
       '/:orgSlug/~/publishing/campaigns',
       '/:orgSlug/~/publishing/campaigns/new',
       '/:orgSlug/~/publishing/campaigns/compare',
