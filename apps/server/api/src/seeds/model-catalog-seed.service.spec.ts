@@ -213,6 +213,20 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
+  it('preserves an operator endpoint when a catalog entry omits one', async () => {
+    const source = UNIFIED_MODEL_CATALOG[0];
+    if (!source) {
+      throw new Error('The model catalog must contain a seed entry');
+    }
+    const { endpoint: _endpoint, ...withoutEndpoint } = source;
+
+    await service.reconcileCatalog([withoutEndpoint]);
+
+    const call = callForKey(source.key);
+    expect(call?.create).toMatchObject({ endpoint: source.key });
+    expect(call?.update).not.toHaveProperty('endpoint');
+  });
+
   it('creates Retired aliases and carries successors forward without overwriting operator lifecycle', async () => {
     const retiredEntry = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.lifecycle === 'RETIRED' && entry.succeededBy,

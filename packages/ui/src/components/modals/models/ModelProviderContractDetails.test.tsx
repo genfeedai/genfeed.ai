@@ -72,5 +72,7 @@ describe('ModelProviderContractDetails', () => {
     expect(screen.getByText('prompt')).toBeInTheDocument();
     expect(screen.getByText('Video prompt')).toBeInTheDocument();
     expect(screen.getAllByText('required')).toHaveLength(2);
+    expect(screen.getAllByText('Discovered:')).toHaveLength(2);
+    expect(screen.getAllByText('Last seen:')).toHaveLength(2);
   });
 });

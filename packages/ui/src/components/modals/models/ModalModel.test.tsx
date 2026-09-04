@@ -12,6 +12,17 @@ const imagenModel = {
 
 const closeModal = vi.fn();
 const onSubmit = vi.fn();
+const mocks = vi.hoisted(() => ({
+  useQuery: vi.fn(() => ({
+    data: undefined,
+    isError: false,
+    isLoading: false,
+  })),
+}));
+
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
+  useCurrentUser: () => ({ currentUser: { id: 'user-1' } }),
+}));
 
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children, title }: PropsWithChildren<{ title?: string }>) => (
@@ -59,11 +70,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: undefined,
-    isError: false,
-    isLoading: false,
-  }),
+  useQuery: mocks.useQuery,
 }));
 
 describe('ModalModel', () => {
@@ -98,5 +105,10 @@ describe('ModalModel', () => {
       screen.getByRole('heading', { name: 'Edit Model' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('model-form')).toBeInTheDocument();
+    expect(mocks.useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['model-provider-contracts', 'user-1', 'model-1'],
+      }),
+    );
   });
 });

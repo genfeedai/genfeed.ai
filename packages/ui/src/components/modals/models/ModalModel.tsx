@@ -1,4 +1,5 @@
 import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { ModalEnum, ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
@@ -24,6 +25,7 @@ export default function ModalModel({
   mode = 'edit',
 }: ModalModelProps) {
   const isViewMode = mode === 'view';
+  const { currentUser } = useCurrentUser();
   const getModelsService = useAuthedService((token: string) =>
     ModelsService.getInstance(token),
   );
@@ -33,7 +35,7 @@ export default function ModalModel({
       const service = await getModelsService();
       return service.getProviderContracts(model?.id ?? '', signal);
     },
-    queryKey: ['model-provider-contracts', model?.id],
+    queryKey: ['model-provider-contracts', currentUser?.id ?? null, model?.id],
   });
 
   const modelCategories = useMemo(
