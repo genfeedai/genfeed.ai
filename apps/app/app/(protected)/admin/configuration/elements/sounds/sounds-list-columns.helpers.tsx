@@ -7,7 +7,6 @@ import {
   SoundActiveCell,
   SoundCategoryCell,
   SoundDefaultCell,
-  SoundDescriptionCell,
 } from './sounds-list-columns';
 
 type BuildSoundsColumnsParams = {
@@ -24,7 +23,11 @@ export function buildSoundsColumns({
   onToggleDefault,
 }: BuildSoundsColumnsParams): TableColumn<Sound>[] {
   return [
-    { header: 'Label', key: 'label' },
+    {
+      header: 'Label',
+      key: 'label',
+      subtext: (sound: Sound) => sound.description,
+    },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
       header: 'Category',
@@ -54,11 +57,6 @@ export function buildSoundsColumns({
           onChange={onToggleDefault}
         />
       ),
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (sound: Sound) => <SoundDescriptionCell sound={sound} />,
     },
   ];
 }

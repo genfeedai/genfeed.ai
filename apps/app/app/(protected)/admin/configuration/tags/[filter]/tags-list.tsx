@@ -13,7 +13,6 @@ import { Suspense, useMemo } from 'react';
 import {
   TagAccountCell,
   TagCategoryCell,
-  TagDescriptionCell,
   TagKeyCell,
   TagLabelCell,
   TagOrgCell,
@@ -46,11 +45,7 @@ function TagsListContent(props: TagsListProps) {
         header: 'Label',
         key: 'label',
         render: (t: ITag) => <TagLabelCell tag={t} />,
-      },
-      {
-        header: 'Description',
-        key: 'description',
-        render: (t: ITag) => <TagDescriptionCell tag={t} />,
+        subtext: (t: ITag) => t.description,
       },
       {
         header: 'Key',

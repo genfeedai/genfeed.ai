@@ -157,13 +157,12 @@ function LightingsListContent({
   }, [isRefreshing]);
 
   const columns: TableColumn<ElementLighting>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (lighting: ElementLighting) => lighting.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (lighting: ElementLighting) => lighting.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   // Register refresh callback

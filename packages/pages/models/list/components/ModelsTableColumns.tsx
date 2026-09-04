@@ -204,13 +204,7 @@ export function buildModelsTableColumns({
           {model.label}
         </Button>
       ),
-    },
-    {
-      className: 'truncate max-w-40',
-      header: 'Description',
-      key: 'description',
-      sortable: true,
-      render: (model: IModel) => model.description || '-',
+      subtext: (model: IModel) => model.description,
     },
     ...(isAdminScope
       ? [

@@ -3,7 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { TableProps } from '@genfeedai/props/ui/display/table.props';
+import type {
+  TableColumn,
+  TableProps,
+} from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
@@ -43,6 +46,38 @@ function TableSectionHeader({
           {description}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function TableCellContent<T>({
+  column,
+  item,
+}: {
+  column: TableColumn<T>;
+  item: T;
+}) {
+  const primary = column.render
+    ? column.render(item)
+    : String(item[column.key as keyof T]);
+  const subtext = column.subtext?.(item);
+  const hasSubtext =
+    subtext !== null &&
+    subtext !== undefined &&
+    (typeof subtext !== 'string' || subtext.trim().length > 0);
+
+  if (!hasSubtext) {
+    return primary;
+  }
+
+  return (
+    <div className="min-w-0">
+      <div className="min-w-0 truncate text-sm font-medium text-foreground">
+        {primary}
+      </div>
+      <div className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
+        {subtext}
+      </div>
     </div>
   );
 }
@@ -362,14 +397,10 @@ export default function AppTable<T>({
                             className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             href={rowLink.href}
                           />
-                          {column.render
-                            ? column.render(item)
-                            : String(item[column.key as keyof T])}
+                          <TableCellContent column={column} item={item} />
                         </>
-                      ) : column.render ? (
-                        column.render(item)
                       ) : (
-                        String(item[column.key as keyof T])
+                        <TableCellContent column={column} item={item} />
                       )}
                     </td>
                   ))}

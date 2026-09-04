@@ -67,6 +67,7 @@ describe('buildModelsTableColumns', () => {
 
     expect(columns.map((column) => column.header)).toContain('Quality');
     expect(columns.map((column) => column.header)).toContain('Cost');
+    expect(columns.map((column) => column.header)).not.toContain('Description');
     expect(columns.map((column) => column.header)).not.toContain('Value');
     expect(
       columns
@@ -137,5 +138,24 @@ describe('buildModelsTableColumns', () => {
     expect(onOpenDetails).toHaveBeenCalledWith(
       expect.objectContaining({ label: 'Flux Dev' }),
     );
+  });
+
+  it('places the model description under its label', () => {
+    const model = buildModel({ description: 'Detailed model description' });
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: true,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
+      togglingModelId: null,
+      models: [model],
+    });
+
+    const labelColumn = columns.find((column) => column.header === 'Label');
+
+    expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');
   });
 });

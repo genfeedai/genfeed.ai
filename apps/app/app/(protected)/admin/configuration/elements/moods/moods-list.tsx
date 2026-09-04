@@ -143,13 +143,12 @@ function MoodsListContent({
   });
 
   const columns: TableColumn<ElementMood>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (mood: ElementMood) => mood.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (mood: ElementMood) => mood.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const findAllMoods = useCallback(

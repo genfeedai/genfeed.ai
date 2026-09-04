@@ -191,6 +191,35 @@ describe('Table', () => {
     );
   });
 
+  it('renders supporting text below a primary cell value', () => {
+    render(
+      <Table
+        items={[
+          {
+            description: 'Supporting context for the first item',
+            id: 'item-1',
+            name: 'First item',
+          },
+        ]}
+        columns={[
+          {
+            header: 'Name',
+            key: 'name',
+            subtext: (item) => item.description,
+          },
+        ]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const primary = screen.getByText('First item');
+    const subtext = screen.getByText('Supporting context for the first item');
+
+    expect(primary.parentElement).toBe(subtext.parentElement);
+    expect(primary).toHaveClass('font-medium', 'text-foreground');
+    expect(subtext).toHaveClass('text-xs', 'text-muted-foreground');
+  });
+
   it('does not fire onRowClick when keyboard targets a nested button', () => {
     const onRowClick = vi.fn();
     const onAction = vi.fn();
@@ -223,7 +252,13 @@ describe('Table', () => {
           { id: 'item-1', name: 'First item' },
           { id: 'item-2', name: 'Second item' },
         ]}
-        columns={[{ header: 'Name', key: 'name' }]}
+        columns={[
+          {
+            header: 'Name',
+            key: 'name',
+            subtext: (item) => `Details for ${item.name}`,
+          },
+        ]}
         getRowKey={(item) => item.id}
         getRowLink={(item) =>
           item.id === 'item-1'
@@ -238,6 +273,7 @@ describe('Table', () => {
     const link = screen.getByRole('link', { name: 'Open First item' });
     expect(link).toHaveAttribute('href', '/items/item-1');
     expect(link).toHaveClass('absolute', 'inset-0');
+    expect(screen.getByText('Details for First item')).toBeInTheDocument();
 
     // The anchor owns activation and keyboard focus; the row must not also be
     // a tab stop, or every row would be reachable twice.

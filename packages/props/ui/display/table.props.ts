@@ -5,6 +5,7 @@ export interface TableColumn<T> {
   key: keyof T | string;
   header: ReactNode;
   render?: (item: T) => ReactNode;
+  subtext?: (item: T) => ReactNode;
   className?: string;
   actions?: TableAction<T>[];
   sortable?: boolean;

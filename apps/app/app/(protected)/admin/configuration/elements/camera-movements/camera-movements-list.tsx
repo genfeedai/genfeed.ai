@@ -169,13 +169,12 @@ function CameraMovementsListContent({
   });
 
   const columns: TableColumn<ElementCameraMovement>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (movement: ElementCameraMovement) => movement.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (movement: ElementCameraMovement) => movement.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const actions =

@@ -12,14 +12,6 @@ export function PresetLabelCell({ preset }: { preset: Preset }) {
   );
 }
 
-export function PresetDescriptionCell({ preset }: { preset: Preset }) {
-  return (
-    <div className="max-w-40 overflow-hidden break-words whitespace-pre-line line-clamp-2">
-      {preset.description || '-'}
-    </div>
-  );
-}
-
 export function PresetOrganizationCell({ preset }: { preset: Preset }) {
   const organization = preset.organization as IOrganization | undefined;
   const orgLabel = organization?.label || 'Genfeed.ai';

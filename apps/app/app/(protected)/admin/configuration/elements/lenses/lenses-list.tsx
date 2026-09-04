@@ -167,13 +167,12 @@ function LensesListContent({
   }, [isRefreshing]);
 
   const columns: TableColumn<ElementLens>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (lens: ElementLens) => lens.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (lens: ElementLens) => lens.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const actions =

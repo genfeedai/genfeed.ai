@@ -152,13 +152,12 @@ function ScenesListContent({
   });
 
   const columns: TableColumn<ElementScene>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      header: 'Description',
-      key: 'description',
-      render: (scene: ElementScene) => scene.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (scene: ElementScene) => scene.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
   ];
 
   const findAllScenes = useCallback(

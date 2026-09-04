@@ -156,14 +156,12 @@ function StylesListContent({
   });
 
   const columns: TableColumn<ElementStyle>[] = [
-    { header: 'Label', key: 'label' },
-    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
-      className: 'max-w-48 truncate',
-      header: 'Description',
-      key: 'description',
-      render: (style: IElementStyle) => style.description || '-',
+      header: 'Label',
+      key: 'label',
+      subtext: (style: ElementStyle) => style.description,
     },
+    { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
       className: 'min-w-32 max-w-xs',
       header: 'Model',

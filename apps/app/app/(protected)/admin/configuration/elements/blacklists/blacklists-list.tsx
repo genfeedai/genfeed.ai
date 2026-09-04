@@ -171,7 +171,11 @@ function BlacklistsListContent({
   });
 
   const columns: TableColumn<ElementBlacklist>[] = [
-    { header: 'Label', key: 'label' },
+    {
+      header: 'Label',
+      key: 'label',
+      subtext: (blacklist: ElementBlacklist) => blacklist.description,
+    },
     { className: 'font-mono text-sm', header: 'Key', key: 'key' },
     {
       header: 'Category',
@@ -197,11 +201,6 @@ function BlacklistsListContent({
           onChange={() => handleToggleDefault(blacklist)}
         />
       ),
-    },
-    {
-      header: 'Description',
-      key: 'description',
-      render: (blacklist: ElementBlacklist) => blacklist.description || '-',
     },
   ];
 
