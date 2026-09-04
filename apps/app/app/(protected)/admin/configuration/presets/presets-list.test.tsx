@@ -184,12 +184,18 @@ vi.mock('@ui/display/table/Table', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    description,
+    label,
     right,
   }: {
     children: ReactNode;
+    description?: ReactNode;
+    label?: ReactNode;
     right?: ReactNode;
   }) => (
     <section>
+      <h1>{label}</h1>
+      <p>{description}</p>
       <div>{right}</div>
       {children}
     </section>
@@ -325,6 +331,12 @@ describe('PresetsList', () => {
   it('renders superadmin presets, query filters, and admin URL sync controls', async () => {
     render(<PresetsList scope={PageScope.SUPERADMIN} />);
 
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Presets' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Reusable generation settings and defaults.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Launch Video')).toBeInTheDocument();
     expect(screen.getByText('Image Preset')).toBeInTheDocument();
     expect(screen.getByText('Camera: wide')).toBeInTheDocument();

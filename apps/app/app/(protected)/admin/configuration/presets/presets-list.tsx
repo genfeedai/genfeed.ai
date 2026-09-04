@@ -262,6 +262,8 @@ function PresetsListContent({
 
   return (
     <Container
+      label="Presets"
+      description="Reusable generation settings and defaults."
       right={
         <>
           <ButtonRefresh
