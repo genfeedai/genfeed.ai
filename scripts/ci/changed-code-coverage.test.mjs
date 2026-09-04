@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import {
+  cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -18,6 +21,7 @@ import {
   evaluateRatchet,
   formatAnnotations,
   formatSummary,
+  hasChangedSurfaceCode,
   matchSourceFile,
   measureChangedCoverage,
   parseLcov,
@@ -956,4 +960,279 @@ test('observation evidence outlives the default artifact retention', () => {
   // Runs even when a surface job failed or was skipped, so an infrastructure
   // failure is still recorded rather than silently producing no report at all.
   assert.match(job, /if: >-\n\s+always\(\)/);
+});
+
+test('surface scope uses changed lines and the reviewed coverage exclusions', () => {
+  const files = new Map([
+    ['apps/server/server/src/workflow.ts', [1]],
+    ['packages/workflows/src/run.ts', [2]],
+    ['apps/server/api/src/a.test.ts', [1]],
+    ['apps/server/api/src/a.module.ts', [1]],
+    ['apps/server/api/src/deleted.ts', []],
+    ['apps/application/src/near-miss.ts', [1]],
+  ]);
+  assert.equal(hasChangedSurfaceCode('api', files), false);
+  assert.equal(hasChangedSurfaceCode('app', files), false);
+  assert.equal(
+    hasChangedSurfaceCode(
+      'api',
+      new Map([['./apps/server/api/src/service.ts', [1]]]),
+    ),
+    true,
+  );
+  files.set('apps/server/api/src/service.ts', [1]);
+  assert.equal(hasChangedSurfaceCode('api', files), true);
+  assert.throws(
+    () => hasChangedSurfaceCode('unknown', files),
+    /Unknown coverage surface/,
+  );
+});
+
+test('no changed surface code is distinct from skipped and measured', () => {
+  const built = report({
+    changedFiles: [
+      ['apps/app/a.ts', [1]],
+      ['packages/workflows/src/run.ts', [2]],
+    ],
+    surfaces: [
+      surface('api', 'success', ''),
+      surface('app', 'success', 'SF:apps/app/a.ts\nDA:1,1\nend_of_record\n'),
+    ],
+  });
+  assert.equal(built.normalized.surfaces[0].status, 'no-changed-code');
+  assert.equal(built.normalized.surfaces[1].status, 'reported');
+  assert.match(formatSummary(built), /api \| success \| no-changed-code/);
+  for (const [result, status] of [
+    ['skipped', 'not-applicable'],
+    ['failure', 'infrastructure-failed'],
+    ['cancelled', 'infrastructure-failed'],
+  ]) {
+    const other = report({
+      changedFiles: [['packages/workflows/src/run.ts', [2]]],
+      surfaces: [surface('api', result, null)],
+    });
+    assert.equal(other.normalized.surfaces[0].status, status);
+  }
+});
+
+test('the workflow skips only empty scopes and retains real merge failures', () => {
+  const job = ciJob('coverage-changed-report');
+  const run = job
+    .split('        run: |\n')[1]
+    .split('      - name:')[0]
+    .split('\n')
+    .map((line) => line.replace(/^ {10}/, ''))
+    .join('\n');
+  const scriptDirectory = fileURLToPath(new URL('.', import.meta.url));
+  for (const scenario of [
+    {
+      name: 'other surface',
+      file: 'packages/workflows/src/run.ts',
+      mode: 'empty',
+      merged: true,
+      exit: 0,
+      status: 'no-changed-code',
+    },
+    {
+      name: 'test only',
+      file: 'apps/server/api/src/run.test.ts',
+      mode: 'empty',
+      merged: true,
+      exit: 0,
+      status: 'no-changed-code',
+    },
+    {
+      name: 'app covers changed package',
+      surface: 'app',
+      file: 'packages/workflows/src/run.ts',
+      mode: 'valid',
+      merged: true,
+      exit: 0,
+      status: 'reported',
+    },
+    {
+      name: 'measured',
+      file: 'apps/server/api/src/run.ts',
+      mode: 'valid',
+      merged: true,
+      exit: 0,
+      status: 'reported',
+    },
+    {
+      name: 'empty LCOV',
+      file: 'apps/server/api/src/run.ts',
+      mode: 'empty',
+      merged: true,
+      exit: 1,
+    },
+    {
+      name: 'missing LCOV',
+      file: 'apps/server/api/src/run.ts',
+      mode: 'missing',
+      merged: true,
+      exit: 1,
+    },
+    {
+      name: 'merge failure',
+      file: 'apps/server/api/src/run.ts',
+      mode: 'failed',
+      merged: true,
+      exit: 1,
+    },
+    {
+      name: 'diff failure',
+      file: 'apps/server/api/src/run.ts',
+      mode: 'bad-diff',
+      merged: false,
+      exit: 1,
+    },
+  ]) {
+    const measuredSurface = scenario.surface ?? 'api';
+    const surfaceIndex = measuredSurface === 'api' ? 0 : 1;
+    const root = mkdtempSync(path.join(tmpdir(), 'coverage-workflow-'));
+    try {
+      for (const directory of [
+        'bin',
+        'scripts/ci',
+        `.changed-coverage/${measuredSurface}/shard-1`,
+        measuredSurface === 'api' ? 'apps/server/api' : 'apps/app',
+      ]) {
+        mkdirSync(path.join(root, directory), { recursive: true });
+      }
+      for (const file of [
+        'changed-code-coverage.mjs',
+        'changed-code-coverage.policy.mjs',
+        'changed-code-coverage.baseline.json',
+      ]) {
+        cpSync(
+          path.join(scriptDirectory, file),
+          path.join(root, 'scripts/ci', file),
+        );
+      }
+      writeFileSync(
+        path.join(root, `.changed-coverage/${measuredSurface}/shard-1/outcome`),
+        'success',
+      );
+      writeFileSync(
+        path.join(
+          root,
+          `.changed-coverage/${measuredSurface}/shard-1/blob-1.json`,
+        ),
+        '{}',
+      );
+      writeFileSync(
+        path.join(root, 'diff'),
+        `--- a/${scenario.file}\n+++ b/${scenario.file}\n@@ -0,0 +1 @@\n+export const value = 1;\n`,
+      );
+      writeFileSync(
+        path.join(root, 'bin/git'),
+        `#!/bin/bash
+if [ "$MODE" = bad-diff ]; then exit 1; fi
+if [ "$1" = rev-parse ]; then echo aaaaaa; else cat "$FIXTURE/diff"; fi
+`,
+        { mode: 0o755 },
+      );
+      writeFileSync(
+        path.join(root, 'bin/bunx'),
+        `#!/bin/bash
+touch "$FIXTURE/merged"
+if [ "$MODE" = failed ]; then exit 1; fi
+if [ "$MODE" = missing ]; then exit 0; fi
+mkdir -p coverage
+if [ "$MODE" = empty ]; then touch coverage/lcov.info; else
+  printf 'SF:%s\nDA:1,1\nend_of_record\n' "$SOURCE_FILE" > coverage/lcov.info
+fi
+`,
+        { mode: 0o755 },
+      );
+      const execution = spawnSync('bash', ['-c', run], {
+        cwd: root,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${root}/bin:${process.env.PATH}`,
+          FIXTURE: root,
+          MODE: scenario.mode,
+          SOURCE_FILE: scenario.file,
+          APP_RESULT: measuredSurface === 'app' ? 'success' : 'skipped',
+          API_RESULT: measuredSurface === 'api' ? 'success' : 'skipped',
+          CI_BASE_SHA: 'base',
+          GITHUB_STEP_SUMMARY: '',
+        },
+      });
+      assert.equal(
+        execution.status,
+        scenario.exit,
+        `${scenario.name}: ${execution.stderr}`,
+      );
+      assert.equal(
+        existsSync(path.join(root, 'merged')),
+        scenario.merged,
+        scenario.name,
+      );
+      if (scenario.status) {
+        const result = JSON.parse(
+          readFileSync(path.join(root, 'changed-code-coverage.json'), 'utf8'),
+        );
+        assert.equal(
+          result.normalized.surfaces[surfaceIndex].status,
+          scenario.status,
+          scenario.name,
+        );
+        assert.equal(
+          result.normalized.surfaces[1 - surfaceIndex].status,
+          'not-applicable',
+        );
+        if (scenario.mode === 'valid') {
+          assert.equal(result.normalized.totals.lines.measured, 1);
+          assert.equal(result.normalized.totals.lines.percent, 100);
+        }
+      }
+      if (scenario.name === 'empty LCOV') {
+        assert.match(
+          execution.stdout,
+          /api changed-code coverage merge produced no LCOV/,
+        );
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test('package-only changes retain coverage reported by the app surface', () => {
+  const built = report({
+    changedFiles: [['packages/workflows/src/run.ts', [1]]],
+    surfaces: [
+      surface(
+        'app',
+        'success',
+        'SF:packages/workflows/src/run.ts\nDA:1,1\nend_of_record\n',
+      ),
+      surface('api', 'success', ''),
+    ],
+  });
+  assert.equal(built.normalized.surfaces[0].status, 'no-changed-code');
+  assert.equal(built.normalized.surfaces[1].status, 'reported');
+  assert.equal(built.normalized.totals.lines.measured, 1);
+  assert.equal(built.normalized.totals.lines.percent, 100);
+  assert.equal(built.normalized.disposition, 'observation-only');
+});
+
+test('unrelated LCOV distinguishes unchanged surfaces from missing changed coverage', () => {
+  const lcov = 'SF:apps/server/api/src/unrelated.ts\nDA:1,1\nend_of_record\n';
+  const unchanged = report({
+    changedFiles: [['packages/workflows/src/run.ts', [1]]],
+    surfaces: [surface('api', 'success', lcov)],
+  });
+  assert.equal(unchanged.normalized.surfaces[0].status, 'no-changed-code');
+  assert.equal(unchanged.normalized.totals.lines.unmeasured, 1);
+
+  const missing = report({
+    changedFiles: [['apps/server/api/src/changed.ts', [1]]],
+    surfaces: [surface('api', 'success', lcov)],
+  });
+  assert.equal(missing.normalized.surfaces[0].status, 'reported');
+  assert.equal(missing.normalized.totals.lines.unmeasured, 1);
+  assert.equal(missing.normalized.disposition, 'unmeasured');
 });

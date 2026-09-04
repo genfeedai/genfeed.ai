@@ -1114,6 +1114,9 @@ jobs:
               return
             fi
 
+            local has_changed_code
+            has_changed_code=$(node scripts/ci/changed-code-coverage.mjs \
+              --base "$CI_BASE_SHA" --head HEAD --has-changed-code "$surface")
             mkdir -p "$workspace/.vitest-reports"
             cp "${reports[@]}" "$workspace/.vitest-reports/"
             (
@@ -1126,6 +1129,10 @@ jobs:
             )
             cp "$workspace/coverage/lcov.info" ".changed-coverage/$surface/lcov.info"
             if [ ! -s ".changed-coverage/$surface/lcov.info" ]; then
+              if [ "$has_changed_code" = 'false' ]; then
+                echo "$surface: no changed code on this surface"
+                return
+              fi
               echo "::error::$surface changed-code coverage merge produced no LCOV"
               exit 1
             fi

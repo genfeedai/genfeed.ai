@@ -97,6 +97,22 @@ export function parseUnifiedDiff(rawDiff) {
   );
 }
 
+/**
+ * Use the same diff and exclusion policy for merging and reporting. Keep
+ * comment/import-only source edits eligible: absence of LCOV cannot prove
+ * those changed lines are non-executable.
+ */
+export function hasChangedSurfaceCode(name, changedFiles) {
+  const prefix = { app: 'apps/app/', api: 'apps/server/api/' }[name];
+  if (!prefix) throw new Error(`Unknown coverage surface: ${name}`);
+  const { included } = partitionChangedFiles(
+    [...changedFiles]
+      .filter(([, lines]) => lines.length > 0)
+      .map(([file]) => file),
+  );
+  return included.some((file) => file.startsWith(prefix));
+}
+
 // ── LCOV ────────────────────────────────────────────────────────────────────
 
 /**
@@ -507,6 +523,13 @@ export function buildReport({
   const { included, excluded } = partitionChangedFiles([
     ...changedFiles.keys(),
   ]);
+  surfaces = surfaces.map((surface) =>
+    surface.result === 'success' &&
+    surface.status === 'no-coverage' &&
+    !hasChangedSurfaceCode(surface.name, changedFiles)
+      ? { ...surface, status: 'no-changed-code' }
+      : { ...surface },
+  );
   const reportedSurfaces = surfaces.filter(
     (surface) => surface.status === 'reported',
   );
@@ -534,6 +557,12 @@ export function buildReport({
         merged.branches.set(key, (merged.branches.get(key) ?? 0) + hits);
       }
       coverageByFile.set(file, merged);
+    }
+    if (
+      surface.sourceFiles === 0 &&
+      !hasChangedSurfaceCode(surface.name, changedFiles)
+    ) {
+      surface.status = 'no-changed-code';
     }
   }
 
@@ -788,6 +817,7 @@ function parseArguments(argv) {
     out: '',
     surfaces: [],
     annotate: false,
+    hasChangedCode: '',
   };
 
   let index = 0;
@@ -802,6 +832,10 @@ function parseArguments(argv) {
       values.base = next();
     } else if (argument === '--head') {
       values.head = next();
+    } else if (argument === '--has-changed-code') {
+      values.hasChangedCode = next();
+      if (!values.hasChangedCode)
+        throw new Error('--has-changed-code requires a surface');
     } else if (argument === '--out') {
       values.out = next();
     } else if (argument === '--annotate') {
@@ -885,6 +919,13 @@ async function runCli() {
   const diffInputs = await resolveDiffInputs(args);
   const baseline = readBaseline();
   const changedFiles = parseUnifiedDiff(diffInputs.rawDiff);
+
+  if (args.hasChangedCode) {
+    process.stdout.write(
+      `${hasChangedSurfaceCode(args.hasChangedCode, changedFiles)}\n`,
+    );
+    return;
+  }
 
   let observedLatencySeconds = null;
   const surfaces = args.surfaces.map((surface) => {
