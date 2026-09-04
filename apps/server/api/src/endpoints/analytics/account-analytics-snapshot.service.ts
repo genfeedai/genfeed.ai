@@ -39,18 +39,20 @@ function startOfLocalDay(date: Date): Date {
   return next;
 }
 
+interface UpsertDailySnapshotInput {
+  brandId: string;
+  credentialId: string;
+  followers?: number | null;
+  organizationId: string;
+  platform: CredentialPlatform;
+  subscribers?: number | null;
+}
+
 @Injectable()
 export class AccountAnalyticsSnapshotService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async upsertDailySnapshot(input: {
-    brandId: string;
-    credentialId: string;
-    followers?: number | null;
-    organizationId: string;
-    platform: CredentialPlatform;
-    subscribers?: number | null;
-  }): Promise<void> {
+  async upsertDailySnapshot(input: UpsertDailySnapshotInput): Promise<void> {
     const platform = toPrismaCredentialPlatform(input.platform);
     if (!platform) {
       return;

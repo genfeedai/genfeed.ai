@@ -9,7 +9,7 @@ import { firstValueFrom } from 'rxjs';
 type ResolveTikTokCredential = (
   organizationId: string,
   brandId: string,
-  credentialId?: string,
+  credentialId: string,
 ) => Promise<CredentialDocument>;
 type HandleTikTokAuthError = (
   credentialId: string,
@@ -30,7 +30,7 @@ export class TiktokAnalyticsService {
     organizationId: string,
     brandId: string,
     mediaId: string,
-    credentialId?: string,
+    credentialId: string,
   ): Promise<ITikTokMediaAnalytics> {
     const url = `TiktokService ${CallerUtil.getCallerName()}`;
     let credential: CredentialDocument | null = null;

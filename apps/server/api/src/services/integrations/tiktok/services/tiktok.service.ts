@@ -1044,7 +1044,7 @@ export class TiktokService {
     organizationId: string,
     brandId: string,
     mediaId: string,
-    credentialId?: string,
+    credentialId: string,
   ): Promise<ITikTokMediaAnalytics> {
     return this.analyticsService.getMediaAnalytics(
       organizationId,

@@ -207,16 +207,18 @@ describe('YoutubeService — extended coverage', () => {
         expected as never,
       );
 
-      const result = await service.getMediaAnalyticsBatch('org', 'brand', [
-        'vid-a',
-        'vid-b',
-      ]);
+      const result = await service.getMediaAnalyticsBatch(
+        'org',
+        'brand',
+        ['vid-a', 'vid-b'],
+        'credential',
+      );
 
       expect(analyticsService.getMediaAnalyticsBatch).toHaveBeenCalledWith(
         'org',
         'brand',
         ['vid-a', 'vid-b'],
-        undefined,
+        'credential',
       );
       expect(result).toBe(expected);
     });
@@ -224,13 +226,13 @@ describe('YoutubeService — extended coverage', () => {
     it('delegates with empty array', async () => {
       analyticsService.getMediaAnalyticsBatch.mockResolvedValue([] as never);
 
-      await service.getMediaAnalyticsBatch('org', 'brand', []);
+      await service.getMediaAnalyticsBatch('org', 'brand', [], 'credential');
 
       expect(analyticsService.getMediaAnalyticsBatch).toHaveBeenCalledWith(
         'org',
         'brand',
         [],
-        undefined,
+        'credential',
       );
     });
 
@@ -239,7 +241,7 @@ describe('YoutubeService — extended coverage', () => {
       analyticsService.getMediaAnalyticsBatch.mockRejectedValue(err);
 
       await expect(
-        service.getMediaAnalyticsBatch('org', 'brand', ['v1']),
+        service.getMediaAnalyticsBatch('org', 'brand', ['v1'], 'credential'),
       ).rejects.toThrow('batch analytics failed');
     });
   });

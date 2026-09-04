@@ -5,6 +5,7 @@ import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { MemberRole } from '@genfeedai/contracts';
 import { RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
@@ -256,6 +257,48 @@ describe('Analytics split-controller HTTP contract', () => {
       AccountAnalyticsController,
       AnalyticsAdminController,
       AnalyticsController,
+    ]);
+  });
+
+  it('restricts fleet policy writes to organization administrators', () => {
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        AccountAnalyticsController.prototype.savePolicy,
+      ),
+    ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
+  });
+
+  it('invalidates account analytics after saving a fleet policy', async () => {
+    const accountAnalyticsService = {
+      assertBrandInScope: vi.fn().mockResolvedValue(undefined),
+      savePolicy: vi.fn().mockResolvedValue({ id: 'policy-1' }),
+    };
+    const cacheTagsService = {
+      invalidateByTags: vi.fn().mockResolvedValue(2),
+    };
+    const controller = new AccountAnalyticsController(
+      accountAnalyticsService as never,
+      { log: vi.fn() } as never,
+      cacheTagsService as never,
+    );
+
+    await controller.savePolicy(
+      { id: 'user-1', organizationId: 'org-1' } as never,
+      { originalUrl: '/analytics/fleet-evaluation-policy' } as never,
+      {
+        brandId: 'brand-1',
+        healthyMin: 80,
+        isEnabled: true,
+        metric: 'views',
+        minPublishedPosts: 3,
+        watchMin: 50,
+        windowWeeks: 4,
+      } as never,
+    );
+
+    expect(cacheTagsService.invalidateByTags).toHaveBeenCalledWith([
+      'accounts',
     ]);
   });
 });

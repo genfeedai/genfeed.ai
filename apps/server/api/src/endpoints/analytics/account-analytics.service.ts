@@ -280,12 +280,12 @@ export class AccountAnalyticsService {
     });
 
     const credentialIds = credentials.map((row) => row.id);
-    const [periodRows, startSnapshots, endSnapshots, firstPublished, policy] =
+    const [periodRows, startSnapshots, endSnapshots, publishedSummary, policy] =
       await Promise.all([
         this.loadPeriodRows(organizationId, credentialIds, startDate, endDate),
         this.loadSnapshots(organizationId, credentialIds, startDate, 'start'),
         this.loadSnapshots(organizationId, credentialIds, endDate, 'end'),
-        this.loadFirstPublished(organizationId, credentialIds),
+        this.loadPublishedSummary(organizationId, credentialIds),
         this.getPolicy(organizationId, query.brandId),
       ]);
 
@@ -328,8 +328,12 @@ export class AccountAnalyticsService {
           startByCredential.get(credential.id),
           endByCredential.get(credential.id),
         );
-        const publishedPosts = toFiniteNumber(period?.posts) ?? 0;
-        const firstPublishedAt = firstPublished.get(credential.id) ?? null;
+        const summary = publishedSummary.get(credential.id);
+        const coveredPosts = toFiniteNumber(period?.posts) ?? 0;
+        const publishedPosts = summary?.publishedPosts ?? 0;
+        const coverage =
+          publishedPosts > 0 ? Math.min(coveredPosts / publishedPosts, 1) : 0;
+        const firstPublishedAt = summary?.firstPublishedAt ?? null;
         const ageDays = firstPublishedAt
           ? Math.floor((now - firstPublishedAt.getTime()) / 86_400_000)
           : Math.floor((now - credential.createdAt.getTime()) / 86_400_000);
@@ -340,7 +344,7 @@ export class AccountAnalyticsService {
           : null;
         const evaluation = classifyAccountEvaluation({
           accountAgeDays: ageDays,
-          coverage: publishedPosts > 0 ? 1 : 0,
+          coverage,
           freshnessHours,
           metricAvailability:
             ranked?.availability ?? AnalyticsMetricAvailability.UNAVAILABLE,
@@ -350,7 +354,7 @@ export class AccountAnalyticsService {
         });
 
         const account: IAccountAnalytics = {
-          coverage: publishedPosts > 0 ? 1 : 0,
+          coverage,
           evaluation,
           freshnessHours,
           identity: {
@@ -663,15 +667,16 @@ export class AccountAnalyticsService {
     }));
   }
 
-  private async loadFirstPublished(
+  private async loadPublishedSummary(
     organizationId: string,
     credentialIds: string[],
-  ): Promise<Map<string, Date>> {
+  ): Promise<Map<string, { firstPublishedAt: Date; publishedPosts: number }>> {
     if (credentialIds.length === 0) {
       return new Map();
     }
     const rows = await this.prisma.post.groupBy({
       by: ['credentialId'],
+      _count: { _all: true },
       _min: { publishedAt: true },
       where: scopedWhere(organizationId, {
         credentialId: { in: credentialIds },
@@ -681,7 +686,15 @@ export class AccountAnalyticsService {
     return new Map(
       rows.flatMap((row) =>
         row.credentialId && row._min.publishedAt
-          ? [[row.credentialId, row._min.publishedAt] as const]
+          ? [
+              [
+                row.credentialId,
+                {
+                  firstPublishedAt: row._min.publishedAt,
+                  publishedPosts: row._count._all,
+                },
+              ] as const,
+            ]
           : [],
       ),
     );

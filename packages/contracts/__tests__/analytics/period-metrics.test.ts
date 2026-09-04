@@ -25,6 +25,20 @@ describe('periodMetricGain', () => {
     });
   });
 
+  it('preserves an unavailable start boundary', () => {
+    expect(
+      periodMetricGain({
+        endValue: 400,
+        startAvailability: AnalyticsMetricAvailability.UNAUTHORIZED,
+        startValue: null,
+      }),
+    ).toEqual({
+      availability: AnalyticsMetricAvailability.UNAUTHORIZED,
+      correctionKind: null,
+      value: null,
+    });
+  });
+
   it('does not inflate growth when a provider counter decreases', () => {
     expect(periodMetricGain({ endValue: 800, startValue: 1000 })).toEqual({
       availability: AnalyticsMetricAvailability.OBSERVED,
