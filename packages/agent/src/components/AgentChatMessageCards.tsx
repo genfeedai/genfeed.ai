@@ -168,6 +168,7 @@ export function ContentPreviewCard({
   apiService?: AgentApiService;
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
+  const { href: scopedHref } = useOrgUrl();
   const [reconciledUrl, setReconciledUrl] = useState<string>();
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
   const [reconciliationError, setReconciliationError] = useState<string>();
@@ -366,8 +367,11 @@ export function ContentPreviewCard({
               return null;
             }
 
-            const href =
+            const normalizedHref =
               normalizeAgentAssetHref(cta.href, action.assetId) ?? cta.href;
+            const href = normalizedHref.startsWith('/')
+              ? scopedHref(normalizedHref)
+              : normalizedHref;
             const label =
               href.includes('/library/') &&
               cta.label.toLowerCase().includes('gallery')

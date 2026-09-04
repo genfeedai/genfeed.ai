@@ -149,7 +149,11 @@ export function UiActionRenderer({
       break;
     case 'generation_action_card':
       card = liveApiService ? (
-        <GenerationActionCard action={action} apiService={liveApiService} />
+        <GenerationActionCard
+          action={action}
+          apiService={liveApiService}
+          onUiAction={liveOnUiAction}
+        />
       ) : null;
       break;
     case 'analytics_snapshot_card':
