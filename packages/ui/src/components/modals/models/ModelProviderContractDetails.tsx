@@ -155,6 +155,12 @@ function ContractSnapshot({
         )}
         <p>
           <span className="text-foreground/80">
+            {translate('discoveredAtLabel')}
+          </span>{' '}
+          {new Date(snapshot.discoveredAt).toLocaleString()}
+        </p>
+        <p>
+          <span className="text-foreground/80">
             {translate('lastSeenLabel')}
           </span>{' '}
           {new Date(snapshot.lastSeenAt).toLocaleString()}

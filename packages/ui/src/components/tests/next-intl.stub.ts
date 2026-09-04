@@ -83,6 +83,7 @@ const UI_TEST_MESSAGES = {
       retryAriaLabel: 'Retry generation',
     },
     modelProviderContract: {
+      discoveredAtLabel: 'Discovered:',
       empty: 'No reviewed or pending provider contract is stored yet.',
       error: 'Provider contract details could not be loaded.',
       familyLabel: 'Family:',
