@@ -226,10 +226,16 @@ export default function AppTable<T>({
   }
 
   if (items?.length === 0) {
-    // Empty is not a card. Pairing border + shadow-border painted a 2px slab
-    // around "No unread items". Host already owns the page surface.
     return (
-      <div className="w-full" data-testid="table-empty">
+      <div
+        className={cn(
+          'relative w-full overflow-hidden bg-card',
+          framed
+            ? 'rounded-card border border-border'
+            : 'rounded-none border-0 shadow-none',
+        )}
+        data-testid="table-empty"
+      >
         <TableSectionHeader label={label} description={description} />
         {emptyState ?? (
           <CardEmptyContent

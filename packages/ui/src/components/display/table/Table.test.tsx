@@ -77,7 +77,7 @@ describe('Table', () => {
     expect(onRowClick).toHaveBeenCalledTimes(2);
   });
 
-  it('renders empty without card chrome or a doubled border', () => {
+  it('keeps the default table frame while empty', () => {
     render(
       <Table
         items={[]}
@@ -88,10 +88,27 @@ describe('Table', () => {
     );
 
     const empty = screen.getByTestId('table-empty');
-    expect(empty).not.toHaveClass('border');
+    expect(empty).toHaveClass('rounded-card', 'border', 'border-border');
     expect(empty).not.toHaveClass('shadow-border');
-    expect(empty).not.toHaveClass('bg-card');
+    expect(empty).toHaveClass('bg-card');
     expect(screen.getByText('No unread items')).toBeInTheDocument();
+  });
+
+  it('keeps a delegated empty table frameless', () => {
+    render(
+      <Table
+        framed={false}
+        items={[]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        emptyLabel="No unread items"
+      />,
+    );
+
+    expect(screen.getByTestId('table-empty')).toHaveClass(
+      'rounded-none',
+      'border-0',
+      'shadow-none',
+    );
   });
 
   it('uses one hairline system for header and rows', () => {

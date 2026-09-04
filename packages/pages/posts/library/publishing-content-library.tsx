@@ -33,7 +33,7 @@ import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -328,13 +328,13 @@ export default function PublishingContentLibrary() {
   }, [isFetching, setIsRefreshing]);
 
   const emptyState = error ? (
-    <CardEmpty
+    <CardEmptyContent
       icon={Files}
       label="Content library unavailable"
       description="Refresh to try loading posts, articles, and newsletters again."
     />
   ) : (
-    <CardEmpty
+    <CardEmptyContent
       icon={Files}
       label={hasActiveFilters ? 'No matching content' : 'No content yet'}
       description={
