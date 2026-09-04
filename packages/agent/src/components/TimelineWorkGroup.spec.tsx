@@ -253,7 +253,7 @@ describe('TimelineWorkGroup', () => {
     expect(screen.getByText('Failed').className).toMatch(/text-destructive/);
   });
 
-  it('paints step count and failure detail as muted text, not muted fill', () => {
+  it('paints step count as muted text, not muted fill', () => {
     render(
       <TimelineWorkGroup
         entry={{
@@ -277,8 +277,34 @@ describe('TimelineWorkGroup', () => {
 
     expect(screen.getByText('2 steps').className).toMatch(/text-gray-800/);
     expect(screen.getByText('2 steps').className).not.toMatch(/\btext-muted\b/);
-    expect(
-      screen.getByText('provider returned empty output').className,
-    ).toMatch(/text-gray-800/);
+  });
+
+  it('keeps the collapsed label free of error copy so the chevron stays aligned', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildSettledEntry(1),
+          events: [
+            ...buildSettledEntry(1).events,
+            {
+              createdAt: '2026-03-18T10:00:00.000Z',
+              detail: 'Nodes failed: generate_image',
+              event: AgentWorkEventType.FAILED,
+              id: 'e-failed',
+              label: 'Run Failed',
+              status: AgentWorkEventStatus.FAILED,
+              threadId: 't1',
+            },
+          ],
+          totalDurationMs: 1472000,
+        }}
+      />,
+    );
+
+    const toggle = screen.getByRole('button', { name: /Worked for 24m 32s/i });
+    expect(toggle).toHaveTextContent('Failed');
+    expect(toggle).toHaveTextContent('1 step');
+    expect(toggle).not.toHaveTextContent('Nodes failed');
+    expect(screen.getByTestId('timeline-work-group-chevron')).toBeTruthy();
   });
 });
