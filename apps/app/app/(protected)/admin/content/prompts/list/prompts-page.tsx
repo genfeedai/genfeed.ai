@@ -14,7 +14,7 @@ import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -135,7 +135,7 @@ function PromptsPageContent() {
             <SkeletonCard key={key} showImage={false} />
           ))
         ) : prompts.length === 0 ? (
-          <CardEmpty label="No prompts found" />
+          <CardEmptyContent label="No prompts found" />
         ) : (
           <>
             {prompts.map((prompt) => (

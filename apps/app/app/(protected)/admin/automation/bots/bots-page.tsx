@@ -8,7 +8,7 @@ import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
@@ -104,7 +104,7 @@ export default function BotsPage() {
               <SkeletonCard key={key} showImage={false} />
             ))
           ) : bots.length === 0 ? (
-            <CardEmpty label="No bots yet" />
+            <CardEmptyContent label="No bots yet" />
           ) : (
             bots.map((bot: Bot) => (
               <Card key={bot.id}>
