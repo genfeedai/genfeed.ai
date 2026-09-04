@@ -109,6 +109,28 @@ describe('OutreachCampaignsService', () => {
     };
   };
 
+  describe('findAll', () => {
+    it('normalizes transport sort directions before calling Prisma', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findMany.mockResolvedValue([]);
+      prisma.outreachCampaign.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          orderBy: { createdAt: -1 },
+          where: { organizationId },
+        },
+        { limit: 100, page: 1 },
+      );
+
+      expect(prisma.outreachCampaign.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }],
+        }),
+      );
+    });
+  });
+
   it('creates campaigns with auth-scoped owner fields instead of DTO owner overrides', async () => {
     const { prisma, service } = makeService();
 

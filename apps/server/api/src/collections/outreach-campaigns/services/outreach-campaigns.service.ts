@@ -26,6 +26,7 @@ import {
 } from '@api/services/campaign/outreach-capability.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
+import { BaseQueryNormalizationAdapter } from '@api/shared/services/base/base-query-normalization.adapter';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   CampaignStatus,
@@ -104,6 +105,9 @@ function normalizeDocs(rows: unknown[]): OutreachCampaignDocument[] {
 
 @Injectable()
 export class OutreachCampaignsService {
+  private readonly queryNormalizationAdapter =
+    new BaseQueryNormalizationAdapter('outreachCampaign');
+
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
@@ -932,8 +936,7 @@ export class OutreachCampaignsService {
 
     const [rows, totalDocs] = await Promise.all([
       this.prisma.outreachCampaign.findMany({
-        orderBy:
-          query.orderBy as Prisma.OutreachCampaignOrderByWithRelationInput,
+        orderBy: this.queryNormalizationAdapter.normalizeSort(query.orderBy),
         skip,
         take,
         where: scopedWhere(organizationId, filters),
