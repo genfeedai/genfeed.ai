@@ -28,7 +28,7 @@ export default function OrganizationAutomationBrandEmptyState({
   return (
     <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
       <Workflow className="size-10 text-foreground/20" />
-      <h1 className="text-lg font-semibold text-foreground">
+      <h1 className="text-lg font-semibold text-foreground text-balance">
         {translate('title')}
       </h1>
       <p className="max-w-md text-sm text-foreground/55">

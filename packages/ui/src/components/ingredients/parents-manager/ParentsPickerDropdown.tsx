@@ -100,7 +100,7 @@ export default function ParentsPickerDropdown({
                           `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
                         }
                         alt={(ing.metadata as IMetadata)?.label}
-                        className="size-full object-cover"
+                        className="size-full object-cover outline-media"
                         width={64}
                         height={64}
                         sizes="64px"

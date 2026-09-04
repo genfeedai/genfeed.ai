@@ -25,7 +25,7 @@ export default function IllustrationPreview({
             <Image
               src={generatedImageUrl}
               alt="Generated illustration"
-              className="h-auto w-full object-contain"
+              className="h-auto w-full object-contain outline-media"
               width={dimensions.width}
               height={dimensions.height}
             />

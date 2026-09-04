@@ -68,6 +68,22 @@ Apply it this way:
 - Define each role with dimensions, type behavior, motion budget, and usage constraints.
 - Round exact ratios to implementation-friendly values so the system can be used in CSS, design tools, and image prompts.
 
+## Phased Brand Showcase Renders
+
+Source: Amir Mušić's public brand-identity showcase prompts on X, for example https://x.com/AmirMushich/status/1994522245780140115
+
+Useful principle: a one-image brand showcase is credible only when the generator first extracts real brand data (colors, typography, names, product, cultural context) and then renders it across a fixed set of card types in one asymmetric grid. The card set doubles as a completeness checklist: lockup, key visual, palette, typography, editorial photo, product artifact, social format, typographic poster.
+
+Apply it this way:
+
+- Split every showcase prompt into an extract phase and a render phase; never render a slot that was not extracted or explicitly marked as a candidate.
+- Use the card set to check that a Brand OS covers every surface, not only colours.
+- Carry evidence and confidence labels from the extract phase onto the rendered cards.
+- Keep the brand's own art direction in the render phase; the grid is a container, not a style.
+- Treat the resulting image as presentation of an identity, never as its definition or as a token source.
+
+Boundary: the phase order and card checklist are the reference. Prompt wording, layouts, materials, and any brand shown in the source posts are not to be copied.
+
 ## Cute Studies And Kawaii
 
 Sources:

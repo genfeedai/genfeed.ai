@@ -20,7 +20,7 @@ export default function ProactiveErrorState({
         <p className="text-sm uppercase tracking-[0.24em] text-gray-800">
           Proactive Onboarding
         </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground text-balance">
           Your workspace is almost ready.
         </h1>
         <p className="mt-4 max-w-xl text-muted-foreground">

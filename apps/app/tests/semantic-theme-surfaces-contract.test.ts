@@ -24,7 +24,6 @@ function collectSourceFiles(relativeRoot: string): string[] {
 const DIVIDER_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-overview-sidebar.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-loading.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-thread-card.tsx',

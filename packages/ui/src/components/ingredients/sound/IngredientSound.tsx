@@ -59,6 +59,7 @@ export default function IngredientSound({
             </div>
 
             <Button
+              ariaLabel={sound.isPlaying ? 'Pause' : 'Play'}
               label={
                 sound.isPlaying ? (
                   <Pause className="text-2xl" />
@@ -68,7 +69,7 @@ export default function IngredientSound({
               }
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.ICON}
-              className="transition-all duration-300"
+              className="transition-colors duration-300"
               onClick={() => playVoice(sound, stopAll)}
             />
           </div>

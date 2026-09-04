@@ -58,13 +58,13 @@ export default function StreakCard() {
           <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Daily streak
           </p>
-          <p className="text-lg font-semibold text-foreground">
+          <p className="text-lg font-semibold text-foreground tabular-nums">
             {isLoading
               ? '…'
               : `${currentStreak} day${currentStreak === 1 ? '' : 's'}`}
           </p>
         </div>
-        <div className="rounded-full border border-border px-2 py-1 text-2xs font-medium text-foreground/80">
+        <div className="rounded-full border border-border px-2 py-1 text-2xs font-medium text-foreground/80 tabular-nums">
           {streakFreezes} freeze{streakFreezes === 1 ? '' : 's'}
         </div>
       </div>

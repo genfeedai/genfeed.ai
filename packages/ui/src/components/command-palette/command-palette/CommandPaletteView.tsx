@@ -96,7 +96,7 @@ export function CommandPaletteView({
               <Kbd>Esc</Kbd> Close
             </span>
           </div>
-          <span>
+          <span className="tabular-nums">
             {displayedCommands.length} of {totalCount} commands
           </span>
         </div>

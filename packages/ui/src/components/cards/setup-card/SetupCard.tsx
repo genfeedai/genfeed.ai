@@ -25,7 +25,7 @@ export default function SetupCard() {
         <span className="text-2xs font-semibold text-foreground/60">
           Complete setup
         </span>
-        <span className="text-2xs font-medium text-foreground/30">
+        <span className="text-2xs font-medium text-foreground/30 tabular-nums">
           {completedCount}/{totalCount}
         </span>
       </div>
@@ -33,7 +33,7 @@ export default function SetupCard() {
       {/* Progress bar */}
       <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
-          className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>

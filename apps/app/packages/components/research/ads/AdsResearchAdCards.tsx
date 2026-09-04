@@ -125,7 +125,7 @@ export function AdGridCard({
               fill
               unoptimized
               sizes="(min-width: 768px) 20rem, 100vw"
-              className="object-cover"
+              className="object-cover outline-media"
             />
           </div>
         )}

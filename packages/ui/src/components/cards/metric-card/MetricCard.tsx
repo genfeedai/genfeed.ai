@@ -137,7 +137,7 @@ const MetricCard = memo(function MetricCard({
       {hasTrend && !isLoading ? (
         <span
           className={cn(
-            'inline-flex items-center gap-1 text-xs font-medium',
+            'inline-flex items-center gap-1 text-xs font-medium tabular-nums',
             isPositiveTrend && 'text-success',
             isNegativeTrend && 'text-destructive',
             !isPositiveTrend && !isNegativeTrend && 'text-foreground/45',

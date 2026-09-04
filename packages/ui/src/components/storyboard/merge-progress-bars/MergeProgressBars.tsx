@@ -18,13 +18,13 @@ export default function MergeProgressBars({
             <span className="text-base font-medium text-foreground">
               Overall Progress
             </span>
-            <span className="text-base font-medium text-primary">
+            <span className="text-base font-medium text-primary tabular-nums">
               {Math.round(overallProgress)}%
             </span>
           </div>
           <div className="w-full bg-background rounded-full h-4 overflow-hidden shadow-inner">
             <div
-              className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-300 ease-out"
+              className="h-full bg-gradient-to-r from-primary to-secondary transition-[width] duration-300 ease-out"
               style={{
                 width: `${Math.min(100, Math.max(0, overallProgress))}%`,
               }}
@@ -70,7 +70,7 @@ export default function MergeProgressBars({
               {isActive && step.progress !== undefined && (
                 <div className="w-full bg-background rounded-full h-3 overflow-hidden shadow-inner">
                   <div
-                    className="h-full bg-primary transition-all duration-300 ease-out shadow-sm"
+                    className="h-full bg-primary transition-[width] duration-300 ease-out shadow-sm"
                     style={{
                       width: `${Math.min(100, Math.max(0, step.progress))}%`,
                     }}

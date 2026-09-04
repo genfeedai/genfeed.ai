@@ -117,7 +117,8 @@ export default function MasonryVideoActionsBar({
             <Button
               label={
                 <>
-                  <ThumbsUp /> {video.totalVotes || 0}
+                  <ThumbsUp />{' '}
+                  <span className="tabular-nums">{video.totalVotes || 0}</span>
                 </>
               }
               variant={ButtonVariant.DEFAULT}

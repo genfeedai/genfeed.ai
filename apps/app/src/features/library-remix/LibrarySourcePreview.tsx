@@ -67,7 +67,7 @@ export default function LibrarySourcePreview({
       ) : sourceUrl ? (
         <Image
           alt={label}
-          className="object-cover"
+          className="object-cover outline-media"
           fill
           loading="lazy"
           sizes="(max-width: 768px) 45vw, 12rem"

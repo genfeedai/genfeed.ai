@@ -129,7 +129,7 @@ export default function EditorProjectsPage() {
   return (
     <Container className="py-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold tabular-nums text-balance">
           {hasProjects
             ? `Your Projects (${projects.length})`
             : isLoading

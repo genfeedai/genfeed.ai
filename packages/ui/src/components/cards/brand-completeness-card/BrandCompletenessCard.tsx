@@ -83,11 +83,11 @@ function GroupRow({
         <div className="flex items-center gap-2">
           <div className="h-1 w-10 overflow-hidden rounded-full bg-foreground/[0.06]">
             <div
-              className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-foreground transition-[width] duration-500 ease-out"
               style={{ width: `${group.score}%` }}
             />
           </div>
-          <span className="w-7 text-right text-2xs font-medium text-foreground/30">
+          <span className="w-7 text-right text-2xs font-medium text-foreground/30 tabular-nums">
             {group.score}%
           </span>
         </div>
@@ -131,7 +131,7 @@ export default function BrandCompletenessCard({
         <span className="text-2xs font-semibold text-foreground/60">
           Brand context
         </span>
-        <span className="text-2xs font-medium text-foreground/30">
+        <span className="text-2xs font-medium text-foreground/30 tabular-nums">
           {result.overallScore}%
         </span>
       </div>
@@ -139,7 +139,7 @@ export default function BrandCompletenessCard({
       {/* Progress bar */}
       <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
-          className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-foreground transition-[width] duration-500 ease-out"
           style={{ width: `${result.overallScore}%` }}
         />
       </div>

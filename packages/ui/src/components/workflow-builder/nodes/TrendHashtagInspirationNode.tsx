@@ -203,7 +203,7 @@ function TrendHashtagInspirationNodeComponent({
             #{data.sourceHashtag}
           </div>
           {data.hashtagPostCount && (
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-xs text-muted-foreground mt-1 tabular-nums">
               {data.hashtagPostCount.toLocaleString()} posts
             </div>
           )}

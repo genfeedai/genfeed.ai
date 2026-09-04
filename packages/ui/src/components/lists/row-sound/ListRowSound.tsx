@@ -25,6 +25,7 @@ function renderLegacyPlaybackControl({
           <Play className={CONTENT_ICON_CLASS} aria-hidden="true" />
         )
       }
+      ariaLabel={ingredient.isPlaying ? 'Pause sound' : 'Play sound'}
       variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
       size={ButtonSize.ICON}
       className="size-11 transition-colors duration-200 lg:size-8 [&_svg]:size-4"
@@ -86,7 +87,7 @@ export default function ListRowSound({
           {leading ?? (
             <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-tertiary text-sm font-medium text-foreground/70 lg:size-10">
               {typeof index === 'number' ? (
-                index + 1
+                <span className="tabular-nums">{index + 1}</span>
               ) : (
                 <Play className="size-4" />
               )}

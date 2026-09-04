@@ -35,7 +35,7 @@ export default function ProactiveHeroCard({
             <Sparkles className="size-3" />
             Prepared Before You Arrived
           </Badge>
-          <h1 className="mt-5 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
+          <h1 className="mt-5 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl text-balance">
             {workspace.organization?.label || 'Your workspace'} is ready.
           </h1>
           <p className="mt-4 max-w-xl text-lg text-muted-foreground">

@@ -62,7 +62,7 @@ const Card = memo(function Card({
             alt="Overlay"
             fill
             sizes="100vw"
-            className="object-cover object-center"
+            className="object-cover object-center outline-media"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

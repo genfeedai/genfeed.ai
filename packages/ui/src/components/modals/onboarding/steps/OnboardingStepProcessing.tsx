@@ -66,11 +66,11 @@ export default function OnboardingStepProcessing({
       <div className="max-w-sm mx-auto mb-8">
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary transition-all duration-300 ease-out"
+            className="h-full bg-primary transition-[width] duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-center text-sm text-muted-foreground mt-2">
+        <p className="text-center text-sm text-muted-foreground mt-2 tabular-nums">
           {progress}%
         </p>
       </div>

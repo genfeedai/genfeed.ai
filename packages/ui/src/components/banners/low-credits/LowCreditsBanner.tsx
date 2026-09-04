@@ -176,7 +176,7 @@ export default function LowCreditsBanner({
                 </p>
                 <span
                   className={cn(
-                    'rounded-full border px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em]',
+                    'rounded-full border px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em] tabular-nums',
                     isCritical
                       ? 'border-red-400/20 bg-red-500/[0.12] text-red-200'
                       : 'border-amber-400/20 bg-amber-500/[0.12] text-amber-200',

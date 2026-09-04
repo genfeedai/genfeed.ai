@@ -34,7 +34,7 @@ export default function ClipsProjectCard({
               fill
               unoptimized
               sizes="(max-width: 768px) 100vw, 360px"
-              className="object-cover"
+              className="object-cover outline-media"
             />
           ) : (
             <div className="flex size-full items-center justify-center text-muted-foreground">
@@ -46,7 +46,7 @@ export default function ClipsProjectCard({
           <h3 className="truncate text-sm font-medium text-foreground">
             {project.name}
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {clipCountLabel(project.readyClipCount)}
             <span className="mx-1.5 text-muted-foreground/50">·</span>
             {statusLabel(project.status)}

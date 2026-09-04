@@ -268,7 +268,7 @@ export default function ModalBrandInstagram({
             {availableHandles.map((handle: CredentialInstagram) => (
               <Button
                 key={handle.id}
-                className={`p-4 cursor-pointer transition-all ${
+                className={`p-4 cursor-pointer transition-[box-shadow,background-color] ${
                   selectedHandle?.id === handle.id
                     ? 'shadow-border-strong bg-primary/10'
                     : 'hover:bg-hover'
@@ -283,7 +283,7 @@ export default function ModalBrandInstagram({
                     <Image
                       src={handle.image}
                       alt={handle.label}
-                      className="size-10 rounded-full object-cover"
+                      className="size-10 rounded-full object-cover outline-media"
                       width={40}
                       height={40}
                       sizes="40px"

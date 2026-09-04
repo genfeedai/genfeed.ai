@@ -56,7 +56,7 @@ const PromptOutputsButton = memo(function PromptOutputsButton({
     <Button
       label={`${form.watch('outputs') || 1}x`}
       variant={ButtonVariant.GHOST}
-      className="h-9 px-2.5 gap-1"
+      className="h-9 px-2.5 gap-1 tabular-nums"
       tooltip="Number of outputs"
       tooltipPosition="top"
       icon={
@@ -386,7 +386,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                     alt="Reference preview"
                     fill
                     sizes="20px"
-                    className="object-cover"
+                    className="object-cover outline-media"
                   />
                 </span>
                 <span className="text-xs">
@@ -485,7 +485,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   isRecording ? ButtonVariant.DESTRUCTIVE : ButtonVariant.GHOST
                 }
                 className={cn(
-                  'h-9 px-3 transition-all duration-300 flex-shrink-0',
+                  'h-9 px-3 transition-colors duration-300 flex-shrink-0',
                   isRecording && 'animate-pulse',
                 )}
                 isDisabled={isGenerateBlocked || isProcessing}
@@ -510,7 +510,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltip="Stop"
                 tooltipPosition="top"
                 ariaLabel="Stop generation"
-                className={cn('transition-all duration-300', 'size-9 p-0')}
+                className={cn('transition-colors duration-300', 'size-9 p-0')}
                 data-testid="stop-generation-button"
               />
             ) : (
@@ -536,7 +536,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                     ? `${generateLabel} (Queue)`
                     : generateLabel
                 }
-                className={cn('transition-all duration-300', 'size-9 p-0')}
+                className={cn('transition-colors duration-300', 'size-9 p-0')}
                 data-testid="generate-button"
               />
             )}

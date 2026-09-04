@@ -30,7 +30,7 @@ export default function TagBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-full font-medium transition-all cursor-pointer',
+        'inline-flex items-center gap-2 rounded-full font-medium transition-colors cursor-pointer',
         SIZE_CLASSES[size],
         isRemovable && 'pr-1',
         className,

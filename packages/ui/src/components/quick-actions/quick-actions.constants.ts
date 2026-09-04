@@ -15,5 +15,5 @@ export const QUICK_ACTION_TRIGGER_CLASS = cn(
   'disabled:pointer-events-none disabled:opacity-50',
   '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   'h-8 px-3 text-xs',
-  'rounded-md transition-all duration-300',
+  'rounded-md transition-[background-color,color] duration-300',
 );

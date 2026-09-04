@@ -50,7 +50,7 @@ export function CharacterCounter({ state }: { state: CaptionPreviewState }) {
   return (
     <span
       className={cn(
-        'text-xs',
+        'text-xs tabular-nums',
         state.isTruncated ? 'text-destructive' : 'text-foreground/45',
       )}
     >

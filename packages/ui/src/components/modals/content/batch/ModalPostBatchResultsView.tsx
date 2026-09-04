@@ -88,7 +88,7 @@ export default function ModalPostBatchResultsView({
             return (
               <div
                 key={status.credentialId}
-                className={`flex items-center gap-3 p-4 transition-all ${getStatusColor()}`}
+                className={`flex items-center gap-3 p-4 transition-[background-color,border-color] ${getStatusColor()}`}
               >
                 {PlatformIcon && (
                   <PlatformIcon className={`size-5 ${getIconColor()}`} />

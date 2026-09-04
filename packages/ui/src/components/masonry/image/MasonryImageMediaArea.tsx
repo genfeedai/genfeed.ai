@@ -112,7 +112,7 @@ export default function MasonryImageMediaArea({
           width={Math.max(1, metadata?.width || 1080)}
           height={Math.max(1, metadata?.height || 1920)}
           className={cn(
-            'size-full transition-opacity duration-300',
+            'size-full outline-media transition-opacity duration-300',
             (isProcessing || isFailed || isFleetNsfwLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',

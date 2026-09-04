@@ -27,7 +27,7 @@ export default function GlobalError({
         <ThemeDocumentSync />
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-background">
           <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-4 text-center">
+            <h1 className="text-2xl font-semibold mb-4 text-center text-balance">
               Something went wrong
             </h1>
             <p className="text-base text-foreground/70 mb-6 text-center">

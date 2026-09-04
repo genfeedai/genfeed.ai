@@ -51,7 +51,7 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         ref={ref}
         className={cn(
-          'flex flex-1 items-center justify-between py-4 font-medium transition-all hover:underline [&[data-state=open]>svg]:rotate-180',
+          'flex flex-1 items-center justify-between py-4 font-medium transition-colors hover:underline [&[data-state=open]>svg]:rotate-180',
           className,
         )}
         {...props}
@@ -71,12 +71,16 @@ function AccordionContent({
   ...props
 }: ComponentPropsWithRef<typeof AccordionPrimitive.Content>) {
   return (
+    // grid-rows transition from @starting-style: interruptible (retargets from
+    // the current height) and needs no keyframes; Radix unmounts on close.
     <AccordionPrimitive.Content
       ref={ref}
-      className="overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+      className="grid grid-rows-[1fr] overflow-hidden text-sm transition-[grid-template-rows] duration-200 ease-out starting:grid-rows-[0fr]"
       {...props}
     >
-      <div className={cn('pb-4 pt-0', className)}>{children}</div>
+      <div className="flex min-h-0 flex-col">
+        <div className={cn('pb-4 pt-0', className)}>{children}</div>
+      </div>
     </AccordionPrimitive.Content>
   );
 }

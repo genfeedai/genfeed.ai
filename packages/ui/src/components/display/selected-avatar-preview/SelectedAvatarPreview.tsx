@@ -31,7 +31,7 @@ export default function SelectedAvatarPreview({
       <div className="relative size-14 overflow-hidden rounded-xl border border-border bg-tertiary">
         <Image
           alt={imageAlt}
-          className="object-cover"
+          className="object-cover outline-media"
           fill
           sizes="56px"
           src={imageUrl}

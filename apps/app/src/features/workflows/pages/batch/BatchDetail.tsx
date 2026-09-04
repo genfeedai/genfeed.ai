@@ -285,7 +285,7 @@ export default function BatchDetail({
                     <Image
                       src={ingredient.thumbnailUrl}
                       alt={`Output ${ingredient.id}`}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover outline-media"
                       sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
                       unoptimized={
                         !canOptimizeImageSource(ingredient.thumbnailUrl)

@@ -35,7 +35,7 @@ function VideoOverlayContent({
           alt="Video unavailable"
           fill
           sizes={imageSizes}
-          className="object-cover object-center"
+          className="object-cover object-center outline-media"
           priority={priority}
           loading={imageLoading}
         />
@@ -51,7 +51,7 @@ function VideoOverlayContent({
           alt="Video thumbnail"
           fill
           sizes={imageSizes}
-          className="object-cover object-center"
+          className="object-cover object-center outline-media"
           priority={priority}
           loading={imageLoading}
         />

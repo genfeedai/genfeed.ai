@@ -132,6 +132,7 @@ export default function ModalMusic({
       <div className="max-w-5xl">
         <div className="flex items-center justify-between mb-4">
           <Button
+            ariaLabel="Close"
             label={<X className="text-lg" />}
             onClick={closeModalMusic}
             variant={ButtonVariant.GHOST}
@@ -165,7 +166,7 @@ export default function ModalMusic({
                 return (
                   <div
                     key={music.id}
-                    className={`relative p-4 transition-all cursor-pointer group ${
+                    className={`relative p-4 transition-[box-shadow,background-color] cursor-pointer group ${
                       selectedMusic === music.id
                         ? 'shadow-border-strong bg-primary/5'
                         : 'shadow-border hover:shadow-border-strong bg-background'
@@ -220,6 +221,7 @@ export default function ModalMusic({
 
                       {/* Play/Pause Button */}
                       <Button
+                        ariaLabel={playingId === music.id ? 'Pause' : 'Play'}
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.ICON}
                         className="rounded-full"
@@ -248,7 +250,7 @@ export default function ModalMusic({
             {/* No Music Option */}
             <div className="mt-3 pt-3 border-t border-white/[0.08]">
               <Button
-                className={`p-3 transition-all cursor-pointer ${
+                className={`p-3 transition-[box-shadow,background-color] cursor-pointer ${
                   !selectedMusic
                     ? 'shadow-border-strong bg-primary/5'
                     : 'shadow-border hover:shadow-border-strong'

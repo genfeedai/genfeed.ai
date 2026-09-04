@@ -204,7 +204,7 @@ function ManagedCreditsSuccessContentInner() {
           <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
             <Key className="size-5 text-muted-foreground" />
           </div>
-          <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
+          <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-balance">
             Managed credits ready
           </h1>
           <p className="text-sm text-muted-foreground">

@@ -136,7 +136,7 @@ export function PlatformTimeSeriesChart({
             onClick={() => togglePlatform(platform)}
             isDisabled={isLoading || isEmpty}
             variant={ButtonVariant.UNSTYLED}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-[background-color,border-color,color] border ${
               activePlatforms.includes(platform)
                 ? 'border-border-strong bg-muted text-foreground'
                 : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'

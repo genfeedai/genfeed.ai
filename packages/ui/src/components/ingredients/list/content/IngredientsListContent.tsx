@@ -81,7 +81,7 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
     <div className="relative size-10 overflow-hidden rounded-md bg-foreground/5">
       <Image
         alt={label}
-        className="size-10 object-cover"
+        className="size-10 object-cover outline-media"
         height={40}
         sizes="40px"
         src={previewUrl}

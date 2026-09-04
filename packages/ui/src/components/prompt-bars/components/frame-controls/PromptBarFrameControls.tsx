@@ -288,14 +288,14 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
               <Image
                 src={getImageUrl(references[0], referenceSource)}
                 alt={isVideoModel ? 'Start Frame' : 'Reference'}
-                className="size-full object-cover"
+                className="size-full object-cover outline-media"
                 width={40}
                 height={40}
                 sizes="40px"
                 priority
               />
               {references.length > 1 && (
-                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-2xs font-bold size-4 rounded-tl flex items-center justify-center">
+                <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground text-2xs font-bold size-4 rounded-tl flex items-center justify-center tabular-nums">
                   {references.length}
                 </div>
               )}
@@ -324,7 +324,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                 <Image
                   src={getImageUrl(endFrame, 'ingredient')}
                   alt="End Frame"
-                  className="size-full object-cover"
+                  className="size-full object-cover outline-media"
                   width={40}
                   height={40}
                   sizes="40px"

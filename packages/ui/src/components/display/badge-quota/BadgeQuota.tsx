@@ -36,6 +36,7 @@ export default function BadgeQuota({
       )}
       <Badge variant={variant} size={size} className="font-medium">
         <span
+          className="tabular-nums"
           title={
             isExceeded
               ? 'Quota exceeded. Resets at midnight UTC.'

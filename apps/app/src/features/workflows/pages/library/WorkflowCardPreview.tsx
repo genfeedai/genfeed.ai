@@ -55,7 +55,7 @@ export default function WorkflowCardPreview({
               ? 'Default workflow card'
               : `${name} thumbnail`
           }
-          className="h-full w-full object-cover object-center"
+          className="h-full w-full object-cover object-center outline-media"
           onError={() => setHasAssetError(true)}
           sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
           width={800}

@@ -63,7 +63,7 @@ export default function UploadFileList({
               {fileStatus && fileStatus.status === UploadStatus.UPLOADING && (
                 <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+                    className="bg-primary h-full rounded-full transition-[width] duration-300 ease-out"
                     style={{ width: `${fileStatus.progress}%` }}
                   />
                 </div>

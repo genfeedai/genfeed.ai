@@ -1,17 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAppNextConfig } from '@genfeedai/next-config';
-import bundleAnalyzer from '@next/bundle-analyzer';
-import type { NextConfig } from 'next';
 
-const withBundleAnalyzer = bundleAnalyzer({
-  analyzerMode: process.env.BUNDLE_ANALYZE === 'json' ? 'json' : 'static',
-  enabled: process.env.ANALYZE === 'true',
-  openAnalyzer: false,
-});
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
-const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
-const contractsRoot = path.resolve(websiteDir, '../../packages/contracts');
 
 const config = createAppNextConfig({
   headers: async () => [
@@ -149,36 +140,4 @@ config.transpilePackages = [
   '@genfeedai/contracts/interfaces',
 ];
 
-const serializersRoot = path.resolve(websiteDir, '../../packages/serializers');
-const existingWebpack = config.webpack;
-
-config.webpack = ((webpackConfig, options) => {
-  const nextConfig =
-    typeof existingWebpack === 'function'
-      ? existingWebpack(webpackConfig, options)
-      : webpackConfig;
-
-  nextConfig.resolve.alias = {
-    ...nextConfig.resolve.alias,
-    '@genfeedai/contracts$': path.join(contractsRoot, 'src/index.ts'),
-    '@genfeedai/contracts/constants': path.join(
-      contractsRoot,
-      'src/constants/index.ts',
-    ),
-    '@genfeedai/contracts/interfaces': path.join(
-      contractsRoot,
-      'src/interfaces/index.ts',
-    ),
-    '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
-    '@genfeedai/contracts/types': path.join(
-      contractsRoot,
-      'src/types/index.ts',
-    ),
-    '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
-    '@serializers': path.join(serializersRoot, 'src'),
-  };
-
-  return nextConfig;
-}) as NextConfig['webpack'];
-
-export default withBundleAnalyzer(config);
+export default config;

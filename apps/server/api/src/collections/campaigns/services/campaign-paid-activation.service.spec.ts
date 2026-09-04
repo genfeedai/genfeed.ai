@@ -27,7 +27,7 @@ describe('CampaignPaidActivationService', () => {
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
     },
     post: { findMany: vi.fn() },
   } as unknown as PrismaService;
@@ -176,15 +176,8 @@ describe('CampaignPaidActivationService', () => {
       spendApprovedAt: null,
       status: ContentCampaignPaidActivationStatus.PAUSED,
     });
-    asMock(prisma.campaignPaidActivation.update).mockResolvedValue({
-      id: 'cact000000001',
-      spendApprovedAt: new Date('2026-09-03T00:00:00.000Z'),
-      status: ContentCampaignPaidActivationStatus.PAUSED,
-      adAccountId: 'act-1',
-      campaignId: CAMPAIGN_ID,
-      credentialId: 'ccred00000001',
-      platform: 'meta',
-      postIds: [],
+    asMock(prisma.campaignPaidActivation.updateMany).mockResolvedValue({
+      count: 1,
     });
 
     const result = await service.approveSpend(
@@ -196,7 +189,18 @@ describe('CampaignPaidActivationService', () => {
     );
 
     expect(adapter.updateCampaign).not.toHaveBeenCalled();
+    expect(prisma.campaignPaidActivation.updateMany).toHaveBeenCalledWith({
+      data: {
+        spendApprovedAt: expect.any(Date),
+        spendApprovedByUserId: 'legacy-base62-user-id',
+      },
+      where: {
+        id: 'cact000000001',
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
     expect(result.status).toBe(ContentCampaignPaidActivationStatus.PAUSED);
-    expect(result.spendApprovedAt).toBe('2026-09-03T00:00:00.000Z');
+    expect(result.spendApprovedAt).not.toBeNull();
   });
 });

@@ -110,7 +110,7 @@ export default function AnalyticsOrganizationsList({
                 alt={org.name || 'Organization'}
                 width={32}
                 height={32}
-                className="size-8 rounded-full object-cover"
+                className="size-8 rounded-full object-cover outline-media"
               />
             ) : (
               <div className="size-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">

@@ -154,7 +154,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
               key={alert.id}
               tabIndex={alert.isRead ? -1 : 0}
               className={cn(
-                'relative flex items-start gap-3 p-3 border transition-all',
+                'relative flex items-start gap-3 p-3 border transition-[box-shadow]',
                 styles.bg,
                 styles.border,
                 !alert.isRead &&

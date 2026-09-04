@@ -100,7 +100,7 @@ export default function PricingStrip({
         <Link
           href="/pricing"
           className={cn(
-            'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all hover:gap-3',
+            'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-[gap,color] hover:gap-3',
             inverted
               ? 'text-inv-fg/50 hover:text-inv-fg/70'
               : 'text-surface/40 hover:text-surface/60',

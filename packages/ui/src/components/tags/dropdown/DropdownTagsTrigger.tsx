@@ -30,7 +30,7 @@ export default function DropdownTagsTrigger({
   const buttonContent: React.ReactNode = showLabel ? (
     <span>{tagCountLabel}</span>
   ) : hasSelectedTags ? (
-    <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-2xs font-bold text-primary-foreground bg-primary rounded-full border-2 border-white/20 shadow-lg z-10">
+    <span className="absolute -top-0.5 -right-0.5 min-w-fit h-5 flex items-center justify-center px-1 text-2xs font-bold text-primary-foreground bg-primary rounded-full border-2 border-white/20 shadow-lg z-10 tabular-nums">
       {selectedTagCount}
     </span>
   ) : null;

@@ -164,7 +164,7 @@ export default function SuccessContent() {
       </div>
 
       {/* Headline */}
-      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
+      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl text-balance">
         Welcome to Genfeed!
       </h1>
 
@@ -175,8 +175,10 @@ export default function SuccessContent() {
             Starter Credits Ready
           </p>
           <p className="text-sm text-foreground">
-            {ONBOARDING_SIGNUP_GIFT_CREDITS} credits are waiting in your
-            workspace.
+            <span className="tabular-nums">
+              {ONBOARDING_SIGNUP_GIFT_CREDITS}
+            </span>{' '}
+            credits are waiting in your workspace.
           </p>
         </div>
       </div>
@@ -189,7 +191,7 @@ export default function SuccessContent() {
             alt="Your brand preview"
             width={288}
             height={288}
-            className="size-72 rounded-lg object-cover border border-border"
+            className="size-72 rounded-lg object-cover border border-border outline-media"
           />
         </div>
       )}

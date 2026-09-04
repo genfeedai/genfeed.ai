@@ -226,7 +226,9 @@ export default function IngredientTabsMetadata({
         {metadataRows.map((row) => (
           <div key={row?.label} className="flex flex-col">
             <span className="font-semibold opacity-50">{row?.label}</span>
-            <span className="mt-0.5 text-foreground">{row?.value}</span>
+            <span className="mt-0.5 text-foreground tabular-nums">
+              {row?.value}
+            </span>
           </div>
         ))}
       </div>

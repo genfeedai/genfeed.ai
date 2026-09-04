@@ -43,7 +43,7 @@ export default function ModalGalleryUploadsTab({
       type="button"
       onClick={onUploadClick}
       variant={ButtonVariant.UNSTYLED}
-      className="group relative aspect-square w-full border-2 border-dashed border-foreground/20 hover:border-primary hover:bg-primary/5 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer"
+      className="group relative aspect-square w-full border-2 border-dashed border-foreground/20 hover:border-primary hover:bg-primary/5 transition-[border-color,background-color] duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer"
       ariaLabel="Upload image"
     >
       <Upload className="size-8 text-foreground/40 group-hover:text-primary transition-colors" />

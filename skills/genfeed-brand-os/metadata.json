@@ -16,7 +16,8 @@
     "genfeed brand guidance"
   ],
   "references": {
-    "brand_os": "references/brand-os.md"
+    "brand_os": "references/brand-os.md",
+    "brand_showcase_prompt": "references/brand-showcase-prompt.md"
   },
   "outputs": ["text"],
   "tags": [

@@ -95,7 +95,9 @@ export default function VideoTrimTimeline({
         />
         <div className="mt-1 flex justify-between text-xs text-foreground/60">
           {Object.entries(marks).map(([time, label]) => (
-            <span key={time}>{label}</span>
+            <span key={time} className="tabular-nums">
+              {label}
+            </span>
           ))}
         </div>
       </div>
@@ -105,13 +107,13 @@ export default function VideoTrimTimeline({
         <div className="flex items-center gap-4">
           <div>
             <span className="text-foreground/60">Start:</span>
-            <span className="ml-2 font-mono font-semibold">
+            <span className="ml-2 font-mono font-semibold tabular-nums">
               {formatTime(startTime)}
             </span>
           </div>
           <div>
             <span className="text-foreground/60">End:</span>
-            <span className="ml-2 font-mono font-semibold">
+            <span className="ml-2 font-mono font-semibold tabular-nums">
               {formatTime(endTime)}
             </span>
           </div>
@@ -119,7 +121,7 @@ export default function VideoTrimTimeline({
         <div>
           <span className="text-foreground/60">Duration:</span>
           <span
-            className={`ml-2 font-mono font-semibold ${
+            className={`ml-2 font-mono font-semibold tabular-nums ${
               trimDuration < 2 || trimDuration > 15
                 ? 'text-error'
                 : 'text-success'
