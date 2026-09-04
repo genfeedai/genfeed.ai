@@ -551,6 +551,10 @@ describe('WorkspacePageContent', () => {
       'href',
       '/acme-org/acme-creator/workspace/inbox/unread',
     );
+    expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
+      'data-variant',
+      'outline',
+    );
     expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',
       '/acme-org/acme-creator/workspace/inbox/recent',
@@ -566,6 +570,24 @@ describe('WorkspacePageContent', () => {
     rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
     expect(screen.getByText('Published recap')).toBeInTheDocument();
+  });
+
+  it('explains what the empty recent inbox will contain', async () => {
+    listMock.mockResolvedValue([]);
+
+    render(<WorkspacePageContent section="inbox" defaultInboxView="recent" />);
+
+    expect(
+      await screen.findByText('No inbox activity yet'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Latest queue movement, regardless of status.'),
+    ).toBeInTheDocument();
   });
 
   it('opens the inspector sheet for inbox items', async () => {

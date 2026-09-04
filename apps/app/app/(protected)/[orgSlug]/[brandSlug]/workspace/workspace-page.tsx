@@ -15,6 +15,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -166,7 +167,7 @@ function WorkspacePageContentContent({
         activeTab={defaultInboxView}
         fullWidth={false}
         size="sm"
-        variant="default"
+        variant="outline"
         items={INBOX_VIEW_OPTIONS.map((option) => {
           const count =
             option.id === 'unread'
@@ -184,7 +185,7 @@ function WorkspacePageContentContent({
                 className="opacity-70"
               />
             ) : (
-              <span className="text-2xs opacity-70">{count}</span>
+              <Badge variant="outline">{count}</Badge>
             ),
             href: href(`/workspace/inbox/${option.id}`),
             id: option.id,
@@ -202,6 +203,10 @@ function WorkspacePageContentContent({
     recentInboxTasks.length,
     unreadInboxTasks.length,
   ]);
+
+  const activeInboxView = INBOX_VIEW_OPTIONS.find(
+    (option) => option.id === defaultInboxView,
+  );
 
   const workspaceHeaderActions = useMemo(() => {
     if (!inboxViewTabs && !shouldShowComposer && isOverviewSection) {
@@ -244,11 +249,13 @@ function WorkspacePageContentContent({
         }
       : section === 'inbox' && defaultInboxView === 'recent'
         ? {
-            description: 'Recent inbox activity will show up here.',
-            label: 'No recent activity',
+            description:
+              'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
+            label: 'No inbox activity yet',
           }
         : {
-            description: 'Review and approval items will show up here.',
+            description:
+              'Tasks enter the inbox when they need review, a decision, or follow-up.',
             label: 'Inbox is empty',
           };
 
@@ -347,7 +354,7 @@ function WorkspacePageContentContent({
                 density="compact"
                 description={
                   section === 'inbox'
-                    ? sectionCopy.description
+                    ? (activeInboxView?.description ?? sectionCopy.description)
                     : 'Latest items waiting on your review.'
                 }
                 framed={false}

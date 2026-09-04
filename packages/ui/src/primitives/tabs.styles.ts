@@ -1,6 +1,11 @@
 import { cn } from '@genfeedai/helpers';
 
-type TabsListVariant = 'default' | 'pills' | 'segmented' | 'underline';
+type TabsListVariant =
+  | 'default'
+  | 'outline'
+  | 'pills'
+  | 'segmented'
+  | 'underline';
 
 export function getTabsListClassName(
   className?: string,
@@ -11,6 +16,7 @@ export function getTabsListClassName(
     variant === undefined &&
       'rounded-md border border-border bg-muted/40 p-0.5',
     variant === 'default' && 'gap-0.5',
+    variant === 'outline' && 'gap-1',
     variant === 'pills' && 'rounded-2xl bg-secondary/60 p-1 shadow-border',
     variant === 'underline' && 'gap-0 border-b border-border',
     variant === 'segmented' && 'rounded-xl bg-secondary/50 p-1 shadow-border',
@@ -26,6 +32,8 @@ export function getTabsTriggerClassName(className?: string) {
     'data-[variant=default]:px-3 data-[variant=default]:py-2',
     'data-[variant=default]:text-foreground/70 data-[variant=default]:hover:bg-accent data-[variant=default]:hover:text-foreground',
     'data-[variant=default]:data-[state=active]:bg-background-tertiary data-[variant=default]:data-[state=active]:text-foreground',
+    'data-[variant=outline]:h-9 data-[variant=outline]:min-w-9 data-[variant=outline]:rounded-none data-[variant=outline]:border data-[variant=outline]:border-input data-[variant=outline]:bg-transparent data-[variant=outline]:px-2 data-[variant=outline]:text-sm data-[variant=outline]:text-foreground data-[variant=outline]:shadow-sm',
+    'data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=outline]:data-[state=active]:bg-accent data-[variant=outline]:data-[state=active]:text-accent-foreground',
     'data-[variant=pills]:min-h-8 data-[variant=pills]:rounded-xl data-[variant=pills]:px-3.5 data-[variant=pills]:py-2',
     'data-[variant=pills]:text-foreground/70 data-[variant=pills]:hover:bg-accent data-[variant=pills]:hover:text-foreground',
     'data-[variant=pills]:data-[state=active]:bg-background-tertiary data-[variant=pills]:data-[state=active]:text-foreground',
@@ -35,6 +43,7 @@ export function getTabsTriggerClassName(className?: string) {
     'data-[variant=segmented]:text-foreground/70 data-[variant=segmented]:hover:bg-accent data-[variant=segmented]:hover:text-foreground data-[variant=segmented]:data-[state=active]:bg-background-tertiary data-[variant=segmented]:data-[state=active]:text-foreground',
     'data-[size=sm]:text-xs',
     'data-[size=sm]:data-[variant=pills]:min-h-8 data-[size=sm]:data-[variant=pills]:px-3 data-[size=sm]:data-[variant=pills]:py-1.5',
+    'data-[size=sm]:data-[variant=outline]:h-8 data-[size=sm]:data-[variant=outline]:min-w-8 data-[size=sm]:data-[variant=outline]:px-1.5 data-[size=sm]:data-[variant=outline]:text-sm',
     'data-[size=sm]:data-[variant=underline]:px-3 data-[size=sm]:data-[variant=underline]:py-2',
     'data-[size=sm]:data-[variant=segmented]:px-3 data-[size=sm]:data-[variant=segmented]:py-1.5',
     className,

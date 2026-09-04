@@ -90,7 +90,7 @@ export interface ITabsProps extends IBaseComponentProps {
   tabs: ITab[];
   activeTab?: string;
   onChange?: (tabId: string) => void;
-  variant?: 'default' | 'pills' | 'underline';
+  variant?: 'default' | 'outline' | 'pills' | 'underline';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
 }

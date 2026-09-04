@@ -463,4 +463,29 @@ describe('Tabs', () => {
       'sm',
     );
   });
+
+  it('applies outline variant classes to the tab group and triggers', () => {
+    render(
+      <Tabs
+        items={[
+          { id: 'recent', label: 'Recent' },
+          { id: 'all', label: 'All' },
+        ]}
+        activeTab="recent"
+        size="sm"
+        variant="outline"
+        fullWidth={false}
+        onTabChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('tablist')).toHaveAttribute(
+      'data-variant',
+      'outline',
+    );
+    expect(screen.getByRole('tab', { name: /recent/i })).toHaveClass(
+      'data-[variant=outline]:border-input',
+      'data-[variant=outline]:data-[state=active]:bg-accent',
+    );
+  });
 });

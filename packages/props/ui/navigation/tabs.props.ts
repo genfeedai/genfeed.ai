@@ -1,7 +1,12 @@
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { ComponentType, ReactNode } from 'react';
 
-export type TabsVariant = 'default' | 'pills' | 'underline' | 'segmented';
+export type TabsVariant =
+  | 'default'
+  | 'outline'
+  | 'pills'
+  | 'underline'
+  | 'segmented';
 export type TabsSize = 'md' | 'sm';
 export type TabsMatchMode = 'exact' | 'prefix';
 

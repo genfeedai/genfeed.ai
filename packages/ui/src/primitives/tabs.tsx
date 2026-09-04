@@ -8,7 +8,7 @@ import { getTabsListClassName, getTabsTriggerClassName } from './tabs.styles';
 const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;
 
 type TabsListProps = ComponentPropsWithRef<typeof TabsPrimitive.List> & {
-  'data-variant'?: 'default' | 'pills' | 'segmented' | 'underline';
+  'data-variant'?: 'default' | 'outline' | 'pills' | 'segmented' | 'underline';
 };
 
 function TabsList({
@@ -33,7 +33,7 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 // The variant names mirror the `data-[variant=…]` rules in that file.
 type TabsTriggerProps = ComponentPropsWithRef<typeof TabsPrimitive.Trigger> & {
   'data-size'?: 'md' | 'sm';
-  'data-variant'?: 'default' | 'pills' | 'segmented' | 'underline';
+  'data-variant'?: 'default' | 'outline' | 'pills' | 'segmented' | 'underline';
 };
 
 function TabsTrigger({ ref, className, ...props }: TabsTriggerProps) {
