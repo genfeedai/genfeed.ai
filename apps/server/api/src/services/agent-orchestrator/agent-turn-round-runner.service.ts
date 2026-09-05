@@ -23,10 +23,10 @@ import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { ActivitySource, type RouterPriority } from '@genfeedai/contracts';
 import {
   type AgentDashboardOperation,
-  AgentToolName,
   type AgentToolResult,
   type AgentUIBlock,
   type AgentUiAction,
@@ -35,17 +35,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
-const TERMINAL_RESULT_TOOLS = new Set<AgentToolName>([
-  AgentToolName.GENERATE_IMAGE,
-  AgentToolName.GENERATE_VIDEO,
-  AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES,
+const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
+  'generate_image',
+  'generate_video',
+  'suggest_ingredient_alternatives',
 ]);
 
-function getTerminalToolContent(toolName: AgentToolName): string {
-  if (toolName === AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES) {
+function getTerminalToolContent(toolName: CuratedActionName): string {
+  if (toolName === 'suggest_ingredient_alternatives') {
     return 'Here are the ingredient alternatives.';
   }
-  if (toolName === AgentToolName.GENERATE_VIDEO) {
+  if (toolName === 'generate_video') {
     return 'Video generation accepted.';
   }
   return 'Image generation accepted.';
@@ -80,14 +80,14 @@ export type AgentToolRoundStartedEvent = {
   parameters: Record<string, unknown>;
   startTime: number;
   toolCallId: string;
-  toolName: AgentToolName;
+  toolName: CuratedActionName;
 };
 
 export type AgentToolRoundCompletedEvent = {
   durationMs: number;
   kind: 'executed' | 'insufficient_credits' | 'unknown';
   parameters: Record<string, unknown>;
-  requestedToolName: AgentToolName;
+  requestedToolName: CuratedActionName;
   result?: AgentToolResult;
   summary: ToolCallSummary;
   toolCallId: string;
@@ -142,7 +142,7 @@ export type AgentToolRoundStrategy = {
 };
 
 export type ExecuteToolRoundParams = {
-  allowedToolNames: Set<AgentToolName>;
+  allowedToolNames: Set<CuratedActionName>;
   assistantContent: string | null;
   attachmentUrls?: string[];
   context: AgentChatContext;
@@ -161,7 +161,7 @@ export type ExecuteToolRoundParams = {
 export type ExecuteToolRoundResult = {
   isCancelled: boolean;
   terminalContent?: string;
-  terminalToolName?: AgentToolName;
+  terminalToolName?: CuratedActionName;
 };
 
 function summarizeToolResult(result: {
@@ -262,7 +262,7 @@ export class AgentTurnRoundRunnerService {
       role: 'assistant' as const,
       tool_calls: toolCalls,
     });
-    let terminalToolName: AgentToolName | undefined;
+    let terminalToolName: CuratedActionName | undefined;
 
     for (const toolCall of toolCalls) {
       if (strategy.onBeforeTool) {
@@ -277,7 +277,7 @@ export class AgentTurnRoundRunnerService {
       const rawRequestedToolName = toolCall.function.name;
       const requestedToolName = normalizeRequestedAgentToolName(
         rawRequestedToolName,
-      ) as AgentToolName;
+      ) as CuratedActionName;
       let toolParams: Record<string, unknown> = {};
 
       try {
@@ -630,10 +630,7 @@ export class AgentTurnRoundRunnerService {
         }
       }
 
-      if (
-        toolName === AgentToolName.RENDER_DASHBOARD &&
-        result.data?.uiBlocks
-      ) {
+      if (toolName === 'render_dashboard' && result.data?.uiBlocks) {
         const normalizedBlocks = normalizeUiBlocks(
           result.data.uiBlocks as unknown[],
         );
@@ -709,7 +706,7 @@ export class AgentTurnRoundRunnerService {
 
   private buildUnknownToolError(
     toolName: string,
-    allowedTools: Set<AgentToolName>,
+    allowedTools: Set<CuratedActionName>,
   ): string {
     const knownTools = Array.from(allowedTools).sort();
     const maxPreview = 15;
@@ -721,10 +718,10 @@ export class AgentTurnRoundRunnerService {
 
   private getGenerationPreparationRedirect(
     toolName: string,
-    allowedTools: Set<AgentToolName>,
+    allowedTools: Set<CuratedActionName>,
     generationMode?: AgentChatContext['generationMode'],
     requestedGenerationType?: unknown,
-  ): AgentToolName | null {
+  ): CuratedActionName | null {
     return getGenerationPreparationRedirect(toolName, allowedTools, {
       generationMode,
       requestedGenerationType,

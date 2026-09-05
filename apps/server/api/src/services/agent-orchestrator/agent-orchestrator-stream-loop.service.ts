@@ -46,16 +46,14 @@ import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import type { CuratedActionName } from '@genfeedai/actions';
 import {
   AgentMessageRole,
   AgentType,
   type RouterPriority,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
-import {
-  AgentToolName,
-  type AgentUIBlocksEvent,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentUIBlocksEvent } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -183,7 +181,7 @@ export class AgentOrchestratorStreamLoopService {
           ? (this.skillRuntimeService.mergeSkillToolOverrides(
               typeConfig?.defaultTools,
               context.resolvedSkills,
-            ) as AgentToolName[] | undefined)
+            ) as CuratedActionName[] | undefined)
           : typeConfig?.defaultTools;
       const latestUserMessage =
         [...history]
@@ -200,7 +198,7 @@ export class AgentOrchestratorStreamLoopService {
         resolveBlockedTools({ source }),
       );
       const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as AgentToolName),
+        tools.map((tool) => tool.function.name as CuratedActionName),
       );
       const messages = [...history];
       let round = 0;

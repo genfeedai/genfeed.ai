@@ -1,4 +1,3 @@
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import { getWebviewNonce } from '@views/webview.util';
@@ -44,7 +43,7 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
 
     try {
       const result = await ApiService.getInstance().executeAgentTool(
-        AgentToolName.GET_ANALYTICS,
+        'get_analytics',
         {},
       );
       if (!result.success) {

@@ -32,10 +32,7 @@ import {
   upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
-import {
-  AgentToolName,
-  type ValidatedAgentScope,
-} from '@genfeedai/contracts/interfaces';
+import { type ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
@@ -373,7 +370,7 @@ export class AgentOrchestratorRecurringTaskService {
       };
     }
     const result = await this.toolExecutorService.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         contentType: params.draft.contentType,
         count: params.draft.count,
@@ -417,7 +414,7 @@ export class AgentOrchestratorRecurringTaskService {
                 toolCalls: [
                   {
                     status: 'completed',
-                    toolName: AgentToolName.CREATE_WORKFLOW,
+                    toolName: 'create_workflow',
                   },
                 ],
                 uiActions: result.nextActions ?? [],

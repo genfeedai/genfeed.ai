@@ -1,5 +1,4 @@
 import { getToolsForSurface } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
   getToolsForSurface('agent').map((tool) => [tool.name, tool.creditCost]),
@@ -15,7 +14,7 @@ const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
  * publish itself is billed downstream.
  */
 const EXTRA_AGENT_CREDIT_COSTS: Record<string, number> = {
-  [AgentToolName.CREATE_POST]: 0,
+  create_post: 0,
 };
 
 export const AGENT_CREDIT_COSTS: Record<string, number> = {

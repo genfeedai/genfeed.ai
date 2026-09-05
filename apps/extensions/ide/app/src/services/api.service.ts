@@ -1,7 +1,5 @@
-import type {
-  AgentToolName,
-  AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
 import { getValidatedApiEndpoint } from '@services/trusted-origins';
@@ -180,7 +178,7 @@ export class ApiService {
   }
 
   executeAgentTool(
-    name: AgentToolName,
+    name: CuratedActionName,
     parameters: Record<string, unknown>,
   ): Promise<AgentToolResult> {
     return this.request<AgentToolResult>(

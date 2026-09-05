@@ -4,25 +4,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   collectDispatchedToolNames,
-  parseToolNameEnum,
   runCheckAgentToolDispatch,
 } from './check-agent-tool-dispatch';
 
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
-const ENUM_PATH =
-  'packages/contracts/src/interfaces/ai/agent-tool.interface.ts';
 const AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DISPATCH_PATH =
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
-
-const ENUM_SOURCE = `
-  export enum AgentToolName {
-    GENERATE_AD_PACK = 'generate_ad_pack',
-    GET_WORKFLOW_INPUTS = 'get_workflow_inputs',
-    LIST_BRANDS = 'list_brands',
-  }
-`;
 
 function catalogSource(
   entries: Array<{ name: string; surfaces: string[] }>,
@@ -43,13 +32,13 @@ function dispatchSource(members: string[]): string {
   const cases = members
     .map(
       (member) =>
-        `        case AgentToolName.${member}:\n          return this.run();`,
+        `        case '${member.toLowerCase()}':\n          return this.run();`,
     )
     .join('\n');
 
   return `
     export class AgentToolExecutorService {
-      private dispatch(toolName: AgentToolName) {
+      private dispatch(toolName: string) {
         switch (toolName) {
 ${cases}
           default:
@@ -62,7 +51,7 @@ ${cases}
 
 function defaultToolsSource(members: string[]): string {
   const entries = members
-    .map((member) => `        AgentToolName.${member},`)
+    .map((member) => `        '${member.toLowerCase()}',`)
     .join('\n');
 
   return `
@@ -78,11 +67,11 @@ ${entries}
 
 function brandlessToolsSource(members: string[]): string {
   const entries = members
-    .map((member) => `      AgentToolName.${member},`)
+    .map((member) => `      '${member.toLowerCase()}',`)
     .join('\n');
 
   return `
-    const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
+    const BRANDLESS_AGENT_TOOLS = new Set<string>([
 ${entries}
     ]);
   `;
@@ -168,9 +157,9 @@ describe('check-agent-tool-dispatch', () => {
     writeFixture(
       AGENT_TYPE_CONFIG_PATH,
       `
-        const SHARED_READ_TOOLS = [AgentToolName.GET_WORKFLOW_INPUTS];
+        const SHARED_READ_TOOLS = ['get_workflow_inputs'];
         export const AGENT_TYPE_CONFIGS = {
-          general: { defaultTools: [AgentToolName.GENERATE_AD_PACK, ...SHARED_READ_TOOLS] },
+          general: { defaultTools: ['generate_ad_pack', ...SHARED_READ_TOOLS] },
         };
       `,
     );
@@ -186,7 +175,7 @@ describe('check-agent-tool-dispatch', () => {
     ]);
   });
 
-  it('treats Object.values(AgentToolName) as advertising every enum member', () => {
+  it('advertises the complete canonical agent surface', () => {
     writeFixtures({
       brandless: [],
       catalog: [{ name: 'generate_ad_pack', surfaces: ['agent'] }],
@@ -197,20 +186,15 @@ describe('check-agent-tool-dispatch', () => {
       AGENT_TYPE_CONFIG_PATH,
       `
         export const AGENT_TYPE_CONFIGS = {
-          general: { defaultTools: [...Object.values(AgentToolName)] },
+          general: { defaultTools: [...getToolsForSurface('agent').map((tool) => tool.name)] },
         };
       `,
     );
 
     const result = runCheckAgentToolDispatch();
 
-    expect(result.violations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ action: 'get_workflow_inputs' }),
-        expect.objectContaining({ action: 'list_brands' }),
-      ]),
-    );
-    expect(result.violations).toHaveLength(2);
+    expect(result.violations).toEqual([]);
+    expect(result.advertisedActions).toEqual(['generate_ad_pack']);
   });
 
   it('flags a brandless tool with no dispatch case', () => {
@@ -297,12 +281,6 @@ describe('check-agent-tool-dispatch', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it('reads wire names off the AgentToolName enum', () => {
-    expect(parseToolNameEnum(ENUM_SOURCE).get('GENERATE_AD_PACK')).toBe(
-      'generate_ad_pack',
-    );
-  });
-
   it('ignores switches over string literals', () => {
     const source = `
       function renderWidget(kind: string) {
@@ -315,9 +293,7 @@ describe('check-agent-tool-dispatch', () => {
       }
     `;
 
-    expect(
-      collectDispatchedToolNames(source, parseToolNameEnum(ENUM_SOURCE)),
-    ).toEqual([]);
+    expect(collectDispatchedToolNames(source)).toEqual([]);
   });
 });
 
@@ -328,7 +304,6 @@ function writeFixtures(fixtures: {
   dispatch: string[];
 }): void {
   writeFixture(CATALOG_PATH, catalogSource(fixtures.catalog));
-  writeFixture(ENUM_PATH, ENUM_SOURCE);
   writeFixture(
     AGENT_TYPE_CONFIG_PATH,
     defaultToolsSource(fixtures.defaultTools ?? fixtures.dispatch),

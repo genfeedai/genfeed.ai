@@ -147,18 +147,6 @@ export interface CalloutBlock extends BaseBlock {
   tone?: 'info' | 'warning' | 'error' | 'success';
 }
 
-/**
- * @deprecated Prefer typed text blocks:
- * - section_header
- * - text_paragraph
- * - bullet_list
- * - callout
- */
-export interface MarkdownBlock extends BaseBlock {
-  type: 'markdown';
-  content: string;
-}
-
 export interface ImageGridItem {
   url: string;
   alt?: string;
@@ -196,7 +184,6 @@ export type AgentUIBlock =
   | TextParagraphBlock
   | BulletListBlock
   | CalloutBlock
-  | MarkdownBlock
   | ImageGridBlock
   | CompositeBlock
   | EmptyStateBlock;

@@ -1,16 +1,15 @@
 import { CLOUD_AGENT_TOOL_EXTENSIONS } from '@api/services/agent-orchestrator/tools/agent-tool-registry.extensions';
+import type { AgentToolOutput, CuratedActionName } from '@genfeedai/actions';
 import { getToolsForSurface, toAgentTools } from '@genfeedai/actions';
-import type { AgentToolDefinition } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
-const BASE_AGENT_TOOLS: AgentToolDefinition[] = toAgentTools(
+const BASE_AGENT_TOOLS: AgentToolOutput[] = toAgentTools(
   getToolsForSurface('agent'),
-) as AgentToolDefinition[];
+);
 
-const CANONICAL_OVERLAP_TOOL_NAMES = new Set<AgentToolName>([
-  AgentToolName.CREATE_AD_REMIX_WORKFLOW,
-  AgentToolName.GET_AD_RESEARCH_DETAIL,
-  AgentToolName.LIST_ADS_RESEARCH,
+const CANONICAL_OVERLAP_TOOL_NAMES = new Set<CuratedActionName>([
+  'create_ad_remix_workflow',
+  'get_ad_research_detail',
+  'list_ads_research',
 ]);
 
 const FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS = CLOUD_AGENT_TOOL_EXTENSIONS.filter(
@@ -23,8 +22,8 @@ const FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS = CLOUD_AGENT_TOOL_EXTENSIONS.filter(
  * surface to the agent would ship a live, credit-costed tool outside review.
  */
 function assertExtensionsAreCurated(
-  baseTools: AgentToolDefinition[],
-  extensions: AgentToolDefinition[],
+  baseTools: AgentToolOutput[],
+  extensions: AgentToolOutput[],
 ): void {
   const curatedAgentNames = new Set(baseTools.map((tool) => String(tool.name)));
   const uncurated = extensions
@@ -44,10 +43,10 @@ assertExtensionsAreCurated(
 );
 
 function mergeAgentTools(
-  baseTools: AgentToolDefinition[],
-  extensions: AgentToolDefinition[],
-): AgentToolDefinition[] {
-  const merged = new Map<string, AgentToolDefinition>(
+  baseTools: AgentToolOutput[],
+  extensions: AgentToolOutput[],
+): AgentToolOutput[] {
+  const merged = new Map<string, AgentToolOutput>(
     baseTools.map((tool) => [String(tool.name), tool]),
   );
 
@@ -58,17 +57,17 @@ function mergeAgentTools(
   return [...merged.values()];
 }
 
-export const AGENT_TOOLS: AgentToolDefinition[] = mergeAgentTools(
+export const AGENT_TOOLS: AgentToolOutput[] = mergeAgentTools(
   BASE_AGENT_TOOLS,
   FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS,
 );
 
-export function getToolDefinitions(): AgentToolDefinition[] {
+export function getToolDefinitions(): AgentToolOutput[] {
   return AGENT_TOOLS;
 }
 
 export function getToolDefinitionByName(
   name: string,
-): AgentToolDefinition | undefined {
+): AgentToolOutput | undefined {
   return AGENT_TOOLS.find((tool) => String(tool.name) === name);
 }

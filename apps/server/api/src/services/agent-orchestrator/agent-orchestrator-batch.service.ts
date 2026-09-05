@@ -15,7 +15,7 @@ import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/uti
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentMessageRole } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { Injectable } from '@nestjs/common';
 
 interface BatchGenerationDraft {
@@ -81,7 +81,7 @@ export class AgentOrchestratorBatchService {
       return false;
     }
 
-    const toolName = AgentToolName.GENERATE_CONTENT_BATCH;
+    const toolName = 'generate_content_batch';
     const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
     const toolParams: Record<string, unknown> = {
       count: draft.count,

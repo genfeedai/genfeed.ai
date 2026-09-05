@@ -259,6 +259,7 @@
       "name": "@genfeedai/extension-browser",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -295,6 +296,7 @@
       "name": "extension-ide",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@sentry/node": "10.71.0",
