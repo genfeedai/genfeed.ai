@@ -44,10 +44,6 @@ output "migrate_task_definition_arn" {
   value = aws_ecs_task_definition.migrate.arn
 }
 
-output "workflow_backfill_task_definition_arn" {
-  value = aws_ecs_task_definition.workflow_backfill.arn
-}
-
 output "credential_backfill_task_definition_arn" {
   value = aws_ecs_task_definition.credential_backfill.arn
 }
