@@ -199,6 +199,7 @@ export * from './modals/file-upload-status.interface';
 export * from './modals/platform-submission-status.interface';
 export * from './models/models-context.interface';
 export * from './models/trainings-context.interface';
+export * from './notifications/notification-inbox.interface';
 export * from './notifications/notification-preference.interface';
 export * from './onboarding/onboarding.interface';
 export * from './onboarding/onboarding-journey.interface';

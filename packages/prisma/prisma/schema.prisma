@@ -678,6 +678,7 @@ model User {
   warmupAccountsCustomer    WarmupAccount[]           @relation("warmup_account_customer")
   lifecycleEmailPreference  LifecycleEmailPreference?
   lifecycleEmailDeliveries  LifecycleEmailDelivery[]
+  notificationInboxItems    NotificationInboxItem[]
   notificationPreferences   NotificationPreference[]
   notificationDeliveries    NotificationDelivery[]
   contentVersionPins        ContentVersionPin[]
@@ -764,6 +765,7 @@ model Organization {
   workflowArtifacts             WorkflowArtifact[]
   workflowNodeContinuations     WorkflowNodeContinuation[]
   notificationEvents            NotificationEvent[]
+  notificationInboxItems        NotificationInboxItem[]
   notificationDeliveries        NotificationDelivery[]
   contentRuns                   ContentRun[]
   bots                          Bot[]
@@ -3018,6 +3020,7 @@ model NotificationEvent {
   isDeleted        Boolean                @default(false)
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
+  inboxItems       NotificationInboxItem[]
   deliveries       NotificationDelivery[]
 
   @@index([organizationId, eventKey, occurredAt(sort: Desc)], map: "notification_events_org_key_occurred_idx")
@@ -6773,4 +6776,26 @@ model DataBackfill {
   report      Json
 
   @@map("data_backfills")
+}
+
+/// Durable recipient history, independent of channel delivery and preferences.
+model NotificationInboxItem {
+  id             String @id @default(cuid())
+  eventId        String
+  event          NotificationEvent @relation(fields: [eventId], references: [id])
+  userId         String
+  user           User @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  topic          String
+  occurredAt     DateTime
+  readAt         DateTime?
+  isDeleted      Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([eventId, userId], map: "notification_inbox_event_user_key")
+  @@index([organizationId, userId, isDeleted, occurredAt(sort: Desc), id(sort: Desc)], map: "notification_inbox_history_idx")
+  @@index([organizationId, userId, isDeleted, readAt], map: "notification_inbox_unread_idx")
+  @@map("notification_inbox_items")
 }

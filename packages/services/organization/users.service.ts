@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBrand,
+  INotificationInboxCount,
+  INotificationInboxItem,
+  INotificationInboxPage,
   INotificationPreference,
   IOrganization,
   IQueryParams,
@@ -101,6 +104,47 @@ export class UsersService extends BaseService<User> {
       .patch<JsonApiResponseDocument>('me/settings', data)
       .then((res) => res.data)
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
+  }
+
+  public async findNotificationInbox(
+    organizationId: string,
+    cursor?: string,
+    signal?: AbortSignal,
+  ): Promise<INotificationInboxPage> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'me/notification-inbox',
+      { params: { organizationId, cursor }, signal },
+    );
+    const links = response.data.links as
+      | { cursor?: { nextCursor?: string | null } }
+      | undefined;
+    return {
+      items: this.extractCollection<INotificationInboxItem>(response.data),
+      nextCursor: links?.cursor?.nextCursor ?? null,
+    };
+  }
+
+  public async notificationInboxCount(
+    organizationId: string,
+    signal?: AbortSignal,
+  ): Promise<INotificationInboxCount> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'me/notification-inbox/unread-count',
+      { params: { organizationId }, signal },
+    );
+    return this.extractResource<INotificationInboxCount>(response.data);
+  }
+
+  public async readNotificationInbox(
+    organizationId: string,
+    ids: string[] | null,
+  ): Promise<INotificationInboxCount> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `me/notification-inbox/${ids ? 'read' : 'read-all'}`,
+      ids ?? [],
+      { params: { organizationId } },
+    );
+    return this.extractResource<INotificationInboxCount>(response.data);
   }
 
   public async findWorkflowEmailNotificationPreference(

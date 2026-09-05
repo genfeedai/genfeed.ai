@@ -1,5 +1,6 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
+import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
@@ -17,6 +18,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
+    NotificationInboxService,
     LifecycleEmailDeliveryService,
     NotificationPreferenceService,
     NotificationsService,
@@ -37,6 +39,7 @@ import { Module } from '@nestjs/common';
     }),
   ],
   providers: [
+    NotificationInboxService,
     NotificationsService,
     LifecycleEmailDeliveryService,
     NotificationPreferenceService,
