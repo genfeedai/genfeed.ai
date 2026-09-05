@@ -24,7 +24,7 @@ const legacyMutationCallPattern =
 const legacyServerMutationCallPattern =
   /\b(?:cronJobsService|cronJobService|service)\s*\.\s*(?:create|update|pause|resume|delete|runNow)\s*\(/;
 const legacyRowCreatePattern = /\bcronJob\s*\.\s*create\s*\(/;
-const legacyLabRoutePattern = /['"`]\/lab\/cron-jobs['"`]/;
+const legacyLabRoutePattern = /['"`][^'"`\s]*\/lab(?:[/?#]|['"`])/;
 
 interface Violation {
   file: string;

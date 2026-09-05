@@ -174,9 +174,7 @@ describe('compareProductRouteInventories', () => {
       'Stale protected registration: /legacy',
     ]);
   });
-});
 
-describe('runCheckProductRouteInventory', () => {
   it('rejects reintroduced Lab pages and registrations', () => {
     const route = '/:orgSlug/:brandSlug/lab/library-preview';
     const issues = compareProductRouteInventories({
@@ -195,7 +193,9 @@ describe('runCheckProductRouteInventory', () => {
     expect(issues).toContain(`Hard-cut route is registered: ${route}`);
     expect(issues).toContain(`Unclassified protected hard-cut page: ${route}`);
   });
+});
 
+describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 22,

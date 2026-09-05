@@ -253,7 +253,11 @@ export class CalendarPage {
   }
 
   async assertArticlesTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/lab\/articles/);
+    await expect(this.page).toHaveURL(
+      (url) =>
+        url.pathname.endsWith(APP_ROUTES.PUBLISHING.POSTS) &&
+        url.searchParams.get('type') === 'article',
+    );
     await expect(this.mainContent.first()).toBeVisible();
   }
 }

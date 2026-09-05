@@ -113,7 +113,6 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   analytics: APP_DISPLAY_LABELS.analytics,
   automation: APP_DISPLAY_LABELS.automation,
   edit: 'Edit',
-  lab: 'Lab',
   library: APP_DISPLAY_LABELS.library,
   messages: APP_DISPLAY_LABELS.messages,
   overview: APP_DISPLAY_LABELS.workspace,
