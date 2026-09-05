@@ -311,11 +311,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'packages/pages/twitter-pipeline/components/tweet-card.tsx',
-    'to-locale-string',
-    3,
-  ),
-  legacyUiAllowance(
     'packages/ui/src/components/articles/x-article/XArticleAssetsBar.tsx',
     'to-locale-string',
     1,

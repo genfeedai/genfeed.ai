@@ -13,10 +13,6 @@ const ignoredDirectories = new Set([
 ]);
 const sourceFilePattern = /\.(ts|tsx)$/;
 const testFilePattern = /(?:\.test|\.spec)\.tsx?$/;
-const redirectSourceFiles = new Set([
-  'apps/app/next.config.ts',
-  'packages/contracts/src/constants/routes.constant.ts',
-]);
 const legacyCollectionDir = join(
   repoRoot,
   'apps/server/api/src/collections/cron-jobs',
@@ -83,14 +79,11 @@ for (const file of files) {
     continue;
   }
 
-  if (
-    legacyLabRoutePattern.test(source) &&
-    !redirectSourceFiles.has(relativeFile)
-  ) {
+  if (legacyLabRoutePattern.test(source)) {
     violations.push({
       file: relativeFile,
       message:
-        'Legacy cron jobs lab routes must redirect to workflow scheduling instead of linking to /lab/cron-jobs.',
+        'Retired Lab routes must not have links or compatibility redirects.',
     });
   }
 

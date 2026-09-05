@@ -114,9 +114,9 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.AUTOMATION.LIBRARY).toBe('/automation/library');
   });
 
-  it('keeps the retired cron-jobs lab path compatibility-only', () => {
-    expect(LEGACY_APP_ROUTES.LAB_CRON_JOBS).toBe('/lab/cron-jobs');
-    expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
+  it('does not expose retired Lab route constants', () => {
+    expect(APP_ROUTES).not.toHaveProperty('LAB');
+    expect(LEGACY_APP_ROUTES).not.toHaveProperty('LAB_CRON_JOBS');
   });
 
   it('aliases /workflows onto Automation workflows instead of a new app', () => {

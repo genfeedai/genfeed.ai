@@ -179,10 +179,6 @@ export const APP_ROUTES = {
     NEWSLETTER: '/edit/newsletter',
     ROOT: '/edit',
   },
-  LAB: {
-    LIBRARY_PREVIEW: '/lab/library-preview',
-    TWITTER_ENGAGE: '/lab/twitter-engage',
-  },
   LIBRARY: {
     /**
      * Canonical library home — the unified asset browser with no filter seeded.
@@ -464,11 +460,6 @@ export const LEGACY_APP_ROUTES = {
    */
   PUBLISHING_NEWSLETTERS: '/publishing/newsletters',
   /**
-   * @deprecated Legacy cron-jobs lab. Permanently redirects to
-   * APP_ROUTES.AUTOMATION.WORKFLOWS. Scheduling is workflow-canonical.
-   */
-  LAB_CRON_JOBS: '/lab/cron-jobs',
-  /**
    * @deprecated Not a standalone Workflows app. Permanently redirects to
    * APP_ROUTES.AUTOMATION.WORKFLOWS (and nested templates/executions).
    */
@@ -535,7 +526,6 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
-    LEGACY_APP_ROUTES.LAB_CRON_JOBS.replace(/^\//, '').split('/')[0] ?? '',
     'agent-auth',
     'api',
     'desktop',

@@ -529,10 +529,6 @@ const config = createAppNextConfig({
       APP_ROUTES.MESSAGES.REPLY_DRIP,
     ),
     ...legacyPathRedirects('/automation/replies', APP_ROUTES.MESSAGES.REPLIES),
-    ...legacyPathRedirects(
-      LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-      APP_ROUTES.AUTOMATION.WORKFLOWS,
-    ),
     // `/[org]/[brand]/workflows` is not a standalone app — land on Automation.
     ...legacyPathRedirects(
       LEGACY_APP_ROUTES.WORKFLOWS,

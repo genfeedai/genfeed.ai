@@ -438,27 +438,17 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently redirects the retired cron-jobs lab to workflow scheduling', async () => {
+  it('does not redirect retired Lab routes', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATION.WORKFLOWS,
-      permanent: true,
-      source: LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AUTOMATION.WORKFLOWS,
+    expect(redirects).toBeDefined();
+    expect(
+      redirects?.filter(
+        (redirect) =>
+          /(?:^|\/)lab(?:\/|$)/.test(redirect.source) ||
+          /(?:^|\/)lab(?:\/|$)/.test(redirect.destination),
       ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-      ),
-    });
+    ).toEqual([]);
   });
 
   it('preserves legacy newsletter id deep links through the focused editor', async () => {

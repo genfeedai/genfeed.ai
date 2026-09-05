@@ -1099,20 +1099,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
     switcherItems: ['publishing', 'messages'],
     telemetryClass: 'product',
   }),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/lab/library-preview',
-      '/:orgSlug/:brandSlug/lab/twitter-engage',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/workspace',
-      mode: 'canvas',
-      productClass: 'control-plane',
-      scope: 'brand',
-      surfaceKey: 'lab',
-      telemetryClass: 'management',
-    },
-  ),
 ] as const;
 
 const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [

@@ -366,12 +366,6 @@ Brand settings:
 - `/:orgSlug/:brandSlug/settings/publishing`
 - `/:orgSlug/:brandSlug/settings/agent-defaults`
 
-Lab/internal:
-
-- `/:orgSlug/:brandSlug/lab/articles`
-- `/:orgSlug/:brandSlug/lab/library-preview`
-- `/:orgSlug/:brandSlug/lab/twitter-engage`
-
 ## Admin Pages
 
 Admin root:

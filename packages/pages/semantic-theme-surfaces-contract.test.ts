@@ -129,19 +129,6 @@ describe('page semantic theme surfaces', () => {
     expect(wizard).not.toContain('border-white');
   });
 
-  it('uses semantic chrome around library preview media', () => {
-    const source = readPage(
-      'library/landing/library-landing-visual-preview.tsx',
-    );
-
-    expect(source).toContain('border-border bg-secondary');
-    expect(source).toContain('text-muted-foreground');
-    expect(source).not.toContain('border-white');
-    expect(source).not.toContain('bg-white/[0.03]');
-    expect(source).toContain('from-black/70');
-    expect(source).toContain('text-white');
-  });
-
   it('uses semantic borders in the Desk surfaces while preserving media canvases', () => {
     const sourcesMenu = readPage('trends/desk/desk-sources-menu.tsx');
     const lightTable = readPage('trends/desk/desk-light-table-view.tsx');

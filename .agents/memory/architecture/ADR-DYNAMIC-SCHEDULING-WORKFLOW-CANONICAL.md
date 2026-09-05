@@ -39,7 +39,6 @@ Scheduling is workflow-canonical:
 - workflow-native scheduling via `WorkflowSchedulerService`
 - the leftover `cron-jobs` collection, worker dispatcher, `legacyCronJob` node,
   SDK, and Prisma `cron_jobs` / `cron_runs` tables are deleted
-- `/lab/cron-jobs` permanently redirects to `APP_ROUTES.AUTOMATE.WORKFLOWS`
 - `bun run check:legacy-cron-surface` fails if the old collection returns
 
 Recent migrations made this concrete for campaign orchestration, ad sync and
