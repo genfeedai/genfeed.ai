@@ -299,11 +299,17 @@ jobs:
             if (fs.existsSync(summaryPath)) {
               const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
               inventory = [
-                `- Discovered: ${summary.discoveredFileCount}`,
-                `- Selected: ${summary.selectedFileCount}`,
-                `- Executed: ${summary.executedFileCount ?? 'n/a'}`,
-                `- Quarantined: ${summary.quarantinedFileCount}`,
-                `- Failed: ${summary.failedFileCount ?? 'n/a'}`,
+                `- Discovered files: ${summary.discoveredFileCount}`,
+                `- Selected files: ${summary.selectedFileCount}`,
+                `- Executed files: ${summary.executedFileCount ?? 'n/a'}`,
+                `- Executed tests: ${summary.executedTestCount ?? 'n/a'}`,
+                `- Quarantined files: ${summary.quarantinedFileCount}`,
+                `- Files assigned to other lanes: ${summary.laneExcludedFileCount}`,
+                `- Failed tests: ${summary.failedTestCount ?? 'n/a'}`,
+                `- Skipped tests: ${summary.skippedTestCount ?? 'n/a'}`,
+                `- Flaky tests: ${summary.flakyTestCount ?? 'n/a'}`,
+                `- First-attempt failures: ${summary.firstAttemptFailureCount ?? 'n/a'}`,
+                `- Report errors: ${summary.reportErrorCount ?? 'n/a'}`,
               ].join('\n');
             }
             const fallbackExcerpt = buildPlaywrightFullExcerpt({

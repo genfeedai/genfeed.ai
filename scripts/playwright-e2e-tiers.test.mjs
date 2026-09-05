@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -474,4 +480,36 @@ test('stats-only reports cannot invent executed file counts or hide flaky cases'
   assert.equal(result.executedFileCount, null);
   assert.equal(result.skipped, 4);
   assert.equal(result.flaky, 1);
+});
+
+test('required E2E gate rejects skipped and cancelled evidence as well as failures', () => {
+  const workflow = readFileSync('.github/workflows/e2e.yml', 'utf8');
+  const gate = workflow.slice(
+    workflow.indexOf('  e2e-gate:'),
+    workflow.indexOf('  # Hermetic real-Better Auth'),
+  );
+  const script = gate
+    .split('        run: |\n')[1]
+    .split('\n')
+    .map((line) => line.replace(/^ {10}/, ''))
+    .join('\n');
+  const jobs = ['e2e-route-coverage', 'e2e-frontend', 'e2e-api'];
+  function run(results) {
+    const resolved = script.replace(
+      /\$\{\{ needs\.([a-z0-9-]+)\.result \}\}/g,
+      (_, job) => results[job],
+    );
+    return spawnSync('bash', ['-c', resolved], { encoding: 'utf8' });
+  }
+  const success = Object.fromEntries(jobs.map((job) => [job, 'success']));
+  assert.equal(run(success).status, 0);
+  for (const job of jobs) {
+    for (const result of ['failure', 'cancelled', 'skipped']) {
+      assert.equal(
+        run({ ...success, [job]: result }).status,
+        1,
+        `${job}: ${result}`,
+      );
+    }
+  }
 });
