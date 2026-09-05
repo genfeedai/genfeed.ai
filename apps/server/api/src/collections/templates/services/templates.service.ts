@@ -318,10 +318,9 @@ export class TemplatesService {
       where: { id },
     });
     if (metadata !== undefined) {
-      const savedMetadata = await this.templateMetadataService.update(
-        id,
-        metadata,
-      );
+      const savedMetadata = await this.templateMetadataService.update(id, {
+        ...metadata,
+      });
       return toTemplateDocument({ ...result, metadata: savedMetadata });
     }
     return toTemplateDocument(result);
