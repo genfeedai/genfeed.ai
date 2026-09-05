@@ -668,20 +668,32 @@ export class KnowledgeRecordsService {
     });
   }
 
-  listEligibleVersions(actor: KnowledgeActor) {
-    return this.prisma.knowledgeSourceVersion.findMany({
-      where: {
-        organizationId: actor.organizationId,
-        isDeleted: false,
-        isCurrent: true,
-        processingState: KnowledgeProcessingState.READY,
-        retrievalState: KnowledgeRetrievalState.ACTIVE,
-        retentionState: KnowledgeRetentionState.RETAINED,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        source: { is: { ...this.ownership(actor), isVisible: true } },
-      },
-      orderBy: { id: 'asc' },
-      take: 100,
-    });
+  async listEligibleVersions(actor: KnowledgeActor, page = 1, limit = 25) {
+    const where: Prisma.KnowledgeSourceVersionWhereInput = {
+      organizationId: actor.organizationId,
+      isDeleted: false,
+      isCurrent: true,
+      processingState: KnowledgeProcessingState.READY,
+      retrievalState: KnowledgeRetrievalState.ACTIVE,
+      retentionState: KnowledgeRetentionState.RETAINED,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      source: { is: { ...this.ownership(actor), isVisible: true } },
+    };
+    const [docs, totalDocs] = await this.prisma.$transaction([
+      this.prisma.knowledgeSourceVersion.findMany({
+        where,
+        orderBy: { id: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.knowledgeSourceVersion.count({ where }),
+    ]);
+    return {
+      docs,
+      totalDocs,
+      page,
+      limit,
+      totalPages: Math.ceil(totalDocs / limit),
+    };
   }
 }

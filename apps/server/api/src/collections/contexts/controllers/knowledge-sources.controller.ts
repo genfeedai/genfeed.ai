@@ -101,13 +101,18 @@ export class KnowledgeSourcesController {
   async eligible(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
+    @Query() query: KnowledgeListDto,
     @Query('brandId') brandId?: string,
   ) {
-    return serializeCollection(request, KnowledgeSourceVersionSerializer, {
-      docs: await this.records.listEligibleVersions(
+    return serializeCollection(
+      request,
+      KnowledgeSourceVersionSerializer,
+      await this.records.listEligibleVersions(
         resolveKnowledgeActor(user, brandId),
+        query.page,
+        query.limit,
       ),
-    });
+    );
   }
 
   @Get(':sourceId')

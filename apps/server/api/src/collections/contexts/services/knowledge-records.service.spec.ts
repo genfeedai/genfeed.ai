@@ -273,7 +273,9 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       (await records.purgeVersion(actor, source.id, historical.id)).purgedAt,
     ).toEqual(purged.purgedAt);
     expect(
-      (await records.listEligibleVersions(actor)).map((version) => version.id),
+      (await records.listEligibleVersions(actor)).docs.map(
+        (version) => version.id,
+      ),
     ).toEqual([current.id]);
     await expect(
       records.setEligibility(
@@ -288,7 +290,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
   it('excludes every non-active, unready, hidden, expired, purge-scheduled and purged version by default', async () => {
     const source = await createSource();
     const version = await records.createVersion(actor, source.id, capture);
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
     await expect(
       records.setProcessing(
         actor,
@@ -309,7 +311,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       version.id,
       KnowledgeProcessingState.FAILED,
     );
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
     await records.setProcessing(
       actor,
       source.id,
@@ -317,7 +319,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       KnowledgeProcessingState.QUEUED,
     );
     await ready(source.id, version.id);
-    expect(await records.listEligibleVersions(actor)).toHaveLength(1);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(1);
     for (const state of [
       KnowledgeRetrievalState.STALE,
       KnowledgeRetrievalState.CONTRADICTED,
@@ -325,7 +327,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       KnowledgeRetrievalState.EXPIRED,
     ]) {
       await records.setEligibility(actor, source.id, version.id, state);
-      expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+      expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
       expect(
         (await records.getVersion(actor, source.id, version.id))
           .processingState,
@@ -338,7 +340,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       KnowledgeRetrievalState.ACTIVE,
     );
     await records.updateSource(actor, source.id, { isVisible: false });
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
     await records.updateSource(actor, source.id, { isVisible: true });
     await records.schedulePurge(
       actor,
@@ -346,7 +348,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       version.id,
       new Date().toISOString(),
     );
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
     await records.purgeVersion(actor, source.id, version.id);
     await expect(
       records.setEligibility(
@@ -356,13 +358,13 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         KnowledgeRetrievalState.ACTIVE,
       ),
     ).rejects.toThrow('cannot be activated');
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
     const expired = await records.createVersion(actor, source.id, {
       ...capture,
       expiresAt: '2026-02-01T00:00:00.000Z',
     });
     await ready(source.id, expired.id);
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
   });
 
   it('validates freshness and retention requirements, and excludes deleted parents', async () => {
@@ -410,7 +412,64 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     await expect(
       records.createVersion(actor, source.id, capture),
     ).rejects.toMatchObject({ status: 404 });
-    expect(await records.listEligibleVersions(actor)).toHaveLength(0);
+    expect((await records.listEligibleVersions(actor)).docs).toHaveLength(0);
+  });
+
+  it('discovers every eligible version across pages with serialized totals', async () => {
+    const ids = Array.from({ length: 101 }, (_, index) =>
+      String(index).padStart(3, '0'),
+    );
+    await prisma.knowledgeSource.createMany({
+      data: ids.map((id) => ({
+        id: `source-${id}`,
+        organizationId: actor.organizationId,
+        brandId: actor.brandId,
+        userId: actor.userId,
+        scope: KnowledgeMemoryScope.BRAND,
+        title: `Evidence ${id}`,
+        kind: KnowledgeSourceKind.TEXT,
+        purpose: KnowledgeSourcePurpose.RESEARCH,
+      })),
+    });
+    await prisma.knowledgeSourceVersion.createMany({
+      data: ids.map((id) => ({
+        id: `version-${id}`,
+        sourceId: `source-${id}`,
+        organizationId: actor.organizationId,
+        version: 1,
+        contentHash: `sha256:${id}`,
+        provenance: {},
+        observedAt: new Date(capture.observedAt),
+        processingState: KnowledgeProcessingState.READY,
+      })),
+    });
+    const first = await records.listEligibleVersions(actor, 1, 100);
+    const second = await records.listEligibleVersions(actor, 2, 100);
+    expect(first).toMatchObject({
+      totalDocs: 101,
+      totalPages: 2,
+      page: 1,
+      limit: 100,
+    });
+    expect(first.docs).toHaveLength(100);
+    expect(second.docs.map((row) => row.id)).toEqual(['version-100']);
+    expect([...first.docs, ...second.docs].map((row) => row.id)).toEqual(
+      ids.map((id) => `version-${id}`),
+    );
+    const controller = new KnowledgeSourcesController(records);
+    const response = await controller.eligible(
+      {
+        originalUrl:
+          '/knowledge-sources/eligible-versions?page=2&limit=100&brandId=brand-a',
+      } as Request,
+      actor,
+      { page: 2, limit: 100 },
+      actor.brandId,
+    );
+    expect(response).toMatchObject({
+      data: [{ id: 'version-100' }],
+      links: { pagination: { total: 101, pages: 2, page: 2, limit: 100 } },
+    });
   });
 
   it('exposes serialized collection APIs while propagating the authenticated actor', async () => {
