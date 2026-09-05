@@ -43,11 +43,16 @@ const SUPERADMIN_TOOL = {
 
 const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: vi.fn(),
-  getToolsForSurface: vi.fn(() => ALL_TOOLS),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    getToolByName: vi.fn(),
+    getToolsForSurface: vi.fn((surface: string) =>
+      surface === 'agent' ? actual.getToolsForSurface('agent') : ALL_TOOLS,
+    ),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 function build(role: 'user' | 'admin' | 'superadmin') {
   const logger = {

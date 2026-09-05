@@ -7,19 +7,26 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * would have caught the ~25 dead-wired tools at boot instead of at call time).
  *
  * `@genfeedai/actions` is mocked so the guard sees a controllable registry;
- * `CuratedActionName` (used by classify for the agent-executor branch) resolves
- * from the real `@genfeedai/contracts/interfaces` alias.
+ * the agent surface retains its real catalog so classification uses the same
+ * executor names as production.
  */
 
 const mockState = vi.hoisted(() => ({
   tools: [] as { name: string }[],
 }));
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: vi.fn(),
-  getToolsForSurface: vi.fn(() => mockState.tools),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    getToolByName: vi.fn(),
+    getToolsForSurface: vi.fn((surface: string) =>
+      surface === 'agent'
+        ? actual.getToolsForSurface('agent')
+        : mockState.tools,
+    ),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 describe('ToolRegistryService.classify', () => {
   it.each([

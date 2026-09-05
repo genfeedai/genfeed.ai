@@ -95,7 +95,7 @@ describe('MCPService', () => {
     });
 
     it('previews only tools the MCP surface actually serves', () => {
-      const mcpToolNames = new Set(
+      const mcpToolNames = new Set<string>(
         getToolsForSurface('mcp').map((tool) => tool.name),
       );
 
@@ -105,7 +105,7 @@ describe('MCPService', () => {
     });
 
     it('never leaks a privileged tool to the unauthenticated example', () => {
-      const publicNames = new Set(
+      const publicNames = new Set<string>(
         getToolsForRole('mcp', 'user').map((tool) => tool.name),
       );
 

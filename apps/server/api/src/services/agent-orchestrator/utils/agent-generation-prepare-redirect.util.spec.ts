@@ -1,3 +1,4 @@
+import type { CuratedActionName } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 import {
   getGenerationPreparationRedirect,
@@ -27,7 +28,7 @@ describe('normalizeRequestedAgentToolName', () => {
 
 describe('getGenerationPreparationRedirect', () => {
   it('remaps prepare_generation to the concrete composer-selected tool', () => {
-    const allowed = new Set(['prepare_generation']);
+    const allowed = new Set<CuratedActionName>(['prepare_generation']);
 
     expect(
       getGenerationPreparationRedirect('prepare_generation', allowed, {
@@ -51,8 +52,8 @@ describe('getGenerationPreparationRedirect', () => {
   });
 
   it('strips default_api prefixes before recovering voice', () => {
-    const visualAllowed = new Set(['prepare_generation']);
-    const voiceAllowed = new Set(['prepare_voice_clone']);
+    const visualAllowed = new Set<CuratedActionName>(['prepare_generation']);
+    const voiceAllowed = new Set<CuratedActionName>(['prepare_voice_clone']);
 
     expect(
       getGenerationPreparationRedirect(

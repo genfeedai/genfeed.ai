@@ -26,11 +26,18 @@ const rawToolSourceMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: rawToolSourceMocks.getToolByName,
-  getToolsForSurface: rawToolSourceMocks.getToolsForSurface,
-  toMcpTools: rawToolSourceMocks.toMcpTools,
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    getToolByName: rawToolSourceMocks.getToolByName,
+    getToolsForSurface: vi.fn((surface: string) =>
+      surface === 'agent'
+        ? actual.getToolsForSurface('agent')
+        : rawToolSourceMocks.getToolsForSurface(),
+    ),
+    toMcpTools: rawToolSourceMocks.toMcpTools,
+  };
+});
 
 vi.mock('@mcp/services/client.service', () => ({
   ClientService: class ClientService {},

@@ -702,7 +702,7 @@ describe('MCP → API route contract', () => {
   });
 
   it('has no stale contract entries (every contract tool is still surfaced)', () => {
-    const surfaced = new Set(catalog);
+    const surfaced = new Set<string>(catalog);
     const stale = [...new Set(ROUTE_CONTRACT.flatMap((r) => r.tools))].filter(
       (name) => !surfaced.has(name),
     );
