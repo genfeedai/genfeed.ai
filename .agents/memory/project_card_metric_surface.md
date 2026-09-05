@@ -2,7 +2,7 @@
 name: card-metric-surface
 description: One Card frame + MetricCard states for all metric/stat tiles — stop inventing new card components
 type: project
-last_verified: 2026-08-07
+last_verified: 2026-09-05
 ---
 
 # Card + metric surface (canonical)
@@ -40,11 +40,9 @@ Review.
 
 ## Deprecations (aliases only — do not extend)
 
-- `StatCard` → MetricCard
 - `KPICard` → MetricCard `size="lg"`
 - `OverviewMetric` → MetricCard `size="sm"`
 - `StatsCards` → adapter over MetricCardGrid + MetricCard
-- `@ui/analytics/cards/metric` → adapter over MetricCard
 
 ## Frame contract
 

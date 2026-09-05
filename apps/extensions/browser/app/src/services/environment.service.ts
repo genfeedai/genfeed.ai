@@ -88,22 +88,3 @@ export const cookieDomain = (() => {
     return isDevelopment ? 'genfeed.localhost' : 'genfeed.ai';
   }
 })();
-
-/** @deprecated Use individual exports instead */
-export const EnvironmentService = {
-  apiEndpoint,
-  appDomain,
-  authCookieOrigins,
-  assetsEndpoint,
-  cdnEndpoint,
-  cookieDomain,
-  ingredientsEndpoint,
-  isDevelopment,
-  isProduction,
-  isTest,
-  JWT_LABEL,
-  logoURL,
-  logoWhiteURL,
-  websiteDomain,
-  wsEndpoint,
-};

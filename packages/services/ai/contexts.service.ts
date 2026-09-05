@@ -131,10 +131,7 @@ class ContextsServiceClass {
   }
 
   async query(query: IRAGQuery): Promise<IRAGResult> {
-    const contextBaseId =
-      query.contextBaseId ??
-      query.contextBaseIds?.[0] ??
-      query.knowledgeBaseIds?.[0];
+    const contextBaseId = query.contextBaseId ?? query.contextBaseIds?.[0];
     const rows = await this.request<
       Array<{
         content: string;
@@ -185,7 +182,7 @@ class ContextsServiceClass {
       'POST',
       {
         contentType: request.contentType,
-        contextBaseIds: request.contextBaseIds ?? request.knowledgeBaseIds,
+        contextBaseIds: request.contextBaseIds,
         maxResults: 5,
         prompt: request.prompt,
         useAudience: request.useContext?.audienceData,
