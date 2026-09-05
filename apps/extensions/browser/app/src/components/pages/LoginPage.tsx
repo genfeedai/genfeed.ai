@@ -3,12 +3,12 @@ import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { ThemeSelector } from '~components/settings/ThemeSelector';
 import { useThemeLogo } from '~hooks/ui/use-theme-logo/use-theme-logo';
-import { EnvironmentService } from '~services/environment.service';
+import { appDomain } from '~services/environment.service';
 
 export default function LoginPage() {
   const logoUrl = useThemeLogo();
-  const signInUrl = `${EnvironmentService.appDomain}/login`;
-  const signUpUrl = `${EnvironmentService.appDomain}/sign-up?source=browser-extension`;
+  const signInUrl = `${appDomain}/login`;
+  const signUpUrl = `${appDomain}/sign-up?source=browser-extension`;
 
   const handleSignIn = () => {
     chrome.tabs

@@ -1,7 +1,6 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ActivitySource } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /**
  * Credits burned by one LLM round, charged against the model that actually
@@ -45,7 +44,7 @@ export function resolveAgentTurnCreditCost(
 ): number {
   const builtBrandProfile = toolCalls.some(
     (toolCall) =>
-      toolCall.toolName === AgentToolName.DRAFT_BRAND_VOICE_PROFILE &&
+      toolCall.toolName === 'draft_brand_voice_profile' &&
       toolCall.status === 'completed',
   );
 

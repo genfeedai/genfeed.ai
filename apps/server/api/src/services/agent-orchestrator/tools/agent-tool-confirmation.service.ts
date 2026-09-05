@@ -5,10 +5,8 @@ import {
   readPreparedCampaignTransition,
 } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import {
-  AgentToolName,
-  type AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 
 export type PreparedAgentToolCall = {
@@ -24,7 +22,7 @@ type PrepareAgentToolCallInput = {
   organizationId: string;
   parameters: Record<string, unknown>;
   threadId: string;
-  toolName: AgentToolName;
+  toolName: CuratedActionName;
   userId: string;
 };
 
@@ -97,7 +95,7 @@ export class AgentToolConfirmationService {
   }
 
   buildModelVisibleResult(
-    toolName: AgentToolName,
+    toolName: CuratedActionName,
     result: AgentToolResult,
   ): AgentToolResult {
     if (
@@ -117,12 +115,12 @@ export class AgentToolConfirmationService {
   }
 
   private readCampaignTransition(
-    toolName: AgentToolName,
+    toolName: CuratedActionName,
   ): CampaignTransition | null {
-    if (toolName === AgentToolName.START_OUTREACH_SEQUENCE) {
+    if (toolName === 'start_outreach_sequence') {
       return 'start';
     }
-    if (toolName === AgentToolName.PAUSE_OUTREACH_SEQUENCE) {
+    if (toolName === 'pause_outreach_sequence') {
       return 'pause';
     }
     return null;

@@ -33,9 +33,9 @@ describe('workspace surface launcher', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
-        destinationHref: '/other/~/overview?thread=attacker-thread',
+        destinationHref: '/other/~/workspace/overview?thread=attacker-thread',
       }).href,
-    ).toBe('/other/~/overview');
+    ).toBe('/other/~/workspace/overview');
   });
 
   it('uses canvas navigation for settings and strips overlay and thread authority', () => {

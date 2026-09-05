@@ -5,7 +5,6 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
-  LEGACY_APP_ROUTES,
 } from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
@@ -128,45 +127,6 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects leftover /overview onto /workspace/overview in three scopes', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: '/workspace/overview',
-      permanent: true,
-      source: '/overview',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/workspace/overview',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/overview',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/workspace/overview',
-      permanent: true,
-      source: '/:orgSlug/~/overview',
-    });
-  });
-
-  it('redirects /settings/policy to /settings/agents in three scopes', async () => {
-    const redirects = await config.redirects?.();
-    expect(redirects).toContainEqual({
-      destination: '/settings/agents',
-      permanent: true,
-      source: '/settings/policy',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/settings/agents',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/settings/policy',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/settings/agents',
-      permanent: true,
-      source: '/:orgSlug/~/settings/policy',
-    });
-  });
-
   it('never redirects /library/assets away — it is the Library home', async () => {
     const redirects = await config.redirects?.();
 
@@ -175,26 +135,6 @@ describe('app next.config', () => {
         String(redirect.source).endsWith(APP_ROUTES.LIBRARY.ASSETS),
       ),
     ).toEqual([]);
-  });
-
-  it('redirects the retired Library overview to All assets in three scopes', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: '/library/assets',
-      permanent: false,
-      source: '/library/overview',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/library/assets',
-      permanent: false,
-      source: '/:orgSlug/:brandSlug/library/overview',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/library/assets',
-      permanent: false,
-      source: '/:orgSlug/~/library/overview',
-    });
   });
 
   it('redirects brand-scoped and org-scoped /admin to the platform dashboard', async () => {
@@ -257,29 +197,6 @@ describe('app next.config', () => {
         ':orgSlug',
         ':brandSlug',
         APP_ROUTES.WORKSPACE.INBOX,
-      ),
-    });
-  });
-
-  it('redirects legacy Library ingredients routes to the library home', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.ASSETS,
-      permanent: false,
-      source: APP_ROUTES.LIBRARY.INGREDIENTS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.ASSETS,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.INGREDIENTS,
       ),
     });
   });
@@ -354,179 +271,47 @@ describe('app next.config', () => {
     );
   });
 
-  it('permanently hard-cuts outreach into Messages', async () => {
+  it.each([
+    '/overview',
+    '/settings/policy',
+    '/library/ingredients',
+    '/library/overview',
+    '/publishing/outreach-campaigns',
+    '/automation/outreach-campaigns',
+    '/automation/reply-campaigns',
+    '/automation/replies',
+    '/publishing/newsletters',
+    '/workflows',
+    '/tasks',
+    '/automation/analytics',
+    '/automation/configuration',
+    '/automation/hire',
+    '/automation/library',
+    '/automation/agents/new',
+    '/automation/orchestrator',
+    '/automation/skills',
+    '/settings/links',
+    '/settings/organization/credentials',
+  ])('removes deprecated redirects for %s in every scope', async (route) => {
     const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.MESSAGES.OUTREACH,
-      permanent: true,
-      source: '/publishing/outreach-campaigns',
-    });
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.MESSAGES.OUTREACH,
-      permanent: true,
-      source: '/automation/outreach-campaigns',
-    });
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.MESSAGES.REPLY_DRIP,
-      permanent: true,
-      source: '/automation/reply-campaigns',
-    });
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.MESSAGES.REPLIES,
-      permanent: true,
-      source: '/automation/replies',
-    });
+    const sources = (redirects ?? []).map((redirect) => redirect.source);
+    for (const prefix of ['', '/:orgSlug/:brandSlug', '/:orgSlug/~']) {
+      expect(sources).not.toContain(`${prefix}${route}`);
+      expect(sources).not.toContain(`${prefix}${route}/:path*`);
+    }
   });
 
-  it('permanently redirects the retired newsletter creation surface to Agent', async () => {
+  it('does not redirect retired Lab routes', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AGENT.NEW,
-      permanent: true,
-      source: LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AGENT.NEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
-      ),
-    });
-  });
-
-  it('keeps flat workflow redirects and leaves scoped routes to the proxy', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATION.WORKFLOWS,
-      permanent: true,
-      source: LEGACY_APP_ROUTES.WORKFLOWS,
-    });
-    expect(redirects).not.toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AUTOMATION.WORKFLOWS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        LEGACY_APP_ROUTES.WORKFLOWS,
-      ),
-    });
-    expect(redirects).not.toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${APP_ROUTES.AUTOMATION.WORKFLOWS}/:path*`,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${LEGACY_APP_ROUTES.WORKFLOWS}/:path*`,
-      ),
-    });
-  });
-
-  it('permanently redirects the retired cron-jobs lab to workflow scheduling', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATION.WORKFLOWS,
-      permanent: true,
-      source: LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AUTOMATION.WORKFLOWS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-      ),
-    });
-  });
-
-  it('preserves legacy newsletter id deep links through the focused editor', async () => {
-    const redirects = await config.redirects?.();
-    const newsletterIdQuery = [
-      {
-        key: 'id',
-        type: 'query',
-        value: '(?<newsletterId>.+)',
-      },
-    ];
-
-    expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
-      has: newsletterIdQuery,
-      permanent: true,
-      source: LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
-      ),
-      has: newsletterIdQuery,
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
-      ),
-    });
-  });
-
-  it('does not invent a standalone Workflows app under /workflows', async () => {
-    const redirects = await config.redirects?.();
-
-    const legacyWorkflowRedirects = (redirects ?? []).filter((redirect) =>
-      redirect.source
-        .replace(createBrandAppRoute(':orgSlug', ':brandSlug'), '')
-        .startsWith('/workflows'),
-    );
-
-    expect(legacyWorkflowRedirects.length).toBeGreaterThan(0);
+    expect(redirects).toBeDefined();
     expect(
-      legacyWorkflowRedirects.every((redirect) =>
-        String(redirect.destination).includes(APP_ROUTES.AUTOMATION.WORKFLOWS),
+      redirects?.filter(
+        (redirect) =>
+          /(?:^|\/)lab(?:\/|$)/.test(redirect.source) ||
+          /(?:^|\/)lab(?:\/|$)/.test(redirect.destination),
       ),
-    ).toBe(true);
-  });
-
-  it('leaves scoped legacy workflows to the scope-aware proxy', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).not.toContainEqual(
-      expect.objectContaining({
-        source: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          LEGACY_APP_ROUTES.WORKFLOWS,
-        ),
-      }),
-    );
-    expect(redirects).not.toContainEqual(
-      expect.objectContaining({
-        source: APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS,
-      }),
-    );
+    ).toEqual([]);
   });
 
   it('rewrites clean local workspace routes into the default local shell scope', async () => {

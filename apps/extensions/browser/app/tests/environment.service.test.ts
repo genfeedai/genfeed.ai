@@ -53,7 +53,6 @@ describe('browser extension environment service', () => {
     expect(environment.logoWhiteURL).toBe(
       'https://cdn.genfeed.ai/assets/branding/logo-white.png',
     );
-    expect(environment.EnvironmentService.logoURL).toBe(environment.logoURL);
   });
 
   it('honours a configured assets endpoint for the derived logo URLs', async () => {

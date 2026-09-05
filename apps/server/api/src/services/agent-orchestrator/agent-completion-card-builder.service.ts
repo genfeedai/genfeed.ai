@@ -1,6 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
-  AgentToolName,
   type AgentUiAction,
   type AgentUiActionCta,
 } from '@genfeedai/contracts/interfaces';
@@ -42,35 +41,35 @@ interface BuildCompletionSummaryCardParams {
  * prose is the answer.
  */
 const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
-  AgentToolName.GET_CURRENT_BRAND,
-  AgentToolName.LIST_BRANDS,
-  AgentToolName.GET_CREDITS_BALANCE,
-  AgentToolName.GET_CONNECTION_STATUS,
-  AgentToolName.LIST_POSTS,
-  AgentToolName.LIST_WORKFLOWS,
-  AgentToolName.LIST_WORKFLOW_RUNS,
-  AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
-  AgentToolName.LIST_GENFEED_TOOLS,
-  AgentToolName.LIST_REVIEW_QUEUE,
-  AgentToolName.GET_APPROVAL_SUMMARY,
-  AgentToolName.CHECK_ONBOARDING_STATUS,
-  AgentToolName.GET_BRAND_COMPLETENESS,
-  AgentToolName.GET_DASHBOARD_LAYOUT,
-  AgentToolName.GET_CONTENT_CALENDAR,
-  AgentToolName.CHECK_GOAL_PROGRESS,
-  AgentToolName.INSPECT_WORKFLOW,
-  AgentToolName.GET_WORKFLOW_RUN,
-  AgentToolName.GET_WORKFLOW_INPUTS,
-  AgentToolName.LIST_ADS_RESEARCH,
-  AgentToolName.GET_AD_RESEARCH_DETAIL,
-  AgentToolName.LIST_INSTAGRAM_INSPIRATION,
-  AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL,
-  AgentToolName.GET_TOP_INGREDIENTS,
-  AgentToolName.RESOLVE_HANDLE,
-  AgentToolName.GET_ANALYTICS,
-  AgentToolName.ANALYZE_PERFORMANCE,
-  AgentToolName.GET_OUTREACH_SEQUENCE_ANALYTICS,
-  AgentToolName.GET_TRENDS,
+  'get_current_brand',
+  'list_brands',
+  'get_credits_balance',
+  'get_connection_status',
+  'list_posts',
+  'list_workflows',
+  'list_workflow_runs',
+  'list_system_workflow_catalog',
+  'list_genfeed_tools',
+  'list_review_queue',
+  'get_approval_summary',
+  'check_onboarding_status',
+  'get_brand_completeness',
+  'get_dashboard_layout',
+  'get_content_calendar',
+  'check_goal_progress',
+  'inspect_workflow',
+  'get_workflow_run',
+  'get_workflow_inputs',
+  'list_ads_research',
+  'get_ad_research_detail',
+  'list_instagram_inspiration',
+  'get_instagram_inspiration_detail',
+  'get_top_ingredients',
+  'resolve_handle',
+  'get_analytics',
+  'analyze_performance',
+  'get_outreach_sequence_analytics',
+  'get_trends',
 ]);
 
 @Injectable()
@@ -366,10 +365,7 @@ export class AgentCompletionCardBuilderService {
 
     if (
       uiActionTypes.has('workflow_created_card') ||
-      hasCompletedTool(
-        AgentToolName.CREATE_WORKFLOW,
-        'install_official_workflow',
-      )
+      hasCompletedTool('create_workflow', 'install_official_workflow')
     ) {
       addSuggestion(
         'workflow-tune',
@@ -395,12 +391,12 @@ export class AgentCompletionCardBuilderService {
       uiActionTypes.has('clip_run_card') ||
       uiActionTypes.has('clip_workflow_run_card') ||
       hasCompletedTool(
-        AgentToolName.GENERATE_CONTENT,
-        AgentToolName.GENERATE_CONTENT_BATCH,
-        AgentToolName.GENERATE_IMAGE,
-        AgentToolName.GENERATE_VIDEO,
-        AgentToolName.GENERATE_AS_IDENTITY,
-        AgentToolName.GENERATE_VOICE,
+        'generate_content',
+        'generate_content_batch',
+        'generate_image',
+        'generate_video',
+        'generate_as_identity',
+        'generate_voice',
       )
     ) {
       addSuggestion(
@@ -423,8 +419,8 @@ export class AgentCompletionCardBuilderService {
     if (
       uiActionTypes.has('analytics_snapshot_card') ||
       hasCompletedTool(
-        AgentToolName.GET_ANALYTICS,
-        AgentToolName.ANALYZE_PERFORMANCE,
+        'get_analytics',
+        'analyze_performance',
         'get_top_ingredients',
         'rate_content',
       )
@@ -451,7 +447,7 @@ export class AgentCompletionCardBuilderService {
       uiActionTypes.has('publish_post_card') ||
       uiActionTypes.has('schedule_post_card') ||
       uiActionTypes.has('content_calendar_card') ||
-      hasCompletedTool(AgentToolName.CREATE_POST, AgentToolName.SCHEDULE_POST)
+      hasCompletedTool('create_post', 'schedule_post')
     ) {
       addSuggestion(
         'publish-followup',
@@ -473,9 +469,9 @@ export class AgentCompletionCardBuilderService {
     if (
       uiActionTypes.has('review_gate_card') ||
       hasCompletedTool(
-        AgentToolName.LIST_REVIEW_QUEUE,
-        AgentToolName.BATCH_APPROVE_REJECT,
-        AgentToolName.GET_APPROVAL_SUMMARY,
+        'list_review_queue',
+        'batch_approve_reject',
+        'get_approval_summary',
       )
     ) {
       addSuggestion(
@@ -498,7 +494,7 @@ export class AgentCompletionCardBuilderService {
     if (
       uiActionTypes.has('trending_topics_card') ||
       hasCompletedTool(
-        AgentToolName.GET_TRENDS,
+        'get_trends',
         'list_ads_research',
         'get_ad_research_detail',
       )

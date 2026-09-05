@@ -10,8 +10,9 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { RouterPriority } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentTurnRoundRunnerService campaign confirmations', () => {
@@ -90,16 +91,14 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     source?: AgentChatRequest['source'];
     threadId?: string;
     toolParams: Record<string, unknown>;
-    toolNames?: AgentToolName[];
-    toolName?:
-      | AgentToolName.START_OUTREACH_SEQUENCE
-      | AgentToolName.PAUSE_OUTREACH_SEQUENCE;
+    toolNames?: CuratedActionName[];
+    toolName?: 'start_outreach_sequence' | 'pause_outreach_sequence';
   }): Promise<{
     messages: OpenRouterMessage[];
     state: AgentToolRoundState;
   }> {
     const organizationId = params.organizationId ?? 'org-1';
-    const toolName = params.toolName ?? AgentToolName.START_OUTREACH_SEQUENCE;
+    const toolName = params.toolName ?? 'start_outreach_sequence';
     const messages = params.messages ?? [
       { content: params.message, role: 'user' as const },
     ];
@@ -146,7 +145,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
 
     const [toolName, toolParams, executionContext] = executeTool.mock.calls[0];
-    expect(toolName).toBe(AgentToolName.START_OUTREACH_SEQUENCE);
+    expect(toolName).toBe('start_outreach_sequence');
     expect(toolParams).toEqual({ campaignId: 'campaign-1' });
     expect(executionContext).not.toHaveProperty('confirmationOrigin');
     expect(executionContext).not.toHaveProperty('sourceActionId');
@@ -178,7 +177,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
 
     expect(executeTool).toHaveBeenCalledWith(
-      AgentToolName.START_OUTREACH_SEQUENCE,
+      'start_outreach_sequence',
       {
         campaignId: 'campaign-1',
         confirmed: true,
@@ -249,16 +248,13 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
 
     await executeCampaignRound({
       message: confirmationPrompt,
-      toolNames: [
-        AgentToolName.GET_OUTREACH_SEQUENCE_ANALYTICS,
-        AgentToolName.START_OUTREACH_SEQUENCE,
-      ],
+      toolNames: ['get_outreach_sequence_analytics', 'start_outreach_sequence'],
       toolParams: { campaignId: 'wrong-campaign' },
     });
 
     expect(executeTool).toHaveBeenNthCalledWith(
       2,
-      AgentToolName.START_OUTREACH_SEQUENCE,
+      'start_outreach_sequence',
       {
         campaignId: 'campaign-1',
         confirmed: true,
@@ -321,7 +317,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
 
     await executeCampaignRound({
       message: confirmationPrompt,
-      toolName: AgentToolName.PAUSE_OUTREACH_SEQUENCE,
+      toolName: 'pause_outreach_sequence',
       toolParams: {
         campaignId: 'campaign-1',
         confirmed: true,
@@ -330,7 +326,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
 
     const [toolName, toolParams, executionContext] = executeTool.mock.calls[0];
-    expect(toolName).toBe(AgentToolName.PAUSE_OUTREACH_SEQUENCE);
+    expect(toolName).toBe('pause_outreach_sequence');
     expect(toolParams).toEqual({ campaignId: 'campaign-1' });
     expect(executionContext).not.toHaveProperty('confirmationOrigin');
     expect(executionContext).not.toHaveProperty('sourceActionId');

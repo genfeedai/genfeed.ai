@@ -4,7 +4,6 @@ import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout'
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
 import { formatAnimatedValue } from '@genfeedai/agent/components/blocks/metric-value-format.util';
-import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   AgentUIBlock,
@@ -17,7 +16,6 @@ import type {
   EmptyStateBlock,
   ImageGridBlock,
   KPIGridBlock,
-  MarkdownBlock,
   MetricCardBlock,
   SectionHeaderBlock,
   TableBlock,
@@ -368,15 +366,6 @@ function Callout({ block }: { block: CalloutBlock }): ReactElement {
   );
 }
 
-function MarkdownContent({ block }: { block: MarkdownBlock }): ReactElement {
-  return (
-    <SafeMarkdown
-      content={block.content}
-      className="prose prose-sm dark:prose-invert max-w-none text-foreground"
-    />
-  );
-}
-
 function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
   const cols = block.columns ?? 3;
   return (
@@ -438,8 +427,6 @@ function BlockRenderer({ block }: { block: AgentUIBlock }): ReactElement {
       return <BulletList block={block} />;
     case 'callout':
       return <Callout block={block} />;
-    case 'markdown':
-      return <MarkdownContent block={block} />;
     case 'image_grid':
       return <ImageGrid block={block} />;
     case 'composite':

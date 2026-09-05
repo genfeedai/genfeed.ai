@@ -78,7 +78,6 @@ function stripOrgPrefix(path: string): string {
       'automation',
       'elements',
       'bots',
-      'lab',
       'messages',
       'tasks',
     ];

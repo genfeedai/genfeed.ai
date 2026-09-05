@@ -11,7 +11,6 @@ import { expect, test } from '../../fixtures/auth.fixture';
  * - Agent Programs: `APP_ROUTES.AUTOMATION.CAMPAIGNS` (UI label Programs)
  * - Outreach sequences: `APP_ROUTES.MESSAGES.OUTREACH`
  * - Publish Campaigns: `APP_ROUTES.PUBLISHING.CAMPAIGNS`
- * - Legacy `/publishing/outreach-campaigns` and `/automation/outreach-campaigns` → Messages
  *
  * Sidebar nav item hrefs are org/brand-prefixed at render time by
  * `prefixHref()`, so assertions use `a[href$="..."]` on the route-constant
@@ -160,7 +159,7 @@ test.describe('Automation & Messages surfaces', () => {
     });
   });
 
-  test.describe('Legacy redirects', () => {
+  test.describe('Publishing campaigns', () => {
     test('/publishing/campaigns stays on Publish Campaigns', async ({
       authenticatedPage,
     }) => {
@@ -170,36 +169,6 @@ test.describe('Automation & Messages surfaces', () => {
 
       await expect(authenticatedPage).toHaveURL(
         new RegExp(`${ORG_BRAND}${APP_ROUTES.PUBLISHING.CAMPAIGNS}$`),
-      );
-    });
-
-    test('/publishing/outreach-campaigns redirects to Messages outreach', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        `${ORG_BRAND}/publishing/outreach-campaigns`,
-        {
-          waitUntil: 'domcontentloaded',
-        },
-      );
-
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
-      );
-    });
-
-    test('/automation/outreach-campaigns redirects to Messages outreach', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        `${ORG_BRAND}/automation/outreach-campaigns`,
-        {
-          waitUntil: 'domcontentloaded',
-        },
-      );
-
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${ORG_BRAND}${APP_ROUTES.MESSAGES.OUTREACH}$`),
       );
     });
   });

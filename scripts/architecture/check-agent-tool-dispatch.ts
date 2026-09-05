@@ -29,18 +29,15 @@ import { parseCatalogSource } from '../../packages/actions/scripts/report-curate
  * curated catalog, per-agent `defaultTools`, and `BRANDLESS_AGENT_TOOLS` for
  * the first shape, which no runtime check can see until a user hits it.
  *
- * Scope: `case AgentToolName.X:` clauses in the agent-orchestrator tool
+ * Scope: literal cases in switches over toolName in the agent-orchestrator tool
  * handlers. Handler services that own their own `execute` switch (the
  * Instagram inspiration handler, for one) count the same as the central
  * executor — coverage is what matters, not which file provides it. Switches on
- * string literals (dashboard widget kinds, content types) are ignored because
- * only `AgentToolName` members name tools.
+ * other variables (dashboard widget kinds, content types) are ignored.
  */
 
 const DEFAULT_CATALOG_PATH =
   'packages/actions/src/registry/curated-action-catalog.ts';
-const DEFAULT_ENUM_PATH =
-  'packages/contracts/src/interfaces/ai/agent-tool.interface.ts';
 const DEFAULT_AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DEFAULT_BRANDLESS_TOOLS_PATH =
@@ -55,7 +52,6 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/node_modules/**',
   '**/dist/**',
 ];
-const TOOL_NAME_ENUM = 'AgentToolName';
 const DEFAULT_TOOLS_PROPERTY = 'defaultTools';
 const BRANDLESS_TOOLS_VARIABLE = 'BRANDLESS_AGENT_TOOLS';
 
@@ -90,7 +86,6 @@ export type AgentToolDispatchOptions = {
   brandlessToolsPath?: string;
   catalogPath?: string;
   dispatchGlobs?: string[];
-  enumPath?: string;
   ignoreGlobs?: string[];
   rootDir?: string;
 };
@@ -109,61 +104,23 @@ function createSourceFile(filePath: string, sourceText: string): ts.SourceFile {
   );
 }
 
-/**
- * `AgentToolName` member -> wire name. Dispatch switches spell the member;
- * the catalog spells the wire name.
- */
-export function parseToolNameEnum(
-  sourceText: string,
-  fileName = DEFAULT_ENUM_PATH,
-): Map<string, string> {
-  const sourceFile = createSourceFile(fileName, sourceText);
-  const values = new Map<string, string>();
-
-  const visit = (node: ts.Node): void => {
-    if (ts.isEnumDeclaration(node) && node.name.text === TOOL_NAME_ENUM) {
-      for (const member of node.members) {
-        const initializer = member.initializer;
-        if (!initializer || !ts.isStringLiteral(initializer)) {
-          continue;
-        }
-        values.set(member.name.getText(sourceFile), initializer.text);
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(sourceFile);
-
-  if (values.size === 0) {
-    throw new Error(`${fileName} does not declare a string ${TOOL_NAME_ENUM}`);
-  }
-
-  return values;
-}
-
-/**
- * Wire names reachable through a `case AgentToolName.X:` clause in one file.
- */
 export function collectDispatchedToolNames(
   sourceText: string,
-  enumValues: ReadonlyMap<string, string>,
   fileName = 'dispatch.ts',
 ): string[] {
   const sourceFile = createSourceFile(fileName, sourceText);
   const dispatched = new Set<string>();
 
   const visit = (node: ts.Node): void => {
-    if (
-      ts.isCaseClause(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === TOOL_NAME_ENUM
-    ) {
-      const wireName = enumValues.get(node.expression.name.text);
-      if (wireName) {
-        dispatched.add(wireName);
+    if (ts.isCaseClause(node) && ts.isStringLiteral(node.expression)) {
+      const clause = node.parent;
+      const statement = clause.parent;
+      if (
+        ts.isSwitchStatement(statement) &&
+        ts.isIdentifier(statement.expression) &&
+        statement.expression.text === 'toolName'
+      ) {
+        dispatched.add(node.expression.text);
       }
     }
 
@@ -211,54 +168,45 @@ function collectVariableInitializers(
   return initializers;
 }
 
-function isAllToolNamesExpression(expression: ts.Expression): boolean {
-  const candidate = unwrapExpression(expression);
-
-  return (
-    ts.isCallExpression(candidate) &&
-    ts.isPropertyAccessExpression(candidate.expression) &&
-    ts.isIdentifier(candidate.expression.expression) &&
-    candidate.expression.expression.text === 'Object' &&
-    candidate.expression.name.text === 'values' &&
-    candidate.arguments.length === 1 &&
-    ts.isIdentifier(candidate.arguments[0]) &&
-    candidate.arguments[0].text === TOOL_NAME_ENUM
-  );
-}
-
 function collectToolNamesFromExpression(
   expression: ts.Expression,
-  enumValues: ReadonlyMap<string, string>,
+  canonicalNames: readonly string[],
   variableInitializers: ReadonlyMap<string, ts.Expression>,
   toolNames: Set<string>,
   resolvingVariables: Set<string>,
 ): void {
   const candidate = unwrapExpression(expression);
 
-  if (
-    ts.isPropertyAccessExpression(candidate) &&
-    ts.isIdentifier(candidate.expression) &&
-    candidate.expression.text === TOOL_NAME_ENUM
-  ) {
-    const wireName = enumValues.get(candidate.name.text);
-    if (wireName) {
-      toolNames.add(wireName);
-    }
+  if (ts.isStringLiteral(candidate)) {
+    toolNames.add(candidate.text);
     return;
   }
 
-  if (isAllToolNamesExpression(candidate)) {
-    for (const wireName of enumValues.values()) {
-      toolNames.add(wireName);
+  // The general agent advertises the canonical agent surface directly.
+  if (
+    ts.isCallExpression(candidate) &&
+    ts.isPropertyAccessExpression(candidate.expression) &&
+    candidate.expression.name.text === 'map'
+  ) {
+    const receiver = candidate.expression.expression;
+    if (
+      ts.isCallExpression(receiver) &&
+      ts.isIdentifier(receiver.expression) &&
+      receiver.expression.text === 'getToolsForSurface' &&
+      receiver.arguments.length === 1 &&
+      ts.isStringLiteral(receiver.arguments[0]) &&
+      receiver.arguments[0].text === 'agent'
+    ) {
+      for (const name of canonicalNames) toolNames.add(name);
+      return;
     }
-    return;
   }
 
   if (ts.isArrayLiteralExpression(candidate)) {
     for (const element of candidate.elements) {
       collectToolNamesFromExpression(
         ts.isSpreadElement(element) ? element.expression : element,
-        enumValues,
+        canonicalNames,
         variableInitializers,
         toolNames,
         resolvingVariables,
@@ -280,7 +228,7 @@ function collectToolNamesFromExpression(
   resolvingVariables.add(variableName);
   collectToolNamesFromExpression(
     initializer,
-    enumValues,
+    canonicalNames,
     variableInitializers,
     toolNames,
     resolvingVariables,
@@ -291,7 +239,7 @@ function collectToolNamesFromExpression(
 /** Wire names made available by an AgentTypeConfig.defaultTools array. */
 export function collectDefaultToolNames(
   sourceText: string,
-  enumValues: ReadonlyMap<string, string>,
+  canonicalNames: readonly string[],
   fileName = DEFAULT_AGENT_TYPE_CONFIG_PATH,
 ): string[] {
   const sourceFile = createSourceFile(fileName, sourceText);
@@ -308,7 +256,7 @@ export function collectDefaultToolNames(
     ) {
       collectToolNamesFromExpression(
         node.initializer,
-        enumValues,
+        canonicalNames,
         variableInitializers,
         toolNames,
         new Set(),
@@ -325,7 +273,7 @@ export function collectDefaultToolNames(
 /** Wire names allowed to execute without a selected brand. */
 export function collectBrandlessToolNames(
   sourceText: string,
-  enumValues: ReadonlyMap<string, string>,
+  canonicalNames: readonly string[],
   fileName = DEFAULT_BRANDLESS_TOOLS_PATH,
 ): string[] {
   const sourceFile = createSourceFile(fileName, sourceText);
@@ -347,7 +295,7 @@ export function collectBrandlessToolNames(
   if (toolsExpression) {
     collectToolNamesFromExpression(
       toolsExpression,
-      enumValues,
+      canonicalNames,
       variableInitializers,
       toolNames,
       new Set(),
@@ -362,7 +310,6 @@ export function runCheckAgentToolDispatch(
 ): AgentToolDispatchResult {
   const rootDir = options.rootDir ?? process.cwd();
   const catalogPath = options.catalogPath ?? DEFAULT_CATALOG_PATH;
-  const enumPath = options.enumPath ?? DEFAULT_ENUM_PATH;
   const agentTypeConfigPath =
     options.agentTypeConfigPath ?? DEFAULT_AGENT_TYPE_CONFIG_PATH;
   const brandlessToolsPath =
@@ -376,18 +323,15 @@ export function runCheckAgentToolDispatch(
   )
     .filter((action) => action.surfaces.includes('agent'))
     .map((action) => action.name);
-  const enumValues = parseToolNameEnum(
-    readFileSync(path.join(rootDir, enumPath), 'utf8'),
-    enumPath,
-  );
+  const canonicalNames = surfacedActions;
   const defaultToolNames = collectDefaultToolNames(
     readFileSync(path.join(rootDir, agentTypeConfigPath), 'utf8'),
-    enumValues,
+    canonicalNames,
     agentTypeConfigPath,
   );
   const brandlessToolNames = collectBrandlessToolNames(
     readFileSync(path.join(rootDir, brandlessToolsPath), 'utf8'),
-    enumValues,
+    canonicalNames,
     brandlessToolsPath,
   );
 
@@ -428,7 +372,6 @@ export function runCheckAgentToolDispatch(
     const file = normalizePath(path.relative(rootDir, filePath));
     const dispatched = collectDispatchedToolNames(
       readFileSync(filePath, 'utf8'),
-      enumValues,
       file,
     );
 

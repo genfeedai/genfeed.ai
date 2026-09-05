@@ -1,18 +1,17 @@
 import { ADS_AGENT_TOOL_EXTENSIONS } from '@api/services/agent-orchestrator/tools/agent-tool-registry.ads-extensions';
-import type { AgentToolDefinition } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { AgentToolOutput } from '@genfeedai/actions';
 
 /**
  * Ordered cloud-only schema and prompt overrides for reviewed catalog actions.
  * Ads definitions stay in their own module; registry assembly validates every
  * entry against the curated agent surface.
  */
-export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
+export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolOutput[] = [
   {
     creditCost: 0,
     description:
       'Create a post draft from text, or prepare and confirm direct publishing for an existing content item/ingredient by returning a publish confirmation card first.',
-    name: AgentToolName.CREATE_POST,
+    name: 'create_post',
     parameters: {
       properties: {
         caption: {
@@ -92,7 +91,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Get organization analytics, a post analytics snapshot, or analytics for the latest published post related to a selected content item.',
-    name: AgentToolName.GET_ANALYTICS,
+    name: 'get_analytics',
     parameters: {
       properties: {
         contentId: {
@@ -129,7 +128,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Save content, examples, preferences, or winners into agent memory and optionally route them to brand knowledge.',
-    name: AgentToolName.CAPTURE_MEMORY,
+    name: 'capture_memory',
     parameters: {
       properties: {
         brandId: {
@@ -221,7 +220,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Resolve the best official workflow source for the request, ask for confirmation, then install it into the current organization. Prefer seeded templates first, official marketplace workflows second, and only generate a new workflow as fallback.',
-    name: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+    name: 'install_official_workflow',
     parameters: {
       properties: {
         brandId: {
@@ -300,7 +299,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create a workflow for the current organization and brand. Supports direct graph persistence, recurring automation scaffolds, and natural-language workflow generation so the result can be edited in the Workflows app.',
-    name: AgentToolName.CREATE_WORKFLOW,
+    name: 'create_workflow',
     parameters: {
       properties: {
         aspectRatio: {
@@ -419,7 +418,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create a YouTube or Twitch livestream chat bot for the current organization and brand, then return a bot card with links and basic control actions.',
-    name: AgentToolName.CREATE_LIVESTREAM_BOT,
+    name: 'create_livestream_bot',
     parameters: {
       properties: {
         botChannelLabel: {
@@ -514,7 +513,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Manage an existing YouTube or Twitch livestream chat bot session by starting, pausing, resuming, stopping, setting a manual override, or sending a message immediately.',
-    name: AgentToolName.MANAGE_LIVESTREAM_BOT,
+    name: 'manage_livestream_bot',
     parameters: {
       properties: {
         action: {
@@ -575,7 +574,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Rate content quality from 1-10 and return actionable feedback and improvement suggestions.',
-    name: AgentToolName.RATE_CONTENT,
+    name: 'rate_content',
     parameters: {
       properties: {
         contentId: {
@@ -601,7 +600,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Add or remove a boolean vote on an ingredient (single vote toggle per user).',
-    name: AgentToolName.RATE_INGREDIENT,
+    name: 'rate_ingredient',
     parameters: {
       properties: {
         ingredientId: {
@@ -617,7 +616,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Get the most-voted ingredients for this organization (optionally filtered by brand/category).',
-    name: AgentToolName.GET_TOP_INGREDIENTS,
+    name: 'get_top_ingredients',
     parameters: {
       properties: {
         brandId: {
@@ -642,7 +641,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Prepare a replication plan for a top ingredient and return source metadata + next actions.',
-    name: AgentToolName.REPLICATE_TOP_INGREDIENT,
+    name: 'replicate_top_ingredient',
     parameters: {
       properties: {
         ingredientId: {
@@ -662,7 +661,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create a measurable agent goal for the current organization or brand using one analytics metric.',
-    name: AgentToolName.CREATE_GOAL,
+    name: 'create_goal',
     parameters: {
       properties: {
         brandId: { type: 'string' },
@@ -685,7 +684,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Check progress for an existing agent goal using current analytics data.',
-    name: AgentToolName.CHECK_GOAL_PROGRESS,
+    name: 'check_goal_progress',
     parameters: {
       properties: {
         goalId: { type: 'string' },
@@ -698,7 +697,7 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Update an existing agent goal to change its target, dates, description, or active state.',
-    name: AgentToolName.UPDATE_GOAL,
+    name: 'update_goal',
     parameters: {
       properties: {
         description: { type: 'string' },

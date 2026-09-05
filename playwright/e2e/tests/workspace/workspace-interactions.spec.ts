@@ -238,9 +238,8 @@ test.describe('Overview — deep interactions', () => {
   }) => {
     await mockOverviewRunsData(authenticatedPage, [RUNNING_RUN, COMPLETED_RUN]);
 
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.OVERVIEW.ROOT);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
 
-    // /overview is a compatibility redirect into the workspace overview.
     await expect(authenticatedPage).toHaveURL(/\/workspace\/overview/);
 
     // Period / range toggles where they exist on the surface.

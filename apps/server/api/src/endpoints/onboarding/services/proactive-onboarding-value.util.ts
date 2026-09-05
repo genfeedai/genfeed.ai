@@ -16,7 +16,6 @@ export function getProactivePrepStage(
     case ProactiveOnboardingStatus.CONTENT_GENERATING:
       return 'generating_outputs';
     case ProactiveOnboardingStatus.CONTENT_READY:
-    case ProactiveOnboardingStatus.READY:
     case ProactiveOnboardingStatus.INVITED:
     case ProactiveOnboardingStatus.STARTED:
     case ProactiveOnboardingStatus.PAYMENT_MADE:
@@ -38,7 +37,6 @@ export function getProactivePrepPercent(
     case ProactiveOnboardingStatus.CONTENT_GENERATING:
       return 80;
     case ProactiveOnboardingStatus.CONTENT_READY:
-    case ProactiveOnboardingStatus.READY:
     case ProactiveOnboardingStatus.INVITED:
     case ProactiveOnboardingStatus.STARTED:
     case ProactiveOnboardingStatus.PAYMENT_MADE:
@@ -54,7 +52,6 @@ export function isProactiveInviteEligible(
 ): boolean {
   return [
     ProactiveOnboardingStatus.CONTENT_READY,
-    ProactiveOnboardingStatus.READY,
     ProactiveOnboardingStatus.INVITED,
     ProactiveOnboardingStatus.STARTED,
     ProactiveOnboardingStatus.PAYMENT_MADE,

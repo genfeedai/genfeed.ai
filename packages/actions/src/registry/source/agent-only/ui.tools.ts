@@ -58,7 +58,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
         },
         blocks: {
           description:
-            'UI blocks to render. Each block must have id (string), type (metric_card|kpi_grid|chart|table|top_posts|alert|markdown|image_grid|composite|empty_state), and optional width (full|half|third). Chart blocks need chartType (area|bar|line|pie), data array, and optional xAxis/series. Table blocks need columns and rows arrays. KPI grid blocks need a cards array of metric_card blocks.',
+            'UI blocks to render. Each block must have id (string), type (metric_card|kpi_grid|chart|table|top_posts|alert|section_header|text_paragraph|bullet_list|callout|image_grid|composite|empty_state), and optional width (full|half|third). Chart blocks need chartType (area|bar|line|pie), data array, and optional xAxis/series. Table blocks need columns and rows arrays. KPI grid blocks need a cards array of metric_card blocks.',
           items: {
             properties: {
               cards: {
@@ -79,8 +79,27 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
                 description:
                   'Table columns: [{ key, label, sortable?, align? }] or number of columns for kpi_grid/image_grid',
               },
-              content: {
-                description: 'Markdown content string (for markdown block)',
+              text: {
+                description: 'Text for section_header or text_paragraph',
+                type: 'string',
+              },
+              level: {
+                description: 'Heading level for section_header',
+                enum: [1, 2, 3, 4],
+                type: 'number',
+              },
+              items: {
+                description: 'Text items for bullet_list',
+                items: { type: 'string' },
+                type: 'array',
+              },
+              ordered: {
+                description: 'Number the bullet_list items',
+                type: 'boolean',
+              },
+              tone: {
+                description: 'Callout tone',
+                enum: ['info', 'warning', 'error', 'success'],
                 type: 'string',
               },
               data: {
@@ -94,7 +113,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
                 type: 'string',
               },
               message: {
-                description: 'Text message (for alert/empty_state)',
+                description: 'Text message (for alert/empty_state/callout)',
                 type: 'string',
               },
               rows: {
@@ -128,7 +147,10 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
                   'table',
                   'top_posts',
                   'alert',
-                  'markdown',
+                  'section_header',
+                  'text_paragraph',
+                  'bullet_list',
+                  'callout',
                   'image_grid',
                   'composite',
                   'empty_state',

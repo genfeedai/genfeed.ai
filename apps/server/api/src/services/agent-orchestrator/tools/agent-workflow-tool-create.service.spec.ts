@@ -1,6 +1,6 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentWorkflowToolCreateService', () => {
@@ -72,7 +72,7 @@ describe('AgentWorkflowToolCreateService', () => {
         metadata: expect.objectContaining({
           brandId: 'brand-1',
           createdFrom: 'agent',
-          originatingTool: AgentToolName.CREATE_WORKFLOW,
+          originatingTool: 'create_workflow',
         }),
       }),
     );

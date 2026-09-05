@@ -1,7 +1,7 @@
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 
 export interface AgentToolOutput {
-  name: string;
+  name: CanonicalToolDefinition['name'];
   description: string;
   parameters: Record<string, unknown>;
   creditCost: number;

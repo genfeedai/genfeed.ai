@@ -91,13 +91,13 @@ describe('platform-home helpers', () => {
 
   it('only exposes live and replies when those routes exist', () => {
     expect(getPlatformLiveHref(Platform.YOUTUBE)).toBe(
-      `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`,
+      APP_ROUTES.AUTOMATION.YOUTUBE_CHAT,
     );
     expect(getPlatformLiveHref(Platform.RESTREAM)).toBe(
-      `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`,
+      APP_ROUTES.AUTOMATION.YOUTUBE_CHAT,
     );
     expect(getPlatformLiveHref(Platform.TWITCH)).toBe(
-      `${APP_ROUTES.AUTOMATION.LIBRARY}/twitch-chat`,
+      APP_ROUTES.AUTOMATION.TWITCH_CHAT,
     );
     expect(getPlatformLiveHref(Platform.INSTAGRAM)).toBeUndefined();
     expect(getPlatformRepliesHref(Platform.TWITTER)).toBe(

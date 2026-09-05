@@ -1,8 +1,5 @@
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import {
-  AgentToolName,
-  type AgentUiAction,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 /**
  * Normalize empty/partial assistant content into a user-facing final string,
@@ -46,7 +43,7 @@ export function normalizeFinalAssistantContent(
   const hasVoiceCloneSetup = toolCalls.some(
     (toolCall) =>
       toolCall.status === 'completed' &&
-      toolCall.toolName === AgentToolName.PREPARE_VOICE_CLONE,
+      toolCall.toolName === 'prepare_voice_clone',
   );
 
   if (hasVoiceCloneSetup) {

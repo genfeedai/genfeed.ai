@@ -1,4 +1,4 @@
-import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { PUBLISHING_MENU_ITEMS } from './publishing-menu-items.config';
 
@@ -76,7 +76,7 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(hrefs).toContain('/publishing/campaigns');
     expect(hrefs).not.toContain('/automation/campaigns');
     expect(hrefs).not.toContain('/publishing/outreach-campaigns');
-    expect(hrefs).not.toContain(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS);
+    expect(hrefs).not.toContain('/publishing/newsletters');
     expect(hrefs).not.toContain('/publishing/remix');
     expect(labels).toContain('Campaigns');
     expect(labels).not.toContain('Outreach');

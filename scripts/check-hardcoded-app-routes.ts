@@ -29,10 +29,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
-import {
-  APP_ROUTES,
-  LEGACY_APP_ROUTES,
-} from '../packages/contracts/src/constants/routes.constant';
+import { APP_ROUTES } from '../packages/contracts/src/constants/routes.constant';
 
 const logger = {
   error: (message: string) =>
@@ -77,7 +74,6 @@ const ROUTE_ROOTS = [
   'analytics',
   'compose',
   'discover',
-  'lab',
   'library',
   'login',
   'logout',
@@ -215,14 +211,9 @@ function collect(
 
 function shouldFlagPlaywrightRoute(routePath: string): boolean {
   const pathname = routePath.split(/[?#]/, 1)[0] ?? routePath;
-  return (
-    CANONICAL_NON_ROOT_ROUTE_VALUES.some(
-      (canonicalRoute) =>
-        pathname === canonicalRoute ||
-        pathname.startsWith(`${canonicalRoute}/`),
-    ) ||
-    pathname === LEGACY_APP_ROUTES.TASKS ||
-    pathname.startsWith(`${LEGACY_APP_ROUTES.TASKS}/`)
+  return CANONICAL_NON_ROOT_ROUTE_VALUES.some(
+    (canonicalRoute) =>
+      pathname === canonicalRoute || pathname.startsWith(`${canonicalRoute}/`),
   );
 }
 

@@ -4,7 +4,6 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
-import BrandDetailLinksSummaryCard from '@pages/brands/components/sidebar/BrandDetailLinksSummaryCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandDetailSocialSummaryCard from '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
@@ -24,7 +23,6 @@ export default function BrandDetailSidebar({
   connectedPlatformsCount,
   isUpdatingPublicProfile = false,
   manageSocialHref,
-  manageLinksHref,
   onTogglePublicProfile,
   onOpenLinkModal,
   onRefreshBrand,
@@ -53,19 +51,12 @@ export default function BrandDetailSidebar({
         />
       )}
 
-      {manageLinksHref ? (
-        <BrandDetailLinksSummaryCard
-          linksCount={links?.length ?? 0}
-          manageHref={manageLinksHref}
-        />
-      ) : (
-        <BrandDetailExternalLinksCard
-          links={links}
-          socialConnections={socialConnections}
-          manageSocialHref={manageSocialHref}
-          onOpenLinkModal={onOpenLinkModal}
-        />
-      )}
+      <BrandDetailExternalLinksCard
+        links={links}
+        socialConnections={socialConnections}
+        manageSocialHref={manageSocialHref}
+        onOpenLinkModal={onOpenLinkModal}
+      />
     </div>
   );
 }

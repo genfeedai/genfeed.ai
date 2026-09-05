@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -13,7 +14,7 @@ import type {
   InstagramInspirationSort,
   InstagramRemixMode,
 } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function readOptionalNumber(value: unknown): number | undefined {
@@ -45,25 +46,25 @@ export class AgentInstagramInspirationToolHandler {
     private readonly instagramInspirationService: InstagramInspirationService,
   ) {}
 
-  handles(toolName: AgentToolName): boolean {
+  handles(toolName: CuratedActionName): boolean {
     return (
-      toolName === AgentToolName.LIST_INSTAGRAM_INSPIRATION ||
-      toolName === AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL ||
-      toolName === AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW
+      toolName === 'list_instagram_inspiration' ||
+      toolName === 'get_instagram_inspiration_detail' ||
+      toolName === 'create_instagram_remix_workflow'
     );
   }
 
   execute(
-    toolName: AgentToolName,
+    toolName: CuratedActionName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case AgentToolName.LIST_INSTAGRAM_INSPIRATION:
+      case 'list_instagram_inspiration':
         return this.listInstagramInspiration(params, ctx);
-      case AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL:
+      case 'get_instagram_inspiration_detail':
         return this.getInstagramInspirationDetail(params, ctx);
-      case AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW:
+      case 'create_instagram_remix_workflow':
         return this.createInstagramRemixWorkflow(params, ctx);
       default:
         throw new Error(`Unsupported Instagram inspiration tool: ${toolName}`);

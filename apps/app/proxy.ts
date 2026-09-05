@@ -12,7 +12,6 @@ import {
   hasCompletedBrandOnboardingStep,
   isPersonalSettingsPath,
   isSharedBrandOnboardingPath,
-  LEGACY_APP_ROUTES,
   ONBOARDING_STEPS,
   parseScopedAppPath,
 } from '@genfeedai/contracts/constants';
@@ -139,7 +138,6 @@ function enforceMinimumDesktopVersion(req: NextRequest): NextResponse | null {
 const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
   APP_ROUTE_PREFIXES.AGENT.slice(1),
-  LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
   APP_ROUTE_PREFIXES.AUTOMATION.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
@@ -155,10 +153,8 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.AUTOMATION.ROOT, APP_ROUTES.AUTOMATION.OVERVIEW],
   [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS],
-  [APP_ROUTES.LIBRARY.OVERVIEW, APP_ROUTES.LIBRARY.ASSETS],
   [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.OVERVIEW],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.GENERATE],
-  [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
   [APP_ROUTES.WORKSPACE.INBOX, APP_ROUTES.WORKSPACE.INBOX_UNREAD],
 ]);
@@ -192,46 +188,6 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
  * Reject `/`, `//`, and dots so slugs cannot become open redirects.
  */
 const SLUG_RE = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
-
-function canonicalizeLegacyScopedProtectedPath(
-  pathname: string,
-): string | null {
-  const segments = pathname.split('/').filter(Boolean);
-  const [orgSlug, brandSlug, section, ...rest] = segments;
-
-  if (
-    segments.length < 3 ||
-    !orgSlug ||
-    !brandSlug ||
-    !SLUG_RE.test(orgSlug) ||
-    (brandSlug !== '~' && !SLUG_RE.test(brandSlug)) ||
-    Object.values(APP_ROUTE_PREFIXES).some(
-      (prefix) => prefix.slice(1).split('/')[0] === orgSlug,
-    )
-  ) {
-    return null;
-  }
-
-  if (section === LEGACY_APP_ROUTES.TASKS.slice(1) && rest.length <= 1) {
-    const taskPath = rest[0] ? `/${rest[0]}` : '';
-    return createBrandAppRoute(
-      orgSlug,
-      brandSlug,
-      `${APP_ROUTES.WORKSPACE.TASKS}${taskPath}`,
-    );
-  }
-
-  if (section === LEGACY_APP_ROUTES.WORKFLOWS.slice(1)) {
-    const workflowPath = rest.length > 0 ? `/${rest.join('/')}` : '';
-    return createBrandAppRoute(
-      orgSlug,
-      brandSlug,
-      `${APP_ROUTES.AUTOMATION.WORKFLOWS}${workflowPath}`,
-    );
-  }
-
-  return null;
-}
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {
   const url = new URL(pathname, req.url);
@@ -1604,13 +1560,6 @@ export async function proxy(req: NextRequest) {
 
   if (isPlaywrightBypassRequest(req)) {
     return NextResponse.next();
-  }
-
-  const canonicalLegacyPath = canonicalizeLegacyScopedProtectedPath(
-    req.nextUrl.pathname,
-  );
-  if (canonicalLegacyPath) {
-    return redirectPreservingSearch(req, canonicalLegacyPath);
   }
 
   if (isDesktopSurfaceRequest(req)) {

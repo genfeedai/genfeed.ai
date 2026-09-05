@@ -19,7 +19,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import { WorkflowTrigger } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
@@ -208,12 +208,12 @@ export class AgentWorkflowToolCreateService {
             ...(params.metadata as Record<string, unknown>),
             brandId,
             createdFrom: 'agent',
-            originatingTool: AgentToolName.CREATE_WORKFLOW,
+            originatingTool: 'create_workflow',
           }
         : {
             brandId,
             createdFrom: 'agent',
-            originatingTool: AgentToolName.CREATE_WORKFLOW,
+            originatingTool: 'create_workflow',
           };
 
     const workflow = await this.workflowsService.createWorkflow(
@@ -429,7 +429,7 @@ export class AgentWorkflowToolCreateService {
       },
       contentType: parsed.contentType,
       createdFrom: 'agent',
-      originatingTool: AgentToolName.CREATE_WORKFLOW,
+      originatingTool: 'create_workflow',
       prompt: parsed.prompt,
       sourceAssetId:
         typeof params.sourceAssetId === 'string'

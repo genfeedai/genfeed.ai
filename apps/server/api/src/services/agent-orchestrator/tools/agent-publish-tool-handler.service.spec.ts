@@ -9,7 +9,7 @@ import {
   ReleaseStatus,
 } from '@genfeedai/contracts';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { describe, expect, it, vi } from 'vitest';
 
 function confirmedContext(brandId: string): ToolExecutionContext {
@@ -98,7 +98,7 @@ function createHandler() {
         organizationId: 'org-1',
         sourceActionId: key.split(':').pop(),
         threadId: 'thread-1',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
       }),
     ),
     set: vi.fn().mockResolvedValue(true),
@@ -604,7 +604,7 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
       organizationId: 'org-1',
       sourceActionId: 'verified-action-id',
       threadId: 'thread-1',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
 
     const result = await handler.createPost(

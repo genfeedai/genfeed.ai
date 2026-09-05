@@ -1,3 +1,5 @@
+import type { CuratedActionName } from '../registry/curated-action-catalog';
+
 export type ToolUiActionType =
   | 'ai_text_action_card'
   | 'analytics_snapshot_card'
@@ -59,7 +61,7 @@ export type ToolCategory =
   | 'other';
 
 export interface CanonicalToolDefinition {
-  name: string;
+  name: CuratedActionName;
   description: string;
   parameters: ToolParameterSchema;
   creditCost: number;

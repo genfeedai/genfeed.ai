@@ -51,7 +51,6 @@ import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
   type AgentPublishTargetPayload,
-  AgentToolName,
   type AgentToolResult,
   type AgentUiAction,
   type PublishConfirmedContentInput,
@@ -625,7 +624,7 @@ export class AgentPublishToolHandler {
         organizationId: ctx.organizationId,
         sourceActionId,
         threadId: ctx.threadId ?? '',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
       },
     );
     if (isVerifiedConfirmation) {
@@ -820,7 +819,7 @@ export class AgentPublishToolHandler {
       organizationId: ctx.organizationId,
       sourceActionId,
       threadId: ctx.threadId ?? '',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
 
     return {
