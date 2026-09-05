@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
@@ -86,6 +87,7 @@ function getBrandSlug(
 }
 
 export default function ConnectGenfeedFlow() {
+  const translate = useTranslations('pages.connectGenfeed');
   const params = useParams<{ orgSlug: string }>();
   const { brands, isReady, organizationId, settings } = useBrand();
   const [client, setClient] = useState<ConnectGenfeedClient>('codex');
@@ -330,15 +332,25 @@ export default function ConnectGenfeedFlow() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
-      <h1 className="sr-only">Connect Genfeed</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       <ol
         className="grid gap-px bg-border sm:grid-cols-4"
-        aria-label="Connection progress"
+        aria-label={translate('progressLabel')}
       >
         {(authMethod === 'oauth'
-          ? ['Choose client', 'Add Genfeed', 'Authorize', 'Verify in client']
-          : ['Choose client', 'Choose key', 'Copy config', 'Verify']
+          ? [
+              translate('chooseClient'),
+              translate('addGenfeed'),
+              translate('authorize'),
+              translate('verifyInClient'),
+            ]
+          : [
+              translate('chooseClient'),
+              translate('chooseKey'),
+              translate('copyConfig'),
+              translate('verify'),
+            ]
         ).map((label, index) => (
           <li
             className="bg-card px-4 py-3 text-xs text-muted-foreground"
@@ -350,10 +362,10 @@ export default function ConnectGenfeedFlow() {
         ))}
       </ol>
 
-      <Card bodyClassName="p-5" label="1. Choose your MCP client">
+      <Card bodyClassName="p-5" label={translate('clientTitle')}>
         <Tabs
           activeTab={client}
-          ariaLabel="MCP client"
+          ariaLabel={translate('clientLabel')}
           fullWidth={false}
           items={CLIENTS.map((item) => ({
             id: item.value,
@@ -369,10 +381,10 @@ export default function ConnectGenfeedFlow() {
 
       <Tabs
         activeTab={authMethod}
-        ariaLabel="Authentication method"
+        ariaLabel={translate('authMethodLabel')}
         items={[
-          { id: 'oauth', label: 'Browser authorization' },
-          { id: 'manual-key', label: 'Advanced: manual API key' },
+          { id: 'oauth', label: translate('browserAuthorization') },
+          { id: 'manual-key', label: translate('manualKey') },
         ]}
         onTabChange={function handleAuthMethodChange(value) {
           setAuthMethod(value === 'manual-key' ? 'manual-key' : 'oauth');
@@ -384,12 +396,11 @@ export default function ConnectGenfeedFlow() {
       {authMethod === 'oauth' ? (
         <Card
           bodyClassName="p-5"
-          label="2. Connect with browser authorization"
-          description={`Endpoint: ${endpoint}`}
+          label={translate('browserTitle')}
+          description={translate('endpointDescription', { endpoint })}
         >
           <p className="text-sm text-muted-foreground">
-            Add Genfeed in your client, then approve access in the browser. No
-            API key is needed.
+            {translate('browserDescription')}
           </p>
           <pre className="my-4 overflow-x-auto bg-background p-3 font-mono text-xs">
             <code>{instructions.primaryCommand ?? endpoint}</code>
@@ -404,23 +415,20 @@ export default function ConnectGenfeedFlow() {
             withWrapper={false}
           >
             {instructions.primaryCommand
-              ? 'Copy setup command'
-              : 'Copy server URL'}
+              ? translate('copySetupCommand')
+              : translate('copyServerUrl')}
           </Button>
           <p className="mt-4 text-sm">
             {instructions.authorizationInstruction}
           </p>
           <Alert className="mt-4">
-            <AlertTitle>Finish connecting in your client</AlertTitle>
+            <AlertTitle>{translate('finishTitle')}</AlertTitle>
             <AlertDescription>
-              Complete browser consent, then ask your agent: “List my Genfeed
-              brands.” A successful read verifies access.
+              {translate('finishDescription')}
             </AlertDescription>
           </Alert>
           <p className="mt-4 text-sm text-muted-foreground">
-            If access was denied or the login expired, restart authorization in
-            your client and approve access. If OAuth is unavailable, update your
-            client or choose the advanced manual-key path above.
+            {translate('authorizationRecovery')}
           </p>
           <p aria-live="polite" className="mt-3 text-xs">
             {copiedItem
@@ -432,12 +440,12 @@ export default function ConnectGenfeedFlow() {
         <>
           <Card
             bodyClassName="p-5"
-            label="2. Create or select a scoped key"
-            description="The MCP preset includes read, content, analytics, and draft publishing scopes. Existing key values remain copy-once."
+            label={translate('keyTitle')}
+            description={translate('keyDescription')}
           >
             {isLoadingKeys ? (
               <p className="text-sm text-muted-foreground" role="status">
-                Loading API keys...
+                {translate('loadingKeys')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -462,12 +470,12 @@ export default function ConnectGenfeedFlow() {
                         >
                           <span>
                             <span className="block text-sm font-medium">
-                              {apiKey.label ?? 'Unnamed API key'}
+                              {apiKey.label ?? translate('unnamedKey')}
                             </span>
                             <span className="mt-1 block text-xs opacity-70">
                               {isScoped
-                                ? 'MCP scopes ready'
-                                : 'Missing guided-flow scopes'}
+                                ? translate('scopesReady')
+                                : translate('scopesMissing')}
                             </span>
                           </span>
                           {isSelected ? (
@@ -484,7 +492,7 @@ export default function ConnectGenfeedFlow() {
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No active Genfeed API keys yet.
+                    {translate('emptyKeys')}
                   </p>
                 )}
 
@@ -496,20 +504,19 @@ export default function ConnectGenfeedFlow() {
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
-                  Create scoped MCP key
+                  {translate('createKey')}
                 </Button>
 
                 {!hasProductApiAccess ? (
                   <p className="text-xs text-warning">
-                    API access is available on paid cloud plans and all
-                    self-hosted deployments.
+                    {translate('apiAccessDescription')}
                   </p>
                 ) : null}
 
                 {createdPlainKey ? (
                   <Alert variant="warning">
                     <Key aria-hidden="true" className="size-4" />
-                    <AlertTitle>Copy this key now</AlertTitle>
+                    <AlertTitle>{translate('copyKeyTitle')}</AlertTitle>
                     <AlertDescription>
                       <p className="break-all font-mono text-xs">
                         {createdPlainKey}
@@ -525,10 +532,10 @@ export default function ConnectGenfeedFlow() {
                         variant={ButtonVariant.SECONDARY}
                         withWrapper={false}
                       >
-                        Copy API key
+                        {translate('copyKey')}
                       </Button>
                       <p className="mt-2 text-xs">
-                        It will not be shown again after you leave this page.
+                        {translate('copyOnceDescription')}
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -539,17 +546,17 @@ export default function ConnectGenfeedFlow() {
 
           <Card
             bodyClassName="p-5"
-            label="3. Copy secret-safe configuration"
-            description={`Endpoint: ${endpoint}`}
+            label={translate('configurationTitle')}
+            description={translate('endpointDescription', { endpoint })}
           >
             <div className="space-y-4">
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <h2 className="text-xs font-medium">
-                    Enter the key without shell history
+                    {translate('enterKeyTitle')}
                   </h2>
                   <Button
-                    ariaLabel="Copy environment variable command"
+                    ariaLabel={translate('copyEnvironment')}
                     icon={<Clipboard aria-hidden="true" className="size-4" />}
                     onClick={() =>
                       void copyText(
@@ -568,9 +575,11 @@ export default function ConnectGenfeedFlow() {
               {instructions.primaryCommand ? (
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <h2 className="text-xs font-medium">Add Genfeed</h2>
+                    <h2 className="text-xs font-medium">
+                      {translate('addGenfeed')}
+                    </h2>
                     <Button
-                      ariaLabel="Copy client setup command"
+                      ariaLabel={translate('copyClientSetup')}
                       icon={<Clipboard aria-hidden="true" className="size-4" />}
                       onClick={() =>
                         void copyText(
@@ -591,11 +600,11 @@ export default function ConnectGenfeedFlow() {
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <h2 className="text-xs font-medium">
                     {client === 'codex'
-                      ? 'Equivalent config.toml'
-                      : 'Configuration'}
+                      ? translate('equivalentConfig')
+                      : translate('configuration')}
                   </h2>
                   <Button
-                    ariaLabel="Copy MCP configuration"
+                    ariaLabel={translate('copyConfiguration')}
                     icon={<Clipboard aria-hidden="true" className="size-4" />}
                     onClick={() =>
                       void copyText(
@@ -619,8 +628,8 @@ export default function ConnectGenfeedFlow() {
 
           <Card
             bodyClassName="p-5"
-            label="4. Verify the connection"
-            description="Genfeed performs a bounded tools/list request against the configured MCP service. The key is never persisted or returned by this check."
+            label={translate('verificationTitle')}
+            description={translate('verificationDescription')}
           >
             <div className="space-y-4">
               {!createdPlainKey ? (
@@ -629,7 +638,7 @@ export default function ConnectGenfeedFlow() {
                     className="mb-1 block text-xs font-medium"
                     htmlFor="connect-genfeed-key"
                   >
-                    Stored value for the selected key
+                    {translate('storedKeyLabel')}
                   </label>
                   <Input
                     autoComplete="off"
@@ -642,9 +651,7 @@ export default function ConnectGenfeedFlow() {
                     value={verificationSecret}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Existing keys stay copy-once. Enter the value you stored to
-                    run the bounded check, or use the manual client command
-                    below.
+                    {translate('storedKeyDescription')}
                   </p>
                 </div>
               ) : null}
@@ -656,20 +663,19 @@ export default function ConnectGenfeedFlow() {
                 onClick={() => void handleVerify()}
                 withWrapper={false}
               >
-                Verify MCP connection
+                {translate('verifyConnection')}
               </Button>
 
               {instructions.verifyCommand ? (
                 <p className="text-xs text-muted-foreground">
-                  Manual fallback:{' '}
+                  {translate('manualFallback')}{' '}
                   <code className="font-mono text-foreground">
                     {instructions.verifyCommand}
                   </code>
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Manual fallback: run your client&apos;s tool discovery and
-                  confirm that Genfeed tools are listed.
+                  {translate('manualFallbackDescription')}
                 </p>
               )}
 
@@ -684,16 +690,18 @@ export default function ConnectGenfeedFlow() {
                   >
                     <AlertTitle>
                       {verification.reason === 'invalid_scope'
-                        ? 'Key scopes need attention'
+                        ? translate('invalidScopeTitle')
                         : verification.reason === 'invalid_key'
-                          ? 'Key verification failed'
-                          : 'Automatic verification unavailable'}
+                          ? translate('invalidKeyTitle')
+                          : translate('unavailableTitle')}
                     </AlertTitle>
                     <AlertDescription>
                       <p>{verification.message}</p>
                       {verification.missingScopes?.length ? (
                         <p className="mt-2 font-mono text-xs">
-                          Missing: {verification.missingScopes.join(', ')}
+                          {translate('missingScopes', {
+                            scopes: verification.missingScopes.join(', '),
+                          })}
                         </p>
                       ) : null}
                     </AlertDescription>
@@ -703,11 +711,13 @@ export default function ConnectGenfeedFlow() {
                 {verification?.status === 'connected' ? (
                   <Alert variant="success">
                     <CircleCheck aria-hidden="true" className="size-4" />
-                    <AlertTitle>Connection verified</AlertTitle>
+                    <AlertTitle>{translate('verifiedTitle')}</AlertTitle>
                     <AlertDescription>
-                      Genfeed authenticated the selected key and completed MCP
-                      tool discovery at{' '}
-                      {new Date(verification.verifiedAt).toLocaleString()}.
+                      {translate('verifiedDescription', {
+                        verifiedAt: new Date(
+                          verification.verifiedAt,
+                        ).toLocaleString(),
+                      })}
                     </AlertDescription>
                   </Alert>
                 ) : null}
@@ -718,15 +728,13 @@ export default function ConnectGenfeedFlow() {
           {verification?.status === 'connected' ? (
             <Card
               bodyClassName="p-5"
-              label="First distribution action"
+              label={translate('firstActionTitle')}
               description={
                 verification.publishing.isReady
-                  ? `${verification.publishing.connectedAccountCount} connected publishing account${
-                      verification.publishing.connectedAccountCount === 1
-                        ? ''
-                        : 's'
-                    } ready.`
-                  : 'Your MCP connection works, but no publishing integration is connected yet.'
+                  ? translate('publishingReady', {
+                      count: verification.publishing.connectedAccountCount,
+                    })
+                  : translate('publishingUnavailable')
               }
             >
               <div className="space-y-4">
@@ -746,15 +754,16 @@ export default function ConnectGenfeedFlow() {
                       variant={ButtonVariant.SECONDARY}
                       withWrapper={false}
                     >
-                      Copy first action prompt
+                      {translate('copyFirstAction')}
                     </Button>
                   </>
                 ) : (
                   <Alert variant="warning">
-                    <AlertTitle>Connect a publishing account</AlertTitle>
+                    <AlertTitle>
+                      {translate('connectPublishingTitle')}
+                    </AlertTitle>
                     <AlertDescription>
-                      Add at least one brand social account before asking your
-                      MCP client to create a distribution draft.
+                      {translate('connectPublishingDescription')}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -766,9 +775,9 @@ export default function ConnectGenfeedFlow() {
                   >
                     {verification.publishing.isReady
                       ? firstBrandSlug
-                        ? 'Draft a post with the Agent'
-                        : 'Open publishing workspace'
-                      : 'Connect publishing integration'}
+                        ? translate('draftWithAgent')
+                        : translate('openPublishing')
+                      : translate('connectPublishing')}
                     <ArrowRight aria-hidden="true" className="size-4" />
                   </Link>
                 </Button>
