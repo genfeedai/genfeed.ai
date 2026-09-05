@@ -117,7 +117,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-toolbar.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/~/agent/journey/page.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/~/automation/OrganizationAutomationOverviewPage.tsx": 6,
-    "apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx": 21,
     "apps/app/app/(protected)/[orgSlug]/~/discovery/discovery-org-brand-gate.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/help/content.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx": 7,
