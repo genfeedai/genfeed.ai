@@ -1,27 +1,8 @@
 #!/usr/bin/env node
 /**
- * E2E Route Coverage Reporter
- * ----------------------------------------------------------------------------
- * Statically measures how much of the Next.js App Router surface in apps/app is
- * exercised by the Playwright suite.
- *
- * It reports two numbers:
- *   1. Dedicated coverage  — routes reached by an explicit navigation in a spec
- *                            or page object (the metric we grow on purpose).
- *   2. Effective coverage  — dedicated routes PLUS every route swept by the
- *                            generated all-app-pages smoke test (which navigates
- *                            every discovered page.tsx).
- *
- * The gate is on DEDICATED coverage by default because that is what reflects
- * intentional, interaction-level testing. Override with:
- *   E2E_ROUTE_COVERAGE_THRESHOLD=90   (percentage, default 90)
- *   E2E_ROUTE_COVERAGE_MODE=effective (gate on effective coverage instead)
- *
- * Usage:
- *   node scripts/e2e-route-coverage.mjs
- *   bun run test:e2e:routes
- *
- * Exit code 1 when below threshold.
+ * Static route reference inventory. This scans source text, including page objects
+ * and excluded specs; it does not establish navigation, execution, or QA coverage.
+ * Browser pass/fail evidence belongs to the executed Playwright lanes.
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -39,9 +20,6 @@ const e2eRoots = [
   path.join(repoRoot, 'playwright/e2e/tests'),
   path.join(repoRoot, 'playwright/e2e/pages'),
 ];
-
-const THRESHOLD = Number(process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '90');
-const MODE = process.env.E2E_ROUTE_COVERAGE_MODE ?? 'dedicated';
 
 // ---------------------------------------------------------------------------
 // Route discovery (mirrors all-app-pages.spec.ts logic)
@@ -278,17 +256,17 @@ export function readAppRouteSuffix(src, matchIndex, matchLength) {
 
 /**
  * Resolve `${CONST}` references inside a template-literal route using the
- * per-file path constant map; unknown references collapse to nothing.
+ * per-file path constant map; unknown references remain unresolved (and are not credited).
  * @param {string} raw @param {Record<string,string>} consts
  */
 function resolveTemplate(raw, consts) {
-  return raw.replace(/\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}/g, (_, name) =>
-    Object.hasOwn(consts, name) ? consts[name] : '',
+  return raw.replace(/\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}/g, (match, name) =>
+    Object.hasOwn(consts, name) ? consts[name] : match,
   );
 }
 
 /**
- * @returns {Set<string>} canonical route keys hit by dedicated specs.
+ * @returns {Set<string>} canonical route keys referenced in source text.
  *
  * Routes are reached both via direct `.goto()` calls and via helpers like
  * `assertRouteRenders(page, route)` where `route` comes from a `routes = [...]`
@@ -303,7 +281,7 @@ function collectNavigatedKeys() {
   const appRoutes = readAppRouteConstants();
 
   for (const file of files) {
-    // The generated sweep is accounted for separately as "effective" coverage.
+    // The generated route sweep provides no static interaction evidence.
     if (file.endsWith(ALL_APP_PAGES_FILE)) continue;
     const src = readFileSync(file, 'utf8');
 
@@ -336,59 +314,55 @@ function collectNavigatedKeys() {
 // Report
 // ---------------------------------------------------------------------------
 
+export function buildRouteReferenceInventory(discovered, references) {
+  const referencedRoutes = discovered.filter((route) => references.has(route));
+  return {
+    kind: 'static-reference-inventory',
+    discoveredRouteCount: discovered.length,
+    referencedRoutes,
+    unreferencedRoutes: discovered.filter((route) => !references.has(route)),
+    referencePercent: pct(referencedRoutes.length, discovered.length),
+    executedRouteCount: null,
+  };
+}
+
 function main() {
   if (!safeExists(appRoot)) {
-    console.error(`✗ App root not found: ${appRoot}`);
+    console.error(`App root not found: ${appRoot}`);
     process.exit(1);
+  }
+  if (
+    process.env.E2E_ROUTE_COVERAGE_MODE ||
+    process.env.E2E_ROUTE_COVERAGE_THRESHOLD
+  ) {
+    throw new Error(
+      'Static route inventory cannot gate execution coverage. Remove E2E_ROUTE_COVERAGE_MODE/THRESHOLD; use the executed browser gates.',
+    );
   }
 
   const discovered = [
     ...new Set(listPageFiles(appRoot).map(pageFileToKey)),
   ].sort();
-  const navigated = collectNavigatedKeys();
-
-  /** A discovered route is "dedicated-covered" if a navigation key matches it
-   *  exactly or as a prefix (a deeper nav implies the parent area is exercised). */
-  const isDedicated = (route) => {
-    for (const nav of navigated) {
-      if (nav === route) return true;
-      if (route !== '/' && nav.startsWith(`${route}/`)) return true;
-      if (nav !== '/' && route.startsWith(`${nav}/`)) return true;
-    }
-    return false;
-  };
-
-  const dedicatedHits = discovered.filter(isDedicated);
-  const dedicatedPct = pct(dedicatedHits.length, discovered.length);
-  // The sweep navigates every discovered page, so effective coverage is 100%
-  // of routes that successfully render — reported as the full discovered set.
-  const effectivePct = 100;
-
-  const uncovered = discovered.filter((r) => !isDedicated(r));
-
-  console.log('\n=== E2E Route Coverage ===');
-  console.log(`Discovered routes (canonical):   ${discovered.length}`);
-  console.log(`Dedicated-spec navigations:      ${navigated.size}`);
-  console.log(`Routes with a dedicated spec:    ${dedicatedHits.length}`);
-  console.log(`Dedicated coverage:              ${dedicatedPct.toFixed(1)}%`);
-  console.log(`Effective coverage (incl sweep): ${effectivePct.toFixed(1)}%`);
-
-  if (uncovered.length > 0) {
-    console.log('\nRoutes without a dedicated spec:');
-    for (const route of uncovered) console.log(`  · ${route}`);
-  }
-
-  const measured = MODE === 'effective' ? effectivePct : dedicatedPct;
-  const label = MODE === 'effective' ? 'effective' : 'dedicated';
-  console.log(
-    `\nGate: ${label} coverage ${measured.toFixed(1)}% (threshold ${THRESHOLD}%)`,
+  const report = buildRouteReferenceInventory(
+    discovered,
+    collectNavigatedKeys(),
   );
-
-  if (measured + 1e-9 < THRESHOLD) {
-    console.error(`✗ Route coverage below threshold.`);
-    process.exit(1);
+  console.log('=== Static E2E route reference inventory ===');
+  console.log(`Discovered canonical routes: ${report.discoveredRouteCount}`);
+  console.log(
+    `Exact source references: ${report.referencedRoutes.length} (${report.referencePercent.toFixed(1)}%)`,
+  );
+  console.log('Execution coverage: unavailable from source text.');
+  console.log(
+    'References include page objects and excluded specs; they do not prove a test ran or passed.',
+  );
+  console.log(
+    'Reporting only. Release confidence comes from the executed browser gates.',
+  );
+  if (report.unreferencedRoutes.length > 0) {
+    console.log('Routes without exact source references:');
+    for (const route of report.unreferencedRoutes) console.log(`  - ${route}`);
   }
-  console.log('✓ Route coverage meets threshold.\n');
 }
 
 /** @param {number} n @param {number} d */

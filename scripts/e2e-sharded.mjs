@@ -1,15 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import { PLAYWRIGHT_E2E_CORE_PATHS } from './playwright-e2e-tiers.manifest.mjs';
 
 const DEFAULT_CONFIG = 'playwright/configs/playwright.config.ts';
 const DEFAULT_PROJECT = 'app-core';
-const CORE_TEST_PATHS = [
-  'playwright/e2e/tests/smoke',
-  'playwright/e2e/tests/core',
-  'playwright/e2e/tests/chat/onboarding.spec.ts',
-  'playwright/e2e/tests/shell/page-context-contract.spec.ts',
-  'playwright/e2e/tests/studio/clips.spec.ts',
-];
 
 function writeStdout(message) {
   process.stdout.write(`${message}\n`);
@@ -136,7 +130,7 @@ if (!['core', 'all'].includes(scope)) {
   process.exit(1);
 }
 
-const testPaths = scope === 'core' ? CORE_TEST_PATHS : [];
+const testPaths = scope === 'core' ? PLAYWRIGHT_E2E_CORE_PATHS : [];
 const args = ['playwright', 'test', `--config=${config}`, ...testPaths];
 
 if (project && !hasOption(playwrightArgs, '--project')) {

@@ -10,7 +10,11 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PLAYWRIGHT_E2E_QUARANTINES } from './playwright-e2e-tiers.manifest.mjs';
+import {
+  PLAYWRIGHT_E2E_CORE_PATHS,
+  PLAYWRIGHT_E2E_LANE_EXCLUSIONS,
+  PLAYWRIGHT_E2E_QUARANTINES,
+} from './playwright-e2e-tiers.manifest.mjs';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SPECS_ROOT = 'playwright/e2e/tests';
@@ -50,6 +54,7 @@ export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
  * @typedef {{
  *   discoveredFiles: string[],
  *   quarantinedFiles: PlaywrightE2eQuarantine[],
+ *   laneExcludedFiles?: Array<{ file: string, lane: string, reason: string }>,
  *   selectedFiles: string[],
  *   tier: 'full',
  * }} PlaywrightE2eTierPlan
@@ -60,6 +65,13 @@ export const PLAYWRIGHT_E2E_TIER_CONTRACT = {
  *   discoveredFileCount: number,
  *   discoveredFiles: string[],
  *   executedFileCount: number | null,
+ *   executedTestCount: number | null,
+ *   failedTestCount: number | null,
+ *   skippedTestCount: number | null,
+ *   flakyTestCount: number | null,
+ *   firstAttemptFailureCount: number | null,
+ *   reportErrorCount: number | null,
+ *   laneExcludedFileCount: number,
  *   failedFileCount: number | null,
  *   quarantinedFileCount: number,
  *   quarantinedFiles: PlaywrightE2eQuarantine[],
@@ -183,11 +195,14 @@ export function validatePlaywrightE2eQuarantines(
  *   now?: Date | number,
  *   quarantines?: PlaywrightE2eQuarantine[],
  *   rootDir?: string,
+ *   laneExclusions?: Array<{ file: string, lane: string, reason: string }>,
  * }} [options]
  */
 export function buildPlaywrightE2eTierPlan(options = {}) {
   const quarantines = options.quarantines ?? PLAYWRIGHT_E2E_QUARANTINES;
   const rootDir = options.rootDir ?? REPOSITORY_ROOT;
+  const laneExcludedFiles =
+    options.laneExclusions ?? PLAYWRIGHT_E2E_LANE_EXCLUSIONS;
   const discoveredFiles = discoverPlaywrightSpecs(rootDir);
   const manifestErrors = validatePlaywrightE2eQuarantines(
     discoveredFiles,
@@ -203,39 +218,31 @@ export function buildPlaywrightE2eTierPlan(options = {}) {
     );
   }
 
-  const quarantinedPaths = new Set(quarantines.map(({ file }) => file));
+  const excludedFiles = [...quarantines, ...laneExcludedFiles];
+  for (const exclusion of laneExcludedFiles) {
+    if (
+      !discoveredFiles.includes(exclusion.file) ||
+      !exclusion.lane ||
+      !exclusion.reason
+    ) {
+      throw new Error(`Invalid Playwright lane exclusion: ${exclusion.file}`);
+    }
+  }
+  if (duplicateValues(excludedFiles.map(({ file }) => file)).length > 0) {
+    throw new Error(
+      'A spec cannot belong to both a quarantine and another lane.',
+    );
+  }
+  const quarantinedPaths = new Set(excludedFiles.map(({ file }) => file));
   return {
     discoveredFiles,
     quarantinedFiles: [...quarantines],
+    laneExcludedFiles: [...laneExcludedFiles],
     selectedFiles: discoveredFiles.filter(
       (file) => !quarantinedPaths.has(file),
     ),
     tier: 'full',
   };
-}
-
-/**
- * @param {{ specs?: Array<{ ok?: boolean }>, suites?: unknown[] }} [suite]
- * @returns {{ executed: number, failed: number }}
- */
-function countSpecs(suite) {
-  let executed = 0;
-  let failed = 0;
-
-  for (const spec of suite?.specs ?? []) {
-    executed += 1;
-    if (spec.ok === false) {
-      failed += 1;
-    }
-  }
-
-  for (const child of suite?.suites ?? []) {
-    const nested = countSpecs(child);
-    executed += nested.executed;
-    failed += nested.failed;
-  }
-
-  return { executed, failed };
 }
 
 /**
@@ -275,28 +282,72 @@ export function isPlaywrightJsonReport(value) {
 }
 
 /**
- * @param {Array<{ stats?: { expected?: number, unexpected?: number }, suites?: unknown[] }>} reports
- * @returns {{ executed: number, failed: number }}
+ * Counts test cases once per project, regardless of retries. Skipped cases are
+ * separate; file counts require actual file evidence and never use spec totals.
+ * @param {Array<{ stats?: { expected?: number, unexpected?: number, flaky?: number, skipped?: number }, suites?: object[], errors?: object[] }>} reports
  */
 export function mergePlaywrightJsonReports(reports) {
-  let executed = 0;
-  let failed = 0;
-
-  for (const report of reports) {
-    const walked = countSpecs({ suites: report.suites ?? [] });
-    if (walked.executed > 0) {
-      executed += walked.executed;
-      failed += walked.failed;
-      continue;
+  const counts = {
+    executed: 0,
+    failed: 0,
+    skipped: 0,
+    flaky: 0,
+    firstAttemptFailures: 0,
+    errors: 0,
+  };
+  const executedFiles = new Set();
+  const failedFiles = new Set();
+  let hasFileEvidence = false;
+  function visit(suite, parentFile) {
+    const file = suite.file ?? parentFile;
+    for (const spec of suite.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        const attempts = (test.results ?? []).filter(
+          (result) => result.status !== 'skipped',
+        );
+        if (attempts.length === 0) {
+          counts.skipped += 1;
+          continue;
+        }
+        counts.executed += 1;
+        const testFile = spec.file ?? file;
+        if (testFile) {
+          hasFileEvidence = true;
+          executedFiles.add(testFile);
+        }
+        if (attempts[0].status !== (test.expectedStatus ?? 'passed'))
+          counts.firstAttemptFailures += 1;
+        if (test.status === 'flaky') counts.flaky += 1;
+        if (
+          test.status === 'unexpected' ||
+          attempts.at(-1).status === 'interrupted'
+        ) {
+          counts.failed += 1;
+          if (testFile) failedFiles.add(testFile);
+        }
+      }
     }
-
-    if (report.stats) {
-      executed += (report.stats.expected ?? 0) + (report.stats.unexpected ?? 0);
-      failed += report.stats.unexpected ?? 0;
-    }
+    for (const child of suite.suites ?? []) visit(child, file);
   }
-
-  return { executed, failed };
+  for (const report of reports) {
+    const before = counts.executed + counts.skipped;
+    for (const suite of report.suites ?? []) visit(suite);
+    if (counts.executed + counts.skipped === before && report.stats) {
+      counts.executed +=
+        (report.stats.expected ?? 0) +
+        (report.stats.unexpected ?? 0) +
+        (report.stats.flaky ?? 0);
+      counts.failed += report.stats.unexpected ?? 0;
+      counts.flaky += report.stats.flaky ?? 0;
+      counts.skipped += report.stats.skipped ?? 0;
+    }
+    counts.errors += report.errors?.length ?? 0;
+  }
+  return {
+    ...counts,
+    executedFileCount: hasFileEvidence ? executedFiles.size : null,
+    failedFileCount: hasFileEvidence ? failedFiles.size : null,
+  };
 }
 
 /**
@@ -313,31 +364,35 @@ export function buildPlaywrightE2eTierSummary({
   playwrightReports,
   status,
 }) {
-  let executedFileCount = null;
-  let failedFileCount = null;
-
-  if (status !== 'planned') {
-    const reports = [
-      ...(playwrightReports ?? []),
-      ...(playwrightReport ? [playwrightReport] : []),
-    ];
-    const merged = mergePlaywrightJsonReports(reports);
-    if (merged.executed > 0 || reports.length > 0) {
-      executedFileCount = merged.executed;
-      failedFileCount = merged.failed;
-    }
-  }
-
+  const reports = [
+    ...(playwrightReports ?? []),
+    ...(playwrightReport ? [playwrightReport] : []),
+  ];
+  const merged = mergePlaywrightJsonReports(reports);
+  const hasEvidence = status !== 'planned' && reports.length > 0;
+  const effectiveStatus =
+    status === 'passed' &&
+    (merged.executed === 0 || merged.failed > 0 || merged.errors > 0)
+      ? 'failed'
+      : status;
   return {
     discoveredFileCount: plan.discoveredFiles.length,
     discoveredFiles: plan.discoveredFiles,
-    executedFileCount,
-    failedFileCount,
+    executedFileCount: hasEvidence ? merged.executedFileCount : null,
+    failedFileCount: hasEvidence ? merged.failedFileCount : null,
+    executedTestCount: hasEvidence ? merged.executed : null,
+    failedTestCount: hasEvidence ? merged.failed : null,
+    skippedTestCount: hasEvidence ? merged.skipped : null,
+    flakyTestCount: hasEvidence ? merged.flaky : null,
+    firstAttemptFailureCount: hasEvidence ? merged.firstAttemptFailures : null,
+    reportErrorCount: hasEvidence ? merged.errors : null,
+    laneExcludedFileCount: plan.laneExcludedFiles?.length ?? 0,
+    laneExcludedFiles: plan.laneExcludedFiles ?? [],
     quarantinedFileCount: plan.quarantinedFiles.length,
     quarantinedFiles: plan.quarantinedFiles,
     selectedFileCount: plan.selectedFiles.length,
     selectedFiles: plan.selectedFiles,
-    status,
+    status: effectiveStatus,
     tier: 'full',
   };
 }
@@ -364,9 +419,11 @@ function appendGitHubSummary(summary) {
   const lines = [
     '### Playwright E2E full tier',
     '',
-    '| Discovered | Selected | Executed | Quarantined | Failed | Status |',
+    '| Discovered files | Selected files | Executed tests | Quarantined files | Failed tests | Status |',
     '| ---: | ---: | ---: | ---: | ---: | --- |',
-    `| ${summary.discoveredFileCount} | ${summary.selectedFileCount} | ${summary.executedFileCount ?? 'n/a'} | ${summary.quarantinedFileCount} | ${summary.failedFileCount ?? 'n/a'} | ${summary.status} |`,
+    `| ${summary.discoveredFileCount} | ${summary.selectedFileCount} | ${summary.executedTestCount ?? 'n/a'} | ${summary.quarantinedFileCount} | ${summary.failedTestCount ?? 'n/a'} | ${summary.status} |`,
+    '',
+    `Other execution lanes: ${summary.laneExcludedFileCount} files. Skipped tests: ${summary.skippedTestCount ?? 'n/a'}. Flaky tests: ${summary.flakyTestCount ?? 'n/a'}. First-attempt failures: ${summary.firstAttemptFailureCount ?? 'n/a'}. Report errors: ${summary.reportErrorCount ?? 'n/a'}.`,
     '',
   ];
 
@@ -434,6 +491,7 @@ function parseCliOptions(args) {
   const playwrightArgs =
     separatorIndex === -1 ? [] : args.slice(separatorIndex + 1);
 
+  let tier = 'full';
   let listOnly = false;
   let summarize = false;
   let shard = null;
@@ -442,6 +500,12 @@ function parseCliOptions(args) {
   let statusOverride = null;
 
   for (const arg of ownArgs) {
+    if (arg.startsWith('--tier=')) {
+      tier = arg.slice('--tier='.length);
+      if (!['core', 'full'].includes(tier))
+        throw new Error(`Unsupported tier: ${tier}`);
+      continue;
+    }
     if (arg === '--list') {
       listOnly = true;
       continue;
@@ -476,6 +540,7 @@ function parseCliOptions(args) {
   }
 
   return {
+    tier,
     listOnly,
     playwrightArgs,
     playwrightReportPath,
@@ -499,7 +564,10 @@ function loadPlaywrightReports(options) {
 
   if (options.playwrightReportPath) {
     reportPaths.push(options.playwrightReportPath);
-  } else if (existsSync(PLAYWRIGHT_JSON_REPORT_PATH)) {
+  } else if (
+    !options.playwrightReportsDir &&
+    existsSync(PLAYWRIGHT_JSON_REPORT_PATH)
+  ) {
     reportPaths.push(PLAYWRIGHT_JSON_REPORT_PATH);
   }
 
@@ -508,7 +576,11 @@ function loadPlaywrightReports(options) {
     reportDirectories.push(options.playwrightReportsDir);
   }
   const defaultShardsDirectory = path.join(REPORT_DIRECTORY, 'shards');
-  if (existsSync(defaultShardsDirectory)) {
+  if (
+    !options.playwrightReportPath &&
+    !options.playwrightReportsDir &&
+    existsSync(defaultShardsDirectory)
+  ) {
     reportDirectories.push(defaultShardsDirectory);
   }
 
@@ -535,7 +607,29 @@ function loadPlaywrightReports(options) {
   return reports;
 }
 
+export function buildPlaywrightCoreArgs() {
+  return [
+    'playwright',
+    'test',
+    `--config=${PLAYWRIGHT_CONFIG}`,
+    ...PLAYWRIGHT_E2E_CORE_PATHS,
+    `--project=${PLAYWRIGHT_PROJECT}`,
+  ];
+}
+
 function runPlaywrightFullTier(options) {
+  if (options.tier === 'core') {
+    const args = buildPlaywrightCoreArgs();
+    if (options.shard) args.push(`--shard=${options.shard}`);
+    if (options.listOnly) args.push('--list');
+    args.push(...options.playwrightArgs);
+    const result = spawnSync('bunx', args, {
+      cwd: REPOSITORY_ROOT,
+      env: process.env,
+      stdio: 'inherit',
+    });
+    return result.status ?? 1;
+  }
   const plan = buildPlaywrightE2eTierPlan();
 
   console.log(
@@ -568,27 +662,21 @@ function runPlaywrightFullTier(options) {
     const merged = mergePlaywrightJsonReports(playwrightReports);
     const status =
       options.statusOverride ??
-      (playwrightReports.length > 0 && merged.failed === 0
+      (merged.executed > 0 && merged.failed === 0 && merged.errors === 0
         ? 'passed'
         : 'failed');
-    writeSummary(
-      buildPlaywrightE2eTierSummary({
-        plan,
-        playwrightReports,
-        status,
-      }),
-    );
-    return 0;
+    const summary = buildPlaywrightE2eTierSummary({
+      plan,
+      playwrightReports,
+      status,
+    });
+    writeSummary(summary);
+    return summary.status === 'passed' || summary.status === 'planned' ? 0 : 1;
   }
 
   if (plan.selectedFiles.length === 0) {
-    writeSummary(
-      buildPlaywrightE2eTierSummary({
-        plan,
-        status: 'passed',
-      }),
-    );
-    return 0;
+    writeSummary(buildPlaywrightE2eTierSummary({ plan, status: 'failed' }));
+    return 1;
   }
 
   const args = [
@@ -623,7 +711,10 @@ function runPlaywrightFullTier(options) {
   return result.status ?? 1;
 }
 
-if (import.meta.main) {
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   try {
     process.exit(runPlaywrightFullTier(parseCliOptions(process.argv.slice(2))));
   } catch (error) {

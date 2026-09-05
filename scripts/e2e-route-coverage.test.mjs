@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildRouteReferenceInventory,
   canonicalize,
   readAppRouteConstants,
   readAppRouteSuffix,
@@ -64,5 +65,19 @@ export const APP_ROUTES = {
       ),
       '/studio/storyboard/*',
     );
+  });
+});
+
+describe('static route reference inventory', () => {
+  it('never credits parents, descendants, or dynamic siblings', () => {
+    const report = buildRouteReferenceInventory(
+      ['/posts', '/posts/*', '/posts/*/edit', '/settings/profile'],
+      new Set(['/posts/*', '/settings']),
+    );
+    assert.deepEqual(report.referencedRoutes, ['/posts/*']);
+    assert.equal(report.referencePercent, 25);
+    assert.equal(report.executedRouteCount, null);
+    assert.equal(report.kind, 'static-reference-inventory');
+    assert.equal(Object.hasOwn(report, 'effectivePercent'), false);
   });
 });
