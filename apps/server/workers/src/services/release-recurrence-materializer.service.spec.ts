@@ -11,6 +11,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     attachments: [{ body: 'First comment', kind: 'comment' }],
     baseContent: 'Evergreen release',
     brandId: 'brand-1',
+    campaignId: 'campaign-1',
     id: 'release-1',
     media: [{ assetId: 'asset-1' }],
     organizationId: 'org-1',
@@ -32,6 +33,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     agentStrategyId: 'strategy-1',
     agentThreadId: 'thread-1',
     brandId: 'brand-1',
+    campaignId: 'campaign-1',
     category: PostCategory.TEXT,
     children: [
       {
@@ -41,6 +43,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         agentStrategyId: 'strategy-1',
         agentThreadId: 'thread-1',
         brandId: 'brand-1',
+        campaignId: 'campaign-1',
         category: PostCategory.TEXT,
         credentialId: 'credential-1',
         description: 'First comment',
@@ -168,6 +171,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
       data: expect.objectContaining({
         attachments: sourceGroup.attachments,
         brandId: 'brand-1',
+        campaignId: 'campaign-1',
         idempotencyKey: 'system:evergreen-release:release-1:1',
         media: sourceGroup.media,
         organizationId: 'org-1',
@@ -218,6 +222,24 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
     });
+  });
+
+  it('keeps the campaign on the recurring release, target, and child', async () => {
+    const { post, postGroup, service } = createHarness();
+
+    await service.materializeNext({
+      groupId: 'release-1',
+      organizationId: 'org-1',
+      workflowExecutionId: 'execution-2',
+    });
+
+    expect(postGroup.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ campaignId: 'campaign-1' }),
+    });
+    expect(post.create).toHaveBeenCalledTimes(2);
+    for (const [input] of post.create.mock.calls) {
+      expect(input.data.campaignId).toBe('campaign-1');
+    }
   });
 
   it('reuses a deterministic occurrence on worker redelivery', async () => {

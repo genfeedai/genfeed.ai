@@ -79,11 +79,42 @@ export class PostRepeatSchedulerService implements OnModuleInit {
     }
 
     try {
+      const organizationId = post.organizationId;
+      const actorUserId = post.userId;
+      if (!organizationId || !actorUserId) {
+        throw new Error(
+          'Legacy repeat requires organization and user to create publish approval.',
+        );
+      }
+      const sourcePostId = post.id.toString();
+      const occurrenceKeyPrefix = `legacy-repeat:${sourcePostId}:`;
+      const existing = await this.postsService.findOne({
+        isDeleted: false,
+        isRepeat: true,
+        organizationId,
+        originalPostId: sourcePostId,
+        parentId: null,
+        targetIdempotencyKey: { startsWith: occurrenceKeyPrefix },
+      });
       const currentCount = post.repeatCount || 0;
-      const nextRepeatCount = currentCount + 1;
+      const nextRepeatCount = existing
+        ? Number(
+            existing.targetIdempotencyKey?.slice(occurrenceKeyPrefix.length),
+          )
+        : currentCount + 1;
+      if (!Number.isSafeInteger(nextRepeatCount) || nextRepeatCount < 1) {
+        throw new Error(
+          'Legacy repeat successor has an invalid occurrence identity.',
+        );
+      }
+      // The source counter commits only after the successor and its approval
+      // and children succeed. An outbox replay must acknowledge that successor.
+      if (existing && currentCount >= nextRepeatCount) {
+        return;
+      }
       const maxRepeats = post.maxRepeats || 0;
 
-      if (maxRepeats > 0 && nextRepeatCount >= maxRepeats) {
+      if (!existing && maxRepeats > 0 && nextRepeatCount >= maxRepeats) {
         await this.postsService.patch(post.id.toString(), {
           repeatCount: nextRepeatCount,
         });
@@ -95,7 +126,11 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         return;
       }
 
-      if (post.repeatEndDate && new Date() >= new Date(post.repeatEndDate)) {
+      if (
+        !existing &&
+        post.repeatEndDate &&
+        new Date() >= new Date(post.repeatEndDate)
+      ) {
         await this.postsService.patch(post.id.toString(), {
           repeatCount: nextRepeatCount,
         });
@@ -106,7 +141,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         return;
       }
 
-      const nextDate = this.calculateNextScheduleDate(post);
+      const nextDate = existing?.scheduledDate
+        ? new Date(existing.scheduledDate)
+        : this.calculateNextScheduleDate(post);
       if (!nextDate) {
         await this.postsService.patch(post.id.toString(), {
           repeatCount: nextRepeatCount,
@@ -117,18 +154,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         return;
       }
 
-      const organizationId = post.organizationId;
-      const actorUserId = post.userId;
-      // Occurrence #2+ must carry a version-bound PublishApproval so the
-      // scheduled sweep can enqueue approvalId + operationId + versionPinId.
-      // Without this, cron.posts.service terminal-fails non-retryably.
-      if (!organizationId || !actorUserId) {
-        throw new Error(
-          'Legacy repeat requires organization and user to create publish approval.',
-        );
-      }
       const timezone = post.timezone;
-      const sourcePostId = post.id.toString();
       const occurrenceKey = `legacy-repeat:${sourcePostId}:${nextRepeatCount}`;
 
       const postData = {
@@ -140,6 +166,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
             }
           : {}),
         brandId: post.brandId,
+        campaignId: post.campaignId ?? undefined,
         category: (post.category as PostCategory) || PostCategory.VIDEO,
         credentialId: post.credentialId,
         description: post.description,
@@ -164,11 +191,13 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         visibility: resolvePostVisibility(post.visibility),
       };
 
-      const newPost = await this.findOrCreateRepeatPost(
-        organizationId,
-        occurrenceKey,
-        postData,
-      );
+      const newPost =
+        existing ??
+        (await this.findOrCreateRepeatPost(
+          organizationId,
+          occurrenceKey,
+          postData,
+        ));
       const newPostId = newPost.id.toString();
 
       await this.publishApprovalsService.createForCurrentPost({
@@ -328,6 +357,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
                 }
               : {}),
             brandId: originalParent.brandId,
+            campaignId: originalParent.campaignId ?? undefined,
             category:
               (child.category as PostCategory | undefined) || PostCategory.TEXT,
             credentialId: originalParent.credentialId,
