@@ -1,12 +1,14 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AudioInputNodeData } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, Music, Upload, X } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function AudioInputNodeComponent(props: NodeProps) {
@@ -109,16 +111,18 @@ function AudioInputNodeComponent(props: NodeProps) {
     () => (
       <div className="flex items-center gap-1">
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => fileInputRef.current?.click()}
           title="Upload audio"
         >
           <Upload className="size-3.5" />
         </Button>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => setShowUrlInput(!showUrlInput)}
           title="Paste URL"
         >
@@ -126,8 +130,9 @@ function AudioInputNodeComponent(props: NodeProps) {
         </Button>
         {nodeData.audio && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={handleExpand}
             title="Expand preview"
           >
@@ -142,7 +147,7 @@ function AudioInputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       {/* Hidden file input */}
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept="audio/*"
@@ -154,7 +159,7 @@ function AudioInputNodeComponent(props: NodeProps) {
       {/* URL Input (shown when link button clicked) */}
       {showUrlInput && (
         <div className="mb-3 flex gap-2">
-          <input
+          <Input
             type="url"
             value={urlValue}
             onChange={(e) => setUrlValue(e.target.value)}
@@ -164,8 +169,9 @@ function AudioInputNodeComponent(props: NodeProps) {
             className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <Button
-            variant="secondary"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
             onClick={handleUrlSubmit}
             disabled={!urlValue.trim()}
             className="h-7 px-2 text-xs"
@@ -188,8 +194,9 @@ function AudioInputNodeComponent(props: NodeProps) {
               <track kind="captions" />
             </audio>
             <Button
-              variant="secondary"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.ICON}
               onClick={handleRemoveAudio}
               className="absolute -right-1 -top-1 size-5"
             >
@@ -203,7 +210,8 @@ function AudioInputNodeComponent(props: NodeProps) {
         </div>
       ) : (
         <Button
-          variant="ghost"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
           onClick={() => fileInputRef.current?.click()}
           className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
         >

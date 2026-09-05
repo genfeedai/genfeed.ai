@@ -172,13 +172,17 @@ function OrganizationAutomationBrandCard({
         <ul className="grid grid-cols-2 gap-2">
           {brand.surfaces.map((surface) => (
             <li key={surface.label}>
-              <Link
-                href={surface.href}
-                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground/60 transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              <Button
+                asChild
+                withWrapper={false}
+                variant={ButtonVariant.GHOST}
+                className="w-full justify-start"
               >
-                <surface.icon className="size-4" />
-                {surface.label}
-              </Link>
+                <Link href={surface.href}>
+                  <surface.icon className="size-4" />
+                  {surface.label}
+                </Link>
+              </Button>
             </li>
           ))}
         </ul>

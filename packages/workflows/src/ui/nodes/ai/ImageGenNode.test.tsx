@@ -73,7 +73,7 @@ vi.mock('../../provider', () => ({
 }));
 
 // Mock UI components
-vi.mock('../../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,
@@ -96,7 +96,7 @@ vi.mock('../../ui/button', () => ({
   ),
 }));
 
-vi.mock('../../ui/label', () => ({
+vi.mock('@genfeedai/ui/primitives/label', () => ({
   Label: ({ children }: { children: React.ReactNode }) => (
     <label>{children}</label>
   ),

@@ -1,6 +1,7 @@
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { ChevronDown, Expand, Play, Square } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
-import { Button } from '../ui/button';
 
 interface UseAIGenNodeHeaderOptions {
   modelDisplayName: string;
@@ -29,7 +30,8 @@ export function useAIGenNodeHeader({
   const titleElement = useMemo(
     () => (
       <Button
-        variant="ghost"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
         className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground h-auto p-0 ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
         onClick={() => !isProcessing && onModelBrowse()}
         title="Browse models"
@@ -47,8 +49,9 @@ export function useAIGenNodeHeader({
       <>
         {hasOutput && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onExpand}
             title="Expand preview"
           >
@@ -56,14 +59,22 @@ export function useAIGenNodeHeader({
           </Button>
         )}
         {isProcessing ? (
-          <Button variant="destructive" size="sm" onClick={onStop}>
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.DESTRUCTIVE}
+            size={ButtonSize.SM}
+            onClick={onStop}
+          >
             <Square className="size-4 fill-current" />
             Generating
           </Button>
         ) : (
           <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={onGenerate}
             disabled={!canGenerate}
           >

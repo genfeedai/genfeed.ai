@@ -54,7 +54,7 @@ vi.mock('../../stores/uiStore', () => ({
 }));
 
 // Mock UI components
-vi.mock('../../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,
@@ -121,7 +121,7 @@ vi.mock('@/components/models/ModelBrowserModal', () => ({
 }));
 
 // Mock Slider to be a native range input
-vi.mock('../../ui/slider', () => ({
+vi.mock('@genfeedai/ui/primitives/slider', () => ({
   Slider: ({
     value,
     min,

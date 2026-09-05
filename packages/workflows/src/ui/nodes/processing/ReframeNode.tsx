@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   GridPosition,
   LumaAspectRatio,
@@ -7,22 +8,23 @@ import type {
   ReframeNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
-import Image from 'next/image';
-import { memo, useCallback, useRef, useState } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { GridPositionSelector } from '../../ui/grid-position-selector';
-import { Label } from '../../ui/label';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
+} from '@genfeedai/ui/primitives/select';
+import type { NodeProps } from '@xyflow/react';
+import { LoaderCircle, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useCallback, useRef, useState } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
+import { GridPositionSelector } from '../../ui/grid-position-selector';
 import { BaseNode } from '../BaseNode';
 
 const MODELS: { value: LumaReframeModel; label: string; price: string }[] = [
@@ -179,7 +181,7 @@ function ReframeNodeComponent(props: NodeProps) {
           <Label htmlFor={`reframe-prompt-${id}`} className="text-xs">
             Prompt (optional)
           </Label>
-          <input
+          <Input
             aria-label="Reframe prompt"
             id={`reframe-prompt-${id}`}
             type="text"
@@ -209,8 +211,9 @@ function ReframeNodeComponent(props: NodeProps) {
               unoptimized
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -240,8 +243,9 @@ function ReframeNodeComponent(props: NodeProps) {
               muted
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -260,8 +264,9 @@ function ReframeNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!hasOutput && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!hasInput || nodeData.status === 'processing'}
             className="mt-1 w-full"

@@ -1,11 +1,23 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   CharacterOrientation,
   KlingQualityMode,
   MotionControlMode,
   MotionControlNodeData,
 } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,
@@ -20,16 +32,6 @@ import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 const QUALITY_MODES: {
@@ -314,8 +316,9 @@ function MotionOutputPreview({
         <track kind="captions" />
       </video>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onGenerate}
         disabled={isProcessing}
         className={
@@ -443,8 +446,9 @@ function MotionControlNodeComponent(props: NodeProps) {
       <>
         {nodeData.outputVideo && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={handleExpand}
             title="Expand preview"
           >
@@ -452,14 +456,22 @@ function MotionControlNodeComponent(props: NodeProps) {
           </Button>
         )}
         {nodeData.status === 'processing' ? (
-          <Button variant="destructive" size="sm" onClick={handleStop}>
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.DESTRUCTIVE}
+            size={ButtonSize.SM}
+            onClick={handleStop}
+          >
             <Square className="size-4 fill-current" />
             Generating
           </Button>
         ) : (
           <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={handleGenerate}
             disabled={!canGenerate}
           >

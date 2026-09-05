@@ -1,7 +1,11 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { LLMNodeData, TextModel } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Expand, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -19,8 +23,6 @@ import {
 import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 function LLMNodeComponent(props: NodeProps) {
@@ -177,7 +179,7 @@ function LLMNodeComponent(props: NodeProps) {
           >
             Max Tokens
           </label>
-          <input
+          <Input
             aria-label="Max Tokens"
             id={`llm-max-tokens-${id}`}
             type="number"
@@ -198,8 +200,9 @@ function LLMNodeComponent(props: NodeProps) {
               </div>
               <div className="flex items-center gap-1">
                 <Button
-                  variant="ghost"
-                  size="icon-sm"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
                   onClick={handleGenerate}
                   disabled={isProcessing}
                   title="Regenerate"
@@ -208,8 +211,9 @@ function LLMNodeComponent(props: NodeProps) {
                   <RefreshCw className="size-3" />
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="icon-sm"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
                   onClick={handleExpand}
                   title="Expand preview"
                   className="size-5"

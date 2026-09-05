@@ -1,8 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { EllipsisVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '../ui/button';
 import type { OverflowMenuProps } from './types';
 
 /**
@@ -41,8 +42,9 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
   return (
     <div ref={menuRef} className="relative">
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={() => setIsOpen(!isOpen)}
         title="More options"
       >
@@ -53,8 +55,9 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
         <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] border border-border bg-card py-1 shadow-lg">
           {items.map((item) => (
             <Button
+              withWrapper={false}
               key={item.id}
-              variant="ghost"
+              variant={ButtonVariant.GHOST}
               onClick={() => {
                 item.onClick?.();
                 setIsOpen(false);

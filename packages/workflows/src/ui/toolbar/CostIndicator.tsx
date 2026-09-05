@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import { statusBadge, statusIcon } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { DollarSign } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
@@ -8,7 +11,6 @@ import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
 import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 export function CostIndicator() {
   const translate = useTranslations('pages.workflows.status');
@@ -27,8 +29,9 @@ export function CostIndicator() {
 
   return (
     <Button
-      variant="secondary"
-      size="sm"
+      withWrapper={false}
+      variant={ButtonVariant.SECONDARY}
+      size={ButtonSize.SM}
       onClick={() => openModal('cost')}
       title={translate('viewCostBreakdown')}
       className="text-muted-foreground hover:text-foreground"

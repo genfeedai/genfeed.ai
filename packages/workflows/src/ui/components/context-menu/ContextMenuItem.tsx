@@ -1,8 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { Button } from '../../ui/button';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
 import type { ContextMenuItemConfig } from './context-menu-config';
 
@@ -71,7 +72,8 @@ export function ContextMenuItem({
       onPointerLeave={handleMouseLeave}
     >
       <Button
-        variant="ghost"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
         onClick={hasSubmenu ? undefined : onClick}
         disabled={disabled}
         className={`
@@ -110,8 +112,9 @@ export function ContextMenuItem({
 
             return (
               <Button
+                withWrapper={false}
                 key={item.id}
-                variant="ghost"
+                variant={ButtonVariant.GHOST}
                 onClick={() => handleSubmenuClick(item)}
                 disabled={item.disabled}
                 className={`
