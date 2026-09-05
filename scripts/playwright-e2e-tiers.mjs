@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -539,6 +540,16 @@ function parseCliOptions(args) {
     playwrightArgs.push(arg);
   }
 
+  if (
+    tier === 'core' &&
+    (summarize ||
+      statusOverride ||
+      playwrightReportPath ||
+      playwrightReportsDir)
+  ) {
+    throw new Error('Report options require --tier=full');
+  }
+
   return {
     tier,
     listOnly,
@@ -607,12 +618,30 @@ function loadPlaywrightReports(options) {
   return reports;
 }
 
+export function getPlaywrightCorePaths(
+  rootDir = REPOSITORY_ROOT,
+  selectors = PLAYWRIGHT_E2E_CORE_PATHS,
+) {
+  for (const selector of selectors) {
+    const absolutePath = path.join(rootDir, selector);
+    const matches =
+      existsSync(absolutePath) &&
+      (statSync(absolutePath).isDirectory()
+        ? collectSpecFiles(rootDir, selector).length > 0
+        : statSync(absolutePath).isFile() && selector.endsWith('.spec.ts'));
+    if (!matches)
+      throw new Error(`Core selector matches no specs: ${selector}`);
+  }
+  if (selectors.length === 0) throw new Error('Core selectors cannot be empty');
+  return selectors;
+}
+
 export function buildPlaywrightCoreArgs() {
   return [
     'playwright',
     'test',
     `--config=${PLAYWRIGHT_CONFIG}`,
-    ...PLAYWRIGHT_E2E_CORE_PATHS,
+    ...getPlaywrightCorePaths(),
     `--project=${PLAYWRIGHT_PROJECT}`,
   ];
 }

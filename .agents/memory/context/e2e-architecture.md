@@ -48,34 +48,32 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 
 | Job id | Display name | Runner / timeout | Blocking? | What it runs |
 |---|---|---|---|---|
-| `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
+| `e2e-route-coverage` | E2E Route Reference Inventory | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
 | `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (via gate) | Postgres + Redis service containers, package build, Prisma migrate deploy, `test:e2e:core` |
 | `e2e-api-full` | API E2E Full | ubuntu / 30m | **manual/nightly only** | Discovery-based compatible E2E/integration suite; skipped on production `workflow_call` |
 | `e2e-isolated-publish` | Isolated Publish E2E | ubuntu / 20m | **nightly + workflow_dispatch only** | Disposable Postgres/Redis publish journey (`test:e2e:isolated-publish`). Fake publishers. Never attached to `e2e-gate` or production `workflow_call`. #3836 |
 | `e2e-frontend` | Frontend E2E (Shard N/4) | ubuntu / 45m | **yes** (via gate) | matrix 4 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
-| `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |
+| `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (requires success from all three unconditional jobs) |
 | `e2e-frontend-authed` | Frontend Authed E2E (real Better Auth) | ubuntu / 40m | **yes on nightly cron** (`continue-on-error` on all other events; gated by `E2E_AUTHED_ENABLED` var) | hermetic full stack: Postgres+Redis containers, `prisma migrate deploy`, real API on :3010, `bun run test:e2e:authed` |
 
 Playwright **full** is a separate scheduled workflow (`.github/workflows/playwright-full-nightly.yml`).
 It is reporting-only: it never `uses`/`needs` into `full-suite.yml` or production deploy.
 
 `e2e-gate` is the single job that represents the required suite's pass/fail (it `needs:` route-coverage +
-frontend + API). It exits 1 if route coverage failed, API E2E failed, or any shard failed/was cancelled. Re-running only the
+frontend + API). It exits 1 if inventory generation or any required API/frontend job is not successful, including skipped and cancelled results. Re-running only the
 failed shard + gate carries the green shards forward. The old single `e2e-frontend` /
 `e2e-frontend-coverage` jobs in §2.3/§2.4 below are superseded by the sharded layout above.
 
-### 2.1 `e2e-route-coverage` — static gate (fastest signal)
-- No app build, no DB. Pure static analysis (`scripts/e2e-route-coverage.mjs`).
-- Discovers every `apps/app/app/**/page.tsx`, then scans `playwright/e2e/tests` + `playwright/e2e/pages`
-  for explicit navigations.
-- Reports two numbers:
-  - **Dedicated** — routes reached by an explicit nav in a spec/page object (the metric grown on purpose).
-  - **Effective** — dedicated + every route swept by the generated `all-app-pages` smoke test.
-- Gates on **dedicated** coverage, default **90%**. Overrides:
-  - `E2E_ROUTE_COVERAGE_THRESHOLD=90`
-  - `E2E_ROUTE_COVERAGE_MODE=dedicated|effective`
-- Exit 1 below threshold. Local: `bun run test:e2e:routes`.
+### 2.1 `e2e-route-coverage` — static route reference inventory
+- No app build or database. Run `bun run test:e2e:routes` locally.
+- Discovers `apps/app/app/**/page.tsx` and scans specs/page objects for exact
+  canonical route references. Parent/child prefixes receive no implicit credit.
+- Includes references in excluded specs; this is not proof of executed behavior.
+- Generated sweeps receive no unconditional coverage credit. Empty discovery
+  fails, but a valid reference percentage does not gate release QA.
+- Required browser/API execution supplies release pass/fail evidence. Full-tier
+  reports distinguish files, tests, skipped/flaky cases, and global errors.
 
 ### 2.2 `e2e-api` — backend (Vitest + Postgres + Redis)
 - **Service containers:** `postgres:17-alpine` (`POSTGRES_DB=test`, user `genfeed`, pw `genfeed_local`, `5432`)

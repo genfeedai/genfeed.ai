@@ -10,6 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   PLAYWRIGHT_E2E_LANE_EXCLUSIONS,
   PLAYWRIGHT_E2E_QUARANTINES,
@@ -20,12 +21,14 @@ import {
   buildPlaywrightE2eTierSummary,
   collectPlaywrightJsonReportPaths,
   discoverPlaywrightSpecs,
+  getPlaywrightCorePaths,
   isPlaywrightJsonReport,
   mergePlaywrightJsonReports,
   PLAYWRIGHT_E2E_TIER_CONTRACT,
   validatePlaywrightE2eQuarantines,
 } from './playwright-e2e-tiers.mjs';
 
+const REPOSITORY_ROOT = fileURLToPath(new URL('..', import.meta.url));
 const testDirectories = [];
 
 test.afterEach(() => {
@@ -451,12 +454,12 @@ test('core CLI and CI shard runner launch identical selectors with independent s
   const core = spawnSync(
     process.execPath,
     ['scripts/playwright-e2e-tiers.mjs', '--tier=core'],
-    { encoding: 'utf8', env },
+    { encoding: 'utf8', env, cwd: REPOSITORY_ROOT },
   );
   const sharded = spawnSync(
     process.execPath,
     ['scripts/e2e-sharded.mjs', '--shard=1/4'],
-    { encoding: 'utf8', env },
+    { encoding: 'utf8', env, cwd: REPOSITORY_ROOT },
   );
   assert.equal(core.status, 0, core.stderr);
   assert.equal(sharded.status, 0, sharded.stderr);
@@ -483,13 +486,15 @@ test('stats-only reports cannot invent executed file counts or hide flaky cases'
 });
 
 test('required E2E gate rejects skipped and cancelled evidence as well as failures', () => {
-  const workflow = readFileSync('.github/workflows/e2e.yml', 'utf8');
-  const gate = workflow.slice(
-    workflow.indexOf('  e2e-gate:'),
-    workflow.indexOf('  # Hermetic real-Better Auth'),
+  const workflow = readFileSync(
+    path.join(REPOSITORY_ROOT, '.github/workflows/e2e.yml'),
+    'utf8',
   );
-  const script = gate
-    .split('        run: |\n')[1]
+  const gate = workflow.match(/^ {2}e2e-gate:\n((?: {4}.*(?:\n|$)|\n)+)/m);
+  assert.ok(gate, 'required E2E gate must exist');
+  const runBlock = gate[1].match(/^ {8}run: \|\n((?: {10}.*(?:\n|$)|\n)+)/m);
+  assert.ok(runBlock, 'required E2E gate must provide its shell check');
+  const script = runBlock[1]
     .split('\n')
     .map((line) => line.replace(/^ {10}/, ''))
     .join('\n');
@@ -499,7 +504,9 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
       /\$\{\{ needs\.([a-z0-9-]+)\.result \}\}/g,
       (_, job) => results[job],
     );
-    return spawnSync('bash', ['-c', resolved], { encoding: 'utf8' });
+    return spawnSync('bash', ['-e', '-o', 'pipefail', '-c', resolved], {
+      encoding: 'utf8',
+    });
   }
   const success = Object.fromEntries(jobs.map((job) => [job, 'success']));
   assert.equal(run(success).status, 0);
@@ -511,5 +518,44 @@ test('required E2E gate rejects skipped and cancelled evidence as well as failur
         `${job}: ${result}`,
       );
     }
+  }
+});
+
+test('core selectors fail closed after a renamed spec or emptied directory', () => {
+  const rootDir = createFixture(['playwright/e2e/tests/core/example.spec.ts']);
+  assert.deepEqual(
+    getPlaywrightCorePaths(rootDir, ['playwright/e2e/tests/core']),
+    ['playwright/e2e/tests/core'],
+  );
+  assert.throws(
+    () =>
+      getPlaywrightCorePaths(rootDir, ['playwright/e2e/tests/renamed.spec.ts']),
+    /Core selector matches no specs/,
+  );
+  mkdirSync(path.join(rootDir, 'playwright/e2e/tests/empty'));
+  assert.throws(
+    () => getPlaywrightCorePaths(rootDir, ['playwright/e2e/tests/empty']),
+    /Core selector matches no specs/,
+  );
+});
+
+test('core runner rejects options that only apply to full-tier reports', () => {
+  for (const option of [
+    '--summarize',
+    '--status=passed',
+    '--playwright-report=missing.json',
+    '--playwright-reports-dir=missing',
+  ]) {
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(REPOSITORY_ROOT, 'scripts/playwright-e2e-tiers.mjs'),
+        '--tier=core',
+        option,
+      ],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 1, option);
+    assert.match(result.stderr, /Report options require --tier=full/);
   }
 });

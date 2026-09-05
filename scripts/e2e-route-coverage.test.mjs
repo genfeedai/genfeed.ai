@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   buildRouteReferenceInventory,
   canonicalize,
+  extractRouteReferenceKeys,
   readAppRouteConstants,
   readAppRouteSuffix,
 } from './e2e-route-coverage.mjs';
@@ -80,4 +81,21 @@ describe('static route reference inventory', () => {
     assert.equal(report.kind, 'static-reference-inventory');
     assert.equal(Object.hasOwn(report, 'effectivePercent'), false);
   });
+});
+
+it('credits concrete dynamic route templates without parent-prefix credit', () => {
+  const keys = extractRouteReferenceKeys(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture contains source templates to parse.
+    'page.goto(`/posts/${id}`); page.goto(`${UNKNOWN_PREFIX}/settings`);',
+  );
+  assert.ok(keys.has('/posts/*'));
+  assert.ok(!keys.has('/posts'));
+  assert.ok(!keys.has('/settings'));
+});
+
+it('rejects an empty route discovery result', () => {
+  assert.throws(
+    () => buildRouteReferenceInventory([], new Set()),
+    /No app routes discovered/,
+  );
 });

@@ -275,37 +275,40 @@ function resolveTemplate(raw, consts) {
  * app route, and canonicalize them. Non-route strings (selectors, api urls,
  * regexes) are filtered out by ROUTE_SHAPE_RE.
  */
+export function extractRouteReferenceKeys(src, appRoutes = new Map()) {
+  const keys = new Set();
+  /** @type {Record<string, string>} */
+  const consts = {};
+  for (const match of src.matchAll(PATH_CONST_RE)) consts[match[1]] = match[2];
+  for (const match of src.matchAll(APP_ROUTE_REFERENCE_RE)) {
+    const route = appRoutes.get(match[0]);
+    if (!route) continue;
+    const suffix = readAppRouteSuffix(src, match.index ?? 0, match[0].length);
+    keys.add(canonicalize(`${route}${suffix}`));
+  }
+  for (const match of src.matchAll(STRING_LITERAL_RE)) {
+    const resolved = resolveTemplate(match[1], consts);
+    if (!resolved.startsWith('/') || resolved.startsWith('//')) continue;
+    if (resolved.startsWith('/v1') || resolved.startsWith('/api')) continue;
+    const key = canonicalize(resolved);
+    if (!ROUTE_SHAPE_RE.test(key)) continue;
+    keys.add(key);
+  }
+  return keys;
+}
+
 function collectNavigatedKeys() {
   const keys = new Set();
   const files = e2eRoots.flatMap((root) => listFilesRecursive(root));
   const appRoutes = readAppRouteConstants();
-
   for (const file of files) {
     // The generated route sweep provides no static interaction evidence.
     if (file.endsWith(ALL_APP_PAGES_FILE)) continue;
-    const src = readFileSync(file, 'utf8');
-
-    /** @type {Record<string, string>} */
-    const consts = {};
-    for (const match of src.matchAll(PATH_CONST_RE)) {
-      consts[match[1]] = match[2];
-    }
-
-    for (const match of src.matchAll(APP_ROUTE_REFERENCE_RE)) {
-      const route = appRoutes.get(match[0]);
-      if (!route) continue;
-      const suffix = readAppRouteSuffix(src, match.index ?? 0, match[0].length);
-      keys.add(canonicalize(`${route}${suffix}`));
-    }
-
-    for (const match of src.matchAll(STRING_LITERAL_RE)) {
-      const resolved = resolveTemplate(match[1], consts);
-      if (!resolved.startsWith('/')) continue;
-      if (resolved.startsWith('//')) continue; // protocol-relative / comments
-      if (!ROUTE_SHAPE_RE.test(resolved)) continue; // selectors, urls, regex
-      if (resolved.startsWith('/v1') || resolved.startsWith('/api')) continue;
-      keys.add(canonicalize(resolved));
-    }
+    for (const key of extractRouteReferenceKeys(
+      readFileSync(file, 'utf8'),
+      appRoutes,
+    ))
+      keys.add(key);
   }
   return keys;
 }
@@ -315,6 +318,7 @@ function collectNavigatedKeys() {
 // ---------------------------------------------------------------------------
 
 export function buildRouteReferenceInventory(discovered, references) {
+  if (discovered.length === 0) throw new Error('No app routes discovered');
   const referencedRoutes = discovered.filter((route) => references.has(route));
   return {
     kind: 'static-reference-inventory',

@@ -35,7 +35,7 @@ const REQUIRED_FULL_SUITE_JOBS = [
   'Full Suite / CI Gate / Test App (Shard 4/4)',
   'Full Suite / CI Gate / Build',
   'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
-  'Full Suite / E2E Suite / E2E Route Coverage Gate',
+  'Full Suite / E2E Suite / E2E Route Reference Inventory',
   'Full Suite / E2E Suite / API E2E Tests',
   'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)',
   'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)',
@@ -82,7 +82,12 @@ function requireValue(actual, expected, label, runId) {
 }
 
 function requireUniqueJob(jobs, name, expectedConclusion, releaseSha) {
-  const matches = jobs.filter((job) => job.name === name);
+  // Recovery reads historical runs as well as runs using the current display name.
+  const names =
+    name === 'Full Suite / E2E Suite / E2E Route Reference Inventory'
+      ? [name, 'Full Suite / E2E Suite / E2E Route Coverage Gate']
+      : [name];
+  const matches = jobs.filter((job) => names.includes(job.name));
   if (matches.length !== 1) {
     fail(
       `Recovery evidence requires exactly one ${name} job; found ${matches.length}.`,

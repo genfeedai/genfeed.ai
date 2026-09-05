@@ -7,7 +7,7 @@ names everywhere — scripts, workflows, and reports.
 | --- | --- | --- | --- |
 | `core` | Release/deploy gate. Small mocked (Playwright) or release-critical (API) subset. | `test:e2e:core` (`scripts/playwright-e2e-tiers.mjs --tier=core`) / `test:e2e:sharded` → `playwright/configs/playwright.config.ts` (`app-core`). CI job `e2e-frontend` in `e2e.yml`. | `apps/server/api` `test:e2e:core` via `scripts/api-e2e-tiers.ts`. CI job `e2e-api`. |
 | `authed` | Hermetic real Better Auth smoke. Gates the Playwright nightly; `continue-on-error` on deploy. | `test:e2e:authed` → `playwright/configs/playwright.config.ts` (`app-authed`). CI job `e2e-frontend-authed`. | No API authed tier. |
-| `full` | Every discoverable mocked-app spec except explicit quarantines; other execution lanes are listed separately. Reporting-only for Playwright. | `test:e2e:full` → `scripts/playwright-e2e-tiers.mjs` using `playwright/configs/playwright.config.ts` (`app-core`). Nightly workflow `playwright-full-nightly.yml`. | `apps/server/api` `test:e2e:full`. CI job `e2e-api-full` (manual/nightly only). |
+| `full` | Every discoverable mocked-app spec except explicit quarantines; other execution lanes are listed separately. Non-blocking for releases; nightly failures remain actionable. | `test:e2e:full` → `scripts/playwright-e2e-tiers.mjs` using `playwright/configs/playwright.config.ts` (`app-core`). Nightly workflow `playwright-full-nightly.yml`. | `apps/server/api` `test:e2e:full`. CI job `e2e-api-full` (manual/nightly only). |
 | `isolated-publish` | Disposable Postgres + Redis publish journey. Fake publishers only. Not a PR required check and never attached to mocked Playwright core or the production `workflow_call` path. | None. Playwright stays off this lane. | `apps/server/api` `test:e2e:isolated-publish`. CI job `e2e-isolated-publish` in `e2e.yml` (nightly schedule + `workflow_dispatch` only). Tracking: #3836. |
 
 ## Production gates
@@ -38,7 +38,8 @@ Expired quarantines fail CI. API exclusions live in
 The `PLAYWRIGHT_E2E_CORE_PATHS` list in the tier manifest owns core selection
 for both the local tier CLI and the CI shard runner. Core includes smoke, core,
 onboarding, the shell page-context contract, and clips. Changed and failed-only
-commands apply their Playwright filters to this same selector set. The changed
+commands apply their Playwright filters to this same selector set. Missing files
+or emptied selector directories fail before Playwright starts. The changed
 command compares against `origin/master` by default.
 
 `PLAYWRIGHT_E2E_LANE_EXCLUSIONS` records specs assigned to real-auth, cross-app,
@@ -52,7 +53,9 @@ The full-tier JSON summary separates file inventory from executed test cases.
 Projects count separately; retries do not inflate execution totals. Skipped,
 flaky, first-attempt failure, and global report-error counts expose regression
 signal without claiming skipped tests passed. Missing or empty reports and
-global teardown errors cannot produce a passed summary. Explicit report inputs
+global teardown errors cannot produce a passed summary. A failed summary makes
+the standalone nightly job fail and triggers its existing failure reporter;
+it does not add the full tier as a production release dependency. Explicit report inputs
 exclude default local reports so stale artifacts cannot inflate the result.
 
 `test:e2e:routes` is a static source-reference inventory, not a coverage gate.
