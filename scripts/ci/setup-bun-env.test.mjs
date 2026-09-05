@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -96,14 +104,22 @@ test('skips ffmpeg-static downloads with an existing failing executable on the r
   )[1];
   const script = setup.match(/run: \|\n((?: {8}[^\n]*\n)+)/)?.[1];
   assert.ok(script);
-  const output = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
-    encoding: 'utf8',
-    env: { ...process.env, GITHUB_ENV: '/dev/stdout' },
-  });
-  const executable = output.trim().split('FFMPEG_BIN=')[1];
-  assert.ok(executable?.startsWith('/'));
-  assert.ok(existsSync(executable));
-  assert.equal(spawnSync(executable).status, 1);
+  const tempDir = mkdtempSync(path.join(tmpdir(), 'setup-bun-env-'));
+
+  try {
+    const githubEnv = path.join(tempDir, 'github-env');
+    execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_ENV: githubEnv },
+    });
+    const output = readFileSync(githubEnv, 'utf8');
+    const executable = output.trim().split('FFMPEG_BIN=')[1];
+    assert.ok(executable?.startsWith('/'));
+    assert.ok(existsSync(executable));
+    assert.equal(spawnSync(executable).status, 1);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 });
 
 test('downloads only the Playwright browser when its cache is cold', () => {
