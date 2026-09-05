@@ -525,24 +525,25 @@ export default function ReleasePostsList({
         />
       </div>
 
-      {error && data.releases.length > 0 ? (
+      {viewMode !== 'board' && error && data.releases.length > 0 ? (
         <ErrorFallback
           compact
           title={translate('loadError')}
           resetErrorBoundary={() => refetch()}
         />
       ) : null}
-      {error && data.releases.length === 0 ? (
-        <ErrorFallback
-          title={translate('loadError')}
-          resetErrorBoundary={() => refetch()}
-        />
-      ) : viewMode === 'board' ? (
+      {viewMode === 'board' ? (
         <ReleaseBoard
           browserTimezone={browserTimezone}
           isLoading={isLoading}
+          loadError={Boolean(error)}
           onRefetch={() => void refetch()}
           releases={data.releases}
+        />
+      ) : error && data.releases.length === 0 ? (
+        <ErrorFallback
+          title={translate('loadError')}
+          resetErrorBoundary={() => refetch()}
         />
       ) : viewMode === 'grid' ? (
         <AccountGrid
