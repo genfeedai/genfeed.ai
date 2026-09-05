@@ -6,8 +6,9 @@
 # and opens exactly one deduplicated tracking issue when the scheduled run is
 # red. Canonical tier names: docs/e2e-tiers.md (`core`, `authed`, `full`).
 #
-# This workflow is NOT reusable. full-suite.yml and daily-production-deploy.yml
-# must never uses/needs it. Production stays gated by e2e.yml core + authed.
+# This workflow is NOT reusable. full-suite.yml and release.yml
+# must never uses/needs it. Production uses the required browser/API core gates;
+# authenticated E2E stays non-blocking on the release path.
 
 name: Nightly Playwright Full Tier
 
