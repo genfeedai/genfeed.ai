@@ -16,7 +16,6 @@ import type {
   ImageGridBlock,
   ImageGridItem,
   KPIGridBlock,
-  MarkdownBlock,
   MetricCardBlock,
   SectionHeaderBlock,
   TableBlock,
@@ -46,7 +45,6 @@ const BLOCK_TYPES = [
   'text_paragraph',
   'bullet_list',
   'callout',
-  'markdown',
   'image_grid',
   'composite',
   'empty_state',
@@ -737,7 +735,7 @@ function parseTextParagraph(
   path: FieldPath,
 ): TextParagraphBlock {
   const text = readString(source, 'text', path, {
-    maxLength: 1200,
+    maxLength: 4000,
     required: true,
   });
   if (!text) {
@@ -794,20 +792,6 @@ function parseCallout(source: DashboardRecord, path: FieldPath): CalloutBlock {
     ...(tone ? { tone } : {}),
     type: 'callout',
   };
-}
-
-function parseMarkdown(
-  source: DashboardRecord,
-  path: FieldPath,
-): MarkdownBlock {
-  const content = readString(source, 'content', path, {
-    maxLength: 4000,
-    required: true,
-  });
-  if (!content) {
-    fail('invalid_props', `${path}.content`, 'content is required');
-  }
-  return { ...parseBaseBlock(source, path), content, type: 'markdown' };
 }
 
 function isSafeUrl(value: string): boolean {
@@ -978,8 +962,6 @@ function parseAgentDashboardBlock(
       return parseBulletList(input, path);
     case 'callout':
       return parseCallout(input, path);
-    case 'markdown':
-      return parseMarkdown(input, path);
     case 'image_grid':
       return parseImageGrid(input, path);
     case 'composite':

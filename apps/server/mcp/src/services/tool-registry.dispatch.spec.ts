@@ -7,29 +7,38 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * would have caught the ~25 dead-wired tools at boot instead of at call time).
  *
  * `@genfeedai/actions` is mocked so the guard sees a controllable registry;
- * `AgentToolName` (used by classify for the agent-executor branch) resolves
- * from the real `@genfeedai/contracts/interfaces` alias.
+ * the agent surface retains its real catalog so classification uses the same
+ * executor names as production.
  */
 
 const mockState = vi.hoisted(() => ({
   tools: [] as { name: string }[],
 }));
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: vi.fn(),
-  getToolsForSurface: vi.fn(() => mockState.tools),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    ...actual,
+    getToolByName: vi.fn(),
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp'
+          ? mockState.tools
+          : actual.getToolsForSurface(surface),
+    ),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 describe('ToolRegistryService.classify', () => {
   it.each([
     ['send_chat_message', 'agent-chat'],
-    // inspect_workflow is BOTH an AgentToolName and a workflow-control tool;
+    // inspect_workflow is BOTH an CuratedActionName and a workflow-control tool;
     // precedence must keep it on workflow-control (checked first).
     ['inspect_workflow', 'workflow-control'],
     // The system workflow catalog (#2223) is REST-backed on the workflows
     // collection, so both catalog tools stay on workflow-control even though
-    // they are also AgentToolName members.
+    // they are also CuratedActionName members.
     ['list_system_workflow_catalog', 'workflow-control'],
     ['install_system_workflow', 'workflow-control'],
     ['generate_image', 'agent-executor'],
@@ -45,7 +54,7 @@ describe('ToolRegistryService.classify', () => {
     ['get_ads_ad_insights', 'ads-gateway'],
     ['get_account_info', 'account-management'],
     ['post_social_reply', 'social-messages'],
-    // generate_content_batch is an AgentToolName, so it routes through the
+    // generate_content_batch is an CuratedActionName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_content_batch', 'agent-executor'],
     ['list_instagram_inspiration', 'agent-executor'],

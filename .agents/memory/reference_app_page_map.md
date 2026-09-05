@@ -131,7 +131,6 @@ Canonical explicit organization pages:
 
 - `/:orgSlug`
 - `/:orgSlug/~/connect`
-- `/:orgSlug/~/overview`
 - `/:orgSlug/~/analytics/overview`
 
 Organization agent:
@@ -365,12 +364,6 @@ Brand settings:
 - `/:orgSlug/:brandSlug/settings/interview`
 - `/:orgSlug/:brandSlug/settings/publishing`
 - `/:orgSlug/:brandSlug/settings/agent-defaults`
-
-Lab/internal:
-
-- `/:orgSlug/:brandSlug/lab/articles`
-- `/:orgSlug/:brandSlug/lab/library-preview`
-- `/:orgSlug/:brandSlug/lab/twitter-engage`
 
 ## Admin Pages
 

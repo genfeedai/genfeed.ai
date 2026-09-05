@@ -1,10 +1,59 @@
 import { buildConnectGenfeedInstructions } from './connect-genfeed.helper';
 
 describe('buildConnectGenfeedInstructions', () => {
+  it.each(['codex', 'claude-code', 'generic'] as const)(
+    'defaults %s to browser authorization without secret requirements',
+    (client) => {
+      const instructions = buildConnectGenfeedInstructions(
+        client,
+        'https://custom.example/mcp/',
+      );
+      expect(instructions.authMethod).toBe('oauth');
+      expect(instructions.environmentCommand).toBe('');
+      expect(instructions.configuration).toContain(
+        'https://custom.example/mcp',
+      );
+      expect(JSON.stringify(instructions)).not.toMatch(
+        /GENFEED_API_KEY|Bearer|bearer_token_env_var/,
+      );
+      expect(instructions.authorizationInstruction).toContain('browser');
+    },
+  );
+
+  it('provides the supported client authorization steps', () => {
+    const codex = buildConnectGenfeedInstructions(
+      'codex',
+      'https://mcp.genfeed.ai/mcp',
+    );
+    const claude = buildConnectGenfeedInstructions(
+      'claude-code',
+      'https://mcp.genfeed.ai/mcp',
+    );
+    expect(codex.primaryCommand).toBe(
+      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
+    );
+    expect(codex.authorizationInstruction).toContain('codex mcp login genfeed');
+    expect(claude.primaryCommand).toBe(
+      'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
+    );
+    expect(claude.authorizationInstruction).toContain('/mcp');
+  });
+
+  it('quotes configured endpoints with shell metacharacters', () => {
+    const instructions = buildConnectGenfeedInstructions(
+      'codex',
+      'https://custom.example/mcp?x=1&y=2',
+    );
+    expect(instructions.primaryCommand).toBe(
+      "codex mcp add genfeed --url 'https://custom.example/mcp?x=1&y=2'",
+    );
+  });
+
   it('builds a secret-safe Claude Code command', () => {
     const instructions = buildConnectGenfeedInstructions(
       'claude-code',
       'https://mcp.genfeed.ai/mcp',
+      'manual-key',
     );
 
     expect(instructions.primaryCommand).toContain(
@@ -24,6 +73,7 @@ describe('buildConnectGenfeedInstructions', () => {
     const instructions = buildConnectGenfeedInstructions(
       'codex',
       'http://localhost:3014/mcp/',
+      'manual-key',
     );
 
     expect(instructions.primaryCommand).toBe(
@@ -41,6 +91,7 @@ describe('buildConnectGenfeedInstructions', () => {
     const instructions = buildConnectGenfeedInstructions(
       'generic',
       'https://mcp.genfeed.ai/mcp',
+      'manual-key',
     );
 
     expect(JSON.parse(instructions.configuration)).toEqual({
@@ -63,6 +114,7 @@ describe('buildConnectGenfeedInstructions', () => {
     const instructions = buildConnectGenfeedInstructions(
       'codex',
       `https://mcp.genfeed.ai/mcp${'/'.repeat(50_000)}`,
+      'manual-key',
     );
 
     expect(instructions.primaryCommand).toContain(

@@ -1,7 +1,11 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoTrimNodeData } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,
@@ -14,8 +18,6 @@ import { memo, useCallback, useMemo } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 function formatTime(seconds: number): string {
@@ -81,8 +83,9 @@ function VideoTrimNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputVideo ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -121,7 +124,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             onValueChange={handleStartSliderChange}
             className="nodrag w-full"
           />
-          <input
+          <Input
             aria-label="Start time"
             id={`trim-start-${id}`}
             type="text"
@@ -148,7 +151,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             onValueChange={handleEndSliderChange}
             className="nodrag w-full"
           />
-          <input
+          <Input
             aria-label="End time"
             id={`trim-end-${id}`}
             type="text"
@@ -178,8 +181,9 @@ function VideoTrimNodeComponent(props: NodeProps) {
               <track kind="captions" />
             </video>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -194,8 +198,9 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!hasRequiredInputs || nodeData.status === 'processing'}
             className="w-full"

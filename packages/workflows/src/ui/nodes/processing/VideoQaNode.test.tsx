@@ -27,7 +27,7 @@ vi.mock('../BaseNode', () => ({
   ),
 }));
 
-vi.mock('../../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,
@@ -43,7 +43,7 @@ vi.mock('../../ui/button', () => ({
   ),
 }));
 
-vi.mock('../../ui/checkbox', () => ({
+vi.mock('@genfeedai/ui/primitives/checkbox', () => ({
   Checkbox: ({
     checked,
     id,
@@ -63,7 +63,7 @@ vi.mock('../../ui/checkbox', () => ({
   ),
 }));
 
-vi.mock('../../ui/input', () => ({
+vi.mock('@genfeedai/ui/primitives/input', () => ({
   Input: ({
     id,
     onChange,

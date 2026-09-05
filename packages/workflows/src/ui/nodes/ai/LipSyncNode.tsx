@@ -1,10 +1,22 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   LipSyncMode,
   LipSyncModel,
   LipSyncNodeData,
 } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, LoaderCircle, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
@@ -13,16 +25,6 @@ import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { LIPSYNC_MODELS, LIPSYNC_SYNC_MODES } from '../../lib/models/registry';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 function LipSyncNodeComponent(props: NodeProps) {
@@ -78,8 +80,9 @@ function LipSyncNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputVideo ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -193,8 +196,9 @@ function LipSyncNodeComponent(props: NodeProps) {
               className="w-full rounded border border-border"
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleGenerate}
               disabled={nodeData.status === 'processing' || !canGenerate}
               className={
@@ -209,8 +213,11 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Generate Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={handleGenerate}
             disabled={!canGenerate || nodeData.status === 'processing'}
             className="w-full"

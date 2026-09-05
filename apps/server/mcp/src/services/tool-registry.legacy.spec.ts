@@ -69,11 +69,20 @@ const MOCK_TOOLS = new Map(
   ]),
 );
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: vi.fn((name: string) => MOCK_TOOLS.get(name)),
-  getToolsForSurface: vi.fn(() => [...MOCK_TOOLS.values()]),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    ...actual,
+    getToolByName: vi.fn((name: string) => MOCK_TOOLS.get(name)),
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp'
+          ? [...MOCK_TOOLS.values()]
+          : actual.getToolsForSurface(surface),
+    ),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 vi.mock('@mcp/guards/mcp-auth.guard', () => ({
   McpAuthGuard: { checkToolRole: vi.fn() },

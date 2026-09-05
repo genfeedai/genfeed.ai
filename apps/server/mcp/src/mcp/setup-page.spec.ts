@@ -46,7 +46,9 @@ describe('MCP setup page', () => {
     expect(html).toContain('codex mcp add genfeed --url');
     expect(html).toContain('https://app.genfeed.ai/connect');
     expect(html).toContain('Start guided setup');
-    expect(html).toContain('Connect automatically via OAuth');
+    expect(html).toContain('OAuth setup guide');
+    expect(html).toContain('Authorize and verify');
+    expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
   });
 
@@ -111,18 +113,25 @@ describe('MCP setup page', () => {
     expect(promptHtml).toContain(
       'Set up the Genfeed MCP server on this machine.',
     );
-    expect(promptHtml).toContain('Authentication env var: GENFEED_API_KEY');
+    expect(promptHtml).toContain(
+      'Authentication: browser OAuth (no API key required)',
+    );
+    expect(promptHtml).not.toContain('GENFEED_API_KEY');
+    expect(promptHtml).not.toContain('--header');
+    expect(promptHtml).toContain('codex mcp login genfeed');
+    expect(promptHtml).toContain('list my Genfeed brands');
+    expect(html).toContain('/api-reference/mcp#connect-via-oauth');
     expect(promptHtml).toContain(
       'Guided connection flow: https://app.genfeed.ai/connect',
     );
     expect(promptHtml).toContain(
-      'Do not request or paste the key into source-controlled files',
+      'Never request tokens or passwords in this chat',
     );
     expect(promptHtml).toContain(
       'claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp',
     );
     expect(promptHtml).toContain(
-      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY',
+      'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
     );
     expect(promptHtml).toContain('~/.codex/config.toml');
     expect(promptHtml).not.toContain('gf_live_');

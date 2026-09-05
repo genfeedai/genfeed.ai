@@ -1,9 +1,10 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { Check, Cloud, CloudOff, LoaderCircle } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 import type { SaveIndicatorProps } from './types';
 
 /**
@@ -25,8 +26,9 @@ export function SaveIndicator({
   if (!autoSaveEnabled) {
     return (
       <Button
-        variant="ghost"
-        size="sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.SM}
         onClick={toggleAutoSave}
         title="Click to enable auto-save"
         className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
@@ -69,8 +71,9 @@ export function SaveIndicator({
 
   return (
     <Button
-      variant="ghost"
-      size="sm"
+      withWrapper={false}
+      variant={ButtonVariant.GHOST}
+      size={ButtonSize.SM}
       onClick={toggleAutoSave}
       title="Click to disable auto-save"
       className={

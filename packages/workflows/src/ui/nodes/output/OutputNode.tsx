@@ -1,14 +1,14 @@
 'use client';
 
 import type { DownloadNodeData } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
 import { Clock, Download, LoaderCircle } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
 import { BaseNode } from '../BaseNode';
 
 /**
@@ -185,6 +185,7 @@ function DownloadNodeComponent(props: NodeProps) {
 
             {/* Download button */}
             <Button
+              withWrapper={false}
               className="w-full"
               onClick={handleDownload}
               disabled={isDownloading}

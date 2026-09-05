@@ -151,9 +151,7 @@ test.describe('Agents — Sub-Sections', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /automation\/workflows\/templates/,
-    );
+    await expect(authenticatedPage).toHaveURL(/automation\/templates/);
     await expect(
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();

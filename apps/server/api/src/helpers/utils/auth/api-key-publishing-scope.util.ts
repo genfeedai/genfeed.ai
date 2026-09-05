@@ -4,7 +4,7 @@ import {
   isPublishingApprovalRequired,
 } from '@genfeedai/actions';
 import { ApiKeyScope, TargetExecutionState } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { ForbiddenException } from '@nestjs/common';
 
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
@@ -80,12 +80,12 @@ export function assertApiKeyAgentPublishingScope(
   toolName: string,
   parameters: Record<string, unknown>,
 ): void {
-  if (toolName === AgentToolName.SCHEDULE_POST) {
+  if (toolName === 'schedule_post') {
     assertApiKeyPublishingScope(context, 'schedule');
     return;
   }
 
-  if (toolName !== AgentToolName.CREATE_POST) {
+  if (toolName !== 'create_post') {
     return;
   }
 

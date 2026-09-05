@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compareProductRouteInventories,
   normalizeNextPageRoute,
+  PROTECTED_HARD_CUT_PREFIXES,
   runCheckProductRouteInventory,
 } from './check-product-route-inventory';
 
@@ -173,6 +174,25 @@ describe('compareProductRouteInventories', () => {
       'Stale protected registration: /legacy',
     ]);
   });
+
+  it('rejects reintroduced Lab pages and registrations', () => {
+    const route = '/:orgSlug/:brandSlug/lab/library-preview';
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      discoveredProtectedRoutes: [
+        ...VALID_INVENTORY_INPUTS.discoveredProtectedRoutes,
+        route,
+      ],
+      hardCutPrefixes: PROTECTED_HARD_CUT_PREFIXES,
+      protectedRoutes: [
+        ...VALID_INVENTORY_INPUTS.protectedRoutes,
+        { canonicalUrl: route, productClass: 'control-plane' },
+      ],
+    });
+
+    expect(issues).toContain(`Hard-cut route is registered: ${route}`);
+    expect(issues).toContain(`Unclassified protected hard-cut page: ${route}`);
+  });
 });
 
 describe('runCheckProductRouteInventory', () => {
@@ -180,8 +200,8 @@ describe('runCheckProductRouteInventory', () => {
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 22,
       issues: [],
-      protectedPageCount: 228,
-      protectedRouteCount: 245,
+      protectedPageCount: 214,
+      protectedRouteCount: 231,
       publicRouteCount: 75,
       websitePublicRouteCount: 53,
     });

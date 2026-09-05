@@ -6,7 +6,7 @@ import {
   getToolsForSurface,
   isActionOnSurface,
 } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
@@ -35,13 +35,8 @@ function collectRouteCaseMembers(
   const members = new Set<string>();
 
   const collectCases = (node: ts.Node): void => {
-    if (
-      ts.isCaseClause(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === 'AgentToolName'
-    ) {
-      members.add(node.expression.name.text);
+    if (ts.isCaseClause(node) && ts.isStringLiteral(node.expression)) {
+      members.add(node.expression.text);
     }
     ts.forEachChild(node, collectCases);
   };
@@ -73,29 +68,16 @@ describe('curated Agent action catalog', () => {
     expect(actual).toEqual(expected);
   });
 
-  it('maps every Agent action to a declared AgentToolName', () => {
-    const enumValues = new Set<string>(Object.values(AgentToolName));
-    const missing = getToolsForSurface('agent')
-      .map((tool) => tool.name)
-      .filter((name) => !enumValues.has(name));
-
-    expect(missing).toEqual([]);
-  });
-
   it('maps every Agent action to a concrete execution route', () => {
     const memberNames = new Set([
       ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
       ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
     ]);
-    const executorNames = new Set(
-      [...memberNames]
-        .map((member) => AgentToolName[member as keyof typeof AgentToolName])
-        .filter((name): name is AgentToolName => typeof name === 'string'),
-    );
+    const executorNames = memberNames;
     const missing = getToolsForSurface('agent')
       .map((tool) => tool.name)
-      .filter((name) => !executorNames.has(name as AgentToolName));
+      .filter((name) => !executorNames.has(name));
 
     expect(missing).toEqual([]);
   });

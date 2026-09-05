@@ -21,7 +21,7 @@ getToolsForSurface(surface: 'agent' | 'mcp' | 'cli'): CanonicalToolDefinition[]
 getToolByName(name: string): CanonicalToolDefinition | undefined
 getToolsByCategory(category: ToolCategory): CanonicalToolDefinition[]
 getToolsForRole(surface, role): CanonicalToolDefinition[]
-toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
+toAgentTools(tools): AgentToolOutput[]  // adapter to agent format
 ```
 
 `packages/actions/src/registry/curated-action-catalog.spec.ts` verifies unique,
@@ -67,7 +67,7 @@ Merges:
 **Entry point:**
 ```typescript
 async executeTool(
-  toolName: AgentToolName,
+  toolName: CuratedActionName,
   parameters: Record<string, unknown>,
   context: ToolExecutionContext,
 ): Promise<AgentToolResult>
@@ -125,7 +125,7 @@ async executeTool(
 interface AgentTypeConfig {
   defaultDailyCreditBudget: number
   defaultModel: string
-  defaultTools: AgentToolName[]
+  defaultTools: CuratedActionName[]
   systemPromptSuffix: string
 }
 ```

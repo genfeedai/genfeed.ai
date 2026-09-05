@@ -42,3 +42,22 @@ test('nightly E2E reporter derives actionable scenarios from failed source-job l
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob/u);
 });
+
+for (const workflowName of ['e2e.yml', 'playwright-full-nightly.yml']) {
+  test(`${workflowName} recovery uses the job issue permission and exposes write failures`, () => {
+    const workflow = readFileSync(
+      new URL(`../../.github/workflows/${workflowName}`, import.meta.url),
+      'utf8',
+    );
+    const recovery = workflow
+      .split('  nightly-recovery-report:')[1]
+      ?.split(/\n {2}[a-z0-9-]+:\n/u)[0];
+    assert.ok(recovery);
+    assert.match(recovery, /issues: write/u);
+    assert.match(recovery, /github-token: \$\{\{ github\.token \}\}/u);
+    assert.doesNotMatch(
+      recovery,
+      /CONSOLE_DEPLOY_TOKEN|continue-on-error: true/u,
+    );
+  });
+}

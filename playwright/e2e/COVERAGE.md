@@ -45,31 +45,28 @@ The run **fails** if coverage drops below the threshold. Override with
 
 ---
 
-## Route coverage
+## Route reference inventory
 
 ```bash
 bun run test:e2e:routes
 # = node scripts/e2e-route-coverage.mjs
 ```
 
-The reporter discovers every `apps/app/app/**/page.tsx`, normalises the tenant
-prefix and dynamic segments, then matches them against the routes navigated by
-specs (direct `.goto()` plus `routes = [...]` arrays passed to
-`assertRouteRenders`). It prints:
+The reporter discovers `apps/app/app/**/page.tsx`, normalises tenant prefixes and
+dynamic segments, then counts exact route references in specs and page objects.
+Parent and child routes receive no implicit credit. Dynamic references such as
+`/posts/${id}` match `/posts/*`; unresolved route-prefix variables are not evidence
+of a concrete destination.
 
-- **Dedicated coverage** — routes reached by an explicit per-area spec (the
-  metric we grow on purpose; this is what the gate checks).
-- **Effective coverage** — also counts the generated `all-app-pages.spec.ts`
-  sweep, which navigates every discovered page (so it is ~100% by construction).
+This is static inventory, including references in excluded specs. It does not
+prove that a browser navigated or an assertion passed. The generated page sweep
+receives no unconditional coverage credit. Execution metrics come from the
+Playwright reports described in `docs/e2e-tiers.md`.
 
-Gate options:
-
-```bash
-E2E_ROUTE_COVERAGE_THRESHOLD=90   # percentage, default 90
-E2E_ROUTE_COVERAGE_MODE=effective # gate on effective instead of dedicated
-```
-
-Exit code is non-zero below threshold.
+There is no percentage gate or override. Empty discovery is an error; valid
+inventory generation succeeds regardless of the percentage. Release pass/fail
+comes from the required browser/API execution gates. Coverage prerequisite work
+in #439 and #1849 remains separate.
 
 ---
 

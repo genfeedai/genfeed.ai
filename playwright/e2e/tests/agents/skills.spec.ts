@@ -35,16 +35,6 @@ test.describe('Brand Skills settings', () => {
     ).toBeVisible();
   });
 
-  test('redirects the legacy Automation skills URL into Settings', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.SKILLS), {
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(authenticatedPage).toHaveURL(/\/settings\/skills(?:$|[?#])/);
-  });
-
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {

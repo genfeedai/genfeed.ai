@@ -1,25 +1,27 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   SubtitleNodeData,
   SubtitlePosition,
   SubtitleStyle,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { Captions, LoaderCircle, RefreshCw } from 'lucide-react';
-import { memo, useCallback } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
+import type { NodeProps } from '@xyflow/react';
+import { Captions, LoaderCircle, RefreshCw } from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const STYLE_OPTIONS: { value: SubtitleStyle; label: string }[] = [
@@ -167,7 +169,7 @@ function SubtitleNodeComponent(props: NodeProps) {
           >
             Color
           </label>
-          <input
+          <Input
             aria-label="Subtitle color"
             id={`subtitle-color-${id}`}
             type="color"
@@ -190,8 +192,9 @@ function SubtitleNodeComponent(props: NodeProps) {
               muted
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -206,8 +209,9 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!hasRequiredInputs || nodeData.status === 'processing'}
             className="w-full"

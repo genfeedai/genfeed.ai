@@ -87,7 +87,7 @@ test.describe('Logout Flow', () => {
     test('should handle expired session gracefully', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       await simulateSessionExpiry(authenticatedPage);
 
@@ -105,7 +105,7 @@ test.describe('Logout Flow', () => {
     test('should redirect to login when session expires', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       // Simulate session expiration
       await simulateSessionExpiry(authenticatedPage);
@@ -168,7 +168,7 @@ test.describe('Logout Flow', () => {
     test('should clear local storage on logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       // Set some data in local storage
       await authenticatedPage.evaluate(() => {
@@ -246,7 +246,7 @@ test.describe('Logout Flow', () => {
     test('should not leak sensitive data after logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       // Simulate logout
       await simulateLogout(authenticatedPage);

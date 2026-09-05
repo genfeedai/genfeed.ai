@@ -3,7 +3,7 @@ import {
   getAgentChatModel,
   isRetiredAgentChatModel,
 } from '@genfeedai/contracts/constants';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import {
   AGENT_TYPE_CONFIGS,
   detectPlatformIntentSuffix,
@@ -19,37 +19,31 @@ describe('getAgentTypeConfig', () => {
   it('gives video creators the voice-clone card alongside generate_voice', () => {
     const config = getAgentTypeConfig(AgentType.VIDEO_CREATOR);
     expect(config.defaultTools).toEqual(
-      expect.arrayContaining([
-        AgentToolName.GENERATE_VOICE,
-        AgentToolName.PREPARE_VOICE_CLONE,
-      ]),
+      expect.arrayContaining(['generate_voice', 'prepare_voice_clone']),
     );
   });
 
   it('gives default content specialists the voice-clone card even without generate_voice', () => {
     expect(getAgentTypeConfig(AgentType.X_CONTENT).defaultTools).toEqual(
-      expect.arrayContaining([
-        AgentToolName.PREPARE_GENERATION,
-        AgentToolName.PREPARE_VOICE_CLONE,
-      ]),
+      expect.arrayContaining(['prepare_generation', 'prepare_voice_clone']),
     );
     expect(getAgentTypeConfig(AgentType.LINKEDIN_CONTENT).defaultTools).toEqual(
-      expect.arrayContaining([AgentToolName.PREPARE_VOICE_CLONE]),
+      expect.arrayContaining(['prepare_voice_clone']),
     );
     expect(
       getAgentTypeConfig(AgentType.SHORT_FORM_WRITER).defaultTools,
-    ).toEqual(expect.arrayContaining([AgentToolName.PREPARE_VOICE_CLONE]));
+    ).toEqual(expect.arrayContaining(['prepare_voice_clone']));
   });
 
   it('gives the X specialist the dedicated X read and draft tools', () => {
     const config = getAgentTypeConfig(AgentType.X_CONTENT);
     expect(config.defaultTools).toEqual(
       expect.arrayContaining([
-        AgentToolName.SEARCH_X_POSTS,
-        AgentToolName.FETCH_X_POST,
-        AgentToolName.LIST_X_ACCOUNT_ACTIVITY,
-        AgentToolName.DRAFT_X_QUOTE,
-        AgentToolName.DRAFT_X_REPOST,
+        'search_x_posts',
+        'fetch_x_post',
+        'list_x_account_activity',
+        'draft_x_quote',
+        'draft_x_repost',
       ]),
     );
   });

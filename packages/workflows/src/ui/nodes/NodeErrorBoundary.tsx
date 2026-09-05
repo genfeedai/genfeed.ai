@@ -1,9 +1,10 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { RefreshCw, TriangleAlert } from 'lucide-react';
 import { Component, type ReactNode } from 'react';
 import { getWorkflowLogger } from '../stores/executionLogger';
-import { Button } from '../ui/button';
 
 interface NodeErrorBoundaryProps {
   children: ReactNode;
@@ -56,8 +57,9 @@ export class NodeErrorBoundary extends Component<
             </p>
           </div>
           <Button
-            variant="secondary"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
             onClick={this.handleRetry}
             className="gap-1.5"
           >

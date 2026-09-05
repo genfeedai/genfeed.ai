@@ -1,10 +1,21 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   AnimationNodeData,
   EasingPreset,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,
@@ -20,15 +31,6 @@ import { EASING_PRESETS } from '../../lib/easing';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 const PRESET_OPTIONS: { value: EasingPreset; label: string }[] = [
@@ -95,8 +97,9 @@ function AnimationNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputVideo ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -116,8 +119,13 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Curve Type Toggle */}
         <div className="flex gap-1 p-1 bg-background rounded">
           <Button
-            variant={nodeData.curveType === 'preset' ? 'default' : 'ghost'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              nodeData.curveType === 'preset'
+                ? ButtonVariant.DEFAULT
+                : ButtonVariant.GHOST
+            }
+            size={ButtonSize.SM}
             onClick={() => handleCurveTypeChange('preset')}
             className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'preset'
@@ -128,8 +136,13 @@ function AnimationNodeComponent(props: NodeProps) {
             Preset
           </Button>
           <Button
-            variant={nodeData.curveType === 'custom' ? 'default' : 'ghost'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              nodeData.curveType === 'custom'
+                ? ButtonVariant.DEFAULT
+                : ButtonVariant.GHOST
+            }
+            size={ButtonSize.SM}
             onClick={() => handleCurveTypeChange('custom')}
             className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'custom'
@@ -236,8 +249,9 @@ function AnimationNodeComponent(props: NodeProps) {
               controls
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -252,8 +266,9 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!hasRequiredInputs || nodeData.status === 'processing'}
             className="w-full"

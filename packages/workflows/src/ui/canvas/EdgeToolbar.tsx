@@ -1,11 +1,12 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { useReactFlow } from '@xyflow/react';
 import { Pause, Play, Trash2 } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 function EdgeToolbarComponent() {
   const { selectedEdgeId, selectEdge } = useUIStore();
@@ -64,8 +65,9 @@ function EdgeToolbarComponent() {
       }}
     >
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={handleTogglePause}
         title={hasPause ? 'Resume edge' : 'Pause edge'}
       >
@@ -77,8 +79,9 @@ function EdgeToolbarComponent() {
       </Button>
       <div className="h-4 w-px bg-border" />
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={handleDelete}
         title="Delete edge"
         className="hover:bg-destructive/10 hover:text-destructive"

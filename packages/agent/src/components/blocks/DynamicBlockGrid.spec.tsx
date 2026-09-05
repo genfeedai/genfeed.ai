@@ -349,12 +349,12 @@ describe('DynamicBlockGrid', () => {
       expect(screen.getByText('Yay')).toHaveClass('text-success');
     });
 
-    it('renders markdown content', () => {
+    it('renders paragraph content', () => {
       renderBlocks([
         block({
-          content: 'hello **world**',
+          text: 'hello world',
           id: 'md-1',
-          type: 'markdown',
+          type: 'text_paragraph',
         } as AgentUIBlock),
       ]);
 

@@ -1,5 +1,5 @@
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -60,7 +60,7 @@ describe('BatchGenerationStreamService', () => {
         status: 'running',
         threadId: 'thread-1',
         toolCallId: 'batch:batch-1',
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
+        toolName: 'generate_content_batch',
         userId: 'user-1',
       }),
     );

@@ -9,7 +9,6 @@ import { PostAnalyticsService } from '@services/analytics/publication-analytics.
 import { AuthService } from '@services/auth/auth.service';
 import { StreaksService } from '@services/engagement/streaks.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
-import { TwitterPipelineService } from '@services/twitter/twitter-pipeline.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/logger.service', () => ({
@@ -146,75 +145,6 @@ describe('StreaksService', () => {
 
     expect(http.patch).toHaveBeenCalledWith('me', { freeze: true });
     expect(result).toEqual(payload);
-  });
-});
-
-describe('TwitterPipelineService', () => {
-  const orgId = 'org_1';
-  let service: TwitterPipelineService;
-  let http: MockHttpInstance;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    service = new TwitterPipelineService('twitter-token');
-    http = installMockHttp(service);
-  });
-
-  it('getInstance caches per token', () => {
-    const first = TwitterPipelineService.getInstance('tok');
-    expect(TwitterPipelineService.getInstance('tok')).toBe(first);
-  });
-
-  it('search POSTs the brand query', async () => {
-    const results = [{ id: 'tweet_1' }];
-    http.post.mockResolvedValue(axiosResponse(results));
-
-    const result = await service.search(
-      orgId,
-      'brand_1',
-      { searchQuery: 'ai agents' } as Parameters<
-        TwitterPipelineService['search']
-      >[2],
-      10,
-    );
-
-    expect(http.post).toHaveBeenCalledWith(
-      `/${orgId}/twitter-pipeline/search`,
-      { brandId: 'brand_1', maxResults: 10, query: 'ai agents' },
-    );
-    expect(result).toEqual(results);
-  });
-
-  it('draft POSTs search results with the voice config', async () => {
-    const opportunities = [{ id: 'opp_1' }];
-    http.post.mockResolvedValue(axiosResponse(opportunities));
-
-    const voiceConfig = { searchQuery: 'ai' } as Parameters<
-      TwitterPipelineService['draft']
-    >[2];
-    const result = await service.draft(orgId, [], voiceConfig);
-
-    expect(http.post).toHaveBeenCalledWith(`/${orgId}/twitter-pipeline/draft`, {
-      searchResults: [],
-      voiceConfig,
-    });
-    expect(result).toEqual(opportunities);
-  });
-
-  it('publish POSTs the publish request with the brand id', async () => {
-    const published = { id: 'tweet_new' };
-    http.post.mockResolvedValue(axiosResponse(published));
-
-    const dto = { text: 'hello', type: 'original' } as Parameters<
-      TwitterPipelineService['publish']
-    >[2];
-    const result = await service.publish(orgId, 'brand_1', dto);
-
-    expect(http.post).toHaveBeenCalledWith(
-      `/${orgId}/twitter-pipeline/publish`,
-      { brandId: 'brand_1', text: 'hello', type: 'original' },
-    );
-    expect(result).toEqual(published);
   });
 });
 

@@ -1,6 +1,6 @@
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { BatchProcessOptions } from '@api/services/batch-generation/batch-generation.types';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -74,7 +74,7 @@ export class BatchGenerationStreamService {
           status: 'running',
           threadId,
           toolCallId: `batch:${batchId}`,
-          toolName: AgentToolName.GENERATE_CONTENT_BATCH,
+          toolName: 'generate_content_batch',
           userId,
         }),
 
@@ -104,7 +104,7 @@ export class BatchGenerationStreamService {
           status: 'completed',
           threadId,
           toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-          toolName: AgentToolName.GENERATE_CONTENT_BATCH,
+          toolName: 'generate_content_batch',
           userId,
         }),
 
@@ -128,7 +128,7 @@ export class BatchGenerationStreamService {
           status: 'failed',
           threadId,
           toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-          toolName: AgentToolName.GENERATE_CONTENT_BATCH,
+          toolName: 'generate_content_batch',
           userId,
         }),
 
@@ -149,7 +149,7 @@ export class BatchGenerationStreamService {
           status: 'running',
           threadId,
           toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-          toolName: AgentToolName.GENERATE_CONTENT_BATCH,
+          toolName: 'generate_content_batch',
           userId,
         }),
     };

@@ -4,12 +4,13 @@ import {
   CLOUD_ONLY_ONBOARDING_TOOLS,
   resolveBlockedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-function resolveToolNames(source?: string): AgentToolName[] {
+function resolveToolNames(source?: string): CuratedActionName[] {
   return buildToolDefinitions(undefined, resolveBlockedTools({ source })).map(
-    (tool) => tool.function.name as AgentToolName,
+    (tool) => tool.function.name as CuratedActionName,
   );
 }
 
@@ -20,8 +21,8 @@ afterEach(() => {
 describe('self-hosted onboarding tool boundary', () => {
   it('defines payment and monthly content as cloud-only onboarding tools', () => {
     expect(CLOUD_ONLY_ONBOARDING_TOOLS).toEqual([
-      AgentToolName.PRESENT_PAYMENT_OPTIONS,
-      AgentToolName.GENERATE_MONTHLY_CONTENT,
+      'present_payment_options',
+      'generate_monthly_content',
     ]);
   });
 
@@ -30,15 +31,15 @@ describe('self-hosted onboarding tool boundary', () => {
 
     const tools = resolveToolNames('onboarding');
 
-    expect(tools).not.toContain(AgentToolName.PRESENT_PAYMENT_OPTIONS);
-    expect(tools).not.toContain(AgentToolName.GENERATE_MONTHLY_CONTENT);
+    expect(tools).not.toContain('present_payment_options');
+    expect(tools).not.toContain('generate_monthly_content');
   });
 
   it('makes presentPaymentOptions unreachable during self-hosted onboarding', () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
 
     expect(resolveToolNames('onboarding')).not.toContain(
-      AgentToolName.PRESENT_PAYMENT_OPTIONS,
+      'present_payment_options',
     );
   });
 
@@ -47,8 +48,8 @@ describe('self-hosted onboarding tool boundary', () => {
 
     const tools = resolveToolNames('onboarding');
 
-    expect(tools).toContain(AgentToolName.PRESENT_PAYMENT_OPTIONS);
-    expect(tools).toContain(AgentToolName.GENERATE_MONTHLY_CONTENT);
+    expect(tools).toContain('present_payment_options');
+    expect(tools).toContain('generate_monthly_content');
   });
 
   it('blocks payment options on self-hosted non-onboarding turns too', () => {
@@ -56,8 +57,8 @@ describe('self-hosted onboarding tool boundary', () => {
 
     const tools = resolveToolNames('agent');
 
-    expect(tools).not.toContain(AgentToolName.PRESENT_PAYMENT_OPTIONS);
-    expect(tools).toContain(AgentToolName.GENERATE_MONTHLY_CONTENT);
+    expect(tools).not.toContain('present_payment_options');
+    expect(tools).toContain('generate_monthly_content');
   });
 
   it('does not block any tool on cloud non-onboarding turns', () => {
@@ -66,17 +67,17 @@ describe('self-hosted onboarding tool boundary', () => {
     const tools = resolveToolNames('agent');
 
     expect(resolveBlockedTools({ source: 'agent' })).toBeUndefined();
-    expect(tools).toContain(AgentToolName.PRESENT_PAYMENT_OPTIONS);
-    expect(tools).toContain(AgentToolName.GENERATE_MONTHLY_CONTENT);
+    expect(tools).toContain('present_payment_options');
+    expect(tools).toContain('generate_monthly_content');
   });
 
   it('applies blocked tools after an allow-list', () => {
     const tools = buildToolDefinitions(
-      [AgentToolName.PRESENT_PAYMENT_OPTIONS, AgentToolName.CREATE_BRAND],
-      [AgentToolName.PRESENT_PAYMENT_OPTIONS],
+      ['present_payment_options', 'create_brand'],
+      ['present_payment_options'],
     ).map((tool) => tool.function.name);
 
-    expect(tools).toEqual([AgentToolName.CREATE_BRAND]);
+    expect(tools).toEqual(['create_brand']);
   });
 });
 

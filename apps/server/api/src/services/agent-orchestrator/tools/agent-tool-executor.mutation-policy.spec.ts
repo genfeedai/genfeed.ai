@@ -5,7 +5,7 @@ import {
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -96,7 +96,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       createPending: vi.fn().mockResolvedValue({
         id: 'apr-1',
         status: 'PENDING',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
       }),
       findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
       findOwned: vi.fn(),
@@ -148,7 +148,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   it('rejects approval-required tools on a host with no approval mechanism', async () => {
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({ hostSupportsApproval: false }),
     );
@@ -161,7 +161,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   it('persists a pending call and does not execute on an approval host', async () => {
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({ hostSupportsApproval: true, threadId: testId('thread') }),
     );
@@ -173,7 +173,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(mcpApprovals.createPending).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       { threadId: expect.any(String) },
     );
@@ -188,7 +188,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     });
 
     const first = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',
@@ -202,12 +202,12 @@ describe('AgentToolExecutorService mutation policy', () => {
       id: 'apr-1',
       result: { id: 'post-1' },
       status: 'APPROVED',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
     publishHandler.createPost.mockClear();
 
     const retry = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',

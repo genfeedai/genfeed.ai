@@ -243,7 +243,7 @@ export default function MenuShared({
                   push(
                     brandSlug
                       ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
-                      : orgHref(APP_ROUTES.OVERVIEW.ROOT),
+                      : orgHref(APP_ROUTES.WORKSPACE.OVERVIEW),
                   );
                 }}
                 onItemClick={handleLinkClick}

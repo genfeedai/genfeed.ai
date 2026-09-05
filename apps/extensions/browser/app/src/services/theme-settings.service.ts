@@ -4,7 +4,7 @@ import {
   type ThemePreference,
 } from '@genfeedai/contracts/constants';
 import { authService } from '~services/auth.service';
-import { EnvironmentService } from '~services/environment.service';
+import { apiEndpoint } from '~services/environment.service';
 
 interface SettingsDocument {
   data?: {
@@ -14,7 +14,7 @@ interface SettingsDocument {
   };
 }
 
-const SETTINGS_ENDPOINT = `${EnvironmentService.apiEndpoint}/users/me/settings`;
+const SETTINGS_ENDPOINT = `${apiEndpoint}/users/me/settings`;
 
 async function requireSuccessfulResponse(
   response: Response,

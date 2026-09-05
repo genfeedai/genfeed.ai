@@ -4,18 +4,19 @@ import type {
   HandleType,
   WorkflowOutputNodeData,
 } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import Image from 'next/image';
-import { memo, useCallback, useRef, useState } from 'react';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Label } from '../../ui/label';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
+} from '@genfeedai/ui/primitives/select';
+import type { NodeProps } from '@xyflow/react';
+import Image from 'next/image';
+import { memo, useCallback, useRef, useState } from 'react';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const OUTPUT_TYPES: { value: HandleType; label: string }[] = [
@@ -86,7 +87,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
           <Label htmlFor={`output-name-${id}`} className="text-xs">
             Output Name
           </Label>
-          <input
+          <Input
             aria-label="Output Name"
             id={`output-name-${id}`}
             type="text"
@@ -124,7 +125,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
           <Label htmlFor={`output-description-${id}`} className="text-xs">
             Description (optional)
           </Label>
-          <input
+          <Input
             aria-label="Output description"
             id={`output-description-${id}`}
             type="text"

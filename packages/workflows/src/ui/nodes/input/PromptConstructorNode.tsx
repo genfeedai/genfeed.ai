@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   AvailableVariable,
   PromptConstructorNodeData,
@@ -7,6 +9,7 @@ import type {
   PromptNodeData,
 } from '@genfeedai/contracts/types';
 import { Textarea, ToggleGroup, ToggleGroupItem } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,11 +21,15 @@ import {
 } from '../../../engine/executors/saas/prompt-json';
 import { usePromptAutocomplete } from '../../hooks/usePromptAutocomplete';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 const PROMPT_CONSTRUCTOR_HEADER_ACTIONS = (
-  <Button variant="ghost" size="icon-sm" title="Expand editor">
+  <Button
+    withWrapper={false}
+    variant={ButtonVariant.GHOST}
+    size={ButtonSize.ICON}
+    title="Expand editor"
+  >
     <Expand className="size-3.5" />
   </Button>
 );
@@ -355,8 +362,9 @@ function PromptConstructorNodeComponent(props: NodeProps) {
             >
               {filteredAutocompleteVars.map((variable, index) => (
                 <Button
+                  withWrapper={false}
                   key={variable.nodeId}
-                  variant="ghost"
+                  variant={ButtonVariant.GHOST}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleAutocompleteSelect(variable.name);

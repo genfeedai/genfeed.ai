@@ -13,7 +13,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zustand": "5.0.15",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "@genfeedai/actions": "workspace:*"
   },
   "description": "Genfeed.ai - Generate (good) AI content for your business",
   "devDependencies": {

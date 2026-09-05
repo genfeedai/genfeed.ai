@@ -223,7 +223,7 @@ test('canonical e2e tier contract documents core, authed, full, and isolated-pub
   assert.match(doc, /test:e2e:isolated-publish/);
   assert.match(doc, /apps\/server\/api/);
   assert.equal(
-    packageJson.scripts['test:e2e:core'].includes('--project=app-core'),
+    packageJson.scripts['test:e2e:core'].includes('--tier=core'),
     true,
   );
   assert.equal(

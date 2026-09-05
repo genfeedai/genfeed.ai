@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Check,
   CircleCheckBig,
@@ -11,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
-import { Button } from '../ui/button';
 
 const typeStyles = {
   error: 'bg-destructive/10 border-destructive/30 text-destructive',
@@ -63,8 +64,9 @@ function NotificationItem({
           )}
         </div>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleCopy}
           className="size-auto shrink-0 p-1 hover:bg-foreground/10"
           title="Copy message"
@@ -72,8 +74,9 @@ function NotificationItem({
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
         </Button>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => removeNotification(id)}
           className="size-auto shrink-0 p-1 hover:bg-foreground/10"
           title="Dismiss"

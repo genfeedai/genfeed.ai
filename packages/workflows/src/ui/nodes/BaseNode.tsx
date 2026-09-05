@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   HandleDefinition,
   NodeStatus,
@@ -10,6 +12,7 @@ import type {
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS, NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Handle,
   type NodeProps,
@@ -98,7 +101,6 @@ import { generateHandlesFromSchema } from '../lib/schemaHandles';
 import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 import { NodeErrorBoundary } from './NodeErrorBoundary';
 import { PreviewTooltip } from './PreviewTooltip';
 
@@ -325,8 +327,9 @@ function BaseNodeHeader({
       {!state.hideStatusIndicator &&
         (state.isProcessing ? (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onStopNode}
             className="text-destructive hover:bg-destructive/20 hover:text-destructive"
             title={stopTitle}
@@ -337,8 +340,9 @@ function BaseNodeHeader({
           <StatusIndicator status={status} />
         ))}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onLockToggle}
         className={state.isLocked ? 'text-chart-3' : 'text-muted-foreground'}
         title={state.isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
@@ -383,8 +387,9 @@ function BaseNodeContent({
                 {nodeData.error}
               </p>
               <Button
-                variant="ghost"
-                size="icon-sm"
+                withWrapper={false}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
                 onClick={onCopyError}
                 className="flex-shrink-0 size-5 text-destructive/70 hover:bg-destructive/20 hover:text-destructive"
                 title="Copy error"
@@ -393,8 +398,9 @@ function BaseNodeContent({
               </Button>
             </div>
             <Button
-              variant="destructive"
-              size="sm"
+              withWrapper={false}
+              variant={ButtonVariant.DESTRUCTIVE}
+              size={ButtonSize.SM}
               onClick={onRetry}
               disabled={nodeExecuting}
               className="mt-2 w-full"

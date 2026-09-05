@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   ChevronUp,
   CirclePlay,
@@ -12,7 +14,6 @@ import {
 import { type RefObject, useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 const MIN_BATCH = 1;
 const MAX_BATCH = 10;
@@ -34,8 +35,9 @@ function BatchCounter({
     <div className="flex items-center gap-0.5">
       <span className="mr-0.5 text-2xs text-muted-foreground">Batch</span>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onDecrement}
         disabled={batchCount <= MIN_BATCH || isActive}
         className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -46,8 +48,9 @@ function BatchCounter({
         {batchCount}
       </span>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onIncrement}
         disabled={batchCount >= MAX_BATCH || isActive}
         className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -89,9 +92,10 @@ function RunOptionsDropdown({
   return (
     <>
       <Button
+        withWrapper={false}
         type="button"
-        variant="ghost"
-        size="icon-sm"
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         className="fixed inset-0 z-40 size-full p-0 opacity-0"
         onClick={onClose}
         aria-label="Close run options"
@@ -101,8 +105,9 @@ function RunOptionsDropdown({
         className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] bg-secondary py-0.5 shadow-dropdown"
       >
         <Button
-          variant="ghost"
-          size="sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           onClick={onRunWorkflow}
           disabled={!canRunWorkflow}
           className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
@@ -111,8 +116,9 @@ function RunOptionsDropdown({
           Run Workflow
         </Button>
         <Button
-          variant="ghost"
-          size="sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           onClick={onRunSelected}
           disabled={!hasSelection || isRunning}
           className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
@@ -124,8 +130,9 @@ function RunOptionsDropdown({
           <>
             <div className="mx-2 my-0.5 h-px bg-border" />
             <Button
-              variant="ghost"
-              size="sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={onResume}
               className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
             >
@@ -176,16 +183,17 @@ function RunControls({
     showResume,
   } = state;
   const variant = isActive
-    ? 'destructive'
+    ? ButtonVariant.DESTRUCTIVE
     : canRunWorkflow
-      ? 'default'
-      : 'secondary';
+      ? ButtonVariant.DEFAULT
+      : ButtonVariant.SECONDARY;
 
   return (
     <div className="relative flex items-center">
       <Button
+        withWrapper={false}
         variant={variant}
-        size="sm"
+        size={ButtonSize.SM}
         onClick={(e) => {
           e.stopPropagation();
           onPrimaryClick();
@@ -212,8 +220,9 @@ function RunControls({
         )}
       </Button>
       <Button
+        withWrapper={false}
         variant={variant}
-        size="sm"
+        size={ButtonSize.SM}
         onPointerDown={(e) => {
           e.stopPropagation();
           e.preventDefault();
