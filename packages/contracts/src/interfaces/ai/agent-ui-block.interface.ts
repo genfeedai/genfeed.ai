@@ -11,7 +11,6 @@ export type AgentUIBlockType =
   | 'text_paragraph'
   | 'bullet_list'
   | 'callout'
-  | 'markdown'
   | 'image_grid'
   | 'composite'
   | 'empty_state';
