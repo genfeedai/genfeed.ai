@@ -1,0 +1,10 @@
+{
+  "$schema": "https://v2-9-12.turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "cache": false,
+      "passThroughEnv": ["KNOWLEDGE_TEST_DATABASE_URL"]
+    }
+  }
+}

@@ -172,6 +172,42 @@ describe('BrandRelocationService', () => {
     });
   });
 
+  it.each([
+    ['knowledgeSource', false],
+    ['knowledgeSource', true],
+    ['knowledgeSpace', false],
+    ['knowledgeSpace', true],
+  ] as const)(
+    'rejects preview and relocation with %s history (isDeleted=%s)',
+    async (delegate, isDeleted) => {
+      primeBrand();
+      getDelegate(delegate).findFirst.mockResolvedValue({
+        id: 'knowledge-history',
+        isDeleted,
+      });
+      const actor = { isSuperAdmin: true, userId: USER_ID };
+      await expect(
+        service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+      ).rejects.toThrow(/Knowledge history/);
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          actor,
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(getDelegate(delegate).findFirst).toHaveBeenCalledWith({
+        where: { organizationId: SOURCE_ORG, brandId: BRAND_ID },
+        select: { id: true },
+      });
+      expect(transactionSpy).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
+      expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    },
+  );
+
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,
@@ -186,6 +222,8 @@ describe('BrandRelocationService', () => {
     );
 
     expect(transactionSpy).not.toHaveBeenCalled();
+    expect(getDelegate('knowledgeSource').findFirst).not.toHaveBeenCalled();
+    expect(getDelegate('knowledgeSpace').findFirst).not.toHaveBeenCalled();
     expect(queryRaw).not.toHaveBeenCalled();
     // Falls through to a normal field patch.
     expect(getDelegate('brand').update).toHaveBeenCalled();

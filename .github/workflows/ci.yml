@@ -543,6 +543,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -789,6 +790,22 @@ jobs:
     name: Test API (changed shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: genfeed_local
+          POSTGRES_USER: genfeed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
@@ -879,6 +896,22 @@ jobs:
     name: Test API (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: genfeed_local
+          POSTGRES_USER: genfeed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
     needs: [trust, test-scope]
     # Full sharded suite is explicit: release/deploy QA or a planner escalation
     # for validation machinery and root dependency changes.
