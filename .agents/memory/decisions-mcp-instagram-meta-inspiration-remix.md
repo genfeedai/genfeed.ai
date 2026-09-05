@@ -14,7 +14,7 @@ topics: [mcp, instagram, meta-ads, tenancy, workflows]
 
 ## Decision: reuse the canonical Agent executor route
 
-The six actions use canonical `@genfeedai/actions` definitions and `AgentToolName` dispatch. MCP already proxies these actions to the API Agent executor and validates dispatch coverage at boot. A dedicated Instagram MCP client would duplicate authorization, approval, and response handling.
+The six actions use canonical `@genfeedai/actions` definitions and `CuratedActionName` dispatch. MCP already proxies these actions to the API Agent executor and validates dispatch coverage at boot. A dedicated Instagram MCP client would duplicate authorization, approval, and response handling.
 
 ## Decision: do not use the global trend corpus as tenant cache
 
