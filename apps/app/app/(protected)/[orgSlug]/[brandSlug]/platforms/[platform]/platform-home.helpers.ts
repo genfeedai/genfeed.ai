@@ -50,11 +50,11 @@ export function getPlatformConnectionHealth(
 
 export function getPlatformLiveHref(platform: Platform): string | undefined {
   if (isYouTubePlatform(platform) || platform === Platform.RESTREAM) {
-    return `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`;
+    return APP_ROUTES.AUTOMATION.YOUTUBE_CHAT;
   }
 
   if (isTwitchPlatform(platform)) {
-    return `${APP_ROUTES.AUTOMATION.LIBRARY}/twitch-chat`;
+    return APP_ROUTES.AUTOMATION.TWITCH_CHAT;
   }
 
   return undefined;

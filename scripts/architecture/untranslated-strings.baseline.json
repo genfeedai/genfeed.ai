@@ -347,7 +347,6 @@
     "packages/pages/brands/components/sidebar/AgentProfileVoiceFields.tsx": 15,
     "packages/pages/brands/components/sidebar/BrandDetailAgentProfileCard.tsx": 11,
     "packages/pages/brands/components/sidebar/BrandDetailExternalLinksCard.tsx": 5,
-    "packages/pages/brands/components/sidebar/BrandDetailLinksSummaryCard.tsx": 2,
     "packages/pages/brands/components/sidebar/BrandDetailManualKitCard.tsx": 9,
     "packages/pages/brands/components/sidebar/BrandDetailReferencesCard.tsx": 1,
     "packages/pages/brands/components/sidebar/BrandDetailSocialSummaryCard.tsx": 2,

@@ -194,12 +194,7 @@ export function getCurrentBrandScopedPath(pathname: string): string {
   // Brand (`/:org/:brand/...`) and org (`/:org/~/...`) scopes both keep the
   // app surface after the scope segments when switching brand selection.
   if (parts.length >= 3) {
-    const rest = `/${parts.slice(2).join('/')}`;
-    // Org overview alias normalizes to the canonical workspace overview path.
-    if (rest === '/overview') {
-      return APP_ROUTES.WORKSPACE.OVERVIEW;
-    }
-    return rest;
+    return `/${parts.slice(2).join('/')}`;
   }
 
   return APP_ROUTES.WORKSPACE.OVERVIEW;
@@ -235,7 +230,6 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
   APP_ROUTES.SETTINGS.SOCIAL,
-  APP_ROUTES.SETTINGS.LINKS,
   '/settings/voice',
   '/settings/interview',
   '/settings/harness',

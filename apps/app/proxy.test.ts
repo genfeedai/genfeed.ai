@@ -521,36 +521,30 @@ describe('proxy', () => {
   );
 
   it.each([
-    ['/acme/~/workflows', '/acme/~/automation/workflows'],
+    ['/acme/~/automation/workflows', '/acme/~/automation/workflows'],
     [
-      '/acme/~/workflows/workflow-42',
+      '/acme/~/automation/workflows/workflow-42',
       '/acme/~/automation/workflows/workflow-42',
     ],
     [
-      '/acme/moonrise-studio/workflows',
+      '/acme/moonrise-studio/automation/workflows',
       '/acme/moonrise-studio/automation/workflows',
     ],
     [
-      '/acme/moonrise-studio/workflows/workflow-42',
+      '/acme/moonrise-studio/automation/workflows/workflow-42',
       '/acme/moonrise-studio/automation/workflows/workflow-42',
     ],
-  ])(
-    'redirects legacy scoped workflow route %s to %s',
-    async (pathname, canonicalPathname) => {
-      const { default: proxy } = await import('./proxy');
+  ])('preserves canonical scoped workflow route %s', async (pathname) => {
+    const { default: proxy } = await import('./proxy');
 
-      const response = await proxy(
-        makeSignedInRequest(pathname, { search: '?view=runs' }),
-        {} as never,
-      );
+    const response = await proxy(
+      makeSignedInRequest(pathname, { search: '?view=runs' }),
+      {} as never,
+    );
 
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        `http://localhost:3000${canonicalPathname}?view=runs`,
-      );
-      expect(fetchMock).not.toHaveBeenCalled();
-    },
-  );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
 
   it('does not interpret the platform Admin workflow page as tenant scope', async () => {
     const { default: proxy } = await import('./proxy');
@@ -1275,34 +1269,31 @@ describe('proxy', () => {
   });
 
   it.each([
-    ['/acme/moonrise-studio/tasks', '/acme/moonrise-studio/workspace/tasks'],
     [
-      '/acme/moonrise-studio/tasks/GEN-42',
+      '/acme/moonrise-studio/workspace/tasks',
+      '/acme/moonrise-studio/workspace/tasks',
+    ],
+    [
+      '/acme/moonrise-studio/workspace/tasks/GEN-42',
       '/acme/moonrise-studio/workspace/tasks/GEN-42',
     ],
-  ])(
-    'redirects legacy scoped task route %s to %s',
-    async (pathname, canonicalPathname) => {
-      const { default: proxy } = await import('./proxy');
-
-      const response = await proxy(
-        makeSignedInRequest(pathname, { search: '?view=kanban' }),
-        {} as never,
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        `http://localhost:3000${canonicalPathname}?view=kanban`,
-      );
-      expect(fetchMock).not.toHaveBeenCalled();
-    },
-  );
-
-  it('canonicalizes the legacy flat tasks route before workspace scoping', async () => {
+  ])('preserves canonical scoped task route %s', async (pathname) => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/tasks', { search: '?view=kanban' }),
+      makeSignedInRequest(pathname, { search: '?view=kanban' }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('scopes the canonical flat tasks route', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/workspace/tasks', { search: '?view=kanban' }),
       {} as never,
     );
 
@@ -1586,7 +1577,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/acme/~/overview'),
+      makeSignedInRequest('/acme/~/workspace/overview'),
       {} as never,
     );
 

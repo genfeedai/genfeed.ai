@@ -135,7 +135,7 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/studio/storyboard')).toBe(
       '/studio/storyboard',
     );
-    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
+    expect(getCurrentBrandScopedPath('/acme/~/workspace/overview')).toBe(
       '/workspace/overview',
     );
     expect(getCurrentBrandScopedPath('/acme/~/agent/new')).toBe('/agent/new');
@@ -177,9 +177,6 @@ describe('operator-shell helpers', () => {
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/social')).toBe(
-      '/settings/brands',
-    );
-    expect(resolveOrganizationScopePath('/settings/links')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/kit')).toBe(

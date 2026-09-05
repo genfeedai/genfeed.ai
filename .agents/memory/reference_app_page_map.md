@@ -131,7 +131,6 @@ Canonical explicit organization pages:
 
 - `/:orgSlug`
 - `/:orgSlug/~/connect`
-- `/:orgSlug/~/overview`
 - `/:orgSlug/~/analytics/overview`
 
 Organization agent:

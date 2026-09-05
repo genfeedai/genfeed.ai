@@ -165,13 +165,11 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/workspace': 'Overview',
   '/:orgSlug/~/workspace': 'Overview',
   '/:orgSlug/~/workspace/overview': 'Overview',
-  '/:orgSlug/~/overview': 'Overview',
   '/:orgSlug/~/analytics': 'Overview',
   '/:orgSlug/~/analytics/accounts': 'Accounts',
   '/:orgSlug/~/analytics/accounts/:id': 'Account',
   '/:orgSlug/~/analytics/brands/:id': 'Brand Details',
   '/:orgSlug/~/automation': 'Overview',
-  '/:orgSlug/:brandSlug/automation/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automation/agents': 'Agents',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automation/content-runs/:runId': 'Content Run',
@@ -279,7 +277,6 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/ads': 'Campaigns',
   '/:orgSlug/~/publishing/campaigns/:id/edit': 'Campaigns',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Team',
-  '/:orgSlug/:brandSlug/automation/agents/new': 'Team',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
@@ -310,7 +307,6 @@ const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/campaigns/:id/ads': '/publishing/campaigns',
   '/:orgSlug/~/publishing/campaigns/:id/edit': '/publishing/campaigns',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': '/automation/agents',
-  '/:orgSlug/:brandSlug/automation/agents/new': '/automation/agents',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -502,11 +498,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'management',
   }),
   ...registerRoutes(
-    [
-      '/:orgSlug/~/overview',
-      '/:orgSlug/~/workspace',
-      '/:orgSlug/~/workspace/overview',
-    ],
+    ['/:orgSlug/~/workspace', '/:orgSlug/~/workspace/overview'],
     {
       adapter: {
         key: 'organization-workspace-overview',
@@ -977,18 +969,14 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/automation',
-      '/:orgSlug/:brandSlug/automation/:agentId',
       '/:orgSlug/:brandSlug/automation/agents/:agentId',
       '/:orgSlug/:brandSlug/automation/overview',
-      // /automation/analytics permanently redirects to Analytics Overview
-      '/:orgSlug/:brandSlug/automation/analytics',
       '/:orgSlug/:brandSlug/automation/autopilot',
       '/:orgSlug/:brandSlug/automation/runs',
       '/:orgSlug/:brandSlug/automation/runs/:id',
       '/:orgSlug/:brandSlug/automation/campaigns',
       '/:orgSlug/:brandSlug/automation/campaigns/new',
       '/:orgSlug/:brandSlug/automation/campaigns/:id',
-      '/:orgSlug/:brandSlug/automation/orchestrator',
       '/:orgSlug/:brandSlug/automation/content-runs',
       '/:orgSlug/:brandSlug/automation/content-runs/:runId',
       '/:orgSlug/:brandSlug/automation/templates',
@@ -1044,11 +1032,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/automation/new',
       '/:orgSlug/:brandSlug/automation/agents',
-      '/:orgSlug/:brandSlug/automation/agents/new',
-      '/:orgSlug/:brandSlug/automation/hire',
-      '/:orgSlug/:brandSlug/automation/library',
       '/:orgSlug/:brandSlug/automation/library/:type',
     ],
     {
@@ -1067,18 +1051,13 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/characters',
       '/:orgSlug/:brandSlug/settings/social',
-      '/:orgSlug/:brandSlug/settings/links',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',
-      '/:orgSlug/:brandSlug/settings/organization/credentials',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent-defaults',
       '/:orgSlug/:brandSlug/settings/skills',
       '/:orgSlug/:brandSlug/settings/usage',
-      // Legacy Automation settings aliases permanently redirect into this surface.
-      '/:orgSlug/:brandSlug/automation/configuration',
-      '/:orgSlug/:brandSlug/automation/skills',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/settings',
@@ -1186,7 +1165,7 @@ const ADMIN_ROUTE_REGISTRATIONS = [
  * (`/:orgSlug/~/settings/organization/*`) is deliberately absent. Retired
  * `/automation/strategies` is a third hard cut: the `:agentId` pattern must not
  * treat that slug as a live agent. Org Workspace lives at
- * `/:orgSlug/~/workspace/*` (legacy `/:orgSlug/~/overview` redirects there).
+ * `/:orgSlug/~/workspace/*`.
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
   ...PERSONAL_ROUTE_REGISTRATIONS,

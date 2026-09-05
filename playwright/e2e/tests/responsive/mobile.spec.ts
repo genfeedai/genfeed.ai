@@ -31,7 +31,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Mobile hamburger menu or mobile nav should appear
@@ -64,7 +64,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const sidebar = authenticatedPage.locator(
@@ -173,7 +173,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Tap on navigation links to verify touch works

@@ -32,10 +32,6 @@ vi.mock(
   }),
 );
 
-vi.mock('@pages/brands/components/sidebar/BrandDetailLinksSummaryCard', () => ({
-  default: () => <div>Links Summary Card</div>,
-}));
-
 vi.mock(
   '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard',
   () => ({

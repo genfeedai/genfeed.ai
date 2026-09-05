@@ -20,7 +20,7 @@ test.describe('Overview Compatibility Redirect', () => {
   test('redirects authenticated users from /overview to /workspace', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -46,7 +46,7 @@ test.describe('Overview Compatibility Redirect — Unauthenticated Access', () =
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT, {
+    await unauthenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
 

@@ -36,12 +36,15 @@ test.describe('Agents — Content Team', () => {
     ).toBeVisible();
   });
 
-  test('legacy hire route opens the agent library dialog', async ({
+  test('Add agent query opens the agent library dialog', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.HIRE), {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      `${brandPath(APP_ROUTES.AUTOMATION.AGENTS)}?add=library`,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(
       /\/automation\/agents\?add=library$/,
@@ -62,11 +65,11 @@ test.describe('Agents — Content Team', () => {
     await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
   });
 
-  test('legacy orchestrator route opens the Creator Studio Program template', async ({
+  test('new Program query opens the Creator Studio Program template', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.ORCHESTRATOR),
+      `${brandPath(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}?template=creator-studio`,
       {
         waitUntil: 'domcontentloaded',
       },
