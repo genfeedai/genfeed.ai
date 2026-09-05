@@ -40,6 +40,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -524,22 +525,25 @@ export default function ReleasePostsList({
         />
       </div>
 
-      {error ? (
-        <p
-          className="mb-4 border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-          role="alert"
-        >
-          {translate('loadError')}
-        </p>
+      {viewMode !== 'board' && error && data.releases.length > 0 ? (
+        <ErrorFallback
+          compact
+          title={translate('loadError')}
+          resetErrorBoundary={() => refetch()}
+        />
       ) : null}
-
       {viewMode === 'board' ? (
         <ReleaseBoard
           browserTimezone={browserTimezone}
           isLoading={isLoading}
-          loadError={!!error}
+          loadError={Boolean(error)}
           onRefetch={() => void refetch()}
           releases={data.releases}
+        />
+      ) : error && data.releases.length === 0 ? (
+        <ErrorFallback
+          title={translate('loadError')}
+          resetErrorBoundary={() => refetch()}
         />
       ) : viewMode === 'grid' ? (
         <AccountGrid
@@ -577,7 +581,7 @@ export default function ReleasePostsList({
         </div>
       )}
 
-      {viewMode === 'list' && data.releases.length > 0 ? (
+      {!error && viewMode === 'list' && data.releases.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
           <span className="flex items-center gap-1">
             <Kbd>{translateRail('keys.jKey')}</Kbd>

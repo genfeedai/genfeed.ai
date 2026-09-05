@@ -57,7 +57,7 @@ export default function CampaignsListPage() {
   const status = parseCampaignStatusFilter(searchParams?.get('status'));
   const parsedPage = Number.parseInt(searchParams?.get('page') ?? '1', 10);
   const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
-  const { campaigns, isLoading, totalPages } = useCampaigns({
+  const { campaigns, isLoading, isError, refetch, totalPages } = useCampaigns({
     page,
     status,
   });
@@ -177,6 +177,14 @@ export default function CampaignsListPage() {
       titleVisibility="sr-only"
     >
       <AppTable<Campaign>
+        error={
+          isError
+            ? {
+                title: translate('loadError'),
+                onRetry: () => refetch(),
+              }
+            : undefined
+        }
         columns={columns}
         emptyLabel={
           status === ContentCampaignStatus.ARCHIVED

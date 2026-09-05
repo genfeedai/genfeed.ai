@@ -13,7 +13,8 @@ import DateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
-  const { setDateRange, triggerRefresh, isRefreshing } = useAnalyticsContext();
+  const { setDateRange, triggerRefresh, isRefreshing, toolbarNode } =
+    useAnalyticsContext();
 
   return (
     <Container
@@ -36,7 +37,8 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
         ],
       }}
       right={
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {toolbarNode}
           <DateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

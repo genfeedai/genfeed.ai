@@ -8,7 +8,6 @@ import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function PageHeader({
   backLabel,
@@ -20,16 +19,7 @@ export default function PageHeader({
   actions,
   className,
 }: PageHeaderProps) {
-  const { push } = useRouter();
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
-
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else if (backRoute) {
-      push(backRoute);
-    }
-  };
 
   const hasBackButton = Boolean(backLabel && (backRoute || onBack));
   const hasActions = Boolean(actions);
@@ -45,19 +35,18 @@ export default function PageHeader({
       <div className="flex items-center gap-4">
         {hasBackButton &&
           (backRoute ? (
-            <Link href={backRoute}>
-              <Button
-                label={backLabel}
-                icon={<ArrowLeft className="size-4" />}
-                variant={ButtonVariant.GHOST}
-              />
-            </Link>
+            <Button asChild variant={ButtonVariant.GHOST} withWrapper={false}>
+              <Link href={backRoute}>
+                <ArrowLeft className="size-4" />
+                {backLabel}
+              </Link>
+            </Button>
           ) : (
             <Button
               label={backLabel}
               icon={<ArrowLeft className="size-4" />}
               variant={ButtonVariant.GHOST}
-              onClick={handleBack}
+              onClick={onBack}
             />
           ))}
 

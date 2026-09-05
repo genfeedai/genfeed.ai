@@ -905,6 +905,7 @@ export function usePostsList({
   );
 
   return {
+    isError: Boolean(postsError),
     actions,
     adminBrand,
     adminOrg,

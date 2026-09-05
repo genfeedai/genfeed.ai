@@ -574,6 +574,7 @@
   },
   "publishing": {
     "campaigns": {
+      "loadError": "Campaigns could not be loaded.",
       "archive": "Archive",
       "archiveFailed": "Could not archive this campaign.",
       "archiveMessage": "Archived campaigns leave the default list. Posts and metrics stay in place.",
@@ -1138,6 +1139,7 @@
     }
   },
   "models": {
+    "loadError": "Models could not be loaded.",
     "catalogTitle": "Model catalog",
     "catalogDescription": "Compare available models by category, quality, and credit cost."
   },

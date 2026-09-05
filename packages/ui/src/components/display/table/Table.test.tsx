@@ -1,7 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Table from '@ui/display/table/Table';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/dynamic', async () => {
+  const { Checkbox } = await import('@ui/primitives/checkbox');
+  return { default: () => Checkbox };
+});
 
 describe('Table', () => {
   it('should render without crashing', () => {
@@ -300,5 +305,80 @@ describe('Table', () => {
 
     // A row with nowhere to go stays plain markup.
     expect(screen.queryByRole('link', { name: /second item/i })).toBeNull();
+  });
+
+  it('distinguishes failure from empty and keeps retry inside the shared frame', async () => {
+    const onRetry = vi.fn();
+    const props = {
+      items: [],
+      columns: [{ key: 'name', header: 'Name' }],
+      emptyLabel: 'No items yet',
+    };
+    const { rerender } = render(
+      <Table {...props} error={{ title: 'Could not load items', onRetry }} />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Could not load items');
+    expect(screen.queryByText('No items yet')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    rerender(
+      <Table
+        {...props}
+        isLoading
+        error={{ title: 'Could not load items', onRetry }}
+      />,
+    );
+    expect(screen.getByTestId('skeleton-table')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+    rerender(<Table {...props} />);
+    expect(screen.getByText('No items yet')).toBeInTheDocument();
+  });
+
+  it('announces partial selection and selects or clears the current rows', async () => {
+    const onSelectionChange = vi.fn();
+    const props = {
+      items: [{ id: 'one' }, { id: 'two' }],
+      columns: [{ key: 'id', header: 'ID' }],
+      selectable: true,
+      getItemId: (item: { id: string }) => item.id,
+      onSelectionChange,
+    };
+    const { rerender } = render(<Table {...props} selectedIds={['one']} />);
+    const selectAll = await screen.findByRole('checkbox', {
+      name: 'Select all rows',
+    });
+    expect(selectAll).toHaveAttribute('aria-checked', 'mixed');
+    expect(selectAll.querySelector('.lucide-minus')).not.toBeNull();
+    await userEvent.click(selectAll);
+    expect(onSelectionChange).toHaveBeenLastCalledWith(['one', 'two']);
+    rerender(<Table {...props} selectedIds={['one', 'two']} />);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Select all rows' }),
+    );
+    expect(onSelectionChange).toHaveBeenLastCalledWith([]);
+  });
+  it('retains rows after a failed refresh and shows progress until retry settles', async () => {
+    let finishRetry: () => void = () => {};
+    const retry = new Promise<void>((resolve) => {
+      finishRetry = resolve;
+    });
+    const onRetry = vi.fn(() => retry);
+    render(
+      <Table
+        items={[{ id: 'one', name: 'Last good row' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        error={{ title: 'Refresh failed', onRetry }}
+      />,
+    );
+    expect(screen.getByText('Last good row')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Refresh failed');
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(screen.getByRole('button', { name: /Try again/ })).toBeDisabled();
+    await act(async () => {
+      finishRetry();
+      await retry;
+    });
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

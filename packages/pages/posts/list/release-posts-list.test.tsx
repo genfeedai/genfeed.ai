@@ -7,7 +7,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReleasePostsList from './release-posts-list';
 
@@ -36,6 +36,9 @@ const releases = [
 
 let searchParams = new URLSearchParams('');
 const replaceMock = vi.fn();
+const refetchMock = vi.fn();
+let queryError: Error | null = null;
+let queryReleases = releases;
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/genfeed-ai/paperclip/publishing/posts',
@@ -87,14 +90,14 @@ vi.mock('@tanstack/react-query', () => ({
       pagination: {
         page: 1,
         pageSize: 12,
-        total: releases.length,
+        total: queryReleases.length,
         totalPages: 1,
       },
-      releases,
+      releases: queryReleases,
     },
-    error: null,
+    error: queryError,
     isLoading: false,
-    refetch: vi.fn(),
+    refetch: refetchMock,
   }),
   useQueryClient: () => ({
     setQueryData: vi.fn(),
@@ -102,7 +105,8 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
+  useTranslations: (namespace: string) => (key: string) =>
+    key === 'loadError' ? `${namespace}.${key}` : key,
 }));
 
 vi.mock('@pages/posts/rail/release-rail-accounts', () => ({
@@ -139,7 +143,67 @@ describe('ReleasePostsList selection from the release URL param', () => {
   beforeEach(() => {
     searchParams = new URLSearchParams('');
     replaceMock.mockClear();
+    refetchMock.mockClear();
+    queryError = null;
+    queryReleases = releases;
   });
+
+  it.each([false, true])(
+    'shows one board error and retries with cached releases: %s',
+    async (hasCachedReleases) => {
+      searchParams = new URLSearchParams('view=board');
+      queryError = new Error('Request failed');
+      queryReleases = hasCachedReleases ? releases : [];
+
+      render(
+        <ReleasePostsList
+          scope={PageScope.PUBLISHING}
+          search=""
+          sort="createdAt: -1"
+        />,
+      );
+
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'pages.posts.board.loadError',
+      );
+      if (hasCachedReleases) {
+        expect(screen.getByText('Campaign release')).toBeInTheDocument();
+      } else {
+        expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
+      }
+      await act(async () => {
+        screen.getByRole('button', { name: 'Try again' }).click();
+      });
+      expect(refetchMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(['list', 'grid'])(
+    'keeps empty-load errors retryable in %s view',
+    async (view) => {
+      searchParams = new URLSearchParams(`view=${view}`);
+      queryError = new Error('Request failed');
+      queryReleases = [];
+
+      render(
+        <ReleasePostsList
+          scope={PageScope.PUBLISHING}
+          search=""
+          sort="createdAt: -1"
+        />,
+      );
+
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'pages.posts.list.loadError',
+      );
+      await act(async () => {
+        screen.getByRole('button', { name: 'Try again' }).click();
+      });
+      expect(refetchMock).toHaveBeenCalledOnce();
+    },
+  );
 
   it('renders no release selected when the URL carries no release param', () => {
     render(

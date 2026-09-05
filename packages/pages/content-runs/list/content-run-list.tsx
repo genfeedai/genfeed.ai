@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  AlertCategory,
-  ButtonVariant,
-  ContentRunStatus,
-} from '@genfeedai/contracts';
+import { ButtonVariant, ContentRunStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -18,8 +14,9 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import Alert from '@ui/feedback/alert/Alert';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -109,7 +106,10 @@ export default function ContentRunListPage() {
         subtitle="Briefs handed off from Discovery, tracked through remix, publish, and analytics."
         actions={
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="min-w-36">
+            <SelectTrigger
+              aria-label={translate('statusFilter')}
+              className="min-w-36"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -133,30 +133,21 @@ export default function ContentRunListPage() {
           </p>
         ) : null}
         {isError ? (
-          <div className="mt-6">
-            <Alert type={AlertCategory.ERROR}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{translate('loadError')}</span>
-                <Button
-                  label="Retry"
-                  onClick={() => {
-                    refetch().catch(() => undefined);
-                  }}
-                  variant={ButtonVariant.SECONDARY}
-                />
-              </div>
-            </Alert>
-          </div>
+          <ErrorFallback
+            compact={data.length > 0}
+            title={translate('loadError')}
+            resetErrorBoundary={() => refetch()}
+          />
         ) : null}
 
         {isInitialFetch ? (
-          <div className="mt-6 min-h-64">
+          <div className="min-h-64">
             <LoadingState isFullSize />
           </div>
         ) : null}
 
-        {!isError && !isInitialFetch && isBrandReady ? (
-          <div className="mt-6">
+        {(!isError || data.length > 0) && !isInitialFetch && isBrandReady ? (
+          <div className="space-y-4">
             {data.length ? (
               <Card bodyClassName="p-0">
                 <div className="divide-y divide-border">
@@ -172,29 +163,40 @@ export default function ContentRunListPage() {
                 </div>
               </Card>
             ) : (
-              <Card bodyClassName="p-10">
-                <div className="mx-auto flex max-w-md flex-col items-center text-center">
-                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
-                    <Sparkles className="size-5" />
-                  </div>
-                  <div className="mt-4 text-base font-semibold text-foreground">
-                    {translate('emptyTitle')}
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-foreground/68">
-                    {translate('emptyDescription')}
-                  </div>
-                  <Button
-                    className="mt-5"
-                    asChild
-                    label={translate('goToDiscovery')}
-                    variant={ButtonVariant.SECONDARY}
-                  >
-                    <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>
-                      {translate('goToDiscovery')}
-                    </Link>
-                  </Button>
-                </div>
-              </Card>
+              <CardEmpty
+                icon={Sparkles}
+                label={
+                  status === ALL_STATUSES
+                    ? translate('emptyTitle')
+                    : translate('emptyFilteredTitle')
+                }
+                description={
+                  status === ALL_STATUSES
+                    ? translate('emptyDescription')
+                    : undefined
+                }
+                action={
+                  status !== ALL_STATUSES
+                    ? {
+                        label: translate('clearFilter'),
+                        onClick: () => setStatus(ALL_STATUSES),
+                      }
+                    : undefined
+                }
+                actions={
+                  status === ALL_STATUSES ? (
+                    <Button
+                      asChild
+                      variant={ButtonVariant.SECONDARY}
+                      withWrapper={false}
+                    >
+                      <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>
+                        {translate('goToDiscovery')}
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
+              />
             )}
           </div>
         ) : null}

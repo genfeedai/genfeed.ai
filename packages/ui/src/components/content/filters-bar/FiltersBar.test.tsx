@@ -1,6 +1,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import FiltersBar from '@ui/content/filters-bar/FiltersBar';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -73,5 +73,27 @@ describe('FiltersBar', () => {
 
     fireEvent.click(clear);
     expect(onFiltersChange).toHaveBeenCalled();
+  });
+  it('keeps typed search text until debounce and clears the same named filter', async () => {
+    const onFiltersChange = vi.fn();
+    render(
+      <FiltersBar
+        filters={filters}
+        onFiltersChange={onFiltersChange}
+        visibleFilters={{ search: true }}
+      />,
+    );
+    const search = screen.getByRole('textbox', { name: 'Search' });
+    fireEvent.change(search, { target: { value: 'launch' } });
+    await waitFor(() =>
+      expect(onFiltersChange).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'launch' }),
+        expect.objectContaining({ search: 'launch' }),
+      ),
+    );
+    expect(search).toHaveValue('launch');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(search).toHaveValue('');
+    expect(search).toHaveFocus();
   });
 });

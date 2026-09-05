@@ -39,6 +39,7 @@ export default function ListPageLayout<T extends { id: string }>({
   columns,
   actions,
   isLoading = false,
+  error,
   emptyLabel = EMPTY_STATES.DEFAULT,
   filters,
   onFiltersChange,
@@ -96,6 +97,7 @@ export default function ListPageLayout<T extends { id: string }>({
         columns={columns}
         actions={actions}
         isLoading={isLoading}
+        error={error}
         getRowKey={getRowKey || ((item) => item.id)}
         getRowClassName={getRowClassName}
         emptyLabel={emptyLabel}

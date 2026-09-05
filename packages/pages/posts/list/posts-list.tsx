@@ -20,6 +20,7 @@ import {
 import type { ContentProps } from '@props/layout/content.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -65,6 +66,8 @@ export default function PostsList({
     handlePublicationStateChange,
     handlePostEvaluated,
     isLoading,
+    isError,
+    findAllPosts,
     pagination,
     posts,
     primaryCardAction,
@@ -216,7 +219,19 @@ export default function PostsList({
         </p>
       </div>
 
-      {isLoading && posts.length === 0 ? (
+      {isError && posts.length > 0 ? (
+        <ErrorFallback
+          compact
+          title="Posts could not be refreshed."
+          resetErrorBoundary={() => findAllPosts()}
+        />
+      ) : null}
+      {isError && posts.length === 0 ? (
+        <ErrorFallback
+          title="Posts could not be loaded."
+          resetErrorBoundary={() => findAllPosts()}
+        />
+      ) : isLoading && posts.length === 0 && viewType === VIEW_TYPE_GRID ? (
         <Loading isFullSize={false} />
       ) : (
         <>

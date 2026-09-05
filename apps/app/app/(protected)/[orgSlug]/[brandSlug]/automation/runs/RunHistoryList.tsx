@@ -1,16 +1,19 @@
 'use client';
 
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import WorkflowExecutionCard from './WorkflowExecutionCard';
 
 interface RunHistoryListProps {
   executions: IWorkflowExecution[];
   isLoading: boolean;
+  onClearFilter?: () => void;
 }
 
 export default function RunHistoryList({
   executions,
   isLoading,
+  onClearFilter,
 }: RunHistoryListProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -28,9 +31,18 @@ export default function RunHistoryList({
           ))}
         </div>
       ) : executions.length === 0 ? (
-        <div className="gen-card flex items-center justify-center p-8 text-sm text-muted-foreground">
-          No workflow executions yet.
-        </div>
+        <CardEmpty
+          label={
+            onClearFilter
+              ? 'No workflow executions match your search.'
+              : 'No workflow executions yet.'
+          }
+          action={
+            onClearFilter
+              ? { label: 'Clear search', onClick: onClearFilter }
+              : undefined
+          }
+        />
       ) : (
         <div className="flex flex-col gap-2">
           {executions.map((execution) => (

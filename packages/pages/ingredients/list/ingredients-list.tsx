@@ -19,6 +19,7 @@ import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
@@ -268,23 +269,11 @@ export default function IngredientsList({
         </Alert>
       )}
       {loadError && !isUsingCache ? (
-        <Alert type={AlertCategory.ERROR}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="font-medium">{loadError}</div>
-              <div className="text-xs text-foreground/70">
-                Retry to load the latest Library assets.
-              </div>
-            </div>
-            <Button
-              label="Retry"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => {
-                void handleRefresh(true);
-              }}
-            />
-          </div>
-        </Alert>
+        <ErrorFallback
+          title={loadError}
+          description="Retry to load the latest Library assets."
+          resetErrorBoundary={() => handleRefresh(true)}
+        />
       ) : null}
       {!loadError || isUsingCache ? (
         <div

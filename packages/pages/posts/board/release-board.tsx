@@ -25,6 +25,8 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
+import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -326,19 +328,24 @@ export default function ReleaseBoard({
     return <Loading isFullSize={false} />;
   }
 
-  if (loadError) {
+  if (loadError && syncedItems.length === 0) {
     return (
-      <p
-        className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-        role="alert"
-      >
-        {translate('loadError')}
-      </p>
+      <ErrorFallback
+        title={translate('loadError')}
+        resetErrorBoundary={onRefetch}
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
+      {loadError ? (
+        <ErrorFallback
+          compact
+          title={translate('loadError')}
+          resetErrorBoundary={onRefetch}
+        />
+      ) : null}
       <div className="flex items-center justify-end">
         <Button
           isDisabled={isLoading}
@@ -350,36 +357,29 @@ export default function ReleaseBoard({
         </Button>
       </div>
 
-      {selectedIds.size > 0 ? (
-        <div className="flex items-center gap-2 border border-border bg-card px-3 py-2">
-          <span className="text-sm text-foreground/70">
-            {translate('bulk.selectedCount', { count: selectedIds.size })}
-          </span>
-          <Button
-            isDisabled={pendingAction === SCHEDULE_NEXT_SLOT_ACTION}
-            onClick={handleScheduleNextSlot}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.SECONDARY}
-          >
-            {translate('bulk.scheduleNextSlot')}
-          </Button>
-          <Button
-            isDisabled={pendingAction === CANCEL_ACTION}
-            onClick={handleBulkDelete}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DESTRUCTIVE}
-          >
-            {translate('bulk.delete')}
-          </Button>
-          <Button
-            onClick={clearSelection}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-          >
-            {translate('bulk.clearSelection')}
-          </Button>
-        </div>
-      ) : null}
+      <SelectionToolbar
+        count={selectedIds.size}
+        label={translate('bulk.selectedCount', { count: selectedIds.size })}
+        onClear={clearSelection}
+        clearLabel={translate('bulk.clearSelection')}
+      >
+        <Button
+          isDisabled={Boolean(pendingAction)}
+          onClick={handleScheduleNextSlot}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+        >
+          {translate('bulk.scheduleNextSlot')}
+        </Button>
+        <Button
+          isDisabled={Boolean(pendingAction)}
+          onClick={handleBulkDelete}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DESTRUCTIVE}
+        >
+          {translate('bulk.delete')}
+        </Button>
+      </SelectionToolbar>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
         {BOARD_COLUMNS.map((column) => {

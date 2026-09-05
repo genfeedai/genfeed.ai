@@ -7,6 +7,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
 const setFilterMock = vi.fn();
+const setToolbarNodeMock = vi.fn();
+const triggerRefreshMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
 
 let contextFilters: { query?: string; sort?: string } = {};
@@ -56,6 +58,8 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     filters: contextFilters,
     refreshTrigger: 0,
     setFilter: setFilterMock,
+    setToolbarNode: setToolbarNodeMock,
+    triggerRefresh: triggerRefreshMock,
   }),
 }));
 
@@ -113,6 +117,7 @@ describe('AnalyticsBrandsList', () => {
   it('pushes the search term into the analytics filters', async () => {
     render(<AnalyticsBrandsList />);
 
+    render(setToolbarNodeMock.mock.calls.at(-1)?.[0]);
     fireEvent.change(screen.getByLabelText('Search brands'), {
       target: { value: 'acme' },
     });
@@ -127,11 +132,9 @@ describe('AnalyticsBrandsList', () => {
       expect(screen.getByText('Acme')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Acme'));
-
-    expect(pushMock).toHaveBeenCalledWith(
-      '/analytics/brands/brand-1?range=30d',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Open Acme analytics' }),
+    ).toHaveAttribute('href', '/analytics/brands/brand-1?range=30d');
   });
 
   it('honours a custom base path for detail links', async () => {
@@ -141,11 +144,9 @@ describe('AnalyticsBrandsList', () => {
       expect(screen.getByText('Acme')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Acme'));
-
-    expect(pushMock).toHaveBeenCalledWith(
-      '/org/analytics/brands/brand-1?range=30d',
-    );
+    expect(
+      screen.getByRole('link', { name: 'Open Acme analytics' }),
+    ).toHaveAttribute('href', '/org/analytics/brands/brand-1?range=30d');
   });
 
   it('does not call the analytics service while signed out', async () => {

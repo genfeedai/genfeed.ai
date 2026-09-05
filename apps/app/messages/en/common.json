@@ -509,6 +509,9 @@
       "topics": "Topics"
     },
     "contentRuns": {
+      "statusFilter": "Filter content runs by status",
+      "emptyFilteredTitle": "No content runs match this status",
+      "clearFilter": "Clear status filter",
       "allStatuses": "All statuses",
       "emptyDescription": "Save a brief from Discovery to start a content run. It will appear here with its variants, publish events, and analytics.",
       "emptyTitle": "No content runs yet",

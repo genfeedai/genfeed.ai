@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { Check } from 'lucide-react';
+import { Check, Minus } from 'lucide-react';
 import type {
   ChangeEvent,
   ComponentPropsWithoutRef,
@@ -75,7 +75,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
       }}
       checked={resolvedChecked}
       className={cn(
-        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
+        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
         className,
       )}
       disabled={isDisabled ?? disabled}
@@ -98,7 +98,11 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
       required={isRequired ?? required}
     >
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
-        <Check size={12} strokeWidth={3} />
+        {resolvedChecked === 'indeterminate' ? (
+          <Minus size={12} strokeWidth={3} />
+        ) : (
+          <Check size={12} strokeWidth={3} />
+        )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

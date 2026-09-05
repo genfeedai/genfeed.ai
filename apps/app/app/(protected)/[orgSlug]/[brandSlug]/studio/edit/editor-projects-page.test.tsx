@@ -54,12 +54,14 @@ vi.mock('next/link', () => ({
     children,
     href,
     onClick,
+    ...props
   }: {
     children?: ReactNode;
+    'aria-label'?: string;
     href: string;
     onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   }) => (
-    <a href={href} onClick={onClick}>
+    <a {...props} href={href} onClick={onClick}>
       {children}
     </a>
   ),
@@ -88,30 +90,18 @@ vi.mock('@ui/card/Card', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
-    className,
-  }: {
-    children?: ReactNode;
-    className?: string;
-  }) => <main className={className}>{children}</main>,
-}));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    ariaLabel,
-    children,
     label,
-    onClick,
-    type = 'button',
+    right,
   }: {
-    ariaLabel?: string;
     children?: ReactNode;
-    label?: ReactNode;
-    onClick?: React.MouseEventHandler<HTMLButtonElement>;
-    type?: 'button' | 'submit';
+    label?: string;
+    right?: ReactNode;
   }) => (
-    <button aria-label={ariaLabel} type={type} onClick={onClick}>
-      {label ?? children}
-    </button>
+    <main>
+      <h1>{label}</h1>
+      {right}
+      {children}
+    </main>
   ),
 }));
 
@@ -155,6 +145,14 @@ describe('EditorProjectsPage', () => {
     );
     expect(await screen.findByText('Your Projects (2)')).toBeVisible();
     expect(screen.getByText('Launch cut')).toBeVisible();
+    expect(
+      screen
+        .getByRole('link', { name: 'Open Launch cut' })
+        .querySelector('button'),
+    ).toBeNull();
+    expect(
+      screen.getAllByRole('button', { name: 'Delete project' })[0].closest('a'),
+    ).toBeNull();
     expect(screen.getByText('30m ago')).toBeVisible();
     expect(screen.getByText('2d ago')).toBeVisible();
     expect(screen.getByText('2 tracks')).toBeVisible();

@@ -238,7 +238,7 @@ describe('IngredientsList', () => {
     expect(screen.getByText('Failed to load images')).toBeInTheDocument();
     expect(screen.queryByTestId('ingredients-content')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     expect(handleRefresh).toHaveBeenCalledWith(true);
   });

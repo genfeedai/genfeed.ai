@@ -11,9 +11,8 @@ import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Table from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
   SelectContent,
@@ -22,7 +21,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
-import { ChartColumn, LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -65,15 +64,34 @@ const PLATFORM_OPTIONS = [
 
 type PlatformFilterValue = (typeof PLATFORM_OPTIONS)[number]['value'];
 
+const renderPlatformOption = (
+  option: (typeof PLATFORM_OPTIONS)[number],
+): ReactNode => {
+  const icon =
+    option.value === 'all' ? (
+      <LayoutGrid className="size-4 shrink-0 text-foreground/70" />
+    ) : (
+      getPlatformIcon(option.value, 'h-4 w-4 shrink-0')
+    );
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      {icon}
+      <span className="truncate">{option.label}</span>
+    </div>
+  );
+};
+
 export default function AnalyticsPostsList() {
-  const router = useRouter();
+  const { push, replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const urlFocusedPostId = searchParams.get('postId')?.trim() || '';
   const [localFocusedPostId, setLocalFocusedPostId] = useState<
     string | null | undefined
   >(undefined);
-  const { filters, setFilter } = useAnalyticsContext();
+  const { filters, setFilter, setToolbarNode } = useAnalyticsContext();
   const focusedPostId =
     (localFocusedPostId === undefined
       ? (filters.postId ?? urlFocusedPostId)
@@ -92,19 +110,19 @@ export default function AnalyticsPostsList() {
   const setFocusedPost = useCallback(
     (postId?: string) => {
       setLocalFocusedPostId(postId ?? null);
-      const nextSearchParams = new URLSearchParams(searchParams.toString());
+      const nextSearchParams = new URLSearchParams(queryString);
       if (postId) {
         nextSearchParams.set('postId', postId);
       } else {
         nextSearchParams.delete('postId');
       }
       const query = nextSearchParams.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname);
+      replace(query ? `${pathname}?${query}` : pathname);
     },
-    [pathname, router, searchParams],
+    [pathname, replace, queryString],
   );
 
-  const { isLoading, topPosts } = useTopPosts({
+  const { isLoading, topPosts, error, refetch } = useTopPosts({
     limit: 50,
     metric,
     platform: platform === 'all' ? undefined : platform,
@@ -144,24 +162,6 @@ export default function AnalyticsPostsList() {
       PLATFORM_OPTIONS[0],
     [platform],
   );
-
-  const renderPlatformOption = (
-    option: (typeof PLATFORM_OPTIONS)[number],
-  ): ReactNode => {
-    const icon =
-      option.value === 'all' ? (
-        <LayoutGrid className="size-4 shrink-0 text-foreground/70" />
-      ) : (
-        getPlatformIcon(option.value, 'h-4 w-4 shrink-0')
-      );
-
-    return (
-      <div className="flex min-w-0 items-center gap-2">
-        {icon}
-        <span className="truncate">{option.label}</span>
-      </div>
-    );
-  };
 
   const columns: TableColumn<PostsListItem>[] = useMemo(
     () => [
@@ -207,84 +207,97 @@ export default function AnalyticsPostsList() {
     [],
   );
 
-  return (
-    <Container
-      label="Top Posts"
-      description="Post performance in the selected period"
-      icon={ChartColumn}
-      right={
-        <div className="flex items-center gap-2">
-          {focusedPostId ? (
-            <Button
-              label="Clear Focus"
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => setFocusedPost()}
-            />
-          ) : null}
+  const toolbar = useMemo(
+    () => (
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        {focusedPostId ? (
           <Button
-            label="Open In Agent"
+            label="Clear Focus"
             variant={ButtonVariant.SECONDARY}
-            onClick={() =>
-              router.push(
-                buildAgentPromptHref(
-                  focusedPostId
-                    ? `Review the analytics for post ${focusedPostId} and tell me the best next step in the loop.`
-                    : 'Review my top posts and tell me what I should remix or repeat next.',
-                ),
-              )
-            }
+            onClick={() => setFocusedPost()}
           />
-          <Input
-            aria-label="Search posts"
-            type="text"
-            placeholder="Search posts..."
-            value={search}
-            onChange={(event) => setFilter('query', event.target.value)}
-            className="w-full sm:w-64"
-          />
+        ) : null}
+        <Button
+          label="Open In Agent"
+          variant={ButtonVariant.SECONDARY}
+          onClick={() =>
+            push(
+              buildAgentPromptHref(
+                focusedPostId
+                  ? `Review the analytics for post ${focusedPostId} and tell me the best next step in the loop.`
+                  : 'Review my top posts and tell me what I should remix or repeat next.',
+              ),
+            )
+          }
+        />
+        <FormSearchbar
+          ariaLabel="Search posts"
+          placeholder="Search posts..."
+          value={search}
+          onChange={(event) => setFilter('query', event.target.value)}
+          className="w-full sm:w-64"
+        />
 
-          <Select
-            value={metric}
-            onValueChange={(value) => setFilter('metric', value)}
+        <Select
+          value={metric}
+          onValueChange={(value) => setFilter('metric', value)}
+        >
+          <SelectTrigger
+            aria-label="Sort post analytics by metric"
+            className="w-full sm:w-36"
           >
-            <SelectTrigger
-              aria-label="Sort post analytics by metric"
-              className="w-full sm:w-36"
-            >
-              <SelectValue placeholder="Metric" />
-            </SelectTrigger>
-            <SelectContent>
-              {METRIC_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <SelectValue placeholder="Metric" />
+          </SelectTrigger>
+          <SelectContent>
+            {METRIC_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select
-            value={platform}
-            onValueChange={(value) =>
-              setFilter('platform', value === 'all' ? undefined : value)
-            }
+        <Select
+          value={platform}
+          onValueChange={(value) =>
+            setFilter('platform', value === 'all' ? undefined : value)
+          }
+        >
+          <SelectTrigger
+            aria-label="Filter post analytics by platform"
+            className="w-full sm:w-36"
           >
-            <SelectTrigger
-              aria-label="Filter post analytics by platform"
-              className="w-full sm:w-36"
-            >
-              {renderPlatformOption(selectedPlatformOption)}
-            </SelectTrigger>
-            <SelectContent>
-              {PLATFORM_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {renderPlatformOption(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      }
-    >
+            {renderPlatformOption(selectedPlatformOption)}
+          </SelectTrigger>
+          <SelectContent>
+            {PLATFORM_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {renderPlatformOption(option)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    ),
+    [
+      focusedPostId,
+      search,
+      metric,
+      platform,
+      selectedPlatformOption,
+      setFocusedPost,
+      setFilter,
+      push,
+    ],
+  );
+
+  useEffect(() => {
+    setToolbarNode(toolbar);
+    return () => setToolbarNode(null);
+  }, [setToolbarNode, toolbar]);
+
+  return (
+    <>
       {focusedPostId ? (
         <p className="mb-4 text-sm text-primary">
           Focused on a single post from the loop. Open the post detail to remix,
@@ -293,8 +306,17 @@ export default function AnalyticsPostsList() {
       ) : null}
 
       <Table<PostsListItem>
+        label="Top Posts"
         items={items}
         isLoading={isLoading}
+        error={
+          error
+            ? {
+                title: 'Post analytics could not be loaded.',
+                onRetry: () => refetch(),
+              }
+            : undefined
+        }
         columns={columns}
         emptyLabel="No posts found for this period"
         getRowKey={(item) => item.postId}
@@ -306,6 +328,6 @@ export default function AnalyticsPostsList() {
         scope={PageScope.ANALYTICS}
         onClose={() => setFocusedPost()}
       />
-    </Container>
+    </>
   );
 }

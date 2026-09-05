@@ -1,4 +1,7 @@
-import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
+import {
+  AnalyticsProvider,
+  useAnalyticsContext,
+} from '@contexts/analytics/analytics-context';
 import AnalyticsPostsList from '@pages/analytics/posts-list/analytics-posts-list';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -8,9 +11,15 @@ const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const useTopPostsMock = vi.fn();
 
+function ToolbarHost() {
+  const { toolbarNode } = useAnalyticsContext();
+  return <>{toolbarNode}</>;
+}
+
 function renderPostsList() {
   return render(
     <AnalyticsProvider>
+      <ToolbarHost />
       <AnalyticsPostsList />
     </AnalyticsProvider>,
   );
@@ -51,8 +60,8 @@ describe('AnalyticsPostsList', () => {
     renderPostsList();
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
-    expect(searchInput).toHaveClass('rounded-lg');
-    expect(searchInput).toHaveClass('border-border');
+    expect(searchInput).toHaveAttribute('name', 'search');
+    expect(searchInput).toHaveClass('border-input');
 
     const triggers = screen.getAllByRole('combobox');
     expect(triggers).toHaveLength(2);

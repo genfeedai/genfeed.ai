@@ -20,7 +20,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
-import TrainingsErrorState from './components/TrainingsErrorState';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
@@ -108,12 +107,6 @@ export default function TrainingsList({
     );
   }
 
-  if (error) {
-    return (
-      <TrainingsErrorState error={error} onRetry={() => handleRefresh()} />
-    );
-  }
-
   return (
     <>
       {scope === PageScope.SUPERADMIN ? (
@@ -128,6 +121,15 @@ export default function TrainingsList({
       ) : null}
 
       <AppTable<ITraining>
+        error={
+          error
+            ? {
+                title: 'Failed to load trainings',
+                description: error,
+                onRetry: () => handleRefresh(),
+              }
+            : undefined
+        }
         items={trainings}
         columns={columns}
         actions={actions}

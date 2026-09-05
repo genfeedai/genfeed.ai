@@ -9,6 +9,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Film, Music, Plus, Scissors, Sparkles, Trash2 } from 'lucide-react';
@@ -121,24 +123,22 @@ export default function EditorProjectsPage() {
     <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
       <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
         <Plus className="size-4" />
-        New Project
+        {hasProjects ? 'New Project' : 'Start New Project'}
       </Link>
     </Button>
   );
 
   return (
-    <Container className="py-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold tabular-nums text-balance">
-          {hasProjects
-            ? `Your Projects (${projects.length})`
-            : isLoading
-              ? 'Your Projects'
-              : 'Video Editor'}
-        </h1>
-        {!isLoading && !error ? newProjectButton : null}
-      </div>
-
+    <Container
+      label={
+        hasProjects
+          ? `Your Projects (${projects.length})`
+          : isLoading
+            ? 'Your Projects'
+            : 'Video Editor'
+      }
+      right={!isLoading && !error && hasProjects ? newProjectButton : undefined}
+    >
       {isLoading ? (
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[
@@ -160,35 +160,25 @@ export default function EditorProjectsPage() {
           ))}
         </div>
       ) : error ? (
-        <Card
-          variant={CardVariant.DEFAULT}
-          className="mb-6"
-          bodyClassName="items-center gap-3 p-6 text-center"
-        >
-          <p className="text-sm text-foreground/60">{error}</p>
-          <Button
-            withWrapper={false}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.LINK}
-            onClick={loadProjects}
-            className="text-sm"
-          >
-            Try again
-          </Button>
-        </Card>
+        <ErrorFallback
+          title="Projects could not be loaded."
+          description={error}
+          resetErrorBoundary={loadProjects}
+        />
       ) : hasProjects ? (
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`)}
-              className="block"
-            >
+            <div key={project.id} className="relative">
               <Card
                 variant={CardVariant.DEFAULT}
                 className="group h-full transition-colors hover:bg-foreground/[0.03]"
                 bodyClassName="gap-3 p-3"
               >
+                <Link
+                  aria-label={`Open ${project.name}`}
+                  href={href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`)}
+                  className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <h2 className="truncate text-sm font-semibold">
@@ -203,7 +193,7 @@ export default function EditorProjectsPage() {
                     size={ButtonSize.XS}
                     variant={ButtonVariant.DESTRUCTIVE}
                     onClick={(e) => handleDelete(e, project.id)}
-                    className="rounded p-1 text-foreground/40 opacity-0 transition-opacity hover:bg-destructive/20 hover:text-destructive group-hover:opacity-100"
+                    className="relative z-10 rounded p-1 text-foreground/40 opacity-100 transition-opacity hover:bg-destructive/20 hover:text-destructive lg:opacity-0 lg:group-hover:opacity-100 group-focus-within:opacity-100"
                     ariaLabel="Delete project"
                     tooltip="Delete project"
                   >
@@ -223,37 +213,16 @@ export default function EditorProjectsPage() {
                   <span>{project.status}</span>
                 </div>
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (
-        <Card
-          variant={CardVariant.DEFAULT}
-          className="mb-6"
-          bodyClassName="items-center gap-3 p-6 text-center"
-        >
-          <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10">
-            <Film className="size-5 text-primary" />
-          </div>
-
-          <div className="mx-auto max-w-xl">
-            <h2 className="text-base font-semibold">
-              Create Your First Project
-            </h2>
-            <p className="mt-1 text-sm text-foreground/60">
-              Start a new video editing project to arrange clips on a timeline,
-              add audio tracks, and apply effects. Your generated videos from
-              the Studio can be imported directly.
-            </p>
-          </div>
-
-          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-            <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
-              <Plus className="size-4" />
-              Start New Project
-            </Link>
-          </Button>
-        </Card>
+        <CardEmpty
+          icon={Film}
+          label="Create Your First Project"
+          description="Start a new video editing project to arrange clips on a timeline, add audio tracks, and apply effects. Your generated videos from the Studio can be imported directly."
+          actions={newProjectButton}
+        />
       )}
 
       <h3 className="mb-2 text-xs font-semibold text-foreground">Features</h3>

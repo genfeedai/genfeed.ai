@@ -123,4 +123,15 @@ describe('useCampaigns', () => {
       status: ContentCampaignStatus.ARCHIVED,
     });
   });
+
+  it('exposes a failed request instead of reporting a successful empty list', async () => {
+    mockList.mockRejectedValue(new Error('offline'));
+    const { useCampaigns } = await import('./use-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+    const { result } = renderHook(() => useCampaigns(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isLoading).toBe(false);
+  });
 });
