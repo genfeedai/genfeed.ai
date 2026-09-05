@@ -33,6 +33,7 @@ function row(
 
 describe('TemplatesService persistence', () => {
   const prisma = {
+    $transaction: vi.fn(),
     template: {
       create: vi.fn(),
       update: vi.fn(),
@@ -46,6 +47,9 @@ describe('TemplatesService persistence', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback(prisma),
+    );
     prisma.template.create.mockImplementation(async ({ data }) => {
       for (const field of ['content', 'description', 'tags', 'metadata']) {
         if (field in data)
@@ -91,6 +95,51 @@ describe('TemplatesService persistence', () => {
     });
   });
 
+  it.each(['create', 'update'] as const)(
+    'rolls back template writes when %s metadata fails',
+    async (operation) => {
+      const committed: unknown[] = [];
+      const staged: unknown[] = [];
+      const tx = {
+        template: {
+          findFirst: vi.fn().mockResolvedValue(row()),
+          create: vi.fn(async ({ data }) => {
+            staged.push(data);
+            return row();
+          }),
+          update: vi.fn(async ({ data }) => {
+            staged.push(data);
+            return row();
+          }),
+        },
+      };
+      prisma.$transaction.mockImplementation(async (callback) => {
+        const result = await callback(tx);
+        committed.push(...staged);
+        return result;
+      });
+      prisma.template.findFirst.mockResolvedValue(null);
+      metadata[operation].mockRejectedValue(new Error('metadata unavailable'));
+      const request =
+        operation === 'create'
+          ? service.create(dto, 'org-1', 'user-1')
+          : service.update(
+              'template-1',
+              { description: 'Changed', metadata: { goals: ['educate'] } },
+              'org-1',
+            );
+      await expect(request).rejects.toThrow();
+      expect(staged).toHaveLength(1);
+      expect(committed).toEqual([]);
+      expect(prisma.template[operation]).not.toHaveBeenCalled();
+      expect(metadata[operation]).toHaveBeenCalledWith(
+        'template-1',
+        expect.any(Object),
+        tx,
+      );
+    },
+  );
+
   it('checks prompt keys within the requested organization so overrides can be created', async () => {
     prisma.template.findFirst.mockResolvedValue(null);
     await service.create(dto, 'org-1', 'user-1');
@@ -114,7 +163,7 @@ describe('TemplatesService persistence', () => {
       'org-1',
     );
     expect(prisma.template.update).toHaveBeenCalledWith({
-      where: { id: 'template-1' },
+      where: { id: 'template-1', isDeleted: false, organizationId: 'org-1' },
       data: {
         config: {
           ...row().config,
@@ -133,11 +182,15 @@ describe('TemplatesService persistence', () => {
       { metadata: { goals: ['educate'] } },
       'org-1',
     );
-    expect(metadata.update).toHaveBeenCalledWith('template-1', {
-      goals: ['educate'],
-    });
+    expect(metadata.update).toHaveBeenCalledWith(
+      'template-1',
+      {
+        goals: ['educate'],
+      },
+      prisma,
+    );
     expect(prisma.template.update).toHaveBeenCalledWith({
-      where: { id: 'template-1' },
+      where: { id: 'template-1', isDeleted: false, organizationId: 'org-1' },
       data: {},
     });
   });
@@ -169,6 +222,41 @@ describe('TemplatesService persistence', () => {
         }),
       }),
     );
+  });
+
+  it('keeps searches scoped to the active organization and live templates', async () => {
+    await service.findAll('org-1', { search: 'greeting' });
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+
+  it('limits missing-organization reads to global templates', async () => {
+    await service.findAll();
+    await service.findOne('template-1');
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { organizationId: null, isDeleted: false },
+      }),
+    );
+    expect(prisma.template.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'template-1', organizationId: null, isDeleted: false },
+      }),
+    );
+  });
+
+  it('scopes the soft-delete write to the organization and live row', async () => {
+    await service.remove('template-1', 'org-1');
+    expect(prisma.template.update).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: { id: 'template-1', organizationId: 'org-1', isDeleted: false },
+    });
   });
 
   it('renders saved prompt content from config', async () => {

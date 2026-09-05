@@ -420,37 +420,12 @@ export class AgentToolExecutorService implements OnModuleInit {
       if (definition?.mutationPolicy !== 'approval-required') {
         return { kind: 'execute' };
       }
-      if (!this.mcpApprovalsService)
-        throw new Error('Approval service unavailable');
-      const approval =
-        existing ??
-        (await this.mcpApprovalsService.createPending(
-          context.organizationId,
-          context.userId,
-          toolName,
-          parameters,
-          { threadId: context.threadId },
-        ));
-      if (approval.status === McpApprovalStatus.PENDING) {
-        await this.mcpApprovalsService.resolve(
-          approval.id,
-          context.organizationId,
-          'approve',
-          undefined,
-          context.apiKeyContext,
-        );
-      }
-      if (
-        !(await this.mcpApprovalsService.claimExecution(
-          approval.id,
-          context.organizationId,
-        ))
-      ) {
-        throw new Error(
-          'Approved mutation is already executing or awaiting outcome reconciliation',
-        );
-      }
-      return { kind: 'execute', approvalId: approval.id };
+      return this.claimApprovedMutation(
+        toolName,
+        parameters,
+        context,
+        existing,
+      );
     }
 
     if (decision.kind === 'replay') {
@@ -512,6 +487,45 @@ export class AgentToolExecutorService implements OnModuleInit {
         success: true,
       },
     };
+  }
+
+  private async claimApprovedMutation(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+    existing: McpApprovalDocument | null,
+  ): Promise<AgentMutationAuthorization> {
+    if (!this.mcpApprovalsService)
+      throw new Error('Approval service unavailable');
+    const approval =
+      existing ??
+      (await this.mcpApprovalsService.createPending(
+        context.organizationId,
+        context.userId,
+        toolName,
+        parameters,
+        { threadId: context.threadId },
+      ));
+    if (approval.status === McpApprovalStatus.PENDING) {
+      await this.mcpApprovalsService.resolve(
+        approval.id,
+        context.organizationId,
+        'approve',
+        undefined,
+        context.apiKeyContext,
+      );
+    }
+    if (
+      !(await this.mcpApprovalsService.claimExecution(
+        approval.id,
+        context.organizationId,
+      ))
+    ) {
+      throw new Error(
+        'Approved mutation is already executing or awaiting outcome reconciliation',
+      );
+    }
+    return { kind: 'execute', approvalId: approval.id };
   }
 
   private hasTrustedMutationApproval(

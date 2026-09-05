@@ -6,6 +6,9 @@ import {
   type JsonApiDocument,
 } from './deserializer.helper';
 
+type DeserializedAuthor = { id: string; name: string };
+type DeserializedPost = { author: DeserializedAuthor };
+
 describe('getDeserializer', () => {
   it('indexes included resources once across collection roots', () => {
     let identityReads = 0;
@@ -25,7 +28,7 @@ describe('getDeserializer', () => {
       })),
       included,
     };
-    const result = getDeserializer<Array<{ author: { name: string } }>>(doc);
+    const result = getDeserializer<DeserializedPost[]>(doc);
     expect(result).toHaveLength(30);
     expect(result).toEqual(
       expect.arrayContaining([

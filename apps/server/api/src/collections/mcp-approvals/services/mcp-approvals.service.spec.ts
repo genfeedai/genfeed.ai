@@ -115,6 +115,32 @@ describe('McpApprovalsService', () => {
       expect(mcpApproval.create).not.toHaveBeenCalled();
     });
 
+    it('reuses the concurrent logical write after the database uniqueness fence wins', async () => {
+      const concurrent = { id: 'approval-winner', status: 'PENDING' };
+      mcpApproval.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(concurrent);
+      mcpApproval.create.mockRejectedValue({ code: 'P2002' });
+      await expect(
+        service.createPending('org-1', 'user-1', 'delete_file', {}),
+      ).resolves.toEqual(concurrent);
+      expect(
+        mockNotificationsPublisher.publishNotification,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each(['P2002', 'P2024'])(
+      'propagates %s when no concurrent approval can be reused',
+      async (code) => {
+        const error = { code };
+        mcpApproval.findFirst.mockResolvedValue(null);
+        mcpApproval.create.mockRejectedValue(error);
+        await expect(
+          service.createPending('org-1', 'user-1', 'delete_file', {}),
+        ).rejects.toBe(error);
+      },
+    );
+
     it('throws BadRequestException when the org has reached the pending limit', async () => {
       mcpApproval.findFirst.mockResolvedValue(null);
       mcpApproval.count.mockResolvedValue(100);

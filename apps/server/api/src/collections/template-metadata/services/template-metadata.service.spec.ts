@@ -35,4 +35,30 @@ describe('TemplateMetadataService.update', () => {
       author: 'New',
     });
   });
+  it('uses the supplied transaction for metadata creation and updates', async () => {
+    const saved = { id: 'metadata-1', templateId: 'template-1', data: {} };
+    const root = {
+      templateMetadata: {
+        create: vi.fn(),
+        findFirst: vi.fn(),
+        update: vi.fn(),
+      },
+    };
+    const tx = {
+      templateMetadata: {
+        create: vi.fn().mockResolvedValue(saved),
+        findFirst: vi.fn().mockResolvedValue(saved),
+        update: vi.fn().mockResolvedValue(saved),
+      },
+    };
+    const service = new TemplateMetadataService(root as never);
+    await service.create('template-1', { author: 'Author' }, tx as never);
+    await service.update('template-1', { author: 'Editor' }, tx as never);
+    expect(tx.templateMetadata.create).toHaveBeenCalled();
+    expect(tx.templateMetadata.findFirst).toHaveBeenCalled();
+    expect(tx.templateMetadata.update).toHaveBeenCalled();
+    expect(root.templateMetadata.create).not.toHaveBeenCalled();
+    expect(root.templateMetadata.findFirst).not.toHaveBeenCalled();
+    expect(root.templateMetadata.update).not.toHaveBeenCalled();
+  });
 });

@@ -5,6 +5,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type QueryClientWrapperProps = { children: ReactNode };
+
 const mockGetById = vi.fn();
 const mockPageScope = vi.hoisted(() => ({
   current: 'brand' as 'org' | 'brand',
@@ -73,7 +75,7 @@ describe('useCampaign', () => {
       defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
     });
     const { result, unmount } = renderHook(() => useCampaign('cmp-1'), {
-      wrapper: ({ children }: { children: ReactNode }) =>
+      wrapper: ({ children }: QueryClientWrapperProps) =>
         createElement(QueryClientProvider, { client }, children),
     });
     await waitFor(() => expect(result.current.campaign?.name).toBe('Q4'));

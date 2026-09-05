@@ -1,5 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -159,11 +160,12 @@ describe('AvatarVideoGenerationService', () => {
       {
         photoUrl: 'https://cdn.example.com/avatar.png',
         audioUrl: 'https://cdn.example.com/audio.mp3',
+        text: 'Create the founder update',
       },
       context,
     );
     expect(websocketService.publishVideoProgress).toHaveBeenCalledWith(
-      '/videos/avatar-ingredient-1',
+      WebSocketPaths.video('avatar-ingredient-1'),
       0,
       context.userId,
       `user:${context.userId}`,

@@ -31,6 +31,8 @@ type CronPostChild = {
   order?: number;
 };
 
+type RepeatPostCreateInput = PostCreateInput & { repeatCount: number };
+
 type ScheduleNextRepeatOptions = {
   rethrowFailures?: boolean;
 };
@@ -154,42 +156,15 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         return;
       }
 
-      const timezone = post.timezone;
       const occurrenceKey = `legacy-repeat:${sourcePostId}:${nextRepeatCount}`;
-
-      const postData = {
-        ...(post.agentThreadId
-          ? {
-              agentContextSource: post.agentContextSource,
-              agentContextVersion: post.agentContextVersion,
-              agentThreadId: post.agentThreadId,
-            }
-          : {}),
-        brandId: post.brandId,
-        campaignId: post.campaignId ?? undefined,
-        category: (post.category as PostCategory) || PostCategory.VIDEO,
-        credentialId: post.credentialId,
-        description: post.description,
-        ingredients: post.ingredients || [],
-        isRepeat: true,
-        label: post.label,
-        maxRepeats: post.maxRepeats,
+      const postData = this.buildRepeatPostData(
+        post,
         organizationId,
-        originalPostId: sourcePostId,
-        platform: post.platform ?? undefined,
-        repeatCount: nextRepeatCount,
-        repeatDaysOfWeek: post.repeatDaysOfWeek,
-        repeatEndDate: post.repeatEndDate,
-        repeatFrequency: post.repeatFrequency as PostFrequency,
-        repeatInterval: post.repeatInterval,
-        scheduledDate: nextDate,
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-        targetIdempotencyKey: occurrenceKey,
-        tags: post.tags,
-        ...(timezone ? { timezone } : {}),
-        userId: actorUserId,
-        visibility: resolvePostVisibility(post.visibility),
-      };
+        actorUserId,
+        nextDate,
+        nextRepeatCount,
+        occurrenceKey,
+      );
 
       const newPost =
         existing ??
@@ -244,6 +219,50 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         throw error;
       }
     }
+  }
+
+  private buildRepeatPostData(
+    post: PostEntity,
+    organizationId: string,
+    actorUserId: string,
+    nextDate: Date,
+    nextRepeatCount: number,
+    targetIdempotencyKey: string,
+  ): RepeatPostCreateInput {
+    const timezone = post.timezone;
+    return {
+      ...(post.agentThreadId
+        ? {
+            agentContextSource: post.agentContextSource,
+            agentContextVersion: post.agentContextVersion,
+            agentThreadId: post.agentThreadId,
+          }
+        : {}),
+      brandId: post.brandId,
+      campaignId: post.campaignId ?? undefined,
+      category: (post.category as PostCategory) || PostCategory.VIDEO,
+      credentialId: post.credentialId,
+      description: post.description,
+      ingredients: post.ingredients || [],
+      isRepeat: true,
+      label: post.label,
+      maxRepeats: post.maxRepeats,
+      organizationId,
+      originalPostId: post.id.toString(),
+      platform: post.platform ?? undefined,
+      repeatCount: nextRepeatCount,
+      repeatDaysOfWeek: post.repeatDaysOfWeek,
+      repeatEndDate: post.repeatEndDate,
+      repeatFrequency: post.repeatFrequency as PostFrequency,
+      repeatInterval: post.repeatInterval,
+      scheduledDate: nextDate,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+      targetIdempotencyKey,
+      tags: post.tags,
+      ...(timezone ? { timezone } : {}),
+      userId: actorUserId,
+      visibility: resolvePostVisibility(post.visibility),
+    };
   }
 
   private async findOrCreateRepeatPost(

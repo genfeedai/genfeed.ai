@@ -14,8 +14,9 @@ export class TemplateMetadataService {
   async create(
     templateId: string,
     data?: Partial<TemplateMetadataEntity>,
+    client: Pick<Prisma.TransactionClient, 'templateMetadata'> = this.prisma,
   ): Promise<TemplateMetadataEntity> {
-    const result = await this.prisma.templateMetadata.create({
+    const result = await client.templateMetadata.create({
       data: {
         author: data?.author ?? null,
         averageQuality: null,
@@ -45,9 +46,10 @@ export class TemplateMetadataService {
   async update(
     templateId: string,
     updates: Partial<TemplateMetadataEntity>,
+    client: Pick<Prisma.TransactionClient, 'templateMetadata'> = this.prisma,
   ): Promise<TemplateMetadataEntity> {
     const existing = await findOrThrow(
-      this.prisma.templateMetadata,
+      client.templateMetadata,
       { where: { isDeleted: false, templateId } },
       'Template metadata',
       templateId,
@@ -66,7 +68,7 @@ export class TemplateMetadataService {
       !Array.isArray(existing.data)
         ? existing.data
         : {};
-    const result = await this.prisma.templateMetadata.update({
+    const result = await client.templateMetadata.update({
       data: {
         ...scalars,
         ...(hasDataUpdate

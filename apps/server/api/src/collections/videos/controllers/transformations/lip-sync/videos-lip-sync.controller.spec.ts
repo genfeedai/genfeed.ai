@@ -1,8 +1,4 @@
-vi.mock('@api/helpers/utils/websocket/websocket.util', () => ({
-  WebSocketPaths: {
-    video: vi.fn((id: string) => `/ws/videos/${id}`),
-  },
-}));
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
@@ -258,7 +254,7 @@ describe('VideosLipSyncController', () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
         expect(websocketService.publishVideoProgress).toHaveBeenCalledWith(
-          `/ws/videos/${ingredientDataId}`,
+          WebSocketPaths.video(ingredientDataId),
           0,
           mockUser.id,
           `user:${mockUser.id}`,

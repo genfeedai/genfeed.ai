@@ -74,16 +74,33 @@ export class McpApprovalsService extends BaseService<
       );
     }
 
-    const approval = (await this.delegate.create({
-      data: {
-        arguments: args,
-        idempotencyKey,
-        organizationId,
-        status: McpApprovalStatus.PENDING,
-        toolName,
-        userId,
-      },
-    })) as McpApprovalDocument;
+    let approval: McpApprovalDocument;
+    try {
+      approval = (await this.delegate.create({
+        data: {
+          arguments: args,
+          idempotencyKey,
+          organizationId,
+          status: McpApprovalStatus.PENDING,
+          toolName,
+          userId,
+        },
+      })) as McpApprovalDocument;
+    } catch (error: unknown) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        const concurrent = await this.findActiveByIdempotencyKey(
+          organizationId,
+          idempotencyKey,
+        );
+        if (concurrent) return concurrent;
+      }
+      throw error;
+    }
 
     try {
       await this.notificationsPublisher.publishNotification({

@@ -1009,7 +1009,8 @@ export function useAgentChatContainer({
         setActiveRun(matchingExecution.id, {
           startedAt: matchingExecution.startedAt ?? null,
           status:
-            matchingExecution.status === WorkflowExecutionStatus.RUNNING
+            matchingExecution.status === WorkflowExecutionStatus.RUNNING ||
+            matchingExecution.status === WorkflowExecutionStatus.PENDING
               ? 'running'
               : 'idle',
         });
