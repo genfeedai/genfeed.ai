@@ -356,6 +356,7 @@ export class BrandRelocationService {
       try {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
+            await this.assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -448,6 +449,10 @@ export class BrandRelocationService {
 
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
+    if (sourceOrgId !== destOrgId) {
+      await this.assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
+    }
+
     const impact = await this.classifyRelocationImpact(
       this.prisma as unknown as Prisma.TransactionClient,
       brandId,
@@ -466,6 +471,28 @@ export class BrandRelocationService {
       },
       movingResources,
     };
+  }
+
+  private async assertNoKnowledgeHistory(
+    client: Prisma.TransactionClient,
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge sources still preserve immutable ownership history.
+    const source = await client.knowledgeSource.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    });
+    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge spaces still preserve immutable ownership history.
+    const space = await client.knowledgeSpace.findFirst({
+      where: { organizationId, brandId },
+      select: { id: true },
+    });
+    if (source || space) {
+      throw new ConflictException(
+        'Cannot move a brand with Knowledge history. Knowledge sources and spaces, including deleted records, must remain in their original organization.',
+      );
+    }
   }
 
   private async countRelocationMovingResources(
