@@ -78,7 +78,7 @@ jobs:
         with:
           name: release-upgrade-evidence
           path: ~/.codex/artifacts/release-upgrade-*/evidence.json
-          retention-days: 30
+          retention-days: 7
           if-no-files-found: error
 
   build-and-boot:
