@@ -7,11 +7,7 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Overview',
-    matchPaths: [
-      APP_ROUTES.OVERVIEW.ROOT,
-      APP_ROUTES.WORKSPACE.ROOT,
-      APP_ROUTES.WORKSPACE.OVERVIEW,
-    ],
+    matchPaths: [APP_ROUTES.WORKSPACE.OVERVIEW, APP_ROUTES.WORKSPACE.ROOT],
     outline: LayoutGrid,
     solid: LayoutGrid,
   },

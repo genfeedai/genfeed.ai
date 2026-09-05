@@ -6765,3 +6765,12 @@ model KnowledgeSpaceMembership {
   @@index([organizationId, sourceId, isDeleted], map: "knowledge_memberships_scope_source_idx")
   @@map("knowledge_space_memberships")
 }
+
+// Successful one-time data upgrades. Written in the same transaction as the repair.
+model DataBackfill {
+  id          String   @id
+  completedAt DateTime @default(now())
+  report      Json
+
+  @@map("data_backfills")
+}

@@ -92,31 +92,3 @@ jobs:
       issues: write
     uses: ./.github/workflows/e2e.yml
     secrets: inherit
-
-  # Red-run fail-fast: once every gate has completed and at least one failed,
-  # nothing downstream can succeed — cancel the whole run so downstream
-  # release/deploy jobs cannot consume a failed gate.
-  # `needs` waits for ALL listed jobs to finish, so every test shard still
-  # reports its result before this fires — no failure visibility is lost. E2E is
-  # in that list precisely because it now runs in parallel: cancelling on a unit
-  # failure while E2E was still running would re-hide the E2E reds this workflow
-  # exists to surface. On green runs `if: failure()` skips this job entirely.
-  # Trade-off: the run's overall conclusion becomes "cancelled" instead of
-  # "failure"; the failed jobs themselves still show red.
-  cancel-doomed-run:
-    name: Cancel doomed run
-    needs: [ci, build-verify, e2e]
-    if: failure()
-    # Cancelling a run needs actions:write. A reusable workflow cannot elevate
-    # past its caller's job grant, so every caller of full-suite.yml must also
-    # grant actions:write on its job (release.yml, docker-publish.yml,
-    # release.yml and docker-publish.yml).
-    permissions:
-      actions: write
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Cancel this run
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run cancel ${{ github.run_id }} --repo "${GITHUB_REPOSITORY}"

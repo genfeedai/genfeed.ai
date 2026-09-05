@@ -9,11 +9,9 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { toRouterPriority } from '@genfeedai/contracts';
-import {
-  AgentToolName,
-  type AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
@@ -80,8 +78,8 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     }
     const toolName =
       transition === 'pause'
-        ? AgentToolName.PAUSE_OUTREACH_SEQUENCE
-        : AgentToolName.START_OUTREACH_SEQUENCE;
+        ? 'pause_outreach_sequence'
+        : 'start_outreach_sequence';
     const execution = await this.executeTool(
       params,
       toolName,
@@ -132,7 +130,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     return runIdempotent(this.cacheService, idempotencyKey, async () => {
       const execution = await this.executeTool(
         params,
-        AgentToolName.TRANSFER_AGENT_CONVERSATION,
+        'transfer_agent_conversation',
         { ...(params.payload ?? {}) },
         { confirmationOrigin: 'thread-ui-action', sourceActionId },
       );
@@ -164,7 +162,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     const toolPayload = { ...(params.payload ?? {}), confirmed: true };
     const execution = await this.executeTool(
       params,
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       toolPayload,
       {
         confirmationOrigin: 'thread-ui-action',
@@ -197,7 +195,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     const toolPayload = { ...(params.payload ?? {}), confirmed: true };
     const execution = await this.executeTool(
       params,
-      AgentToolName.CREATE_POST,
+      'create_post',
       toolPayload,
       {
         confirmationOrigin: 'thread-ui-action',
@@ -248,7 +246,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     const toolPayload = { ...(params.payload ?? {}) };
     const execution = await this.executeTool(
       params,
-      'save_brand_voice_profile' as AgentToolName,
+      'save_brand_voice_profile' as CuratedActionName,
       toolPayload,
     );
     if (!execution.result.success) {
@@ -423,8 +421,8 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       sourceActionId,
       toolName:
         generationType === 'video'
-          ? AgentToolName.GENERATE_VIDEO
-          : AgentToolName.GENERATE_IMAGE,
+          ? ('generate_video' as const)
+          : ('generate_image' as const),
       toolPayload:
         generationType === 'image'
           ? {
@@ -445,7 +443,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
 
   private async executeTool(
     params: ThreadUiActionExecutionParams,
-    toolName: AgentToolName,
+    toolName: CuratedActionName,
     toolPayload: Record<string, unknown>,
     overrides: ToolExecutionOverrides = {},
   ): Promise<{ result: AgentToolResult; summary: ToolCallSummary }> {

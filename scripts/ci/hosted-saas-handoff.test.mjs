@@ -509,7 +509,7 @@ test('passes deploy values through env instead of interpolating into shell or JS
   assert.match(publicDeployCore, /SOURCE_SHA: \$\{\{ inputs\.source_sha \}\}/);
   assert.match(
     publicDeployCore,
-    /TF_VAR_image_tag: \$\{\{ steps\.image\.outputs\.sha \}\}/,
+    /echo "TF_VAR_image_digest=\$digest" >> "\$GITHUB_ENV"/,
   );
   assert.match(
     publicDeployCore,

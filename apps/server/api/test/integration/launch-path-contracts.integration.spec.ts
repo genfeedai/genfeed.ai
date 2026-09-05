@@ -531,8 +531,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('keeps repaired API E2E specs in the full tier and drops the dead health harness', () => {
-    // The manifest and the coverage script are addressed by path on purpose:
-    // the tier runner resolves them from these exact locations.
+    // The tier runner resolves this manifest from its canonical path.
     const manifest = readRepo(
       'apps/server/api/scripts/api-e2e-tiers.manifest.ts',
     );
@@ -542,10 +541,5 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       'test/integration/publish-flow.integration.spec.ts',
     );
     expect(manifest).toContain('test/integration/health.e2e-spec.spec.ts');
-
-    const routeCoverage = readRepo('scripts/e2e-route-coverage.mjs');
-    expect(routeCoverage).toContain(
-      "process.env.E2E_ROUTE_COVERAGE_THRESHOLD ?? '90'",
-    );
   });
 });

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  buildRouteReferenceInventory,
   canonicalize,
+  extractRouteReferenceKeys,
   readAppRouteConstants,
   readAppRouteSuffix,
 } from './e2e-route-coverage.mjs';
@@ -65,4 +67,35 @@ export const APP_ROUTES = {
       '/studio/storyboard/*',
     );
   });
+});
+
+describe('static route reference inventory', () => {
+  it('never credits parents, descendants, or dynamic siblings', () => {
+    const report = buildRouteReferenceInventory(
+      ['/posts', '/posts/*', '/posts/*/edit', '/settings/profile'],
+      new Set(['/posts/*', '/settings']),
+    );
+    assert.deepEqual(report.referencedRoutes, ['/posts/*']);
+    assert.equal(report.referencePercent, 25);
+    assert.equal(report.executedRouteCount, null);
+    assert.equal(report.kind, 'static-reference-inventory');
+    assert.equal(Object.hasOwn(report, 'effectivePercent'), false);
+  });
+});
+
+it('credits concrete dynamic route templates without parent-prefix credit', () => {
+  const keys = extractRouteReferenceKeys(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture contains source templates to parse.
+    'page.goto(`/posts/${id}`); page.goto(`${UNKNOWN_PREFIX}/settings`);',
+  );
+  assert.ok(keys.has('/posts/*'));
+  assert.ok(!keys.has('/posts'));
+  assert.ok(!keys.has('/settings'));
+});
+
+it('rejects an empty route discovery result', () => {
+  assert.throws(
+    () => buildRouteReferenceInventory([], new Set()),
+    /No app routes discovered/,
+  );
 });

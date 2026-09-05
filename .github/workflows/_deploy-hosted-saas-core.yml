@@ -4,9 +4,8 @@
 # bills free public minutes. Do not check out console.genfeed.ai.
 #
 # Flow: resolve server:<sha> in GHCR -> copy GHCR->ECR -> RDS pre-migration
-# snapshot -> Prisma migrate task -> workflow migration/backfill task ->
-# boot-smoke -> OpenTofu apply rolls services (task defs are OpenTofu-managed with
-# image_tag) -> wait services-stable -> deploy Vercel frontends -> live
+# snapshot -> Prisma migrate task -> parallel API and workers boot-smoke -> OpenTofu apply rolls services (task defs are OpenTofu-managed with
+# image digest) -> wait services-stable -> deploy Vercel frontends -> live
 # post-deploy smoke.
 #
 # The caller validates the exact public source commit. This engine must use that
@@ -40,6 +39,10 @@ on:
       TURBO_TOKEN:
         required: false
 
+concurrency:
+  group: hosted-saas-core-production
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read
@@ -71,9 +74,8 @@ jobs:
     name: Deploy ECS
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    concurrency:
-      group: deploy-hosted-saas-roll
-      cancel-in-progress: false
+    outputs:
+      image_digest: ${{ steps.copy-image.outputs.image_digest }}
     environment: production
     steps:
       - name: Require hosted SaaS site variables
@@ -261,17 +263,6 @@ jobs:
             exit 0
           fi
 
-          server_image_paths=(
-            "apps/server/**"
-            "packages/**"
-            "ee/**"
-            "docker/Dockerfile.server"
-            "bun.lock"
-            "package.json"
-            ".github/workflows/build-server-image.yml"
-            ".github/actions/build-unified-image/**"
-          )
-
           # No image for HEAD yet. Find the newest first-parent ancestor that has
           # an image, then branch on whether server-image inputs changed since it:
           #   unchanged -> frontend/workflow-only commit. build-server-image is
@@ -299,7 +290,8 @@ jobs:
             exit 1
           fi
 
-          if git -C source diff --quiet "${ANCESTOR}..${HEAD_SHA}" -- "${server_image_paths[@]}"; then
+          inputs_changed="$(node ops/scripts/ci/server-image-inputs.mjs --cwd source --base "$ANCESTOR" --head "$HEAD_SHA")"
+          if [ "$inputs_changed" = "false" ]; then
             echo "::warning::server:${HEAD_SHA} was not built, but server-image inputs are unchanged since ${ANCESTOR}; deploying ${ANCESTOR} (no wait)."
             echo "sha=$ANCESTOR" >> "$GITHUB_OUTPUT"
             exit 0
@@ -314,6 +306,7 @@ jobs:
           exit 1
 
       - name: Copy server:<sha> GHCR -> ECR (no rebuild)
+        id: copy-image
         env:
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
         run: |
@@ -324,7 +317,12 @@ jobs:
           fi
           ECR="$(aws ecr describe-repositories --repository-names "${ECR_REPOSITORY_NAME}" \
                  --query 'repositories[0].repositoryUri' --output text)"
-          docker buildx imagetools create -t "${ECR}:${IMAGE_SHA}" "${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}"
+          digest="$(docker buildx imagetools inspect "${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}" --format '{{json .Manifest.Digest}}' | jq -er 'select(test("^sha256:[0-9a-f]{64}$"))')"
+          docker buildx imagetools create --prefer-index=false -t "${ECR}:${IMAGE_SHA}" "${SERVER_IMAGE_REPOSITORY}@${digest}"
+          copied="$(docker buildx imagetools inspect "${ECR}:${IMAGE_SHA}" --format '{{json .Manifest.Digest}}' | jq -er 'select(test("^sha256:[0-9a-f]{64}$"))')"
+          test "$copied" = "$digest"
+          echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "TF_VAR_image_digest=$digest" >> "$GITHUB_ENV"
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
@@ -344,7 +342,6 @@ jobs:
       - name: Register migration, backfill, and boot-smoke task definitions
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           # OpenTofu 1.12 forbids mixing -target and -exclude. Task defs read
@@ -354,8 +351,6 @@ jobs:
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
-            -target=aws_cloudwatch_log_group.workflow_backfill \
-            -target=aws_ecs_task_definition.workflow_backfill \
             -target=aws_cloudwatch_log_group.boot_smoke \
             -target=aws_ecs_task_definition.boot_smoke \
             -target=aws_cloudwatch_log_group.worker_boot_smoke \
@@ -412,72 +407,40 @@ jobs:
             --security-groups "$SG" \
             --timeout-seconds 900
 
-      - name: Run workflow migration/backfill (one-off task, gated before services roll)
+      - name: Boot API and workers before services roll
+        id: boot-smoke
         working-directory: ops/${{ env.TF_DIR }}
         run: |
           set -euo pipefail
           CLUSTER=$(tofu output -raw cluster_name)
-          TASK_DEFINITION=$(tofu output -raw workflow_backfill_task_definition_arn)
+          API_TASK=$(tofu output -raw boot_smoke_task_definition_arn)
+          WORKER_TASK=$(tofu output -raw worker_boot_smoke_task_definition_arn)
           SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
           SG=$(tofu output -raw task_security_group)
-          # 20m window (was 1200s here) — same tested runner/waiter as migrate.
-          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
-            --phase workflow-backfill \
-            --cluster "$CLUSTER" \
-            --task-definition "$TASK_DEFINITION" \
-            --subnets "$SUBNETS" \
-            --security-groups "$SG" \
-            --timeout-seconds 1200
+          runner="${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts"
+          common=(--cluster "$CLUSTER" --subnets "$SUBNETS" --security-groups "$SG" --stop-on-timeout)
+          bun "$runner" "${common[@]}" --phase boot-smoke \
+            --task-definition "$API_TASK" --timeout-seconds 600 &
+          api_pid=$!
+          bun "$runner" "${common[@]}" --phase worker-boot-smoke \
+            --task-definition "$WORKER_TASK" --timeout-seconds 900 &
+          worker_pid=$!
+          status=0
+          wait "$api_pid" || status=1
+          wait "$worker_pid" || status=1
+          exit "$status"
 
-      - name: Boot smoke — verify new image boots (gated before services roll)
-        working-directory: ops/${{ env.TF_DIR }}
+      - name: Print boot-smoke logs on failure
+        if: ${{ failure() && steps.boot-smoke.outcome == 'failure' }}
         run: |
-          set -euo pipefail
-          # Run the api as a one-off task; the task's own command requires localhost
-          # /v1/health to answer (see boot_smoke task def). Catches crash-on-boot and
-          # "loads but never binds the port" before any service rolls. --stop-on-timeout
-          # reclaims the runaway task, as the old inline loop did. 10m window (was 600s).
-          CLUSTER=$(tofu output -raw cluster_name)
-          TASK_DEFINITION=$(tofu output -raw boot_smoke_task_definition_arn)
-          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
-          SG=$(tofu output -raw task_security_group)
-          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
-            --phase boot-smoke \
-            --cluster "$CLUSTER" \
-            --task-definition "$TASK_DEFINITION" \
-            --subnets "$SUBNETS" \
-            --security-groups "$SG" \
-            --timeout-seconds 600 \
-            --stop-on-timeout
-
-      - name: Workers boot smoke — verify queue runtime boots
-        id: worker-boot-smoke
-        working-directory: ops/${{ env.TF_DIR }}
-        run: |
-          set -euo pipefail
-          CLUSTER=$(tofu output -raw cluster_name)
-          TASK_DEFINITION=$(tofu output -raw worker_boot_smoke_task_definition_arn)
-          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
-          SG=$(tofu output -raw task_security_group)
-          bun "${GITHUB_WORKSPACE}/ops/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
-            --phase worker-boot-smoke \
-            --cluster "$CLUSTER" \
-            --task-definition "$TASK_DEFINITION" \
-            --subnets "$SUBNETS" \
-            --security-groups "$SG" \
-            --timeout-seconds 900 \
-            --stop-on-timeout
-
-      - name: Print workers boot-smoke logs on failure
-        if: ${{ failure() && steps.worker-boot-smoke.outcome == 'failure' }}
-        run: |
-          aws logs tail "/ecs/${TF_VAR_project}-production/worker-boot-smoke" \
-            --since 30m --format short | tail -n 300 || true
+          for task in boot-smoke worker-boot-smoke; do
+            aws logs tail "/ecs/${TF_VAR_project}-production/${task}" \
+              --since 30m --format short | tail -n 300 || true
+          done
 
       - name: Tofu apply (roll services to new image)
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           # Roll services with REDIS_PASSWORD first. Redis AUTH is applied after
@@ -501,7 +464,6 @@ jobs:
       - name: Require Redis TLS and AUTH
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           set -euo pipefail
@@ -545,7 +507,7 @@ jobs:
       - name: Run credential-encryption backfill (post-rollout, gated after services stable)
         # BLOCKING: encrypts legacy plaintext credential secrets at rest via the compiled
         # `migrate:credentials` target (dist/apps/api-credential-backfill/main), which now
-        # ships in the prod image alongside api-workflow-backfill. A real failure here
+        # ships in the production image. A real failure here
         # (missing TOKEN_ENCRYPTION_KEY, crypto error, DB error) SHOULD fail the deploy:
         # the encrypt-on-write boundary already protects NEW writes, but a silently-failing
         # backfill would leave legacy secrets plaintext at rest indefinitely.
@@ -758,3 +720,28 @@ jobs:
               labels: [label],
             });
             core.info(`Created post-deploy smoke issue #${created.data.number}`);
+
+
+  promote-server-image:
+    name: Promote verified server image
+    needs: [deploy, deploy-vercel-frontends, post-deploy-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - env:
+          IMAGE: ${{ vars.SERVER_IMAGE_REPOSITORY }}
+          DIGEST: ${{ needs.deploy.outputs.image_digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker buildx imagetools create --prefer-index=false -t "${IMAGE}:production" -t "${IMAGE}:latest" "${IMAGE}@${DIGEST}"

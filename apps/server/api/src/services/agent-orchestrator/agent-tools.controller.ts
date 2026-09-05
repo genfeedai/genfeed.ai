@@ -9,8 +9,9 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -153,6 +154,8 @@ export class AgentToolsController {
   }
 }
 
-function isAgentToolName(name: string): name is AgentToolName {
-  return (Object.values(AgentToolName) as string[]).includes(name);
+function isAgentToolName(name: string): name is CuratedActionName {
+  return (
+    getToolsForSurface('agent').map((tool) => tool.name) as string[]
+  ).includes(name);
 }

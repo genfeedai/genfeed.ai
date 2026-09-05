@@ -443,7 +443,7 @@ the client and server still validate it, and an explicit user action is required
 for navigation or any consequential effect.
 
 Admin, settings, billing, credentials, policy, destructive management, agent
-onboarding, lab/internal pages, and full-screen editors remain canonical routes,
+onboarding and full-screen editors remain canonical routes,
 but render as focused canvases inside the permanent shell. They do not bypass
 the shell through a dedicated route mode. A surface may own its own primary
 input in its canvas; the agent composer remains with the conversation in the
@@ -483,7 +483,6 @@ The app switcher is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/:brandSlug/workflows/**`                                    | Brand                   | Canvas or focused editor                           | New/detail, Templates, Executions/detail. Workflows is not an app-switcher module.                                                                                                   |
 | `/:orgSlug/:brandSlug/automate/**`                                | Brand                   | Canvas                                             | Agent detail, overview, new, analytics, autopilot, configuration, hire, orchestrator, runs, Skills, content runs, campaigns/detail/new, outreach campaigns/detail/new, library/type. |
 | `/:orgSlug/:brandSlug/settings/**`                                     | Brand                   | Canvas                                             | Voice, harness, interview, publishing, and agent defaults.                                                                                                                           |
-| `/:orgSlug/:brandSlug/lab/**`                                          | Brand                   | Canvas                                             | Articles, retired cron compatibility route, library preview, Twitter engage.                                                                                                         |
 | `/admin/**`                                                            | Platform-admin          | Canvas                                             | Agent, overview/analytics, content, automation, configuration, fleet, library, organization, administration, folders, image/video detail.                                            |
 
 Special inventory rules:

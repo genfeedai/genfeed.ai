@@ -8,9 +8,10 @@ import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
 } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -44,31 +45,31 @@ export class AgentXActionsToolHandler {
     @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
-  handles(toolName: AgentToolName): boolean {
+  handles(toolName: CuratedActionName): boolean {
     return (
-      toolName === AgentToolName.SEARCH_X_POSTS ||
-      toolName === AgentToolName.FETCH_X_POST ||
-      toolName === AgentToolName.LIST_X_ACCOUNT_ACTIVITY ||
-      toolName === AgentToolName.DRAFT_X_QUOTE ||
-      toolName === AgentToolName.DRAFT_X_REPOST
+      toolName === 'search_x_posts' ||
+      toolName === 'fetch_x_post' ||
+      toolName === 'list_x_account_activity' ||
+      toolName === 'draft_x_quote' ||
+      toolName === 'draft_x_repost'
     );
   }
 
   execute(
-    toolName: AgentToolName,
+    toolName: CuratedActionName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
-      case AgentToolName.SEARCH_X_POSTS:
+      case 'search_x_posts':
         return this.searchXPosts(params);
-      case AgentToolName.FETCH_X_POST:
+      case 'fetch_x_post':
         return this.fetchXPost(params, ctx);
-      case AgentToolName.LIST_X_ACCOUNT_ACTIVITY:
+      case 'list_x_account_activity':
         return this.listXAccountActivity(params, ctx);
-      case AgentToolName.DRAFT_X_QUOTE:
+      case 'draft_x_quote':
         return this.draftXEngagement(params, ctx, 'quote');
-      case AgentToolName.DRAFT_X_REPOST:
+      case 'draft_x_repost':
         return this.draftXEngagement(params, ctx, 'repost');
       default:
         throw new Error(`Unsupported X action tool: ${toolName}`);

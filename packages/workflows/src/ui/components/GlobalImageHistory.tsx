@@ -1,12 +1,13 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { Clock3, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useWorkflowStore } from '../stores/workflow';
 import type { ImageHistoryItem } from '../stores/workflow/types';
-import { Button } from '../ui/button';
 
 const EMPTY_HISTORY: ImageHistoryItem[] = [];
 
@@ -48,7 +49,8 @@ function FanItem({
 
   return (
     <Button
-      variant="ghost"
+      withWrapper={false}
+      variant={ButtonVariant.GHOST}
       draggable
       onDragStart={(e) => onDragStart(e, item)}
       className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
@@ -137,8 +139,9 @@ function HistorySidebar({
         </span>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
             onClick={onClear}
             className="text-2xs text-muted-foreground hover:text-destructive p-0 h-auto"
             title="Clear all history"
@@ -146,8 +149,9 @@ function HistorySidebar({
             Clear All
           </Button>
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onClose}
             className="size-5 text-muted-foreground hover:bg-muted hover:text-foreground"
             title="Close"
@@ -160,9 +164,10 @@ function HistorySidebar({
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {history.map((item, index) => (
           <Button
+            withWrapper={false}
             key={item.id}
             type="button"
-            variant="ghost"
+            variant={ButtonVariant.GHOST}
             draggable
             onDragStart={(e) => onDragStart(e, item)}
             className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-muted cursor-grab active:cursor-grabbing group transition-colors"
@@ -289,9 +294,10 @@ export function GlobalImageHistory() {
   return (
     <div ref={drawerRef} className="absolute bottom-4 right-64 z-10">
       <Button
+        withWrapper={false}
         ref={triggerRef}
-        variant="secondary"
-        size="icon-sm"
+        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.ICON}
         onClick={() => setIsOpen(!isOpen)}
         className="relative bg-secondary hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
@@ -327,8 +333,9 @@ export function GlobalImageHistory() {
               );
               return (
                 <Button
-                  variant="secondary"
-                  size="sm"
+                  withWrapper={false}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
                   onClick={handleShowAll}
                   className="absolute animate-fan-enter bg-secondary hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
                   style={

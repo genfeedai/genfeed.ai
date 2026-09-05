@@ -284,7 +284,7 @@ describe('parseAgentDashboardBlocks block types', () => {
     expect(result.issues[0]?.path).toBe('blocks[0].level');
   });
 
-  it('parses text paragraph, bullet list, callout, and markdown blocks', () => {
+  it('parses text paragraph, bullet list, callout blocks', () => {
     const result = parseAgentDashboardBlocks([
       { id: 'text', text: 'A short summary.', type: 'text_paragraph' },
       {
@@ -294,7 +294,6 @@ describe('parseAgentDashboardBlocks block types', () => {
         type: 'bullet_list',
       },
       { id: 'callout', message: 'Ship it', tone: 'success', type: 'callout' },
-      { content: '# Weekly recap', id: 'md', type: 'markdown' },
     ]);
 
     expect(result.isValid).toBe(true);
@@ -308,10 +307,6 @@ describe('parseAgentDashboardBlocks block types', () => {
       tone: 'success',
       type: 'callout',
     });
-    expect(result.blocks[3]).toMatchObject({
-      content: '# Weekly recap',
-      type: 'markdown',
-    });
   });
 
   it('rejects bullet list items that are not strings', () => {
@@ -323,14 +318,16 @@ describe('parseAgentDashboardBlocks block types', () => {
     expect(result.issues[0]?.path).toBe('blocks[0].items[0]');
   });
 
-  it('rejects empty bullet lists and missing markdown content', () => {
+  it('rejects empty bullet lists and retired block types', () => {
     expect(
       parseAgentDashboardBlocks([
         { id: 'list', items: [], type: 'bullet_list' },
       ]).isValid,
     ).toBe(false);
     expect(
-      parseAgentDashboardBlocks([{ id: 'md', type: 'markdown' }]).isValid,
+      parseAgentDashboardBlocks([
+        { id: 'retired', type: 'markdown', content: 'Retired format' },
+      ]).isValid,
     ).toBe(false);
     expect(
       parseAgentDashboardBlocks([{ id: 'callout', type: 'callout' }]).isValid,

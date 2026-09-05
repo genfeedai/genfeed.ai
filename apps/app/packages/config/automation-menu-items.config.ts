@@ -66,13 +66,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Agents',
     href: APP_ROUTES.AUTOMATION.AGENTS,
     label: 'Agents',
-    matchPaths: [
-      APP_ROUTES.AUTOMATION.AGENTS,
-      APP_ROUTES.AUTOMATION.HIRE,
-      APP_ROUTES.AUTOMATION.NEW,
-      APP_ROUTES.AUTOMATION.LIBRARY,
-      '/automation/new',
-    ],
+    matchPaths: [APP_ROUTES.AUTOMATION.AGENTS],
     outline: Users,
     solid: Users,
   },
@@ -91,7 +85,6 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [
       APP_ROUTES.AUTOMATION.CAMPAIGNS,
       APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW,
-      APP_ROUTES.AUTOMATION.ORCHESTRATOR,
     ],
     outline: Megaphone,
     solid: Megaphone,

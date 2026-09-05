@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   TopazUpscaleFactor,
   TopazVideoFPS,
@@ -8,6 +10,17 @@ import type {
   UpscaleNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   Expand,
@@ -20,18 +33,7 @@ import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
 import { ComparisonSlider } from '../../ui/comparison-slider';
-import { Label } from '../../ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 // Image upscale models
@@ -327,8 +329,9 @@ function UpscaleImageOutput({
         <Label className="text-xs">Result</Label>
         {nodeData.originalPreview && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onComparisonToggle}
             title={
               nodeData.showComparison
@@ -402,8 +405,9 @@ function UpscaleVideoOutput({
         <Label className="text-xs">Result</Label>
         {nodeData.originalPreview && nodeData.outputPreview && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onComparisonToggle}
             title={nodeData.showComparison ? 'Show video' : 'Compare frames'}
           >
@@ -452,8 +456,9 @@ function RefreshOutputButton({
 }) {
   return (
     <Button
-      variant="ghost"
-      size="icon-sm"
+      withWrapper={false}
+      variant={ButtonVariant.GHOST}
+      size={ButtonSize.ICON}
       onClick={onProcess}
       disabled={status === 'processing'}
       className={
@@ -487,8 +492,9 @@ function UpscaleProcessButton({
 
   return (
     <Button
-      variant="default"
-      size="sm"
+      withWrapper={false}
+      variant={ButtonVariant.DEFAULT}
+      size={ButtonSize.SM}
       onClick={onProcess}
       disabled={!hasInput || status === 'processing'}
       className="mt-1 w-full"
@@ -612,8 +618,9 @@ function UpscaleNodeComponent(props: NodeProps) {
     () =>
       hasOutput ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >

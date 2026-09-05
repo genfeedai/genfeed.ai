@@ -1,10 +1,21 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   TranscribeLanguage,
   TranscribeNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,
@@ -18,15 +29,6 @@ import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
 import { BaseNode } from '../BaseNode';
 
 const LANGUAGES: { value: TranscribeLanguage; label: string }[] = [
@@ -84,8 +86,9 @@ function TranscribeNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputText ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -153,8 +156,9 @@ function TranscribeNodeComponent(props: NodeProps) {
               {nodeData.outputText}
             </div>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleTranscribe}
               disabled={nodeData.status === 'processing'}
               className={
@@ -169,8 +173,11 @@ function TranscribeNodeComponent(props: NodeProps) {
         {/* Transcribe Button */}
         {!nodeData.outputText && (
           <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={handleTranscribe}
             disabled={!canGenerate || nodeData.status === 'processing'}
             className="w-full"

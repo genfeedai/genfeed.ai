@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { AnnotationNodeData } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Pencil, Shapes } from 'lucide-react';
 import Image from 'next/image';
@@ -8,7 +11,6 @@ import { memo, useCallback, useMemo } from 'react';
 import { useAnnotationStore } from '../../stores/annotationStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function AnnotationNodeComponent(props: NodeProps) {
@@ -54,8 +56,9 @@ function AnnotationNodeComponent(props: NodeProps) {
     () =>
       inputImage ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -95,10 +98,15 @@ function AnnotationNodeComponent(props: NodeProps) {
 
         {/* Edit Button */}
         <Button
+          withWrapper={false}
           onClick={handleEditAnnotations}
           disabled={!inputImage}
           className="w-full"
-          variant={nodeData.hasAnnotations ? 'default' : 'secondary'}
+          variant={
+            nodeData.hasAnnotations
+              ? ButtonVariant.DEFAULT
+              : ButtonVariant.SECONDARY
+          }
         >
           <Pencil className="mr-2 size-4" />
           {nodeData.hasAnnotations ? 'Edit Annotations' : 'Add Annotations'}

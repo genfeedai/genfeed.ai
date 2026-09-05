@@ -76,15 +76,21 @@ export default function AssetGateGuard({ children }: LayoutProps) {
         </div>
 
         <div className="flex w-full flex-col gap-3">
-          <Link
-            href={agentHref}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            aria-label="Go to the agent to generate your first asset"
+          <Button
+            asChild
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            className="w-full"
           >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            Generate your first asset
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+            <Link
+              href={agentHref}
+              aria-label="Go to the agent to generate your first asset"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              Generate your first asset
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
 
           <Button
             variant={ButtonVariant.GHOST}

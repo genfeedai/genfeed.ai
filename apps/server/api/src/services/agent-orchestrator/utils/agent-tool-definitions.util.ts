@@ -9,10 +9,10 @@ import type {
   OpenRouterPlugin,
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { RouterPriority } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const GEMINI_FUNCTION_SCHEMA_KEYS = new Set([
   '$defs',
@@ -102,8 +102,8 @@ function resolveProviderToolDefinitions(
  * Managed credit packs are cloud-only, so the payment card has nothing to sell
  * on a self-hosted install regardless of which surface the turn came from.
  */
-export const CLOUD_ONLY_TOOLS: AgentToolName[] = [
-  AgentToolName.PRESENT_PAYMENT_OPTIONS,
+export const CLOUD_ONLY_TOOLS: CuratedActionName[] = [
+  'present_payment_options',
 ];
 
 /**
@@ -111,14 +111,14 @@ export const CLOUD_ONLY_TOOLS: AgentToolName[] = [
  * capability gap, so they are withheld from self-hosted onboarding only —
  * a self-hosted operator can still reach the tool from a normal agent turn.
  */
-export const CLOUD_ONLY_ONBOARDING_TOOLS: AgentToolName[] = [
+export const CLOUD_ONLY_ONBOARDING_TOOLS: CuratedActionName[] = [
   ...CLOUD_ONLY_TOOLS,
-  AgentToolName.GENERATE_MONTHLY_CONTENT,
+  'generate_monthly_content',
 ];
 
 export function resolveBlockedTools(options: {
   source?: string;
-}): AgentToolName[] | undefined {
+}): CuratedActionName[] | undefined {
   if (!isSelfHostedDeployment()) {
     return undefined;
   }
@@ -129,12 +129,12 @@ export function resolveBlockedTools(options: {
 }
 
 export function buildToolDefinitions(
-  allowedTools?: AgentToolName[],
-  blockedTools?: AgentToolName[],
+  allowedTools?: CuratedActionName[],
+  blockedTools?: CuratedActionName[],
 ): OpenRouterTool[] {
   const all = getToolDefinitions();
   const allowed = allowedTools
-    ? all.filter((t) => allowedTools.includes(t.name as AgentToolName))
+    ? all.filter((t) => allowedTools.includes(t.name as CuratedActionName))
     : all;
   const filtered = blockedTools
     ? allowed.filter((tool) =>
@@ -153,9 +153,9 @@ export function buildToolDefinitions(
 }
 
 export function mergeAllowedTools(
-  preferred?: AgentToolName[],
-  scoped?: AgentToolName[],
-): AgentToolName[] | undefined {
+  preferred?: CuratedActionName[],
+  scoped?: CuratedActionName[],
+): CuratedActionName[] | undefined {
   if (preferred && scoped) {
     return preferred.filter((tool) => scoped.includes(tool));
   }
@@ -164,12 +164,12 @@ export function mergeAllowedTools(
 }
 
 /** Tools allowed when the user prompt looks like a batch-generation intent. */
-export const BATCH_SCOPED_ALLOWED_TOOLS: AgentToolName[] = [
-  AgentToolName.GENERATE_CONTENT_BATCH,
-  AgentToolName.BATCH_APPROVE_REJECT,
-  AgentToolName.GET_CURRENT_BRAND,
-  AgentToolName.LIST_BRANDS,
-  AgentToolName.LIST_REVIEW_QUEUE,
+export const BATCH_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
+  'generate_content_batch',
+  'batch_approve_reject',
+  'get_current_brand',
+  'list_brands',
+  'list_review_queue',
 ];
 
 export function buildAgentChatCompletionParams(params: {

@@ -1,10 +1,16 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   VideoQaFailure,
   VideoQaNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import type { NodeProps } from '@xyflow/react';
 import { LoaderCircle, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
@@ -12,10 +18,6 @@ import { useTranslations } from 'next-intl';
 import { type ChangeEvent, memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
 import { BaseNode } from '../BaseNode';
 
 function formatMetricSeconds(value: number | null): string {
@@ -179,11 +181,12 @@ function VideoQaNodeComponent(props: NodeProps) {
         )}
 
         <Button
+          withWrapper={false}
           className="w-full"
           disabled={!hasInputVideo || isProcessing}
           onClick={handleInspect}
-          size="sm"
-          variant="default"
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
         >
           {isProcessing ? (
             <LoaderCircle className="size-4 animate-spin" />

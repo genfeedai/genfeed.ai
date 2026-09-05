@@ -300,7 +300,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.OVERVIEW.ROOT]: {
+  [APP_ROUTES.WORKSPACE.OVERVIEW]: {
     placeholder: 'What would you like to do?',
     suggestedActions: [
       {

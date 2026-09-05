@@ -9,7 +9,7 @@ import {
   parsePlatform,
 } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 type LivestreamBotPlatform = Platform.YOUTUBE | Platform.TWITCH;
@@ -483,7 +483,7 @@ export class AgentLivestreamToolHandler {
               label: 'Open bot',
             },
             {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Start session',
               payload: {
                 action: 'start_session',
@@ -491,7 +491,7 @@ export class AgentLivestreamToolHandler {
               },
             },
             {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Send message now',
               payload: {
                 action: 'send_now',
@@ -524,7 +524,7 @@ export class AgentLivestreamToolHandler {
     const nextControlCta =
       params.session.status === 'active'
         ? {
-            action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+            action: 'manage_livestream_bot',
             label: 'Pause session',
             payload: {
               action: 'pause_session',
@@ -533,7 +533,7 @@ export class AgentLivestreamToolHandler {
           }
         : params.session.status === 'paused'
           ? {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Resume session',
               payload: {
                 action: 'resume_session',
@@ -541,7 +541,7 @@ export class AgentLivestreamToolHandler {
               },
             }
           : {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Start session',
               payload: {
                 action: 'start_session',
@@ -569,7 +569,7 @@ export class AgentLivestreamToolHandler {
             },
             nextControlCta,
             {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Stop session',
               payload: {
                 action: 'stop_session',
@@ -577,7 +577,7 @@ export class AgentLivestreamToolHandler {
               },
             },
             {
-              action: AgentToolName.MANAGE_LIVESTREAM_BOT,
+              action: 'manage_livestream_bot',
               label: 'Send message now',
               payload: {
                 action: 'send_now',

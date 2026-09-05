@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { WorkflowFile } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Bug,
   CircleAlert,
@@ -27,7 +30,6 @@ import { getWorkflowLogger } from '../stores/executionLogger';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';
 import { ToolbarDropdown } from './ToolbarDropdown';
@@ -194,8 +196,9 @@ function ValidationErrorsToast({
           </ul>
         </div>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={onClear}
           className="text-destructive hover:bg-destructive/20"
           title="Dismiss validation errors"
@@ -357,8 +360,9 @@ export function Toolbar({
       {/* Debug Mode Badge */}
       {debugMode && (
         <Button
-          variant="secondary"
-          size="sm"
+          withWrapper={false}
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.SM}
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"
           className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20"
@@ -371,8 +375,9 @@ export function Toolbar({
       {/* Auto-layout Button */}
       {onAutoLayout && (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => onAutoLayout('LR')}
           title="Auto-layout nodes"
         >
@@ -382,8 +387,9 @@ export function Toolbar({
 
       {/* Undo/Redo Buttons */}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={() => undo()}
         disabled={!canUndo}
         title="Undo (Ctrl+Z)"
@@ -391,8 +397,9 @@ export function Toolbar({
         <Undo2 className="size-4" />
       </Button>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={() => redo()}
         disabled={!canRedo}
         title="Redo (Ctrl+Shift+Z)"
@@ -414,8 +421,9 @@ export function Toolbar({
       {/* Shortcut Help */}
       {showShortcutHelp && (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => openModal('shortcutHelp')}
           title="Keyboard shortcuts"
         >
@@ -426,8 +434,9 @@ export function Toolbar({
       {/* Settings */}
       {showSettings && (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => openModal('settings')}
           title="Settings"
         >

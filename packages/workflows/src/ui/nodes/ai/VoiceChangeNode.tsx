@@ -1,7 +1,12 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { VoiceChangeNodeData } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   AudioLines,
@@ -15,9 +20,6 @@ import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 function VoiceChangeNodeComponent(props: NodeProps) {
@@ -62,8 +64,9 @@ function VoiceChangeNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputVideo ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleExpand}
           title="Expand preview"
         >
@@ -122,8 +125,9 @@ function VoiceChangeNodeComponent(props: NodeProps) {
               className="w-full rounded border border-border"
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing' || !canGenerate}
               className={
@@ -138,8 +142,11 @@ function VoiceChangeNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!canGenerate || nodeData.status === 'processing'}
             className="w-full"

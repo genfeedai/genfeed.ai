@@ -2,7 +2,7 @@
 name: card-metric-surface
 description: One Card frame + MetricCard states for all metric/stat tiles — stop inventing new card components
 type: project
-last_verified: 2026-08-07
+last_verified: 2026-09-05
 ---
 
 # Card + metric surface (canonical)
@@ -38,13 +38,9 @@ Review.
   `MetricSummary` is enough
 - Hand-rolled uppercase label + big value that duplicates MetricCard
 
-## Deprecations (aliases only — do not extend)
+## Remaining prop contract
 
-- `StatCard` → MetricCard
-- `KPICard` → MetricCard `size="lg"`
-- `OverviewMetric` → MetricCard `size="sm"`
-- `StatsCards` → adapter over MetricCardGrid + MetricCard
-- `@ui/analytics/cards/metric` → adapter over MetricCard
+`KPICardProps` supplies the admin overview metric data. Rendering uses MetricCard.
 
 ## Frame contract
 

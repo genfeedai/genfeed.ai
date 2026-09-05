@@ -8,19 +8,23 @@ import {
   TableHeader,
   TableRow,
 } from '@genfeedai/ui';
-import { DollarSign, X } from 'lucide-react';
-import { useMemo, useRef } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
+import { DollarSign } from 'lucide-react';
+import { useMemo } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
 import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 export function CostModal() {
   const { activeModal, closeModal } = useUIStore();
   const nodes = useWorkflowStore((state) => state.nodes);
   const actualCost = useExecutionStore((state) => state.actualCost);
-  const backdropRef = useRef<HTMLButtonElement>(null);
 
   const isOpen = activeModal === 'cost';
 
@@ -30,50 +34,28 @@ export function CostModal() {
     closeModal();
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
-      handleClose();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      handleClose();
-    }
-  };
-
   if (!isOpen) return null;
 
   const hasActualCost = actualCost > 0;
   const variance = hasActualCost ? actualCost - breakdown.total : 0;
 
   return (
-    <button
-      type="button"
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] cursor-default border-none bg-transparent p-0 m-0"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
     >
-      <div
-        className="bg-background shadow-dialog w-full max-w-lg"
-        role="dialog"
-        aria-label="Cost Breakdown"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <DollarSign className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Cost Breakdown</span>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="size-4" />
-          </Button>
-        </div>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="size-4" aria-hidden="true" />
+            Cost Breakdown
+          </DialogTitle>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="p-4">
+        <div>
           {breakdown.items.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               No billable nodes in workflow
@@ -154,7 +136,7 @@ export function CostModal() {
             </>
           )}
         </div>
-      </div>
-    </button>
+      </DialogContent>
+    </Dialog>
   );
 }

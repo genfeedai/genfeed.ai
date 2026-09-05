@@ -15,7 +15,6 @@ import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools
 import { CacheService } from '@api/services/cache/cache.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import {
-  AgentToolName,
   type AgentToolResult,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
@@ -132,9 +131,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
     sourceActionId: string;
   }): Promise<{ result: AgentToolResult; summary: ToolCallSummary }> {
     const toolName =
-      input.operation === 'create'
-        ? AgentToolName.CREATE_BRAND
-        : AgentToolName.RENAME_BRAND;
+      input.operation === 'create' ? 'create_brand' : 'rename_brand';
     const toolPayload = { ...(input.params.payload ?? {}) };
     const mutationKey = [
       'agent-brand-mutation',

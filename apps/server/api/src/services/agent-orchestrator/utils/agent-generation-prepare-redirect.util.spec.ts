@@ -1,4 +1,4 @@
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 import {
   getGenerationPreparationRedirect,
@@ -9,105 +9,98 @@ import {
 describe('normalizeRequestedAgentToolName', () => {
   it('strips vendor prefixes such as default_api.', () => {
     expect(normalizeRequestedAgentToolName('default_api.generate_image')).toBe(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
     );
     expect(normalizeRequestedAgentToolName('default_api.generate_video')).toBe(
-      AgentToolName.GENERATE_VIDEO,
+      'generate_video',
     );
     expect(normalizeRequestedAgentToolName('default_api.generate_voice')).toBe(
-      AgentToolName.GENERATE_VOICE,
+      'generate_voice',
     );
   });
 
   it('leaves already-canonical names unchanged', () => {
     expect(normalizeRequestedAgentToolName('generate_image')).toBe(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
     );
   });
 });
 
 describe('getGenerationPreparationRedirect', () => {
   it('remaps prepare_generation to the concrete composer-selected tool', () => {
-    const allowed = new Set([AgentToolName.PREPARE_GENERATION]);
+    const allowed = new Set<CuratedActionName>(['prepare_generation']);
 
     expect(
-      getGenerationPreparationRedirect(
-        AgentToolName.PREPARE_GENERATION,
-        allowed,
-        { generationMode: 'image' },
-      ),
-    ).toBe(AgentToolName.GENERATE_IMAGE);
+      getGenerationPreparationRedirect('prepare_generation', allowed, {
+        generationMode: 'image',
+      }),
+    ).toBe('generate_image');
     expect(
-      getGenerationPreparationRedirect(
-        AgentToolName.PREPARE_GENERATION,
-        allowed,
-        { requestedGenerationType: 'video' },
-      ),
-    ).toBe(AgentToolName.GENERATE_VIDEO);
+      getGenerationPreparationRedirect('prepare_generation', allowed, {
+        requestedGenerationType: 'video',
+      }),
+    ).toBe('generate_video');
   });
 
   it('admits a concrete visual tool when only prepare_generation was exposed', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_IMAGE,
-        new Set([AgentToolName.PREPARE_GENERATION]),
+        'generate_image',
+        new Set(['prepare_generation']),
       ),
-    ).toBe(AgentToolName.GENERATE_IMAGE);
+    ).toBe('generate_image');
   });
 
   it('strips default_api prefixes before recovering voice', () => {
-    const visualAllowed = new Set([AgentToolName.PREPARE_GENERATION]);
-    const voiceAllowed = new Set([AgentToolName.PREPARE_VOICE_CLONE]);
+    const visualAllowed = new Set<CuratedActionName>(['prepare_generation']);
+    const voiceAllowed = new Set<CuratedActionName>(['prepare_voice_clone']);
 
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_image',
         visualAllowed,
       ),
-    ).toBe(AgentToolName.GENERATE_IMAGE);
+    ).toBe('generate_image');
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_video',
         visualAllowed,
       ),
-    ).toBe(AgentToolName.GENERATE_VIDEO);
+    ).toBe('generate_video');
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_voice',
         voiceAllowed,
       ),
-    ).toBe(AgentToolName.PREPARE_VOICE_CLONE);
+    ).toBe('prepare_voice_clone');
   });
 
   it('recovers unknown generate-like names onto concrete generation tools', () => {
     expect(
       getGenerationPreparationRedirect(
         'default_api.image_generation',
-        new Set([AgentToolName.PREPARE_GENERATION]),
+        new Set(['prepare_generation']),
       ),
-    ).toBe(AgentToolName.GENERATE_IMAGE);
+    ).toBe('generate_image');
     expect(
       getGenerationPreparationRedirect(
         'txt2video',
-        new Set([AgentToolName.PREPARE_GENERATION]),
+        new Set(['prepare_generation']),
       ),
-    ).toBe(AgentToolName.GENERATE_VIDEO);
+    ).toBe('generate_video');
     expect(
       getGenerationPreparationRedirect(
         'default_api.tts_voiceover',
-        new Set([AgentToolName.PREPARE_VOICE_CLONE]),
+        new Set(['prepare_voice_clone']),
       ),
-    ).toBe(AgentToolName.PREPARE_VOICE_CLONE);
+    ).toBe('prepare_voice_clone');
   });
 
   it('does not treat open_studio_handoff as a generate tool', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.OPEN_STUDIO_HANDOFF,
-        new Set([
-          AgentToolName.PREPARE_GENERATION,
-          AgentToolName.OPEN_STUDIO_HANDOFF,
-        ]),
+        'open_studio_handoff',
+        new Set(['prepare_generation', 'open_studio_handoff']),
         { requestedGenerationType: 'image' },
       ),
     ).toBeNull();
@@ -117,10 +110,7 @@ describe('getGenerationPreparationRedirect', () => {
     expect(
       getGenerationPreparationRedirect(
         'default_api.nonexistent_tool',
-        new Set([
-          AgentToolName.PREPARE_GENERATION,
-          AgentToolName.PREPARE_VOICE_CLONE,
-        ]),
+        new Set(['prepare_generation', 'prepare_voice_clone']),
       ),
     ).toBeNull();
   });
@@ -128,8 +118,8 @@ describe('getGenerationPreparationRedirect', () => {
   it('does not admit media generation into a run without a visual tool surface', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_IMAGE,
-        new Set([AgentToolName.GET_DASHBOARD_LAYOUT]),
+        'generate_image',
+        new Set(['get_dashboard_layout']),
       ),
     ).toBeNull();
   });
@@ -137,8 +127,8 @@ describe('getGenerationPreparationRedirect', () => {
   it('does not remap content-generation tools onto the media card', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_CONTENT,
-        new Set([AgentToolName.PREPARE_GENERATION]),
+        'generate_content',
+        new Set(['prepare_generation']),
       ),
     ).toBeNull();
   });
@@ -146,17 +136,17 @@ describe('getGenerationPreparationRedirect', () => {
   it('remaps generate_voice to the voice-clone card when that prepare tool is allowed', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_VOICE,
-        new Set([AgentToolName.PREPARE_VOICE_CLONE]),
+        'generate_voice',
+        new Set(['prepare_voice_clone']),
       ),
-    ).toBe(AgentToolName.PREPARE_VOICE_CLONE);
+    ).toBe('prepare_voice_clone');
   });
 
   it('leaves generate_voice alone when prepare_voice_clone is not in the run', () => {
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_VOICE,
-        new Set([AgentToolName.PREPARE_GENERATION]),
+        'generate_voice',
+        new Set(['prepare_generation']),
       ),
     ).toBeNull();
   });
@@ -170,9 +160,7 @@ describe('inferPrepareGenerationType', () => {
     expect(inferPrepareGenerationType('default_api.generate_video')).toBe(
       'video',
     );
-    expect(inferPrepareGenerationType(AgentToolName.GENERATE_AS_IDENTITY)).toBe(
-      'video',
-    );
+    expect(inferPrepareGenerationType('generate_as_identity')).toBe('video');
     expect(inferPrepareGenerationType('image_generation')).toBe('image');
   });
 
@@ -180,8 +168,6 @@ describe('inferPrepareGenerationType', () => {
     expect(
       inferPrepareGenerationType('default_api.generate_voice'),
     ).toBeUndefined();
-    expect(
-      inferPrepareGenerationType(AgentToolName.GENERATE_CONTENT),
-    ).toBeUndefined();
+    expect(inferPrepareGenerationType('generate_content')).toBeUndefined();
   });
 });

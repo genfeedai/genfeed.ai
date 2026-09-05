@@ -1,4 +1,6 @@
+import RemixBriefInspector from '@app-components/research/remix/RemixBriefInspector';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { DiscoveryRemixProvider } from '@pages/research/remix/DiscoveryRemixProvider';
 import TrendsPlatformDetail from '@pages/trends/platform-detail/trends-platform-detail';
 import {
   getTrendPlatformLabel,
@@ -35,10 +37,13 @@ export default async function AnalyticsTrendsPlatformPage({
 
   return (
     <Suspense fallback={null}>
-      <TrendsPlatformDetail
-        platform={platform as TrendPlatform}
-        basePath="/analytics/trends"
-      />
+      <DiscoveryRemixProvider>
+        <RemixBriefInspector />
+        <TrendsPlatformDetail
+          platform={platform as TrendPlatform}
+          basePath="/analytics/trends"
+        />
+      </DiscoveryRemixProvider>
     </Suspense>
   );
 }

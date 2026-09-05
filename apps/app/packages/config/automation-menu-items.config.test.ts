@@ -114,9 +114,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
   it.each([
     '/automation/campaigns',
     '/automation/content-runs',
-    '/automation/hire',
-    '/automation/orchestrator',
-    '/automation/agents/new',
     '/automation/templates',
     '/automation/workflows/new',
     '/automation/autopilot',
@@ -158,7 +155,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('folds retired agent creation routes into Agents', () => {
+  it('matches the canonical Agents route', () => {
     const agents = AUTOMATION_MENU_ITEMS.find(
       (item) => item.label === 'Agents',
     );
@@ -166,20 +163,14 @@ describe('AUTOMATION_MENU_ITEMS', () => {
       expect.arrayContaining(['/automation/orchestrator']),
     );
     expect(agents?.matchPaths).toEqual(
-      expect.arrayContaining([
-        '/automation/agents',
-        '/automation/agents/new',
-        '/automation/hire',
-        '/automation/library',
-        '/automation/new',
-      ]),
+      expect.arrayContaining(['/automation/agents']),
     );
     expect(AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Hire')).toBe(
       false,
     );
   });
 
-  it('folds the retired team launcher into Programs', () => {
+  it('matches the canonical Program routes', () => {
     const programs = AUTOMATION_MENU_ITEMS.find(
       (item) => item.label === 'Programs',
     );
@@ -188,7 +179,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
       expect.arrayContaining([
         '/automation/campaigns',
         '/automation/campaigns/new',
-        '/automation/orchestrator',
       ]),
     );
     expect(

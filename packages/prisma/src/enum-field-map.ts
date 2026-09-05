@@ -1986,6 +1986,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
     },
   },
+  DataBackfill: {
+    allFields: ['completedAt', 'id', 'report'],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   DesktopAuthCode: {
     allFields: [
       'codeChallenge',

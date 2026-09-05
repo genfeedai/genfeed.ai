@@ -1,7 +1,7 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { Platform } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -58,12 +58,12 @@ describe('AgentXActionsToolHandler', () => {
 
   it('handles the X action tool names', () => {
     const { handler } = createHandler();
-    expect(handler.handles(AgentToolName.SEARCH_X_POSTS)).toBe(true);
-    expect(handler.handles(AgentToolName.FETCH_X_POST)).toBe(true);
-    expect(handler.handles(AgentToolName.LIST_X_ACCOUNT_ACTIVITY)).toBe(true);
-    expect(handler.handles(AgentToolName.DRAFT_X_QUOTE)).toBe(true);
-    expect(handler.handles(AgentToolName.DRAFT_X_REPOST)).toBe(true);
-    expect(handler.handles(AgentToolName.CREATE_POST)).toBe(false);
+    expect(handler.handles('search_x_posts')).toBe(true);
+    expect(handler.handles('fetch_x_post')).toBe(true);
+    expect(handler.handles('list_x_account_activity')).toBe(true);
+    expect(handler.handles('draft_x_quote')).toBe(true);
+    expect(handler.handles('draft_x_repost')).toBe(true);
+    expect(handler.handles('create_post')).toBe(false);
   });
 
   it('searches recent X posts', async () => {
@@ -84,7 +84,7 @@ describe('AgentXActionsToolHandler', () => {
     ]);
 
     const result = await handler.execute(
-      AgentToolName.SEARCH_X_POSTS,
+      'search_x_posts',
       { limit: 5, query: 'genfeed' },
       ctx,
     );
@@ -112,7 +112,7 @@ describe('AgentXActionsToolHandler', () => {
     );
 
     const result = await handler.execute(
-      AgentToolName.SEARCH_X_POSTS,
+      'search_x_posts',
       { query: 'ai' },
       ctx,
     );
@@ -133,12 +133,12 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const fetchResult = await handler.execute(
-      AgentToolName.FETCH_X_POST,
+      'fetch_x_post',
       { postIdOrUrl: '1234567890' },
       ctx,
     );
     const timelineResult = await handler.execute(
-      AgentToolName.LIST_X_ACCOUNT_ACTIVITY,
+      'list_x_account_activity',
       { username: 'genfeed' },
       ctx,
     );
@@ -161,7 +161,7 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const rateLimited = await handler.execute(
-      AgentToolName.SEARCH_X_POSTS,
+      'search_x_posts',
       { query: 'ai' },
       ctx,
     );
@@ -174,7 +174,7 @@ describe('AgentXActionsToolHandler', () => {
       new Error('401 Unauthorized — token expired'),
     );
     const missingCredential = await handler.execute(
-      AgentToolName.FETCH_X_POST,
+      'fetch_x_post',
       { postIdOrUrl: '1234567890' },
       ctx,
     );
@@ -195,7 +195,7 @@ describe('AgentXActionsToolHandler', () => {
     });
 
     const result = await handler.execute(
-      AgentToolName.FETCH_X_POST,
+      'fetch_x_post',
       { postIdOrUrl: 'https://x.com/someone/status/99999?s=20' },
       ctx,
     );
@@ -211,7 +211,7 @@ describe('AgentXActionsToolHandler', () => {
   it('rejects unparseable post ids', async () => {
     const { handler } = createHandler();
     const result = await handler.execute(
-      AgentToolName.FETCH_X_POST,
+      'fetch_x_post',
       { postIdOrUrl: 'not-a-tweet' },
       ctx,
     );
@@ -233,7 +233,7 @@ describe('AgentXActionsToolHandler', () => {
     ]);
 
     const result = await handler.execute(
-      AgentToolName.LIST_X_ACCOUNT_ACTIVITY,
+      'list_x_account_activity',
       { limit: 10, username: '@genfeed' },
       ctx,
     );
@@ -247,7 +247,7 @@ describe('AgentXActionsToolHandler', () => {
     const { batchGenerationService, handler } = createHandler();
 
     const result = await handler.execute(
-      AgentToolName.DRAFT_X_QUOTE,
+      'draft_x_quote',
       {
         quoteContent: 'Great take',
         targetAuthor: 'someone',
@@ -280,7 +280,7 @@ describe('AgentXActionsToolHandler', () => {
     const { batchGenerationService, handler } = createHandler();
 
     const result = await handler.execute(
-      AgentToolName.DRAFT_X_REPOST,
+      'draft_x_repost',
       { targetPostIdOrUrl: 'https://x.com/a/status/55555' },
       ctx,
     );
@@ -310,7 +310,7 @@ describe('AgentXActionsToolHandler', () => {
     );
 
     const result = await handler.execute(
-      AgentToolName.DRAFT_X_QUOTE,
+      'draft_x_quote',
       {
         quoteContent: 'Great take',
         targetPostIdOrUrl: '1234567890',

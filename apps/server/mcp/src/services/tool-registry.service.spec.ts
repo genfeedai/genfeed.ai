@@ -146,11 +146,18 @@ const MOCK_TOOLS = [
 
 const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
 
-vi.mock('@genfeedai/actions', () => ({
-  getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
-  getToolsForSurface: vi.fn(() => MOCK_TOOLS),
-  toMcpTools: vi.fn((tools) => tools),
-}));
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    ...actual,
+    getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp' ? MOCK_TOOLS : actual.getToolsForSurface(surface),
+    ),
+    toMcpTools: vi.fn((tools) => tools),
+  };
+});
 
 vi.mock('@mcp/guards/mcp-auth.guard', () => ({
   McpAuthGuard: {

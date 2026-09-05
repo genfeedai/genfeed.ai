@@ -1,11 +1,22 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   TextToSpeechNodeData,
   TTSProvider,
   TTSVoice,
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import {
   AudioLines,
@@ -18,15 +29,6 @@ import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
 import { BaseNode } from '../BaseNode';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
@@ -115,8 +117,9 @@ function TextToSpeechNodeComponent(props: NodeProps) {
     () =>
       nodeData.outputAudio ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleGenerate}
           disabled={nodeData.status === 'processing' || !canGenerate}
           title="Regenerate"
@@ -273,8 +276,13 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* Generate Button */}
         {!nodeData.outputAudio && (
           <Button
-            variant={canGenerate && TTS_ENABLED ? 'default' : 'secondary'}
-            size="sm"
+            withWrapper={false}
+            variant={
+              canGenerate && TTS_ENABLED
+                ? ButtonVariant.DEFAULT
+                : ButtonVariant.SECONDARY
+            }
+            size={ButtonSize.SM}
             onClick={handleGenerate}
             disabled={
               !canGenerate || !TTS_ENABLED || nodeData.status === 'processing'

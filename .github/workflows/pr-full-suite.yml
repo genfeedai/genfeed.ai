@@ -17,7 +17,7 @@ permissions:
 jobs:
   full-suite:
     name: Dispatch Full Suite
-    if: github.event.label.name == 'full-suite'
+    if: github.event.label.name == 'full-suite' || github.event.label.name == 'run-ci'
     # Reusable ci.yml includes a push-only merge-queue janitor. GitHub validates
     # its actions:write grant before evaluating that event gate, so the caller
     # must provide the ceiling even though PR runs skip the janitor itself.

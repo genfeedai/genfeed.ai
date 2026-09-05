@@ -42,10 +42,10 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  # Static route-coverage gate — fast, deterministic, no app build required.
-  # Fails if dedicated route coverage drops below threshold (default 80%).
+  # Static source-reference inventory. Browser/API execution owns QA pass/fail.
+  # This job validates inventory generation, not a route-coverage percentage.
   e2e-route-coverage:
-    name: E2E Route Coverage Gate
+    name: E2E Route Reference Inventory
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -56,7 +56,7 @@ jobs:
         with:
           node-version: "24.x"
 
-      - name: Check route coverage
+      - name: Report route references
         run: node scripts/e2e-route-coverage.mjs
 
   # API E2E core tier — stable release/deploy smoke gate for the real API test
@@ -469,8 +469,8 @@ jobs:
           if-no-files-found: error
 
   # Gate aggregator — the single job that represents the E2E suite's pass/fail.
-  # Fails if route coverage fails OR any frontend shard failed OR was cancelled
-  # (a cancelled shard means it hung/timed out — surface it, never silently pass).
+  # All applicable jobs must finish successfully; skipped and cancelled jobs
+  # do not provide browser/API evidence or a complete inventory.
   e2e-gate:
     name: E2E Gate (all shards)
     runs-on: ubuntu-latest
@@ -480,19 +480,17 @@ jobs:
     steps:
       - name: Check shard results
         run: |
-          echo "Route coverage: ${{ needs.e2e-route-coverage.result }}"
+          echo "Route reference inventory: ${{ needs.e2e-route-coverage.result }}"
           echo "Frontend matrix: ${{ needs.e2e-frontend.result }}"
           echo "API E2E: ${{ needs.e2e-api.result }}"
-          if [[ "${{ needs.e2e-route-coverage.result }}" == "failure" ]]; then
-            echo "Route coverage gate failed" && exit 1
+          if [[ "${{ needs.e2e-route-coverage.result }}" != "success" ]]; then
+            echo "Route reference inventory did not complete" && exit 1
           fi
-          if [[ "${{ needs.e2e-frontend.result }}" == "failure" || \
-                "${{ needs.e2e-frontend.result }}" == "cancelled" ]]; then
-            echo "One or more E2E shards failed or were cancelled" && exit 1
+          if [[ "${{ needs.e2e-frontend.result }}" != "success" ]]; then
+            echo "One or more E2E shards did not pass" && exit 1
           fi
-          if [[ "${{ needs.e2e-api.result }}" == "failure" || \
-                "${{ needs.e2e-api.result }}" == "cancelled" ]]; then
-            echo "API E2E boot gate failed or was cancelled" && exit 1
+          if [[ "${{ needs.e2e-api.result }}" != "success" ]]; then
+            echo "API E2E boot gate did not pass" && exit 1
           fi
           echo "All required E2E checks passed."
 
@@ -569,11 +567,7 @@ jobs:
           NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
 
       - name: Build API (compiled bundle)
-        # The api package emits to apps/server/dist, OUTSIDE apps/server/api,
-        # so turbo's package-relative `dist/**` outputs never capture it and a
-        # cache-hit replay restores nothing. Force a real build — same reason
-        # as build-verify.yml's boot gate.
-        run: bunx turbo run build --filter=@genfeedai/api --force
+        run: bunx turbo run build --filter=@genfeedai/api
 
       # Provision the schema on the ephemeral Postgres service container —
       # same pattern as e2e-api above.
@@ -730,7 +724,7 @@ jobs:
                 per_page: 100,
               },
             );
-            const sourceName = /^(?:E2E Route Coverage Gate|API E2E Tests|API E2E Full|Isolated Publish E2E|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
+            const sourceName = /^(?:E2E Route Reference Inventory|API E2E Tests|API E2E Full|Isolated Publish E2E|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
             const failedJobs = jobs.filter(
               (job) =>
                 sourceName.test(job.name) &&
@@ -746,7 +740,7 @@ jobs:
               if (name === 'API E2E Full') return 'e2e-api-full';
               if (name === 'API E2E Tests') return 'e2e-api';
               if (name === 'Isolated Publish E2E') return 'e2e-isolated-publish';
-              if (name === 'E2E Route Coverage Gate') return 'e2e-route-coverage';
+              if (name === 'E2E Route Reference Inventory') return 'e2e-route-coverage';
               return 'e2e-gate';
             };
             const failures = await collectScheduledRunFailures({
@@ -801,14 +795,13 @@ jobs:
           persist-credentials: false
 
       - name: Record one consecutive scheduled green
-        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');

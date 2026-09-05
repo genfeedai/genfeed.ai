@@ -48,7 +48,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
       // Set up mock analytics data for consistency
       await mockAnalyticsData(authenticatedPage);
 
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       // Wait for dashboard to fully load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -155,7 +155,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
       // Set up mock analytics data for consistency
       await mockAnalyticsData(authenticatedPage);
 
-      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
       // Wait for dashboard to fully load
       await authenticatedPage.waitForLoadState('domcontentloaded');

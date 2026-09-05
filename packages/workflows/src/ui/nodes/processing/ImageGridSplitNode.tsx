@@ -1,25 +1,27 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   GridOutputFormat,
   ImageGridSplitNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { Download, Grid3X3, LoaderCircle, RefreshCw } from 'lucide-react';
-import Image from 'next/image';
-import { memo, useCallback, useState } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
+import type { NodeProps } from '@xyflow/react';
+import { Download, Grid3X3, LoaderCircle, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useCallback, useState } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const OUTPUT_FORMATS: { value: GridOutputFormat; label: string }[] = [
@@ -50,7 +52,7 @@ function GridConfiguration({
         >
           Rows
         </label>
-        <input
+        <Input
           aria-label="Rows"
           id={`image-grid-rows-${id}`}
           type="number"
@@ -68,7 +70,7 @@ function GridConfiguration({
         >
           Columns
         </label>
-        <input
+        <Input
           aria-label="Columns"
           id={`image-grid-columns-${id}`}
           type="number"
@@ -229,8 +231,9 @@ function OutputGallery({
           Output ({images.length} images)
         </span>
         <Button
-          variant="link"
-          size="sm"
+          withWrapper={false}
+          variant={ButtonVariant.LINK}
+          size={ButtonSize.SM}
           onClick={onDownloadAll}
           className="h-auto p-0"
         >
@@ -249,8 +252,10 @@ function OutputGallery({
             key={img}
             className="relative group aspect-square rounded overflow-hidden border border-border"
           >
-            <button
+            <Button
+              withWrapper={false}
               type="button"
+              variant={ButtonVariant.UNSTYLED}
               className="absolute inset-0 cursor-pointer"
               onClick={() => onPreviewToggle(index)}
               aria-label={`Preview grid cell ${index + 1}`}
@@ -263,15 +268,16 @@ function OutputGallery({
                 sizes="64px"
                 unoptimized
               />
-            </button>
+            </Button>
             <div
               className={
                 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1' /* design-system-allow-content-color */
               }
             >
               <Button
-                variant="ghost"
-                size="icon-sm"
+                withWrapper={false}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
                 aria-label={`Download grid cell ${index + 1}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -309,8 +315,9 @@ function OutputGallery({
             unoptimized
           />
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={onPreviewClose}
             className={
               'absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white' /* design-system-allow-content-color */
@@ -345,8 +352,11 @@ function SplitButton({
 
   return (
     <Button
-      variant={variant === 'resplit' ? 'secondary' : 'default'}
-      size="sm"
+      withWrapper={false}
+      variant={
+        variant === 'resplit' ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+      }
+      size={ButtonSize.SM}
       onClick={onProcess}
       disabled={!inputImage || isProcessing}
       className="w-full"

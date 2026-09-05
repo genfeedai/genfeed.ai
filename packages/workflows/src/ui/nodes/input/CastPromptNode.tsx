@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import {
   CAST_CAMERA_MOVEMENTS,
   CAST_PROMPT_FAMILIES,
@@ -8,6 +10,16 @@ import {
   type CastPromptNodeData,
 } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Label } from '@genfeedai/ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
@@ -18,16 +30,6 @@ import {
   getUgcVocabularyLibrary,
 } from '../../../engine/presets/ugc-presets';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
-import { Label } from '../../ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
 import { BaseNode } from '../BaseNode';
 
 const FAMILY_LABELS: Record<CastPromptFamily, string> = {
@@ -115,10 +117,13 @@ function CastPromptNodeComponent(props: NodeProps) {
         <div className="flex gap-1">
           {CAST_PROMPT_FAMILIES.map((item) => (
             <Button
+              withWrapper={false}
               key={item}
               type="button"
-              size="sm"
-              variant={family === item ? 'default' : 'ghost'}
+              size={ButtonSize.SM}
+              variant={
+                family === item ? ButtonVariant.DEFAULT : ButtonVariant.GHOST
+              }
               className="nodrag h-7 flex-1 text-xs"
               onClick={() => handleFamilyChange(item)}
             >

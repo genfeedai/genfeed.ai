@@ -303,7 +303,7 @@ test.describe('Login Success Flow', () => {
   test('should redirect to overview after successful login', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
     await expect(authenticatedPage).toHaveURL(/overview/);
   });
@@ -311,7 +311,7 @@ test.describe('Login Success Flow', () => {
   test('should load the overview shell after login', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/overview/);

@@ -8,7 +8,6 @@ import {
   buildLogicalWriteKey,
   UNSUPPORTED_APPROVAL_ERROR,
 } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -101,7 +100,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       createPending: vi.fn().mockResolvedValue({
         id: 'apr-1',
         status: 'PENDING',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
       }),
       findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
       findOwned: vi.fn(),
@@ -153,7 +152,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   it('rejects approval-required tools on a host with no approval mechanism', async () => {
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({ hostSupportsApproval: false }),
     );
@@ -166,7 +165,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   it('persists a pending call and does not execute on an approval host', async () => {
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({ hostSupportsApproval: true, threadId: testId('thread') }),
     );
@@ -178,7 +177,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(mcpApprovals.createPending).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       { threadId: expect.any(String) },
     );
@@ -193,7 +192,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     });
 
     const first = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',
@@ -207,12 +206,12 @@ describe('AgentToolExecutorService mutation policy', () => {
       id: 'apr-1',
       result: { creditsUsed: 0, data: { id: 'post-1' }, success: true },
       status: 'APPROVED',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
     publishHandler.createPost.mockClear();
 
     const retry = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',
@@ -230,16 +229,16 @@ describe('AgentToolExecutorService mutation policy', () => {
       isDeleted: false,
       status: 'APPROVED',
       userId: testId('user'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
       idempotencyKey: buildLogicalWriteKey({
         arguments: { content: 'approved' },
         organizationId: testId('org'),
         userId: testId('user'),
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
       }),
     });
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'changed' },
       context({ approvedApprovalId: 'apr-1', hostSupportsApproval: true }),
     );
@@ -254,7 +253,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
         id: 'apr-1',
         status: 'APPROVED',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
         result: {
           creditsUsed: 7,
           data: { id: 'post-1' },
@@ -263,7 +262,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         },
       });
       const result = await service.executeTool(
-        AgentToolName.CREATE_POST,
+        'create_post',
         { content: 'hello' },
         context({ hostSupportsApproval: true }),
       );
@@ -286,13 +285,13 @@ describe('AgentToolExecutorService mutation policy', () => {
         isDeleted: false,
         status: 'APPROVED',
         userId: testId('requester'),
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
         idempotencyKey: buildLogicalWriteKey({
           threadId,
           arguments: { content: 'hello' },
           organizationId: testId('org'),
           userId: testId('requester'),
-          toolName: AgentToolName.CREATE_POST,
+          toolName: 'create_post',
         }),
       };
       mcpApprovals.findOwned.mockResolvedValue(approval);
@@ -302,7 +301,7 @@ describe('AgentToolExecutorService mutation policy', () => {
         data: { id: 'post-1' },
       });
       const result = await service.executeTool(
-        AgentToolName.CREATE_POST,
+        'create_post',
         { content: 'hello' },
         context({
           approvedApprovalId: 'apr-1',
@@ -326,7 +325,7 @@ describe('AgentToolExecutorService mutation policy', () => {
   it('does not dispatch when another request already claimed execution', async () => {
     mcpApprovals.claimExecution.mockResolvedValue(false);
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',
@@ -343,7 +342,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       new Error('Provider failed'),
     );
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { content: 'hello' },
       context({
         confirmationOrigin: 'thread-ui-action',

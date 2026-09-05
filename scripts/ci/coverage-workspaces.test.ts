@@ -45,6 +45,9 @@ describe('coverage workspaces', () => {
     ].sort();
 
     expect(workflowWorkspaces).toEqual([...COVERAGE_WORKSPACES].sort());
+    for (const [, days] of workflow.matchAll(/retention-days: (\d+)/g)) {
+      expect(Number(days)).toBe(7);
+    }
     expect(workflow).toMatch(/E2E_COVERAGE_THRESHOLD: "0"/);
     expect(
       validateCoverageWorkspaceScripts(
