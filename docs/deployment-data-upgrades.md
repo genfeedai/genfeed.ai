@@ -11,6 +11,9 @@ UPGRADE_VERIFY_ADMIN_URL=postgresql://postgres@localhost/postgres \
 ```
 
 Use the previous published stable release tag, fetched from the release repository.
+For local repeated-release verification, use `--from=HEAD` after committing the
+candidate; this checks upgrading a baseline that already includes the new schema.
+Release CI always supplies the previous published stable release tag.
 The verifier fails on a missing tag, remote database host, migration error, data
 preservation failure, or backfill regression. It creates a unique database and
 drops only that database. It exercises real Prisma migration history from the
