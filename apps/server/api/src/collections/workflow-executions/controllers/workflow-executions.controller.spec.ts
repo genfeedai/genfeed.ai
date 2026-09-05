@@ -31,6 +31,7 @@ describe('WorkflowExecutionsController', () => {
     cancelExecution: vi.fn(),
     createExecution: vi.fn(),
     findAll: vi.fn(),
+    findOneWithAccounting: vi.fn(),
     findOne: vi.fn(),
     getExecutionStats: vi.fn(),
   };
@@ -177,16 +178,20 @@ describe('WorkflowExecutionsController', () => {
 
   describe('findOne', () => {
     it('should return a single execution by id', async () => {
-      const mockExecution = { id: 'exec-1', status: 'completed' };
-      mockService.findOne.mockResolvedValue(mockExecution);
+      const mockExecution = {
+        id: 'exec-1',
+        status: 'completed',
+        accounting: null,
+      };
+      mockService.findOneWithAccounting.mockResolvedValue(mockExecution);
 
       const result = await controller.findOne(mockRequest, mockUser, 'exec-1');
 
-      expect(mockService.findOne).toHaveBeenCalledWith({
+      expect(mockService.findOneWithAccounting).toHaveBeenCalledWith({
         id: 'exec-1',
         organizationId: organizationId,
       });
-      expect(result).toEqual(mockExecution);
+      expect(result).toEqual({ ...mockExecution, accounting: null });
     });
   });
 

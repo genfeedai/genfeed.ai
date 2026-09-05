@@ -1,3 +1,4 @@
+import { createWorkflowMediaCostIntent } from '@api/collections/workflows/services/workflow-media-cost-intent';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -103,6 +104,7 @@ export class WorkflowNodeContinuationService {
   ) {}
 
   async createBeforeProviderSubmission(input: {
+    model?: string;
     actionId: string;
     executionId: string;
     ingredientId: string;
@@ -158,7 +160,7 @@ export class WorkflowNodeContinuationService {
         );
       }
 
-      return (await transaction.workflowNodeContinuation.create({
+      const continuation = (await transaction.workflowNodeContinuation.create({
         data: {
           actionId: input.actionId,
           executionId: input.executionId,
@@ -170,6 +172,8 @@ export class WorkflowNodeContinuationService {
           workflowVersionId: input.workflowVersionId,
         },
       })) as ContinuationRow;
+      await createWorkflowMediaCostIntent(transaction, input, continuation.id);
+      return continuation;
     });
 
     return { continuationId: row.id };

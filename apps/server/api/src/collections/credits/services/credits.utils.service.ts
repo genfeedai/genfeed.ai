@@ -1,5 +1,9 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import {
+  assertRefundOrganization,
+  findCreditRefundReplay,
+} from '@api/collections/credits/services/credit-refund-replay';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -586,6 +590,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     source: string,
     description: string,
     expiresAt: Date,
+    options?: IAddCreditsOptions,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -598,17 +603,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         source,
       });
 
-      // Get organization to verify it exists
-      const organization = await this.prisma.organization.findFirst({
-        where: { id: organizationId, isDeleted: false },
-      });
-
-      if (!organization) {
-        throw new BusinessLogicException('Organization not found');
-      }
+      await assertRefundOrganization(this.prisma, organizationId);
 
       // Core refund logic always runs inside the required serializable transaction.
       const refundCore = async (tx?: PrismaTransactionClient) => {
+        const replay = await findCreditRefundReplay(
+          tx ?? this.prisma,
+          organizationId,
+          options?.idempotencyKey,
+        );
+        if (replay) return replay;
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
         const newBalance = currentBalance + creditsToRefund;
@@ -630,16 +634,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           description,
           expiresAt,
           tx,
+          options,
         );
 
-        return { currentBalance, newBalance };
+        return { currentBalance, newBalance, wasApplied: true };
       };
 
-      const { currentBalance, newBalance } =
+      const { currentBalance, newBalance, wasApplied } =
         await this.transactionUtil.runInTransaction(
           (tx) => refundCore(tx),
           CreditsUtilsService.BALANCE_TX_OPTIONS,
         );
+
+      if (!wasApplied) return;
 
       // Balance is persisted to the credit-balance table above (epic #735,
       // Phase C — no legacy auth provider identity write-back).

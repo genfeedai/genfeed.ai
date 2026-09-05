@@ -35,6 +35,8 @@ describe('WorkflowNodeContinuationService', () => {
     updateMany: vi.fn(),
   };
   const prisma = {
+    model: { findFirst: vi.fn() },
+    mediaVendorCost: { create: vi.fn() },
     $transaction: vi.fn(
       async (callback: (transaction: unknown) => Promise<unknown>) =>
         callback(prisma),
@@ -270,5 +272,58 @@ describe('WorkflowNodeContinuationService', () => {
         pollAttempt: 1,
       },
     );
+  });
+  it('persists a pinned pending provider intent in the continuation transaction', async () => {
+    prisma.workflowExecution.findFirst.mockResolvedValue({ id: 'execution-1' });
+    prisma.ingredient.findFirst.mockResolvedValue({ id: 'ingredient-1' });
+    workflowNodeContinuation.findUnique.mockResolvedValue(null);
+    workflowNodeContinuation.create.mockResolvedValue({
+      ...baseContinuation,
+      status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+    });
+    prisma.model.findFirst.mockResolvedValue({
+      providerCostUsd: 0.12,
+      pricingType: 'per-second',
+      updatedAt: new Date('2026-09-05T00:00:00Z'),
+    });
+    await service.createBeforeProviderSubmission({
+      actionId: 'imageGen',
+      executionId: 'execution-1',
+      ingredientId: 'ingredient-1',
+      nodeId: 'generate',
+      organizationId: 'org-1',
+      provider: 'replicate',
+      workflowVersionId: 'version-1',
+      model: 'model',
+    });
+    expect(prisma.mediaVendorCost.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workflowExecutionId: 'execution-1',
+        workflowNodeId: 'generate',
+        costEvidence: 'pending',
+        pricingSnapshot: {
+          isByok: false,
+          billingDisposition: 'not_charged',
+          providerCostUsd: 0.12,
+          pricingType: 'per-second',
+          modelUpdatedAt: '2026-09-05T00:00:00.000Z',
+        },
+      }),
+    });
+    prisma.mediaVendorCost.create.mockRejectedValueOnce(
+      new Error('ledger unavailable'),
+    );
+    await expect(
+      service.createBeforeProviderSubmission({
+        actionId: 'imageGen',
+        executionId: 'execution-1',
+        ingredientId: 'ingredient-1',
+        nodeId: 'generate',
+        organizationId: 'org-1',
+        provider: 'replicate',
+        workflowVersionId: 'version-1',
+        model: 'model',
+      }),
+    ).rejects.toThrow('ledger unavailable');
   });
 });

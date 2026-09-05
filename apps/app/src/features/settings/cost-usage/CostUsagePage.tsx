@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   ICostReportBrandTotals,
   ICostReportEntry,
@@ -119,11 +120,60 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     queryKey: ['settings-cost-entries', organizationId, reportQuery],
   });
 
+  const workflowsQuery = useQuery({
+    enabled: canLoad,
+    queryKey: ['settings-workflow-costs', organizationId, reportQuery],
+    queryFn: async () => (await getCostsService()).getWorkflows(reportQuery),
+  });
+  const workflowColumns: TableColumn<WorkflowCostReportExecution>[] = [
+    {
+      header: translate('workflowAccounting.providerCost'),
+      key: 'accounting',
+      render: (row) =>
+        row.accounting?.actualProviderCostMicros == null
+          ? translate('workflowAccounting.unavailable')
+          : formatCurrency(row.accounting.actualProviderCostMicros / 1_000_000),
+    },
+    { header: translate('workflowAccounting.execution'), key: 'id' },
+    {
+      header: translate('workflowAccounting.estimatedCredits'),
+      key: 'workflowId',
+      render: (row) =>
+        row.accounting?.estimatedCredits ??
+        translate('workflowAccounting.unavailable'),
+    },
+    {
+      header: translate('workflowAccounting.actualCredits'),
+      key: 'accounting',
+      render: (row) =>
+        row.accounting?.actualCredits ??
+        translate('workflowAccounting.known', {
+          value: row.accounting?.knownActualCredits ?? 0,
+        }),
+    },
+    {
+      header: translate('workflowAccounting.variance'),
+      key: 'createdAt',
+      render: (row) =>
+        row.accounting?.varianceCredits ??
+        translate('workflowAccounting.unavailable'),
+    },
+  ];
+  const exportWorkflows = async () => {
+    try {
+      downloadCsv(await (await getCostsService()).exportWorkflows(reportQuery));
+    } catch (error) {
+      NotificationsService.getInstance().error(
+        errorMessage(error, 'Workflow export failed'),
+      );
+    }
+  };
   const summary = summaryQuery.data;
   const isLoading = summaryQuery.isLoading || entriesQuery.isLoading;
   const isRefreshing =
     (summaryQuery.isFetching || entriesQuery.isFetching) && !isLoading;
-  const loadError = summaryQuery.error ?? entriesQuery.error;
+  const loadError =
+    summaryQuery.error ?? entriesQuery.error ?? workflowsQuery.error;
 
   const brandColumns: TableColumn<ICostReportBrandTotals>[] = [
     { header: translate('tables.headers.brand'), key: 'brandLabel' },
@@ -185,6 +235,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const refresh = () => {
     void summaryQuery.refetch();
     void entriesQuery.refetch();
+    void workflowsQuery.refetch();
   };
 
   const exportReport = async () => {
@@ -339,6 +390,23 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
           </Text>
         </Card>
       ) : null}
+
+      <div className="space-y-2">
+        <AppTable
+          label={translate('workflowAccounting.title')}
+          columns={workflowColumns}
+          items={workflowsQuery.data ?? []}
+          isLoading={workflowsQuery.isLoading}
+          getRowKey={(row) => row.id}
+          emptyLabel={translate('workflowAccounting.empty')}
+        />
+        <Text size="xs" color="muted">
+          {translate('workflowAccounting.limit')}
+        </Text>
+        <Button variant={ButtonVariant.SECONDARY} onClick={exportWorkflows}>
+          {translate('workflowAccounting.export')}
+        </Button>
+      </div>
 
       <MetricCardGrid columns={4}>
         <MetricCard

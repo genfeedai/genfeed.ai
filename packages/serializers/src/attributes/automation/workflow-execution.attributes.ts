@@ -12,6 +12,7 @@ export const workflowExecutionAttributes = createEntityAttributes([
   'progress',
   'failedNodeId',
   'creditsUsed',
+  'accounting',
   'startedAt',
   'completedAt',
   'durationMs',

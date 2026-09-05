@@ -17,6 +17,10 @@ export interface IMediaGenerationCostContext {
 }
 
 export interface IMediaVendorCostRecordInput {
+  realizedDurationSeconds?: number | null;
+  realizedWidth?: number | null;
+  realizedHeight?: number | null;
+  costEvidence?: 'observed' | 'calculated' | 'byok' | 'unknown';
   brandId?: string | null;
   category: string;
   ingredientId?: string;

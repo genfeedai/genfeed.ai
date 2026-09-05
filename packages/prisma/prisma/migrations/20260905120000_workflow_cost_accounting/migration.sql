@@ -1,0 +1,14 @@
+ALTER TABLE "workflow_executions" ADD COLUMN "costEstimate" JSONB;
+ALTER TABLE "credit_transactions" ADD COLUMN "workflowExecutionId" TEXT, ADD COLUMN "workflowNodeId" TEXT, ADD COLUMN "workflowOperationId" TEXT;
+CREATE INDEX "credit_transactions_workflow_accounting_idx" ON "credit_transactions" ("organizationId", "workflowExecutionId", "workflowNodeId", "isDeleted");
+ALTER TABLE "llm_vendor_costs" ADD COLUMN "workflowExecutionId" TEXT, ADD COLUMN "workflowNodeId" TEXT, ADD COLUMN "workflowOperationId" TEXT;
+CREATE INDEX "llm_vendor_costs_workflow_accounting_idx" ON "llm_vendor_costs" ("organizationId", "workflowExecutionId", "workflowNodeId", "isDeleted");
+ALTER TABLE "media_vendor_costs" ADD COLUMN "workflowExecutionId" TEXT, ADD COLUMN "workflowNodeId" TEXT, ADD COLUMN "workflowOperationId" TEXT;
+CREATE INDEX "media_vendor_costs_workflow_accounting_idx" ON "media_vendor_costs" ("organizationId", "workflowExecutionId", "workflowNodeId", "isDeleted");
+ALTER TABLE "credit_reservations" ADD COLUMN "workflowExecutionId" TEXT, ADD COLUMN "workflowNodeId" TEXT, ADD COLUMN "workflowOperationId" TEXT;
+CREATE INDEX "credit_reservations_workflow_accounting_idx" ON "credit_reservations" ("organizationId", "workflowExecutionId", "workflowNodeId", "isDeleted");
+ALTER TABLE "llm_vendor_costs" ADD COLUMN "costEvidence" TEXT;
+ALTER TABLE "media_vendor_costs" ADD COLUMN "costEvidence" TEXT;
+ALTER TABLE "media_vendor_costs" ADD COLUMN "pricingSnapshot" JSONB;
+
+ALTER TABLE "llm_vendor_costs" ADD COLUMN "pricingSnapshot" JSONB;

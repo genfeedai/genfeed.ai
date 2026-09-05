@@ -70,3 +70,5 @@ export const CONSUMED_QUEUE_NAMES: readonly QueueName[] =
 export function hasQueueConsumer(queueName: string): boolean {
   return !UNCONSUMED_QUEUE_NAME_SET.has(queueName);
 }
+
+export const LLM_COST_SETTLEMENT_QUEUE = 'llm-cost-settlement';

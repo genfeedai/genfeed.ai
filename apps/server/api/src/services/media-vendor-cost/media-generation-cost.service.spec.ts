@@ -46,6 +46,10 @@ describe('MediaGenerationCostService', () => {
     });
 
     expect(ledgerService.record).toHaveBeenCalledWith({
+      costEvidence: 'calculated',
+      realizedDurationSeconds: 10,
+      realizedWidth: undefined,
+      realizedHeight: undefined,
       brandId: 'brand-1',
       category: 'video',
       ingredientId: 'ing-1',

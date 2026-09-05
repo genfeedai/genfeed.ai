@@ -88,6 +88,19 @@ export class MediaGenerationCostService {
         : computeMediaVendorCostMicros(model, unitOptions);
 
       await this.ledgerService.record({
+        realizedDurationSeconds: context.durationSeconds,
+        realizedWidth: context.width,
+        realizedHeight: context.height,
+        costEvidence: isByok
+          ? 'byok'
+          : typeof model.providerCostUsd === 'number' &&
+              model.providerCostUsd > 0 &&
+              (model.pricingType !== 'per-second' ||
+                (context.durationSeconds ?? 0) > 0) &&
+              (model.pricingType !== 'per-megapixel' ||
+                ((context.width ?? 0) > 0 && (context.height ?? 0) > 0))
+            ? 'calculated'
+            : 'unknown',
         brandId: context.brandId ?? null,
         category: context.category,
         ingredientId: context.ingredientId,

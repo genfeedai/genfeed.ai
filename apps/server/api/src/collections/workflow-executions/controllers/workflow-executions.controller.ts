@@ -173,10 +173,11 @@ export class WorkflowExecutionsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ) {
-    const execution = await this.workflowExecutionsService.findOne({
-      id: id,
-      organizationId: user.organizationId,
-    });
+    const execution =
+      await this.workflowExecutionsService.findOneWithAccounting({
+        id: id,
+        organizationId: user.organizationId,
+      });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
 

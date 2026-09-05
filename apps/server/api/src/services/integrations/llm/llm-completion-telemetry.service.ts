@@ -1,19 +1,24 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { workflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
+import { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
 import { buildLlmGenerationTelemetryProperties } from '@api/services/integrations/llm/llm-generation-telemetry';
 import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
 import {
   computeLlmCompletionCostUsd,
   computeLlmPromptCostUsd,
   computeLlmVendorCostMicros,
+  getAgentChatModel,
   LLM_GENERATION_TELEMETRY_EVENT,
 } from '@genfeedai/contracts/constants';
 import type {
   ILlmCompletionTelemetryEvent,
   ILlmGenerationTelemetryCosts,
+  ILlmVendorCostRecordInput,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
@@ -26,7 +31,52 @@ export class LlmCompletionTelemetryService {
     private readonly ledger: LlmVendorCostLedgerService,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
+    @Optional()
+    private readonly settlementQueue?: LlmCostSettlementQueueService,
   ) {}
+
+  private capturePricing(model: string) {
+    const pricing = getAgentChatModel(model)?.pricing;
+    const stamp = {
+      source: 'agent_chat_model_catalog',
+      promptPerMillion: pricing?.promptPerMillion ?? null,
+      completionPerMillion: pricing?.completionPerMillion ?? null,
+    };
+    return {
+      ...stamp,
+      fingerprint: createHash('sha256')
+        .update(JSON.stringify({ model, ...stamp }))
+        .digest('hex'),
+    };
+  }
+
+  async beginWorkflowOperation(
+    organizationId: string | undefined,
+    model: string,
+    provider: string,
+    isByok: boolean,
+  ): Promise<string | undefined> {
+    if (
+      !organizationId ||
+      !workflowAccountingAttribution(organizationId).workflowExecutionId
+    )
+      return undefined;
+    const workflowLedgerId = randomUUID();
+    await this.ledger.record({
+      workflowLedgerId,
+      organizationId,
+      model,
+      provider,
+      isByok,
+      completionTokens: 0,
+      promptTokens: 0,
+      latencyMs: 0,
+      vendorCostMicros: 0,
+      costEvidence: 'pending',
+      pricingSnapshot: this.capturePricing(model),
+    });
+    return workflowLedgerId;
+  }
 
   async recordCompletion(event: ILlmCompletionTelemetryEvent): Promise<void> {
     const costInput = {
@@ -45,7 +95,16 @@ export class LlmCompletionTelemetryService {
 
     if (event.organizationId) {
       try {
-        await this.ledger.record({
+        await this.persistSettlement({
+          workflowLedgerId: event.workflowLedgerId,
+          pricingSnapshot: this.capturePricing(event.model),
+          costEvidence: event.isByok
+            ? 'byok'
+            : event.vendorCostMicros !== undefined
+              ? 'observed'
+              : vendorCostMicros > 0
+                ? 'calculated'
+                : 'unknown',
           brandId: event.brandId,
           completionTokens: event.completionTokens,
           isByok: event.isByok,
@@ -61,7 +120,11 @@ export class LlmCompletionTelemetryService {
       } catch (error: unknown) {
         this.logger.error(
           `${this.constructorName} failed to persist vendor cost`,
-          error,
+          {
+            error,
+            workflowLedgerId: event.workflowLedgerId,
+            organizationId: event.organizationId,
+          },
         );
       }
     }
@@ -71,6 +134,26 @@ export class LlmCompletionTelemetryService {
         error,
       });
     });
+  }
+
+  private async persistSettlement(
+    input: ILlmVendorCostRecordInput,
+  ): Promise<void> {
+    if (input.workflowLedgerId && this.settlementQueue) {
+      try {
+        await this.settlementQueue.enqueue({
+          ...input,
+          workflowLedgerId: input.workflowLedgerId,
+        });
+        return;
+      } catch (error) {
+        this.logger.error(
+          'Workflow cost settlement queue unavailable; persisting directly',
+          { error, workflowLedgerId: input.workflowLedgerId },
+        );
+      }
+    }
+    await this.ledger.record(input);
   }
 
   private async capturePostHog(

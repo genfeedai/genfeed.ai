@@ -1,5 +1,6 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
@@ -69,6 +70,10 @@ export class CreditReservationService {
 
         const created = await tx.creditReservation.create({
           data: {
+            ...(await validatedWorkflowAccountingAttribution(
+              this.prisma,
+              input.organizationId,
+            )),
             actorUserId: input.actorUserId,
             amount: input.amount,
             billingAccountId: input.billingAccountId,
@@ -197,9 +202,13 @@ export class CreditReservationService {
           actorUserId: input.actorUserId,
           billingAccountId: reservation.billingAccountId,
           reservationId: reservation.id,
+          workflowExecutionId: reservation.workflowExecutionId,
+          workflowNodeId: reservation.workflowNodeId,
+          workflowOperationId: reservation.workflowOperationId,
         },
         where: {
           organizationId: reservation.organizationId,
+          isDeleted: false,
           referenceId: reservation.id,
           referenceType: 'credit_reservation',
         },

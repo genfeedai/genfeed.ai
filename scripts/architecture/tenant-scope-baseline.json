@@ -529,14 +529,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "creditTransaction",
-      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "0e349d76d8375380525d",
-      "method": "updateMany",
-      "model": "CreditTransaction",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "dashboardLayout",
       "file": "apps/server/api/src/collections/dashboard-layouts/services/dashboard-layouts.service.ts",
       "fingerprint": "384278c4c3602a0cde6f",
