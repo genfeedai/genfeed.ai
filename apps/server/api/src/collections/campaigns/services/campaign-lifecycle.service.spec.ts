@@ -138,6 +138,55 @@ describe('CampaignLifecycleService', () => {
     );
   });
 
+  it('repairs an approval failure when Start is retried after scheduling persisted', async () => {
+    const scheduled = postRow({
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    asMock(prisma.post.findMany)
+      .mockResolvedValueOnce([postRow()])
+      .mockResolvedValueOnce([scheduled]);
+    postLifecycleService.transition.mockResolvedValue({
+      kind: 'transitioned',
+      target: scheduled,
+    });
+    publishApprovalsService.createForCurrentPost.mockRejectedValueOnce(
+      new Error('version pin unavailable'),
+    );
+
+    const failed = await service.start(ORG_ID, USER_ID, CAMPAIGN_ID);
+    expect(failed.items[0]).toEqual(
+      expect.objectContaining({
+        retryable: true,
+        status: ContentCampaignItemOutcomeStatus.FAILED,
+      }),
+    );
+    const retried = await service.start(ORG_ID, USER_ID, CAMPAIGN_ID);
+
+    expect(retried.items[0]?.status).toBe(
+      ContentCampaignItemOutcomeStatus.SUCCEEDED,
+    );
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledTimes(
+      2,
+    );
+  });
+
+  it('preserves an already approved scheduled target when Start is retried', async () => {
+    asMock(prisma.post.findMany).mockResolvedValue([
+      postRow({
+        publishApprovalId: 'approval-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+
+    const result = await service.start(ORG_ID, USER_ID, CAMPAIGN_ID);
+
+    expect(result.items[0]?.status).toBe(
+      ContentCampaignItemOutcomeStatus.SUCCEEDED,
+    );
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(postLifecycleService.transition).not.toHaveBeenCalled();
+  });
+
   it('pauses scheduled targets and leaves queued and published work unchanged', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(
       campaignRow({ status: ContentCampaignStatus.ACTIVE }),

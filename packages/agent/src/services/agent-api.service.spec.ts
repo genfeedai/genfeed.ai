@@ -21,6 +21,113 @@ describe('AgentApiService', () => {
     mockFetch.mockReset();
   });
 
+  describe('getActiveWorkflowExecutions', () => {
+    it('restores the known execution directly and verifies its thread', async () => {
+      mockJsonApiResource(
+        { id: 'older', status: 'RUNNING', metadata: { threadId: 'thread-1' } },
+        'workflow-execution',
+      );
+      const results = await makeService().getActiveWorkflowExecutions(
+        undefined,
+        { threadId: 'thread-1', executionId: 'older' },
+      );
+      expect(results).toEqual([expect.objectContaining({ id: 'older' })]);
+      expect(mockFetch).toHaveBeenCalledExactlyOnceWith(
+        'http://api.test/workflow-executions/older',
+        expect.any(Object),
+      );
+    });
+
+    it('does not restore a known execution from a different thread', async () => {
+      mockJsonApiResource(
+        {
+          id: 'other',
+          status: 'RUNNING',
+          metadata: { threadId: 'thread-other' },
+        },
+        'workflow-execution',
+      );
+      mockJsonApiCollection([], 'workflow-execution');
+      mockJsonApiCollection([], 'workflow-execution');
+      await expect(
+        makeService().getActiveWorkflowExecutions(undefined, {
+          threadId: 'thread-1',
+          executionId: 'other',
+        }),
+      ).resolves.toEqual([]);
+    });
+
+    it('finds a newer run in the same thread when the saved run no longer exists', async () => {
+      mockError(404);
+      mockJsonApiCollection(
+        [
+          {
+            id: 'other',
+            status: 'PENDING',
+            metadata: { threadId: 'thread-other' },
+          },
+          { id: 'new', status: 'PENDING', metadata: { threadId: 'thread-1' } },
+        ],
+        'workflow-execution',
+      );
+      mockJsonApiCollection([], 'workflow-execution');
+      const results = await makeService().getActiveWorkflowExecutions(
+        undefined,
+        { threadId: 'thread-1', executionId: 'missing' },
+      );
+      expect(results.map((execution) => execution.id)).toEqual(['new']);
+    });
+
+    it('rejects failed recovery instead of reporting the thread has no active run', async () => {
+      mockError(500);
+      await expect(
+        makeService().getActiveWorkflowExecutions(undefined, {
+          threadId: 'thread-1',
+          executionId: 'older',
+        }),
+      ).rejects.toThrow('500');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('pages active statuses independently of completed history', async () => {
+      mockFetch.mockImplementation(async (input: string) => {
+        const url = new URL(input);
+        const status = url.searchParams.get('status');
+        const offset = Number(url.searchParams.get('offset') ?? 0);
+        const items =
+          status === 'PENDING'
+            ? [{ id: 'pending', status }]
+            : status === 'RUNNING'
+              ? offset === 0
+                ? Array.from({ length: 100 }, (_, i) => ({
+                    id: `running-${i}`,
+                    status,
+                  }))
+                : [{ id: 'older-running', status }]
+              : [{ id: 'completed', status: 'COMPLETED' }];
+        return {
+          ok: true,
+          json: async () => ({
+            data: items.map((item) => ({
+              id: item.id,
+              type: 'workflow-execution',
+              attributes: item,
+            })),
+          }),
+        };
+      });
+      const results = await makeService().getActiveWorkflowExecutions();
+      expect(results).toHaveLength(102);
+      expect(results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'older-running' }),
+          expect.objectContaining({ id: 'pending' }),
+        ]),
+      );
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
   describe('createThread', () => {
     it('creates thread', async () => {
       const conv = { id: 'c-1', status: 'active' };
@@ -502,6 +609,7 @@ describe('AgentApiService', () => {
       );
       const service = makeService();
 
+      mockJsonApiCollection([], 'workflow-execution');
       const active = await service.getActiveWorkflowExecutions();
 
       expect(active.map((execution) => execution.id)).toEqual([
@@ -509,7 +617,7 @@ describe('AgentApiService', () => {
         'execution-2',
       ]);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/workflow-executions?limit=100',
+        'http://api.test/workflow-executions?limit=100&offset=0&status=PENDING',
         expect.any(Object),
       );
     });

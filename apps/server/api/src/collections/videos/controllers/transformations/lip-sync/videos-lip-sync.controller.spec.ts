@@ -1,8 +1,4 @@
-vi.mock('@api/helpers/utils/websocket/websocket.util', () => ({
-  WebSocketPaths: {
-    video: vi.fn((id: string) => `/ws/videos/${id}`),
-  },
-}));
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
@@ -101,6 +97,7 @@ describe('VideosLipSyncController', () => {
   let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let websocketService: {
     publishFileProcessing: ReturnType<typeof vi.fn>;
+    publishVideoProgress: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -128,6 +125,7 @@ describe('VideosLipSyncController', () => {
     };
     websocketService = {
       publishFileProcessing: vi.fn().mockResolvedValue(undefined),
+      publishVideoProgress: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -255,7 +253,13 @@ describe('VideosLipSyncController', () => {
       it('should publish websocket processing status', async () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
-        expect(websocketService.publishFileProcessing).toHaveBeenCalled();
+        expect(websocketService.publishVideoProgress).toHaveBeenCalledWith(
+          WebSocketPaths.video(ingredientDataId),
+          0,
+          mockUser.id,
+          `user:${mockUser.id}`,
+        );
+        expect(websocketService.publishFileProcessing).not.toHaveBeenCalled();
       });
 
       it('should resolve BYOK key when available', async () => {

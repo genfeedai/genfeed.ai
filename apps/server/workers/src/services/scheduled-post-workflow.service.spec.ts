@@ -3,6 +3,7 @@ import {
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { TargetExecutionState } from '@genfeedai/contracts';
+import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 
 type RegisteredActionRequest = {
@@ -190,6 +191,113 @@ describe('ScheduledPostWorkflowService', () => {
       harness.prisma.postPublishFinalization.updateMany,
     ).toHaveBeenCalledTimes(3);
   });
+
+  it.each([false, true])(
+    'reuses the repeat after finalization acknowledgement failed (successor published: %s)',
+    async (successorPublished) => {
+      const harness = createHarness();
+      const post = {
+        id: 'post-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        platform: 'tiktok',
+        isRepeat: true,
+        repeatFrequency: 'daily',
+        repeatInterval: 1,
+        repeatCount: 0,
+        maxRepeats: 5,
+        scheduledDate: new Date('2026-09-01T10:00:00.000Z'),
+        timezone: 'UTC',
+      };
+      const occurrences: Array<Record<string, unknown>> = [];
+      const posts = {
+        findOne: vi.fn(
+          async (where: Record<string, unknown>) =>
+            occurrences.find((row) => {
+              const key = where.targetIdempotencyKey;
+              return typeof key === 'string'
+                ? row.targetIdempotencyKey === key
+                : typeof key === 'object' &&
+                    key !== null &&
+                    'startsWith' in key &&
+                    String(row.targetIdempotencyKey).startsWith(
+                      String(key.startsWith),
+                    );
+            }) ?? null,
+        ),
+        create: vi.fn(async (data: Record<string, unknown>) => {
+          const created = { ...data, id: `repeat-${occurrences.length + 1}` };
+          occurrences.push(created);
+          return created;
+        }),
+        patch: vi.fn(async (_id: string, data: { repeatCount: number }) => {
+          post.repeatCount = data.repeatCount;
+        }),
+      };
+      const scheduler = new PostRepeatSchedulerService(
+        { log: vi.fn(), warn: vi.fn(), error: vi.fn() } as never,
+        posts as never,
+        {
+          createForCurrentPost: vi
+            .fn()
+            .mockResolvedValue({ id: 'repeat-approval' }),
+        } as never,
+        {} as never,
+        { shouldMaterialize: vi.fn().mockResolvedValue(false) } as never,
+      );
+      harness.repeatScheduler.scheduleNextRepeat.mockImplementation(
+        (
+          ...args: Parameters<PostRepeatSchedulerService['scheduleNextRepeat']>
+        ) => scheduler.scheduleNextRepeat(...args),
+      );
+      harness.prisma.postPublishFinalization.findUnique.mockResolvedValue({
+        activityCompletedAt: new Date(),
+        completedAt: null,
+        id: 'finalization-1',
+        recurrenceCompletedAt: null,
+        result: {
+          executionState: TargetExecutionState.PUBLISHED,
+          success: true,
+          platform: 'tiktok',
+        },
+        source: 'TikTok finalization',
+      });
+      harness.prisma.postPublishFinalization.updateMany.mockRejectedValueOnce(
+        new Error('acknowledgement unavailable'),
+      );
+
+      await expect(
+        harness.service.processPendingPublishedFinalization({
+          ...post,
+        } as never),
+      ).rejects.toThrow('acknowledgement unavailable');
+      expect(post.repeatCount).toBe(1);
+      const [occurrence] = occurrences;
+      if (!occurrence) {
+        throw new Error('The first finalization did not create a repeat.');
+      }
+      if (successorPublished) {
+        occurrence.repeatCount = 2;
+        occurrence.targetExecutionState = TargetExecutionState.PUBLISHED;
+      }
+      await expect(
+        harness.service.processPendingPublishedFinalization({
+          ...post,
+        } as never),
+      ).resolves.toBe(true);
+
+      expect(posts.create).toHaveBeenCalledOnce();
+      expect(post.repeatCount).toBe(1);
+      expect(occurrence).toEqual(
+        expect.objectContaining({
+          scheduledDate: new Date('2026-09-02T10:00:00.000Z'),
+          repeatCount: successorPublished ? 2 : 1,
+        }),
+      );
+    },
+  );
 
   it('records retry metadata without repeating a completed activity stage', async () => {
     const harness = createHarness();

@@ -516,6 +516,42 @@ describe('AgentChatContainer', () => {
     });
   });
 
+  it('restores a pending execution as active and allows it to be stopped', async () => {
+    const apiService = createApiService({
+      getActiveWorkflowExecutions: vi.fn().mockResolvedValue([
+        {
+          id: 'run-pending',
+          metadata: { threadId: 'thread-1' },
+          status: 'PENDING',
+        },
+      ]),
+    });
+    storeState.activeRunId = 'run-pending';
+    storeState.activeRunStatus = 'idle';
+    storeState.setActiveRun.mockImplementation((id, options) => {
+      storeState.activeRunId = id;
+      storeState.activeRunStatus = options.status;
+    });
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+    await waitFor(() =>
+      expect(storeState.setActiveRun).toHaveBeenCalledWith('run-pending', {
+        startedAt: null,
+        status: 'running',
+      }),
+    );
+    view.rerender(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Stop agent' }));
+    await waitFor(() =>
+      expect(apiService.cancelWorkflowExecution).toHaveBeenCalledWith(
+        'run-pending',
+      ),
+    );
+  });
+
   it('reconciles a terminal snapshot run that arrives after the first active execution query', async () => {
     const apiService = createApiService();
     storeState.activeRunId = null;

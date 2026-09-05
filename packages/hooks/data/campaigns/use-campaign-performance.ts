@@ -17,7 +17,7 @@ export function useCampaignPerformance(campaignId: string | undefined) {
   const isEnabled =
     Boolean(campaignId) && isCollectionFetchReady(collectionScope);
 
-  const { data, isLoading } = useQuery({
+  const { data, error, isLoading, refetch } = useQuery({
     enabled: isEnabled,
     queryFn: async (): Promise<ICampaignPerformance> => {
       const token = await resolveAuthToken(getToken);
@@ -37,6 +37,8 @@ export function useCampaignPerformance(campaignId: string | undefined) {
   });
 
   return {
+    error,
+    refetch,
     isLoading: isEnabled && isLoading,
     performance: data ?? null,
   };

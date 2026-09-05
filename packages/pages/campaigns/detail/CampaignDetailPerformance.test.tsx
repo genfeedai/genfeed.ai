@@ -1,5 +1,5 @@
 import CampaignDetailPerformance from '@pages/campaigns/detail/CampaignDetailPerformance';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -70,6 +70,21 @@ describe('CampaignDetailPerformance', () => {
         postCounts: { published: 1, draft: 1 },
       },
     });
+  });
+
+  it('shows a recoverable error after the performance request fails', () => {
+    const refetch = vi.fn();
+    mockUseCampaignPerformance.mockReturnValue({
+      error: new Error('Unavailable'),
+      isLoading: false,
+      performance: null,
+      refetch,
+    });
+    render(<CampaignDetailPerformance campaignId="cmp-1" />);
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders measured totals and keeps missing metrics as a dash', () => {

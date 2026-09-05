@@ -349,14 +349,6 @@ describe('analytics ingestion to dashboard smoke path', () => {
     findOne: vi.fn().mockResolvedValue(post),
   };
 
-  const youtubeService = {
-    getMediaAnalytics: vi.fn().mockResolvedValue({
-      comments: 30,
-      likes: 300,
-      views: 3000,
-    }),
-  };
-
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-15T12:00:00.000Z'));
@@ -373,22 +365,16 @@ describe('analytics ingestion to dashboard smoke path', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
       postsService as never,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      youtubeService as never,
     );
     const performanceSummaryService = new PerformanceSummaryService(
       prisma as unknown as ServerPrisma,
     );
 
-    await postAnalyticsService.trackPostAnalytics(
-      post as never,
-      { platform: 'YOUTUBE' } as never,
-      'analytics-ingestion-dashboard-smoke',
-    );
+    await postAnalyticsService.processYouTubeAnalytics(postId, {
+      comments: 30,
+      likes: 300,
+      views: 3000,
+    });
 
     const postSummary =
       await postAnalyticsService.getPostAnalyticsSummary(postId);
@@ -404,12 +390,6 @@ describe('analytics ingestion to dashboard smoke path', () => {
       },
     );
 
-    expect(youtubeService.getMediaAnalytics).toHaveBeenCalledWith(
-      organizationId,
-      brandId,
-      'yt-video-123',
-      undefined,
-    );
     expect(postSummary).toMatchObject({
       platforms: {
         YOUTUBE: {

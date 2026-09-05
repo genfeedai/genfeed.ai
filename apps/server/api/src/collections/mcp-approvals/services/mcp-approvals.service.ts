@@ -11,7 +11,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
-import { McpApprovalStatus } from '@genfeedai/prisma';
+import { McpApprovalStatus, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -74,16 +74,33 @@ export class McpApprovalsService extends BaseService<
       );
     }
 
-    const approval = (await this.delegate.create({
-      data: {
-        arguments: args,
-        idempotencyKey,
-        organizationId,
-        status: McpApprovalStatus.PENDING,
-        toolName,
-        userId,
-      },
-    })) as McpApprovalDocument;
+    let approval: McpApprovalDocument;
+    try {
+      approval = (await this.delegate.create({
+        data: {
+          arguments: args,
+          idempotencyKey,
+          organizationId,
+          status: McpApprovalStatus.PENDING,
+          toolName,
+          userId,
+        },
+      })) as McpApprovalDocument;
+    } catch (error: unknown) {
+      if (
+        error !== null &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
+      ) {
+        const concurrent = await this.findActiveByIdempotencyKey(
+          organizationId,
+          idempotencyKey,
+        );
+        if (concurrent) return concurrent;
+      }
+      throw error;
+    }
 
     try {
       await this.notificationsPublisher.publishNotification({
@@ -170,13 +187,19 @@ export class McpApprovalsService extends BaseService<
     })) as McpApprovalDocument;
   }
 
-  /**
-   * Attach the execution result to an already-APPROVED approval. Used by the MCP
-   * layer after it has atomically claimed the approval (via {@link resolve}) and
-   * executed the underlying tool, so the audit record carries the tool output
-   * (or the execution error). Scoped to APPROVED rows so it cannot resurrect or
-   * mutate a PENDING/DECLINED approval.
-   */
+  async claimExecution(id: string, organizationId: string): Promise<boolean> {
+    const { count } = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: McpApprovalStatus.APPROVED,
+        executionClaimedAt: null,
+        result: { equals: Prisma.DbNull },
+      }),
+      data: { executionClaimedAt: new Date() },
+    });
+    return count === 1;
+  }
+
   async attachResult(
     id: string,
     organizationId: string,
@@ -186,6 +209,7 @@ export class McpApprovalsService extends BaseService<
       where: scopedWhere(organizationId, {
         id,
         status: McpApprovalStatus.APPROVED,
+        result: { equals: Prisma.DbNull },
       }),
       data: { executedAt: new Date(), result },
     });

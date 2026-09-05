@@ -97,36 +97,47 @@ class NativeDeserializer {
   }
 
   collection<TOutput = unknown>(document: JsonApiDocument): TOutput[] {
+    const included = this.indexIncluded(document);
     return (document.data as JsonApiResource[]).map(
-      (d) => this.processResource(document, d) as TOutput,
+      (d) => this.processResource(included, d) as TOutput,
     );
   }
 
   resource<TOutput = unknown>(document: JsonApiDocument): TOutput {
     return this.processResource(
-      document,
+      this.indexIncluded(document),
       document.data as JsonApiResource,
     ) as TOutput;
   }
 
-  private processResource(
+  private indexIncluded(
     document: JsonApiDocument,
+  ): Map<string, JsonApiResource> {
+    const included = new Map<string, JsonApiResource>();
+    for (const resource of document.included ?? []) {
+      const key = JSON.stringify([resource.type, resource.id]);
+      // Preserve Array.find's first-match behavior for duplicate identifiers.
+      if (!included.has(key)) {
+        included.set(key, resource);
+      }
+    }
+    return included;
+  }
+
+  private processResource(
+    included: ReadonlyMap<string, JsonApiResource>,
     data: JsonApiResource,
   ): Record<string, unknown> {
-    const utils = new DeserializerUtils(document, data, this.opts);
+    const utils = new DeserializerUtils(included, data, this.opts);
     return utils.perform();
   }
 }
 
 class DeserializerUtils {
-  private alreadyIncluded: Array<{
-    to: { id: string; type: string };
-    from: { id: string; type: string };
-    relation: string;
-  }> = [];
+  private alreadyIncluded = new Set<string>();
 
   constructor(
-    private jsonapi: JsonApiDocument,
+    private included: ReadonlyMap<string, JsonApiResource>,
     private data: JsonApiResource,
     private opts: JsonApiDeserializerRuntimeOptions,
   ) {}
@@ -230,35 +241,25 @@ class DeserializerUtils {
     relationshipName: string,
     from: JsonApiResource,
   ): Record<string, unknown> | null {
-    if (!this.jsonapi.included || !relationshipData) {
+    if (!relationshipData) {
       return null;
     }
 
-    const included = this.jsonapi.included.find(
-      (inc) =>
-        inc.id === relationshipData.id && inc.type === relationshipData.type,
-    );
-
-    const includedObject = {
-      from: { id: relationshipData.id, type: relationshipData.type },
-      relation: relationshipName,
-      to: { id: from.id!, type: from.type },
-    };
-
-    const alreadySeen = this.alreadyIncluded.some(
-      (ai) =>
-        ai.to.id === includedObject.to.id &&
-        ai.to.type === includedObject.to.type &&
-        ai.from.id === includedObject.from.id &&
-        ai.from.type === includedObject.from.type &&
-        ai.relation === includedObject.relation,
-    );
-
-    if (alreadySeen) {
+    const edge = JSON.stringify([
+      from.type,
+      from.id,
+      relationshipName,
+      relationshipData.type,
+      relationshipData.id,
+    ]);
+    if (this.alreadyIncluded.has(edge)) {
       return null;
     }
+    this.alreadyIncluded.add(edge);
 
-    this.alreadyIncluded.push(includedObject);
+    const included = this.included.get(
+      JSON.stringify([relationshipData.type, relationshipData.id]),
+    );
 
     if (included) {
       return {

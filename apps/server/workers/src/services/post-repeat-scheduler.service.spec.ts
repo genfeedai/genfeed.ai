@@ -198,6 +198,22 @@ describe('PostRepeatSchedulerService', () => {
     },
   );
 
+  it('keeps campaign membership on a standalone repeat and its children', async () => {
+    await service.scheduleNextRepeat(
+      {
+        ...basePost,
+        campaignId: 'campaign-1',
+        children: [{ id: 'child-1', description: 'Reply', ingredients: [] }],
+      } as never,
+      'TikTok finalization',
+    );
+
+    expect(postsService.create).toHaveBeenCalledTimes(2);
+    for (const [input] of postsService.create.mock.calls) {
+      expect(input.campaignId).toBe('campaign-1');
+    }
+  });
+
   it('creates a version-bound publish approval for occurrence #2+', async () => {
     await service.scheduleNextRepeat(
       {
@@ -389,7 +405,12 @@ describe('PostRepeatSchedulerService', () => {
       });
     postsService.findOne
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'post-2' });
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'post-2',
+        targetIdempotencyKey: 'legacy-repeat:post-1:1',
+        scheduledDate: new Date(2026, 6, 21, 10),
+      });
 
     await expect(
       service.scheduleNextRepeat(basePost as never, 'TikTok finalization', {

@@ -33,8 +33,6 @@ import {
   IngredientStatus,
   MetadataExtension,
   VoiceProvider,
-  WebSocketEventStatus,
-  WebSocketEventType,
 } from '@genfeedai/contracts';
 import {
   AVATAR_GENERATION_CREDIT_COST,
@@ -792,14 +790,9 @@ export class AvatarVideoGenerationService {
     ingredientId: string,
     userId: string,
   ): Promise<void> {
-    // @ts-expect-error publishFileProcessing has legacy signature
-    await this.websocketService.publishFileProcessing(
+    await this.websocketService.publishVideoProgress(
       WebSocketPaths.video(ingredientId),
-      {
-        eventType: WebSocketEventType.VIDEO_GENERATED,
-        id: ingredientId,
-        status: WebSocketEventStatus.PROCESSING,
-      },
+      0,
       userId,
       getUserRoomName(userId),
     );

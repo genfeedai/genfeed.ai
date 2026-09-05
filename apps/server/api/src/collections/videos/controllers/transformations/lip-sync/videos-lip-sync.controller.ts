@@ -26,8 +26,6 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  WebSocketEventStatus,
-  WebSocketEventType,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
@@ -270,14 +268,9 @@ export class VideosLipSyncController {
       metadataId,
       new MetadataEntity({ externalId: heygenVideoId }),
     );
-    // @ts-expect-error TS2554
-    await this.websocketService.publishFileProcessing(
+    await this.websocketService.publishVideoProgress(
       WebSocketPaths.video(ingredientId),
-      {
-        eventType: WebSocketEventType.VIDEO_GENERATED,
-        id: ingredientId,
-        status: WebSocketEventStatus.PROCESSING,
-      },
+      0,
       user.id,
       getUserRoomName(user.id),
     );

@@ -4,8 +4,10 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
-
+import {
+  buildLogicalWriteKey,
+  UNSUPPORTED_APPROVAL_ERROR,
+} from '@genfeedai/actions';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,6 +84,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
   let mcpApprovals: {
     attachResult: ReturnType<typeof vi.fn>;
+    claimExecution: ReturnType<typeof vi.fn>;
     createPending: ReturnType<typeof vi.fn>;
     findActiveByIdempotencyKey: ReturnType<typeof vi.fn>;
     findOwned: ReturnType<typeof vi.fn>;
@@ -93,6 +96,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     vi.clearAllMocks();
     mcpApprovals = {
       attachResult: vi.fn(),
+      claimExecution: vi.fn().mockResolvedValue(true),
       createPending: vi.fn().mockResolvedValue({
         id: 'apr-1',
         status: 'PENDING',
@@ -200,7 +204,7 @@ describe('AgentToolExecutorService mutation policy', () => {
 
     mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
       id: 'apr-1',
-      result: { id: 'post-1' },
+      result: { creditsUsed: 0, data: { id: 'post-1' }, success: true },
       status: 'APPROVED',
       toolName: 'create_post',
     });
@@ -217,5 +221,139 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(retry.success).toBe(true);
     expect(retry.data).toEqual({ id: 'post-1' });
     expect(publishHandler.createPost).not.toHaveBeenCalled();
+  });
+  it('rejects changed arguments under an approved action id', async () => {
+    mcpApprovals.findOwned.mockResolvedValue({
+      id: 'apr-1',
+      arguments: { content: 'approved' },
+      isDeleted: false,
+      status: 'APPROVED',
+      userId: testId('user'),
+      toolName: 'create_post',
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: { content: 'approved' },
+        organizationId: testId('org'),
+        userId: testId('user'),
+        toolName: 'create_post',
+      }),
+    });
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'changed' },
+      context({ approvedApprovalId: 'apr-1', hostSupportsApproval: true }),
+    );
+    expect(result.success).toBe(false);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])(
+    'replays the persisted result envelope with success=%s',
+    async (success) => {
+      mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
+        id: 'apr-1',
+        status: 'APPROVED',
+        toolName: 'create_post',
+        result: {
+          creditsUsed: 7,
+          data: { id: 'post-1' },
+          success,
+          ...(!success ? { error: 'Provider failed' } : {}),
+        },
+      });
+      const result = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({ hostSupportsApproval: true }),
+      );
+      expect(result).toMatchObject({
+        success,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+      if (!success) expect(result.error).toBe('Provider failed');
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, 'requester-thread'])(
+    'allows a reviewer to resume an approved write from thread %s',
+    async (threadId) => {
+      const approval = {
+        id: 'apr-1',
+        arguments: { content: 'hello' },
+        isDeleted: false,
+        status: 'APPROVED',
+        userId: testId('requester'),
+        toolName: 'create_post',
+        idempotencyKey: buildLogicalWriteKey({
+          threadId,
+          arguments: { content: 'hello' },
+          organizationId: testId('org'),
+          userId: testId('requester'),
+          toolName: 'create_post',
+        }),
+      };
+      mcpApprovals.findOwned.mockResolvedValue(approval);
+      publishHandler.createPost.mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+      const result = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          approvedApprovalId: 'apr-1',
+          hostSupportsApproval: true,
+          userId: testId('reviewer'),
+        }),
+      );
+      expect(result.success).toBe(true);
+      expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
+        'apr-1',
+        testId('org'),
+      );
+      expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
+        'apr-1',
+        testId('org'),
+        { success: true, creditsUsed: 0, data: { id: 'post-1' } },
+      );
+    },
+  );
+
+  it('does not dispatch when another request already claimed execution', async () => {
+    mcpApprovals.claimExecution.mockResolvedValue(false);
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({
+        confirmationOrigin: 'thread-ui-action',
+        hostSupportsApproval: true,
+      }),
+    );
+    expect(result.success).toBe(false);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(mcpApprovals.attachResult).not.toHaveBeenCalled();
+  });
+
+  it('persists a thrown handler failure on the claimed approval', async () => {
+    publishHandler.createPost.mockRejectedValueOnce(
+      new Error('Provider failed'),
+    );
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({
+        confirmationOrigin: 'thread-ui-action',
+        hostSupportsApproval: true,
+      }),
+    );
+    expect(result.success).toBe(false);
+    expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
+      'apr-1',
+      testId('org'),
+      { success: false, error: 'Provider failed', creditsUsed: 0 },
+    );
   });
 });

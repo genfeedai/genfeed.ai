@@ -219,6 +219,31 @@ describe('AccountAnalyticsService', () => {
     ).toEqual(['cred-2', 'cred-1']);
   });
 
+  it('evaluates the policy metric independently of the selected sort metric', async () => {
+    prisma.credential.findMany.mockResolvedValue([credential(1)]);
+    vi.spyOn(service, 'getPolicy').mockResolvedValue({
+      healthyMin: 100,
+      isEnabled: true,
+      metric: AnalyticsMetric.POSTS,
+      minPublishedPosts: 1,
+      version: 1,
+      watchMin: 20,
+      windowWeeks: 1,
+    });
+    prisma.$queryRaw.mockImplementation(async (query: unknown) =>
+      sqlText(query).includes('COUNT(DISTINCT')
+        ? [{ credentialId: 'cred-1', posts: 3, views: 5000, prevViews: 0 }]
+        : [],
+    );
+    for (const metric of [AnalyticsMetric.VIEWS, AnalyticsMetric.LIKES]) {
+      const result = await service.listAccounts('org-1', { metric });
+      expect(result.accounts[0]?.evaluation?.evidence).toMatchObject({
+        metric: AnalyticsMetric.POSTS,
+        metricValue: 3,
+      });
+    }
+  });
+
   it('reports partial analytics coverage against all published posts', async () => {
     prisma.credential.findMany.mockResolvedValue([credential(1)]);
     prisma.post.groupBy.mockResolvedValue([
