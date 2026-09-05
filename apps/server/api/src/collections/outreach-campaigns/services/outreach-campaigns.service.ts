@@ -43,9 +43,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-const SCOPED_FIND_ERROR =
-  'Use findActiveForDispatch or a scoped campaign finder';
-
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const MAX_SERIALIZATION_RETRIES = 3;
 
@@ -838,7 +835,6 @@ export class OutreachCampaignsService {
 
   /**
    * System-only inventory of active, non-deleted campaigns for one tenant.
-   * Generic unscoped `find` is blocked so dispatch cannot widen past the job org.
    */
   async findActiveForDispatch(
     organizationId: string,
@@ -848,15 +844,6 @@ export class OutreachCampaignsService {
     return campaigns.filter((campaign) =>
       isScheduledBlastDueForDispatch(campaign, now),
     );
-  }
-
-  /**
-   * @deprecated Use `findActiveForDispatch` or a scoped campaign finder.
-   */
-  async find(
-    _query: Record<string, unknown>,
-  ): Promise<OutreachCampaignDocument[]> {
-    throw new BadRequestException(SCOPED_FIND_ERROR);
   }
 
   async findOne(

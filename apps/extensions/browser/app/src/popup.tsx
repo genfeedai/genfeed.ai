@@ -8,7 +8,7 @@ import { LoadingSpinner } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { authService, getJWTToken } from '~services/auth.service';
-import { EnvironmentService } from '~services/environment.service';
+import { logoURL } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import { logger } from '~utils/logger.util';
 import '~style.css';
@@ -86,7 +86,7 @@ function PopupContent() {
         <div className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <Image
-              src={EnvironmentService.logoURL}
+              src={logoURL}
               width={30}
               height={30}
               alt="Genfeed"
@@ -106,7 +106,7 @@ function PopupContent() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Image
-              src={EnvironmentService.logoURL}
+              src={logoURL}
               width={30}
               height={30}
               alt="Genfeed"

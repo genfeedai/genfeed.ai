@@ -2,7 +2,7 @@ import {
   AgentToolName,
   type AgentToolResult,
 } from '@genfeedai/contracts/interfaces';
-import { EnvironmentService } from '~services/environment.service';
+import { apiEndpoint } from '~services/environment.service';
 import { HTTPBaseService } from '~services/http-base.service';
 
 export type ExtensionToolAction = 'analytics' | 'generate' | 'post';
@@ -16,7 +16,7 @@ const TOOL_NAME_BY_ACTION: Record<ExtensionToolAction, AgentToolName> = {
 /** Thin browser adapter over the canonical action-backed agent-tool endpoint. */
 export class AgentToolsService extends HTTPBaseService {
   constructor(token: string) {
-    super(EnvironmentService.apiEndpoint, token);
+    super(apiEndpoint, token);
   }
 
   async execute(

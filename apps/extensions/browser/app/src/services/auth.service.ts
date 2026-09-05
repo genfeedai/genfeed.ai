@@ -1,5 +1,5 @@
 import { Storage } from '@plasmohq/storage';
-import { EnvironmentService } from '~services/environment.service';
+import { apiEndpoint, authCookieOrigins } from '~services/environment.service';
 import { logger } from '~utils/logger.util';
 
 const storage = new Storage();
@@ -99,7 +99,7 @@ class AuthService {
 
   private getTokenFromCookies(): Promise<string | null> {
     return new Promise((resolve) => {
-      const origins = EnvironmentService.authCookieOrigins;
+      const origins = authCookieOrigins;
       const cookieNames = [
         'better-auth.session_token',
         '__Secure-better-auth.session_token',
@@ -217,7 +217,7 @@ class AuthService {
       }
 
       const response = await this.makeAuthenticatedRequest(
-        `${EnvironmentService.apiEndpoint}/auth/validate`,
+        `${apiEndpoint}/auth/validate`,
         { method: 'GET' },
       );
 
@@ -245,7 +245,7 @@ class AuthService {
 
     try {
       const response = await this.makeAuthenticatedRequest(
-        `${EnvironmentService.apiEndpoint}/auth/whoami`,
+        `${apiEndpoint}/auth/whoami`,
         { method: 'GET' },
       );
 
@@ -298,7 +298,7 @@ class AuthService {
   }
 
   debugCookies(): void {
-    for (const origin of EnvironmentService.authCookieOrigins) {
+    for (const origin of authCookieOrigins) {
       chrome.cookies.getAll({ url: origin }, (_cookies) => {
         // Debug callback - intentionally empty
       });
