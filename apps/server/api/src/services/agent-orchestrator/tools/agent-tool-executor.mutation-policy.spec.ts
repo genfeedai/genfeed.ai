@@ -4,7 +4,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
+import { buildLogicalWriteKey, UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
 import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -218,4 +218,33 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(retry.data).toEqual({ id: 'post-1' });
     expect(publishHandler.createPost).not.toHaveBeenCalled();
   });
+  it('rejects changed arguments under an approved action id', async () => {
+    mcpApprovals.findOwned.mockResolvedValue({
+      id: 'apr-1', isDeleted: false, status: 'APPROVED',
+      userId: testId('user'), toolName: AgentToolName.CREATE_POST,
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: { content: 'approved' }, organizationId: testId('org'),
+        userId: testId('user'), toolName: AgentToolName.CREATE_POST,
+      }),
+    });
+    const result = await service.executeTool(AgentToolName.CREATE_POST,
+      { content: 'changed' }, context({ approvedApprovalId: 'apr-1', hostSupportsApproval: true }));
+    expect(result.success).toBe(false);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('replays the persisted result envelope with success=%s', async (success) => {
+    mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
+      id: 'apr-1', status: 'APPROVED', toolName: AgentToolName.CREATE_POST,
+      result: { creditsUsed: 7, data: { id: 'post-1' }, success,
+        ...(!success ? { error: 'Provider failed' } : {}) },
+    });
+    const result = await service.executeTool(AgentToolName.CREATE_POST,
+      { content: 'hello' }, context({ hostSupportsApproval: true }));
+    expect(result).toMatchObject({ success, creditsUsed: 0, data: { id: 'post-1' } });
+    if (!success) expect(result.error).toBe('Provider failed');
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+  });
+
 });
