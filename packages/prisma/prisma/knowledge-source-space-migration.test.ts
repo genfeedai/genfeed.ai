@@ -76,6 +76,49 @@ async function version(client: PoolClient) {
 }
 
 describePostgres('Knowledge source and space migration on PostgreSQL', () => {
+  it.each([
+    ['source', false],
+    ['source', true],
+    ['space', false],
+    ['space', true],
+  ] as const)(
+    'preserves brand organization when %s history exists (isDeleted=%s)',
+    async (kind, isDeleted) =>
+      fixture(async (client) => {
+        if (kind === 'source') {
+          await source(client);
+          await client.query('UPDATE knowledge_sources SET "isDeleted" = $1', [
+            isDeleted,
+          ]);
+        } else {
+          await space(client, 'space-a', 'brand', 'brand-a');
+          await client.query('UPDATE knowledge_spaces SET "isDeleted" = $1', [
+            isDeleted,
+          ]);
+        }
+        await expect(
+          client.query(
+            `UPDATE brands SET "organizationId" = 'org-b' WHERE id = 'brand-a'`,
+          ),
+        ).rejects.toThrow(/immutable/);
+        const { rows } = await client.query(
+          `SELECT "organizationId" FROM brands WHERE id = 'brand-a'`,
+        );
+        expect(rows).toEqual([{ organizationId: 'org-a' }]);
+      }),
+  );
+
+  it('allows a brand without Knowledge history to move', async () =>
+    fixture(async (client) => {
+      await client.query(
+        `UPDATE brands SET "organizationId" = 'org-b' WHERE id = 'brand-a'`,
+      );
+      const { rows } = await client.query(
+        `SELECT "organizationId" FROM brands WHERE id = 'brand-a'`,
+      );
+      expect(rows).toEqual([{ organizationId: 'org-b' }]);
+    }));
+
   it('enforces scope, tenant and brand ownership at persistence boundaries', async () =>
     fixture(async (client) => {
       await source(client);
