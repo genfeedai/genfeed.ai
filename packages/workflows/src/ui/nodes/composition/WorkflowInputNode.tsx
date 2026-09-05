@@ -4,18 +4,19 @@ import type {
   HandleType,
   WorkflowInputNodeData,
 } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback } from 'react';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Checkbox } from '../../ui/checkbox';
-import { Label } from '../../ui/label';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
+} from '@genfeedai/ui/primitives/select';
+import type { NodeProps } from '@xyflow/react';
+import { memo, useCallback } from 'react';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const INPUT_TYPES: { value: HandleType; label: string }[] = [
@@ -82,7 +83,7 @@ function WorkflowInputNodeComponent(props: NodeProps) {
           <Label htmlFor={`input-name-${id}`} className="text-xs">
             Input Name
           </Label>
-          <input
+          <Input
             aria-label="Input Name"
             id={`input-name-${id}`}
             type="text"
@@ -135,7 +136,7 @@ function WorkflowInputNodeComponent(props: NodeProps) {
           <Label htmlFor={`input-description-${id}`} className="text-xs">
             Description (optional)
           </Label>
-          <input
+          <Input
             aria-label="Input description"
             id={`input-description-${id}`}
             type="text"

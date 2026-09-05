@@ -1,8 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '../ui/button';
 import type { ToolbarDropdownProps } from './types';
 
 /**
@@ -41,8 +42,9 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
   return (
     <div ref={menuRef} className="relative">
       <Button
-        variant="ghost"
-        size="sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.SM}
         onClick={() => setIsOpen(!isOpen)}
         className="text-muted-foreground hover:text-foreground"
       >
@@ -59,8 +61,9 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
 
             return (
               <Button
+                withWrapper={false}
                 key={item.id}
-                variant="ghost"
+                variant={ButtonVariant.GHOST}
                 onClick={() => {
                   if (item.disabled || !item.onClick) return;
                   item.onClick();

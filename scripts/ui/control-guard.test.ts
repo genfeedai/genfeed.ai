@@ -33,6 +33,23 @@ function categoriesFor(relativePath: string): ControlGuardCategory[] {
 }
 
 describe('control-guard detection', () => {
+  it.each(['canvas/NodeSearch', 'nodes/input/Prompt', 'ui/input'])(
+    'requires shared controls throughout workflow UI (%s)',
+    (surface) => {
+      const file = write(
+        `packages/workflows/src/ui/${surface}.tsx`,
+        'export function Control(){return <div><button>Run</button><input /><textarea /></div>;}',
+      );
+      expect(
+        detectViolations([file], rootDir).filter(
+          (violation) =>
+            violation.category === 'raw-html' &&
+            violation.severity === 'required',
+        ),
+      ).toHaveLength(3);
+    },
+  );
+
   it('flags raw <button> in app code as advisory', () => {
     const file = write(
       'apps/app/page.tsx',

@@ -1,15 +1,16 @@
 'use client';
 
-import { memo, useCallback, useMemo } from 'react';
-import { Checkbox } from '../ui/checkbox';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Input } from '@genfeedai/ui/primitives/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
-import { Slider } from '../ui/slider';
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
+import { memo, useCallback, useMemo } from 'react';
 import { NegativePromptSelector } from './NegativePromptSelector';
 
 /**
@@ -208,7 +209,7 @@ function SliderInput({
           className="flex-1"
         />
 
-        <input
+        <Input
           id={inputId}
           type="number"
           min={min}
@@ -289,7 +290,7 @@ function NumberInput({
       <label htmlFor={inputId} className="text-xs text-muted-foreground">
         {formatLabel(propertyKey, property.title)}
       </label>
-      <input
+      <Input
         id={inputId}
         type="number"
         value={currentValue ?? ''}

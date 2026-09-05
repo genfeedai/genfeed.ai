@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { OutputGalleryNodeData } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, Download, X } from 'lucide-react';
 import NextImage from 'next/image';
@@ -16,7 +19,6 @@ import {
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function OutputGalleryNodeComponent(props: NodeProps) {
@@ -171,8 +173,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
             <div className="grid grid-cols-3 gap-1.5 p-1">
               {displayImages.map((img, idx) => (
                 <Button
+                  withWrapper={false}
                   key={img}
-                  variant="ghost"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => openLightbox(idx)}
                   className="aspect-square rounded border border-border hover:border-primary overflow-hidden p-0 h-auto"
                 >
@@ -217,8 +220,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
               />
 
               <Button
-                variant="ghost"
-                size="icon-sm"
+                withWrapper={false}
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
                 onClick={closeLightbox}
                 className={
                   'absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white' /* design-system-allow-content-color */
@@ -229,8 +233,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
 
               <div className="absolute top-4 left-4 flex items-center gap-2">
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
                   onClick={downloadImage}
                   className={
                     'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
@@ -240,8 +245,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   Download
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.SM}
                   onClick={copyImage}
                   className={
                     'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
@@ -254,8 +260,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
 
               {lightboxIndex > 0 && (
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
                   onClick={() => navigateLightbox('prev')}
                   className={
                     'absolute left-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */
@@ -267,8 +274,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
 
               {lightboxIndex < displayImages.length - 1 && (
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  withWrapper={false}
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
                   onClick={() => navigateLightbox('next')}
                   className={
                     'absolute right-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */

@@ -1,10 +1,21 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   HandleDefinition,
   WorkflowInterface,
   WorkflowRefNodeData,
 } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Label } from '@genfeedai/ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
@@ -16,15 +27,6 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Label } from '../../ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
 import {
   type ReferencableWorkflow,
   workflowRefApi,
@@ -168,8 +170,9 @@ function WorkflowInterfaceSummary({
           Interface
         </span>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={onRefreshInterface}
           disabled={isFetchingWorkflows}
           title="Refresh interface"

@@ -1,12 +1,14 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import { Pre } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/execution';
 import type { DebugPayload } from '../stores/execution/types';
 import { useUIStore } from '../stores/uiStore';
-import { Button } from '../ui/button';
 import { PanelContainer } from './PanelContainer';
 
 interface PayloadCardProps {
@@ -52,7 +54,8 @@ function PayloadCard({ payload }: PayloadCardProps) {
     <div className="border border-border overflow-hidden">
       {/* Header - always visible */}
       <Button
-        variant="ghost"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 h-auto"
       >
@@ -84,8 +87,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
               Payload
             </span>
             <Button
-              variant="link"
-              size="sm"
+              withWrapper={false}
+              variant={ButtonVariant.LINK}
+              size={ButtonSize.SM}
               onClick={handleCopy}
               className="flex items-center gap-1 text-2xs text-primary h-auto p-0"
             >
@@ -127,15 +131,21 @@ function DebugPanelComponent() {
         <div className="flex items-center gap-1">
           {debugPayloads.length > 0 && (
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={clearDebugPayloads}
               title="Clear all payloads"
             >
               <Trash2 className="size-4 text-muted-foreground" />
             </Button>
           )}
-          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            onClick={handleClose}
+          >
             <X className="size-4" />
           </Button>
         </div>

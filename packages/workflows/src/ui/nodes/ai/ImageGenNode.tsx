@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Download, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -19,7 +22,6 @@ import {
 } from '../../lib/models/registry';
 import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 import { ProcessingOverlay } from '../ProcessingOverlay';
 import { SchemaInputs } from '../SchemaInputs';
@@ -160,8 +162,9 @@ function ImageGenNodeComponent(props: NodeProps) {
                 Generated ({nodeData.outputImages.length} images)
               </span>
               <Button
-                variant="link"
-                size="sm"
+                withWrapper={false}
+                variant={ButtonVariant.LINK}
+                size={ButtonSize.SM}
                 onClick={handleDownloadAll}
                 className="h-auto p-0"
               >
@@ -172,9 +175,10 @@ function ImageGenNodeComponent(props: NodeProps) {
             <div className="grid grid-cols-2 gap-1">
               {nodeData.outputImages.map((img, i) => (
                 <Button
+                  withWrapper={false}
                   key={img}
                   type="button"
-                  variant="ghost"
+                  variant={ButtonVariant.GHOST}
                   className="relative group aspect-square overflow-hidden border border-border cursor-pointer h-auto p-0"
                   onClick={() =>
                     setSelectedPreview(selectedPreview === i ? null : i)
@@ -195,8 +199,9 @@ function ImageGenNodeComponent(props: NodeProps) {
                     }
                   >
                     <Button
-                      variant="ghost"
-                      size="icon-sm"
+                      withWrapper={false}
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.ICON}
                       className={
                         'size-6 bg-white/20 hover:bg-white/30' /* design-system-allow-content-color */
                       }
@@ -235,8 +240,9 @@ function ImageGenNodeComponent(props: NodeProps) {
                     unoptimized
                   />
                   <Button
-                    variant="ghost"
-                    size="icon-sm"
+                    withWrapper={false}
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.ICON}
                     onClick={() => setSelectedPreview(null)}
                     className={
                       'absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white' /* design-system-allow-content-color */

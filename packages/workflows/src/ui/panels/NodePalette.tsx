@@ -1,9 +1,13 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import {
   getNodesByCategory,
   type NodeCategory,
 } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,
@@ -46,8 +50,6 @@ import {
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
 import { useUIStore } from '../stores/uiStore';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -178,8 +180,9 @@ function NodeCard({
 
   return (
     <Button
+      withWrapper={false}
       type="button"
-      variant="ghost"
+      variant={ButtonVariant.GHOST}
       draggable
       onDragStart={handleDragStart}
       className={`h-auto w-full cursor-grab justify-start rounded-md border border-transparent bg-transparent px-2 py-2 text-left shadow-none transition-colors ${colors.hover}`}
@@ -282,7 +285,8 @@ function CategorySection({
   return (
     <div>
       <Button
-        variant="ghost"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
         onClick={onToggle}
         className="h-9 w-full justify-start gap-2 rounded-none px-3 text-left"
       >
@@ -391,8 +395,9 @@ export function NodePalette({
           <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
         </div>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={togglePalette}
           title="Close sidebar (M)"
         >

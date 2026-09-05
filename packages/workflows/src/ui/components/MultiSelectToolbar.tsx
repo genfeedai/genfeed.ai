@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { WorkflowNode } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { useReactFlow } from '@xyflow/react';
 import {
   AlignHorizontalSpaceAround,
@@ -17,7 +20,6 @@ import {
   hasEveryId,
 } from '../lib/selection';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 const NODE_GAP = 32;
 const EST_NODE_WIDTH = 280;
@@ -183,8 +185,9 @@ function MultiSelectToolbarComponent({
 
       {/* Stack Horizontal */}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={stackHorizontal}
         title="Stack horizontal"
       >
@@ -193,8 +196,9 @@ function MultiSelectToolbarComponent({
 
       {/* Stack Vertical */}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={stackVertical}
         title="Stack vertical"
       >
@@ -203,8 +207,9 @@ function MultiSelectToolbarComponent({
 
       {/* Grid */}
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={arrangeGrid}
         title="Arrange as grid"
       >
@@ -215,8 +220,9 @@ function MultiSelectToolbarComponent({
         <>
           <div className="h-4 w-px bg-border" />
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={handleDownloadAsZip}
             title="Download selected nodes as ZIP"
           >
@@ -230,8 +236,9 @@ function MultiSelectToolbarComponent({
       {/* Group / Ungroup */}
       {selectedGroup ? (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleUngroup}
           title="Ungroup"
         >
@@ -239,8 +246,9 @@ function MultiSelectToolbarComponent({
         </Button>
       ) : (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleGroup}
           title="Group"
         >

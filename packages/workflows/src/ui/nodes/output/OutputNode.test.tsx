@@ -32,7 +32,7 @@ vi.mock('next/image', () => ({
 }));
 
 // Mock Button
-vi.mock('../../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,
@@ -71,7 +71,7 @@ vi.mock('../../stores/execution', () => ({
 }));
 
 // Mock Input component
-vi.mock('../../ui/input', () => ({
+vi.mock('@genfeedai/ui/primitives/input', () => ({
   Input: (props: Record<string, unknown>) => <input {...props} />,
 }));
 

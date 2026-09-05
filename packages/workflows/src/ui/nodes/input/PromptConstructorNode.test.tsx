@@ -10,7 +10,7 @@ import { prettyPrintPromptJson } from '../../../engine/executors/saas/prompt-jso
 import { PromptConstructorNode } from './PromptConstructorNode';
 
 const formatToggle = vi.hoisted(() => ({
-  onValueChange: (_value: string) => undefined,
+  onValueChange: (_value: string): void => undefined,
 }));
 
 vi.mock('@genfeedai/ui', () => ({

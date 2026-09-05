@@ -1,10 +1,11 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Input } from '@genfeedai/ui/primitives/input';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo, useCallback, useId, useMemo, useState } from 'react';
-import { Button } from '../ui/button';
-
-import { Checkbox } from '../ui/checkbox';
 
 /**
  * Common negative prompt terms organized for quick selection
@@ -139,7 +140,8 @@ function NegativePromptSelectorComponent({
     <div className="flex flex-col gap-2">
       {/* Collapsible header */}
       <Button
-        variant="ghost"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full text-left h-auto p-0 group"
@@ -201,7 +203,7 @@ function NegativePromptSelectorComponent({
             >
               Custom
             </label>
-            <input
+            <Input
               id={customInputId}
               type="text"
               value={customText}

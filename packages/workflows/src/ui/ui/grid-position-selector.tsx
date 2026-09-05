@@ -1,7 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { memo, useCallback } from 'react';
-import { Button } from './button';
 import { cn } from './utils';
 
 interface GridPosition {
@@ -63,9 +64,10 @@ function GridPositionSelectorComponent({
         <div className="grid grid-cols-3 gap-1 p-2 bg-background border border-input">
           {GRID_POSITIONS.map((pos) => (
             <Button
+              withWrapper={false}
               aria-label={getPositionTitle(pos)}
               key={`${pos.x}-${pos.y}`}
-              variant="ghost"
+              variant={ButtonVariant.GHOST}
               type="button"
               onClick={() => onPositionChange(pos)}
               className={cn(

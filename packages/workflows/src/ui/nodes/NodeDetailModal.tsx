@@ -1,11 +1,14 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   NodeType,
   PromptNodeData,
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,7 +29,6 @@ import { getMediaFromNode } from '../lib/mediaExtraction';
 import { usePromptEditorStore } from '../stores/promptEditorStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 // Node types that should open the prompt editor instead of preview
 const PROMPT_NODE_TYPES: NodeType[] = ['prompt'];
@@ -137,12 +139,22 @@ function NodeDetailHeader({
       </div>
       <div className="flex items-center gap-2">
         {displayUrl && (
-          <Button variant="secondary" size="sm" onClick={onDownload}>
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            onClick={onDownload}
+          >
             <Download className="size-4 mr-1" />
             Download
           </Button>
         )}
-        <Button variant="ghost" size="icon-sm" onClick={onClose}>
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          onClick={onClose}
+        >
           <X className="size-5" />
         </Button>
       </div>
@@ -222,8 +234,9 @@ function ImageNavigation({
     <>
       {currentIndex > 0 && (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={onPrevious}
           className="absolute left-4 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card border border-border shadow-md"
           title="Previous image (←)"
@@ -233,8 +246,9 @@ function ImageNavigation({
       )}
       {currentIndex < imageCount - 1 && (
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={onNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 bg-card/80 hover:bg-card border border-border shadow-md"
           title="Next image (→)"
@@ -263,8 +277,9 @@ function ZoomControls({
   return (
     <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-card border border-border p-1">
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onZoomOut}
         title="Zoom out (-)"
       >
@@ -274,16 +289,18 @@ function ZoomControls({
         {Math.round(zoomLevel * 100)}%
       </span>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={onZoomIn}
         title="Zoom in (+)"
       >
         <ZoomIn className="size-4" />
       </Button>
       <Button
-        variant="ghost"
-        size="sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.SM}
         onClick={onReset}
         title="Reset zoom (0)"
       >
@@ -519,9 +536,10 @@ export function NodeDetailModal() {
     <>
       {/* Backdrop */}
       <Button
+        withWrapper={false}
         type="button"
-        variant="ghost"
-        size="icon-sm"
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         className={
           'fixed inset-0 z-50 size-full bg-black/80 p-0 hover:bg-black/80' /* design-system-allow-content-color */
         }

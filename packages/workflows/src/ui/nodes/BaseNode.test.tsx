@@ -128,7 +128,7 @@ vi.mock('../lib/schemaHandles', () => ({
 }));
 
 // Mock UI components
-vi.mock('../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,

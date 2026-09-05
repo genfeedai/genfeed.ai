@@ -1,7 +1,10 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type { IPrompt, PromptNodeData } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Save } from 'lucide-react';
 import { memo, useCallback } from 'react';
@@ -9,7 +12,6 @@ import { useWorkflowUIConfig } from '../../provider';
 import { usePromptEditorStore } from '../../stores/promptEditorStore';
 import { usePromptLibraryStore } from '../../stores/promptLibraryStore';
 import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function PromptNodeComponent(props: NodeProps) {
@@ -66,16 +68,18 @@ function PromptNodeComponent(props: NodeProps) {
   const headerActions = (
     <>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={handleExpand}
         title="Expand editor"
       >
         <Expand className="size-3.5" />
       </Button>
       <Button
-        variant="ghost"
-        size="icon-sm"
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         onClick={handleSaveToLibrary}
         disabled={!nodeData.prompt}
         title="Save to library"

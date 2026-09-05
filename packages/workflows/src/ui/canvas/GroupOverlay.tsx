@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import {
   useNodes,
   useReactFlow,
@@ -21,7 +24,6 @@ import {
 import { useWorkflowStore } from '../stores/workflow';
 import type { GroupColor, NodeGroup } from '../types/groups';
 import { DEFAULT_GROUP_COLORS, GROUP_COLORS } from '../types/groups';
-import { Button } from '../ui/button';
 
 const HEADER_HEIGHT = 32;
 
@@ -284,7 +286,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
       >
         {/* Editable Name */}
         {isEditing ? (
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={editName}
@@ -300,8 +302,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           />
         ) : (
           <Button
+            withWrapper={false}
             type="button"
-            variant="ghost"
+            variant={ButtonVariant.GHOST}
             className={clsx(
               'h-auto flex-1 justify-start truncate p-0 text-left font-medium hover:bg-transparent',
               colors.text,
@@ -319,8 +322,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           {/* Color Picker */}
           <div className="relative" ref={colorPickerRef}>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
@@ -337,8 +341,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               <div className="absolute top-8 right-0 z-50 bg-card border border-border shadow-lg p-2 flex gap-1 flex-wrap w-[120px]">
                 {DEFAULT_GROUP_COLORS.map((color) => (
                   <Button
+                    withWrapper={false}
                     key={color}
-                    variant="ghost"
+                    variant={ButtonVariant.GHOST}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleColorSelect(color);
@@ -357,8 +362,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             )}
           </div>
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={(e) => {
               e.stopPropagation();
               toggleGroupLock(group.id);
@@ -376,8 +382,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             )}
           </Button>
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={(e) => {
               e.stopPropagation();
               deleteGroup(group.id);

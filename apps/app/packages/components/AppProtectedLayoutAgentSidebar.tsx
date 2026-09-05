@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useMemo } from 'react';
@@ -27,13 +29,16 @@ export default function AgentSidebarContent({ renderConversations }: Props) {
   const newThreadHref = activeHref(APP_ROUTES.AGENT.NEW);
   const newThreadAction = useMemo(
     () => (
-      <Link
-        href={newThreadHref}
-        aria-label="New agent thread"
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      <Button
+        asChild
+        withWrapper={false}
+        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.ICON}
       >
-        <Plus className="size-4" aria-hidden="true" />
-      </Link>
+        <Link href={newThreadHref} aria-label="New agent thread">
+          <Plus className="size-4" aria-hidden="true" />
+        </Link>
+      </Button>
     ),
     [newThreadHref],
   );

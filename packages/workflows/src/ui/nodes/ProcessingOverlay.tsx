@@ -1,8 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import { LoaderCircle, Square } from 'lucide-react';
 import { memo } from 'react';
-import { Button } from '../ui/button';
 
 interface ProcessingOverlayProps {
   /** Text to show below spinner, defaults to 'Generating...' */
@@ -31,7 +32,12 @@ function ProcessingOverlayComponent({
           {label}
         </span>
         {onStop && (
-          <Button variant="destructive" size="sm" onClick={onStop}>
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.DESTRUCTIVE}
+            size={ButtonSize.SM}
+            onClick={onStop}
+          >
             <Square className="size-3 fill-current" />
             Stop
           </Button>
