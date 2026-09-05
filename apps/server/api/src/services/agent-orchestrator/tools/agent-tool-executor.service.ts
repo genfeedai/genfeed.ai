@@ -526,14 +526,24 @@ export class AgentToolExecutorService implements OnModuleInit {
         claimed.status !== McpApprovalStatus.APPROVED ||
         claimed.toolName !== toolName ||
         claimed.isDeleted ||
-        claimed.idempotencyKey !==
-          buildLogicalWriteKey({
-            arguments: parameters,
-            organizationId: context.organizationId,
-            threadId: context.threadId,
-            toolName,
-            userId: claimed.userId,
-          })
+        !claimed.arguments ||
+        typeof claimed.arguments !== 'object' ||
+        Array.isArray(claimed.arguments)
+      ) {
+        throw new Error(
+          'Approval does not authorize this exact tool invocation',
+        );
+      }
+      const invocation = {
+        organizationId: context.organizationId,
+        toolName,
+        userId: claimed.userId,
+      };
+      if (
+        buildLogicalWriteKey({
+          ...invocation,
+          arguments: claimed.arguments,
+        }) !== buildLogicalWriteKey({ ...invocation, arguments: parameters })
       ) {
         throw new Error(
           'Approval does not authorize this exact tool invocation',

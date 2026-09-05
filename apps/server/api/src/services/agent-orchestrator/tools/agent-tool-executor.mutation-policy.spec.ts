@@ -226,6 +226,7 @@ describe('AgentToolExecutorService mutation policy', () => {
   it('rejects changed arguments under an approved action id', async () => {
     mcpApprovals.findOwned.mockResolvedValue({
       id: 'apr-1',
+      arguments: { content: 'approved' },
       isDeleted: false,
       status: 'APPROVED',
       userId: testId('user'),
@@ -276,46 +277,51 @@ describe('AgentToolExecutorService mutation policy', () => {
     },
   );
 
-  it('allows a reviewer to resume the requester exact approved write', async () => {
-    const approval = {
-      id: 'apr-1',
-      isDeleted: false,
-      status: 'APPROVED',
-      userId: testId('requester'),
-      toolName: AgentToolName.CREATE_POST,
-      idempotencyKey: buildLogicalWriteKey({
+  it.each([undefined, 'requester-thread'])(
+    'allows a reviewer to resume an approved write from thread %s',
+    async (threadId) => {
+      const approval = {
+        id: 'apr-1',
         arguments: { content: 'hello' },
-        organizationId: testId('org'),
+        isDeleted: false,
+        status: 'APPROVED',
         userId: testId('requester'),
         toolName: AgentToolName.CREATE_POST,
-      }),
-    };
-    mcpApprovals.findOwned.mockResolvedValue(approval);
-    publishHandler.createPost.mockResolvedValue({
-      success: true,
-      creditsUsed: 0,
-      data: { id: 'post-1' },
-    });
-    const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
-      { content: 'hello' },
-      context({
-        approvedApprovalId: 'apr-1',
-        hostSupportsApproval: true,
-        userId: testId('reviewer'),
-      }),
-    );
-    expect(result.success).toBe(true);
-    expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
-      'apr-1',
-      testId('org'),
-    );
-    expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
-      'apr-1',
-      testId('org'),
-      { success: true, creditsUsed: 0, data: { id: 'post-1' } },
-    );
-  });
+        idempotencyKey: buildLogicalWriteKey({
+          threadId,
+          arguments: { content: 'hello' },
+          organizationId: testId('org'),
+          userId: testId('requester'),
+          toolName: AgentToolName.CREATE_POST,
+        }),
+      };
+      mcpApprovals.findOwned.mockResolvedValue(approval);
+      publishHandler.createPost.mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+      const result = await service.executeTool(
+        AgentToolName.CREATE_POST,
+        { content: 'hello' },
+        context({
+          approvedApprovalId: 'apr-1',
+          hostSupportsApproval: true,
+          userId: testId('reviewer'),
+        }),
+      );
+      expect(result.success).toBe(true);
+      expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
+        'apr-1',
+        testId('org'),
+      );
+      expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
+        'apr-1',
+        testId('org'),
+        { success: true, creditsUsed: 0, data: { id: 'post-1' } },
+      );
+    },
+  );
 
   it('does not dispatch when another request already claimed execution', async () => {
     mcpApprovals.claimExecution.mockResolvedValue(false);
