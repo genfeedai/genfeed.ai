@@ -173,3 +173,37 @@ export async function captureWorkflowCostEstimate(
       : knownEstimatedCredits,
   };
 }
+
+export async function captureMissingWorkflowCostEstimate(
+  prisma: PrismaService,
+  executionId: string,
+  organizationId: string,
+  nodes: ExecutableNode[],
+  brandId?: string | null,
+): Promise<void> {
+  const existing = await prisma.workflowExecution.findFirst({
+    where: { id: executionId, organizationId, isDeleted: false },
+    select: { costEstimate: true, startedAt: true },
+  });
+  if (!existing || existing.costEstimate || existing.startedAt) return;
+  const estimate = await captureWorkflowCostEstimate(
+    prisma,
+    organizationId,
+    nodes,
+    brandId,
+  );
+  await prisma.workflowExecution.updateMany({
+    where: {
+      id: executionId,
+      organizationId,
+      isDeleted: false,
+      costEstimate: { equals: Prisma.DbNull },
+      startedAt: null,
+    },
+    data: {
+      costEstimate: JSON.parse(
+        JSON.stringify(estimate),
+      ) as Prisma.InputJsonValue,
+    },
+  });
+}

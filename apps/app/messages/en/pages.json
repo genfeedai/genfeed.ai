@@ -1001,7 +1001,20 @@
       }
     },
     "title": "Cost & Usage",
-    "yes": "Yes"
+    "yes": "Yes",
+    "workflowAccounting": {
+      "providerCost": "Provider cost (USD)",
+      "execution": "Execution",
+      "estimatedCredits": "Estimated credits",
+      "actualCredits": "Actual credits",
+      "variance": "Variance",
+      "unavailable": "Unavailable",
+      "title": "Workflow accounting",
+      "empty": "No executions",
+      "export": "Export workflow costs",
+      "limit": "Latest 100 executions in this period. Workflow totals are a separate view of the ledger.",
+      "known": "Unavailable (known {value})"
+    }
   },
   "organizationRouting": {
     "failure": {

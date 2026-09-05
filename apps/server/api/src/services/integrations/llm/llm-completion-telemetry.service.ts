@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { workflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
 import { buildLlmGenerationTelemetryProperties } from '@api/services/integrations/llm/llm-generation-telemetry';
@@ -7,6 +7,7 @@ import {
   computeLlmCompletionCostUsd,
   computeLlmPromptCostUsd,
   computeLlmVendorCostMicros,
+  getAgentChatModel,
   LLM_GENERATION_TELEMETRY_EVENT,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -34,6 +35,21 @@ export class LlmCompletionTelemetryService {
     private readonly settlementQueue?: LlmCostSettlementQueueService,
   ) {}
 
+  private capturePricing(model: string) {
+    const pricing = getAgentChatModel(model)?.pricing;
+    const stamp = {
+      source: 'agent_chat_model_catalog',
+      promptPerMillion: pricing?.promptPerMillion ?? null,
+      completionPerMillion: pricing?.completionPerMillion ?? null,
+    };
+    return {
+      ...stamp,
+      fingerprint: createHash('sha256')
+        .update(JSON.stringify({ model, ...stamp }))
+        .digest('hex'),
+    };
+  }
+
   async beginWorkflowOperation(
     organizationId: string | undefined,
     model: string,
@@ -57,6 +73,7 @@ export class LlmCompletionTelemetryService {
       latencyMs: 0,
       vendorCostMicros: 0,
       costEvidence: 'pending',
+      pricingSnapshot: this.capturePricing(model),
     });
     return workflowLedgerId;
   }
@@ -80,6 +97,7 @@ export class LlmCompletionTelemetryService {
       try {
         await this.persistSettlement({
           workflowLedgerId: event.workflowLedgerId,
+          pricingSnapshot: this.capturePricing(event.model),
           costEvidence: event.isByok
             ? 'byok'
             : event.vendorCostMicros !== undefined

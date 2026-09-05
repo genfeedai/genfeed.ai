@@ -4,6 +4,9 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('MediaVendorCostLedgerService', () => {
   const prisma = {
+    workflowExecution: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+    },
     workflowNodeContinuation: { findFirst: vi.fn().mockResolvedValue(null) },
     mediaVendorCost: {
       findFirst: vi.fn().mockResolvedValue(null),
@@ -107,10 +110,13 @@ describe('MediaVendorCostLedgerService', () => {
         where: {
           ingredientId: 'output',
           organizationId: 'org',
-          execution: { organizationId: 'org', isDeleted: false },
         },
       }),
     );
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      where: { id: 'run', organizationId: 'org', isDeleted: false },
+      select: { id: true },
+    });
     expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({

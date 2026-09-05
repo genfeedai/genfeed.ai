@@ -3312,6 +3312,7 @@ model CreditReservation {
 /// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
 /// completion content.
 model LlmVendorCost {
+  pricingSnapshot Json?
   costEvidence String?
   workflowExecutionId String?
   workflowNodeId String?

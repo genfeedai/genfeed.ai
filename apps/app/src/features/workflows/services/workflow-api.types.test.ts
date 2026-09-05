@@ -166,6 +166,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'status',
   ],
   ExecutionResult: [
+    'accounting',
     'completedAt',
     'createdAt',
     'creditsUsed',

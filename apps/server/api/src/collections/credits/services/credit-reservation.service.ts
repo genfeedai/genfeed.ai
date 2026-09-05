@@ -208,6 +208,7 @@ export class CreditReservationService {
         },
         where: {
           organizationId: reservation.organizationId,
+          isDeleted: false,
           referenceId: reservation.id,
           referenceType: 'credit_reservation',
         },

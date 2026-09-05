@@ -21,19 +21,27 @@ export class MediaVendorCostLedgerService {
   ) {}
 
   async record(input: IMediaVendorCostRecordInput): Promise<void> {
-    const continuation = input.ingredientId
+    let continuation = input.ingredientId
       ? await this.prisma.workflowNodeContinuation.findFirst({
           where: {
             organizationId: input.organizationId,
             ingredientId: input.ingredientId,
-            execution: {
-              organizationId: input.organizationId,
-              isDeleted: false,
-            },
           },
           select: { id: true, executionId: true, nodeId: true },
         })
       : null;
+    if (
+      continuation &&
+      !(await this.prisma.workflowExecution.findFirst({
+        where: {
+          id: continuation.executionId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      }))
+    )
+      continuation = null;
     const intent = continuation
       ? await this.prisma.mediaVendorCost.findFirst({
           where: {

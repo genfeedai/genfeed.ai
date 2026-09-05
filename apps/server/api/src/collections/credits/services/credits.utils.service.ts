@@ -1,5 +1,9 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import {
+  assertRefundOrganization,
+  findCreditRefundReplay,
+} from '@api/collections/credits/services/credit-refund-replay';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -599,35 +603,16 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         source,
       });
 
-      // Get organization to verify it exists
-      const organization = await this.prisma.organization.findFirst({
-        where: { id: organizationId, isDeleted: false },
-      });
-
-      if (!organization) {
-        throw new BusinessLogicException('Organization not found');
-      }
+      await assertRefundOrganization(this.prisma, organizationId);
 
       // Core refund logic always runs inside the required serializable transaction.
       const refundCore = async (tx?: PrismaTransactionClient) => {
-        if (options?.idempotencyKey) {
-          const existing = await (
-            tx ?? this.prisma
-          ).creditTransaction.findFirst({
-            where: {
-              organizationId,
-              isDeleted: false,
-              category: CreditTransactionCategory.REFUND,
-              idempotencyKey: options.idempotencyKey,
-            },
-          });
-          if (existing)
-            return {
-              currentBalance: existing.balanceAfter ?? 0,
-              newBalance: existing.balanceAfter ?? 0,
-              wasApplied: false,
-            };
-        }
+        const replay = await findCreditRefundReplay(
+          tx ?? this.prisma,
+          organizationId,
+          options?.idempotencyKey,
+        );
+        if (replay) return replay;
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
         const newBalance = currentBalance + creditsToRefund;

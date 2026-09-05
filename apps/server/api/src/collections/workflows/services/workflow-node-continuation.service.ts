@@ -1,3 +1,4 @@
+import { createWorkflowMediaCostIntent } from '@api/collections/workflows/services/workflow-media-cost-intent';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -171,41 +172,7 @@ export class WorkflowNodeContinuationService {
           workflowVersionId: input.workflowVersionId,
         },
       })) as ContinuationRow;
-      const model = input.model
-        ? await transaction.model.findFirst({
-            where: {
-              key: input.model,
-              isDeleted: false,
-              OR: [
-                { organizationId: input.organizationId },
-                { organizationId: null },
-              ],
-            },
-          })
-        : null;
-      await transaction.mediaVendorCost.create({
-        data: {
-          organizationId: input.organizationId,
-          workflowExecutionId: input.executionId,
-          workflowNodeId: input.nodeId,
-          workflowOperationId: continuation.id,
-          ingredientId: input.ingredientId,
-          idempotencyKey: `media:${input.organizationId}:${input.ingredientId}`,
-          provider: input.provider,
-          model: input.model ?? 'unresolved',
-          category: input.actionId,
-          units: 0,
-          vendorCostMicros: 0,
-          costEvidence: 'pending',
-          pricingSnapshot: {
-            isByok: false,
-            billingDisposition: 'not_charged',
-            providerCostUsd: model?.providerCostUsd ?? null,
-            pricingType: model?.pricingType ?? null,
-            modelUpdatedAt: model?.updatedAt.toISOString() ?? null,
-          },
-        },
-      });
+      await createWorkflowMediaCostIntent(transaction, input, continuation.id);
       return continuation;
     });
 

@@ -7,26 +7,21 @@ import type {
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
-import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
+import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
+import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   composeEtaMetadata,
-  readNodeResults,
   readOptionalNumber,
   readOptionalString,
   readRecord,
   toWorkflowExecutionProgressSnapshot,
   type WorkflowExecutionProgressRow,
   type WorkflowExecutionProgressSnapshot,
-  type WorkflowExecutionScalarRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
 import { isHiddenSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import {
-  normalizeActionOrigin,
-  scopedWhere,
-  withActionOriginMetadata,
-} from '@api/index';
+import { scopedWhere, withActionOriginMetadata } from '@api/index';
 import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -35,10 +30,7 @@ import {
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import {
-  type ActionOriginContext,
-  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
-} from '@genfeedai/contracts';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   PopulateOption,
   WorkflowCostEstimate,
@@ -154,59 +146,7 @@ export class WorkflowExecutionsService extends BaseService<
     const normalized = super.normalizeDocument(
       document,
     ) as WorkflowExecutionDocument;
-    if (!normalized || typeof normalized !== 'object') {
-      return normalized;
-    }
-
-    const result = readRecord(normalized.result);
-    const row = normalized as WorkflowExecutionDocument &
-      WorkflowExecutionScalarRow;
-    const metadata = readRecord(result.metadata);
-    const storedContext: ActionOriginContext = {
-      ...(typeof metadata.actorUserId === 'string'
-        ? { actorUserId: metadata.actorUserId }
-        : {}),
-      ...(typeof metadata.apiKeyId === 'string'
-        ? { apiKeyId: metadata.apiKeyId }
-        : {}),
-      origin: normalizeActionOrigin(metadata.origin),
-    };
-    const eta = composeEtaMetadata(row, readRecord(metadata.eta));
-    const normalizedMetadata = withActionOriginMetadata(
-      Object.keys(eta).length > 0 ? { ...metadata, eta } : metadata,
-      storedContext,
-    );
-    const relationNodeResults = readNodeResults(row.nodeResults);
-    const nodeResults =
-      relationNodeResults.length > 0
-        ? relationNodeResults
-        : readNodeResults(result.nodeResults);
-    const creditsUsed =
-      readOptionalNumber(row.creditsUsed) ??
-      readOptionalNumber(result.creditsUsed);
-    const durationMs =
-      readOptionalNumber(row.durationMs) ??
-      readOptionalNumber(result.durationMs);
-    const progress =
-      readOptionalNumber(row.progress) ??
-      readOptionalNumber(result.progress) ??
-      0;
-    const failedNodeId =
-      readOptionalString(row.failedNodeId) ??
-      readOptionalString(result.failedNodeId) ??
-      null;
-
-    return {
-      ...normalized,
-      creditsUsed,
-      durationMs,
-      failedNodeId,
-      inputValues: readRecord(result.inputValues),
-      metadata: normalizedMetadata,
-      nodeResults,
-      progress,
-      result: { ...result, metadata: normalizedMetadata },
-    };
+    return normalizeWorkflowExecution(normalized);
   }
 
   async captureMissingCostEstimate(
@@ -215,31 +155,13 @@ export class WorkflowExecutionsService extends BaseService<
     nodes: ExecutableNode[],
     brandId?: string | null,
   ): Promise<void> {
-    const existing = await this.prisma.workflowExecution.findFirst({
-      where: { id: executionId, organizationId, isDeleted: false },
-      select: { costEstimate: true, startedAt: true },
-    });
-    if (!existing || existing.costEstimate || existing.startedAt) return;
-    const estimate = await captureWorkflowCostEstimate(
+    return captureMissingWorkflowCostEstimate(
       this.prisma,
+      executionId,
       organizationId,
       nodes,
       brandId,
     );
-    await this.prisma.workflowExecution.updateMany({
-      where: {
-        id: executionId,
-        organizationId,
-        isDeleted: false,
-        costEstimate: { equals: Prisma.DbNull },
-        startedAt: null,
-      },
-      data: {
-        costEstimate: JSON.parse(
-          JSON.stringify(estimate),
-        ) as Prisma.InputJsonValue,
-      },
-    });
   }
 
   async findOne(
@@ -257,12 +179,12 @@ export class WorkflowExecutionsService extends BaseService<
       return execution;
     return {
       ...execution,
-      accounting: await this.getAccounting(execution.id, params.organizationId),
+      accounting: await readWorkflowAccounting(
+        this.prisma,
+        params.organizationId,
+        execution.id,
+      ),
     };
-  }
-
-  async getAccounting(executionId: string, organizationId: string) {
-    return readWorkflowAccounting(this.prisma, organizationId, executionId);
   }
 
   override async findAll(

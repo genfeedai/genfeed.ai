@@ -25,6 +25,9 @@ export class LlmVendorCostLedgerService {
         input.organizationId,
       )),
       costEvidence: input.costEvidence ?? 'unknown',
+      ...(input.pricingSnapshot
+        ? { pricingSnapshot: input.pricingSnapshot }
+        : {}),
       brandId: input.brandId,
       completionTokens: input.completionTokens,
       isByok: input.isByok,
@@ -66,6 +69,9 @@ export class LlmVendorCostLedgerService {
           vendorCostMicros: data.vendorCostMicros,
           costEvidence: data.costEvidence,
           model: data.model,
+          ...(input.pricingSnapshot
+            ? { pricingSnapshot: input.pricingSnapshot }
+            : {}),
         },
       });
     } else {

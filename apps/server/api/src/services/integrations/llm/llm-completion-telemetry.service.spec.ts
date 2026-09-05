@@ -64,6 +64,20 @@ describe('LlmCompletionTelemetryService', () => {
     service = module.get(LlmCompletionTelemetryService);
   });
 
+  it('freezes unknown model pricing explicitly in the receipt', async () => {
+    await service.recordCompletion({ ...event, model: 'unregistered-model' });
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pricingSnapshot: {
+          source: 'agent_chat_model_catalog',
+          fingerprint: expect.any(String),
+          promptPerMillion: null,
+          completionPerMillion: null,
+        },
+      }),
+    );
+  });
+
   it('persists vendor cost and captures $ai_generation without prompt content', async () => {
     await service.recordCompletion(event);
 

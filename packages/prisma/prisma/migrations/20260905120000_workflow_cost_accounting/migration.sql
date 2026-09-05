@@ -10,3 +10,5 @@ CREATE INDEX "credit_reservations_workflow_accounting_idx" ON "credit_reservatio
 ALTER TABLE "llm_vendor_costs" ADD COLUMN "costEvidence" TEXT;
 ALTER TABLE "media_vendor_costs" ADD COLUMN "costEvidence" TEXT;
 ALTER TABLE "media_vendor_costs" ADD COLUMN "pricingSnapshot" JSONB;
+
+ALTER TABLE "llm_vendor_costs" ADD COLUMN "pricingSnapshot" JSONB;

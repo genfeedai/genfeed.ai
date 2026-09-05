@@ -1,5 +1,6 @@
 import { readWorkflowAccountings } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
@@ -68,16 +69,14 @@ export class CostReportingService {
     await this.validateBrandScope(organizationId, query.brandId);
     const range = resolveCostReportRange(query);
     const rows = await this.prisma.workflowExecution.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         createdAt: { gte: range.from, lte: range.to },
         ...(query.brandId
           ? {
               costEstimate: { path: ['brandId'], equals: query.brandId },
             }
           : {}),
-      },
+      }),
       select: { id: true, workflowId: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
       take: 100,

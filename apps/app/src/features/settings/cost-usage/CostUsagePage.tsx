@@ -127,30 +127,36 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   });
   const workflowColumns: TableColumn<WorkflowCostReportExecution>[] = [
     {
-      header: 'Provider cost (USD)',
+      header: translate('workflowAccounting.providerCost'),
       key: 'accounting',
       render: (row) =>
         row.accounting?.actualProviderCostMicros == null
-          ? 'Unavailable'
+          ? translate('workflowAccounting.unavailable')
           : formatCurrency(row.accounting.actualProviderCostMicros / 1_000_000),
     },
-    { header: 'Execution', key: 'id' },
+    { header: translate('workflowAccounting.execution'), key: 'id' },
     {
-      header: 'Estimated credits',
+      header: translate('workflowAccounting.estimatedCredits'),
       key: 'workflowId',
-      render: (row) => row.accounting?.estimatedCredits ?? 'Unavailable',
+      render: (row) =>
+        row.accounting?.estimatedCredits ??
+        translate('workflowAccounting.unavailable'),
     },
     {
-      header: 'Actual credits',
+      header: translate('workflowAccounting.actualCredits'),
       key: 'accounting',
       render: (row) =>
         row.accounting?.actualCredits ??
-        `Unavailable (known ${row.accounting?.knownActualCredits ?? 0})`,
+        translate('workflowAccounting.known', {
+          value: row.accounting?.knownActualCredits ?? 0,
+        }),
     },
     {
-      header: 'Variance',
+      header: translate('workflowAccounting.variance'),
       key: 'createdAt',
-      render: (row) => row.accounting?.varianceCredits ?? 'Unavailable',
+      render: (row) =>
+        row.accounting?.varianceCredits ??
+        translate('workflowAccounting.unavailable'),
     },
   ];
   const exportWorkflows = async () => {
@@ -387,19 +393,18 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
 
       <div className="space-y-2">
         <AppTable
-          label="Workflow accounting"
+          label={translate('workflowAccounting.title')}
           columns={workflowColumns}
           items={workflowsQuery.data ?? []}
           isLoading={workflowsQuery.isLoading}
           getRowKey={(row) => row.id}
-          emptyLabel="No executions"
+          emptyLabel={translate('workflowAccounting.empty')}
         />
         <Text size="xs" color="muted">
-          Latest 100 executions in this period. Workflow totals are a separate
-          view of the ledger.
+          {translate('workflowAccounting.limit')}
         </Text>
         <Button variant={ButtonVariant.SECONDARY} onClick={exportWorkflows}>
-          Export workflow costs
+          {translate('workflowAccounting.export')}
         </Button>
       </div>
 

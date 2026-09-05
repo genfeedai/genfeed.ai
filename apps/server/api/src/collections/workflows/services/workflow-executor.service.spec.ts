@@ -14,6 +14,8 @@ import {
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.unmock('@genfeedai/prisma');
+
 const converter = new WorkflowEngineConverterService();
 const WORKFLOW_VERSION_ID = 'workflow-version-1';
 
@@ -91,6 +93,7 @@ describe('WorkflowExecutorService', () => {
     executeWorkflow: vi.fn(),
   };
   const executionsService = {
+    captureMissingCostEstimate: vi.fn(),
     completeExecution: vi.fn(),
     createExecution: vi.fn(),
     findOne: vi.fn(),

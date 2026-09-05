@@ -120,12 +120,6 @@
     "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
   },
   {
-    "actual": 1008,
-    "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts"
-  },
-  {
     "actual": 1070,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
