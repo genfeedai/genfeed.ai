@@ -65,6 +65,10 @@ export default defineConfig({
         replacement: path.resolve(mcpDir, '../../../packages/config/src/$1'),
       },
       {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.resolve(mcpDir, '../../../packages/helpers/src/$1'),
+      },
+      {
         find: '@helpers',
         replacement: path.resolve(mcpDir, '../../../packages/helpers/src'),
       },

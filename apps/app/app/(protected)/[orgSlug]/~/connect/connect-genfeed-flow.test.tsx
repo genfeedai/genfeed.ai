@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConnectGenfeedFlow from './connect-genfeed-flow';
@@ -202,8 +203,52 @@ describe('ConnectGenfeedFlow', () => {
     });
   });
 
+  it('defaults to OAuth without loading keys and never verifies from copying', async () => {
+    render(<ConnectGenfeedFlow />);
+    expect(
+      screen.getByRole('tab', { name: 'Browser authorization' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(mocks.findAll).not.toHaveBeenCalled();
+    expect(
+      screen.queryByLabelText('Stored value for the selected key'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy setup command' }));
+    await screen.findByText(
+      'Client setup copied. Complete authorization in your client.',
+    );
+    expect(screen.queryByText('Connection verified')).not.toBeInTheDocument();
+    expect(mocks.verifyMcpConnection).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/If access was denied or the login expired/),
+    ).toBeInTheDocument();
+  });
+
+  it('switches OAuth clients and provides an unsupported-client fallback', async () => {
+    render(<ConnectGenfeedFlow />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Claude Code' }));
+    expect(
+      screen.getByText(/Open \/mcp inside Claude Code/),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Generic MCP' }));
+    expect(
+      screen.getByRole('button', { name: 'Copy server URL' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/If your client does not support OAuth/),
+    ).toBeInTheDocument();
+    expect(mocks.findAll).not.toHaveBeenCalled();
+  });
+
   it('renders each client and secret-safe Codex configuration', async () => {
     render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
 
     expect(await screen.findByText('MCP key')).toBeInTheDocument();
     expect(
@@ -223,6 +268,9 @@ describe('ConnectGenfeedFlow', () => {
 
   it('verifies an existing key and opens the first draft handoff', async () => {
     render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
 
     await screen.findByText('MCP key');
     fireEvent.change(
@@ -269,6 +317,9 @@ describe('ConnectGenfeedFlow', () => {
     });
 
     render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
 
     fireEvent.click(
       await screen.findByRole('button', { name: /create scoped mcp key/i }),
@@ -297,6 +348,9 @@ describe('ConnectGenfeedFlow', () => {
     });
 
     render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
 
     await screen.findByText('MCP key');
     fireEvent.change(
@@ -319,6 +373,9 @@ describe('ConnectGenfeedFlow', () => {
     mocks.verifyMcpConnection.mockRejectedValue({ status: 400 });
 
     render(<ConnectGenfeedFlow />);
+    await userEvent.click(
+      screen.getByRole('tab', { name: 'Advanced: manual API key' }),
+    );
 
     await screen.findByText('MCP key');
     fireEvent.change(

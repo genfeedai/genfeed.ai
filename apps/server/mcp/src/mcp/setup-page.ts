@@ -1,6 +1,6 @@
 import process from 'node:process';
-
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
@@ -97,27 +97,29 @@ function buildAgentSetupPrompt(params: {
 }): string {
   const { apiKeysUrl, mcpUrl } = params;
 
+  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
+  const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
+
   return `Set up the Genfeed MCP server on this machine.
 
 Endpoint: ${mcpUrl}
-Authentication env var: GENFEED_API_KEY
+Authentication: browser OAuth (no API key required)
 Guided connection flow: ${apiKeysUrl}
 
 Do this end to end:
-1. Detect whether Claude Code, Codex, or both are installed.
-2. Check whether GENFEED_API_KEY is available in the shell environment.
-3. If the key is missing, ask me to export it locally or send me to the guided connection URL above. Do not request or paste the key into source-controlled files, command history, logs, or this chat.
-4. Configure Genfeed as a remote Streamable HTTP MCP server:
-   - Claude Code: claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"
-   - Codex: codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY
-   - If the Codex CLI is unavailable, update the user-level ~/.codex/config.toml with:
+1. Detect whether Claude Code, Codex, or both are installed. Inspect existing Genfeed configuration before changing it; preserve unrelated servers.
+2. Add Genfeed as a remote Streamable HTTP MCP server using browser authorization:
+   - Claude Code: ${claude.primaryCommand}
+   - Codex: ${codex.primaryCommand}
+   - Equivalent Codex user-level ~/.codex/config.toml:
 
-[mcp_servers.genfeed]
-url = "${mcpUrl}"
-bearer_token_env_var = "GENFEED_API_KEY"
+${codex.configuration}
 
-5. Verify the server appears in the client's MCP list or config.
-6. Report exactly what changed and any manual step still required.`;
+3. ${claude.authorizationInstruction}
+4. ${codex.authorizationInstruction}
+5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
+6. Verify access with a scoped read: list my Genfeed brands. A copied command or server list entry alone does not verify authorization.
+7. Report exactly what changed and any remaining authorization or verification step. If OAuth is unsupported, direct the user to the advanced manual-key path in guided setup.`;
 }
 
 export function getPublicMcpUrl(): string {
@@ -209,15 +211,11 @@ export function renderSetupPage(): string {
   const docsUrlSafe = escapeHtml(docsUrl);
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
-  const claudeCommandSafe = escapeHtml(
-    `claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"`,
-  );
-  const codexCommandSafe = escapeHtml(
-    `codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY`,
-  );
-  const codexTomlSafe = escapeHtml(`[mcp_servers.genfeed]
-url = "${mcpUrl}"
-bearer_token_env_var = "GENFEED_API_KEY"`);
+  const claude = buildConnectGenfeedInstructions('claude-code', mcpUrl);
+  const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
+  const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
+  const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
+  const codexTomlSafe = escapeHtml(codex.configuration);
   const agentSetupPromptSafe = escapeHtml(
     buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
@@ -715,10 +713,10 @@ ${postHogSnippet}
     <div>
       <p class="eyebrow">&lt; MCP server &gt;</p>
       <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
-      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with OAuth or an API key.</p>
+      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with browser authorization. Manual API keys remain an advanced option.</p>
       <div class="hero-actions">
         <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Start guided setup</a>
-        <a class="${ui.buttonSecondary}" href="${oauthDocsUrlSafe}" rel="noopener noreferrer">Connect automatically via OAuth</a>
+        <a class="${ui.buttonSecondary}" href="${oauthDocsUrlSafe}" rel="noopener noreferrer">OAuth setup guide</a>
         <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
       </div>
     </div>
@@ -773,7 +771,7 @@ ${postHogSnippet}
         <p class="section-kicker">Setup</p>
         <h2 class="section-title" id="setup-title">One server. <em>Any client.</em></h2>
       </div>
-      <p class="section-copy">Export a Genfeed API key, then add the remote HTTP server to your client.</p>
+      <p class="section-copy">Add Genfeed to your client and approve access in your browser. No API key is required.</p>
     </div>
 
     <div class="${ui.card}">
@@ -790,12 +788,12 @@ ${postHogSnippet}
         </div>
         <div class="agent-prompt-grid">
           <div class="agent-prompt-copy">
-            <p>Drop this into Claude Code, Codex, or another local agent with shell access. The agent detects the client, configures Genfeed, protects the API key, and verifies the result.</p>
+            <p>Drop this into Claude Code, Codex, or another local agent with shell access. The agent detects the client, configures Genfeed, starts browser authorization, and verifies access with a scoped read.</p>
             <pre class="${ui.codeBlock} command prompt-block"><code id="agent-setup-prompt">${agentSetupPromptSafe}</code></pre>
           </div>
           <div class="prompt-actions">
             <button class="${ui.buttonPrimary} copy" type="button" data-copy-source="agent-setup-prompt" aria-label="Copy AI setup prompt">Copy AI prompt</button>
-            <p class="prompt-note">The prompt references <code class="${ui.inlineCode}">GENFEED_API_KEY</code> by env var so the key stays out of the page and config files.</p>
+            <p class="prompt-note">You complete sign-in and consent in your browser. Copying this prompt does not authorize your client.</p>
           </div>
         </div>
       </section>
@@ -809,9 +807,8 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Export API key</p>
-              <p class="step-copy">Create a <code class="${ui.inlineCode}">gf_</code> key in Genfeed settings.</p>
-              <pre class="${ui.codeBlock} command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
+              <p class="step-title">Choose browser authorization</p>
+              <p class="step-copy">Add the server below without an Authorization header.</p>
             </div>
           </li>
           <li class="step">
@@ -826,7 +823,7 @@ ${postHogSnippet}
             <span class="step-number">03</span>
             <div>
               <p class="step-title">Verify</p>
-              <p class="step-copy">Run <code class="${ui.inlineCode}">claude mcp list</code> or open <code class="${ui.inlineCode}">/mcp</code>.</p>
+              <p class="step-copy">Open <code class="${ui.inlineCode}">/mcp</code> in Claude Code, select genfeed, and authenticate in your browser. Then ask your agent to list your Genfeed brands to verify access.</p>
             </div>
           </li>
         </ol>
@@ -841,9 +838,8 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">01</span>
             <div>
-              <p class="step-title">Export API key</p>
-              <p class="step-copy">Codex reads this env var for the bearer token.</p>
-              <pre class="${ui.codeBlock} command"><code>export GENFEED_API_KEY=gf_live_xxx</code></pre>
+              <p class="step-title">Choose browser authorization</p>
+              <p class="step-copy">Add the server below without a bearer-token environment variable.</p>
             </div>
           </li>
           <li class="step">
@@ -858,7 +854,7 @@ ${postHogSnippet}
             <span class="step-number">03</span>
             <div>
               <p class="step-title">Manual config</p>
-              <p class="step-copy">Paste this into a user or trusted project config.</p>
+              <p class="step-copy">Use this as an alternative to the add command. Run <code class="${ui.inlineCode}">codex mcp login genfeed</code> if setup did not open authorization. Approve in your browser, then ask Codex to list your Genfeed brands.</p>
               <pre class="${ui.codeBlock} command"><code>${codexTomlSafe}</code></pre>
             </div>
           </li>
@@ -871,16 +867,16 @@ ${postHogSnippet}
     <div class="section-head">
       <div>
         <p class="section-kicker">Details</p>
-        <h2 class="section-title" id="details-title">Endpoint. <em>API auth.</em></h2>
+        <h2 class="section-title" id="details-title">Endpoint. <em>Authorization.</em></h2>
       </div>
-      <p class="section-copy">MCP calls go to <code class="${ui.inlineCode}">${mcpUrlSafe}</code> and use the permissions on the API key.</p>
+      <p class="section-copy">MCP calls go to <code class="${ui.inlineCode}">${mcpUrlSafe}</code> and use the permissions you authorized.</p>
     </div>
 
     <div class="meta-grid">
       <article class="${ui.infoCard}">
         <p class="meta-label">Authentication</p>
-        <h3>Bearer token</h3>
-        <p>Send <code class="${ui.inlineCode}">Authorization: Bearer gf_live_xxx</code> with every request.</p>
+        <h3>Browser OAuth</h3>
+        <p>Your client manages the access token after sign-in and consent. For clients without OAuth, choose Advanced: manual API key in guided setup.</p>
         <a href="${connectUrlSafe}" rel="noopener noreferrer">Open guided setup</a>
       </article>
       <article class="${ui.infoCard}">
@@ -899,7 +895,7 @@ ${postHogSnippet}
 
     <div class="${ui.warningNote} mcp-warning-note" role="note">
       <span class="warning-mark">!</span>
-      <span>Keep API keys out of commits and shared logs.</span>
+      <span>If access is denied or login expires, restart authorization in your client. Use the advanced manual-key path if OAuth is unsupported. Keep tokens out of shared logs.</span>
     </div>
   </section>
 

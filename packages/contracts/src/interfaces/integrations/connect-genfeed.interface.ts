@@ -1,11 +1,15 @@
 export type ConnectGenfeedClient = 'claude-code' | 'codex' | 'generic';
 
+export type ConnectGenfeedAuthMethod = 'oauth' | 'manual-key';
+
 export type ConnectGenfeedVerificationFailure =
   | 'invalid_key'
   | 'invalid_scope'
   | 'unreachable_endpoint';
 
 export interface ConnectGenfeedInstructions {
+  authMethod: ConnectGenfeedAuthMethod;
+  authorizationInstruction: string;
   client: ConnectGenfeedClient;
   configuration: string;
   environmentCommand: string;

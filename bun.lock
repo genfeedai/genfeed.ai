@@ -479,6 +479,7 @@
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@posthog/mcp": "0.12.0",
