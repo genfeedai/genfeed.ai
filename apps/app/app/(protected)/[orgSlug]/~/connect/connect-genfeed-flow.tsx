@@ -397,7 +397,7 @@ export default function ConnectGenfeedFlow() {
           <Button
             onClick={() =>
               void copyText(
-                'Client setup',
+                instructions.primaryCommand ? 'Client setup' : 'Server URL',
                 instructions.primaryCommand ?? endpoint,
               )
             }

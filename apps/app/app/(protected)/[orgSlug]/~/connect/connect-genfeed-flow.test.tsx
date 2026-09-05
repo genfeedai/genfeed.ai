@@ -241,6 +241,14 @@ describe('ConnectGenfeedFlow', () => {
     expect(
       screen.getByText(/If your client does not support OAuth/),
     ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Copy server URL' }),
+    );
+    expect(
+      await screen.findByText(
+        'Server URL copied. Complete authorization in your client.',
+      ),
+    ).toBeInTheDocument();
     expect(mocks.findAll).not.toHaveBeenCalled();
   });
 
