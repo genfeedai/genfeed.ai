@@ -41,8 +41,8 @@ export function parseCredentialBackfillArgs(
 
 /**
  * Runs only after encrypt-on-write services are stable. The dedicated connection
- * owns one transaction: failure rolls back both data and completion, and a killed
- * task releases the advisory lock. Row locks prevent overwriting token refreshes.
+ * holds the advisory lock across bounded batch transactions. Failed batches roll
+ * back; retries skip previously committed ciphertext. Row locks protect refreshes.
  * This cross-tenant maintenance includes deleted credentials with retained secrets.
  */
 export async function runCredentialEncryptionBackfill(
@@ -65,81 +65,113 @@ export async function runCredentialEncryptionBackfill(
     rowsUpdated: 0,
     fieldsEncrypted: 0,
   };
-  await client.query('BEGIN');
+  let acquired = false;
+  let failed = false;
   try {
-    await client.query("SET LOCAL lock_timeout = '5s'");
-    await client.query("SET LOCAL statement_timeout = '120s'");
-    await client.query("SET LOCAL idle_in_transaction_session_timeout = '30s'");
     if (!args.dryRun) {
       const lock = await client.query<{ acquired: boolean }>(
-        'SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS acquired',
+        'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired',
         [CREDENTIAL_BACKFILL_VERSION],
       );
-      if (!lock.rows[0]?.acquired)
+      acquired = lock.rows[0]?.acquired === true;
+      if (!acquired) {
         throw new Error(
           'Credential backfill is already running; retry after it finishes',
         );
+      }
       const completed = await client.query(
         'SELECT id FROM data_backfills WHERE id = $1',
         [CREDENTIAL_BACKFILL_VERSION],
       );
-      if (completed.rowCount) {
-        await client.query('COMMIT');
-        return { ...report, skipped: true };
-      }
+      if (completed.rowCount) return { ...report, skipped: true };
     }
 
     const columns = SECRET_FIELDS.map((field) => `"${field}"`).join(', ');
     let afterId: string | null = null;
     for (;;) {
-      const rows: QueryResult<CredentialRow> =
-        await client.query<CredentialRow>(
-          `SELECT id, ${columns} FROM credentials
-         WHERE ($1::text IS NULL OR id > $1)
-         ORDER BY id LIMIT $2 ${args.dryRun ? '' : 'FOR UPDATE'}`,
-          [afterId, args.batchSize],
+      await client.query('BEGIN');
+      try {
+        await client.query("SET LOCAL lock_timeout = '5s'");
+        await client.query("SET LOCAL statement_timeout = '120s'");
+        await client.query(
+          "SET LOCAL idle_in_transaction_session_timeout = '30s'",
         );
-      if (!rows.rowCount) break;
-      for (const row of rows.rows) {
-        report.rowsScanned += 1;
-        const updates: string[] = [];
-        const values: string[] = [row.id];
-        for (const field of SECRET_FIELDS) {
-          const value = row[field];
-          if (!value || CIPHERTEXT_PATTERN.test(value)) continue;
-          const iv = randomBytes(16);
-          const cipher = createCipheriv('aes-256-gcm', key, iv);
-          const encrypted = Buffer.concat([
-            cipher.update(value, 'utf8'),
-            cipher.final(),
-          ]);
-          values.push(
-            `${iv.toString('hex')}:${encrypted.toString('hex')}:${cipher.getAuthTag().toString('hex')}`,
+        const rows: QueryResult<CredentialRow> =
+          await client.query<CredentialRow>(
+            `SELECT id, ${columns} FROM credentials
+           WHERE ($1::text IS NULL OR id > $1)
+           ORDER BY id LIMIT $2 ${args.dryRun ? '' : 'FOR UPDATE'}`,
+            [afterId, args.batchSize],
           );
-          updates.push(`"${field}" = $${values.length}`);
-          report.fieldsEncrypted += 1;
+        if (!rows.rowCount) {
+          // The session lock excludes other backfill runners until this final
+          // transaction commits. Encrypt-on-write services own concurrent inserts.
+          if (!args.dryRun) {
+            await client.query(
+              'INSERT INTO data_backfills (id, report) VALUES ($1, $2::jsonb)',
+              [CREDENTIAL_BACKFILL_VERSION, JSON.stringify(report)],
+            );
+          }
+          await client.query('COMMIT');
+          return report;
         }
-        if (!updates.length) continue;
-        report.rowsUpdated += 1;
-        if (!args.dryRun) {
-          await client.query(
-            `UPDATE credentials SET ${updates.join(', ')} WHERE id = $1`,
-            values,
-          );
+        for (const row of rows.rows) {
+          report.rowsScanned += 1;
+          const updates: string[] = [];
+          const values: string[] = [row.id];
+          for (const field of SECRET_FIELDS) {
+            const value = row[field];
+            if (!value || CIPHERTEXT_PATTERN.test(value)) continue;
+            const iv = randomBytes(16);
+            const cipher = createCipheriv('aes-256-gcm', key, iv);
+            const encrypted = Buffer.concat([
+              cipher.update(value, 'utf8'),
+              cipher.final(),
+            ]);
+            values.push(
+              `${iv.toString('hex')}:${encrypted.toString('hex')}:${cipher.getAuthTag().toString('hex')}`,
+            );
+            updates.push(`"${field}" = $${values.length}`);
+            report.fieldsEncrypted += 1;
+          }
+          if (!updates.length) continue;
+          report.rowsUpdated += 1;
+          if (!args.dryRun) {
+            await client.query(
+              `UPDATE credentials SET ${updates.join(', ')} WHERE id = $1`,
+              values,
+            );
+          }
         }
+        await client.query('COMMIT');
+        afterId = rows.rows.at(-1)?.id ?? null;
+      } catch (error) {
+        try {
+          await client.query('ROLLBACK');
+        } catch {
+          // Preserve the query failure if a lost connection also prevents rollback.
+          // The caller closes this dedicated connection in its finally block.
+        }
+        throw error;
       }
-      afterId = rows.rows.at(-1)?.id ?? null;
     }
-    if (!args.dryRun) {
-      await client.query(
-        'INSERT INTO data_backfills (id, report) VALUES ($1, $2::jsonb)',
-        [CREDENTIAL_BACKFILL_VERSION, JSON.stringify(report)],
-      );
-    }
-    await client.query('COMMIT');
-    return report;
   } catch (error) {
-    await client.query('ROLLBACK');
+    failed = true;
     throw error;
+  } finally {
+    if (acquired) await releaseBackfillLock(client, failed);
+  }
+}
+
+async function releaseBackfillLock(
+  client: Client,
+  preserveFailure: boolean,
+): Promise<void> {
+  try {
+    await client.query('SELECT pg_advisory_unlock(hashtextextended($1, 0))', [
+      CREDENTIAL_BACKFILL_VERSION,
+    ]);
+  } catch (error) {
+    if (!preserveFailure) throw error;
   }
 }
