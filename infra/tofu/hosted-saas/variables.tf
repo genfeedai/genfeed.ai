@@ -91,16 +91,6 @@ variable "asg_desired" {
   default = 2
 }
 
-# ── Image ────────────────────────────────────────────────────────────
-# ⚠ CI passes -var="image_tag=<commit-sha>". The "latest" default is a
-# placeholder — a bare local apply inherits it and would replace every task
-# definition (a full prod redeploy to :latest). See the header in providers.tf.
-variable "image_tag" {
-  type        = string
-  default     = "latest"
-  description = "ECR tag of the server image to deploy (CI passes the immutable source SHA)."
-}
-
 variable "redis_auth_token_update_strategy" {
   type        = string
   default     = "SET"
@@ -139,11 +129,10 @@ variable "cdn_bucket" {
 }
 
 variable "image_digest" {
-  description = "Verified ECR manifest digest; deploys prefer this over the descriptive image tag."
+  description = "Verified ECR manifest digest required for every infrastructure plan and apply."
   type        = string
-  default     = ""
   validation {
-    condition     = var.image_digest == "" || can(regex("^sha256:[0-9a-f]{64}$", var.image_digest))
-    error_message = "image_digest must be empty or an immutable SHA-256 digest."
+    condition     = can(regex("^sha256:[0-9a-f]{64}$", var.image_digest))
+    error_message = "image_digest must be an immutable SHA-256 digest."
   }
 }

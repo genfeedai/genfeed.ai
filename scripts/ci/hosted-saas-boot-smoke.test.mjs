@@ -74,3 +74,68 @@ for (const [api, worker] of [
     );
   });
 }
+
+const verifyWorkflow = readFileSync(
+  new URL('../../.github/workflows/build-verify.yml', import.meta.url),
+  'utf8',
+);
+const releaseSelection = verifyWorkflow
+  .split('\n')
+  .find((line) => line.trim().startsWith('previous_release='));
+
+test('upgrade baseline uses the newest published stable server release across pages', () => {
+  assert.ok(releaseSelection);
+  const releases = [
+    [
+      {
+        tag_name: 'desktop-v9.0.0',
+        published_at: '2026-09-05',
+        draft: false,
+        prerelease: false,
+      },
+      {
+        tag_name: 'v0.7.0',
+        published_at: '2026-07-01',
+        draft: false,
+        prerelease: false,
+      },
+      {
+        tag_name: 'v0.9.0',
+        published_at: '2026-09-05',
+        draft: false,
+        prerelease: true,
+      },
+      {
+        tag_name: 'v0.8.0',
+        published_at: '2026-09-04',
+        draft: true,
+        prerelease: false,
+      },
+    ],
+    [
+      {
+        tag_name: 'v0.1.70',
+        published_at: '2026-09-01',
+        draft: false,
+        prerelease: false,
+      },
+    ],
+  ];
+  const shell = `set -eo pipefail
+gh() { printf '%s' "$RELEASES"; }
+${releaseSelection}
+printf '%s' "$previous_release"`;
+  const run = (pages) =>
+    spawnSync('bash', ['-c', shell], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        RELEASES: JSON.stringify(pages),
+        GITHUB_REPOSITORY: 'example/repo',
+      },
+    });
+  const result = run(releases);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'v0.1.70');
+  assert.notEqual(run([[]]).status, 0);
+});

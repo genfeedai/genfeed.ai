@@ -289,7 +289,8 @@ jobs:
             exit 1
           fi
 
-          if [ "$(node ops/scripts/ci/server-image-inputs.mjs --cwd source --base "$ANCESTOR" --head "$HEAD_SHA")" = "false" ]; then
+          inputs_changed="$(node ops/scripts/ci/server-image-inputs.mjs --cwd source --base "$ANCESTOR" --head "$HEAD_SHA")"
+          if [ "$inputs_changed" = "false" ]; then
             echo "::warning::server:${HEAD_SHA} was not built, but server-image inputs are unchanged since ${ANCESTOR}; deploying ${ANCESTOR} (no wait)."
             echo "sha=$ANCESTOR" >> "$GITHUB_OUTPUT"
             exit 0
@@ -340,7 +341,6 @@ jobs:
       - name: Register migration, backfill, and boot-smoke task definitions
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           # OpenTofu 1.12 forbids mixing -target and -exclude. Task defs read
@@ -440,7 +440,6 @@ jobs:
       - name: Tofu apply (roll services to new image)
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           # Roll services with REDIS_PASSWORD first. Redis AUTH is applied after
@@ -464,7 +463,6 @@ jobs:
       - name: Require Redis TLS and AUTH
         working-directory: ops/${{ env.TF_DIR }}
         env:
-          TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
           set -euo pipefail
