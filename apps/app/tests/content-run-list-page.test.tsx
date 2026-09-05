@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import ContentRunListPage from '@pages/content-runs/list/content-run-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -119,6 +119,11 @@ describe('ContentRunListPage', () => {
         screen.getByText('Content runs could not be loaded.'),
       ).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    list.mockResolvedValue([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('No content runs yet')).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
