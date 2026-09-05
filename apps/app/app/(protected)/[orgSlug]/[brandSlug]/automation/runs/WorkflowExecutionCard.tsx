@@ -5,9 +5,12 @@ import {
   ButtonVariant,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 interface WorkflowExecutionCardProps {
@@ -56,6 +59,10 @@ export default function WorkflowExecutionCard({
   onCancel,
 }: WorkflowExecutionCardProps) {
   const translate = useTranslations('common.automation.workflowExecutions');
+  const translateExecutions = useTranslations(
+    'common.automation.workflows.executions',
+  );
+  const { href } = useOrgUrl();
   const isActive =
     execution.status === WorkflowExecutionStatus.PENDING ||
     execution.status === WorkflowExecutionStatus.RUNNING;
@@ -94,6 +101,11 @@ export default function WorkflowExecutionCard({
                 execution.createdAt,
             )}
           </span>
+          <Button asChild size={ButtonSize.XS} variant={ButtonVariant.GHOST}>
+            <Link href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}>
+              {translateExecutions('viewDetails')}
+            </Link>
+          </Button>
           {isActive && onCancel ? (
             <Button
               className="text-destructive hover:text-destructive"

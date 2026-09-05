@@ -132,7 +132,7 @@ test.describe('Workspace — deep interactions', () => {
     ).toHaveCount(0);
 
     const openReview = authenticatedPage
-      .getByTestId('operational-home-approvals')
+      .getByTestId('operational-home-needs-you')
       .getByRole('link', { name: 'Open queue' });
     await expect(openReview).toBeVisible();
     await openReview.click();
