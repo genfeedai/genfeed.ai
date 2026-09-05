@@ -1539,13 +1539,20 @@ describe('TelegramBotManager handlers', () => {
     it('fails the run when the execution request throws', async () => {
       await registerBot();
       service.setSession(CHAT_ID, confirmedSession());
-      httpMock.post.mockReturnValue(throwError(() => new Error('api down')));
+      httpMock.post.mockReturnValue(
+        throwError(
+          () =>
+            new Error(
+              'agent-error:{"source":"network","message":"opaque transport envelope"}',
+            ),
+        ),
+      );
       const ctx = createCtx({ callbackQuery: { data: 'confirm:run' } });
 
       await getEventHandler('callback_query:data')(asContext(ctx));
 
       expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Run failed'),
+        expect.stringContaining('Connection interrupted'),
       );
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });

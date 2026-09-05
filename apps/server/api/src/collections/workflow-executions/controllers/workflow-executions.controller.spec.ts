@@ -342,6 +342,20 @@ describe('WorkflowExecutionsController', () => {
       expect(mockService.findAll).not.toHaveBeenCalled();
     });
 
+    it('rejects offsets that do not start a complete page', async () => {
+      await expect(
+        controller.findAdminFailures(
+          mockRequest,
+          { isSuperAdmin: true } as never,
+          {
+            limit: 20,
+            offset: 10,
+          },
+        ),
+      ).rejects.toThrow('Offset must be a multiple of limit');
+      expect(mockService.findAll).not.toHaveBeenCalled();
+    });
+
     it('includes unclassified historical failures in the unknown filter', async () => {
       mockService.findAll.mockResolvedValue({ docs: [] });
       await controller.findAdminFailures(

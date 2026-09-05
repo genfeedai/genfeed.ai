@@ -861,9 +861,8 @@ export class DiscordBotManager
         this.sanitizeErrorForLog(error),
       );
       const send = interaction.channel?.send;
-      await send?.(
-        formatAgentFailureMessage(error instanceof Error ? error : undefined),
-      );
+      const message = error instanceof Error ? error.message : undefined;
+      await send?.(formatAgentFailureMessage(message));
       this.deleteSession(sessionKey);
     }
   }

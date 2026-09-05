@@ -825,9 +825,8 @@ export class TelegramBotManager
         'Failed to execute workflow:',
         this.sanitizeErrorForLog(error),
       );
-      await ctx.reply(
-        formatAgentFailureMessage(error instanceof Error ? error : undefined),
-      );
+      const message = error instanceof Error ? error.message : undefined;
+      await ctx.reply(formatAgentFailureMessage(message));
       this.deleteSession(chatId);
     }
   }
@@ -1020,9 +1019,8 @@ export class TelegramBotManager
         'Failed while monitoring workflow execution:',
         this.sanitizeErrorForLog(error),
       );
-      await ctx.reply(
-        formatAgentFailureMessage(error instanceof Error ? error : undefined),
-      );
+      const message = error instanceof Error ? error.message : undefined;
+      await ctx.reply(formatAgentFailureMessage(message));
       this.deleteSession(chatId);
     }
   }

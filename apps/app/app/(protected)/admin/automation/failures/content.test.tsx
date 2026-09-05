@@ -1,7 +1,9 @@
+import { AgentFailureReason } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import pages from '../../../../../messages/en/pages.json';
 import AgentFailuresPage from './content';
 import '@testing-library/jest-dom/vitest';
 
@@ -26,6 +28,15 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
 }));
 
 describe('AgentFailuresPage', () => {
+  it('provides an English label for every failure reason', () => {
+    expect(Object.keys(pages.agentFailures.reasons).toSorted()).toEqual(
+      Object.values(AgentFailureReason).toSorted(),
+    );
+    for (const label of Object.values(pages.agentFailures.reasons)) {
+      expect(label.trim().length).toBeGreaterThan(0);
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     Element.prototype.hasPointerCapture = vi.fn(() => false);

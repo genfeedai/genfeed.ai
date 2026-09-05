@@ -171,6 +171,9 @@ export class WorkflowExecutionsController {
         'Only platform superadmins can access agent failures',
       );
     }
+    if (query.offset % query.limit !== 0) {
+      throw new BadRequestException('Offset must be a multiple of limit');
+    }
     const result = await this.workflowExecutionsService.findAll(
       {
         include: { workflow: { select: { id: true, label: true } } },

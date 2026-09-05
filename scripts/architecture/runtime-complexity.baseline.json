@@ -360,7 +360,7 @@
     "symbol": "DesktopSyncService.pushAssets"
   },
   {
-    "actual": 1018,
+    "actual": 1017,
     "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
@@ -372,7 +372,7 @@
     "symbol": "ToolRegistryService.handleLegacyTool"
   },
   {
-    "actual": 1029,
+    "actual": 1027,
     "file": "apps/server/telegram/src/services/telegram-bot-manager.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/telegram/src/services/telegram-bot-manager.service.ts"
