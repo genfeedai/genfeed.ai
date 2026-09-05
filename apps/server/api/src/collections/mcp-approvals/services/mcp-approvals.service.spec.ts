@@ -3,6 +3,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
+import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -310,6 +311,7 @@ describe('McpApprovalsService', () => {
           organizationId: 'org-1',
           isDeleted: false,
           status: 'APPROVED',
+          result: { equals: Prisma.DbNull },
         },
         data: { executedAt: expect.any(Date), result: { output: 42 } },
       });
@@ -339,4 +341,24 @@ describe('McpApprovalsService', () => {
       });
     });
   });
+  it.each([0, 1])(
+    'claims an approved execution atomically when %s rows match',
+    async (count) => {
+      mcpApproval.updateMany.mockResolvedValue({ count });
+      expect(await service.claimExecution('approval-claim', 'org-1')).toBe(
+        count === 1,
+      );
+      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'approval-claim',
+          organizationId: 'org-1',
+          isDeleted: false,
+          status: 'APPROVED',
+          executionClaimedAt: null,
+          result: { equals: Prisma.DbNull },
+        },
+        data: { executionClaimedAt: expect.any(Date) },
+      });
+    },
+  );
 });
