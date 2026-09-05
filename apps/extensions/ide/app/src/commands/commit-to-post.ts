@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import * as vscode from 'vscode';
@@ -138,14 +138,11 @@ async function handleNewCommit(
       title: `GenFeed: generating ${platform} post from commit…`,
     },
     () =>
-      ApiService.getInstance().executeAgentTool(
-        AgentToolName.GENERATE_CONTENT,
-        {
-          platform: normalizePlatform(platform),
-          topic: prompt,
-          type: 'post',
-        },
-      ),
+      ApiService.getInstance().executeAgentTool('generate_content', {
+        platform: normalizePlatform(platform),
+        topic: prompt,
+        type: 'post',
+      }),
   );
 
   const generatedText = extractGeneratedText(result.data);

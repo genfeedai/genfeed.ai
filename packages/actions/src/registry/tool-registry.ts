@@ -198,7 +198,7 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       category: inferCategory(tool.name),
       creditCost: tool.creditCost,
       description: tool.description,
-      name: tool.name,
+      name: entry.name,
       parameters: tool.parameters,
       requiredRole: tool.requiredRole,
       surfaces: {

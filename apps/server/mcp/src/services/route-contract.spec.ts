@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getToolsForSurface } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /**
  * Route-contract test (PR 5/6). The MCP server is a thin HTTP proxy: every tool
@@ -178,7 +177,7 @@ interface ContractRoute {
 
 /**
  * Every non-agent-executor MCP tool's client path ↔ the API route that mounts
- * it. Agent-executor tools (those in `AgentToolName`) all proxy through
+ * it. Agent-executor tools (those in `CuratedActionName`) all proxy through
  * `POST /agent-tools/:name/execute`; they are covered by the single agentTools
  * route below plus the coverage assertion.
  */
@@ -197,8 +196,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['install_skills_pro_skill'],
   },
 
-  // ── Agent executor (shared route for all AgentToolName tools) ──
-  // `get_content_analytics` is a legacy-switch tool, not an `AgentToolName`, but
+  // ── Agent executor (shared route for all CuratedActionName tools) ──
+  // `get_content_analytics` is a legacy-switch tool, not an `CuratedActionName`, but
   // its article/image branch proxies to the agent executor — so it is named here
   // explicitly rather than being covered by the blanket agent-executor entry.
   {
@@ -654,7 +653,9 @@ const decoratorFor = (route: ContractRoute): string =>
   route.sub === '' ? `@${route.method}()` : `@${route.method}('${route.sub}')`;
 
 const catalog = getToolsForSurface('mcp').map((tool) => tool.name);
-const agentExecutorNames = new Set<string>(Object.values(AgentToolName));
+const agentExecutorNames = new Set<string>(
+  getToolsForSurface('agent').map((tool) => tool.name),
+);
 
 describe('MCP → API route contract', () => {
   it('mounts every controller the MCP proxy depends on at its expected prefix', () => {

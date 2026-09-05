@@ -1,6 +1,6 @@
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { CacheService } from '@api/services/cache/cache.service';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -35,7 +35,7 @@ describe('AgentToolConfirmationService#prepareToolCall (#4306)', () => {
         sourceActionId: 'forged-action-id',
       },
       threadId: 'thread-1',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
       userId: 'user-1',
     });
 
@@ -48,7 +48,7 @@ describe('AgentToolConfirmationService#prepareToolCall (#4306)', () => {
       expect.objectContaining({
         organizationId: 'org-1',
         threadId: 'thread-1',
-        toolName: AgentToolName.CREATE_POST,
+        toolName: 'create_post',
         userId: 'user-1',
       }),
     );
@@ -66,7 +66,7 @@ describe('AgentToolConfirmationService#prepareToolCall (#4306)', () => {
         workflowId: 'workflow-1',
       },
       threadId: 'thread-1',
-      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      toolName: 'install_official_workflow',
       userId: 'user-1',
     });
 
@@ -84,7 +84,7 @@ describe('AgentToolConfirmationService#prepareToolCall (#4306)', () => {
       organizationId: 'org-1',
       parameters: { prompt: 'A red apple' },
       threadId: 'thread-1',
-      toolName: AgentToolName.GENERATE_IMAGE,
+      toolName: 'generate_image',
       userId: 'user-1',
     });
 

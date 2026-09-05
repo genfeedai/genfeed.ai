@@ -1,8 +1,5 @@
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
-import {
-  AgentToolName,
-  type AgentUiAction,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 describe('AgentCompletionCardBuilderService', () => {
   const service = new AgentCompletionCardBuilderService();
@@ -22,9 +19,7 @@ describe('AgentCompletionCardBuilderService', () => {
 
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
-      toolCalls: [
-        { status: 'completed', toolName: AgentToolName.CREATE_WORKFLOW },
-      ],
+      toolCalls: [{ status: 'completed', toolName: 'create_workflow' }],
       uiActions: [workflowAction],
     });
 
@@ -115,7 +110,7 @@ describe('AgentCompletionCardBuilderService', () => {
       toolCalls: [
         {
           status: 'completed',
-          toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+          toolName: 'install_official_workflow',
         },
       ],
       uiActions: [confirmationAction],
@@ -164,9 +159,7 @@ describe('AgentCompletionCardBuilderService', () => {
 
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
-      toolCalls: [
-        { status: 'completed', toolName: AgentToolName.GENERATE_CONTENT },
-      ],
+      toolCalls: [{ status: 'completed', toolName: 'generate_content' }],
       uiActions: [contentAction],
     });
 
@@ -184,9 +177,7 @@ describe('AgentCompletionCardBuilderService', () => {
     };
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
-      toolCalls: [
-        { status: 'completed', toolName: AgentToolName.GENERATE_CONTENT },
-      ],
+      toolCalls: [{ status: 'completed', toolName: 'generate_content' }],
       uiActions: [threadPreview],
     });
 
@@ -219,15 +210,15 @@ describe('AgentCompletionCardBuilderService', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
       toolCalls: [
-        { status: 'completed', toolName: AgentToolName.CREATE_POST },
-        { status: 'failed', toolName: AgentToolName.SCHEDULE_POST },
+        { status: 'completed', toolName: 'create_post' },
+        { status: 'failed', toolName: 'schedule_post' },
       ],
       uiActions: [],
     });
 
     expect(result.uiActions).toEqual([
       {
-        id: `completion-summary-tools-${AgentToolName.CREATE_POST}`,
+        id: `completion-summary-tools-${'create_post'}`,
         outcomeBullets: ['1 tool action completed', 'Tool: Create Post'],
         secondaryCtas: [
           {
@@ -271,16 +262,14 @@ describe('AgentCompletionCardBuilderService', () => {
     expect(
       service.buildAssistantUiActions({
         reviewRequired: false,
-        toolCalls: [{ status: 'failed', toolName: AgentToolName.CREATE_POST }],
+        toolCalls: [{ status: 'failed', toolName: 'create_post' }],
         uiActions: [],
       }).uiActions,
     ).toEqual([]);
     expect(
       service.buildAssistantUiActions({
         reviewRequired: false,
-        toolCalls: [
-          { status: 'completed', toolName: AgentToolName.GET_CREDITS_BALANCE },
-        ],
+        toolCalls: [{ status: 'completed', toolName: 'get_credits_balance' }],
         uiActions: [existingAction],
       }).uiActions,
     ).toEqual([existingAction]);
@@ -290,9 +279,7 @@ describe('AgentCompletionCardBuilderService', () => {
     expect(
       service.buildAssistantUiActions({
         reviewRequired: false,
-        toolCalls: [
-          { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
-        ],
+        toolCalls: [{ status: 'completed', toolName: 'get_current_brand' }],
         uiActions: [],
       }).uiActions,
     ).toEqual([]);
@@ -301,11 +288,11 @@ describe('AgentCompletionCardBuilderService', () => {
       service.buildAssistantUiActions({
         reviewRequired: false,
         toolCalls: [
-          { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
-          { status: 'completed', toolName: AgentToolName.LIST_BRANDS },
+          { status: 'completed', toolName: 'get_current_brand' },
+          { status: 'completed', toolName: 'list_brands' },
           {
             status: 'completed',
-            toolName: AgentToolName.GET_CONNECTION_STATUS,
+            toolName: 'get_connection_status',
           },
         ],
         uiActions: [],
@@ -317,14 +304,14 @@ describe('AgentCompletionCardBuilderService', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
       toolCalls: [
-        { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
-        { status: 'completed', toolName: AgentToolName.CREATE_POST },
+        { status: 'completed', toolName: 'get_current_brand' },
+        { status: 'completed', toolName: 'create_post' },
       ],
       uiActions: [],
     });
 
     expect(result.uiActions[0]).toMatchObject({
-      id: `completion-summary-tools-${AgentToolName.CREATE_POST}`,
+      id: `completion-summary-tools-${'create_post'}`,
       summaryText: 'Completed this request successfully.',
       type: 'completion_summary_card',
     });
@@ -337,9 +324,7 @@ describe('AgentCompletionCardBuilderService', () => {
   it('suppresses suggestions during review and keeps one concrete preview', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: true,
-      toolCalls: [
-        { status: 'completed', toolName: AgentToolName.GENERATE_IMAGE },
-      ],
+      toolCalls: [{ status: 'completed', toolName: 'generate_image' }],
       uiActions: [
         {
           id: 'content-preview-1',
@@ -363,9 +348,9 @@ describe('AgentCompletionCardBuilderService', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
       toolCalls: [
-        { status: 'completed', toolName: AgentToolName.CREATE_WORKFLOW },
-        { status: 'completed', toolName: AgentToolName.GENERATE_IMAGE },
-        { status: 'completed', toolName: AgentToolName.GET_ANALYTICS },
+        { status: 'completed', toolName: 'create_workflow' },
+        { status: 'completed', toolName: 'generate_image' },
+        { status: 'completed', toolName: 'get_analytics' },
       ],
       uiActions: [],
     });
@@ -399,7 +384,7 @@ describe('AgentCompletionCardBuilderService', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: AgentToolName.GET_CONNECTION_STATUS,
+            toolName: 'get_connection_status',
           },
         ],
         uiActions: [
@@ -442,7 +427,7 @@ describe('AgentCompletionCardBuilderService', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: AgentToolName.GET_CONNECTION_STATUS,
+            toolName: 'get_connection_status',
           },
         ],
         uiActions: [
@@ -474,7 +459,7 @@ describe('AgentCompletionCardBuilderService', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: AgentToolName.GET_CONNECTION_STATUS,
+            toolName: 'get_connection_status',
           },
         ],
         uiActions: [
@@ -506,7 +491,7 @@ describe('AgentCompletionCardBuilderService', () => {
         toolCalls: [
           {
             status: 'completed',
-            toolName: AgentToolName.GET_CONNECTION_STATUS,
+            toolName: 'get_connection_status',
           },
         ],
         uiActions: [connectCard('twitter')],
@@ -525,19 +510,19 @@ describe('AgentCompletionCardBuilderService', () => {
   it.each([
     {
       expectedId: 'analytics-repeat',
-      toolName: AgentToolName.GET_ANALYTICS,
+      toolName: 'get_analytics',
     },
     {
       expectedId: 'publish-followup',
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     },
     {
       expectedId: 'review-ready',
-      toolName: AgentToolName.LIST_REVIEW_QUEUE,
+      toolName: 'list_review_queue',
     },
     {
       expectedId: 'trends-batch',
-      toolName: AgentToolName.GET_TRENDS,
+      toolName: 'get_trends',
     },
   ])(
     'preserves $expectedId as the first suggestion for $toolName',

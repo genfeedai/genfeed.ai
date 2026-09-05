@@ -42,8 +42,9 @@ import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
@@ -157,7 +158,7 @@ export class AgentOrchestratorSyncLoopService {
           ? (this.skillRuntimeService.mergeSkillToolOverrides(
               typeConfig?.defaultTools,
               context.resolvedSkills,
-            ) as AgentToolName[] | undefined)
+            ) as CuratedActionName[] | undefined)
           : typeConfig?.defaultTools;
       const tools = buildToolDefinitions(
         mergeAllowedTools(
@@ -169,7 +170,7 @@ export class AgentOrchestratorSyncLoopService {
         resolveBlockedTools({ source: request.source }),
       );
       const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as AgentToolName),
+        tools.map((tool) => tool.function.name as CuratedActionName),
       );
       const messages = [...history];
       let round = 0;

@@ -1,22 +1,22 @@
+import type { CuratedActionName } from '@genfeedai/actions';
 import {
   AgentGenerationMode,
   isExplicitAgentMediaGenerationMode,
 } from '@genfeedai/contracts';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
-  AgentToolName.GENERATE_AS_IDENTITY,
-  AgentToolName.GENERATE_IMAGE,
-  AgentToolName.GENERATE_VIDEO,
+  'generate_as_identity',
+  'generate_image',
+  'generate_video',
 ]);
 
 const NON_MEDIA_GENERATE_TOOLS = new Set<string>([
-  AgentToolName.GENERATE_AD_PACK,
-  AgentToolName.GENERATE_CONTENT,
-  AgentToolName.GENERATE_CONTENT_BATCH,
-  AgentToolName.GENERATE_MONTHLY_CONTENT,
-  AgentToolName.GENERATE_MUSIC,
-  AgentToolName.GENERATE_ONBOARDING_CONTENT,
+  'generate_ad_pack',
+  'generate_content',
+  'generate_content_batch',
+  'generate_monthly_content',
+  'generate_music',
+  'generate_onboarding_content',
 ]);
 
 /**
@@ -37,7 +37,7 @@ function compactToolName(toolName: string): string {
 }
 
 function isVoiceGenerateLike(normalizedName: string): boolean {
-  if (normalizedName === AgentToolName.GENERATE_VOICE) {
+  if (normalizedName === 'generate_voice') {
     return true;
   }
   if (NON_MEDIA_GENERATE_TOOLS.has(normalizedName)) {
@@ -96,12 +96,12 @@ export function inferPrepareGenerationType(
   toolName: string,
 ): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
   const normalized = normalizeRequestedAgentToolName(toolName);
-  if (normalized === AgentToolName.GENERATE_IMAGE) {
+  if (normalized === 'generate_image') {
     return AgentGenerationMode.IMAGE;
   }
   if (
-    normalized === AgentToolName.GENERATE_AS_IDENTITY ||
-    normalized === AgentToolName.GENERATE_VIDEO
+    normalized === 'generate_as_identity' ||
+    normalized === 'generate_video'
   ) {
     return AgentGenerationMode.VIDEO;
   }
@@ -149,15 +149,15 @@ function resolveVisualGenerationType(
  */
 export function getGenerationPreparationRedirect(
   toolName: string,
-  allowedTools: Set<AgentToolName>,
+  allowedTools: Set<CuratedActionName>,
   options: GenerationRedirectOptions = {},
-): AgentToolName | null {
+): CuratedActionName | null {
   const normalized = normalizeRequestedAgentToolName(toolName);
-  const isPrepareVisual = normalized === AgentToolName.PREPARE_GENERATION;
+  const isPrepareVisual = normalized === 'prepare_generation';
   const hasVisualGenerationSurface =
-    allowedTools.has(AgentToolName.PREPARE_GENERATION) ||
-    allowedTools.has(AgentToolName.GENERATE_IMAGE) ||
-    allowedTools.has(AgentToolName.GENERATE_VIDEO);
+    allowedTools.has('prepare_generation') ||
+    allowedTools.has('generate_image') ||
+    allowedTools.has('generate_video');
 
   if (
     hasVisualGenerationSurface &&
@@ -166,9 +166,9 @@ export function getGenerationPreparationRedirect(
     const generationType = resolveVisualGenerationType(normalized, options);
     const directTool =
       generationType === AgentGenerationMode.VIDEO
-        ? AgentToolName.GENERATE_VIDEO
+        ? 'generate_video'
         : generationType === AgentGenerationMode.IMAGE
-          ? AgentToolName.GENERATE_IMAGE
+          ? 'generate_image'
           : null;
     if (
       directTool &&
@@ -179,10 +179,10 @@ export function getGenerationPreparationRedirect(
   }
 
   if (
-    allowedTools.has(AgentToolName.PREPARE_VOICE_CLONE) &&
+    allowedTools.has('prepare_voice_clone') &&
     isVoiceGenerateLike(normalized)
   ) {
-    return AgentToolName.PREPARE_VOICE_CLONE;
+    return 'prepare_voice_clone';
   }
 
   return null;

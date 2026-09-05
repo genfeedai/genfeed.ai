@@ -1,13 +1,12 @@
-import type { AgentToolDefinition } from '@genfeedai/contracts/interfaces';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { AgentToolOutput } from '@genfeedai/actions';
 
 /** Ads research and launch-review overrides for reviewed catalog actions. */
-export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
+export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolOutput[] = [
   {
     creditCost: 0,
     description:
       'List the highest-performing public and connected ads for the current brand niche, platform, source, metric, and timeframe filters.',
-    name: AgentToolName.LIST_ADS_RESEARCH,
+    name: 'list_ads_research',
     parameters: {
       properties: {
         adAccountId: {
@@ -79,7 +78,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Inspect one ad from the ads research hub and return the creative, metrics, and pattern explanation.',
-    name: AgentToolName.GET_AD_RESEARCH_DETAIL,
+    name: 'get_ad_research_detail',
     parameters: {
       properties: {
         adAccountId: {
@@ -125,7 +124,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Create an official ad remix workflow from a selected ad. The workflow stays in review and does not auto-publish.',
-    name: AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+    name: 'create_ad_remix_workflow',
     parameters: {
       properties: {
         adAccountId: {
@@ -185,7 +184,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Generate a brand-specific ad pack from a selected ad without creating a launch or publish action.',
-    name: AgentToolName.GENERATE_AD_PACK,
+    name: 'generate_ad_pack',
     parameters: {
       properties: {
         adAccountId: {
@@ -245,7 +244,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     creditCost: 0,
     description:
       'Prepare a paused Meta, Google, or X campaign launch draft for review from a selected ad. This never publishes live.',
-    name: AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
+    name: 'prepare_ad_launch_review',
     parameters: {
       properties: {
         adAccountId: {

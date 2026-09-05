@@ -50,7 +50,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -1154,7 +1154,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_GENERATION,
+      'prepare_generation',
       { generationType: 'video', prompt: 'Launch-day portrait' },
       {
         generationMode: AgentGenerationMode.IMAGE,
@@ -1177,7 +1177,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_GOAL,
+      'create_goal',
       {
         label: 'Grow views',
         metric: 'views',
@@ -1204,7 +1204,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.LIST_GENFEED_TOOLS,
+      'list_genfeed_tools',
       {
         category: 'workflow',
         includeParameters: true,
@@ -1252,7 +1252,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CHECK_GOAL_PROGRESS,
+      'check_goal_progress',
       { goalId: 'not-an-object-id' },
       {
         organizationId: testId('org'),
@@ -1268,7 +1268,7 @@ describe('AgentToolExecutorService', () => {
     const { agentGoalsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.UPDATE_GOAL,
+      'update_goal',
       {
         goalId: testId('goal'),
         targetValue: 1000,
@@ -1309,7 +1309,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         caption: 'Ship this now',
         contentId: testId('ingredient'),
@@ -1343,7 +1343,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1385,7 +1385,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'legacy-post-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1424,7 +1424,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1466,7 +1466,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.REPURPOSE_POST,
+      'repurpose_post',
       {
         mode: 'deterministic',
         platform: 'twitter',
@@ -1517,7 +1517,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.REPURPOSE_POST,
+      'repurpose_post',
       {
         mode: 'agent',
         platform: 'linkedin',
@@ -1564,7 +1564,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.REPURPOSE_POST,
+      'repurpose_post',
       {
         mode: 'deterministic',
         platform: 'twitter',
@@ -1594,7 +1594,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.REPURPOSE_POST,
+      'repurpose_post',
       {
         mode: 'agent',
         platform: 'twitter',
@@ -1615,7 +1615,7 @@ describe('AgentToolExecutorService', () => {
     const { postRepurposeService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.REPURPOSE_POST,
+      'repurpose_post',
       { platform: 'twitter', postId: 'source-post-1' },
       scopedContext(testId('brand')),
     );
@@ -1638,7 +1638,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1672,7 +1672,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1705,7 +1705,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1743,7 +1743,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1767,7 +1767,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
@@ -1789,7 +1789,7 @@ describe('AgentToolExecutorService', () => {
     const { postsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       { postId: 'target-1', scheduledAt: 'not-a-date' },
       scopedContext(testId('brand')),
     );
@@ -1808,7 +1808,7 @@ describe('AgentToolExecutorService', () => {
     const { postsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.SCHEDULE_POST,
+      'schedule_post',
       { postId: 'target-1', scheduledAt: '2099-07-18T09:00:00' },
       scopedContext(testId('brand')),
     );
@@ -1826,7 +1826,7 @@ describe('AgentToolExecutorService', () => {
     const { credentialsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.GET_CONNECTION_STATUS,
+      'get_connection_status',
       {},
       {
         organizationId: testId('org'),
@@ -1861,7 +1861,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.INITIATE_OAUTH_CONNECT,
+      'initiate_oauth_connect',
       {},
       {
         organizationId: testId('org'),
@@ -1899,7 +1899,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.INITIATE_OAUTH_CONNECT,
+      'initiate_oauth_connect',
       {},
       {
         organizationId: testId('org'),
@@ -1930,7 +1930,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { period: '30d' },
       {
         organizationId: testId('org'),
@@ -1952,7 +1952,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.LIST_ADS_RESEARCH,
+      'list_ads_research',
       {
         industry: 'fitness',
         platform: 'google',
@@ -1982,7 +1982,7 @@ describe('AgentToolExecutorService', () => {
     postsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_POSTS,
+      'list_posts',
       { executionState: TargetExecutionState.DRAFT },
       {
         organizationId: testId('org'),
@@ -2025,7 +2025,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_INSTAGRAM_INSPIRATION,
+      'list_instagram_inspiration',
       { sort: 'latest' },
       {
         organizationId: testId('org'),
@@ -2057,7 +2057,7 @@ describe('AgentToolExecutorService', () => {
     const { instagramInspirationService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
+      'create_instagram_remix_workflow',
       { shortcode: 'ABC123', username: 'peer' },
       {
         organizationId: testId('org'),
@@ -2077,7 +2077,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     const result = await service.executeTool(
-      AgentToolName.LIST_INSTAGRAM_INSPIRATION,
+      'list_instagram_inspiration',
       { brandId: testId('thread') },
       {
         organizationId: testId('org'),
@@ -2107,7 +2107,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
+      'create_instagram_remix_workflow',
       {
         brandId: testId('goal'),
         mode: 'remix_concept',
@@ -2143,7 +2143,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+      'create_ad_remix_workflow',
       {
         adId: 'public-ad-1',
         objective: 'Conversions',
@@ -2170,7 +2170,7 @@ describe('AgentToolExecutorService', () => {
     const { adsResearchService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
+      'prepare_ad_launch_review',
       {
         adId: 'public-ad-1',
         createWorkflow: true,
@@ -2221,10 +2221,10 @@ describe('AgentToolExecutorService', () => {
       organizationId: testId('org'),
       sourceActionId: 'publish-card-1',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         caption: 'Published from chat',
         contentId: testId('ingredientvideo'),
@@ -2327,11 +2327,11 @@ describe('AgentToolExecutorService', () => {
       organizationId: testId('org'),
       sourceActionId: 'publish-card-blocked',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin'],
@@ -2362,7 +2362,7 @@ describe('AgentToolExecutorService', () => {
 
     await expect(
       service.executeTool(
-        AgentToolName.CREATE_POST,
+        'create_post',
         {
           confirmed: true,
           contentId: 42,
@@ -2424,11 +2424,11 @@ describe('AgentToolExecutorService', () => {
       organizationId: testId('org'),
       sourceActionId: 'publish-card-scheduled',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         contentId: testId('ingredientvideo'),
         platforms: ['instagram'],
@@ -2511,19 +2511,19 @@ describe('AgentToolExecutorService', () => {
       organizationId: testId('org'),
       sourceActionId: 'publish-card-retry',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     }));
 
-    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
-    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    await service.executeTool('create_post', parameters, context);
+    await service.executeTool('create_post', parameters, context);
     publishCacheService.get.mockResolvedValueOnce({
       organizationId: testId('org'),
       sourceActionId: 'publish-card-distinct',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
     await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       { ...parameters, sourceActionId: 'publish-card-distinct' },
       context,
     );
@@ -2565,7 +2565,7 @@ describe('AgentToolExecutorService', () => {
     };
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       parameters,
       context,
     );
@@ -2605,11 +2605,11 @@ describe('AgentToolExecutorService', () => {
       organizationId: testId('org'),
       sourceActionId: 'publish-card-missing',
       threadId: testId('thread'),
-      toolName: AgentToolName.CREATE_POST,
+      toolName: 'create_post',
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         contentId: testId('ingredientvideo'),
         platforms: ['linkedin', 'instagram'],
@@ -2641,7 +2641,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
+      'create_post',
       {
         caption: 'Must not publish',
         contentId: testId('ingredientvideo'),
@@ -2676,7 +2676,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       {
         contentId: testId('ingredientanalytics'),
       },
@@ -2722,7 +2722,7 @@ describe('AgentToolExecutorService', () => {
 
     const context = scopedContext(testId('brandanalytics'));
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { postId: testId('postrejected') },
       context,
     );
@@ -2767,7 +2767,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { contentId: testId('article1') },
       {
         organizationId: testId('org'),
@@ -2824,7 +2824,7 @@ describe('AgentToolExecutorService', () => {
     postsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { contentId: testId('article2') },
       {
         organizationId: testId('org'),
@@ -2861,7 +2861,7 @@ describe('AgentToolExecutorService', () => {
     postsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { contentId: testId('article3') },
       {
         organizationId: testId('org'),
@@ -2902,7 +2902,7 @@ describe('AgentToolExecutorService', () => {
 
     const context = scopedContext(testId('brandanalytics'));
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { contentId: testId('article4') },
       context,
     );
@@ -2942,7 +2942,7 @@ describe('AgentToolExecutorService', () => {
     postsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       {
         contentId: testId('ingredientnoanalytics'),
       },
@@ -2971,7 +2971,7 @@ describe('AgentToolExecutorService', () => {
     const { analyticsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.GET_ANALYTICS,
+      'get_analytics',
       { period: '30d' },
       {
         organizationId: testId('org'),
@@ -2998,7 +2998,7 @@ describe('AgentToolExecutorService', () => {
     const { agentMemoryCaptureService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CAPTURE_MEMORY,
+      'capture_memory',
       {
         brandId: testId('goal'),
         content: 'Use short, curiosity-driven newsletter openings.',
@@ -3034,7 +3034,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       {
         confirmed: true,
         description: 'Creator focused fitness content',
@@ -3074,7 +3074,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       {
         description: 'Creator focused fitness content',
         label: 'Fit Creator',
@@ -3118,7 +3118,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     const createResult = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       { label: 'Missing Evidence' },
       {
         confirmationOrigin: 'thread-ui-action',
@@ -3127,7 +3127,7 @@ describe('AgentToolExecutorService', () => {
       },
     );
     const renameResult = await service.executeTool(
-      AgentToolName.RENAME_BRAND,
+      'rename_brand',
       { label: 'Missing Evidence' },
       {
         ...scopedContext('brand-1'),
@@ -3169,7 +3169,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       {
         description: 'Confirmed description',
         label: 'Recovered Brand',
@@ -3236,12 +3236,12 @@ describe('AgentToolExecutorService', () => {
     };
 
     const first = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       parameters,
       context,
     );
     const retry = await service.executeTool(
-      AgentToolName.CREATE_BRAND,
+      'create_brand',
       parameters,
       context,
     );
@@ -3267,7 +3267,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      AgentToolName.RENAME_BRAND,
+      'rename_brand',
       {
         label: 'Renamed Brand',
         slug: 'renamed-brand',
@@ -3300,7 +3300,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.RENAME_BRAND,
+      'rename_brand',
       {
         label: 'Renamed Brand',
         slug: 'renamed-brand',
@@ -3340,7 +3340,7 @@ describe('AgentToolExecutorService', () => {
     const { postsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.CHECK_ONBOARDING_STATUS,
+      'check_onboarding_status',
       {},
       {
         organizationId: testId('org'),
@@ -3381,7 +3381,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      'draft_brand_voice_profile',
       {
         examplesToAvoid: ['generic guru tone'],
         examplesToEmulate: ['April Dunford'],
@@ -3438,12 +3438,12 @@ describe('AgentToolExecutorService', () => {
     });
 
     const first = await service.executeTool(
-      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      'draft_brand_voice_profile',
       {},
       { organizationId: testId('org'), userId: testId('user') },
     );
     const second = await service.executeTool(
-      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      'draft_brand_voice_profile',
       {},
       { organizationId: testId('org'), userId: testId('user') },
     );
@@ -3471,7 +3471,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SAVE_BRAND_VOICE_PROFILE,
+      'save_brand_voice_profile',
       {
         brandId: 'brand-voice-1',
         voiceProfile: {
@@ -3589,7 +3589,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CHECK_ONBOARDING_STATUS,
+      'check_onboarding_status',
       {},
       {
         organizationId: testId('org'),
@@ -3630,7 +3630,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.SELECT_INGREDIENT,
+      'select_ingredient',
       {},
       {
         organizationId: testId('org'),
@@ -3666,7 +3666,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.SELECT_INGREDIENT,
+      'select_ingredient',
       { mediaType: 'all' },
       {
         organizationId: testId('org'),
@@ -3709,7 +3709,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.SELECT_INGREDIENT,
+      'select_ingredient',
       { mediaType: 'image' },
       {
         organizationId: testId('org'),
@@ -3733,7 +3733,7 @@ describe('AgentToolExecutorService', () => {
     const { organizationsService, service, usersService } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.COMPLETE_ONBOARDING,
+      'complete_onboarding',
       {},
       {
         organizationId: testId('org'),
@@ -3764,7 +3764,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_CURRENT_BRAND,
+      'get_current_brand',
       {},
       {
         organizationId: testId('org'),
@@ -3807,7 +3807,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_CURRENT_BRAND,
+      'get_current_brand',
       {},
       {
         brandId: testId('entitybb'),
@@ -3833,7 +3833,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      AgentToolName.GET_CURRENT_BRAND,
+      'get_current_brand',
       {},
       {
         organizationId: testId('org'),
@@ -3859,7 +3859,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_CONTENT_BATCH,
+      'generate_content_batch',
       {
         count: 20,
         platforms: ['instagram', 'twitter', 'linkedin'],
@@ -3909,7 +3909,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_CONTENT_BATCH,
+      'generate_content_batch',
       {
         count: 2,
         platforms: ['instagram'],
@@ -3961,7 +3961,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      'prepare_clip_workflow_run',
       {
         durationSeconds: 30,
         mergeGeneratedVideos: true,
@@ -3999,7 +3999,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      'prepare_clip_workflow_run',
       {
         prompt: 'Generate a defaulted clip',
       },
@@ -4063,7 +4063,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      'prepare_clip_workflow_run',
       {
         prompt: 'Generate a mixed-default clip',
       },
@@ -4091,7 +4091,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_CLIP_WORKFLOW_RUN,
+      'prepare_clip_workflow_run',
       {
         prompt: 'Generate a clip without defaults',
       },
@@ -4145,7 +4145,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_REVIEW_QUEUE,
+      'list_review_queue',
       {
         batchId: `:${testId('batchreview')}`,
         limit: 25,
@@ -4211,7 +4211,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_REVIEW_QUEUE,
+      'list_review_queue',
       {
         batchId: 'pending',
         limit: 10,
@@ -4261,7 +4261,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_REVIEW_QUEUE,
+      'list_review_queue',
       {},
       {
         organizationId: testId('org'),
@@ -4284,7 +4284,7 @@ describe('AgentToolExecutorService', () => {
     const { batchGenerationService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.BATCH_APPROVE_REJECT,
+      'batch_approve_reject',
       {
         action: 'approve',
         batchId: testId('batchmodel'),
@@ -4316,7 +4316,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         contentType: 'image',
         prompt: 'Generate an alternative to this Instagram carousel every day',
@@ -4385,7 +4385,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.GET_TRENDS,
+      'get_trends',
       { platform: 'tiktok' },
       {
         organizationId: testId('org'),
@@ -4451,7 +4451,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.GET_TRENDS,
+      'get_trends',
       { platform: 'youtube' },
       {
         organizationId: testId('org'),
@@ -4492,7 +4492,7 @@ describe('AgentToolExecutorService', () => {
     trendsService.getTrends.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
     const result = await service.executeTool(
-      AgentToolName.GET_TRENDS,
+      'get_trends',
       { platform: 'tiktok' },
       {
         organizationId: testId('org'),
@@ -4553,7 +4553,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         description: 'Create a weekly content planning workflow',
         edges: [
@@ -4677,7 +4677,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         contentType: 'post',
         prompt: 'Create one daily post draft about product learnings',
@@ -4723,7 +4723,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         contentType: 'newsletter',
         instructions: 'Keep the issue practical and operator-focused.',
@@ -4778,7 +4778,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         description:
           'Create a weekly LinkedIn workflow that drafts and refines one post',
@@ -4812,7 +4812,7 @@ describe('AgentToolExecutorService', () => {
     expect(workflowPayload.metadata).toMatchObject({
       brandId: testId('currentbrand'),
       createdFrom: 'agent',
-      originatingTool: AgentToolName.CREATE_WORKFLOW,
+      originatingTool: 'create_workflow',
     });
     expect(workflowPayload.nodes[0]?.id).toBe('node-1');
     expect(workflowPayload.schedule).toBe('0 9 * * 1');
@@ -4837,7 +4837,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_WORKFLOW,
+      'create_workflow',
       {
         contentType: 'image',
         label: 'Fallback Brand Workflow',
@@ -4882,7 +4882,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_LIVESTREAM_BOT,
+      'create_livestream_bot',
       {
         channelId: 'UC123456789',
         label: 'Launch Live Bot',
@@ -4933,7 +4933,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.CREATE_LIVESTREAM_BOT,
+      'create_livestream_bot',
       {
         channelId: 'genfeed-live',
         label: 'Twitch Chat Bot',
@@ -4973,7 +4973,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.MANAGE_LIVESTREAM_BOT,
+      'manage_livestream_bot',
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -5004,7 +5004,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.MANAGE_LIVESTREAM_BOT,
+      'manage_livestream_bot',
       {
         action: 'send_now',
         botId: livestreamBotId,
@@ -5059,7 +5059,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.MANAGE_LIVESTREAM_BOT,
+      'manage_livestream_bot',
       {
         action: 'start_session',
         botId: livestreamBotId,
@@ -5082,7 +5082,7 @@ describe('AgentToolExecutorService', () => {
     generationGateway.generateImage.mockRejectedValue(new Error('timeout'));
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
       { prompt: 'podcast host portrait' },
       {
         brandId: testId('brand'),
@@ -5115,7 +5115,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
       { description: 'podcast host portrait' },
       {
         brandId: testId('brand'),
@@ -5149,7 +5149,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
       { prompt: 'product photo' },
       {
         brandId: testId('brand'),
@@ -5186,7 +5186,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_VOICE,
+      'generate_voice',
       { text: 'Read this in the brand voice', voiceId: 'voice-default' },
       {
         organizationId: testId('org2'),
@@ -5213,7 +5213,7 @@ describe('AgentToolExecutorService', () => {
     const { aiActionsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.AI_ACTION,
+      'ai_action',
       { action: 'hashtags', text: 'launch post copy' },
       {
         organizationId: testId('org2'),
@@ -5235,7 +5235,7 @@ describe('AgentToolExecutorService', () => {
     const { aiActionsService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.AI_ACTION,
+      'ai_action',
       { action: 'enhance-prompt', content: 'improve this' },
       {
         organizationId: testId('org2'),
@@ -5257,7 +5257,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.RATE_CONTENT,
+      'rate_content',
       {
         contentId: testId('content'),
         contentType: 'image',
@@ -5291,7 +5291,7 @@ describe('AgentToolExecutorService', () => {
     );
 
     const result = await service.executeTool(
-      AgentToolName.GENERATE_CONTENT_BATCH,
+      'generate_content_batch',
       { count: 2, platforms: ['instagram'] },
       {
         brandId: 'brand-1',
@@ -5324,7 +5324,7 @@ describe('AgentToolExecutorService', () => {
     const { contentQualityScorerService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.RATE_CONTENT,
+      'rate_content',
       { contentType: 'image' },
       {
         organizationId: testId('org2'),
@@ -5515,7 +5515,7 @@ describe('AgentToolExecutorService', () => {
     serviceWithoutScorer.onModuleInit();
 
     const result = await serviceWithoutScorer.executeTool(
-      AgentToolName.RATE_CONTENT,
+      'rate_content',
       { contentId: testId('content') },
       {
         organizationId: testId('org2'),
@@ -5542,7 +5542,7 @@ describe('AgentToolExecutorService', () => {
     ]);
 
     const result = await service.executeTool(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       {
         contentType: 'video',
         prompt: 'Set me up with a social media video series for LinkedIn',
@@ -5597,7 +5597,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       {
         confirmed: true,
         label: 'Weekly LinkedIn Workflow',
@@ -5643,7 +5643,7 @@ describe('AgentToolExecutorService', () => {
       organizationId,
       sourceActionId,
       threadId: '',
-      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      toolName: 'install_official_workflow',
     });
     workflowsService.findOne.mockResolvedValue({
       id: 'wf-official-1',
@@ -5655,7 +5655,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       {
         label: 'Weekly LinkedIn Workflow',
         prompt: 'Set me up with a weekly LinkedIn workflow',
@@ -5704,7 +5704,7 @@ describe('AgentToolExecutorService', () => {
     workflowInstallCacheService.get.mockResolvedValueOnce(null);
 
     const result = await service.executeTool(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       {
         sourceActionId: 'unknown-source-action',
         sourceId: 'social-media-video-series',
@@ -5759,7 +5759,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_VOICE_CLONE,
+      'prepare_voice_clone',
       {},
       {
         organizationId: testId('org2'),
@@ -5816,7 +5816,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_VOICE_CLONE,
+      'prepare_voice_clone',
       {},
       {
         organizationId: testId('org2'),
@@ -5867,7 +5867,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.PREPARE_VOICE_CLONE,
+      'prepare_voice_clone',
       {},
       {
         organizationId: testId('org2'),
@@ -5904,11 +5904,11 @@ describe('AgentToolExecutorService', () => {
       organizationId,
       sourceActionId,
       threadId: '',
-      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      toolName: 'install_official_workflow',
     });
 
     const result = await service.executeTool(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       {
         prompt: 'Install the official LinkedIn workflow',
         sourceActionId,
@@ -5963,7 +5963,7 @@ describe('AgentToolExecutorService', () => {
     ];
 
     const result = await service.executeTool(
-      AgentToolName.RENDER_DASHBOARD,
+      'render_dashboard',
       { blocks, operation: 'replace' },
       CTX,
     );
@@ -5976,7 +5976,7 @@ describe('AgentToolExecutorService', () => {
     const { service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.RENDER_DASHBOARD,
+      'render_dashboard',
       {
         blocks: [{ id: 'views', type: 'metric_card', value: 42 }],
         operation: 'merge',
@@ -6005,7 +6005,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_WORKFLOWS,
+      'list_workflows',
       { limit: 5 },
       CTX,
     );
@@ -6026,11 +6026,7 @@ describe('AgentToolExecutorService', () => {
 
     workflowsService.findAll.mockResolvedValue({ docs: [] });
 
-    const result = await service.executeTool(
-      AgentToolName.LIST_WORKFLOWS,
-      {},
-      CTX,
-    );
+    const result = await service.executeTool('list_workflows', {}, CTX);
 
     expect(result.success).toBe(true);
     expect(result.data.count).toBe(0);
@@ -6055,7 +6051,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.INSPECT_WORKFLOW,
+      'inspect_workflow',
       { workflowId: 'wf-1' },
       CTX,
     );
@@ -6076,7 +6072,7 @@ describe('AgentToolExecutorService', () => {
     const { service, workflowsService } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.DUPLICATE_WORKFLOW,
+      'duplicate_workflow',
       { workflowId: 'wf-1' },
       CTX,
     );
@@ -6108,7 +6104,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.EXECUTE_WORKFLOW,
+      'execute_workflow',
       { inputs: { topic: 'AI' }, workflowId: 'wf-1' },
       CTX,
     );
@@ -6129,7 +6125,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      AgentToolName.EXECUTE_WORKFLOW,
+      'execute_workflow',
       { workflowId: 'missing-wf' },
       CTX,
     );
@@ -6152,7 +6148,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.EXECUTE_WORKFLOW,
+      'execute_workflow',
       { inputs: {}, workflowId: 'wf-2' },
       CTX,
     );
@@ -6175,7 +6171,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.EXECUTE_WORKFLOW,
+      'execute_workflow',
       { inputs: { topic: 'AI trends' }, workflowId: 'wf-2' },
       CTX,
     );
@@ -6199,7 +6195,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      'set_workflow_schedule',
       {
         enabled: true,
         schedule: '0 9 * * *',
@@ -6237,7 +6233,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.SET_WORKFLOW_SCHEDULE,
+      'set_workflow_schedule',
       { enabled: false, workflowId: 'wf-copy-1' },
       CTX,
     );
@@ -6258,7 +6254,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.LIST_WORKFLOW_RUNS,
+      'list_workflow_runs',
       { limit: 5, status: 'completed', workflowId: 'wf-1' },
       CTX,
     );
@@ -6287,7 +6283,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_WORKFLOW_RUN,
+      'get_workflow_run',
       { runId: 'run-1' },
       CTX,
     );
@@ -6330,7 +6326,7 @@ describe('AgentToolExecutorService', () => {
     });
 
     const result = await service.executeTool(
-      AgentToolName.GET_WORKFLOW_INPUTS,
+      'get_workflow_inputs',
       { workflowId: 'wf-3' },
       CTX,
     );
@@ -6355,7 +6351,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findOne.mockResolvedValue(null);
 
     const result = await service.executeTool(
-      AgentToolName.GET_WORKFLOW_INPUTS,
+      'get_workflow_inputs',
       { workflowId: 'missing' },
       CTX,
     );
@@ -6372,7 +6368,7 @@ describe('AgentToolExecutorService', () => {
     const { brandInterviewService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.START_BRAND_INTERVIEW,
+      'start_brand_interview',
       { brandId: testId('org2') },
       CTX,
     );
@@ -6396,11 +6392,7 @@ describe('AgentToolExecutorService', () => {
   it('start_brand_interview returns error when brandId is missing', async () => {
     const { service } = createService();
 
-    const result = await service.executeTool(
-      AgentToolName.START_BRAND_INTERVIEW,
-      {},
-      CTX,
-    );
+    const result = await service.executeTool('start_brand_interview', {}, CTX);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('brandId');
@@ -6410,7 +6402,7 @@ describe('AgentToolExecutorService', () => {
     const { brandInterviewService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.SUBMIT_BRAND_INTERVIEW_ANSWER,
+      'submit_brand_interview_answer',
       { interviewId: 'interview-1', answer: 'Developers and startup founders' },
       CTX,
     );
@@ -6436,7 +6428,7 @@ describe('AgentToolExecutorService', () => {
     const { brandInterviewService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.SKIP_BRAND_INTERVIEW_QUESTION,
+      'skip_brand_interview_question',
       { interviewId: 'interview-1' },
       CTX,
     );
@@ -6459,7 +6451,7 @@ describe('AgentToolExecutorService', () => {
     const { brandInterviewService, service } = createService();
 
     const result = await service.executeTool(
-      AgentToolName.GET_BRAND_COMPLETENESS,
+      'get_brand_completeness',
       { brandId: testId('org2') },
       CTX,
     );
