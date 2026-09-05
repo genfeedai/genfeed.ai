@@ -13,6 +13,10 @@ do not load every linked file. Add detailed entries to the catalog, keeping this
   A consequential policy change requires an explicit user instruction.
 - Preserve tenant isolation, canonical opaque `users.id`, and `isDeleted` soft deletes.
   Never expose secrets or commit private operational strategy to this public repository.
+- Before destructive Git operations, preserve uncommitted WIP on a pushed branch
+  ([never lose code](never_lose_code.md)).
+- Honor the globally configured verification host. Command lists do not authorize
+  tests, typechecks, or builds on a restricted host.
 - Search existing work before claiming a surface. Keep changes on a scoped branch,
   publish a ready PR, and retain required verification and review gates.
 

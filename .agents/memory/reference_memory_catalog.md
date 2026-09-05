@@ -195,6 +195,8 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Context (read when relevant)
 
+- [enum boundaries and examples](context/enum-source-of-truth.md) — full enum, status, credential-platform, and assertion guidance
+
 Start with the matching reference: [system-patterns](context/system-patterns.md) · [project-structure](context/project-structure.md) · [project-style-guide](context/project-style-guide.md) · [skills-architecture](context/skills-architecture.md)
 
 Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md) · [api-cache-invalidation](context/api-cache-invalidation.md)
