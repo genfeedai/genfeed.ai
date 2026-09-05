@@ -8,6 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 export function useNotificationInbox(open: boolean) {
   const { organizationId, isReady } = useCollectionScope();
@@ -19,12 +20,16 @@ export function useNotificationInbox(open: boolean) {
   const key = ['notification-inbox', userId, organizationId];
   const enabled = isReady && isSignedIn && Boolean(organizationId);
   const count = useQuery({
-    queryKey: [...key, 'count', open],
+    queryKey: [...key, 'count'],
     enabled,
     queryFn: async ({ signal }) =>
       (await getService()).notificationInboxCount(organizationId, signal),
     staleTime: 0,
   });
+  const refreshCount = count.refetch;
+  useEffect(() => {
+    if (open && enabled) void refreshCount();
+  }, [open, enabled, refreshCount]);
   const history = useInfiniteQuery({
     queryKey: [...key, 'history'],
     enabled: enabled && open,

@@ -46,7 +46,7 @@ async function mockInbox(page: Page, label: string, slug: string) {
                 occurredAt: '2026-09-04T10:00:00Z',
                 readAt: '2026-09-04T11:00:00Z',
                 outcome: 'failed',
-                sourceHref: `/${slug}/~/agent?thread=older-thread`,
+                sourceHref: `/${slug}/~/agent/older-thread`,
                 sourceLabel: 'Older conversation',
                 failure: null,
               },
@@ -196,9 +196,15 @@ for (const fixture of [
       path: testInfo.outputPath('inbox.png'),
       fullPage: false,
     });
+    const selectedThreadRequest = page.waitForRequest((request) =>
+      new URL(request.url()).pathname.startsWith(
+        '/v1/agent/threads/older-thread',
+      ),
+    );
     await page.getByRole('link', { name: 'Open run' }).click();
+    await selectedThreadRequest;
     await expect(page).toHaveURL(
-      new RegExp(`/${fixture.slug}/~/agent\\?thread=older-thread`),
+      new URL(`/${fixture.slug}/~/agent/older-thread`, page.url()).href,
     );
     await context.close();
   });

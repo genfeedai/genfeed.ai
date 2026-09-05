@@ -44,6 +44,27 @@ beforeEach(() => {
 });
 
 describe('useNotificationInbox', () => {
+  it('keeps the unread count visible while opening refreshes it', async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, rerender, unmount } = renderHook(
+      ({ open }) => useNotificationInbox(open),
+      { wrapper, initialProps: { open: false } },
+    );
+    await waitFor(() => expect(result.current.count.data?.unreadCount).toBe(1));
+    mock.service.notificationInboxCount.mockImplementation(
+      () => new Promise(() => {}),
+    );
+    rerender({ open: true });
+    await waitFor(() => expect(result.current.count.isFetching).toBe(true));
+    expect(result.current.count.data?.unreadCount).toBe(1);
+    unmount();
+    client.clear();
+  });
   it('preserves truthful unread count on failure and discards failed actions when recipient scope changes', async () => {
     const client = new QueryClient({
       defaultOptions: {

@@ -1,3 +1,4 @@
+import type { INotificationInboxItem } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,13 +16,13 @@ vi.mock('next-intl', async () => {
 
 import NotificationInboxMenu from './NotificationInboxMenu';
 
-const item = {
+const item: INotificationInboxItem = {
   id: 'item-1',
   topic: 'workflow.status',
   occurredAt: '2026-09-05T10:00:00Z',
   readAt: null,
   outcome: 'failed',
-  sourceHref: '/acme/brand/agent?thread=thread-1',
+  sourceHref: '/acme/brand/agent/thread-1',
   sourceLabel: 'My task',
   failure: null,
 };
@@ -88,7 +89,7 @@ describe('NotificationInboxMenu', () => {
   });
   it('shows a source unavailable state without inventing navigation', async () => {
     current.history.data.pages[0].items = [
-      { ...item, sourceHref: null, sourceLabel: null } as never,
+      { ...item, sourceHref: null, sourceLabel: null },
     ];
     await open();
     expect(screen.getByText('Source unavailable')).toBeInTheDocument();

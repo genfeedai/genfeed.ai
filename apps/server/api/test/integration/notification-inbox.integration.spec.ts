@@ -281,6 +281,77 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
     await inbox.markRead('alpha', 'alice', null);
     expect((await inbox.count('alpha', 'alice')).unreadCount).toBe(0);
   });
+  it('opens owned branded sources for unrestricted members and hides unassigned brands', async () => {
+    await prisma.role.create({
+      data: { id: 'creator', key: 'creator', label: 'Creator' },
+    });
+    await prisma.brand.createMany({
+      data: ['brand-a', 'brand-b'].map((id) => ({
+        id,
+        slug: id,
+        label: id,
+        organizationId: 'alpha',
+        userId: 'alice',
+        isSelected: false,
+      })),
+    });
+    await prisma.member.update({
+      where: { id: 'alice-alpha' },
+      data: { roleId: 'creator' },
+    });
+    await prisma.agentThread.create({
+      data: {
+        id: 'branded-thread',
+        userId: 'alice',
+        organizationId: 'alpha',
+        brandId: 'brand-a',
+      },
+    });
+    await prisma.agentThreadEvent.create({
+      data: {
+        organizationId: 'alpha',
+        threadId: 'branded-thread',
+        sequence: 1,
+        runId: 'branded-run',
+      },
+    });
+    await prisma.notificationEvent.create({
+      data: {
+        id: 'branded-event',
+        organizationId: 'alpha',
+        eventKey: 'agent.run.failed',
+        deduplicationKey: 'branded-event',
+        sourceType: 'agent_run',
+        sourceId: 'branded-run',
+        occurredAt: new Date('2026-09-05T12:00:00Z'),
+        payload: {},
+      },
+    });
+    await prisma.notificationDelivery.create({
+      data: {
+        id: 'branded-delivery',
+        eventId: 'branded-event',
+        userId: 'alice',
+        organizationId: 'alpha',
+        channel: 'email',
+        topic: 'agent.status',
+        provider: 'test',
+        idempotencyKey: 'branded-delivery',
+      },
+    });
+    expect((await inbox.list('alpha', 'alice')).docs[0].sourceHref).toBe(
+      '/alpha/brand-a/agent/branded-thread',
+    );
+    await prisma.member.update({
+      where: { id: 'alice-alpha' },
+      data: { brands: { connect: { id: 'brand-b' } } },
+    });
+    expect((await inbox.list('alpha', 'alice')).docs[0].sourceHref).toBeNull();
+    await prisma.member.update({
+      where: { id: 'alice-alpha' },
+      data: { roleId: 'owner', brands: { set: [] } },
+    });
+  });
   it('denies cross-organization and revoked membership for every operation', async () => {
     for (const action of [
       () => inbox.list('bravo', 'alice'),

@@ -115,12 +115,9 @@ export class UsersService extends BaseService<User> {
       'me/notification-inbox',
       { params: { organizationId, cursor }, signal },
     );
-    const links = response.data.links as
-      | { cursor?: { nextCursor?: string | null } }
-      | undefined;
     return {
       items: this.extractCollection<INotificationInboxItem>(response.data),
-      nextCursor: links?.cursor?.nextCursor ?? null,
+      nextCursor: response.data.links?.cursor?.nextCursor ?? null,
     };
   }
 

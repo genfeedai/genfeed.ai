@@ -1,3 +1,5 @@
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Test } from '@nestjs/testing';
 import { NotificationInboxService } from './notification-inbox.service';
 
 const member = {
@@ -20,7 +22,7 @@ function fixture(index: number, overrides = {}) {
     ...overrides,
   };
 }
-function setup() {
+async function setup() {
   const prisma = {
     member: { findFirst: vi.fn().mockResolvedValue(member) },
     notificationInboxItem: {
@@ -31,12 +33,18 @@ function setup() {
     workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
     agentThreadEvent: { findFirst: vi.fn().mockResolvedValue(null) },
   };
-  return { prisma, service: new NotificationInboxService(prisma as never) };
+  const module = await Test.createTestingModule({
+    providers: [
+      NotificationInboxService,
+      { provide: PrismaService, useValue: prisma },
+    ],
+  }).compile();
+  return { prisma, service: module.get(NotificationInboxService) };
 }
 
 describe('NotificationInboxService', () => {
   it('rejects revoked membership for history, count, and both mutations', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.member.findFirst.mockResolvedValue(null);
     for (const action of [
       () => service.list('org', 'recipient'),
@@ -50,7 +58,7 @@ describe('NotificationInboxService', () => {
     expect(prisma.notificationInboxItem.updateMany).not.toHaveBeenCalled();
   });
   it('bounds stable history and scopes counts to current recipient and membership', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue(
       Array.from({ length: 31 }, (_, i) => fixture(i)),
     );
@@ -84,7 +92,7 @@ describe('NotificationInboxService', () => {
     });
   });
   it('rejects malformed, oversized, and non-string cursors', async () => {
-    const { service } = setup();
+    const { service } = await setup();
     for (const cursor of [
       'bad',
       'x'.repeat(401),
@@ -96,7 +104,7 @@ describe('NotificationInboxService', () => {
       );
   });
   it('does not expose raw payload or inaccessible labels and links', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([fixture(1)]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
@@ -107,7 +115,7 @@ describe('NotificationInboxService', () => {
     expect(JSON.stringify(page)).not.toMatch(/secret_api_key|private title/);
   });
   it('keeps safe shared agent guidance when the source is gone and excludes raw detail', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
       fixture(1, {
         topic: 'agent.status',
@@ -139,7 +147,7 @@ describe('NotificationInboxService', () => {
     expect(JSON.stringify(page)).not.toContain('secret_api_key');
   });
   it('links agent failures only through an owned accessible thread', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
       fixture(1, {
         topic: 'agent.status',
@@ -156,7 +164,7 @@ describe('NotificationInboxService', () => {
       thread: { id: 'thread-1', title: 'My task', brand: { slug: 'brand' } },
     });
     expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
-      '/acme/brand/agent?thread=thread-1',
+      '/acme/brand/agent/thread-1',
     );
     expect(prisma.agentThreadEvent.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -174,7 +182,7 @@ describe('NotificationInboxService', () => {
     );
   });
   it('does not link hidden or brandless workflow definitions', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([fixture(1)]);
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
@@ -203,7 +211,7 @@ describe('NotificationInboxService', () => {
   });
 
   it('writes only unread owned rows and propagates failed mutations', async () => {
-    const { service, prisma } = setup();
+    const { service, prisma } = await setup();
     await service.markRead('org', 'recipient', ['item-1']);
     expect(prisma.notificationInboxItem.updateMany).toHaveBeenCalledWith({
       where: expect.objectContaining({

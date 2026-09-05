@@ -6,6 +6,10 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import {
+  type INotificationInboxItem,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,
@@ -14,6 +18,80 @@ import {
 } from '@nestjs/common';
 
 const PAGE_LIMIT = 30;
+
+function parseInboxCursor(
+  cursor?: string,
+): Prisma.NotificationInboxItemWhereInput {
+  let boundary: Prisma.NotificationInboxItemWhereInput = {};
+  if (cursor) {
+    if (typeof cursor !== 'string' || cursor.length > 400)
+      throw new BadRequestException('Invalid inbox cursor');
+    const [date, id, extra] = cursor.split('|');
+    const occurredAt = new Date(date);
+    if (
+      extra !== undefined ||
+      !id ||
+      id.length > 200 ||
+      !Number.isFinite(occurredAt.getTime()) ||
+      occurredAt.toISOString() !== date
+    )
+      throw new BadRequestException('Invalid inbox cursor');
+    boundary = {
+      OR: [{ occurredAt: { lt: occurredAt } }, { occurredAt, id: { lt: id } }],
+    };
+  }
+  return boundary;
+}
+
+function readInboxFailure(
+  topic: string,
+  payload: Prisma.JsonValue,
+): INotificationInboxItem['failure'] {
+  const failure =
+    topic === 'agent.status' &&
+    payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload)
+      ? payload.failure
+      : null;
+  const safeFailure =
+    failure &&
+    typeof failure === 'object' &&
+    !Array.isArray(failure) &&
+    typeof failure.title === 'string' &&
+    typeof failure.summary === 'string' &&
+    (failure.recovery === null || typeof failure.recovery === 'string')
+      ? {
+          title: failure.title.slice(0, 300),
+          summary: failure.summary.slice(0, 1000),
+          recovery:
+            typeof failure.recovery === 'string'
+              ? failure.recovery.slice(0, 1000)
+              : null,
+        }
+      : null;
+  return safeFailure;
+}
+
+function hasSystemWorkflowMetadata(metadata: Prisma.JsonValue): boolean {
+  return Boolean(
+    metadata &&
+      typeof metadata === 'object' &&
+      !Array.isArray(metadata) &&
+      metadata[SYSTEM_WORKFLOW_METADATA_KEY],
+  );
+}
+
+function inboxSourceHref(
+  organizationSlug: string,
+  brandSlug: string | undefined,
+  path: string | null,
+): string | null {
+  if (!path) return null;
+  return brandSlug
+    ? createBrandAppRoute(organizationSlug, brandSlug, path)
+    : createOrganizationAppRoute(organizationSlug, path);
+}
 
 @Injectable()
 export class NotificationInboxService {
@@ -96,31 +174,10 @@ export class NotificationInboxService {
 
   async list(organizationId: string, userId: string, cursor?: string) {
     const member = await this.member(organizationId, userId);
-    let boundary: Prisma.NotificationInboxItemWhereInput = {};
-    if (cursor) {
-      if (typeof cursor !== 'string' || cursor.length > 400)
-        throw new BadRequestException('Invalid inbox cursor');
-      const [date, id, extra] = cursor.split('|');
-      const occurredAt = new Date(date);
-      if (
-        extra !== undefined ||
-        !id ||
-        id.length > 200 ||
-        !Number.isFinite(occurredAt.getTime()) ||
-        occurredAt.toISOString() !== date
-      )
-        throw new BadRequestException('Invalid inbox cursor');
-      boundary = {
-        OR: [
-          { occurredAt: { lt: occurredAt } },
-          { occurredAt, id: { lt: id } },
-        ],
-      };
-    }
     const rows = await this.prisma.notificationInboxItem.findMany({
       where: scopedWhere(organizationId, {
         ...this.scope(organizationId, userId),
-        ...boundary,
+        ...parseInboxCursor(cursor),
       }),
       orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
       take: PAGE_LIMIT + 1,
@@ -130,6 +187,7 @@ export class NotificationInboxService {
     const isAdmin =
       member.role.key === MemberRole.OWNER ||
       member.role.key === MemberRole.ADMIN;
+    const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
@@ -149,9 +207,9 @@ export class NotificationInboxService {
               brand: {
                 organizationId,
                 isDeleted: false,
-                ...(isAdmin
-                  ? {}
-                  : { id: { in: member.brands.map((brand) => brand.id) } }),
+                ...(restrictToAssignedBrands
+                  ? { id: { in: member.brands.map((brand) => brand.id) } }
+                  : {}),
               },
             },
           ],
@@ -171,18 +229,11 @@ export class NotificationInboxService {
     });
     const sources = new Map(
       executions
-        .filter((source) => {
-          const metadata = source.workflow.metadata;
-          return (
+        .filter(
+          (source) =>
             source.workflow.brand &&
-            !(
-              metadata &&
-              typeof metadata === 'object' &&
-              !Array.isArray(metadata) &&
-              metadata.systemWorkflow
-            )
-          );
-        })
+            !hasSystemWorkflowMetadata(source.workflow.metadata),
+        )
         .map((source) => [source.id, source]),
     );
     const threadEvents = await Promise.all(
@@ -204,11 +255,9 @@ export class NotificationInboxService {
                     brand: {
                       organizationId,
                       isDeleted: false,
-                      ...(isAdmin
-                        ? {}
-                        : {
-                            id: { in: member.brands.map((brand) => brand.id) },
-                          }),
+                      ...(restrictToAssignedBrands
+                        ? { id: { in: member.brands.map((brand) => brand.id) } }
+                        : {}),
                     },
                   },
                 ],
@@ -238,40 +287,11 @@ export class NotificationInboxService {
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
       const path = thread
-        ? `/agent?thread=${encodeURIComponent(thread.id)}`
+        ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
         : source
           ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
           : null;
       const brandSlug = thread?.brand?.slug ?? source?.workflow.brand?.slug;
-      const sourceHref = path
-        ? brandSlug
-          ? createBrandAppRoute(member.organization.slug, brandSlug, path)
-          : createOrganizationAppRoute(member.organization.slug, path)
-        : null;
-      const payload = row.event.payload;
-      const failure =
-        row.topic === 'agent.status' &&
-        payload &&
-        typeof payload === 'object' &&
-        !Array.isArray(payload)
-          ? payload.failure
-          : null;
-      const safeFailure =
-        failure &&
-        typeof failure === 'object' &&
-        !Array.isArray(failure) &&
-        typeof failure.title === 'string' &&
-        typeof failure.summary === 'string' &&
-        (failure.recovery === null || typeof failure.recovery === 'string')
-          ? {
-              title: failure.title.slice(0, 300),
-              summary: failure.summary.slice(0, 1000),
-              recovery:
-                typeof failure.recovery === 'string'
-                  ? failure.recovery.slice(0, 1000)
-                  : null,
-            }
-          : null;
       return {
         id: row.id,
         topic: row.topic,
@@ -280,12 +300,12 @@ export class NotificationInboxService {
         outcome: row.event.eventKey.endsWith('.completed')
           ? 'completed'
           : 'failed',
-        sourceHref,
+        sourceHref: inboxSourceHref(member.organization.slug, brandSlug, path),
         sourceLabel:
           thread?.title?.slice(0, 300) ??
           source?.workflow.label?.slice(0, 300) ??
           null,
-        failure: safeFailure,
+        failure: readInboxFailure(row.topic, row.event.payload),
       };
     });
     const last = page.at(-1);
