@@ -1,4 +1,6 @@
+import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
+import type { LlmCostSettlementQueueService } from '@api/services/integrations/llm/llm-cost-settlement-queue.service';
 import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { LLM_GENERATION_TELEMETRY_EVENT } from '@genfeedai/contracts/constants';
 import type { ILlmCompletionTelemetryEvent } from '@genfeedai/contracts/interfaces';
@@ -122,5 +124,64 @@ describe('LlmCompletionTelemetryService', () => {
 
     await expect(service.recordCompletion(event)).resolves.toBeUndefined();
     expect(logger.error).toHaveBeenCalled();
+  });
+  it('creates distinct durable intents for genuine calls and queues frozen settlements', async () => {
+    const queue = { enqueue: vi.fn().mockResolvedValue(undefined) };
+    const scopedService = new LlmCompletionTelemetryService(
+      ledger as unknown as LlmVendorCostLedgerService,
+      configService as unknown as ConfigService,
+      logger as unknown as LoggerService,
+      queue as unknown as LlmCostSettlementQueueService,
+    );
+    const ids = await runWithWorkflowAccounting(
+      {
+        organizationId: 'org-1',
+        workflowExecutionId: 'exec',
+        workflowNodeId: 'node',
+        workflowOperationId: 'attempt',
+      },
+      async () => [
+        await scopedService.beginWorkflowOperation(
+          'org-1',
+          'model',
+          'openrouter',
+          false,
+        ),
+        await scopedService.beginWorkflowOperation(
+          'org-1',
+          'model',
+          'openrouter',
+          false,
+        ),
+      ],
+    );
+    expect(ids[0]).not.toBe(ids[1]);
+    expect(ledger.record).toHaveBeenCalledTimes(2);
+    await scopedService.recordCompletion({
+      ...event,
+      workflowLedgerId: ids[0],
+      vendorCostMicros: 1234,
+    });
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowLedgerId: ids[0],
+        vendorCostMicros: 1234,
+        costEvidence: 'observed',
+        organizationId: 'org-1',
+      }),
+    );
+    expect(ledger.record).toHaveBeenCalledTimes(2);
+    queue.enqueue.mockRejectedValueOnce(new Error('redis down'));
+    await scopedService.recordCompletion({
+      ...event,
+      workflowLedgerId: ids[0],
+      vendorCostMicros: 1234,
+    });
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowLedgerId: ids[0],
+        vendorCostMicros: 1234,
+      }),
+    );
   });
 });

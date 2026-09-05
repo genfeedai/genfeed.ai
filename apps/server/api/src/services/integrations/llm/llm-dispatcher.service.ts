@@ -364,6 +364,13 @@ export class LlmDispatcherService {
     callContext?: ILlmCompletionCallContext,
   ): Promise<OpenRouterChatCompletionResponse> {
     const startedAt = Date.now();
+    const workflowLedgerId =
+      await this.llmCompletionTelemetryService.beginWorkflowOperation(
+        organizationId,
+        params.model,
+        provider,
+        isByok,
+      );
     const response = await run();
     const carriesExactCost =
       params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO ||
@@ -374,6 +381,7 @@ export class LlmDispatcherService {
       : response;
     try {
       await this.llmCompletionTelemetryService.recordCompletion({
+        workflowLedgerId,
         brandId: callContext?.brandId,
         completionTokens: billedResponse.usage?.completion_tokens ?? 0,
         isByok,

@@ -5,6 +5,7 @@ import type {
 import type {
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
+  WorkflowAccounting,
 } from '@genfeedai/contracts/interfaces';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
@@ -176,6 +177,7 @@ interface ExecutionMetadata extends Record<string, unknown> {
 
 /** Execution result returned from the API */
 export interface ExecutionResult {
+  accounting?: WorkflowAccounting | null;
   id: string;
   workflowId: string;
   workflow?: { id: string; label?: string; description?: string };

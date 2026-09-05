@@ -1,11 +1,13 @@
 'use client';
 
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { WorkflowAccounting } from '@genfeedai/contracts/interfaces';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { getStatusIcon } from '@/features/workflows/utils/status-helpers';
 
 type Props = {
+  accounting?: WorkflowAccounting | null;
   status: WorkflowExecutionStatus;
   startedAt: Date;
   duration: number | null;
@@ -14,10 +16,10 @@ type Props = {
 };
 
 export default function ExecutionSummaryBar({
+  accounting,
   status,
   startedAt,
   duration,
-  totalCreditsUsed,
   etaDisplay,
 }: Props) {
   return (
@@ -64,8 +66,39 @@ export default function ExecutionSummaryBar({
           )}
         </div>
         <div>
-          <div className="text-sm text-muted-foreground">Credits Used</div>
-          <div className="font-semibold">{totalCreditsUsed}</div>
+          <div className="text-sm text-muted-foreground">Actual credits</div>
+          <div className="font-semibold">
+            {accounting?.actualCredits ?? 'Unavailable'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Estimated: {accounting?.estimatedCredits ?? 'Unavailable'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Variance: {accounting?.varianceCredits ?? 'Unavailable'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Provider cost (USD):{' '}
+            {accounting?.actualProviderCostMicros == null
+              ? 'Unavailable'
+              : `$${(accounting.actualProviderCostMicros / 1_000_000).toFixed(6)}`}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Estimated provider cost (USD):{' '}
+            {accounting?.estimatedProviderCostMicros == null
+              ? 'Unavailable'
+              : `$${(accounting.estimatedProviderCostMicros / 1_000_000).toFixed(6)}`}
+          </div>
+          {accounting?.actualProviderCostMicros === null && (
+            <div className="text-xs text-muted-foreground">
+              Known provider subtotal (USD): $
+              {(accounting.knownProviderCostMicros / 1_000_000).toFixed(6)}
+            </div>
+          )}
+          {accounting?.actualCredits === null && (
+            <div className="text-xs text-muted-foreground">
+              Known subtotal: {accounting.knownActualCredits}
+            </div>
+          )}
         </div>
       </div>
     </div>

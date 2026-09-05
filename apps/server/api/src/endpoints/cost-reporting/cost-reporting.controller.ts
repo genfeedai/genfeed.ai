@@ -1,7 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { CostReportingService } from '@api/endpoints/cost-reporting/cost-reporting.service';
-import { buildCostReportCsv } from '@api/endpoints/cost-reporting/cost-reporting-export.util';
+import {
+  buildCostReportCsv,
+  buildWorkflowCostCsv,
+} from '@api/endpoints/cost-reporting/cost-reporting-export.util';
 import {
   CostReportEntriesQueryDto,
   CostReportQueryDto,
@@ -18,6 +21,7 @@ import { ApiKeyScope } from '@genfeedai/contracts';
 import {
   CostReportEntrySerializer,
   CostReportSummarySerializer,
+  WorkflowExecutionSerializer,
 } from '@genfeedai/serializers';
 import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -28,6 +32,50 @@ import type { Response } from 'express';
 @Controller('costs')
 export class CostReportingController {
   constructor(private readonly costReportingService: CostReportingService) {}
+
+  @Get('workflows')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
+  async getWorkflows(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Query() query: CostReportQueryDto,
+  ) {
+    const docs = await this.costReportingService.getWorkflowExecutions(
+      this.organizationId(request, user),
+      query,
+    );
+    return serializeCollection(request, WorkflowExecutionSerializer, {
+      docs,
+      limit: 100,
+      page: 1,
+      totalDocs: docs.length,
+      totalPages: 1,
+    });
+  }
+
+  @Get('workflows/export')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  async exportWorkflows(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Query() query: CostReportQueryDto,
+    @Res() response: Response,
+  ): Promise<void> {
+    const docs = await this.costReportingService.getWorkflowExecutions(
+      this.organizationId(request, user),
+      query,
+    );
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="workflow-costs.csv"',
+    );
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Cost-Export-Limit', '100');
+    response.send(buildWorkflowCostCsv(docs));
+  }
 
   @Get('summary')
   @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)

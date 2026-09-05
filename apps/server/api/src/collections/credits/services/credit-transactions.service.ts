@@ -1,5 +1,6 @@
 import type { CreditTransactionsDocument } from '@api/collections/credits/schemas/credit-transactions.schema';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
@@ -110,7 +111,26 @@ export class CreditTransactionsService extends BaseService<
       );
     }
 
+    if (
+      category === CreditTransactionCategory.BYOK_USAGE &&
+      options?.idempotencyKey
+    ) {
+      const existing = await (tx ?? this.prisma).creditTransaction.findFirst({
+        where: {
+          organizationId,
+          isDeleted: false,
+          idempotencyKey: options.idempotencyKey,
+          category,
+        },
+      });
+      if (existing) return this.normalizeDocument(existing);
+    }
+
     const data: Prisma.CreditTransactionUncheckedCreateInput = {
+      ...(await validatedWorkflowAccountingAttribution(
+        this.prisma,
+        organizationId,
+      )),
       amount,
       balanceAfter,
       category,
@@ -142,9 +162,34 @@ export class CreditTransactionsService extends BaseService<
 
     // When a transaction client is supplied, the ledger entry MUST be written
     // through it so it commits/rolls back atomically with the balance update.
-    const created = tx
-      ? await tx.creditTransaction.create({ data })
-      : await this.prisma.creditTransaction.create({ data });
+    const created = await (async () => {
+      try {
+        return tx
+          ? await tx.creditTransaction.create({ data })
+          : await this.prisma.creditTransaction.create({ data });
+      } catch (error) {
+        if (
+          !tx &&
+          category === CreditTransactionCategory.BYOK_USAGE &&
+          options?.idempotencyKey &&
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
+          const existing = await this.prisma.creditTransaction.findFirst({
+            where: {
+              organizationId,
+              isDeleted: false,
+              idempotencyKey: options.idempotencyKey,
+              category,
+            },
+          });
+          if (existing) return existing;
+        }
+        throw error;
+      }
+    })();
     const result = this.normalizeDocument(created);
 
     await this.cacheInvalidationService.invalidate(

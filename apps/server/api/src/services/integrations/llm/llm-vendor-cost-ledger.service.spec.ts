@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('LlmVendorCostLedgerService', () => {
   const llmVendorCost = {
     create: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     groupBy: vi.fn(),
   };
   const logger = {
@@ -51,6 +52,7 @@ describe('LlmVendorCostLedgerService', () => {
 
     expect(llmVendorCost.create).toHaveBeenCalledWith({
       data: {
+        costEvidence: 'unknown',
         brandId: 'brand-1',
         completionTokens: 5,
         isByok: false,
@@ -139,5 +141,32 @@ describe('LlmVendorCostLedgerService', () => {
         vendorCostMicros: 180,
       },
     ]);
+  });
+  it('replays settlement without inserting or downgrading observed evidence', async () => {
+    const input = {
+      workflowLedgerId: 'operation',
+      organizationId: 'org-1',
+      provider: 'openrouter',
+      model: 'model',
+      isByok: false,
+      latencyMs: 5,
+      promptTokens: 10,
+      completionTokens: 20,
+      vendorCostMicros: 150,
+      costEvidence: 'observed' as const,
+    };
+    await service.record(input);
+    await service.record(input);
+    expect(llmVendorCost.create).not.toHaveBeenCalled();
+    expect(llmVendorCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'operation',
+          organizationId: 'org-1',
+          isDeleted: false,
+          costEvidence: { in: ['pending', 'unknown', 'calculated'] },
+        },
+      }),
+    );
   });
 });

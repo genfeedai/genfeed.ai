@@ -3093,6 +3093,9 @@ model CreditBalance {
 }
 
 model CreditTransaction {
+  workflowExecutionId String?
+  workflowNodeId String?
+  workflowOperationId String?
   id                   String             @id @default(cuid())
   organizationId       String
   organization         Organization       @relation(fields: [organizationId], references: [id])
@@ -3121,6 +3124,7 @@ model CreditTransaction {
   @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
   @@index([reservationId])
   @@map("credit_transactions")
+  @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "credit_transactions_workflow_accounting_idx")
 }
 
 model BillingAccount {
@@ -3276,6 +3280,10 @@ model BillingAccountOrganization {
 }
 
 model CreditReservation {
+  workflowExecutionId String?
+  workflowNodeId String?
+  workflowOperationId String?
+  @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "credit_reservations_workflow_accounting_idx")
   id               String                  @id @default(cuid())
   billingAccountId String
   billingAccount   BillingAccount          @relation(fields: [billingAccountId], references: [id])
@@ -3304,6 +3312,10 @@ model CreditReservation {
 /// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
 /// completion content.
 model LlmVendorCost {
+  costEvidence String?
+  workflowExecutionId String?
+  workflowNodeId String?
+  workflowOperationId String?
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
@@ -3326,6 +3338,7 @@ model LlmVendorCost {
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
   @@map("llm_vendor_costs")
+  @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "llm_vendor_costs_workflow_accounting_idx")
 }
 
 /// Per-generation media vendor cost (companion to LlmVendorCost, #2361).
@@ -3333,6 +3346,11 @@ model LlmVendorCost {
 /// units (seconds / megapixels / runs). BYOK rows store units with
 /// vendorCostMicros = 0. Never stores prompt content.
 model MediaVendorCost {
+  pricingSnapshot Json?
+  costEvidence String?
+  workflowExecutionId String?
+  workflowNodeId String?
+  workflowOperationId String?
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
@@ -3355,6 +3373,7 @@ model MediaVendorCost {
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_model_created_at_idx")
   @@map("media_vendor_costs")
+  @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "media_vendor_costs_workflow_accounting_idx")
 }
 
 model CustomerInstance {
@@ -4355,6 +4374,7 @@ model WorkflowVersion {
 }
 
 model WorkflowExecution {
+  costEstimate Json?
   id                String                  @id @default(cuid())
   idempotencyKey    String?
   workflowId        String

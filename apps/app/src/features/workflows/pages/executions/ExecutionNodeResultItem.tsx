@@ -2,6 +2,7 @@
 
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { WorkflowNodeAccounting } from '@genfeedai/contracts/interfaces';
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -23,12 +24,14 @@ type NodeResult = {
 };
 
 type Props = {
+  accounting?: WorkflowNodeAccounting;
   result: NodeResult;
   isExpanded: boolean;
   onToggle: (nodeId: string) => void;
 };
 
 export default function ExecutionNodeResultItem({
+  accounting,
   result,
   isExpanded,
   onToggle,
@@ -52,7 +55,7 @@ export default function ExecutionNodeResultItem({
         </div>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
-            {result.creditsUsed} credits
+            {accounting?.actualCredits ?? 'Unavailable'} credits
           </span>
           {result.retryCount > 0 && (
             <span className="text-yellow-600">{result.retryCount} retries</span>
@@ -63,6 +66,46 @@ export default function ExecutionNodeResultItem({
 
       {isExpanded && (
         <div className="border-t border-border bg-background/50 px-4 py-3">
+          {accounting && (
+            <div className="mb-3 space-y-1 text-sm">
+              <div>
+                Model: {accounting.model ?? 'Unavailable'} · Provider:{' '}
+                {accounting.provider ?? 'Unavailable'}
+              </div>
+              <div>
+                Estimated credits:{' '}
+                {accounting.estimatedCredits ?? 'Unavailable'} · Actual credits:{' '}
+                {accounting.actualCredits ?? 'Unavailable'} · Variance:{' '}
+                {accounting.varianceCredits ?? 'Unavailable'}
+              </div>
+              <div>
+                Refunded credits: {accounting.refundedCredits} · Reserved
+                credits: {accounting.reservedCredits}
+              </div>
+              <div>
+                Provider cost (USD):{' '}
+                {accounting.actualProviderCostMicros === null
+                  ? 'Unavailable'
+                  : `$${(accounting.actualProviderCostMicros / 1_000_000).toFixed(6)}`}
+              </div>
+              {accounting.providerBreakdown?.map((cost) => (
+                <div key={`${cost.provider}:${cost.model}`}>
+                  {cost.provider} / {cost.model}:{' '}
+                  {cost.actualProviderCostMicros === null
+                    ? 'Unavailable'
+                    : `$${(cost.actualProviderCostMicros / 1_000_000).toFixed(6)}`}
+                </div>
+              ))}
+              <div>Accounting: {accounting.state}</div>
+              {accounting.unresolvedReasons.length > 0 && (
+                <div>
+                  {accounting.unresolvedReasons
+                    .map((reason) => reason.replaceAll('_', ' '))
+                    .join(' · ')}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Started:</span>{' '}

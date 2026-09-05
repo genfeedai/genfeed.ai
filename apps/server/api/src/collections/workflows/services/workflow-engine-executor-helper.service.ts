@@ -188,6 +188,7 @@ export class WorkflowEngineExecutorHelperService {
     );
     const continuation = await this.createProviderContinuation({
       ...args.continuation,
+      model: args.output.model,
       ingredientId: pendingOutput.ingredientId,
     });
     let externalId: string;
@@ -232,6 +233,7 @@ export class WorkflowEngineExecutorHelperService {
   }
 
   async createProviderContinuation(input: {
+    model?: string;
     actionId: string;
     context: ExecutionContext;
     ingredientId: string;
@@ -245,6 +247,7 @@ export class WorkflowEngineExecutorHelperService {
     }
 
     return this.continuationService.createBeforeProviderSubmission({
+      model: input.model,
       actionId: input.actionId,
       executionId: input.context.executionId,
       ingredientId: input.ingredientId,

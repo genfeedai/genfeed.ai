@@ -7,6 +7,9 @@ export class CreditTransactionsEntity
   implements CreditTransactions
 {
   declare readonly id: string;
+  declare readonly workflowExecutionId: string | null;
+  declare readonly workflowNodeId: string | null;
+  declare readonly workflowOperationId: string | null;
   declare readonly organizationId: string;
   declare readonly billingAccountId: string | null;
   declare readonly actorUserId: string | null;

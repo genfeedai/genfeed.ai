@@ -6,6 +6,8 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
+import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
+import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import {
   composeEtaMetadata,
   readNodeResults,
@@ -37,11 +39,15 @@ import {
   type ActionOriginContext,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
 } from '@genfeedai/contracts';
-import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import type {
+  PopulateOption,
+  WorkflowCostEstimate,
+} from '@genfeedai/contracts/interfaces';
 import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
 } from '@genfeedai/prisma';
+import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -76,6 +82,7 @@ type WorkflowExecutionCompletionRow = {
 };
 
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
+  costEstimate?: WorkflowCostEstimate;
   estimatedDurationMs?: number;
   etaConfidence?: string;
   etaCurrentPhase?: string;
@@ -202,11 +209,60 @@ export class WorkflowExecutionsService extends BaseService<
     };
   }
 
+  async captureMissingCostEstimate(
+    executionId: string,
+    organizationId: string,
+    nodes: ExecutableNode[],
+    brandId?: string | null,
+  ): Promise<void> {
+    const existing = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId, organizationId, isDeleted: false },
+      select: { costEstimate: true, startedAt: true },
+    });
+    if (!existing || existing.costEstimate || existing.startedAt) return;
+    const estimate = await captureWorkflowCostEstimate(
+      this.prisma,
+      organizationId,
+      nodes,
+      brandId,
+    );
+    await this.prisma.workflowExecution.updateMany({
+      where: {
+        id: executionId,
+        organizationId,
+        isDeleted: false,
+        costEstimate: { equals: Prisma.DbNull },
+        startedAt: null,
+      },
+      data: {
+        costEstimate: JSON.parse(
+          JSON.stringify(estimate),
+        ) as Prisma.InputJsonValue,
+      },
+    });
+  }
+
   async findOne(
     params: Record<string, unknown>,
     populate: PopulateOption[] = DEFAULT_EXECUTION_POPULATE,
   ): Promise<WorkflowExecutionDocument | null> {
     return await super.findOne(params, populate);
+  }
+
+  async findOneWithAccounting(
+    params: Record<string, unknown>,
+  ): Promise<WorkflowExecutionDocument | null> {
+    const execution = await this.findOne(params);
+    if (!execution || typeof params.organizationId !== 'string')
+      return execution;
+    return {
+      ...execution,
+      accounting: await this.getAccounting(execution.id, params.organizationId),
+    };
+  }
+
+  async getAccounting(executionId: string, organizationId: string) {
+    return readWorkflowAccounting(this.prisma, organizationId, executionId);
   }
 
   override async findAll(
@@ -370,6 +426,13 @@ export class WorkflowExecutionsService extends BaseService<
       progress: 0,
     } as Prisma.InputJsonValue;
     const data = {
+      ...(dto.costEstimate
+        ? {
+            costEstimate: JSON.parse(
+              JSON.stringify(dto.costEstimate),
+            ) as Prisma.InputJsonValue,
+          }
+        : {}),
       creditsUsed: 0,
       estimatedDurationMs: dto.estimatedDurationMs ?? null,
       etaConfidence: dto.etaConfidence ?? null,

@@ -1,5 +1,6 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
@@ -33,6 +34,26 @@ export class CreditDeductionProcessor extends WorkerHost {
   }
 
   async process(job: Job<CreditDeductionJobData>): Promise<void> {
+    const scope = job.data.workflowAccounting;
+    if (!scope) return this.processScoped(job);
+    if (
+      scope.organizationId !== job.data.organizationId ||
+      !(await this.prisma.workflowExecution.findFirst({
+        where: {
+          id: scope.workflowExecutionId,
+          organizationId: job.data.organizationId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      }))
+    )
+      throw new UnrecoverableError(
+        'Workflow accounting scope does not match credit job',
+      );
+    return runWithWorkflowAccounting(scope, () => this.processScoped(job));
+  }
+
+  private async processScoped(job: Job<CreditDeductionJobData>): Promise<void> {
     const { type, organizationId, userId, amount, description, source } =
       job.data;
 
@@ -79,6 +100,7 @@ export class CreditDeductionProcessor extends WorkerHost {
             description,
             source,
             {
+              idempotencyKey: job.data.idempotencyKey,
               maxOverdraftCredits: job.data.maxOverdraftCredits,
               metadata: job.data.metadata,
               referenceId: job.data.referenceId,
@@ -102,6 +124,11 @@ export class CreditDeductionProcessor extends WorkerHost {
           currentBalance,
           source,
           `[BYOK] ${description}`,
+          undefined,
+          undefined,
+          {
+            idempotencyKey: `byok:${organizationId}:${job.data.idempotencyKey ?? job.id}`,
+          },
         );
       }
 

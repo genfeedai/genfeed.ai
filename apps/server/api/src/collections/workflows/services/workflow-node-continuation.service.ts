@@ -103,6 +103,7 @@ export class WorkflowNodeContinuationService {
   ) {}
 
   async createBeforeProviderSubmission(input: {
+    model?: string;
     actionId: string;
     executionId: string;
     ingredientId: string;
@@ -158,7 +159,7 @@ export class WorkflowNodeContinuationService {
         );
       }
 
-      return (await transaction.workflowNodeContinuation.create({
+      const continuation = (await transaction.workflowNodeContinuation.create({
         data: {
           actionId: input.actionId,
           executionId: input.executionId,
@@ -170,6 +171,42 @@ export class WorkflowNodeContinuationService {
           workflowVersionId: input.workflowVersionId,
         },
       })) as ContinuationRow;
+      const model = input.model
+        ? await transaction.model.findFirst({
+            where: {
+              key: input.model,
+              isDeleted: false,
+              OR: [
+                { organizationId: input.organizationId },
+                { organizationId: null },
+              ],
+            },
+          })
+        : null;
+      await transaction.mediaVendorCost.create({
+        data: {
+          organizationId: input.organizationId,
+          workflowExecutionId: input.executionId,
+          workflowNodeId: input.nodeId,
+          workflowOperationId: continuation.id,
+          ingredientId: input.ingredientId,
+          idempotencyKey: `media:${input.organizationId}:${input.ingredientId}`,
+          provider: input.provider,
+          model: input.model ?? 'unresolved',
+          category: input.actionId,
+          units: 0,
+          vendorCostMicros: 0,
+          costEvidence: 'pending',
+          pricingSnapshot: {
+            isByok: false,
+            billingDisposition: 'not_charged',
+            providerCostUsd: model?.providerCostUsd ?? null,
+            pricingType: model?.pricingType ?? null,
+            modelUpdatedAt: model?.updatedAt.toISOString() ?? null,
+          },
+        },
+      });
+      return continuation;
     });
 
     return { continuationId: row.id };

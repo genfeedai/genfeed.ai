@@ -41,6 +41,7 @@ describe('LlmDispatcherService', () => {
   };
   let llmInstanceService: { ensureRunning: ReturnType<typeof vi.fn> };
   let llmCompletionTelemetryService: {
+    beginWorkflowOperation: ReturnType<typeof vi.fn>;
     recordCompletion: ReturnType<typeof vi.fn>;
   };
   let configService: { get: ReturnType<typeof vi.fn> };
@@ -97,6 +98,7 @@ describe('LlmDispatcherService', () => {
       ensureRunning: vi.fn().mockResolvedValue(undefined),
     };
     llmCompletionTelemetryService = {
+      beginWorkflowOperation: vi.fn().mockResolvedValue(undefined),
       recordCompletion: vi.fn().mockResolvedValue(undefined),
     };
     // Platform keys present by default so openai/* and anthropic/* prefer

@@ -1,3 +1,4 @@
+import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
@@ -173,6 +174,7 @@ export class WorkflowExecutionRunnerService {
   ): Promise<WorkflowExecutionResult> {
     const prepared = await this.prepareExecution({
       event,
+      selectedNodeIds: graphOptions?.selectedNodeIds,
       existingExecutionId,
       idempotencyKey,
       metadata,
@@ -209,6 +211,7 @@ export class WorkflowExecutionRunnerService {
 
   private async prepareExecution(input: {
     event: TriggerEvent;
+    selectedNodeIds?: string[];
     existingExecutionId?: string;
     idempotencyKey?: string;
     metadata?: Record<string, unknown>;
@@ -257,6 +260,16 @@ export class WorkflowExecutionRunnerService {
           input.event.userId,
           input.event.organizationId,
           {
+            costEstimate: await captureWorkflowCostEstimate(
+              this.prisma,
+              input.event.organizationId,
+              executableWorkflow.nodes.filter(
+                (node) =>
+                  !input.selectedNodeIds ||
+                  input.selectedNodeIds.includes(node.id),
+              ),
+              input.workflowDoc.brandId,
+            ),
             estimatedDurationMs: initialEta.estimatedDurationMs,
             etaConfidence: initialEta.etaConfidence,
             etaCurrentPhase: initialEta.currentPhase,
@@ -278,6 +291,17 @@ export class WorkflowExecutionRunnerService {
           },
         )
       ).id;
+    if (input.existingExecutionId) {
+      await this.executionsService.captureMissingCostEstimate(
+        executionId,
+        input.event.organizationId,
+        executableWorkflow.nodes.filter(
+          (node) =>
+            !input.selectedNodeIds || input.selectedNodeIds.includes(node.id),
+        ),
+        input.workflowDoc.brandId,
+      );
+    }
     return {
       etaPlan,
       executableWorkflow,

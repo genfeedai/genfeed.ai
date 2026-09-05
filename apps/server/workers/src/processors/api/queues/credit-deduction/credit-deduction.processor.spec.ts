@@ -201,6 +201,7 @@ describe('CreditDeductionProcessor', () => {
       'Fleet voice clone compute',
       ActivitySource.VOICE_GENERATION,
       {
+        idempotencyKey: 'fleet-voice-clone-job-1',
         maxOverdraftCredits: undefined,
         metadata: {
           fleetJobId: 'job-1',
@@ -308,6 +309,9 @@ describe('CreditDeductionProcessor', () => {
       1234,
       ActivitySource.IMAGE_GENERATION,
       '[BYOK] BYOK image call',
+      undefined,
+      undefined,
+      { idempotencyKey: 'byok:org-1:job-1' },
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,

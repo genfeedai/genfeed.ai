@@ -1,6 +1,8 @@
 import type { ActivitySource } from '../..';
+import type { WorkflowAccountingScope } from '../../interfaces/billing/workflow-accounting.interface';
 
 export interface CreditDeductionJobData {
+  workflowAccounting?: WorkflowAccountingScope;
   type: 'deduct-credits' | 'record-byok-usage';
   organizationId: string;
   userId?: string;
