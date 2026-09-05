@@ -1,6 +1,6 @@
 # Project Structure — Genfeed.ai
 
-**last_verified: 2026-09-03** · Auto-loaded every request — keep it short. `ls` gives you the
+**last_verified: 2026-09-03** · Read when relevant to the task — keep it short. `ls` gives you the
 full inventory; this file records only what `ls` cannot tell you.
 
 ## Top level
