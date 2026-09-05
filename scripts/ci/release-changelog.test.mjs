@@ -82,7 +82,7 @@ const REQUIRED_SUITE_JOBS = [
   ),
   'Full Suite / CI Gate / Build',
   'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
-  'Full Suite / E2E Suite / E2E Route Coverage Gate',
+  'Full Suite / E2E Suite / E2E Route Reference Inventory',
   'Full Suite / E2E Suite / API E2E Tests',
   ...Array.from(
     { length: 4 },
@@ -844,5 +844,26 @@ test('PR titles are checked without executing fork code and stay in sync with th
     workflowTypes,
     [...conventionalTypesFromTemplate()].sort(),
     'pr-title.yml types must equal the list in pull_request_template.md',
+  );
+});
+
+test('recovery accepts the historical route inventory display name and rejects duplicate aliases', () => {
+  const fixture = releaseRecoveryFixture();
+  const job = fixture.jobs.find(
+    ({ name }) =>
+      name === 'Full Suite / E2E Suite / E2E Route Reference Inventory',
+  );
+  assert.ok(job);
+  job.name = 'Full Suite / E2E Suite / E2E Route Coverage Gate';
+  assert.equal(
+    validateReleaseRecoveryEvidence(fixture).releaseSha,
+    RECOVERY_SHA,
+  );
+  fixture.jobs.push(
+    recoveryJob('Full Suite / E2E Suite / E2E Route Reference Inventory'),
+  );
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(fixture),
+    /exactly one .*E2E Route Reference Inventory job; found 2/,
   );
 });
