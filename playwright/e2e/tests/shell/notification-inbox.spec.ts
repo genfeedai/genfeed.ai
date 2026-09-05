@@ -196,6 +196,10 @@ for (const fixture of [
       path: testInfo.outputPath('inbox.png'),
       fullPage: false,
     });
+    const expectedThreadUrl = new URL(
+      `/${fixture.slug}/~/agent/older-thread`,
+      page.url(),
+    ).href;
     const selectedThreadRequest = page.waitForRequest((request) =>
       new URL(request.url()).pathname.startsWith(
         '/v1/agent/threads/older-thread',
@@ -203,9 +207,7 @@ for (const fixture of [
     );
     await page.getByRole('link', { name: 'Open run' }).click();
     await selectedThreadRequest;
-    await expect(page).toHaveURL(
-      new URL(`/${fixture.slug}/~/agent/older-thread`, page.url()).href,
-    );
+    await expect(page).toHaveURL(expectedThreadUrl);
     await context.close();
   });
 }

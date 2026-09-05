@@ -246,7 +246,7 @@ function AppProtectedTopbarContent({
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="grid h-full w-full grid-cols-[minmax(0,1fr)_minmax(0,auto)_auto] items-center gap-3 px-3"
+        className="grid h-full w-full grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(min-content,1fr)] items-center gap-3 px-3"
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
           {onSidebarToggle && isSidebarCollapsed ? (

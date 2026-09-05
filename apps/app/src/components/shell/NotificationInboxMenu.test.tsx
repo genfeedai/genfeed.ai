@@ -18,7 +18,7 @@ import NotificationInboxMenu from './NotificationInboxMenu';
 
 const item: INotificationInboxItem = {
   id: 'item-1',
-  topic: 'workflow.status',
+  topic: 'agent.status',
   occurredAt: '2026-09-05T10:00:00Z',
   readAt: null,
   outcome: 'failed',
