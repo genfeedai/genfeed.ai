@@ -47,6 +47,8 @@ describe('MCP setup page', () => {
     expect(html).toContain('https://app.genfeed.ai/connect');
     expect(html).toContain('Start guided setup');
     expect(html).toContain('OAuth setup guide');
+    expect(html).toContain('Authorize and verify');
+    expect(html).not.toContain('step-title">Manual config');
     expect(html).not.toContain('http://localhost:3014');
   });
 

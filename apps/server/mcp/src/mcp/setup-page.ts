@@ -215,7 +215,6 @@ export function renderSetupPage(): string {
   const codex = buildConnectGenfeedInstructions('codex', mcpUrl);
   const claudeCommandSafe = escapeHtml(claude.primaryCommand ?? '');
   const codexCommandSafe = escapeHtml(codex.primaryCommand ?? '');
-  const codexTomlSafe = escapeHtml(codex.configuration);
   const agentSetupPromptSafe = escapeHtml(
     buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
@@ -853,9 +852,9 @@ ${postHogSnippet}
           <li class="step">
             <span class="step-number">03</span>
             <div>
-              <p class="step-title">Manual config</p>
-              <p class="step-copy">Use this as an alternative to the add command. Run <code class="${ui.inlineCode}">codex mcp login genfeed</code> if setup did not open authorization. Approve in your browser, then ask Codex to list your Genfeed brands.</p>
-              <pre class="${ui.codeBlock} command"><code>${codexTomlSafe}</code></pre>
+              <p class="step-title">Authorize and verify</p>
+              <p class="step-copy">If setup did not open authorization, run the command below. Approve in your browser, then ask Codex to list your Genfeed brands.</p>
+              <pre class="${ui.codeBlock} command"><code>codex mcp login genfeed</code></pre>
             </div>
           </li>
         </ol>
