@@ -174,7 +174,10 @@ export class CampaignLifecycleService {
     userId: string,
   ): Promise<ICampaignLifecycleItemOutcome> {
     const executionState = this.readExecutionState(post);
-    if (executionState === TargetExecutionState.SCHEDULED) {
+    if (
+      executionState === TargetExecutionState.SCHEDULED &&
+      post.publishApprovalId
+    ) {
       return campaignItemOutcome({
         executionState,
         id: post.id,
@@ -222,7 +225,8 @@ export class CampaignLifecycleService {
     const nextState =
       executionState === TargetExecutionState.PAUSED ||
       executionState === TargetExecutionState.DRAFT ||
-      executionState === TargetExecutionState.FAILED
+      executionState === TargetExecutionState.FAILED ||
+      executionState === TargetExecutionState.SCHEDULED
         ? TargetExecutionState.SCHEDULED
         : null;
     if (!nextState) {
