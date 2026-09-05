@@ -53,12 +53,43 @@ export class TemplateMetadataService {
       templateId,
     );
 
+    const { difficulty, estimatedTime, goals, requiredFeatures, ...scalars } =
+      updates;
+    const hasDataUpdate =
+      difficulty !== undefined ||
+      estimatedTime !== undefined ||
+      goals !== undefined ||
+      requiredFeatures !== undefined;
+    const savedData =
+      existing.data !== null &&
+      typeof existing.data === 'object' &&
+      !Array.isArray(existing.data)
+        ? existing.data
+        : {};
     const result = await this.prisma.templateMetadata.update({
-      data: updates as Prisma.TemplateMetadataUpdateInput,
+      data: {
+        ...scalars,
+        ...(hasDataUpdate
+          ? {
+              data: {
+                ...savedData,
+                ...(difficulty !== undefined ? { difficulty } : {}),
+                ...(estimatedTime !== undefined ? { estimatedTime } : {}),
+                ...(goals !== undefined ? { goals } : {}),
+                ...(requiredFeatures !== undefined ? { requiredFeatures } : {}),
+              },
+            }
+          : {}),
+      } as Prisma.TemplateMetadataUpdateInput,
       where: { id: existing.id },
     });
-
-    return result as unknown as TemplateMetadataEntity;
+    const data =
+      result.data !== null &&
+      typeof result.data === 'object' &&
+      !Array.isArray(result.data)
+        ? result.data
+        : {};
+    return { ...data, ...result };
   }
 
   /**

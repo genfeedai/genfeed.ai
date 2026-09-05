@@ -93,6 +93,7 @@ describe('AvatarVideoGenerationService', () => {
     };
     const websocketService = {
       publishFileProcessing: vi.fn().mockResolvedValue(undefined),
+      publishVideoProgress: vi.fn().mockResolvedValue(undefined),
     };
 
     const service = new AvatarVideoGenerationService(
@@ -127,6 +128,7 @@ describe('AvatarVideoGenerationService', () => {
       service,
       sharedService,
       voicesService,
+      websocketService,
     };
   };
 
@@ -148,6 +150,25 @@ describe('AvatarVideoGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('publishes initial progress on the ingredient video path for its user', async () => {
+    const { service, brandsService, websocketService } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    await service.generateAvatarVideo(
+      {
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        audioUrl: 'https://cdn.example.com/audio.mp3',
+      },
+      context,
+    );
+    expect(websocketService.publishVideoProgress).toHaveBeenCalledWith(
+      '/videos/avatar-ingredient-1',
+      0,
+      context.userId,
+      `user:${context.userId}`,
+    );
+    expect(websocketService.publishFileProcessing).not.toHaveBeenCalled();
   });
 
   it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {

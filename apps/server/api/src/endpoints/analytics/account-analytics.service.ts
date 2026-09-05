@@ -347,7 +347,9 @@ export class AccountAnalyticsService {
         const ageDays = firstPublishedAt
           ? Math.floor((now - firstPublishedAt.getTime()) / 86_400_000)
           : Math.floor((now - credential.createdAt.getTime()) / 86_400_000);
-        const ranked = metrics.find((item) => item.metric === metric);
+        const evaluationMetric = metrics.find(
+          (item) => item.metric === policy?.metric,
+        );
         const endSnapshot = endByCredential.get(credential.id);
         const freshnessHours = endSnapshot
           ? (now - endSnapshot.date.getTime()) / 3_600_000
@@ -357,8 +359,10 @@ export class AccountAnalyticsService {
           coverage,
           freshnessHours,
           metricAvailability:
-            ranked?.availability ?? AnalyticsMetricAvailability.UNAVAILABLE,
-          metricValue: ranked?.change ?? ranked?.lifetime ?? null,
+            evaluationMetric?.availability ??
+            AnalyticsMetricAvailability.UNAVAILABLE,
+          metricValue:
+            evaluationMetric?.change ?? evaluationMetric?.lifetime ?? null,
           policy,
           publishedPosts,
         });

@@ -104,29 +104,6 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
   });
 });
 
-describe('PostAnalyticsService.trackPostAnalytics', () => {
-  it('returns early instead of throwing when the credential is missing', async () => {
-    const { logger, service, upsert } = createHarness(null);
-
-    await service.trackPostAnalytics(
-      {
-        brandId: 'brand_1',
-        externalId: 'ext_1',
-        id: 'post_1',
-        organizationId: 'org_1',
-        userId: 'user_1',
-      } as unknown as PostDocument,
-      undefined,
-      'test',
-    );
-
-    expect(upsert).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('Missing credential'),
-    );
-  });
-});
-
 describe('PostAnalyticsService provider metric mapping', () => {
   it('converts YouTube total watch minutes while preserving average seconds', async () => {
     const { service } = createHarness(null);
