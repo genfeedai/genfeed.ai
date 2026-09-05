@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -89,8 +90,20 @@ test('keeps the shared Bun setup action free of runner package installs', () => 
   assert.doesNotMatch(executableAction, /playwright install --with-deps/);
 });
 
-test('skips ffmpeg-static downloads without providing a working fake runtime', () => {
-  assert.match(action, /echo "FFMPEG_BIN=\/bin\/false" >> "\$GITHUB_ENV"/);
+test('skips ffmpeg-static downloads with an existing failing executable on the runner', () => {
+  const setup = action.split(
+    'name: Disable ffmpeg-static binary download in CI',
+  )[1];
+  const script = setup.match(/run: \|\n((?: {8}[^\n]*\n)+)/)?.[1];
+  assert.ok(script);
+  const output = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', script], {
+    encoding: 'utf8',
+    env: { ...process.env, GITHUB_ENV: '/dev/stdout' },
+  });
+  const executable = output.trim().split('FFMPEG_BIN=')[1];
+  assert.ok(executable?.startsWith('/'));
+  assert.ok(existsSync(executable));
+  assert.equal(spawnSync(executable).status, 1);
 });
 
 test('downloads only the Playwright browser when its cache is cold', () => {

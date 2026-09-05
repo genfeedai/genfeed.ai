@@ -392,43 +392,26 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoTemplates();
 
-    await expect(authenticatedPage).toHaveURL(
-      /automation\/workflows\/templates/,
-    );
+    await expect(authenticatedPage).toHaveURL(/automation\/templates/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
   test('should navigate between editor tabs', async ({ authenticatedPage }) => {
     const workflowPage = new WorkflowPage(authenticatedPage);
 
-    // Start at editor
     await workflowPage.gotoEditor();
-    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new$/);
 
-    // Navigate to library
-    await workflowPage.navigateViaTab('library');
-    await authenticatedPage.waitForTimeout(500);
-    const afterLibrary = authenticatedPage.url();
-    expect(
-      afterLibrary.includes('library') || afterLibrary.includes('workflows'),
-    ).toBe(true);
-
-    // Navigate to templates
-    await workflowPage.navigateViaTab('templates');
-    await authenticatedPage.waitForTimeout(500);
-    const afterTemplates = authenticatedPage.url();
-    expect(
-      afterTemplates.includes('templates') ||
-        afterTemplates.includes('workflows'),
-    ).toBe(true);
-
-    // Navigate to executions
-    await workflowPage.navigateViaTab('executions');
-    await authenticatedPage.waitForTimeout(500);
-    const afterExec = authenticatedPage.url();
-    expect(
-      afterExec.includes('executions') || afterExec.includes('workflows'),
-    ).toBe(true);
+    for (const [tab, pathname] of [
+      ['library', workflowPage.basePath],
+      ['templates', workflowPage.templatesPath],
+      ['executions', workflowPage.runsPath],
+    ] as const) {
+      await workflowPage.navigateViaTab(tab);
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(pathname);
+    }
   });
 
   test('should display workflow library page', async ({
