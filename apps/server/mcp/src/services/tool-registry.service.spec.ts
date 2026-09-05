@@ -149,9 +149,11 @@ const TOOLS_BY_NAME = new Map(MOCK_TOOLS.map((t) => [t.name, t]));
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
+    ...actual,
     getToolByName: vi.fn((name: string) => TOOLS_BY_NAME.get(name)),
-    getToolsForSurface: vi.fn((surface: string) =>
-      surface === 'agent' ? actual.getToolsForSurface('agent') : MOCK_TOOLS,
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp' ? MOCK_TOOLS : actual.getToolsForSurface(surface),
     ),
     toMcpTools: vi.fn((tools) => tools),
   };

@@ -46,9 +46,11 @@ const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
+    ...actual,
     getToolByName: vi.fn(),
-    getToolsForSurface: vi.fn((surface: string) =>
-      surface === 'agent' ? actual.getToolsForSurface('agent') : ALL_TOOLS,
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp' ? ALL_TOOLS : actual.getToolsForSurface(surface),
     ),
     toMcpTools: vi.fn((tools) => tools),
   };

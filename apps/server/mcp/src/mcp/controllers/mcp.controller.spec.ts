@@ -14,7 +14,7 @@ type AuthenticatedControllerRequest = Parameters<
 
 const rawToolSourceMocks = vi.hoisted(() => ({
   getToolByName: vi.fn(),
-  getToolsForSurface: vi.fn(() => {
+  getToolsForSurface: vi.fn((_surface: string) => {
     throw new Error(
       'McpController must use ToolRegistryService for tool lists',
     );
@@ -29,11 +29,13 @@ const rawToolSourceMocks = vi.hoisted(() => ({
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
+    ...actual,
     getToolByName: rawToolSourceMocks.getToolByName,
-    getToolsForSurface: vi.fn((surface: string) =>
-      surface === 'agent'
-        ? actual.getToolsForSurface('agent')
-        : rawToolSourceMocks.getToolsForSurface(),
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp'
+          ? rawToolSourceMocks.getToolsForSurface(surface)
+          : actual.getToolsForSurface(surface),
     ),
     toMcpTools: rawToolSourceMocks.toMcpTools,
   };

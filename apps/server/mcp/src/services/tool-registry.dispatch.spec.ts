@@ -18,11 +18,13 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
+    ...actual,
     getToolByName: vi.fn(),
-    getToolsForSurface: vi.fn((surface: string) =>
-      surface === 'agent'
-        ? actual.getToolsForSurface('agent')
-        : mockState.tools,
+    getToolsForSurface: vi.fn(
+      (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
+        surface === 'mcp'
+          ? mockState.tools
+          : actual.getToolsForSurface(surface),
     ),
     toMcpTools: vi.fn((tools) => tools),
   };
