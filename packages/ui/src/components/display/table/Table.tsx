@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Button } from '@ui/primitives/button';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -85,6 +86,7 @@ function TableCellContent<T>({
 export default function AppTable<T>({
   items = EMPTY_ARRAY,
   isLoading = false,
+  error,
   columns,
   actions = EMPTY_ARRAY,
   framed = true,
@@ -225,6 +227,26 @@ export default function AppTable<T>({
     );
   }
 
+  if (error && items.length === 0) {
+    return (
+      <div
+        className={cn(
+          'relative w-full overflow-hidden bg-card',
+          framed
+            ? 'rounded-card border border-border'
+            : 'rounded-none border-0 shadow-none',
+        )}
+      >
+        <TableSectionHeader label={label} description={description} />
+        <ErrorFallback
+          title={error.title}
+          description={error.description}
+          resetErrorBoundary={error.onRetry}
+        />
+      </div>
+    );
+  }
+
   if (items?.length === 0) {
     return (
       <div
@@ -258,6 +280,14 @@ export default function AppTable<T>({
       )}
     >
       <TableSectionHeader label={label} description={description} />
+      {error ? (
+        <ErrorFallback
+          compact
+          title={error.title}
+          description={error.description}
+          resetErrorBoundary={error.onRetry}
+        />
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full caption-bottom border-collapse">
           <thead
@@ -271,13 +301,22 @@ export default function AppTable<T>({
                 <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Checkbox
                     name="selectAll"
-                    isChecked={
+                    aria-label="Select all rows"
+                    checked={
                       items.length > 0 &&
                       items.every((item) =>
                         getItemId
                           ? selectedIds.includes(getItemId(item))
                           : false,
                       )
+                        ? true
+                        : items.some(
+                              (item) =>
+                                getItemId &&
+                                selectedIds.includes(getItemId(item)),
+                            )
+                          ? 'indeterminate'
+                          : false
                     }
                     onChange={handleSelectAll}
                   />
@@ -377,6 +416,7 @@ export default function AppTable<T>({
                     <td className="relative p-4 w-12 align-middle">
                       <Checkbox
                         name={`select-${getItemId ? getItemId(item) : index}`}
+                        aria-label={`Select row ${index + 1}`}
                         isChecked={isSelected}
                         onChange={() => handleSelectItem(item)}
                       />

@@ -15,6 +15,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { ClipboardList, Mail, MailOpen } from 'lucide-react';
@@ -43,6 +44,7 @@ export default function ActivitiesList({
 
   const {
     isLoading,
+    isError,
     isRefreshing,
     refresh,
     filteredActivities,
@@ -52,6 +54,7 @@ export default function ActivitiesList({
 
   const { openIngredientOverlay } = useIngredientOverlay();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
 
   // Helper to get preview URL from populated ingredient
   const getPreviewUrl = useCallback(
@@ -246,13 +249,19 @@ export default function ActivitiesList({
   );
 
   const handleBulkMarkAsRead = useCallback(async () => {
-    if (selectedActivityIds.length > 0) {
-      await markActivitiesAsRead(selectedActivityIds);
+    if (isMarkingRead) return;
+    setIsMarkingRead(true);
+    try {
+      if (selectedActivityIds.length) {
+        await markActivitiesAsRead(selectedActivityIds);
+      } else {
+        await markActivitiesAsRead();
+      }
       setSelectedActivityIds([]);
-    } else {
-      await markActivitiesAsRead();
+    } finally {
+      setIsMarkingRead(false);
     }
-  }, [markActivitiesAsRead, selectedActivityIds]);
+  }, [markActivitiesAsRead, selectedActivityIds, isMarkingRead]);
 
   const hasSelectedActivities = selectedActivityIds.length > 0;
   const hasUnreadActivities = useMemo(
@@ -292,14 +301,18 @@ export default function ActivitiesList({
     () => (
       <div className="flex shrink-0 items-center gap-2">
         <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
-        <Button
-          label={bulkReadLabel}
-          onClick={handleBulkMarkAsRead}
-          variant={ButtonVariant.DEFAULT}
-          isDisabled={
-            isRefreshing || (!hasSelectedActivities && !hasUnreadActivities)
-          }
-        />
+        {!hasSelectedActivities && (
+          <Button
+            label={bulkReadLabel}
+            onClick={handleBulkMarkAsRead}
+            variant={ButtonVariant.DEFAULT}
+            isDisabled={
+              isRefreshing ||
+              isMarkingRead ||
+              (!hasSelectedActivities && !hasUnreadActivities)
+            }
+          />
+        )}
       </div>
     ),
     [
@@ -308,6 +321,7 @@ export default function ActivitiesList({
       hasSelectedActivities,
       hasUnreadActivities,
       isRefreshing,
+      isMarkingRead,
       refresh,
     ],
   );
@@ -320,7 +334,27 @@ export default function ActivitiesList({
       titleVisibility="sr-only"
       right={headerActions}
     >
+      <SelectionToolbar
+        count={selectedActivityIds.length}
+        label={`${selectedActivityIds.length} selected`}
+        onClear={() => setSelectedActivityIds([])}
+      >
+        <Button
+          label={bulkReadLabel}
+          onClick={handleBulkMarkAsRead}
+          variant={ButtonVariant.DEFAULT}
+          isDisabled={isRefreshing || isMarkingRead}
+        />
+      </SelectionToolbar>
       <AppTable<IActivity>
+        error={
+          isError
+            ? {
+                title: 'Failed to load activities',
+                onRetry: () => refresh(),
+              }
+            : undefined
+        }
         items={filteredActivities}
         isLoading={isLoading}
         columns={columns}

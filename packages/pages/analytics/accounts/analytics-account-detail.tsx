@@ -1,11 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import {
-  AlertCategory,
-  AnalyticsMetric,
-  ButtonVariant,
-} from '@genfeedai/contracts';
+import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalyticsDetail,
@@ -23,7 +19,8 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
+import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
@@ -38,7 +35,7 @@ export default function AnalyticsAccountDetail() {
   const scope = useCollectionScope();
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
-  const { dateRange } = useAnalyticsContext();
+  const { dateRange, refreshTrigger, triggerRefresh } = useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -47,7 +44,7 @@ export default function AnalyticsAccountDetail() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFetchReady || !organizationId) {
+    if (!isFetchReady || !organizationId || refreshTrigger < 0) {
       return;
     }
 
@@ -94,6 +91,7 @@ export default function AnalyticsAccountDetail() {
     isFetchReady,
     organizationId,
     translate,
+    refreshTrigger,
   ]);
 
   const title =
@@ -122,13 +120,21 @@ export default function AnalyticsAccountDetail() {
   if (error) {
     return (
       <Container label={translate('errorTitle')}>
-        <Alert type={AlertCategory.ERROR}>{error}</Alert>
+        <ErrorFallback
+          title={translate('errorTitle')}
+          description={error}
+          resetErrorBoundary={triggerRefresh}
+        />
       </Container>
     );
   }
 
   if (isLoading && !detail) {
-    return <Container label={translate('loading')}>{null}</Container>;
+    return (
+      <Container label={title}>
+        <LoadingState />
+      </Container>
+    );
   }
 
   return (

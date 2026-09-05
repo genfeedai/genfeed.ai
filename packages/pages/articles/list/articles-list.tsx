@@ -28,7 +28,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface ArticlesListProps {
   status?: string;
@@ -39,7 +39,6 @@ function openCreateArticleModal(): void {
 }
 
 export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
-  const notificationsService = NotificationsService.getInstance();
   const { brandId, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
@@ -51,6 +50,8 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const requestId = useRef(0);
 
   const columns: TableColumn<Article>[] = [
     { header: 'Title', key: 'label' },
@@ -87,7 +88,9 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       return;
     }
 
+    const currentRequest = ++requestId.current;
     setIsLoading(true);
+    setIsError(false);
 
     try {
       const service = await getArticlesService();
@@ -100,25 +103,24 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       };
 
       const data = await service.findAll(query);
+      if (currentRequest !== requestId.current) return;
       setArticles(data);
       logger.info('GET /articles success', data);
     } catch (error) {
+      if (currentRequest !== requestId.current) return;
+      setIsError(true);
       logger.error('GET /articles failed', error);
-      notificationsService.error('Failed to load articles');
+      NotificationsService.getInstance().error('Failed to load articles');
     } finally {
-      setIsLoading(false);
+      if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [
-    currentPage,
-    getArticlesService,
-    notificationsService,
-    brandId,
-    organizationId,
-    status,
-  ]);
+  }, [currentPage, getArticlesService, brandId, organizationId, status]);
 
   useEffect(() => {
-    findAllArticles();
+    void findAllArticles();
+    return () => {
+      requestId.current += 1;
+    };
   }, [findAllArticles]);
 
   /** Refinement belongs to the artifact — open the article's own editor page. */
@@ -148,6 +150,14 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       ) : null}
 
       <AppTable<Article>
+        error={
+          isError
+            ? {
+                title: 'Failed to load articles',
+                onRetry: () => findAllArticles(),
+              }
+            : undefined
+        }
         items={articles}
         columns={columns}
         actions={[]}

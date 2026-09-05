@@ -2,7 +2,11 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
-import type { TableAction, TableColumn } from '@props/ui/display/table.props';
+import type {
+  TableAction,
+  TableColumn,
+  TableErrorState,
+} from '@props/ui/display/table.props';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
 import type { ComponentType, ReactNode } from 'react';
 
@@ -14,6 +18,7 @@ export interface ListPageLayoutProps<T> {
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];
   isLoading?: boolean;
+  error?: TableErrorState;
   emptyLabel?: string;
   filters: IFiltersState;
   onFiltersChange: (filters: IFiltersState, query: IFilters) => void;

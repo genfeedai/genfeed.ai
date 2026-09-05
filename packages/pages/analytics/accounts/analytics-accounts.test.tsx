@@ -16,7 +16,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const translate = translateFromCatalog('pages.analytics.accounts');
+  return { useTranslations: () => translate };
 });
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
@@ -24,28 +25,32 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
     dateRange: {},
     filters: {},
     setToolbarNode: mocks.setToolbarNode,
+    refreshTrigger: 0,
+    triggerRefresh: vi.fn(),
   }),
 }));
 
+const getService = async () => ({
+  getAccountAnalytics: mocks.getAccountAnalytics.mockImplementation(() =>
+    requestState.listError
+      ? Promise.reject(new Error('request failed'))
+      : Promise.resolve({
+          accounts: requestState.accounts,
+          limit: 50,
+          page: 1,
+          total: requestState.accounts.length,
+          totalPages: 1,
+          unattributedPostCount: 0,
+        }),
+  ),
+  getFleetEvaluationPolicy: mocks.getFleetEvaluationPolicy.mockResolvedValue(
+    {},
+  ),
+  saveFleetEvaluationPolicy: mocks.saveFleetEvaluationPolicy,
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    getAccountAnalytics: mocks.getAccountAnalytics.mockImplementation(() =>
-      requestState.listError
-        ? Promise.reject(new Error('request failed'))
-        : Promise.resolve({
-            accounts: requestState.accounts,
-            limit: 50,
-            page: 1,
-            total: requestState.accounts.length,
-            totalPages: 1,
-            unattributedPostCount: 0,
-          }),
-    ),
-    getFleetEvaluationPolicy: mocks.getFleetEvaluationPolicy.mockResolvedValue(
-      {},
-    ),
-    saveFleetEvaluationPolicy: mocks.saveFleetEvaluationPolicy,
-  }),
+  useAuthedService: () => getService,
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({

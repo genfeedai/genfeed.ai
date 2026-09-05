@@ -16,6 +16,8 @@ export interface UseWorkflowExecutionsReturn {
   cancelExecution: (id: string) => Promise<void>;
   executions: IWorkflowExecution[];
   isLoading: boolean;
+  isError: boolean;
+  isRefreshing: boolean;
   refresh: () => Promise<void>;
   stats: WorkflowExecutionStats;
 }
@@ -27,6 +29,8 @@ export function useWorkflowExecutions(
   const {
     data = [],
     isLoading,
+    isError,
+    isFetching,
     refetch,
   } = useQuery({
     queryKey: [
@@ -84,6 +88,8 @@ export function useWorkflowExecutions(
   return {
     cancelExecution,
     executions: data,
+    isRefreshing: isFetching,
+    isError,
     isLoading,
     refresh: async () => {
       await refetch();

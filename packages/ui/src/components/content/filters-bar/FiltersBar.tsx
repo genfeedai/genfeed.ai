@@ -24,7 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Default filter options
 const DEFAULT_STATUS_OPTIONS = [
@@ -124,7 +124,6 @@ export default function FiltersBar({
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
   const [searchValue, setSearchValue] = useState(filters.search ?? '');
-  const isInternalUpdateRef = useRef(false);
 
   // Notify parent of filter changes - all filters are now server-side
   const notifyFilterChange = useCallback(
@@ -143,22 +142,14 @@ export default function FiltersBar({
     [onFiltersChange],
   );
 
-  // Sync internal search value with external filters prop
-  // Only update if the change came from external source (not from internal debounced update)
   useEffect(() => {
-    if (!isInternalUpdateRef.current && filters.search !== searchValue) {
-      requestAnimationFrame(() => {
-        setSearchValue(filters.search ?? '');
-      });
-    }
-    isInternalUpdateRef.current = false;
-  }, [filters.search, searchValue]);
+    setSearchValue(filters.search ?? '');
+  }, [filters.search]);
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchValue !== filters.search) {
-        isInternalUpdateRef.current = true;
         notifyFilterChange({ ...filters, search: searchValue });
       }
     }, 300);
@@ -224,12 +215,12 @@ export default function FiltersBar({
 
   return (
     <div
-      className={`flex w-full items-center gap-1.5 ${className}`}
+      className={`flex w-full flex-wrap items-center gap-1.5 ${className}`}
       data-testid="filters-bar"
     >
       {/* Search */}
       {visibleFilters.search && (
-        <div className="min-w-56 max-w-96 flex-1">
+        <div className="min-w-0 basis-56 max-w-96 flex-1">
           <FormSearchbar
             value={searchValue}
             onChange={updateFiltersBar}
@@ -240,7 +231,7 @@ export default function FiltersBar({
       )}
 
       {/* Filter Dropdowns Container */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         {/* Status Filter */}
         {visibleFilters.status && (
           <DropdownMultiSelect

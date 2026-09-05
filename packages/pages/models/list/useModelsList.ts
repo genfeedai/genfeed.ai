@@ -606,6 +606,7 @@ export function useModelsList({
   );
 
   return {
+    isError: Boolean(modelsError),
     isAdminScope,
     adminOrg,
     adminBrand,

@@ -48,4 +48,13 @@ describe('PageHeader', () => {
       screen.queryByText('Browse reusable assets across your workspace.'),
     ).not.toBeInTheDocument();
   });
+
+  it('renders back navigation as one link without a nested button', () => {
+    render(
+      <PageHeader title="Detail" backLabel="Back to list" backRoute="/items" />,
+    );
+    const link = screen.getByRole('link', { name: 'Back to list' });
+    expect(link).toHaveAttribute('href', '/items');
+    expect(link.querySelector('button')).toBeNull();
+  });
 });

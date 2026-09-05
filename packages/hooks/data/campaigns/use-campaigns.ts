@@ -54,6 +54,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
   const {
     data = EMPTY_PAGE,
     isLoading,
+    isError,
     refetch,
   } = useQuery({
     enabled: isEnabled,
@@ -77,6 +78,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}) {
 
   return {
     campaigns: data.items,
+    isError,
     isLoading: !isEnabled || isLoading,
     page: data.page,
     refetch,

@@ -32,6 +32,7 @@ export default function ModelsList({
     catalogOverviewCards,
     isLoadingCatalog,
     isLoading,
+    isError,
     columns,
     models,
     searchTerm,
@@ -158,6 +159,14 @@ export default function ModelsList({
 
       <AppTable<IModel>
         isLoading={isLoading}
+        error={
+          isError
+            ? {
+                title: translate('loadError'),
+                onRetry: () => refresh(),
+              }
+            : undefined
+        }
         columns={columns}
         actions={actions}
         onRowClick={handleViewDetails}
@@ -166,12 +175,17 @@ export default function ModelsList({
         emptyState={
           <EmptyState
             title="No models found"
-            description="No models are available for this filter. Try another tab or refresh the list."
+            description={
+              searchTerm
+                ? 'No models match your search. Clear it to see the catalog.'
+                : 'No models are available for this filter. Try another tab or refresh the list.'
+            }
             icon={Cpu}
             action={{
-              label: 'Refresh',
+              label: searchTerm ? 'Clear search' : 'Refresh',
               onClick: () => {
-                void refresh();
+                if (searchTerm) handleSearchChange('');
+                else void refresh();
               },
               variant: ButtonVariant.SECONDARY,
             }}

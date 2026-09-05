@@ -26,7 +26,14 @@ export interface TableRowLink {
   label: string;
 }
 
+export interface TableErrorState {
+  title: string;
+  description?: string;
+  onRetry?: () => unknown;
+}
+
 export interface TableProps<T> {
+  error?: TableErrorState;
   items: T[];
   isLoading?: boolean;
   columns: TableColumn<T>[];

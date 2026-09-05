@@ -10,6 +10,7 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
+import { useRef } from 'react';
 import { Button } from './button';
 
 const SIZE_CLASSES: Record<ComponentSize, string> = {
@@ -33,6 +34,8 @@ export interface SearchbarProps {
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onSearch?: (value: string) => void;
   placeholder?: string;
+  ariaLabel?: string;
+  name?: string;
   className?: string;
   inputClassName?: string;
   onClear?: () => void;
@@ -53,6 +56,8 @@ export default function Searchbar({
   value,
   onChange,
   placeholder = 'Search…',
+  ariaLabel = 'Search',
+  name = 'search',
   className = '',
   inputClassName = '',
   onClear,
@@ -64,17 +69,20 @@ export default function Searchbar({
   onKeyDown,
   size = ComponentSize.SM,
 }: SearchbarProps): ReactElement {
+  const internalRef = useRef<HTMLInputElement>(null);
+  const resolvedRef = inputRef ?? internalRef;
+
   const handleClear = () => {
     if (onClear) {
       onClear();
     } else if (onChange) {
       const syntheticEvent = {
-        target: { value: '' },
+        target: { name, value: '' },
       } as ChangeEvent<HTMLInputElement>;
       onChange(syntheticEvent);
     }
 
-    inputRef?.current?.focus();
+    resolvedRef.current?.focus();
   };
 
   const sizeClass = SIZE_CLASSES[size];
@@ -92,8 +100,9 @@ export default function Searchbar({
       )}
 
       <input
-        aria-label="Search"
-        ref={inputRef}
+        aria-label={ariaLabel}
+        name={name}
+        ref={resolvedRef}
         type="text"
         value={value}
         onChange={onChange}
@@ -112,6 +121,9 @@ export default function Searchbar({
 
       {showClearButton && value && (
         <Button
+          ariaLabel="Clear search"
+          withWrapper={false}
+          isDisabled={isDisabled}
           onClick={handleClear}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.MICRO}

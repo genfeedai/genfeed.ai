@@ -1,11 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import {
-  AlertCategory,
-  AnalyticsMetric,
-  ButtonVariant,
-} from '@genfeedai/contracts';
+import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IAccountAnalytics,
@@ -23,9 +19,9 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import Table from '@ui/display/table/Table';
-import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
   SelectContent,
@@ -52,7 +48,8 @@ export default function AnalyticsAccounts() {
   const scope = useCollectionScope();
   const { brandId, organizationId } = scope;
   const isFetchReady = isCollectionFetchReady(scope);
-  const { dateRange, setToolbarNode } = useAnalyticsContext();
+  const { dateRange, setToolbarNode, refreshTrigger, triggerRefresh } =
+    useAnalyticsContext();
   const getService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -124,7 +121,7 @@ export default function AnalyticsAccounts() {
   );
 
   useEffect(() => {
-    if (!isFetchReady) {
+    if (!isFetchReady || refreshTrigger < 0) {
       return;
     }
 
@@ -132,14 +129,14 @@ export default function AnalyticsAccounts() {
     setIsLoading(true);
     void load(controller.signal);
     return () => controller.abort();
-  }, [isFetchReady, load]);
+  }, [isFetchReady, load, refreshTrigger]);
 
   const accountToolbar = useMemo(
     () => (
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <Input
-          aria-label="Search accounts"
-          className="h-9 w-44"
+        <FormSearchbar
+          ariaLabel="Search accounts"
+          className="w-full sm:w-44"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search accounts"
@@ -256,12 +253,9 @@ export default function AnalyticsAccounts() {
     [metric],
   );
 
-  if (error) {
-    return <Alert type={AlertCategory.ERROR}>{error}</Alert>;
-  }
-
   return (
     <Table
+      error={error ? { title: error, onRetry: triggerRefresh } : undefined}
       columns={columns}
       emptyLabel="No connected accounts"
       getRowKey={(row) => row.identity.credentialId}
