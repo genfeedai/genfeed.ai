@@ -9,65 +9,13 @@ import { SettingsPage } from '../../pages/settings.page';
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
- * Tests verify credentials, API keys, models, elements/scenes, and brands UI.
+ * Tests verify API keys, models, elements/scenes, and brands UI.
  */
 test.describe('Settings Connections & Sub-Pages', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
       plan: 'pro',
-    });
-  });
-
-  test.describe('Credentials Page', () => {
-    test('should load credentials page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(
-        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*credentials/);
-    });
-
-    test('should display connected accounts section', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      const mainContent = authenticatedPage.locator(
-        'main, [data-testid="main-content"]',
-      );
-      await expect(mainContent).toBeVisible({ timeout: 15000 });
-
-      await expect(authenticatedPage).toHaveURL(/settings.*credentials/);
-    });
-
-    test('should display page heading or title', async ({
-      authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(
-        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      const heading = authenticatedPage
-        .locator('h1, h2, h3, [data-testid*="credential"]')
-        .first();
-      await expect(heading).toBeVisible({ timeout: 15000 });
-    });
-
-    test('should render on mobile viewport', async ({ authenticatedPage }) => {
-      await authenticatedPage.setViewportSize({ height: 667, width: 375 });
-
-      await authenticatedPage.goto(
-        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
-      );
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-
-      await expect(authenticatedPage).toHaveURL(/settings.*credentials/);
     });
   });
 
@@ -350,22 +298,6 @@ test.describe('Settings Connections & Sub-Pages', () => {
 });
 
 test.describe('Settings Connections — Unauthenticated Access', () => {
-  test('should redirect credentials page to login', async ({
-    unauthenticatedPage,
-  }) => {
-    await unauthenticatedPage.goto(
-      APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
-      {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
-      },
-    );
-
-    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
-      timeout: 10000,
-    });
-  });
-
   test('should redirect api-keys page to login', async ({
     unauthenticatedPage,
   }) => {

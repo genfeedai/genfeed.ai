@@ -240,7 +240,6 @@ test.describe('Overview — deep interactions', () => {
 
     await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
 
-    // /overview is a compatibility redirect into the workspace overview.
     await expect(authenticatedPage).toHaveURL(/\/workspace\/overview/);
 
     // Period / range toggles where they exist on the surface.

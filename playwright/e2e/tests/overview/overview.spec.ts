@@ -7,7 +7,7 @@ import {
 import { expect, test } from '../../fixtures/auth.fixture';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
-test.describe('Overview Compatibility Redirect', () => {
+test.describe('Workspace Overview', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -17,7 +17,7 @@ test.describe('Overview Compatibility Redirect', () => {
     await mockWorkspaceTasks(authenticatedPage);
   });
 
-  test('redirects authenticated users from /overview to /workspace', async ({
+  test('renders workspace overview for authenticated users', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
@@ -41,8 +41,8 @@ test.describe('Overview Compatibility Redirect', () => {
 // #2982). Every other unauthenticated-access suite in this repo
 // (discovery.spec.ts, tasks.spec.ts, post-detail.spec.ts, etc.) isolates the
 // test the same way.
-test.describe('Overview Compatibility Redirect — Unauthenticated Access', () => {
-  test('keeps /overview as a compatibility redirect for unauthenticated users', async ({
+test.describe('Workspace Overview — Unauthenticated Access', () => {
+  test('requires authentication for workspace overview', async ({
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
@@ -50,8 +50,6 @@ test.describe('Overview Compatibility Redirect — Unauthenticated Access', () =
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(unauthenticatedPage).toHaveURL(
-      /\/workspace\/overview(?:$|[?#])/,
-    );
+    await expect(unauthenticatedPage).toHaveURL(/login|sign-in/);
   });
 });

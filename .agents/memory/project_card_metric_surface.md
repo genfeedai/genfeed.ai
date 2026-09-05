@@ -38,11 +38,9 @@ Review.
   `MetricSummary` is enough
 - Hand-rolled uppercase label + big value that duplicates MetricCard
 
-## Deprecations (aliases only — do not extend)
+## Remaining prop contract
 
-- `KPICard` → MetricCard `size="lg"`
-- `OverviewMetric` → MetricCard `size="sm"`
-- `StatsCards` → adapter over MetricCardGrid + MetricCard
+`KPICardProps` supplies the admin overview metric data. Rendering uses MetricCard.
 
 ## Frame contract
 
