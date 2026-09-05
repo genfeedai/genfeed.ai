@@ -20,7 +20,7 @@ locals {
   public_subnet_ids  = var.public_subnet_ids                # ALB (internet-facing)
   private_subnet_ids = [for s in aws_subnet.private : s.id] # ECS tasks/instances + cache (NAT egress)
 
-  image = "${aws_ecr_repository.server.repository_url}:${var.image_tag}"
+  image = var.image_digest != "" ? "${aws_ecr_repository.server.repository_url}@${var.image_digest}" : "${aws_ecr_repository.server.repository_url}:${var.image_tag}"
 
   # SSM params under ssm_path injected as task secrets: env var name = last path
   # segment (e.g. /genfeed/production/DATABASE_URL -> DATABASE_URL).

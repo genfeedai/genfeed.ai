@@ -137,3 +137,13 @@ variable "cdn_bucket" {
   type        = string
   description = "S3 bucket name the task role may read/write for published media."
 }
+
+variable "image_digest" {
+  description = "Verified ECR manifest digest; deploys prefer this over the descriptive image tag."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.image_digest == "" || can(regex("^sha256:[0-9a-f]{64}$", var.image_digest))
+    error_message = "image_digest must be empty or an immutable SHA-256 digest."
+  }
+}

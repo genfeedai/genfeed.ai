@@ -19,7 +19,7 @@
     // dev, and tests retain the root environment hygiene gate below.
     "build": {
       "dependsOn": ["^build"],
-      "env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*"],
+      "env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*", "NODE_ENV"],
       "inputs": [
         "$TURBO_DEFAULT$",
         ".env.example",

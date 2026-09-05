@@ -10,10 +10,10 @@
 # so builds drop to ~5-10 min and `server:<sha>` is ready before any deploy.
 #
 # Triggers:
-#   push:master (paths-gated) — publish `server:<sha>` + warm the cache for every
-#     server-affecting commit, making any master SHA instantly deployable.
+#   push:master (input-policy-gated) — publish `server:<sha>` + warm the cache for every
+#     server-affecting commit, preparing deployable server revisions.
 #   workflow_dispatch — manual/test rebuild. Pick `environment: staging` when
-#     testing so the run does NOT move the :production/:latest floating tags.
+#     testing to also label the candidate :staging.
 #   workflow_call — let release/preview callers build on demand.
 
 name: Build Server Image
@@ -21,23 +21,10 @@ name: Build Server Image
 on:
   push:
     branches: [master]
-    paths:
-      - 'apps/server/**'
-      - 'packages/**'
-      - 'docker/Dockerfile.server'
-      # Bundler config decides what lands in the server bundles, so a change
-      # here must republish server:<sha> even when no server source changed.
-      - 'webpack.base.config.js'
-      - 'tsconfig.json'
-      - 'tsconfig.server.decorators.json'
-      - 'bun.lock'
-      - 'package.json'
-      - '.github/workflows/build-server-image.yml'
-      - '.github/actions/build-unified-image/**'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Floating-tag scope. production moves :production/:latest; staging moves :staging. server:<sha> is always pushed.'
+        description: 'Candidate scope. staging also moves :staging; production channels move only after a verified deployment.'
         type: choice
         options: [production, staging]
         default: production
@@ -59,7 +46,25 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Resolve server image inputs
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.scope.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/ci/server-image-inputs.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --github-output "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
     name: Build & Push Server Image
     runs-on: ubuntu-latest
     timeout-minutes: 40

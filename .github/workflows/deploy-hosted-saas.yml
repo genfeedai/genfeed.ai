@@ -128,7 +128,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      packages: read
+      packages: write
       issues: write
     uses: ./.github/workflows/_deploy-hosted-saas-core.yml
     with:

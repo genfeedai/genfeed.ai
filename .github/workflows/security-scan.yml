@@ -46,8 +46,7 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           exit-code: "0"
-          # OS layer only — npm dependency CVEs are Dependabot's job, and it
-          # reports them once per package instead of once per node_modules copy.
+          # The filesystem job scans application dependencies separately.
           vuln-type: "os"
 
       - name: Upload Trivy scan results to GitHub Security tab

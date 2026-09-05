@@ -25,7 +25,7 @@ inputs:
     required: false
     default: ''
   environment:
-    description: 'Deploy environment (staging|production) — gates the floating production/latest registry tags so a staging build cannot clobber them'
+    description: 'Candidate scope (staging adds a staging tag; production channels are promoted after deployment)'
     required: false
     default: 'production'
 
@@ -67,15 +67,11 @@ runs:
       uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
       with:
         images: ${{ inputs.registry }}/${{ inputs.image_prefix }}/server
-        # github.sha is the immutable tag every deploy actually pulls (see
-        # _deploy.yml IMAGE_TAG). The floating production/latest tags are
-        # human-facing pointers, so gate them to production — otherwise a
-        # staging build relabels :production/:latest onto a non-prod image.
+        flavor: latest=false
+        # Production channels advance only after deployment and live smoke.
         tags: |
           type=raw,value=${{ github.sha }}
           type=raw,value=staging,enable=${{ inputs.environment == 'staging' }}
-          type=raw,value=production,enable=${{ inputs.environment == 'production' }}
-          type=raw,value=latest,enable=${{ inputs.environment == 'production' }}
           type=ref,event=tag
         labels: |
           org.opencontainers.image.title=Genfeed Server

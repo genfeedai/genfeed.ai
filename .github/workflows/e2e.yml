@@ -569,11 +569,7 @@ jobs:
           NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
 
       - name: Build API (compiled bundle)
-        # The api package emits to apps/server/dist, OUTSIDE apps/server/api,
-        # so turbo's package-relative `dist/**` outputs never capture it and a
-        # cache-hit replay restores nothing. Force a real build — same reason
-        # as build-verify.yml's boot gate.
-        run: bunx turbo run build --filter=@genfeedai/api --force
+        run: bunx turbo run build --filter=@genfeedai/api
 
       # Provision the schema on the ephemeral Postgres service container —
       # same pattern as e2e-api above.

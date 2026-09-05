@@ -1,0 +1,19 @@
+[
+  "apps/server/**",
+  "packages/**",
+  "configs/**",
+  "patches/**",
+  "skills/**",
+  "docker/Dockerfile.server",
+  ".dockerignore",
+  "webpack.base.config.js",
+  "tsconfig.json",
+  "tsconfig.server.decorators.json",
+  "turbo.json",
+  "bun.lock",
+  "package.json",
+  ".bun-version",
+  "scripts/ci/server-image-inputs.*",
+  ".github/workflows/build-server-image.yml",
+  ".github/actions/build-unified-image/**"
+]
