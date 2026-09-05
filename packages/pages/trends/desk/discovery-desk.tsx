@@ -39,6 +39,7 @@ import {
 import DeskTableView from '@pages/trends/desk/desk-table-view';
 import { useDeskKeyboard } from '@pages/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@pages/trends/desk/use-discovery-desk-items';
+import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskSort,
@@ -163,8 +164,17 @@ export default function DiscoveryDesk() {
     }
   }, [platformParam, state.filters.platforms]);
 
-  const { error, isLoading, isRefreshing, items, refresh, sources, summary } =
-    useDiscoveryDeskItems();
+  const {
+    corpusHealth,
+    healthError,
+    error,
+    isLoading,
+    isRefreshing,
+    items,
+    refresh,
+    sources,
+    summary,
+  } = useDiscoveryDeskItems();
 
   const visibleItems = useMemo(
     () => selectVisibleItems(items, state),
@@ -370,6 +380,11 @@ export default function DiscoveryDesk() {
       />
 
       <Container>
+        <CorpusHealthPanel
+          health={corpusHealth}
+          isUnavailable={Boolean(healthError)}
+          selectedPlatforms={Array.from(state.filters.platforms)}
+        />
         {currentError && !isLoading ? (
           <Alert type={AlertCategory.ERROR}>
             <div className="flex flex-wrap items-start justify-between gap-3">
