@@ -5,6 +5,7 @@ import { useCampaignPerformance } from '@hooks/data/campaigns/use-campaign-perfo
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import { useTranslations } from 'next-intl';
 
@@ -32,7 +33,18 @@ export default function CampaignDetailPerformance({
   campaignId: string;
 }) {
   const translate = useTranslations('pages.publishing.campaigns');
-  const { isLoading, performance } = useCampaignPerformance(campaignId);
+  const { error, isLoading, performance, refetch } =
+    useCampaignPerformance(campaignId);
+
+  if (error) {
+    return (
+      <ErrorFallback
+        resetErrorBoundary={() => {
+          void refetch();
+        }}
+      />
+    );
+  }
 
   if (isLoading || !performance) {
     return <LoadingState isFullSize />;

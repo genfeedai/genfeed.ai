@@ -50,10 +50,10 @@ export function useCampaign(campaignId: string | undefined) {
     },
     queryKey: [
       'publish-campaign',
+      campaignId,
       organizationId,
       brandId ?? null,
       pageScope,
-      campaignId,
     ],
     retry: false,
   });

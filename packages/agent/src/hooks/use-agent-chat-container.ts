@@ -976,11 +976,15 @@ export function useAgentChatContainer({
 
   // Restore the active workflow execution when the user returns to a thread.
   useEffect(() => {
+    if (!activeThreadId) return;
     const controller = new AbortController();
     const restoredRunId = activeRunId;
 
     apiService
-      .getActiveWorkflowExecutions(controller.signal)
+      .getActiveWorkflowExecutions(controller.signal, {
+        threadId: activeThreadId,
+        executionId: restoredRunId ?? undefined,
+      })
       .then((executions) => {
         if (controller.signal.aborted) {
           return;

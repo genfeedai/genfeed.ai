@@ -7,6 +7,87 @@ import {
 } from './deserializer.helper';
 
 describe('getDeserializer', () => {
+  it('indexes included resources once across collection roots', () => {
+    let identityReads = 0;
+    const included = Array.from({ length: 100 }, (_, index) => ({
+      get id() {
+        identityReads += 1;
+        return String(index);
+      },
+      type: 'people',
+      attributes: { name: `Person ${index}` },
+    }));
+    const doc: JsonApiDocument = {
+      data: Array.from({ length: 30 }, (_, index) => ({
+        id: String(index),
+        type: 'posts',
+        relationships: { author: { data: { id: '99', type: 'people' } } },
+      })),
+      included,
+    };
+    const result = getDeserializer<Array<{ author: { name: string } }>>(doc);
+    expect(result).toHaveLength(30);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ author: { id: '99', name: 'Person 99' } }),
+      ]),
+    );
+    expect(identityReads).toBeLessThan(400);
+  });
+
+  it('preserves first included match and per-root directed-edge cycle handling', () => {
+    const a = {
+      id: 'a',
+      type: 'nodes',
+      attributes: { label: 'first' },
+      relationships: { next: { data: { id: 'b', type: 'nodes' } } },
+    };
+    const b = {
+      id: 'b',
+      type: 'nodes',
+      relationships: { next: { data: { id: 'a', type: 'nodes' } } },
+    };
+    const doc: JsonApiDocument = {
+      data: [a, a],
+      included: [a, b, { ...a, attributes: { label: 'duplicate' } }],
+    };
+    const expected = {
+      id: 'a',
+      label: 'first',
+      next: { id: 'b', next: { id: 'a', label: 'first' } },
+    };
+    expect(getDeserializer(doc)).toEqual([expected, expected]);
+  });
+
+  it('keeps resource types and relation names distinct when identifiers contain separators', () => {
+    const doc: JsonApiDocument = {
+      data: {
+        id: 'root',
+        type: 'roots',
+        relationships: {
+          first: { data: { id: 'b:c', type: 'a' } },
+          second: { data: { id: 'c', type: 'a:b' } },
+          repeated: {
+            data: [
+              { id: 'b:c', type: 'a' },
+              { id: 'b:c', type: 'a' },
+            ],
+          },
+        },
+      },
+      included: [
+        { id: 'b:c', type: 'a' },
+        { id: 'c', type: 'a:b' },
+      ],
+    };
+    expect(getDeserializer(doc)).toEqual({
+      id: 'root',
+      first: { id: 'b:c' },
+      second: { id: 'c' },
+      repeated: [{ id: 'b:c' }, null],
+    });
+  });
+
   it('deserializes a single resource', () => {
     const doc: JsonApiDocument = {
       data: {

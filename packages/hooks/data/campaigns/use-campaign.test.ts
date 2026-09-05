@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetById = vi.fn();
@@ -63,6 +65,31 @@ describe('useCampaign', () => {
       expect(result.current.campaign?.id).toBe('cmp-1');
     });
     expect(result.current.isUnavailable).toBe(false);
+  });
+
+  it('refreshes the scoped detail when a campaign mutation invalidates its id', async () => {
+    const { useCampaign } = await import('./use-campaign');
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+    });
+    const { result, unmount } = renderHook(() => useCampaign('cmp-1'), {
+      wrapper: ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client }, children),
+    });
+    await waitFor(() => expect(result.current.campaign?.name).toBe('Q4'));
+    mockGetById.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'cmp-1',
+      name: 'Updated',
+    });
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: ['publish-campaign', 'cmp-1'],
+      });
+    });
+    await waitFor(() => expect(result.current.campaign?.name).toBe('Updated'));
+    unmount();
+    client.clear();
   });
 
   it('treats a cross-brand campaign as unavailable without leaking it', async () => {
