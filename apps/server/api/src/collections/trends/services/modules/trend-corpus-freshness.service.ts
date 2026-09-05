@@ -42,6 +42,8 @@ interface ReferenceHealthDoc {
 }
 
 interface TrendHealthDoc {
+  expiresAt: Date | null;
+  isCurrent: boolean;
   createdAt?: Date;
   data: unknown;
   id: string;
@@ -113,6 +115,8 @@ export class TrendCorpusFreshnessService {
         select: {
           createdAt: true,
           data: true,
+          expiresAt: true,
+          isCurrent: true,
           id: true,
           platform: true,
           updatedAt: true,
@@ -473,9 +477,8 @@ export class TrendCorpusFreshnessService {
   }
 
   private isCurrentTrend(doc: TrendHealthDoc, now: Date): boolean {
-    const data = this.asRecord(doc.data);
-    const expiresAt = this.readDate(data.expiresAt);
-    return data.isCurrent === true && (!expiresAt || expiresAt > now);
+    const expiresAt = this.readDate(doc.expiresAt);
+    return doc.isCurrent && (!expiresAt || expiresAt > now);
   }
 
   private calculateAgeDays(now: Date, date: Date): number {
