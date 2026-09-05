@@ -14,8 +14,8 @@ import {
 const root = resolve(fileURLToPath(new URL('../../../', import.meta.url)));
 const release = process.argv.find((arg) => arg.startsWith('--from='))?.slice(7);
 assert(
-  release && /^v\d+\.\d+\.\d+$/.test(release),
-  'Pass --from=vX.Y.Z for the previous published stable release',
+  release && (release === 'HEAD' || /^v\d+\.\d+\.\d+$/.test(release)),
+  'Pass --from=vX.Y.Z for the previous published stable release, or --from=HEAD for repeated-release verification',
 );
 const adminUrl = process.env.UPGRADE_VERIFY_ADMIN_URL;
 assert(
@@ -29,7 +29,11 @@ assert(
 );
 const baselineSha = execFileSync(
   'git',
-  ['rev-parse', '--verify', `refs/tags/${release}^{commit}`],
+  [
+    'rev-parse',
+    '--verify',
+    release === 'HEAD' ? 'HEAD^{commit}' : `refs/tags/${release}^{commit}`,
+  ],
   { cwd: root, encoding: 'utf8' },
 ).trim();
 const artifactsRoot = join(homedir(), '.codex/artifacts');
@@ -123,11 +127,32 @@ try {
     runCredentialEncryptionBackfill(db, args, ''),
     /TOKEN_ENCRYPTION_KEY/,
   );
-  await assert.rejects(
-    runCredentialEncryptionBackfill(db, args, secret),
-    /data_backfills/,
+  const baselineLedger = await db.query(
+    "SELECT to_regclass('data_backfills') AS ledger",
   );
+  if (!baselineLedger.rows[0].ledger) {
+    await assert.rejects(
+      runCredentialEncryptionBackfill(db, args, secret),
+      /data_backfills/,
+    );
+  }
   migrate(join(root, 'packages/prisma/prisma.config.mjs'));
+
+  // Exercise missing-ledger failure even once the preceding release already
+  // contains this schema. Rename only within this disposable fixture database.
+  await db.query(
+    'ALTER TABLE data_backfills RENAME TO fixture_hidden_backfills',
+  );
+  try {
+    await assert.rejects(
+      runCredentialEncryptionBackfill(db, args, secret),
+      /data_backfills/,
+    );
+  } finally {
+    await db.query(
+      'ALTER TABLE fixture_hidden_backfills RENAME TO data_backfills',
+    );
+  }
   assert.equal(
     (
       await db.query('SELECT "userId" FROM organizations WHERE id = $1', [
