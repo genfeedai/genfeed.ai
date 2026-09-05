@@ -39,6 +39,10 @@ on:
       TURBO_TOKEN:
         required: false
 
+concurrency:
+  group: hosted-saas-core-production
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read
@@ -72,9 +76,6 @@ jobs:
     timeout-minutes: 90
     outputs:
       image_digest: ${{ steps.copy-image.outputs.image_digest }}
-    concurrency:
-      group: deploy-hosted-saas-roll
-      cancel-in-progress: false
     environment: production
     steps:
       - name: Require hosted SaaS site variables
