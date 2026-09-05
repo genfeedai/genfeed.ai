@@ -95,18 +95,20 @@ for (const fixture of [
     orgId: 'alpha-inbox',
     slug: 'alpha',
     label: 'Alice agent alert',
+    viewport: { width: 1280, height: 720 },
   },
   {
     userId: 'inbox-bob',
     orgId: 'bravo-inbox',
     slug: 'bravo',
     label: 'Bob agent alert',
+    viewport: { width: 390, height: 844 },
   },
 ]) {
   test(`inbox history and retry for ${fixture.userId}`, async ({
     browser,
   }, testInfo) => {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ viewport: fixture.viewport });
     const page = await context.newPage();
     await createAuthenticatedPage(
       page,
