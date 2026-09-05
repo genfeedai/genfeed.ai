@@ -314,6 +314,45 @@ describe('SystemWorkflowRunnerService definitions', () => {
     );
   });
 
+  it.each([
+    'agent.turn.execute',
+    'agent.thread.ui-action',
+    'agent.thread.input-response',
+    'clip-hook-review',
+  ])('sets safe queue attempts for %s', async (canonicalId) => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('job');
+    const createExecution = vi
+      .fn()
+      .mockResolvedValue({ id: 'execution-1', status: 'PENDING' });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+    );
+    runner.registerWorkflow({ ...definition, canonicalId });
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'version-1' },
+      id: 'workflow-1',
+      label: 'Workflow',
+    });
+    await runner.enqueueWorkflow({
+      actionType: canonicalId,
+      canonicalId,
+      organizationId: 'org-1',
+      source: 'agent',
+      userId: 'tenant-user',
+    });
+    const options = queueSystemWorkflow.mock.calls[0][2];
+    if (canonicalId === 'clip-hook-review') {
+      expect(options).not.toHaveProperty('attempts');
+    } else {
+      expect(options.attempts).toBe(1);
+    }
+  });
+
   it('marks a precreated parent failed when queueing fails', async () => {
     const queueError = new Error('queue unavailable');
     const queueSystemWorkflow = vi.fn().mockRejectedValue(queueError);

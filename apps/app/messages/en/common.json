@@ -205,6 +205,12 @@
         "description": "Send an email when a video generation completes or fails.",
         "label": "Video Emails"
       },
+      "agentEmail": {
+        "description": "Send an email when an agent run fails.",
+        "label": "Agent Emails",
+        "loadError": "Agent email preference could not be loaded.",
+        "saveError": "Failed to save your agent email preference."
+      },
       "workflowEmail": {
         "cardTitle": "Email Notifications",
         "description": "Send an email when a workflow completes or fails.",

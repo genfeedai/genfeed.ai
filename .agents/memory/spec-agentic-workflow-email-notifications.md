@@ -3,7 +3,7 @@ name: Agentic workflow email notifications
 description: Durable notification events, preferences, delivery state, and Resend workflow-status email.
 type: project
 status: active
-last_verified: 2026-08-22
+last_verified: 2026-09-05
 topics: [agent, workflows, notifications, email, outbox, resend]
 ---
 
@@ -65,8 +65,12 @@ another architecture rewrite.
 | Review-gate resume | same persisted execution | Original `WorkflowExecution.id` |
 | Legacy step workflow | legacy runner → canonical execution record | New `WorkflowExecution.id` |
 
-Pure agent chat turns and tool calls that do not create or continue a workflow
-execution are not workflow runs and do not emit workflow-status email.
+Agent conversation turns now persist through hidden system workflows. Failed
+agent conversation runs use the existing terminal outbox with source type
+`agent_run` and delivery topic `agent.status`. The supported conversation
+workflow IDs are centralized in `AGENT_CONVERSATION_WORKFLOW_IDS`; unrelated
+hidden workflows do not inherit this policy. Tool calls that do not create or
+continue a workflow execution do not emit a separate terminal email.
 
 ## Data Contracts
 
@@ -85,7 +89,7 @@ An immutable, tenant-scoped event contains:
 A personal preference contains:
 
 - Canonical `users.id` owner.
-- Typed topic such as `workflow.status`.
+- Typed topic such as `workflow.status` or `agent.status`.
 - Channel such as `email`.
 - Enabled state, defaulting to disabled when no preference row exists.
 
@@ -104,8 +108,17 @@ A tenant-scoped delivery contains:
 
 - Personal settings read and update typed notification preferences through the
   authenticated current-user boundary.
-- The first UI preference is **Workflow status emails**, covering completed and
-  failed workflow executions.
+- **Workflow status emails** covers ordinary completed and failed workflow
+  executions. **Agent run failure emails** independently controls failed agent
+  conversation runs through `agent.status` / `email`, disabled by default.
+- Only failed agent runs receive a classified `failure` payload containing
+  reason, title, summary, recovery and retry/configuration flags. Raw `error`
+  and `failure.detail` are null in that event. Agent emails render the safe
+  classification and recovery text.
+- Ordinary workflow outcomes keep source type `workflow_execution`, topic
+  `workflow.status`, and the existing bounded error and workflow email body.
+  Supplying classified data cannot switch those emails to agent wording.
+  Completed agent runs retain the ordinary workflow outcome policy.
 - The canonical graph terminal update writes its notification event/delivery
   atomically with the execution state.
 - A queue service schedules committed deliveries; a recovery relay re-enqueues
@@ -182,6 +195,14 @@ See
   state and SHALL persist bounded retry or final failure diagnostics.
 - THE SYSTEM SHALL expose an accessible personal **Workflow status emails**
   toggle backed only by the notification preference model.
+
+- WHEN an agent conversation run fails THE SYSTEM SHALL atomically persist its
+  terminal notification with source `agent_run` and topic `agent.status`,
+  retaining the run-based deduplication and provider idempotency keys.
+- WHEN the owner has not enabled agent failure email THE SYSTEM SHALL skip
+  that delivery independently of the workflow-status preference.
+- THE SYSTEM SHALL send classified agent failure copy without raw diagnostics
+  only for failed agent runs and preserve ordinary workflow email behavior.
 
 ## Test Plan
 

@@ -1,3 +1,4 @@
+import { formatAgentFailureMessage } from '@genfeedai/agent/server';
 import { extractWorkflowOutputsFromExecution } from '@genfeedai/integrations';
 import type { DiscordWorkflowExecutionClient } from './discord-workflow-execution.client';
 
@@ -29,10 +30,7 @@ export async function monitorDiscordWorkflowExecution(
     }
 
     if (execution.status === 'failed') {
-      await options.send(
-        execution.error ||
-          'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-      );
+      await options.send(formatAgentFailureMessage(execution.error));
       options.deleteSession();
       return;
     }
@@ -67,7 +65,9 @@ export async function monitorDiscordWorkflowExecution(
 
     options.logger.error('Failed while monitoring workflow execution:', error);
     await options.send(
-      'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+      formatAgentFailureMessage(
+        error instanceof Error ? error.message : undefined,
+      ),
     );
     options.deleteSession();
   }

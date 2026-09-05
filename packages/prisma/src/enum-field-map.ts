@@ -6183,6 +6183,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'etaCurrentPhase',
       'etaUpdatedAt',
       'failedNodeId',
+      'failure',
+      'failureReason',
       'id',
       'idempotencyKey',
       'isDeleted',
@@ -6220,6 +6222,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'workspaceTasks',
     ],
     enumFields: {
+      failureReason: { enumType: 'AgentFailureReason', isRequired: false },
       status: { enumType: 'WorkflowExecutionStatus', isRequired: true },
     },
     relationIdFields: {

@@ -1,3 +1,6 @@
+import type { FormattedAgentError } from '@genfeedai/agent/server';
+
+export const AGENT_STATUS_NOTIFICATION_TOPIC = 'agent.status';
 export const WORKFLOW_STATUS_NOTIFICATION_TOPIC = 'workflow.status';
 export const EMAIL_NOTIFICATION_CHANNEL = 'email';
 export const RESEND_NOTIFICATION_PROVIDER = 'resend';
@@ -14,6 +17,7 @@ export const NOTIFICATION_DELIVERY_STATUS = {
 export type WorkflowOutcome = 'completed' | 'failed';
 
 export interface WorkflowStatusNotificationPayload {
+  failure?: FormattedAgentError | null;
   version: 1;
   executionId: string;
   workflowId: string;

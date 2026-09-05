@@ -24,6 +24,7 @@ export const APP_ROUTES = {
     },
     AUTOMATION: {
       BOTS: '/admin/automation/bots',
+      FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',
       MODELS_ALL: '/admin/automation/models/all',
       TRAININGS: '/admin/automation/trainings',

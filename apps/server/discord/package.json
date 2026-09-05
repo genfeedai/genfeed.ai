@@ -5,7 +5,8 @@
     "@genfeedai/integrations": "workspace:*",
     "discord.js": "14.27.0",
     "tsconfig-paths": "4.2.0",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "@genfeedai/agent": "workspace:*"
   },
   "description": "Genfeed Discord Service",
   "devDependencies": {

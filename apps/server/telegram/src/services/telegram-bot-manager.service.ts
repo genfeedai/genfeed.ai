@@ -1,3 +1,4 @@
+import { formatAgentFailureMessage } from '@genfeedai/agent/server';
 import { IntegrationPlatform, ParseMode } from '@genfeedai/contracts';
 import {
   BaseBotManager,
@@ -824,9 +825,8 @@ export class TelegramBotManager
         'Failed to execute workflow:',
         this.sanitizeErrorForLog(error),
       );
-      await ctx.reply(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-      );
+      const message = error instanceof Error ? error.message : undefined;
+      await ctx.reply(formatAgentFailureMessage(message));
       this.deleteSession(chatId);
     }
   }
@@ -976,10 +976,7 @@ export class TelegramBotManager
       }
 
       if (execution.status === 'failed') {
-        await ctx.reply(
-          execution.error ||
-            'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-        );
+        await ctx.reply(formatAgentFailureMessage(execution.error));
         this.deleteSession(chatId);
         return;
       }
@@ -1022,9 +1019,8 @@ export class TelegramBotManager
         'Failed while monitoring workflow execution:',
         this.sanitizeErrorForLog(error),
       );
-      await ctx.reply(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-      );
+      const message = error instanceof Error ? error.message : undefined;
+      await ctx.reply(formatAgentFailureMessage(message));
       this.deleteSession(chatId);
     }
   }

@@ -29,6 +29,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
+import { AGENT_STATUS_NOTIFICATION_TOPIC } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import {
   BrandSerializer,
   NotificationPreferenceSerializer,
@@ -96,6 +97,42 @@ export class UsersRelationshipsController {
     const data = await this.notificationPreferenceService.setForUser(
       user.userId ?? user.id,
       dto.isEnabled,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
+
+  @Get('me/notification-preferences/agent-status/email')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'UsersController.findAgentEmailNotificationPreference',
+    summary: 'findAgentEmailNotificationPreference',
+  })
+  async findAgentEmailNotificationPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+  ) {
+    const data = await this.notificationPreferenceService.findForUser(
+      user.userId ?? user.id,
+      AGENT_STATUS_NOTIFICATION_TOPIC,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
+
+  @Patch('me/notification-preferences/agent-status/email')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'UsersController.updateAgentEmailNotificationPreference',
+    summary: 'updateAgentEmailNotificationPreference',
+  })
+  async updateAgentEmailNotificationPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: UpdateWorkflowEmailNotificationPreferenceDto,
+  ) {
+    const data = await this.notificationPreferenceService.setForUser(
+      user.userId ?? user.id,
+      dto.isEnabled,
+      AGENT_STATUS_NOTIFICATION_TOPIC,
     );
     return serializeSingle(request, NotificationPreferenceSerializer, data);
   }

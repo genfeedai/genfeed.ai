@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import type { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
@@ -301,6 +302,10 @@ export class SystemWorkflowRunnerService
         { ...input, trigger, userId },
         `system-workflow-${execution.id}`,
         {
+          // A terminal agent turn can contain completed mutations; retry is an explicit new turn.
+          ...(AGENT_CONVERSATION_WORKFLOW_IDS.includes(input.canonicalId)
+            ? { attempts: 1 }
+            : {}),
           priorExecution: {
             executionId: execution.id,
             status: WorkflowExecutionStatus.PENDING,

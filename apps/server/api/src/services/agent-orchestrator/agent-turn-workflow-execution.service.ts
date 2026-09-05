@@ -689,7 +689,6 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     await this.streamEffects.publishStreamFailure({
       context,
       error: params.error,
-      failRun: false,
       threadId: params.threadId,
     });
   }

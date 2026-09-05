@@ -1,3 +1,4 @@
+import { formatAgentFailureMessage } from '@genfeedai/agent/server';
 import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
   BaseBotManager,
@@ -650,7 +651,9 @@ export class SlackBotManager
         this.sanitizeErrorForLog(error),
       );
       await respond({
-        text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        text: formatAgentFailureMessage(
+          error instanceof Error ? error.message : undefined,
+        ),
       });
       this.deleteSession(userId);
     }
@@ -819,9 +822,7 @@ export class SlackBotManager
 
       if (execution.status === 'failed') {
         await respond({
-          text:
-            execution.error ||
-            'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+          text: formatAgentFailureMessage(execution.error),
         });
         this.deleteSession(userId);
         return;
@@ -860,7 +861,9 @@ export class SlackBotManager
         this.sanitizeErrorForLog(error),
       );
       await respond({
-        text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        text: formatAgentFailureMessage(
+          error instanceof Error ? error.message : undefined,
+        ),
       });
       this.deleteSession(userId);
     }

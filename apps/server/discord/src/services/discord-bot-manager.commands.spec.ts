@@ -1097,7 +1097,9 @@ describe('DiscordBotManager command handlers', () => {
         createSession({ state: 'confirming', workflowId: 'wf-1' }),
       );
       vi.spyOn(internals.workflowExecutionClient, 'create').mockRejectedValue(
-        new Error('no credits'),
+        new Error(
+          'agent-error:{"source":"network","message":"opaque transport envelope"}',
+        ),
       );
       const send = vi.fn().mockResolvedValue(undefined);
       const interaction = createRunInteraction(send);
@@ -1109,7 +1111,7 @@ describe('DiscordBotManager command handlers', () => {
         expect.objectContaining({ message: expect.any(String) }),
       );
       expect(send).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        expect.stringContaining('Connection interrupted'),
       );
       expect(internals.sessions.has(SESSION_KEY)).toBe(false);
     });
