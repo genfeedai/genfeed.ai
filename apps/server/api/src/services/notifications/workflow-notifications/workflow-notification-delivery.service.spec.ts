@@ -1,4 +1,5 @@
 import { EmailDeliveryError } from '@api/services/notifications/notifications.service';
+import { formatAgentError } from '@genfeedai/agent/server';
 import { WorkflowNotificationDeliveryService } from './workflow-notification-delivery.service';
 
 describe('WorkflowNotificationDeliveryService', () => {
@@ -7,7 +8,10 @@ describe('WorkflowNotificationDeliveryService', () => {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
           attemptCount: 1,
+          channel: 'email',
+          topic: 'workflow.status',
           event: {
+            sourceType: 'workflow_execution',
             payload: {
               error: null,
               executionId: 'execution-1',
@@ -65,7 +69,12 @@ describe('WorkflowNotificationDeliveryService', () => {
     const prisma = {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
-          event: { payload: {} },
+          channel: 'email',
+          topic: 'workflow.status',
+          event: {
+            sourceType: 'workflow_execution',
+            payload: {},
+          },
           organizationId: 'org-1',
           user: { email: 'owner@example.com', isDeleted: false },
           userId: 'owner-1',
@@ -100,7 +109,10 @@ describe('WorkflowNotificationDeliveryService', () => {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
           attemptCount: 1,
+          channel: 'email',
+          topic: 'workflow.status',
           event: {
+            sourceType: 'workflow_execution',
             payload: {
               error: 'invalid recipient',
               executionId: 'execution-1',
@@ -154,7 +166,10 @@ describe('WorkflowNotificationDeliveryService', () => {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
           attemptCount: 5,
+          channel: 'email',
+          topic: 'workflow.status',
           event: {
+            sourceType: 'workflow_execution',
             payload: {
               error: 'provider unavailable',
               executionId: 'execution-1',
@@ -208,7 +223,10 @@ describe('WorkflowNotificationDeliveryService', () => {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
           attemptCount: 6,
+          channel: 'email',
+          topic: 'workflow.status',
           event: {
+            sourceType: 'workflow_execution',
             payload: {
               error: 'provider unavailable',
               executionId: 'execution-1',
@@ -291,6 +309,105 @@ describe('WorkflowNotificationDeliveryService', () => {
       'Durable notification recovery enqueue failed',
       expect.objectContaining({ message: 'Redis unavailable' }),
       expect.objectContaining({ deliveryId: 'delivery-2' }),
+    );
+  });
+});
+
+describe('agent failure delivery', () => {
+  function setup(enabled = true, topic = 'agent.status') {
+    const prisma = {
+      notificationDelivery: {
+        findUnique: vi.fn().mockResolvedValue({
+          channel: 'email',
+          topic,
+          attemptCount: 1,
+          event: {
+            sourceType: 'agent_run',
+            payload: {
+              version: 1,
+              executionId: 'run',
+              workflowId: 'workflow',
+              workflowLabel: '<Daily>',
+              status: 'failed',
+              error: 'secret raw error',
+              failure: formatAgentError('insufficient credits'),
+            },
+          },
+          idempotencyKey: 'stable-key',
+          organizationId: 'org',
+          userId: 'owner',
+          user: { email: 'owner@example.com', isDeleted: false },
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      notificationPreference: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue(enabled ? { isEnabled: true } : null),
+      },
+    };
+    const notifications = {
+      deliverEmail: vi
+        .fn<(input: { text: string }) => Promise<string>>()
+        .mockResolvedValue('message'),
+    };
+    const service = new WorkflowNotificationDeliveryService(
+      prisma as never,
+      notifications as never,
+      { enqueue: vi.fn() } as never,
+      { warn: vi.fn() } as never,
+    );
+    return { prisma, notifications, service };
+  }
+  it('honors agent preference and renders classification without raw errors', async () => {
+    const { prisma, notifications, service } = setup();
+    await service.deliver('delivery');
+    expect(prisma.notificationPreference.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ topic: 'agent.status' }),
+      }),
+    );
+    expect(notifications.deliverEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Agent run failed: <Daily>',
+        text: expect.stringContaining('Not enough credits'),
+        idempotencyKey: 'stable-key',
+      }),
+    );
+    expect(notifications.deliverEmail.mock.calls[0][0].text).not.toContain(
+      'secret',
+    );
+  });
+  it('skips opted-out agent notifications', async () => {
+    const { prisma, notifications, service } = setup(false);
+    await service.deliver('delivery');
+    expect(notifications.deliverEmail).not.toHaveBeenCalled();
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'skipped' }),
+      }),
+    );
+  });
+  it('rejects a mismatched source and topic', async () => {
+    const { prisma, notifications, service } = setup(true, 'workflow.status');
+    await service.deliver('delivery');
+    expect(notifications.deliverEmail).not.toHaveBeenCalled();
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'failed' }),
+      }),
+    );
+  });
+  it('keeps agent delivery retryable after a transient provider failure', async () => {
+    const { prisma, notifications, service } = setup();
+    notifications.deliverEmail.mockRejectedValue(
+      new EmailDeliveryError(true, 503),
+    );
+    await service.deliver('delivery');
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'retry_pending' }),
+      }),
     );
   });
 });

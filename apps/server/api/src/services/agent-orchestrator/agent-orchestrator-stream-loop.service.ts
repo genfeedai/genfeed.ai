@@ -668,6 +668,9 @@ export class AgentOrchestratorStreamLoopService {
       await settleAccruedTurnCredits();
 
       const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
+      if (context.executionMode === 'background') {
+        throw new Error(errorMsg);
+      }
       await this.streamEffects.publishStreamFailure({
         context,
         error: errorMsg,

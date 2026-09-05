@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AgentAutonomyMode,
+  AgentFailureReason,
   AgentPublishDecision,
   AgentReplyStyle,
   ApiKeyCategory,
@@ -85,6 +86,23 @@ import {
 
 /** Prisma labels that MUST appear as domain enum values (extras allowed). */
 const PRISMA_REQUIRED: Record<string, readonly string[]> = {
+  AgentFailureReason: [
+    'PROVIDER_CONFIGURATION',
+    'INSUFFICIENT_CREDITS',
+    'RATE_LIMITED',
+    'TIMEOUT',
+    'DATA_SAVE_FAILED',
+    'SESSION_EXPIRED',
+    'CONNECTION_INTERRUPTED',
+    'CANCELLED',
+    'PROVIDER_AUTHENTICATION',
+    'WORKSPACE_MISSING',
+    'ACTION_NOT_ALLOWED',
+    'MODEL_UNAVAILABLE',
+    'PROVIDER_ACCESS_DENIED',
+    'PROVIDER_UNAVAILABLE',
+    'UNKNOWN',
+  ],
   KnowledgeSourceKind: [
     'TEXT',
     'URL',
@@ -333,6 +351,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
 
 const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   AgentAutonomyMode,
+  AgentFailureReason,
   AgentPublishDecision,
   AgentReplyStyle,
   ApiKeyCategory,

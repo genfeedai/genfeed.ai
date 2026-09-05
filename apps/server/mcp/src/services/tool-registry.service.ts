@@ -4,6 +4,7 @@ import {
   type McpToolOutput,
   toMcpTools,
 } from '@genfeedai/actions';
+import { formatAgentError } from '@genfeedai/agent/server';
 import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
@@ -282,6 +283,14 @@ export class ToolRegistryService implements OnModuleInit {
             type: 'text',
           },
         ],
+        structuredContent: {
+          failure: {
+            ...formatAgentError(
+              error instanceof Error ? error.message : String(error),
+            ),
+            detail: null,
+          },
+        },
         isError: true,
       };
     }
@@ -478,6 +487,9 @@ export class ToolRegistryService implements OnModuleInit {
             type: 'text',
           },
         ],
+        structuredContent: {
+          failure: { ...formatAgentError(result.error), detail: null },
+        },
         isError: true,
       };
     }

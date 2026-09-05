@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { executionFailureResult } from '@mcp/tools/execution-failure-result';
 
 type AgentChatToolResult = Promise<{
   content: Array<{ text: string; type: 'text' }>;
@@ -14,6 +15,7 @@ function requiredStringArg(args: Record<string, unknown>, key: string): string {
 
 function jsonText(label: string, payload: unknown) {
   return {
+    ...executionFailureResult(payload),
     content: [
       {
         text: `${label}:\n\n${JSON.stringify(payload, null, 2)}`,

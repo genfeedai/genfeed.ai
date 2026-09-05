@@ -177,6 +177,9 @@ export class AgentOrchestratorBatchService {
     });
 
     if (!result.success) {
+      if (params.context.executionMode === 'background') {
+        throw new Error(result.error ?? 'Batch generation failed');
+      }
       await this.streamEffects.publishStreamErrorOnly(
         params.context,
         params.threadId,

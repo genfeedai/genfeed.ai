@@ -1,22 +1,12 @@
+import { AgentFailureReason } from '@genfeedai/contracts';
+import type { IAgentFailure } from '@genfeedai/contracts/interfaces';
+
 /**
  * Map raw provider / ops errors into user-facing copy.
  * Never surface env var names, stack frames, or raw HTTP dumps in the UI.
  */
 
-export type FormattedAgentError = {
-  /** Short headline for cards / alerts */
-  title: string;
-  /** One-line explanation */
-  summary: string;
-  /** Optional secondary detail (safe for display) */
-  detail: string | null;
-  /** Recovery hint */
-  recovery: string | null;
-  /** True when the operator must fix env / billing / provider setup */
-  isConfigurationError: boolean;
-  /** True only when immediately repeating the request is known to be safe. */
-  isRetryable: boolean;
-};
+export type FormattedAgentError = IAgentFailure;
 
 export type AgentErrorDescriptor = {
   detail?: string;
@@ -34,6 +24,7 @@ const STRUCTURED_ERROR_PREFIX = 'agent-error:';
 
 const CONFIG_PATTERNS: Array<{
   match: RegExp;
+  reason: AgentFailureReason;
   title: string;
   summary: string;
   recovery: string;
@@ -47,6 +38,7 @@ const CONFIG_PATTERNS: Array<{
   {
     match:
       /OPENROUTER_API_KEY|openrouter.*not configured|provider key is not configured/i,
+    reason: AgentFailureReason.PROVIDER_CONFIGURATION,
     title: 'AI provider not connected',
     summary:
       'The language model provider is missing or rejected this environment’s credentials.',
@@ -55,6 +47,7 @@ const CONFIG_PATTERNS: Array<{
   },
   {
     match: /insufficient credits|not enough credits/i,
+    reason: AgentFailureReason.INSUFFICIENT_CREDITS,
     title: 'Not enough credits',
     summary: 'This run needs more credits than your workspace currently has.',
     recovery: 'Add credits or switch to a lower-cost model, then retry.',
@@ -64,6 +57,7 @@ const CONFIG_PATTERNS: Array<{
     // Trailing \b rejects "status code 4290".
     match:
       /rate limit|too many requests|status code 429\b|\bHTTP\s*429\b|\b429\b\s*(too many|rate)/i,
+    reason: AgentFailureReason.RATE_LIMITED,
     title: 'Provider rate limited',
     summary: 'The model provider asked us to slow down.',
     recovery: 'Wait a moment, then retry the message.',
@@ -73,6 +67,7 @@ const CONFIG_PATTERNS: Array<{
     // Must run before the broader "timeout" connection pattern below.
     match:
       /did not finish before the recovery timeout|stream recovery timeout|stream timed out/i,
+    reason: AgentFailureReason.TIMEOUT,
     title: 'Run timed out',
     summary:
       'The agent run took too long to confirm completion over the live stream.',
@@ -83,6 +78,7 @@ const CONFIG_PATTERNS: Array<{
   {
     match:
       /Invalid `?prisma\.|Unknown argument `|prisma\.[a-z]+\.(create|update|upsert)/i,
+    reason: AgentFailureReason.DATA_SAVE_FAILED,
     title: 'Data save failed',
     summary:
       'The agent could not save a post or related record (schema or database out of sync).',
@@ -96,6 +92,7 @@ const CONFIG_PATTERNS: Array<{
     // a distinct detail so they do not collide with this pattern.
     match:
       /authentication required|session expired|token expired|jwt is expired|sign in again/i,
+    reason: AgentFailureReason.SESSION_EXPIRED,
     title: 'Session expired',
     summary: 'Your Genfeed session is no longer valid for this request.',
     recovery: 'Refresh the page or sign in again, then retry.',
@@ -104,6 +101,7 @@ const CONFIG_PATTERNS: Array<{
   {
     match:
       /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up|failed to fetch|load failed|networkerror|network error|\bnetwork\b|bad gateway|gateway timeout|status code 502\b|\bHTTP\s*502\b|status code 504\b|\bHTTP\s*504\b|\btimeout\b/i,
+    reason: AgentFailureReason.CONNECTION_INTERRUPTED,
     title: 'Connection interrupted',
     summary:
       'The connection to the agent service was interrupted before it could respond.',
@@ -115,6 +113,7 @@ const CONFIG_PATTERNS: Array<{
     // Replicate job is wrapped as 500 ("Cancelled by user") — that is not
     // a dropped connection.
     match: /Cancelled by user/i,
+    reason: AgentFailureReason.CANCELLED,
     title: 'Generate was cancelled',
     summary: 'The generate job was stopped before the image finished.',
     recovery: 'Retry Generate on the card. You do not need to switch models.',
@@ -128,6 +127,7 @@ const CONFIG_PATTERNS: Array<{
     // a vague "provider unavailable" reading.
     match:
       /generation failed:\s*5\d{2}\b|failed with status(?: code)?\s*500\b|Failed to respond to UI action:\s*500\b|:\s*500\s*$/i,
+    reason: AgentFailureReason.CONNECTION_INTERRUPTED,
     title: 'Connection interrupted',
     summary: 'The agent service returned a server error mid-request.',
     recovery: 'Wait a moment, then retry the message.',
@@ -140,6 +140,7 @@ const CONFIG_PATTERNS: Array<{
     // degraded a real 401 into the generic "Run failed".
     match:
       /401|unauthorized|invalid.*api.?key|invalid token|authentication failed|rejected the credentials/i,
+    reason: AgentFailureReason.PROVIDER_AUTHENTICATION,
     title: 'Provider authentication failed',
     summary: 'The model provider rejected the credentials for this request.',
     recovery: 'Verify the provider API key, then retry.',
@@ -148,6 +149,7 @@ const CONFIG_PATTERNS: Array<{
     // ModelsGuard 403 when the request has no usable workspace id. That is
     // not "pick another model" — Auto only skips the allowlist check.
     match: /Organization context is required/i,
+    reason: AgentFailureReason.WORKSPACE_MISSING,
     title: 'Workspace missing on this request',
     summary: 'Generate could not see which workspace this request belongs to.',
     recovery:
@@ -159,6 +161,7 @@ const CONFIG_PATTERNS: Array<{
     // Auto generate with an empty or all-off allowlist after seed (#3227).
     // Do not tell the operator to switch to Auto — they are already on Auto.
     match: /No models enabled for this workspace/i,
+    reason: AgentFailureReason.ACTION_NOT_ALLOWED,
     title: 'Action not allowed',
     summary: 'This workspace has no models enabled for generate.',
     recovery: 'Enable at least one model in Org Settings → Models, then retry.',
@@ -170,6 +173,7 @@ const CONFIG_PATTERNS: Array<{
     // That is not Replicate/fal rejecting the account — keep it off the
     // generic provider-403 rule below.
     match: /Failed to respond to UI action:\s*403\b/i,
+    reason: AgentFailureReason.ACTION_NOT_ALLOWED,
     title: 'Action not allowed',
     summary: 'The API refused this generate request.',
     recovery: 'Pick a model enabled for this workspace, then retry.',
@@ -179,6 +183,7 @@ const CONFIG_PATTERNS: Array<{
   {
     match:
       /No endpoints found matching.*data polic|Request failed with status code 404\b|\bHTTP\s*404\b/i,
+    reason: AgentFailureReason.MODEL_UNAVAILABLE,
     title: 'Chat model unavailable',
     summary:
       'No provider endpoint for the selected chat model satisfies the required privacy policy.',
@@ -187,6 +192,7 @@ const CONFIG_PATTERNS: Array<{
   },
   {
     match: /403|forbidden/i,
+    reason: AgentFailureReason.PROVIDER_ACCESS_DENIED,
     title: 'Provider access denied',
     summary: 'The model provider blocked this request.',
     recovery: 'Check model availability and account permissions, then retry.',
@@ -195,6 +201,7 @@ const CONFIG_PATTERNS: Array<{
     // Anchor 5xx codes the same way — "512 tokens" / "status code 5120" must not match.
     match:
       /status code 5\d{2}\b|\bHTTP\s*5\d{2}\b|server error|bad gateway|service unavailable/i,
+    reason: AgentFailureReason.PROVIDER_UNAVAILABLE,
     title: 'Provider temporarily unavailable',
     summary: 'The model provider returned a server error.',
     recovery:
@@ -290,6 +297,7 @@ export function formatAgentError(
           'Retry the message. The same request identity prevents a duplicate run.',
         summary:
           'The agent service did not acknowledge the turn before the request deadline.',
+        reason: AgentFailureReason.TIMEOUT,
         title: 'Turn acknowledgement timed out',
       };
     }
@@ -301,6 +309,7 @@ export function formatAgentError(
         recovery:
           'Refresh the conversation to reconcile the run, then retry if it did not finish.',
         summary: 'The run took too long to confirm over the live stream.',
+        reason: AgentFailureReason.TIMEOUT,
         title: 'Run timed out',
       };
     }
@@ -317,6 +326,12 @@ export function formatAgentError(
         recovery: 'Retry in a moment or choose another available model.',
         summary:
           'The generation provider did not complete the request in time.',
+        reason:
+          structured.status === 429
+            ? AgentFailureReason.RATE_LIMITED
+            : structured.status === 408
+              ? AgentFailureReason.TIMEOUT
+              : AgentFailureReason.PROVIDER_UNAVAILABLE,
         title: 'Provider temporarily unavailable',
       };
     }
@@ -328,6 +343,7 @@ export function formatAgentError(
         recovery: 'Check your connection, then retry the message.',
         summary:
           'The connection to the agent service was interrupted before it could respond.',
+        reason: AgentFailureReason.CONNECTION_INTERRUPTED,
         title: 'Connection interrupted',
       };
     }
@@ -351,6 +367,7 @@ export function formatAgentError(
       recovery:
         'Copy the error details and inspect the failing step before trying again.',
       summary: 'The agent run did not finish.',
+      reason: AgentFailureReason.UNKNOWN,
       title: 'Run failed',
     };
   }
@@ -368,6 +385,7 @@ export function formatAgentError(
         : extractSafeContext(original);
       return {
         detail,
+        reason: pattern.reason,
         isConfigurationError: pattern.isConfigurationError !== false,
         isRetryable: pattern.isRetryable === true,
         recovery: pattern.recovery,
@@ -391,6 +409,10 @@ export function formatAgentError(
       recovery:
         'Copy the error details and inspect the response before trying again.',
       summary: `The model request failed (HTTP ${code}).`,
+      reason:
+        code === '401'
+          ? AgentFailureReason.PROVIDER_AUTHENTICATION
+          : AgentFailureReason.UNKNOWN,
       title: code === '401' ? 'Provider authentication failed' : 'Run failed',
     };
   }
@@ -408,6 +430,7 @@ export function formatAgentError(
     recovery:
       'Copy the error details and inspect the failing step before trying again.',
     summary: 'The agent hit an error while running.',
+    reason: AgentFailureReason.UNKNOWN,
     title: 'Run failed',
   };
 }
@@ -421,4 +444,12 @@ export function formatAgentErrorDetail(
     return formatted.detail;
   }
   return formatted.summary;
+}
+
+/** Safe shared copy for external transports; raw detail stays out of messages. */
+export function formatAgentFailureMessage(
+  raw: string | AgentErrorDescriptor | null | undefined,
+): string {
+  const { title, summary, recovery } = formatAgentError(raw);
+  return [title, summary, recovery].filter(Boolean).join('\n');
 }

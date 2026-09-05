@@ -3,6 +3,8 @@ import type {
   AgentChatContext,
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { formatAgentError } from '@genfeedai/agent/server';
 import {
   type AgentDashboardOperation,
   type AgentUIBlocksEvent,
@@ -18,6 +20,7 @@ export class AgentStreamEffectsService {
   constructor(
     private readonly streamPublisher: AgentStreamPublisherService,
     private readonly loggerService: LoggerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async publishStreamLifecycleStarted(params: {
@@ -439,9 +442,10 @@ export class AgentStreamEffectsService {
         userId: params.context.userId,
       });
     } catch (error) {
-      this.loggerService.warn(
-        `${this.constructorName} stream failure publish failed`,
-        { error },
+      await this.recordFailureDeliveryError(
+        params.context,
+        params.threadId,
+        error,
       );
     }
   }
@@ -487,10 +491,42 @@ export class AgentStreamEffectsService {
         userId: context.userId,
       });
     } catch (publishError) {
-      this.loggerService.warn(
-        `${this.constructorName} stream error publish failed`,
-        { error: publishError },
-      );
+      await this.recordFailureDeliveryError(context, threadId, publishError);
     }
+  }
+  private async recordFailureDeliveryError(
+    context: AgentChatContext,
+    threadId: string,
+    error: unknown,
+  ): Promise<void> {
+    const failure = {
+      ...formatAgentError(
+        error instanceof Error ? error.message : 'Stream publication failed',
+      ),
+      detail: null,
+    };
+    const sourceId = context.executionId ?? threadId;
+    const deduplicationKey = `agent.failure.delivery_failed/${sourceId}`;
+    // tenant-scope-ignore: internally generated idempotency key is qualified by organization; no user-controlled cross-tenant lookup
+    await this.prisma.notificationEvent.upsert({
+      create: {
+        actorUserId: context.userId,
+        deduplicationKey: `${context.organizationId}/${deduplicationKey}`,
+        eventKey: 'agent.failure.delivery_failed',
+        occurredAt: new Date(),
+        organizationId: context.organizationId,
+        payload: { channel: 'stream', failure, threadId: threadId },
+        sourceId,
+        sourceType: 'agent_run',
+      },
+      update: {},
+      where: {
+        deduplicationKey: `${context.organizationId}/${deduplicationKey}`,
+      },
+    });
+    this.loggerService.warn(
+      `${this.constructorName} stream failure publish failed`,
+      { failure, runId: context.executionId, threadId: threadId },
+    );
   }
 }

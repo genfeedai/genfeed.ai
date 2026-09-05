@@ -52,14 +52,17 @@ describe('monitorDiscordWorkflowExecution', () => {
   it('should send the execution error when execution failed', async () => {
     const mocks = createMocks();
     mocks.waitForTerminal.mockResolvedValue({
-      error: 'Model exploded',
+      error: 'HTTP 429 Bearer private-token',
       nodeResults: [],
       status: 'failed',
     });
 
     await runMonitor(mocks);
 
-    expect(mocks.send).toHaveBeenCalledWith('Model exploded');
+    expect(mocks.send).toHaveBeenCalledWith(
+      'Provider rate limited\nThe model provider asked us to slow down.\nWait a moment, then retry the message.',
+    );
+    expect(mocks.send.mock.calls[0][0]).not.toContain('private-token');
     expect(mocks.deleteSession).toHaveBeenCalled();
   });
 
@@ -73,7 +76,7 @@ describe('monitorDiscordWorkflowExecution', () => {
     await runMonitor(mocks);
 
     expect(mocks.send).toHaveBeenCalledWith(
-      'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+      expect.stringContaining('Run failed'),
     );
     expect(mocks.deleteSession).toHaveBeenCalled();
   });
@@ -162,7 +165,7 @@ describe('monitorDiscordWorkflowExecution', () => {
       error,
     );
     expect(mocks.send).toHaveBeenCalledWith(
-      'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+      expect.stringContaining('Run failed'),
     );
     expect(mocks.deleteSession).toHaveBeenCalled();
   });

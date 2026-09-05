@@ -1,4 +1,5 @@
 import {
+  AGENT_STATUS_NOTIFICATION_TOPIC,
   EMAIL_NOTIFICATION_CHANNEL,
   NOTIFICATION_DELIVERY_STATUS,
   RESEND_NOTIFICATION_PROVIDER,
@@ -6,11 +7,17 @@ import {
   type WorkflowOutcome,
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
+import {
+  type FormattedAgentError,
+  formatAgentError,
+} from '@genfeedai/agent/server';
 import { type Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface RecordWorkflowOutcomeInput {
+  failure?: FormattedAgentError | null;
+  isAgentRun?: boolean;
   executionId: string;
   workflowId: string;
   workflowLabel: string;
@@ -38,6 +45,13 @@ export class WorkflowNotificationOutboxService {
     transaction: Prisma.TransactionClient,
     input: RecordWorkflowOutcomeInput,
   ): Promise<string> {
+    const isAgentFailure =
+      input.isAgentRun === true && input.status === 'failed';
+    const classifiedFailure =
+      input.failure ?? (isAgentFailure ? formatAgentError(input.error) : null);
+    const failure = classifiedFailure
+      ? { ...classifiedFailure, detail: null }
+      : null;
     const eventKey = `workflow.execution.${input.status}`;
     const deduplicationKey = `${eventKey}/${input.executionId}`;
     // tenant-scope-ignore: globally unique execution outcome is the idempotency boundary and each created event persists organizationId
@@ -49,7 +63,8 @@ export class WorkflowNotificationOutboxService {
         occurredAt: input.occurredAt,
         organizationId: input.organizationId,
         payload: {
-          error: input.error?.slice(0, 2000) ?? null,
+          error: failure ? null : (input.error?.slice(0, 2000) ?? null),
+          failure,
           executionId: input.executionId,
           status: input.status,
           trigger: input.trigger ?? null,
@@ -58,7 +73,7 @@ export class WorkflowNotificationOutboxService {
           workflowLabel: input.workflowLabel.slice(0, 300),
         },
         sourceId: input.executionId,
-        sourceType: 'workflow_execution',
+        sourceType: isAgentFailure ? 'agent_run' : 'workflow_execution',
       },
       update: {},
       where: { deduplicationKey },
@@ -74,7 +89,9 @@ export class WorkflowNotificationOutboxService {
         organizationId: input.organizationId,
         provider: RESEND_NOTIFICATION_PROVIDER,
         status: NOTIFICATION_DELIVERY_STATUS.PENDING,
-        topic: WORKFLOW_STATUS_NOTIFICATION_TOPIC,
+        topic: isAgentFailure
+          ? AGENT_STATUS_NOTIFICATION_TOPIC
+          : WORKFLOW_STATUS_NOTIFICATION_TOPIC,
         userId: input.workflowOwnerUserId,
       },
       update: {},

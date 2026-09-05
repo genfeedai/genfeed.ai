@@ -4,6 +4,7 @@ export * from './activity.enum';
 export * from './activity-key.catalog';
 export * from './activity-keys.tree';
 export * from './agent-conversation.enum';
+export * from './agent-failure-reason.enum';
 export * from './agent-generation-mode.enum';
 export * from './agent-publish-policy.enum';
 export * from './agent-reply-style.enum';

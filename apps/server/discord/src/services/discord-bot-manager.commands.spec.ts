@@ -1108,9 +1108,7 @@ describe('DiscordBotManager command handlers', () => {
         'Failed to execute workflow:',
         expect.objectContaining({ message: expect.any(String) }),
       );
-      expect(send).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-      );
+      expect(send).toHaveBeenCalledWith(expect.stringContaining('Run failed'));
       expect(internals.sessions.has(SESSION_KEY)).toBe(false);
     });
 

@@ -212,6 +212,12 @@ export {
   extractLastGeneratedAssetFromMetadata,
   resolveLastGeneratedAsset,
 } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+export {
+  type AgentErrorDescriptor,
+  type FormattedAgentError,
+  formatAgentError,
+  formatAgentFailureMessage,
+} from '@genfeedai/agent/utils/format-agent-error.util';
 export { formatDuration } from '@genfeedai/agent/utils/format-duration';
 export { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 export type {

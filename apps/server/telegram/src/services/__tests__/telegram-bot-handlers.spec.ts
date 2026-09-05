@@ -1384,7 +1384,7 @@ describe('TelegramBotManager handlers', () => {
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });
 
-    it('relays the execution error when the workflow fails', async () => {
+    it('classifies an unknown execution error when the workflow fails', async () => {
       await registerBot();
       service.setSession(CHAT_ID, confirmedSession());
       mockExecution('failed', { error: 'GPU pool exhausted' });
@@ -1393,7 +1393,12 @@ describe('TelegramBotManager handlers', () => {
       await getEventHandler('callback_query:data')(asContext(ctx));
       await flush();
 
-      expect(ctx.reply).toHaveBeenCalledWith('GPU pool exhausted');
+      expect(ctx.reply).toHaveBeenCalledWith(
+        expect.stringContaining('Run failed'),
+      );
+      expect(JSON.stringify(ctx.reply.mock.calls)).not.toContain(
+        'GPU pool exhausted',
+      );
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });
 
@@ -1407,7 +1412,7 @@ describe('TelegramBotManager handlers', () => {
       await flush();
 
       expect(ctx.reply).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        expect.stringContaining('Run failed'),
       );
     });
 
@@ -1422,6 +1427,22 @@ describe('TelegramBotManager handlers', () => {
 
       expect(service.getSession(CHAT_ID)).toBeUndefined();
       expect(ctx.replyWithPhoto).not.toHaveBeenCalled();
+    });
+
+    it('sends classified provider failures without raw credentials', async () => {
+      await registerBot();
+      service.setSession(CHAT_ID, confirmedSession());
+      mockExecution('failed', { error: 'HTTP 429 Bearer private-token' });
+      const ctx = createCtx({ callbackQuery: { data: 'confirm:run' } });
+      await getEventHandler('callback_query:data')(asContext(ctx));
+      await flush();
+      expect(ctx.reply).toHaveBeenCalledWith(
+        'Provider rate limited\nThe model provider asked us to slow down.\nWait a moment, then retry the message.',
+      );
+      expect(JSON.stringify(ctx.reply.mock.calls)).not.toContain(
+        'private-token',
+      );
+      expect(service.getSession(CHAT_ID)).toBeUndefined();
     });
 
     it('polls until the execution reaches a terminal status', async () => {
@@ -1490,7 +1511,7 @@ describe('TelegramBotManager handlers', () => {
         expect.objectContaining({ message: 'api down' }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        expect.stringContaining('Run failed'),
       );
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });
@@ -1510,7 +1531,7 @@ describe('TelegramBotManager handlers', () => {
         expect.objectContaining({ message: expect.any(String) }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        expect.stringContaining('Run failed'),
       );
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });
@@ -1524,7 +1545,7 @@ describe('TelegramBotManager handlers', () => {
       await getEventHandler('callback_query:data')(asContext(ctx));
 
       expect(ctx.reply).toHaveBeenCalledWith(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        expect.stringContaining('Run failed'),
       );
       expect(service.getSession(CHAT_ID)).toBeUndefined();
     });

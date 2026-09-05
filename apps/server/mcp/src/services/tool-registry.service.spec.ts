@@ -387,6 +387,9 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
+    expect(result).toMatchObject({
+      structuredContent: { failure: { reason: 'UNKNOWN', detail: null } },
+    });
   });
 
   it('handleToolCall get_content_analytics video keeps the direct video route', async () => {
@@ -452,6 +455,9 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('Content art-404 not found');
+    expect(result).toMatchObject({
+      structuredContent: { failure: { reason: 'UNKNOWN', detail: null } },
+    });
   });
 
   it('handleToolCall get_content_analytics throws when contentType missing', async () => {
@@ -542,6 +548,23 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('run-1');
+  });
+
+  it('returns classified failure alongside the raw persisted workflow response', async () => {
+    clientService.getWorkflowRun.mockResolvedValue({
+      id: 'run-1',
+      status: 'FAILED',
+      error: 'HTTP 429',
+    });
+    const result = await service.handleToolCall({
+      arguments: { runId: 'run-1' },
+      name: 'get_workflow_run',
+    });
+    expect(result).toMatchObject({
+      isError: true,
+      structuredContent: { failure: { reason: 'RATE_LIMITED', detail: null } },
+      content: [{ text: expect.stringContaining('HTTP 429') }],
+    });
   });
 
   it('handleToolCall get_workflow_run inspects one workflow run', async () => {

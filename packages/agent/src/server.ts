@@ -12,4 +12,5 @@ export {
   type AgentErrorDescriptor,
   type FormattedAgentError,
   formatAgentError,
+  formatAgentFailureMessage,
 } from './utils/format-agent-error.util';

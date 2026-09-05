@@ -8,7 +8,8 @@
     "@posthog/mcp": "0.12.0",
     "posthog-node": "5.51.6",
     "tsconfig-paths": "4.2.0",
-    "@genfeedai/contracts": "workspace:*"
+    "@genfeedai/contracts": "workspace:*",
+    "@genfeedai/agent": "workspace:*"
   },
   "description": "Genfeed MCP Server",
   "main": "../dist/apps/mcp/main.js",

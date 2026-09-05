@@ -126,6 +126,29 @@ export class UsersService extends BaseService<User> {
       .then((res) => this.extractResource<INotificationPreference>(res.data));
   }
 
+  public async findAgentEmailNotificationPreference(
+    signal?: AbortSignal,
+  ): Promise<INotificationPreference> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(
+        'me/notification-preferences/agent-status/email',
+        { signal },
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
+  public async patchAgentEmailNotificationPreference(
+    isEnabled: boolean,
+  ): Promise<INotificationPreference> {
+    const data = NotificationPreferenceSerializer.serialize({ isEnabled });
+    return await this.instance
+      .patch<JsonApiResponseDocument>(
+        'me/notification-preferences/agent-status/email',
+        data,
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
   public async findMe(): Promise<IUser> {
     return await this.instance
       .get<JsonApiResponseDocument>('me')
