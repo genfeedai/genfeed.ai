@@ -1619,23 +1619,23 @@ model Credential {
   updatedAt                       DateTime           @updatedAt
 
   // Relations
-  tags                      Tag[]                      @relation("credential_tags")
-  posts                     Post[]
-  postAnalytics             PostAnalytics[]
+  tags                    Tag[]                    @relation("credential_tags")
+  posts                   Post[]
+  postAnalytics           PostAnalytics[]
   accountAnalyticsSnapshots AccountAnalyticsSnapshot[]
-  postingCadences           PostingCadence[]
-  slotReservations          SlotReservation[]
-  adBulkUploadJobs          AdBulkUploadJob[]
-  adPerformances            AdPerformance[]
-  adWatchedAdvertisers      AdWatchedAdvertiser[]
-  monitoredAccounts         MonitoredAccount[]
-  socialSources             SocialSource[]
-  socialConversations       SocialConversation[]
-  socialMessages            SocialMessage[]
-  personas                  Persona[]                  @relation("persona_credentials")
-  outreachCampaigns         OutreachCampaign[]
-  campaignPaidActivations   CampaignPaidActivation[]
-  socialWarmupEnrollments   SocialWarmupEnrollment[]
+  postingCadences         PostingCadence[]
+  slotReservations        SlotReservation[]
+  adBulkUploadJobs        AdBulkUploadJob[]
+  adPerformances          AdPerformance[]
+  adWatchedAdvertisers    AdWatchedAdvertiser[]
+  monitoredAccounts       MonitoredAccount[]
+  socialSources           SocialSource[]
+  socialConversations     SocialConversation[]
+  socialMessages          SocialMessage[]
+  personas                Persona[]                @relation("persona_credentials")
+  outreachCampaigns       OutreachCampaign[]
+  campaignPaidActivations CampaignPaidActivation[]
+  socialWarmupEnrollments SocialWarmupEnrollment[]
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
@@ -2522,20 +2522,20 @@ model Post {
 /// is publicly visible. The provider transition and this record commit in one
 /// transaction; workers advance each idempotent stage independently.
 model PostPublishFinalization {
-  id                    String       @id @default(cuid())
+  id                    String        @id @default(cuid())
   organizationId        String
-  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   postId                String
-  post                  Post         @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  post                  Post          @relation(fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   result                Json
   source                String
   activityCompletedAt   DateTime?
   recurrenceCompletedAt DateTime?
   completedAt           DateTime?
-  attempts              Int          @default(0)
+  attempts              Int           @default(0)
   lastError             Json?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   @@unique([organizationId, postId], map: "post_publish_finalizations_org_post_key")
   @@index([completedAt, updatedAt], map: "post_publish_finalizations_pending_idx")
@@ -2585,27 +2585,27 @@ model PublishApproval {
 /// are produced against. Distinct from the Messages outreach campaign and from
 /// an Automate program. Epic #4120, child #4138.
 model Campaign {
-  id              String                   @id @default(cuid())
-  organizationId  String
-  organization    Organization             @relation(fields: [organizationId], references: [id])
-  brandId         String
-  brand           Brand                    @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  userId          String
-  user            User                     @relation(fields: [userId], references: [id])
-  name            String
-  objective       String?
-  brief           String?
-  startDate       DateTime?
-  endDate         DateTime?
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  name           String
+  objective      String?
+  brief          String?
+  startDate      DateTime?
+  endDate        DateTime?
   // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/contracts)
   // is lowercase product language, matching PostStatus and WorkflowStatus.
-  status          String                   @default("draft")
-  idempotencyKey  String?
-  isDeleted       Boolean                  @default(false)
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
-  posts           Post[]
-  postGroups      PostGroup[]
+  status         String       @default("draft")
+  idempotencyKey String?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  posts          Post[]
+  postGroups     PostGroup[]
   paidActivations CampaignPaidActivation[]
 
   @@unique([organizationId, idempotencyKey], map: "campaigns_organizationId_idempotencyKey_key")
@@ -2749,40 +2749,40 @@ model SlotReservation {
 }
 
 model PostAnalytics {
-  id                      String             @id @default(cuid())
-  postId                  String
-  post                    Post               @relation(fields: [postId], references: [id])
-  userId                  String
-  user                    User               @relation(fields: [userId], references: [id])
-  organizationId          String
-  organization            Organization       @relation(fields: [organizationId], references: [id])
-  brandId                 String
-  brand                   Brand              @relation(fields: [brandId], references: [id])
-  platform                CredentialPlatform
-  date                    DateTime
-  totalViews              Int                @default(0)
-  totalLikes              Int                @default(0)
-  totalComments           Int                @default(0)
-  totalShares             Int                @default(0)
-  totalSaves              Int                @default(0)
-  totalViewsIncrement     Int                @default(0)
-  totalLikesIncrement     Int                @default(0)
-  totalCommentsIncrement  Int                @default(0)
-  totalSharesIncrement    Int                @default(0)
-  totalSavesIncrement     Int                @default(0)
-  credentialId            String?
-  credential              Credential?        @relation(fields: [credentialId], references: [id])
-  impressions             Int?
-  reach                   Int?
-  clicks                  Int?
-  videoViews              Int?
-  watchTimeSeconds        Float?
+  id                     String             @id @default(cuid())
+  postId                 String
+  post                   Post               @relation(fields: [postId], references: [id])
+  userId                 String
+  user                   User               @relation(fields: [userId], references: [id])
+  organizationId         String
+  organization           Organization       @relation(fields: [organizationId], references: [id])
+  brandId                String
+  brand                  Brand              @relation(fields: [brandId], references: [id])
+  platform               CredentialPlatform
+  date                   DateTime
+  totalViews             Int                @default(0)
+  totalLikes             Int                @default(0)
+  totalComments          Int                @default(0)
+  totalShares            Int                @default(0)
+  totalSaves             Int                @default(0)
+  totalViewsIncrement    Int                @default(0)
+  totalLikesIncrement    Int                @default(0)
+  totalCommentsIncrement Int                @default(0)
+  totalSharesIncrement   Int                @default(0)
+  totalSavesIncrement    Int                @default(0)
+  credentialId           String?
+  credential             Credential?        @relation(fields: [credentialId], references: [id])
+  impressions            Int?
+  reach                  Int?
+  clicks                 Int?
+  videoViews             Int?
+  watchTimeSeconds       Float?
   averageWatchTimeSeconds Float?
-  metricAvailability      Json               @default("{}")
-  correctionKind          String?
-  engagementRate          Float              @default(0)
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  metricAvailability     Json               @default("{}")
+  correctionKind         String?
+  engagementRate         Float              @default(0)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   ingredients Ingredient[] @relation("post_analytics_ingredients")
 
@@ -3146,18 +3146,18 @@ model BillingAccount {
 /// Shareable, opaque referral identity. The reward destination is pinned when
 /// the code is created so later organization switching cannot redirect rewards.
 model ReferralCode {
-  id                     String           @id @default(cuid())
+  id                     String         @id @default(cuid())
   ownerUserId            String
-  ownerUser              User             @relation(fields: [ownerUserId], references: [id])
+  ownerUser              User           @relation(fields: [ownerUserId], references: [id])
   rewardBillingAccountId String
-  rewardBillingAccount   BillingAccount   @relation("referral_code_reward_billing_account", fields: [rewardBillingAccountId], references: [id])
+  rewardBillingAccount   BillingAccount @relation("referral_code_reward_billing_account", fields: [rewardBillingAccountId], references: [id])
   rewardOrganizationId   String
-  rewardOrganization     Organization     @relation("referral_code_reward_organization", fields: [rewardOrganizationId], references: [id])
-  code                   String           @unique
-  isActive               Boolean          @default(true)
-  isDeleted              Boolean          @default(false)
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  rewardOrganization     Organization   @relation("referral_code_reward_organization", fields: [rewardOrganizationId], references: [id])
+  code                   String         @unique
+  isActive               Boolean        @default(true)
+  isDeleted              Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
   referrals              Referral[]
   rewards                ReferralReward[]
 
@@ -4473,7 +4473,7 @@ model WorkflowArtifact {
 /// Unique on (executionId, nodeId): a second insert loses (P2002) and the
 /// runner re-emits the stored output instead of re-firing side effects.
 model WorkflowNodeClaim {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   executionId    String
   nodeId         String
@@ -4483,8 +4483,8 @@ model WorkflowNodeClaim {
   error          String?
   leaseOwnerId   String?
   leaseExpiresAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@unique([executionId, nodeId])
   @@index([organizationId, executionId])
