@@ -60,7 +60,9 @@ export class TrendsDiscoveryController {
     const brandId = user.brandId;
 
     if (refresh === 'true') {
-      await this.trendsService.refreshTrends(organizationId, brandId);
+      throw new BadRequestException(
+        'Use POST /trends/refresh to start ingestion.',
+      );
     }
 
     const result = await this.trendsService.getTrendsDiscovery(
@@ -93,6 +95,12 @@ export class TrendsDiscoveryController {
   ) {
     const organizationId = user.organizationId;
     const brandId = user.brandId;
+    if (refresh === 'true') {
+      throw new BadRequestException(
+        'Use POST /trends/refresh to start ingestion.',
+      );
+    }
+
     const parsedLimit = Number.parseInt(limitParam ?? '30', 10);
     const limit = Number.isNaN(parsedLimit)
       ? 30
@@ -104,7 +112,7 @@ export class TrendsDiscoveryController {
       {
         limit,
         platform,
-        refresh: refresh === 'true',
+        refresh: false,
       },
     );
 

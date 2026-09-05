@@ -58,7 +58,6 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
     const service = await getTrendsService();
     const refreshed = await service.getTrendContent({
       platform,
-      refresh: true,
     });
     queryClient.setQueryData(queryKey, refreshed);
   }, [getTrendsService, platform, queryClient, queryKey]);
