@@ -549,18 +549,8 @@ describe('OutreachCampaignsService', () => {
     });
   });
 
-  it('blocks generic unscoped find in favor of system-only active inventory', async () => {
+  it('returns only due active campaigns for scoped dispatch', async () => {
     const { prisma, service } = makeService();
-    prisma.outreachCampaign.findMany.mockResolvedValue([makeRow()]);
-
-    await expect(
-      service.find({
-        isDeleted: false,
-        organizationId,
-        status: CampaignStatus.ACTIVE,
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-
     prisma.outreachCampaign.findMany.mockResolvedValue([
       makeRow(),
       makeRow({

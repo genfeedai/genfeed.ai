@@ -1,10 +1,16 @@
 'use client';
 
 import { Kbd } from '@genfeedai/ui';
-import { Keyboard, Search, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Keyboard, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
-import { Button } from '../ui/button';
 
 interface ShortcutItem {
   keys: string;
@@ -125,83 +131,66 @@ export function ShortcutHelpModal() {
   if (!isOpen) return null;
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={handleClose}
-        className="fixed inset-0 z-50 size-full p-0 opacity-0"
-        aria-label="Close keyboard shortcuts"
-      />
-      <div
-        className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] pointer-events-none"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      >
-        <div
-          className="bg-background border border-border shadow-xl w-full max-w-2xl pointer-events-auto"
-          role="dialog"
-          aria-label="Keyboard Shortcuts"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Keyboard className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Keyboard Shortcuts</span>
-            </div>
-            <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-              <X className="size-4" />
-            </Button>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Keyboard className="size-4" aria-hidden="true" />
+            Keyboard Shortcuts
+          </DialogTitle>
+        </DialogHeader>
+
+        <div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search shortcuts..."
+              aria-label="Search shortcuts"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
 
-          {/* Content */}
-          <div className="p-4">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search shortcuts..."
-                aria-label="Search shortcuts"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
-              {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
-                <div key={category}>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                    {category}
-                  </h3>
-                  <div className="space-y-1">
-                    {shortcuts.map((shortcut) => (
-                      <div
-                        key={shortcut.keys}
-                        className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
+          <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
+            {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
+              <div key={category}>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                  {category}
+                </h3>
+                <div className="space-y-1">
+                  {shortcuts.map((shortcut) => (
+                    <div
+                      key={shortcut.keys}
+                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
+                    >
+                      <span className="text-sm">{shortcut.description}</span>
+                      <Kbd
+                        variant="muted"
+                        className="px-2 py-1 border border-border"
                       >
-                        <span className="text-sm">{shortcut.description}</span>
-                        <Kbd
-                          variant="muted"
-                          className="px-2 py-1 border border-border"
-                        >
-                          {shortcut.keys}
-                        </Kbd>
-                      </div>
-                    ))}
-                  </div>
+                        {shortcut.keys}
+                      </Kbd>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ))}
 
-              {filteredShortcuts.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  No shortcuts found for &quot;{searchQuery}&quot;
-                </div>
-              )}
-            </div>
+            {filteredShortcuts.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                No shortcuts found for &quot;{searchQuery}&quot;
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

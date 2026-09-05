@@ -54,10 +54,19 @@ describe('workflow UI semantic theme contract', () => {
     expect(source).not.toContain('size-1.5 rounded-full bg-success');
   });
 
-  it('uses the value-swap affordance on the select trigger', () => {
-    const source = readFileSync(join(SOURCE_ROOT, 'ui/select.tsx'), 'utf8');
-
-    expect(source).toContain('ChevronsUpDown');
-    expect(source).toContain('<ChevronDownIcon className="size-4" />');
+  it('uses shared primitives instead of a workflow design system', () => {
+    const forbidden =
+      /(?:from\s*|import\s*\()['"](?:@radix-ui\/react-(?:checkbox|label|select|slider|slot)|(?:\.\.?\/)+ui\/(?:button|button\.variants|input|textarea|checkbox|label|select|slider))['"]/u;
+    const violations = collectProductionSources(SOURCE_ROOT).filter((file) =>
+      forbidden.test(readFileSync(file, 'utf8')),
+    );
+    expect(violations.map((file) => relative(SOURCE_ROOT, file))).toEqual([]);
+    expect(
+      readdirSync(join(SOURCE_ROOT, 'ui')).filter((file) =>
+        /^(button(?:\.variants)?|input|textarea|checkbox|label|select|slider)\.tsx?$/.test(
+          file,
+        ),
+      ),
+    ).toEqual([]);
   });
 });

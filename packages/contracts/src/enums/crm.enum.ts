@@ -39,8 +39,6 @@ export enum ProactiveOnboardingStatus {
   BRAND_READY = 'brand_ready',
   CONTENT_GENERATING = 'content_generating',
   CONTENT_READY = 'content_ready',
-  /** @deprecated Use CONTENT_READY */
-  READY = 'content_ready',
   INVITED = 'invited',
   STARTED = 'started',
   PAYMENT_MADE = 'payment_made',

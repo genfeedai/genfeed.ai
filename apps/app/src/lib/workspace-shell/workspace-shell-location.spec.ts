@@ -244,23 +244,23 @@ describe('workspace shell URL restoration', () => {
 
   it('builds registered transitions and direct-link overlay dismissal URLs', () => {
     expect(
-      buildWorkspaceShellHref('/acme/~/overview?filter=active', {
+      buildWorkspaceShellHref('/acme/~/workspace/overview?filter=active', {
         overlay: {
           key: 'shell-preview',
           parameters: { reference: null },
         },
       }),
-    ).toBe('/acme/~/overview?filter=active&overlay=shell-preview');
+    ).toBe('/acme/~/workspace/overview?filter=active&overlay=shell-preview');
 
     expect(
       removeWorkspaceShellOverlayParams(
-        '/acme/~/overview',
+        '/acme/~/workspace/overview',
         new URLSearchParams({
           overlay: 'shell-preview',
           taskId: 'task-1',
           thread: 'thread-1',
         }),
       ),
-    ).toBe('/acme/~/overview?taskId=task-1');
+    ).toBe('/acme/~/workspace/overview?taskId=task-1');
   });
 });

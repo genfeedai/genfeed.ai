@@ -425,7 +425,7 @@ export class ProactiveOnboardingService {
       await this.updateLeadStatus(
         leadId,
         organizationId,
-        ProactiveOnboardingStatus.READY,
+        ProactiveOnboardingStatus.CONTENT_READY,
         { proactiveBatchId: batch.id },
       );
 
@@ -650,7 +650,7 @@ export class ProactiveOnboardingService {
     );
 
     if (
-      result.proactiveStatus === ProactiveOnboardingStatus.READY &&
+      result.proactiveStatus === ProactiveOnboardingStatus.CONTENT_READY &&
       result.generatedAssetCount === 0 &&
       result.batch
     ) {

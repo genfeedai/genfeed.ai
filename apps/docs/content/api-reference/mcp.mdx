@@ -5,82 +5,107 @@ description: 'Connect Claude Code, Codex, and other Streamable HTTP clients to G
 
 # MCP Server
 
-Use the hosted Genfeed MCP server to give AI clients API-key scoped access to content, workflows, publishing, analytics, and ads.
+Use the hosted Genfeed MCP server to give your agent permission-scoped access to content, workflows, publishing, analytics, and ads.
 
 **Endpoint:** `https://mcp.genfeed.ai/mcp`
 
 **Transport:** Streamable HTTP.
 
-**Authentication:** `Authorization: Bearer <gf_... API key>`.
+**Default authentication:** browser OAuth; no manually created API key.
 
-Open [`https://mcp.genfeed.ai`](https://mcp.genfeed.ai) for Claude Code and Codex setup.
-
-## Connect Genfeed
-
-Open the [guided Connect Genfeed flow](https://app.genfeed.ai/connect) to select
-your client, create or select an MCP-scoped key, copy secret-safe configuration,
-and run an authenticated connection check.
-
-Export the copy-once key where your MCP client runs:
-
-```bash
-export GENFEED_API_KEY=gf_live_xxx
-```
-
-Treat API keys like passwords. Do not commit them or paste them into shared logs.
-
-Keys can also be created, scoped, rotated, and revoked from organization settings
-or the REST API — see [API Keys](/api-reference/api-keys). The `mcp` preset is
-approval-first: it can draft, schedule, and approve posts, but not publish
-directly.
+Open the [guided Connect Genfeed flow](https://app.genfeed.ai/connect) to choose
+your client and authorize access. The page supplies setup instructions; your
+client owns sign-in, consent, and the resulting access token.
 
 ## Connect via OAuth
 
-Claude.ai, ChatGPT, and other OAuth-capable MCP clients can connect without a
-manually created API key. Add `https://mcp.genfeed.ai/mcp` as the custom MCP
-server URL. The client discovers Genfeed's authorization server from
-`/.well-known/oauth-protected-resource`, opens the Genfeed sign-in and consent
-screen, and returns to the client with a resource-bound access token.
+Add Genfeed using the instructions below, complete sign-in and consent in your
+browser, and return to your client. Genfeed advertises its authorization server
+through `/.well-known/oauth-protected-resource`.
 
-The OAuth token appears in the same API key settings surface as manual keys and
-can be revoked there at any time. The manual `GENFEED_API_KEY` setup remains
-available for headless, CI, and local clients that do not support browser OAuth.
+### Claude Code
 
-## Connect Claude Code
+```bash
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp
+```
 
-Claude Code can connect remote HTTP MCP servers from the terminal:
+Open `/mcp` inside Claude Code, select `genfeed`, and authenticate. Follow the
+browser sign-in and consent flow, then return to Claude Code.
+
+### Codex
+
+```bash
+codex mcp add genfeed --url https://mcp.genfeed.ai/mcp
+```
+
+If authorization did not open during setup, run:
+
+```bash
+codex mcp login genfeed
+```
+
+Alternatively, add this to your user-level `~/.codex/config.toml` and run the
+login command above:
+
+```toml
+[mcp_servers.genfeed]
+url = "https://mcp.genfeed.ai/mcp"
+```
+
+### Other MCP clients
+
+In a client that supports remote Streamable HTTP and OAuth, add the endpoint as
+a custom MCP server and follow its browser authorization flow. Installation and
+availability depend on the client and your plan. If OAuth is unsupported, update
+your client or use the advanced manual-key setup below. No application deep link
+is required.
+
+### Verify access
+
+Ask your agent: **“List my Genfeed brands.”** A successful scoped read verifies
+access. `codex mcp list` or `claude mcp list` can diagnose configuration, but a
+server entry or copied command alone does not prove authorization. The Genfeed
+setup page cannot observe a third-party client's OAuth completion.
+
+If consent is denied or the login expires, restart authorization through
+`codex mcp login genfeed` or Claude Code's `/mcp`. Check the account and organization
+on the consent screen. Revoke unwanted access from Genfeed's API key settings.
+
+Client syntax was checked against Codex CLI 0.153.2 (`mcp add --help` and
+`mcp login --help`) and the [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+
+## Advanced: manual API key
+
+Use this for headless environments or clients without browser OAuth. Select
+**Advanced: manual API key** in [Connect Genfeed](https://app.genfeed.ai/connect)
+to create or select a scoped key and run the authenticated verification check.
+Keys remain copy-once. See [API Keys](/api-reference/api-keys) for rotation and revocation.
+
+In a Bash terminal where your client runs, enter the key without putting its
+value in shell history:
+
+```bash
+read -s GENFEED_API_KEY && export GENFEED_API_KEY
+```
+
+Then choose your client:
 
 ```bash
 claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
 ```
 
-Verify with:
-
-```bash
-claude mcp list
-```
-
-You can also open `/mcp` inside Claude Code and inspect the `genfeed` server.
-
-## Connect Codex
-
-Codex CLI and the Codex IDE share `~/.codex/config.toml`. Add the server with:
-
 ```bash
 codex mcp add genfeed --url https://mcp.genfeed.ai/mcp --bearer-token-env-var GENFEED_API_KEY
 ```
 
-Equivalent `config.toml`:
-
-```toml
-[mcp_servers.genfeed]
-url = "https://mcp.genfeed.ai/mcp"
-bearer_token_env_var = "GENFEED_API_KEY"
-```
+The Claude command expands the key into client configuration; protect that local
+configuration. Codex reads the named environment variable. Do not paste credentials
+into chats, commits, or shared logs. Inspect and update an existing Genfeed server
+entry before switching authentication methods; preserve unrelated servers.
 
 ## Tools
 
-Each call uses the permissions on the API key.
+Each call uses the permissions on the authorized token or manual key.
 
 - **Content and media:** articles, images, videos, music, avatars, batches.
 - **Workflows:** list, create, execute, inspect status.
@@ -96,13 +121,13 @@ knowledge to use them well. Install the catalog with
 
 ## HTTP Details
 
-The endpoint accepts `POST`, `GET`, and `DELETE`. Production requests must include:
+The endpoint accepts `POST`, `GET`, and `DELETE`. Authenticated requests include a token managed by the OAuth client or a manual key:
 
 ```http
-Authorization: Bearer gf_live_xxx
+Authorization: Bearer <access-token>
 ```
 
-Missing, invalid, or expired keys return 401 errors.
+Missing, invalid, or expired tokens return 401 errors.
 
 ## Local Self-Hosted Surface
 
@@ -115,5 +140,5 @@ https://mcp.genfeed.ai/mcp
 ## Troubleshooting
 
 - **Discovery fails:** use exactly `https://mcp.genfeed.ai/mcp` and a Streamable HTTP client.
-- **401 errors:** confirm `GENFEED_API_KEY` is set and sent as a bearer token.
+- **401 errors:** repeat browser authorization; in manual mode, check the key and its scopes.
 - **Wrong endpoint:** check `/v1/config` on the MCP host.

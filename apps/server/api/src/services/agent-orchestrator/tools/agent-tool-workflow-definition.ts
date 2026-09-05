@@ -1,13 +1,16 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
-import { createGenfeedActionNode, getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import {
+  createGenfeedActionNode,
+  getToolsForSurface,
+} from '@genfeedai/actions';
 
-export function agentToolWorkflowId(toolName: AgentToolName): string {
+export function agentToolWorkflowId(toolName: CuratedActionName): string {
   return `agent.tool.${toolName}`;
 }
 
 export function buildAgentToolWorkflowDefinition(
-  toolName: AgentToolName,
+  toolName: CuratedActionName,
 ): SystemWorkflowGraphDefinition {
   const canonicalId = agentToolWorkflowId(toolName);
   return {
@@ -38,17 +41,12 @@ export function buildAgentToolWorkflowDefinition(
   };
 }
 
-export const AGENT_TOOL_WORKFLOW_DEFINITIONS = Object.values(
-  AgentToolName,
-).flatMap((toolName) => {
-  const tool = getToolByName(toolName);
-  return tool && (tool.surfaces.agent || tool.surfaces.mcp)
-    ? [buildAgentToolWorkflowDefinition(toolName)]
-    : [];
-}) satisfies SystemWorkflowGraphDefinition[];
+export const AGENT_TOOL_WORKFLOW_DEFINITIONS = getToolsForSurface('agent').map(
+  (tool) => buildAgentToolWorkflowDefinition(tool.name),
+) satisfies SystemWorkflowGraphDefinition[];
 
 export function findAgentToolWorkflowDefinition(
-  toolName: AgentToolName,
+  toolName: CuratedActionName,
 ): SystemWorkflowGraphDefinition {
   const canonicalId = agentToolWorkflowId(toolName);
   const definition = AGENT_TOOL_WORKFLOW_DEFINITIONS.find(

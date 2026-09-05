@@ -1,7 +1,5 @@
-import {
-  AgentToolName,
-  type AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import type { CuratedActionName } from '@genfeedai/actions';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
@@ -48,10 +46,10 @@ const ACTION_PROMPTS: Record<ToolActionType, ActionPromptConfig> = {
   },
 };
 
-const TOOL_BY_ACTION: Record<ToolActionType, AgentToolName> = {
-  analytics: AgentToolName.GET_ANALYTICS,
-  generate: AgentToolName.GENERATE_CONTENT,
-  post: AgentToolName.CREATE_POST,
+const TOOL_BY_ACTION: Record<ToolActionType, CuratedActionName> = {
+  analytics: 'get_analytics',
+  generate: 'generate_content',
+  post: 'create_post',
 };
 
 const CHANNEL_OPTIONS = [

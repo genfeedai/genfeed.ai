@@ -1,24 +1,26 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   FrameSelectionMode,
   VideoFrameExtractNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { Film, LoaderCircle, RefreshCw } from 'lucide-react';
-import Image from 'next/image';
-import { memo, useCallback } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
+} from '@genfeedai/ui/primitives/select';
+import type { NodeProps } from '@xyflow/react';
+import { Film, LoaderCircle, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useCallback } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const SELECTION_MODES: { value: FrameSelectionMode; label: string }[] = [
@@ -101,8 +103,9 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
               className="w-full h-20 object-cover rounded"
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -117,8 +120,9 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputImage && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!nodeData.inputVideo || nodeData.status === 'processing'}
             className="w-full"

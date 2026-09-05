@@ -1,5 +1,5 @@
 import { getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import {
   AGENT_NEXT_STEP_DESTINATION_KEYS,
   AGENT_NEXT_STEP_DESTINATIONS,
@@ -7,7 +7,7 @@ import {
 } from './agent-next-step-destinations.constant';
 
 function readDestinationEnum(): string[] {
-  const tool = getToolByName(AgentToolName.SUGGEST_NEXT_STEPS);
+  const tool = getToolByName('suggest_next_steps');
   const steps = tool?.parameters.properties.steps as
     | {
         items?: {

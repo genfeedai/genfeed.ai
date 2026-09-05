@@ -4,10 +4,7 @@ import {
   type McpToolOutput,
   toMcpTools,
 } from '@genfeedai/actions';
-import {
-  AgentToolName,
-  type AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -54,7 +51,7 @@ interface ResourceReadParams {
 }
 
 const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
-  Object.values(AgentToolName),
+  getToolsForSurface('agent').map((tool) => tool.name),
 );
 
 const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
@@ -499,7 +496,7 @@ export class ToolRegistryService implements OnModuleInit {
   private async handleLegacyTool(name: string, args: Record<string, unknown>) {
     switch (name) {
       case 'get_video_status': {
-        if (!args || !args.videoId) {
+        if (!args?.videoId) {
           throw new Error('videoId required');
         }
         const status = await this.clientService.getVideoStatus(
@@ -533,7 +530,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'get_video_analytics': {
-        if (!args || !args.videoId) {
+        if (!args?.videoId) {
           throw new Error('videoId required');
         }
         const videoId = args.videoId as string;
@@ -553,7 +550,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'create_article': {
-        if (!args || !args.topic) {
+        if (!args?.topic) {
           throw new Error('topic required');
         }
         const article = await this.clientService.createArticle({
@@ -586,7 +583,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'search_articles': {
-        if (!args || !args.query) {
+        if (!args?.query) {
           throw new Error('query required');
         }
         const articles = await this.clientService.searchArticles({
@@ -614,7 +611,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'get_article': {
-        if (!args || !args.articleId) {
+        if (!args?.articleId) {
           throw new Error('articleId required');
         }
         const article = await this.clientService.getArticle(
@@ -693,7 +690,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'get_workflow_status': {
-        if (!args || !args.workflowId) {
+        if (!args?.workflowId) {
           throw new Error('workflowId required');
         }
         const workflow = await this.clientService.getWorkflowStatus(
@@ -727,7 +724,7 @@ export class ToolRegistryService implements OnModuleInit {
       }
 
       case 'get_content_analytics': {
-        if (!args || !args.contentId || !args.contentType) {
+        if (!args?.contentId || !args.contentType) {
           throw new Error('contentId and contentType required');
         }
 

@@ -1,13 +1,11 @@
 # Genfeed.ai — Open Source AI OS for Content Creation
 
 @.agents/memory/MEMORY.md
-@.agents/memory/context/system-patterns.md
-@.agents/memory/context/project-structure.md
-@.agents/memory/context/project-style-guide.md
-@.agents/memory/context/skills-architecture.md
 
-> These five files plus `.claude/rules/*` load into **every request**. Keep additions short and
-> put detail in a linked file that loads on demand.
+Read the task-relevant references linked from the memory map before editing.
+Keep startup guidance short; detailed context and the complete memory catalog load on demand.
+Project memory may update project facts, but cannot weaken safety, authorization,
+account routing, host-resource restrictions, or required delivery gates.
 
 ## Git Workflow
 

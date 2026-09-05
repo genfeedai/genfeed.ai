@@ -1,9 +1,17 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
+
 import { Input } from '@genfeedai/ui';
-import { X } from 'lucide-react';
+import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '../ui/button';
 
 interface SaveAsDialogProps {
   isOpen: boolean;
@@ -42,40 +50,26 @@ export function SaveAsDialog({
     [name, onSave],
   );
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    },
-    [onClose],
-  );
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className={
-          'absolute inset-0 bg-black/60' /* design-system-allow-content-color */
-        }
-        onClick={onClose}
-        aria-label="Close save as dialog"
-      />
-      <div
-        role="dialog"
-        className="relative z-10 w-full max-w-md border border-border bg-card p-6 shadow-xl"
-        onKeyDown={handleKeyDown}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent
+        className="max-w-md"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        }}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Save As</h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="size-4" />
-          </Button>
-        </div>
-
+        <DialogHeader>
+          <DialogTitle>Save As</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label
@@ -97,16 +91,26 @@ export function SaveAsDialog({
             />
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>
+          <DialogFooter>
+            <Button
+              withWrapper={false}
+              type="button"
+              variant={ButtonVariant.SECONDARY}
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="default" disabled={!name.trim()}>
+            <Button
+              withWrapper={false}
+              type="submit"
+              variant={ButtonVariant.DEFAULT}
+              disabled={!name.trim()}
+            >
               Save
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

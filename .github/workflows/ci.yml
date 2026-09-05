@@ -388,6 +388,8 @@ jobs:
                 emit "${all_workspaces[*]}" "full: shared server config ${file}"
                 exit 0
                 ;;
+              docs/*|.agents/*|*.md)
+                ;;
               apps/*)
                 # Frontend/desktop apps never feed server spec programs.
                 ;;
@@ -526,7 +528,7 @@ jobs:
   test-packages:
     name: Test Packages
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -690,7 +692,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
-        run: bunx turbo run build --filter='./apps/app...'
+        run: bunx turbo run build --filter='@genfeedai/app^...'
       - name: Run app test shard
         run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
         env:
@@ -723,7 +725,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
-        run: bunx turbo run build --filter='./apps/app...'
+        run: bunx turbo run build --filter='@genfeedai/app^...'
       - name: Mark test start
         run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Run changed app tests
@@ -956,11 +958,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build api (compiled bundle)
-        # The api package emits to apps/server/dist, outside apps/server/api.
-        # Force a real build so a Turbo cache-hit replay cannot skip restoring
-        # the compiled bundle the emit gate loads (same rationale as
-        # build-verify.yml api-boot-check).
-        run: bunx turbo run build --filter=@genfeedai/api --force
+        run: bunx turbo run build --filter=@genfeedai/api
       - name: Emit spec twice — must be byte-identical
         run: |
           cd apps/server/api

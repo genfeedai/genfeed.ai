@@ -25,10 +25,7 @@ import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator
 import { CacheService } from '@api/services/cache/cache.service';
 import { WorkflowTrigger } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  AgentToolName,
-  type AgentToolResult,
-} from '@genfeedai/contracts/interfaces';
+import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -181,7 +178,7 @@ export class AgentWorkflowToolInstallService {
           organizationId: ctx.organizationId,
           sourceActionId,
           threadId: ctx.threadId ?? '',
-          toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+          toolName: 'install_official_workflow',
         },
       );
       if (!isVerifiedConfirmation) {
@@ -325,7 +322,7 @@ export class AgentWorkflowToolInstallService {
         organizationId: ctx.organizationId,
         sourceActionId,
         threadId: ctx.threadId ?? '',
-        toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+        toolName: 'install_official_workflow',
       });
       const confirmationPayload = {
         contentType: this.inferBootstrapContentType(params),
@@ -440,7 +437,7 @@ export class AgentWorkflowToolInstallService {
       organizationId: ctx.organizationId,
       sourceActionId,
       threadId: ctx.threadId ?? '',
-      toolName: AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      toolName: 'install_official_workflow',
     });
 
     const marketplaceUrl = this.buildMarketplaceListingUrl(source.slug);

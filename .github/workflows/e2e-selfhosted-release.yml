@@ -4,9 +4,8 @@ name: Self-Hosted Release E2E
 # job downloads the release bundle without credentials and pulls its exact image
 # without a GHCR login, matching the public installation path.
 #
-# This is the only suite that proves real API ↔ frontend ↔ Postgres integration.
-# The weekly e2e.yml runs the frontend against a MOCKED backend; this runs the
-# shipped container end to end.
+# This verifies the published installation path. build-verify-selfhosted.yml
+# also runs the real API, frontend, and Postgres before publication.
 #
 # Failure reporting is fail-closed for the board: open one `release-e2e` tracker,
 # set native issue Priority=P0, and auto-close that tracker when the suite is green

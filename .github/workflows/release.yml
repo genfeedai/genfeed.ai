@@ -529,7 +529,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
-      packages: read
+      packages: write
       issues: write
     uses: ./.github/workflows/deploy-hosted-saas.yml
     with:

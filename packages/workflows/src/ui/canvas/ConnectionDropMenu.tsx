@@ -1,16 +1,18 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { NodeCategory, NodeType } from '@genfeedai/contracts/types';
 import {
   CONNECTION_RULES,
   getNodesByCategory,
 } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import { useReactFlow } from '@xyflow/react';
 import { Plus, Search } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 const CATEGORY_LABELS: Record<NodeCategory, string> = {
   ai: 'AI',
@@ -192,9 +194,10 @@ function ConnectionDropMenuComponent() {
   return (
     <>
       <Button
+        withWrapper={false}
         type="button"
-        variant="ghost"
-        size="icon-sm"
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
         className="fixed inset-0 z-40 size-full p-0 opacity-0"
         onClick={closeConnectionDropMenu}
         aria-label="Close add node menu"
@@ -216,7 +219,7 @@ function ConnectionDropMenuComponent() {
         <div className="px-3 py-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <input
+            <Input
               ref={inputRef}
               type="text"
               placeholder="Search compatible nodes..."
@@ -246,8 +249,9 @@ function ConnectionDropMenuComponent() {
                     const currentIndex = flatIndex++;
                     return (
                       <Button
+                        withWrapper={false}
                         key={node.type}
-                        variant="ghost"
+                        variant={ButtonVariant.GHOST}
                         data-node-item
                         onClick={() => handleSelect(node.type)}
                         className={`w-full text-left px-2 py-1.5 rounded text-xs h-auto justify-start ${

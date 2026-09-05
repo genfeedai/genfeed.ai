@@ -1,5 +1,4 @@
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 describe('agent-final-content.util', () => {
   it('returns content when non-empty and no batch card', () => {
@@ -37,7 +36,7 @@ describe('agent-final-content.util', () => {
         [
           {
             status: 'completed',
-            toolName: AgentToolName.PREPARE_VOICE_CLONE,
+            toolName: 'prepare_voice_clone',
           } as never,
         ],
         [],
@@ -56,7 +55,7 @@ describe('agent-final-content.util', () => {
         [
           {
             status: 'completed',
-            toolName: AgentToolName.LIST_BRANDS,
+            toolName: 'list_brands',
           } as never,
         ],
         [],

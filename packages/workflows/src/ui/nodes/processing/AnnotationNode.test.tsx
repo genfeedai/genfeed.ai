@@ -37,7 +37,7 @@ vi.mock('next/image', () => ({
 }));
 
 // Mock UI button with variant support for class-based assertions
-vi.mock('../../ui/button', () => ({
+vi.mock('@genfeedai/ui/primitives/button', () => ({
   Button: ({
     children,
     onClick,

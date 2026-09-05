@@ -1,9 +1,11 @@
 'use client';
 
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import { Button } from '@ui/primitives/button';
 import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,27 +40,33 @@ function OrganizationUnavailable() {
             <ul className="flex flex-col gap-2">
               {organizations.map((organization) => (
                 <li key={organization.id}>
-                  <Link
-                    aria-label={translate('openWorkspaceAria', {
-                      organization: organization.label,
-                    })}
-                    className="group flex w-full items-center gap-3 rounded-card bg-card px-4 py-3 text-left shadow-border transition hover:bg-foreground/[0.04] hover:shadow-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    href={getOrgSwitchHref(organization.slug, pathname)}
+                  <Button
+                    asChild
+                    withWrapper={false}
+                    variant={ButtonVariant.SECONDARY}
+                    className="group h-auto w-full justify-start gap-3 px-4 py-3 text-left"
                   >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-foreground/65 transition group-hover:text-foreground">
-                      <Building2 aria-hidden="true" className="size-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-foreground">
-                        {organization.label}
+                    <Link
+                      aria-label={translate('openWorkspaceAria', {
+                        organization: organization.label,
+                      })}
+                      href={getOrgSwitchHref(organization.slug, pathname)}
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground/[0.05] text-foreground/65 transition group-hover:text-foreground">
+                        <Building2 aria-hidden="true" className="size-4" />
                       </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {organization.isActive
-                          ? translate('currentWorkspace')
-                          : translate('openWorkspace')}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-foreground">
+                          {organization.label}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {organization.isActive
+                            ? translate('currentWorkspace')
+                            : translate('openWorkspace')}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
+                    </Link>
+                  </Button>
                 </li>
               ))}
             </ul>

@@ -1,26 +1,28 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+
 import type {
   AudioCodec,
   TransitionType,
   VideoStitchNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { NodeProps } from '@xyflow/react';
-import { Layers, LoaderCircle, RefreshCw, Zap } from 'lucide-react';
-import { memo, useCallback } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
-import { Slider } from '../../ui/slider';
+} from '@genfeedai/ui/primitives/select';
+import { Slider } from '@genfeedai/ui/primitives/slider';
+import type { NodeProps } from '@xyflow/react';
+import { Layers, LoaderCircle, RefreshCw, Zap } from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
 
 const TRANSITIONS: { value: TransitionType; label: string }[] = [
@@ -242,8 +244,9 @@ function VideoStitchNodeComponent(props: NodeProps) {
               loop={nodeData.seamlessLoop}
             />
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -258,8 +261,9 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputVideo && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={
               inputVideos.length < 2 || nodeData.status === 'processing'

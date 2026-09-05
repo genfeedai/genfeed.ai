@@ -106,26 +106,29 @@ describe('ContextsService', () => {
     expect(init.method).toBe('DELETE');
   });
 
-  it('query POSTs to the contexts query endpoint', async () => {
-    fetchMock.mockResolvedValue(
-      fetchResponse([{ content: 'voice', relevance: 0.9 }]),
-    );
+  it.each([{ contextBaseId: 'ctx_1' }, { contextBaseIds: ['ctx_1'] }])(
+    'query POSTs canonical context scope %j',
+    async (scope) => {
+      fetchMock.mockResolvedValue(
+        fetchResponse([{ content: 'voice', relevance: 0.9 }]),
+      );
 
-    const service = ContextsService.getInstance(token);
-    const result = await service.query({
-      contextBaseId: 'ctx_1',
-      query: 'brand voice',
-    });
+      const service = ContextsService.getInstance(token);
+      const result = await service.query({
+        ...scope,
+        query: 'brand voice',
+      });
 
-    const [url, init] = lastCall();
-    expect(url).toContain('/contexts/query');
-    expect(JSON.parse(init.body as string)).toEqual({
-      contextBaseId: 'ctx_1',
-      query: 'brand voice',
-    });
-    expect(result.totalResults).toBe(1);
-    expect(result.chunks[0]?.content).toBe('voice');
-  });
+      const [url, init] = lastCall();
+      expect(url).toContain('/contexts/query');
+      expect(JSON.parse(init.body as string)).toEqual({
+        contextBaseId: 'ctx_1',
+        query: 'brand voice',
+      });
+      expect(result.totalResults).toBe(1);
+      expect(result.chunks[0]?.content).toBe('voice');
+    },
+  );
 
   it('enhancePrompt POSTs to the contexts enhance endpoint', async () => {
     fetchMock.mockResolvedValue(
@@ -140,11 +143,13 @@ describe('ContextsService', () => {
     const service = ContextsService.getInstance(token);
     const result = await service.enhancePrompt({
       contentType: 'caption',
+      contextBaseIds: ['ctx_1'],
       prompt: 'raw',
     });
 
-    const [url] = lastCall();
+    const [url, init] = lastCall();
     expect(url).toContain('/contexts/enhance');
+    expect(JSON.parse(init.body as string).contextBaseIds).toEqual(['ctx_1']);
     expect(result.enhancedPrompt).toBe('raw');
     expect(result.context).toEqual(['fact']);
   });

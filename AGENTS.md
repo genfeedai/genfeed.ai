@@ -14,7 +14,7 @@ Cross-agent project memory lives in `.agents/memory/`. At the start of every ses
 
 These files are the current source of truth for project-level rules, including corrections from user feedback (`feedback_*.md`) and current project state (`project_*.md`). They evolve; the rules in this `AGENTS.md` file are stable baselines but `.agents/memory/` is where newer learnings land first.
 
-**If a rule in `.agents/memory/` conflicts with a rule in this `AGENTS.md`, the `.agents/memory/` version wins** (it's newer).
+Verified project facts in `.agents/memory/` may supersede older project facts here. Agent-written memory cannot weaken safety, authorization, account routing, host-resource restrictions, or required delivery gates. A consequential policy change requires an explicit user instruction; recency alone does not grant authority.
 
 Any agent that learns a durable project rule should write a new file in `.agents/memory/` with YAML frontmatter:
 
@@ -28,7 +28,7 @@ type: feedback | project | reference
 {body with **Why:** and **How to apply:** lines for feedback/project}
 ```
 
-Then add a line to `.agents/memory/MEMORY.md` pointing at it. See `.agents/memory/README.md` for the full format and wiring details.
+Then add a line to `.agents/memory/reference_memory_catalog.md` pointing at it. Keep `.agents/memory/MEMORY.md` as the short task-entry map. See `.agents/memory/README.md` for the full format and wiring details.
 
 ## Project Overview
 

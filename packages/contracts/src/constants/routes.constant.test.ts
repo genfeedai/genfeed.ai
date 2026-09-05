@@ -4,7 +4,6 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
-  ARTIFACT_EDITOR_KIND_PARAM,
   createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
@@ -12,7 +11,6 @@ import {
   getOrgSwitchHref,
   isPersonalSettingsPath,
   isUserFacingAppPathname,
-  LEGACY_APP_ROUTES,
   parseScopedAppPath,
   withPlatformQuery,
 } from './routes.constant';
@@ -84,14 +82,6 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
   });
 
-  it('keeps the retired Publishing newsletters path compatibility-only', () => {
-    expect(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS).toBe(
-      '/publishing/newsletters',
-    );
-    expect(APP_ROUTES.AGENT.NEW).toBe('/agent/new');
-    expect('NEWSLETTERS' in APP_ROUTES.PUBLISHING).toBe(false);
-  });
-
   it('reclaims Publish Campaigns without moving Automate Programs', () => {
     expect(APP_ROUTES.PUBLISHING.CAMPAIGNS).toBe('/publishing/campaigns');
     expect(APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW).toBe(
@@ -108,26 +98,43 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.AUTOMATION.AUTOPILOT).toBe('/automation/autopilot');
   });
 
+  it('removes deprecated aliases from the public route contract', () => {
+    for (const key of [
+      'ANALYTICS',
+      'CONFIGURATION',
+      'HIRE',
+      'LIBRARY',
+      'NEW',
+      'ORCHESTRATOR',
+      'SKILLS',
+      'OUTREACH_CAMPAIGNS',
+      'OUTREACH_CAMPAIGNS_NEW',
+      'REPLY_CAMPAIGNS',
+      'REPLIES',
+      'AUTHOR_REPLIES',
+    ]) {
+      expect(APP_ROUTES.AUTOMATION).not.toHaveProperty(key);
+    }
+    for (const key of ['ORGANIZATION_CREDENTIALS', 'POLICY', 'LINKS']) {
+      expect(APP_ROUTES.SETTINGS).not.toHaveProperty(key);
+    }
+    expect(APP_ROUTES.LIBRARY).not.toHaveProperty('INGREDIENTS');
+    expect(APP_ROUTES.LIBRARY).not.toHaveProperty('OVERVIEW');
+    expect(APP_ROUTES.OVERVIEW).not.toHaveProperty('ROOT');
+    expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS');
+    expect(APP_ROUTES.PUBLISHING).not.toHaveProperty('OUTREACH_CAMPAIGNS_NEW');
+  });
+
   it('nests agent detail under the agents list', () => {
     expect(APP_ROUTES.AUTOMATION.AGENTS).toBe('/automation/agents');
-    expect(APP_ROUTES.AUTOMATION.NEW).toBe('/automation/agents/new');
-    expect(APP_ROUTES.AUTOMATION.LIBRARY).toBe('/automation/library');
   });
 
-  it('keeps the retired cron-jobs lab path compatibility-only', () => {
-    expect(LEGACY_APP_ROUTES.LAB_CRON_JOBS).toBe('/lab/cron-jobs');
-    expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
-  });
-
-  it('aliases /workflows onto Automation workflows instead of a new app', () => {
-    expect(LEGACY_APP_ROUTES.WORKFLOWS).toBe('/workflows');
-    expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
-    expect(APP_ROUTES.AUTOMATION.TEMPLATES).toBe('/automation/templates');
+  it('does not expose retired Lab route constants', () => {
+    expect(APP_ROUTES).not.toHaveProperty('LAB');
   });
 
   it('builds canonical Publishing editor paths without a kind query param', () => {
     // Kind lives on the entity (which table the id hits), not the URL.
-    expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
       '/publishing/posts/article-1',
     );
@@ -202,7 +209,6 @@ describe('routes.constant', () => {
 
   it('keeps Tasks inside the Workspace route family', () => {
     expect(APP_ROUTES.WORKSPACE.TASKS).toBe('/workspace/tasks');
-    expect(LEGACY_APP_ROUTES.TASKS).toBe('/tasks');
   });
 
   it('builds scoped brand and organization routes', () => {
@@ -225,8 +231,8 @@ describe('routes.constant', () => {
       createOrganizationAppRoute('genfeed-ai', APP_ROUTES.SETTINGS.ROOT),
     ).toBe('/genfeed-ai/~/settings');
     expect(
-      createOrganizationAppRoute('genfeed-ai', APP_ROUTES.OVERVIEW.ROOT),
-    ).toBe('/genfeed-ai/~/overview');
+      createOrganizationAppRoute('genfeed-ai', APP_ROUTES.WORKSPACE.OVERVIEW),
+    ).toBe('/genfeed-ai/~/workspace/overview');
     expect(createOrganizationAppRoute('genfeed-ai', 'billing')).toBe(
       '/genfeed-ai/~/billing',
     );
@@ -255,10 +261,6 @@ describe('routes.constant', () => {
       orgSlug: '',
     });
     expect(parseScopedAppPath('/library')).toEqual({
-      brandSlug: '',
-      orgSlug: '',
-    });
-    expect(parseScopedAppPath('/tasks')).toEqual({
       brandSlug: '',
       orgSlug: '',
     });

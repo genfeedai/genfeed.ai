@@ -395,14 +395,13 @@ jobs:
           persist-credentials: false
 
       - name: Record one consecutive scheduled green
-        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
-          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');

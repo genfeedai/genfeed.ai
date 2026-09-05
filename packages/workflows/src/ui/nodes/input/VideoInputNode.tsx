@@ -1,13 +1,15 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoInputNodeData } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, LoaderCircle, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useMediaUpload } from '../../hooks/useMediaUpload';
 import { getVideoMetadata } from '../../lib/media';
 import { useUIStore } from '../../stores/uiStore';
-import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function VideoInputNodeComponent(props: NodeProps) {
@@ -98,8 +100,9 @@ function VideoInputNodeComponent(props: NodeProps) {
       <div className="flex items-center gap-1">
         {nodeData.video && (
           <Button
-            variant="ghost"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={handleExpand}
             title="Expand preview"
           >
@@ -107,16 +110,18 @@ function VideoInputNodeComponent(props: NodeProps) {
           </Button>
         )}
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => fileInputRef.current?.click()}
           title="Upload video"
         >
           <Upload className="size-3.5" />
         </Button>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => setShowUrlInput(!showUrlInput)}
           title="Paste URL"
         >
@@ -130,7 +135,7 @@ function VideoInputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props} headerActions={headerActions}>
       {/* Hidden file input */}
-      <input
+      <Input
         ref={fileInputRef}
         type="file"
         accept="video/*"
@@ -142,7 +147,7 @@ function VideoInputNodeComponent(props: NodeProps) {
       {/* URL Input (shown when link button clicked) */}
       {showUrlInput && (
         <div className="mb-3 flex gap-2">
-          <input
+          <Input
             type="url"
             value={urlValue}
             onChange={(e) => setUrlValue(e.target.value)}
@@ -152,8 +157,9 @@ function VideoInputNodeComponent(props: NodeProps) {
             className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <Button
-            variant="secondary"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
             onClick={handleUrlSubmit}
             disabled={!urlValue.trim()}
             className="h-7 px-2 text-xs"
@@ -177,8 +183,9 @@ function VideoInputNodeComponent(props: NodeProps) {
             muted
           />
           <Button
-            variant="secondary"
-            size="icon-sm"
+            withWrapper={false}
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.ICON}
             onClick={handleRemove}
             className="absolute right-1.5 top-1.5 size-5"
           >
@@ -196,7 +203,8 @@ function VideoInputNodeComponent(props: NodeProps) {
         </div>
       ) : (
         <Button
-          variant="ghost"
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
           className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"

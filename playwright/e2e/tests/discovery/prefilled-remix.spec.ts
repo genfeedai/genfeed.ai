@@ -157,8 +157,14 @@ async function routeTikTokTrend(page: Page): Promise<void> {
 }
 
 async function openTikTokTrendFeed(page: Page): Promise<void> {
-  await page.goto(`${BRAND_BASE}/discovery/tiktok`);
-  await page.getByRole('button', { name: 'Refresh' }).click();
+  await page.goto(`${BRAND_BASE}/analytics/trends/platforms/tiktok`);
+  await page
+    .getByTestId('section-topbar')
+    .filter({
+      has: page.getByRole('heading', { name: 'TikTok Trends', exact: true }),
+    })
+    .getByRole('button', { name: 'Refresh', exact: true })
+    .click();
   await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
 }
 
@@ -351,7 +357,10 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
     await expect(
       authenticatedPage.getByRole('link', { name: 'Open Publishing drafts' }),
-    ).toHaveAttribute('href', /\/publishing\/scheduled$/);
+    ).toHaveAttribute(
+      'href',
+      /\/publishing\/posts\?publicationState=not-posted$/,
+    );
   });
 
   test('turns a public Meta winner into the same editable server-prefilled run', async ({
@@ -417,7 +426,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       },
     );
 
-    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads/meta`);
+    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads?platform=meta`);
     await authenticatedPage
       .getByRole('button', {
         name: 'Select Meta proof-led winner for research context',
@@ -556,7 +565,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     });
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/discovery/ads/meta?source=saved`,
+      `${BRAND_BASE}/discovery/ads?platform=meta&source=saved`,
     );
     await expect(
       authenticatedPage.getByText('No ads match the current filters.'),
@@ -568,7 +577,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       authenticatedPage.getByRole('button', { name: 'Refresh' }),
     ).toBeVisible();
 
-    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads/meta`);
+    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads?platform=meta`);
     await authenticatedPage
       .getByRole('button', { name: 'Save Durable Meta winner' })
       .click();
@@ -591,7 +600,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect(authenticatedPage.getByText('Brand note')).toBeVisible();
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/discovery/ads/meta?source=saved`,
+      `${BRAND_BASE}/discovery/ads?platform=meta&source=saved`,
     );
     await expect(
       authenticatedPage.getByRole('heading', {
@@ -659,9 +668,9 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Retry' }),
     ).toBeVisible();
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${BRAND_BASE}/discovery/tiktok$`),
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(`${BRAND_BASE}/analytics/trends/platforms/tiktok`);
   });
 
   test('restores grouped processing outputs and reconciles completion', async ({
@@ -784,7 +793,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     });
     await expect(publishingDrafts).toHaveAttribute(
       'href',
-      /\/publishing\/scheduled$/,
+      /\/publishing\/posts\?publicationState=not-posted$/,
     );
   });
 
@@ -924,7 +933,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       },
     );
 
-    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads/meta`);
+    await authenticatedPage.goto(`${BRAND_BASE}/discovery/ads?platform=meta`);
     await authenticatedPage
       .getByRole('button', {
         name: 'Select Connected Meta proof winner for research context',

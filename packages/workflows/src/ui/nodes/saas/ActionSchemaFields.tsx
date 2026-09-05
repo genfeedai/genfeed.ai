@@ -1,5 +1,16 @@
 'use client';
 
+import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@genfeedai/ui/primitives/select';
+import { Textarea } from '@genfeedai/ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
@@ -8,17 +19,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Checkbox } from '../../ui/checkbox';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
-import { Textarea } from '../../ui/textarea';
 import {
   type ActionSchemaProperty,
   formatActionFieldLabel,

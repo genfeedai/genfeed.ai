@@ -5,7 +5,6 @@ import {
   resolveAgentTurnCreditCost,
   settleAgentTurnCredits,
 } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const CHEAP_MODEL = 'deepseek/deepseek-v4-flash-0731';
 const EXPENSIVE_MODEL = 'anthropic/claude-opus-5';
@@ -67,7 +66,7 @@ describe('resolveAgentTurnCreditCost', () => {
           creditsUsed: 1,
           durationMs: 10,
           status: 'completed',
-          toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+          toolName: 'draft_brand_voice_profile',
         },
       ]),
     ).toBe(0);
@@ -80,7 +79,7 @@ describe('resolveAgentTurnCreditCost', () => {
           creditsUsed: 0,
           durationMs: 10,
           status: 'failed',
-          toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+          toolName: 'draft_brand_voice_profile',
         },
       ]),
     ).toBe(4);
@@ -108,7 +107,7 @@ describe('resolveAgentNextRoundCreditRequirement', () => {
             creditsUsed: 1,
             durationMs: 10,
             status: 'completed',
-            toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+            toolName: 'draft_brand_voice_profile',
           },
         ],
       }),
@@ -191,7 +190,7 @@ describe('settleAgentTurnCredits', () => {
           creditsUsed: 1,
           durationMs: 10,
           status: 'completed',
-          toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+          toolName: 'draft_brand_voice_profile',
         },
       ],
       userId: 'user-1',

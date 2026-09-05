@@ -14,6 +14,7 @@ import {
   testWorkflows,
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
+import { brandPath } from '../../utils/app-chrome';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -45,7 +46,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library lists workflows and supports searching', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -66,7 +67,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library exposes Templates and New Workflow entry points', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -84,7 +85,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('opening a workflow from the library navigates to its builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS), {
       waitUntil: 'domcontentloaded',
     });
 
@@ -102,9 +103,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('new workflow builder renders the React Flow canvas', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new/);
 
@@ -118,9 +122,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('node palette can be searched in the new builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await authenticatedPage
       .locator('.react-flow')
@@ -149,9 +156,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('builder toolbar exposes Run and draft lifecycle actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(
       authenticatedPage.getByRole('button', { name: 'Run' }).first(),
@@ -175,9 +185,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/automation/workflows/${workflow.id}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(`/automation/workflows/${workflow.id}`),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`/automation/workflows/${workflow.id}$`),
@@ -199,9 +212,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/automation/workflows/${workflow.id}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(`/automation/workflows/${workflow.id}`),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await authenticatedPage
       .locator('.react-flow')
@@ -226,9 +242,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/automation/workflows/${workflow.id}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(`/automation/workflows/${workflow.id}`),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await authenticatedPage
       .locator('.react-flow')
@@ -293,9 +312,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/automation/workflows/${workflow.id}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(`/automation/workflows/${workflow.id}`),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     const titleButton = authenticatedPage
       .getByRole('button', { name: workflow.name })
@@ -324,7 +346,7 @@ test.describe('Workflows builder & canvas interactions', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS), {
       waitUntil: 'domcontentloaded',
     });
 

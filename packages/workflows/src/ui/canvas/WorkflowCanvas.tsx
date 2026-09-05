@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Background,
   BackgroundVariant,
@@ -17,7 +19,6 @@ import {
 } from '@xyflow/react';
 import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '../ui/button';
 import '@xyflow/react/dist/style.css';
 
 import { getActionDefinition } from '@genfeedai/actions';
@@ -807,8 +808,9 @@ export function WorkflowCanvas({
     >
       {!showPalette && (
         <Button
-          variant="secondary"
-          size="icon-sm"
+          withWrapper={false}
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.ICON}
           onClick={togglePalette}
           className="absolute top-3 left-3 z-10"
           title="Open sidebar (M)"

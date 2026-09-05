@@ -95,8 +95,6 @@ export interface IRetrievedChunk {
 export interface IRAGQuery {
   contextBaseId?: string;
   contextBaseIds?: string[];
-  /** @deprecated Use contextBaseIds. */
-  knowledgeBaseIds?: string[];
   maxResults?: number;
   minRelevanceScore?: number;
   query: string;
@@ -125,8 +123,6 @@ export interface IRAGEnhanceRequest {
   };
   contentType: 'video' | 'image' | 'caption' | 'article' | 'voice';
   contextBaseIds?: string[];
-  /** @deprecated Use contextBaseIds. */
-  knowledgeBaseIds?: string[];
   prompt: string;
   useContext?: {
     audienceData?: boolean;

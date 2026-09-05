@@ -28,7 +28,7 @@ The Chrome extension services have been refactored to follow the same pattern as
 
 #### Auth Service (`src/services/auth.service.ts`)
 
-- **Updated**: Now uses `EnvironmentService` for API endpoints and domain configuration
+- **Updated**: Uses individual environment exports for API endpoints and domain configuration
 - **Features**:
   - Environment-aware domain detection
   - Centralized API endpoint configuration
@@ -123,11 +123,11 @@ const music = await musicsService.getById('music_id');
 ### Environment Configuration
 
 ```typescript
-import { EnvironmentService } from '../services';
+import { apiEndpoint, isDevelopment, websiteDomain } from '~services/environment.service';
 
-console.log('API Endpoint:', EnvironmentService.apiEndpoint);
-console.log('Is Development:', EnvironmentService.isDevelopment);
-console.log('Website Domain:', EnvironmentService.websiteDomain);
+console.log('API Endpoint:', apiEndpoint);
+console.log('Is Development:', isDevelopment);
+console.log('Website Domain:', websiteDomain);
 ```
 
 ### Authentication

@@ -9,7 +9,7 @@ import {
  * Deep interaction coverage for the core Automation surface.
  *
  * Targets render + interaction code paths across overview, Programs,
- * agent creation, the agent library, runs, analytics, autopilot, configuration,
+ * the agent library, runs, analytics, autopilot, agent settings,
  * the agent detail route, and content-run detail. All API + Better Auth traffic is
  * mocked by the auth fixture; unknown local API routes auto-return empty
  * collections so every page renders without bespoke mocks.
@@ -48,101 +48,6 @@ test.describe('Automation — Core Interactions', () => {
     await expect(
       authenticatedPage.getByRole('link', { name: 'New Program' }).first(),
     ).toBeVisible();
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('legacy hire route opens the agent library and accepts its inputs', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/hire`);
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/agents\?add=library$/,
-    );
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
-
-    await authenticatedPage
-      .locator('#content-team-agent-label')
-      .fill('Launch Specialist')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#content-team-persona')
-      .fill('Confident, concise brand operator voice.')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#content-team-topic')
-      .fill('creator monetization')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#content-team-budget')
-      .fill('120')
-      .catch(() => {});
-
-    await expect(
-      authenticatedPage.locator('#content-team-agent-label'),
-    ).toHaveValue('Launch Specialist');
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('legacy orchestrator route opens the Creator Studio Program form', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/orchestrator`);
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/campaigns\/new\?template=creator-studio$/,
-    );
-
-    await authenticatedPage
-      .locator('#agent-campaign-label')
-      .fill('Creator Launch Team')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#agent-campaign-brief')
-      .fill('Coordinate a multi-role launch push.')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#agent-campaign-start-date')
-      .fill('2026-09-01')
-      .catch(() => {});
-
-    await expect(
-      authenticatedPage.locator('#agent-campaign-label'),
-    ).toHaveValue('Creator Launch Team');
-    await expect(
-      authenticatedPage.getByRole('button', { name: /Creator Studio/ }),
-    ).toHaveAttribute('aria-pressed', 'true');
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('legacy new-agent route opens the custom agent flow', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents/new`);
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/agents\?add=custom$/,
-    );
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
-
-    // Step 1 → 2: pick a type card, then configure it for the selected brand.
-    await tryClick(authenticatedPage, 'button:has-text("X Content")');
-    await tryClick(authenticatedPage, 'button:has-text("Configure")');
-
-    // Step 2: fill the required label and toggle platforms.
-    await authenticatedPage
-      .locator('#agent-wizard-label')
-      .fill('Daily X Content Agent')
-      .catch(() => {});
-    await authenticatedPage
-      .locator('#agent-topics')
-      .fill('marketing, AI')
-      .catch(() => {});
-    await tryClick(authenticatedPage, 'button:has-text("Instagram")');
-
-    // Step 2 → 3 review.
-    await tryClick(authenticatedPage, 'button:has-text("Review")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -206,7 +111,10 @@ test.describe('Automation — Core Interactions', () => {
   test('analytics page renders and exercises range controls', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/analytics`);
+    await assertRouteRenders(
+      authenticatedPage,
+      '/test-org/brand-1/analytics/overview',
+    );
 
     await tryClick(authenticatedPage, 'button[role="tab"]');
     await tryClick(authenticatedPage, 'button:has-text("30d")');
@@ -233,10 +141,11 @@ test.describe('Automation — Core Interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('configuration page renders the agent settings surface', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/configuration`);
+  test('agent settings page renders', async ({ authenticatedPage }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      '/test-org/brand-1/settings/agent-defaults',
+    );
 
     await tryClick(authenticatedPage, 'button[role="tab"]');
     await tryClick(authenticatedPage, 'button:has-text("Save")');

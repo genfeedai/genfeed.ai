@@ -1,14 +1,22 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { Kbd } from '@genfeedai/ui';
+import { Button } from '@genfeedai/ui/primitives/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@genfeedai/ui/primitives/dialog';
+import { Input } from '@genfeedai/ui/primitives/input';
 import { useReactFlow } from '@xyflow/react';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { Button } from '../ui/button';
 
 export function NodeSearch() {
   const { activeModal, closeModal } = useUIStore();
@@ -17,17 +25,9 @@ export function NodeSearch() {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isOpen = activeModal === 'nodeSearch';
-
-  // Auto-focus input when opened
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
 
   // Filter nodes by search query (fuzzy match on label, type, and comment)
   const filteredNodes = useMemo(() => {
@@ -102,57 +102,39 @@ export function NodeSearch() {
       } else if (e.key === 'Enter' && filteredNodes[selectedIndex]) {
         e.preventDefault();
         handleSelectNode(filteredNodes[selectedIndex]);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        handleClose();
       }
     },
-    [filteredNodes, selectedIndex, handleSelectNode, handleClose],
+    [filteredNodes, selectedIndex, handleSelectNode],
   );
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
-      handleClose();
-    }
-  };
 
   if (!isOpen) return null;
 
   return (
-    <button
-      type="button"
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      onKeyDown={(e) => e.key === 'Escape' && handleClose()}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] cursor-default border-none bg-transparent p-0 m-0"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
     >
-      <div
-        className="bg-background border border-border shadow-xl w-full max-w-lg"
-        role="dialog"
-        aria-label="Find Node"
+      <DialogContent
+        className="max-w-lg"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          inputRef.current?.focus();
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Search className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Find Node</span>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="size-4" />
-          </Button>
-        </div>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Search className="size-4" aria-hidden="true" />
+            Find Node
+          </DialogTitle>
+        </DialogHeader>
 
         {/* Content */}
-        <div
-          role="listbox"
-          tabIndex={0}
-          className="p-4"
-          onKeyDown={handleKeyDown}
-        >
+        <div role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input
+            <Input
               ref={inputRef}
               type="text"
               placeholder="Search nodes by name, type, or comment..."
@@ -182,8 +164,9 @@ export function NodeSearch() {
 
                 return (
                   <Button
+                    withWrapper={false}
                     key={node.id}
-                    variant="ghost"
+                    variant={ButtonVariant.GHOST}
                     onClick={() => handleSelectNode(node)}
                     className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
                       index === selectedIndex
@@ -223,7 +206,7 @@ export function NodeSearch() {
             </div>
           )}
         </div>
-      </div>
-    </button>
+      </DialogContent>
+    </Dialog>
   );
 }

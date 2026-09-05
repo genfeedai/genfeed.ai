@@ -1,0 +1,25 @@
+{
+  "$schema": "https://v2-9-12.turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/server/**/src/**",
+        "$TURBO_ROOT$/apps/server/**/scripts/**",
+        "$TURBO_ROOT$/apps/server/**/*.json",
+        "$TURBO_ROOT$/apps/server/**/*.cjs",
+        "!$TURBO_ROOT$/apps/server/dist/**",
+        "!$TURBO_ROOT$/apps/server/**/node_modules/**",
+        "$TURBO_ROOT$/webpack.base.config.js",
+        "$TURBO_ROOT$/tsconfig.json",
+        "$TURBO_ROOT$/tsconfig.server.decorators.json",
+        "$TURBO_ROOT$/configs/**"
+      ],
+      "outputs": [
+        "$TURBO_ROOT$/apps/server/dist/apps/mcp/**",
+        "$TURBO_ROOT$/apps/server/dist/server/mcp/**"
+      ]
+    }
+  }
+}

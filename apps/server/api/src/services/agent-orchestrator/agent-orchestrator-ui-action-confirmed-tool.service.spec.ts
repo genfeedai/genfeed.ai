@@ -1,5 +1,5 @@
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
-import { AgentToolName } from '@genfeedai/contracts/interfaces';
+
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentOrchestratorUiActionConfirmedToolService', () => {
@@ -49,7 +49,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     });
 
     expect(executeTool).toHaveBeenCalledWith(
-      AgentToolName.GENERATE_IMAGE,
+      'generate_image',
       {
         aspectRatio: '1:1',
         outputs: 1,
@@ -102,7 +102,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     });
 
     expect(executeTool).toHaveBeenCalledWith(
-      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
+      'install_official_workflow',
       expect.objectContaining({ workflowId: 'workflow-1' }),
       expect.objectContaining({
         confirmationOrigin: 'thread-ui-action',

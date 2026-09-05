@@ -1055,18 +1055,6 @@
       "upgradeTo": "Upgrade to {plan}"
     }
   },
-  "twitterPipeline": {
-    "opportunity": {
-      "editBeforePublishing": "Edit before publishing",
-      "published": "Published successfully",
-      "types": {
-        "quote": "Quote",
-        "reply": "Reply",
-        "repost": "Repost"
-      },
-      "viewTweet": "View tweet"
-    }
-  },
   "videoCreativeActions": {
     "extend": {
       "continuationPromptLabel": "Continuation prompt",

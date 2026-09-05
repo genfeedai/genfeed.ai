@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   GridPosition,
   LumaAspectRatio,
@@ -7,22 +8,23 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { LUMA_ASPECT_RATIOS } from '@genfeedai/pricing';
-import type { NodeProps } from '@xyflow/react';
-import { ImageIcon, LoaderCircle, RefreshCw, Video } from 'lucide-react';
-import Image from 'next/image';
-import { memo, useCallback } from 'react';
-import { useExecutionStore } from '../../stores/execution';
-import { useWorkflowStore } from '../../stores/workflow';
-import { Button } from '../../ui/button';
-import { GridPositionSelector } from '../../ui/grid-position-selector';
-import { Label } from '../../ui/label';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Input } from '@genfeedai/ui/primitives/input';
+import { Label } from '@genfeedai/ui/primitives/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../ui/select';
+} from '@genfeedai/ui/primitives/select';
+import type { NodeProps } from '@xyflow/react';
+import { ImageIcon, LoaderCircle, RefreshCw, Video } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useCallback } from 'react';
+import { useExecutionStore } from '../../stores/execution';
+import { useWorkflowStore } from '../../stores/workflow';
+import { GridPositionSelector } from '../../ui/grid-position-selector';
 import { BaseNode } from '../BaseNode';
 
 type MediaType = 'image' | 'video';
@@ -148,7 +150,7 @@ function ResizeNodeComponent(props: NodeProps) {
           <Label htmlFor={`resize-prompt-${id}`} className="text-xs">
             Prompt (optional)
           </Label>
-          <input
+          <Input
             aria-label="Resize prompt"
             id={`resize-prompt-${id}`}
             type="text"
@@ -182,8 +184,9 @@ function ResizeNodeComponent(props: NodeProps) {
               />
             )}
             <Button
-              variant="ghost"
-              size="icon-sm"
+              withWrapper={false}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
               className={
@@ -202,8 +205,9 @@ function ResizeNodeComponent(props: NodeProps) {
         {/* Process Button */}
         {!nodeData.outputMedia && (
           <Button
-            variant="default"
-            size="sm"
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleProcess}
             disabled={!nodeData.inputMedia || nodeData.status === 'processing'}
             className="mt-1 w-full"

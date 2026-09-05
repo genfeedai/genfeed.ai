@@ -56,8 +56,8 @@ runs:
     # ffmpeg-static@5.3.0 downloads a ~40 MB binary during install unless
     # FFMPEG_BIN points at an existing file. CI does not execute ffmpeg: the
     # files-service specs mock ffmpeg-static, while production Docker images
-    # install ffmpeg and set FFMPEG_BIN themselves. /bin/false therefore skips
-    # the flaky download without installing OS packages on every runner, and
+    # install ffmpeg and set FFMPEG_BIN themselves. An existing false executable
+    # skips the download without installing OS packages on every runner, and
     # fails closed if a future CI test accidentally tries to execute it.
     #
     # ffprobe-static@3.1.0 already ships its binary in the package and has no
@@ -65,7 +65,9 @@ runs:
     - name: Disable ffmpeg-static binary download in CI
       shell: bash
       run: |
-        echo "FFMPEG_BIN=/bin/false" >> "$GITHUB_ENV"
+        ffmpeg_stub="$(type -P false)"
+        test -f "$ffmpeg_stub"
+        echo "FFMPEG_BIN=$ffmpeg_stub" >> "$GITHUB_ENV"
 
     # Retry with exponential backoff as defense against generic registry/CDN
     # transients (the supported ffmpeg-static download is neutralized above via

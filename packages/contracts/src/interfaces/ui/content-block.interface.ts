@@ -19,7 +19,6 @@ export type {
   ImageGridBlock,
   ImageGridItem,
   KPIGridBlock,
-  MarkdownBlock,
   MetricCardBlock,
   SectionHeaderBlock,
   TableBlock,

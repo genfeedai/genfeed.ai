@@ -1,6 +1,6 @@
 {
   "name": "genfeed.ai",
-  "version": "0.1.70",
+  "version": "0.1.71",
   "description": "The open source AI OS for content creation",
   "private": true,
   "license": "AGPL-3.0-or-later",
@@ -149,7 +149,7 @@
     "lint-staged": "lint-staged --config lint-staged.config.mjs",
     "sort-modules": "bun scripts/sort-module-arrays.ts",
     "test": "TZ=UTC scripts/sh/sanitize-node-color-env.sh bunx turbo run test",
-    "test:executable-contracts": "bunx vitest run --config scripts/ci/vitest.config.ts && bunx vitest run --config scripts/architecture/vitest.config.ts && bunx vitest run --config scripts/serializer-drift/vitest.config.ts && bunx vitest run --config scripts/package-release/vitest.config.ts && node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/check-turbo-remote-cache.test.mjs scripts/ci/dispatch-hosted-saas.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/issue-intake.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/merge-queue-janitor.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-changelog.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs scripts/ci/vercel-bun.test.mjs scripts/e2e-route-coverage.test.mjs scripts/playwright-e2e-tiers.test.mjs",
+    "test:executable-contracts": "bunx vitest run --config scripts/ci/vitest.config.ts && bunx vitest run --config scripts/architecture/vitest.config.ts && bunx vitest run --config scripts/serializer-drift/vitest.config.ts && bunx vitest run --config scripts/package-release/vitest.config.ts && node --test scripts/ci/server-image-inputs.test.mjs scripts/ci/hosted-saas-boot-smoke.test.mjs scripts/ci/changed-code-coverage.test.mjs scripts/ci/check-turbo-remote-cache.test.mjs scripts/ci/dispatch-hosted-saas.test.mjs scripts/ci/hosted-saas-handoff.test.mjs scripts/ci/issue-intake.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/merge-queue-janitor.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-changelog.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs scripts/ci/vercel-bun.test.mjs scripts/e2e-route-coverage.test.mjs scripts/playwright-e2e-tiers.test.mjs && node --test scripts/ci/source-contracts.test.mjs && node scripts/ci/source-contracts.mjs",
     "test:cli": "TZ=UTC scripts/sh/sanitize-node-color-env.sh bunx turbo run test --filter=@genfeedai/cli",
     "test:workspace": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:workspace:watch": "TZ=UTC scripts/sh/sanitize-node-color-env.sh vitest --config vitest.config.ts",
