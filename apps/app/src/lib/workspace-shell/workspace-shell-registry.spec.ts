@@ -234,7 +234,7 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('keeps legacy aliases aligned with their canonical surface owners', () => {
+  it('keeps current surfaces and removes deprecated aliases', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'automation' });
@@ -243,16 +243,10 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/configuration'),
-    ).toMatchObject({
-      mode: 'canvas',
-      surfaceKey: 'brand-settings',
-    });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/skills'),
-    ).toMatchObject({
-      mode: 'canvas',
-      surfaceKey: 'brand-settings',
-    });
+    ).toBeNull();
   });
 
   it('activates the Studio adapter across production surfaces only', () => {
@@ -326,7 +320,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
-      '/acme/moonrise/settings/organization/credentials',
+      '/acme/moonrise/settings/social',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/usage',
       '/acme/~/settings/subscription',
@@ -348,8 +342,7 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
-    // Autopilot remains first-class. Legacy configuration routes are owned by
-    // Brand Settings until their server redirects complete.
+    // Autopilot remains first-class; configuration aliases are removed.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
@@ -358,10 +351,7 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/configuration'),
-    ).toMatchObject({
-      productClass: 'control-plane',
-      surfaceKey: 'brand-settings',
-    });
+    ).toBeNull();
     expect(resolveWorkspaceShellRoute('/acme/~/write')).toBeNull();
     expect(resolveWorkspaceShellRoute('/acme/~/compose')).toBeNull();
     expect(
@@ -393,7 +383,9 @@ describe('workspace shell trusted registry', () => {
       scope: 'organization',
       surfaceKey: 'organization-overview',
     });
-    expect(resolveWorkspaceShellRoute('/acme/~/overview')).toMatchObject({
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/workspace/overview'),
+    ).toMatchObject({
       adapter: {
         key: 'organization-workspace-overview',
         status: 'embedded',

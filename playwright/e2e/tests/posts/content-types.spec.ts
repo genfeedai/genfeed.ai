@@ -1,4 +1,4 @@
-import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/contracts/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
   mockPostsList,
@@ -10,7 +10,7 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: retired /publishing/newsletters redirect, /publishing/remix,
+ * Covers: /publishing/remix,
  *         /publishing/review
  *
  * CRITICAL: All tests use mocked API responses.
@@ -23,17 +23,6 @@ test.describe('Posts — Content Types', () => {
       plan: 'pro',
     });
     await mockPostsList(authenticatedPage);
-  });
-
-  test('retired newsletters path redirects to the agent composer', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS);
-
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.NEW}|${APP_ROUTES.PUBLISHING.POSTS}`),
-    );
-    await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {

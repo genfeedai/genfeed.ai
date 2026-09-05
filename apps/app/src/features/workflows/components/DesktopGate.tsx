@@ -44,7 +44,7 @@ export function DesktopGate({ children }: DesktopGateProps) {
           Minimum screen width: 1024px
         </p>
         <a
-          href={href(APP_ROUTES.OVERVIEW.ROOT)}
+          href={href(APP_ROUTES.WORKSPACE.OVERVIEW)}
           className="inline-block bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Go to Overview

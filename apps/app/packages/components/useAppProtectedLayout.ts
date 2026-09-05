@@ -71,7 +71,7 @@ export function isProtectedEditorCanvasRoute(pathname: string): boolean {
 export function isProtectedWorkspaceRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.WORKSPACE.ROOT ||
-    pathname === APP_ROUTES.OVERVIEW.ROOT ||
+    pathname === APP_ROUTES.WORKSPACE.OVERVIEW ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
   );
 }

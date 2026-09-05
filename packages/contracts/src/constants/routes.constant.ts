@@ -96,31 +96,15 @@ export const APP_ROUTES = {
     ONBOARDING: '/agent/onboarding',
   },
   AUTOMATION: {
-    /**
-     * @deprecated Legacy path — permanently redirects to Analytics Overview.
-     * Prefer APP_ROUTES.ANALYTICS.OVERVIEW for links.
-     */
-    ANALYTICS: '/automation/analytics',
     AUTOPILOT: '/automation/autopilot',
-    /** @deprecated Automation settings live under brand Settings. */
-    CONFIGURATION: '/automation/configuration',
     /** Content-run history: briefs handed off from Discovery through publish. */
     CONTENT_RUNS: '/automation/content-runs',
     /**
      * Agent roster. Detail pages nest at `/automation/agents/:agentId`.
      */
     AGENTS: '/automation/agents',
-    /** @deprecated Opens the Add agent library on AUTOMATION.AGENTS. */
-    HIRE: '/automation/hire',
-    /**
-     * @deprecated Team list permanently redirects to AGENTS.
-     * `/automation/library/:type` remains the Twitch/YouTube chat-bot surfaces.
-     */
-    LIBRARY: '/automation/library',
-    /** @deprecated Opens the custom mode of the Add agent dialog. */
-    NEW: '/automation/agents/new',
-    /** @deprecated Opens the Creator Studio template on CAMPAIGNS_NEW. */
-    ORCHESTRATOR: '/automation/orchestrator',
+    TWITCH_CHAT: '/automation/library/twitch-chat',
+    YOUTUBE_CHAT: '/automation/library/youtube-chat',
     /**
      * Canonical Automation home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
@@ -129,8 +113,6 @@ export const APP_ROUTES = {
     ROOT: '/automation',
     RUNS: '/automation/runs',
     TEMPLATES: '/automation/templates',
-    /** @deprecated Skill configuration lives at APP_ROUTES.SETTINGS.SKILLS. */
-    SKILLS: '/automation/skills',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
      * UI label is "Programs"; path kept for deep-link stability.
@@ -138,23 +120,6 @@ export const APP_ROUTES = {
      */
     CAMPAIGNS: '/automation/campaigns',
     CAMPAIGNS_NEW: '/automation/campaigns/new',
-    /**
-     * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
-     * Value points at Messages so stale imports land correctly.
-     */
-    OUTREACH_CAMPAIGNS: '/messages/outreach',
-    /** @deprecated Use APP_ROUTES.MESSAGES.OUTREACH_NEW. */
-    OUTREACH_CAMPAIGNS_NEW: '/messages/outreach/new',
-    /**
-     * @deprecated Canonical path is APP_ROUTES.MESSAGES.REPLY_DRIP.
-     */
-    REPLY_CAMPAIGNS: '/messages/reply-drip',
-    /**
-     * @deprecated Canonical path is APP_ROUTES.MESSAGES.REPLIES.
-     */
-    REPLIES: '/messages/replies',
-    /** @deprecated Use APP_ROUTES.MESSAGES.REPLIES */
-    AUTHOR_REPLIES: '/messages/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automation/workflows',
     WORKFLOWS_NEW: '/automation/workflows/new',
@@ -196,11 +161,7 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
-    /** @deprecated Use ASSETS. Retained for legacy deep-link redirects. */
-    INGREDIENTS: '/library/ingredients',
     MUSIC: '/library/music',
-    /** @deprecated Use ASSETS. The tile-grid Overview held no assets. */
-    OVERVIEW: '/library/overview',
     /** Assets touched most recently, newest first. */
     RECENT: '/library/recent',
     ROOT: '/library',
@@ -254,11 +215,6 @@ export const APP_ROUTES = {
      * switcher so old bookmarks still resolve.
      */
     ACTIVITIES: '/overview/activities',
-    /**
-     * @deprecated Use WORKSPACE.OVERVIEW. Bare `/overview` permanently
-     * redirects there so org Workspace is not a competing `/overview` app.
-     */
-    ROOT: '/overview',
   },
   PUBLISHING: {
     CALENDAR: '/publishing/calendar',
@@ -273,13 +229,6 @@ export const APP_ROUTES = {
      * types. Post lifecycle lives at POSTS; this is the type-aware library.
      */
     CONTENT: '/publishing/content',
-    /**
-     * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
-     * Legacy `/publishing/outreach-campaigns` permanently redirects there.
-     */
-    OUTREACH_CAMPAIGNS: '/messages/outreach',
-    /** @deprecated Use APP_ROUTES.MESSAGES.OUTREACH_NEW. */
-    OUTREACH_CAMPAIGNS_NEW: '/messages/outreach/new',
     /**
      * Canonical Publishing home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
@@ -327,20 +276,13 @@ export const APP_ROUTES = {
     MODEL_VIDEO: '/settings/models/video',
     ORGANIZATION: '/settings/organization',
     ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
-    /**
-     * @deprecated Dead path — no page shipped. Brand OAuth (Facebook / Google Ads
-     * / social) lives at SETTINGS.SOCIAL. Prefer that; legacy URLs redirect.
-     */
-    ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     /**
      * Org agent/automation defaults. Menu label is Agents — keep the slug
-     * identical. `/settings/policy` redirects here.
+     * identical.
      */
     AGENTS: '/settings/agents',
-    /** @deprecated Same path as SETTINGS.AGENTS. */
-    POLICY: '/settings/agents',
     PUBLISHING: '/settings/publishing',
     /**
      * Organization settings home. Bare `/:orgSlug/~/settings` redirects here
@@ -355,11 +297,6 @@ export const APP_ROUTES = {
     SOCIAL: '/settings/social',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
-    /**
-     * @deprecated External links edit on Brand Profile via ModalBrandLink.
-     * Route permanently redirects to SETTINGS.ROOT.
-     */
-    LINKS: '/settings/links',
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
@@ -409,7 +346,7 @@ export const APP_ROUTE_PREFIXES = {
   EDIT: APP_ROUTES.EDIT.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
-  OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
+  OVERVIEW: '/overview',
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
   PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
@@ -453,21 +390,6 @@ export function isPersonalSettingsPath(pathname: string): boolean {
   );
 }
 
-export const LEGACY_APP_ROUTES = {
-  /**
-   * @deprecated Newsletter writing is Agent-first. This path permanently
-   * redirects to APP_ROUTES.AGENT.NEW; `?id=` links resolve to the editor.
-   */
-  PUBLISHING_NEWSLETTERS: '/publishing/newsletters',
-  /**
-   * @deprecated Not a standalone Workflows app. Permanently redirects to
-   * APP_ROUTES.AUTOMATION.WORKFLOWS (and nested templates/executions).
-   */
-  WORKFLOWS: '/workflows',
-  /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
-  TASKS: '/tasks',
-} as const;
-
 /** Artifact type → canonical Publishing editor route root. */
 export const ARTIFACT_EDITOR_ROUTES = {
   article: APP_ROUTES.PUBLISHING.POSTS,
@@ -476,13 +398,6 @@ export const ARTIFACT_EDITOR_ROUTES = {
 } as const;
 
 export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
-
-/**
- * @deprecated Legacy query param. The Publishing desk resolves editor kind from
- * the entity the id belongs to (post / article / newsletter). Still accepted
- * nowhere as source of truth; kept only so old bookmarked URLs do not 404.
- */
-export const ARTIFACT_EDITOR_KIND_PARAM = 'kind';
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -525,7 +440,6 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.LOGOUT.replace(/^\//, ''),
     APP_ROUTES.SIGN_UP.replace(/^\//, ''),
     APP_ROUTES.OAUTH.replace(/^\//, ''),
-    LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
     'agent-auth',
     'api',
     'desktop',
@@ -577,8 +491,6 @@ const AUTH_CONTINUATION_ROUTE_PREFIXES = [
   APP_ROUTES.DESKTOP.LOCAL,
   '/managed-credits',
   '/request-access',
-  LEGACY_APP_ROUTES.TASKS,
-  LEGACY_APP_ROUTES.WORKFLOWS,
 ] as const;
 const AUTH_CONTINUATION_SCOPE_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -668,7 +580,6 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
   APP_ROUTES.SETTINGS.SOCIAL,
-  APP_ROUTES.SETTINGS.LINKS,
   '/settings/voice',
   '/settings/interview',
   '/settings/harness',
@@ -682,8 +593,7 @@ function workspaceSurfacePath(pathname: string): string {
     return APP_ROUTES.WORKSPACE.OVERVIEW;
   }
 
-  const rest = `/${parts.slice(2).join('/')}`;
-  return rest === '/overview' ? APP_ROUTES.WORKSPACE.OVERVIEW : rest;
+  return `/${parts.slice(2).join('/')}`;
 }
 
 function toOrganizationScopePath(brandScopedPath: string): string {

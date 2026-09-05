@@ -6,7 +6,6 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-  LEGACY_APP_ROUTES,
   PERSONAL_SETTINGS_CHILD_SEGMENTS,
 } from '@genfeedai/contracts/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
@@ -122,108 +121,6 @@ function appHomeRedirects(
   ];
 }
 
-/** Permanent hard-cut of a legacy path (and nested segments) onto a new prefix. */
-function legacyPathRedirects(
-  fromPrefix: `/${string}`,
-  toPrefix: `/${string}`,
-  options: { includeBrandScope?: boolean } = {},
-) {
-  const { includeBrandScope = true } = options;
-
-  return [
-    {
-      destination: toPrefix,
-      permanent: true,
-      source: fromPrefix,
-    },
-    {
-      destination: `${toPrefix}/:path*`,
-      permanent: true,
-      source: `${fromPrefix}/:path*`,
-    },
-    ...(includeBrandScope
-      ? [
-          {
-            destination: createBrandAppRoute(
-              ':orgSlug',
-              ':brandSlug',
-              toPrefix,
-            ),
-            permanent: true,
-            source: createBrandAppRoute(':orgSlug', ':brandSlug', fromPrefix),
-          },
-          {
-            destination: createBrandAppRoute(
-              ':orgSlug',
-              ':brandSlug',
-              `${toPrefix}/:path*`,
-            ),
-            permanent: true,
-            source: createBrandAppRoute(
-              ':orgSlug',
-              ':brandSlug',
-              `${fromPrefix}/:path*`,
-            ),
-          },
-        ]
-      : []),
-  ];
-}
-
-/**
- * Newsletter writing is Agent-first. Keep the old Publishing list/generator URL
- * as a permanent compatibility edge; its legacy `?id=` shape resolves directly
- * to the focused newsletter editor instead of losing the selected artifact.
- */
-function legacyNewsletterRedirects() {
-  const legacyPath = LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS;
-
-  return [
-    {
-      destination: `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
-      has: [
-        {
-          key: 'id',
-          type: 'query' as const,
-          value: '(?<newsletterId>.+)',
-        },
-      ],
-      permanent: true,
-      source: legacyPath,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
-      ),
-      has: [
-        {
-          key: 'id',
-          type: 'query' as const,
-          value: '(?<newsletterId>.+)',
-        },
-      ],
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', legacyPath),
-    },
-    {
-      destination: APP_ROUTES.AGENT.NEW,
-      permanent: true,
-      source: legacyPath,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AGENT.NEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', legacyPath),
-    },
-  ];
-}
-
 const config = createAppNextConfig({
   // Defense in depth alongside app/robots.txt/route.ts and root metadata: the
   // header also covers responses that carry no HTML head (API routes, redirects,
@@ -304,33 +201,6 @@ const config = createAppNextConfig({
         APP_ROUTES.WORKSPACE.INBOX,
       ),
     },
-    // Leftover `/overview` app. Workspace Overview is the canonical home.
-    {
-      destination: APP_ROUTES.WORKSPACE.OVERVIEW,
-      permanent: true,
-      source: APP_ROUTES.OVERVIEW.ROOT,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.OVERVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.OVERVIEW.ROOT,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.WORKSPACE.OVERVIEW,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.OVERVIEW.ROOT),
-    },
     // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
     // it to `/:org/:brand/review`) — that page never existed. Send both dead
     // shapes to Publishing Review so stored thread links stop 404ing.
@@ -355,29 +225,6 @@ const config = createAppNextConfig({
       ),
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/review'),
-    },
-    // Org Settings → Agents. /settings/policy was the old slug.
-    {
-      destination: APP_ROUTES.SETTINGS.AGENTS,
-      permanent: true,
-      source: '/settings/policy',
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.SETTINGS.AGENTS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/settings/policy'),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.SETTINGS.AGENTS,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', '/settings/policy'),
     },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
@@ -416,54 +263,6 @@ const config = createAppNextConfig({
         ':orgSlug',
         ':brandSlug',
         APP_ROUTES.DISCOVERY.ROOT,
-      ),
-    },
-    {
-      destination: APP_ROUTES.LIBRARY.ASSETS,
-      permanent: false,
-      source: APP_ROUTES.LIBRARY.INGREDIENTS,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.ASSETS,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.INGREDIENTS,
-      ),
-    },
-    // The tile-grid Overview held no assets; All assets is the Library home.
-    {
-      destination: APP_ROUTES.LIBRARY.ASSETS,
-      permanent: false,
-      source: APP_ROUTES.LIBRARY.OVERVIEW,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.ASSETS,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.LIBRARY.ASSETS,
-      ),
-      permanent: false,
-      source: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
     },
     {
@@ -506,7 +305,6 @@ const config = createAppNextConfig({
         APP_ROUTES.STUDIO.ROOT,
       ),
     },
-    ...legacyNewsletterRedirects(),
     // Complete-path homes: bare `/[app]` → a named child. Discovery/Studio
     // already redirect ROOT to one (discovery / storyboard); Library's home is
     // the asset browser, not an overview tile grid.
@@ -515,29 +313,6 @@ const config = createAppNextConfig({
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),
     ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     ...appHomeRedirects(APP_ROUTES.PUBLISHING.ROOT),
-    // Outreach / reply drip moved to Messages. Publish Campaigns are a real desk.
-    ...legacyPathRedirects(
-      '/publishing/outreach-campaigns',
-      APP_ROUTES.MESSAGES.OUTREACH,
-    ),
-    ...legacyPathRedirects(
-      '/automation/outreach-campaigns',
-      APP_ROUTES.MESSAGES.OUTREACH,
-    ),
-    ...legacyPathRedirects(
-      '/automation/reply-campaigns',
-      APP_ROUTES.MESSAGES.REPLY_DRIP,
-    ),
-    ...legacyPathRedirects('/automation/replies', APP_ROUTES.MESSAGES.REPLIES),
-    // `/[org]/[brand]/workflows` is not a standalone app — land on Automation.
-    ...legacyPathRedirects(
-      LEGACY_APP_ROUTES.WORKFLOWS,
-      APP_ROUTES.AUTOMATION.WORKFLOWS,
-      // The generic /:org/:brand/workflows redirect also matches the real
-      // /admin/automation/workflows page before filesystem routing. The proxy
-      // owns this scoped compatibility edge so it can reject global roots.
-      { includeBrandScope: false },
-    ),
   ],
   sentryProject: 'app-genfeed-ai',
 });
