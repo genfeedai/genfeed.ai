@@ -3,7 +3,10 @@
  * Brand knowledge storage and semantic retrieval for direct context injection.
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
+import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
+import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
@@ -15,8 +18,13 @@ import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [ContextsController],
+  controllers: [
+    ContextsController,
+    KnowledgeSourcesController,
+    KnowledgeSpacesController,
+  ],
   exports: [
+    KnowledgeRecordsService,
     ContextsService,
     KnowledgeSourceIngestService,
     KnowledgeSourceIngestWorkflowService,
@@ -30,6 +38,7 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
   ],
   providers: [
+    KnowledgeRecordsService,
     ContextsService,
     KnowledgeSourceIngestService,
     KnowledgeSourceIngestWorkflowService,

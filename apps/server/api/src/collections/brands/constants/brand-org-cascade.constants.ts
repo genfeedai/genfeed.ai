@@ -732,6 +732,9 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'AgentTransfer',
   'ContentVersionPin',
+  // Immutable Knowledge history blocks relocation before the cascade; its composite Brand FK and ownership trigger also reject concurrent moves.
+  'KnowledgeSource',
+  'KnowledgeSpace',
   'ListeningThemeEvidence',
   'LlmVendorCost',
   'MediaVendorCost',
@@ -752,6 +755,9 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'agent_transfers',
   'content_version_pins',
+  // These tables cannot move: relocation rejects any live or deleted Knowledge history.
+  'knowledge_sources',
+  'knowledge_spaces',
   'listening_theme_evidence',
   'llm_vendor_costs',
   'media_vendor_costs',
