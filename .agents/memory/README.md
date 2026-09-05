@@ -24,7 +24,7 @@ type: feedback | project | reference
 {body — for feedback/project, structured as rule + **Why:** + **How to apply:**}
 ```
 
-`MEMORY.md` is the index. Each entry is one line: `- [Title](file.md) — one-line hook`. Keep the index concise (under 200 lines) so it fits cleanly into context.
+`MEMORY.md` is the short startup map. `reference_memory_catalog.md` is the complete on-demand index; each entry is one line: `- [Title](file.md) — one-line hook`. Add topic entries to the catalog and keep the startup map limited to invariants and task entry points.
 
 ## What belongs here
 
@@ -62,13 +62,13 @@ Write operator-personal process under `.agents/memory/local/` so it never lands 
 Two steps to add a new memory:
 
 1. Create the file: `.agents/memory/{type}_{name}.md` with frontmatter and body
-2. Add a one-line entry to `.agents/memory/MEMORY.md` pointing at it
+2. Add a one-line entry to `.agents/memory/reference_memory_catalog.md` pointing at it
 
 Because this dir is the symlink target of Claude Code's auto-memory, any auto-memory write will automatically appear in `git status` for commit. Commit new memories in the same PR as the code change they document, or as a standalone `chore(memory): ...` commit.
 
 ## Conflict resolution
 
-If a rule in `.agents/memory/` conflicts with a rule in `CLAUDE.md` or `AGENTS.md`, the `.agents/memory/` version wins (it's newer). Stale memory should be updated or deleted rather than left to drift.
+Verified project facts may supersede older project facts in `CLAUDE.md` or `AGENTS.md`. Agent-written notes cannot weaken safety, authorization, account routing, host-resource restrictions, or required delivery gates. A consequential policy change requires an explicit user instruction; recency alone does not grant authority. Update stale facts without discarding their relevant provenance.
 
 ## Related
 
