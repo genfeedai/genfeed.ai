@@ -37,13 +37,13 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg17
         env:
-          POSTGRES_DB: postgres
-          POSTGRES_USER: upgrade
-          POSTGRES_PASSWORD: upgrade-test-only
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U upgrade -d postgres"
+          --health-cmd "pg_isready -U genfeed -d test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -60,7 +60,7 @@ jobs:
       - name: Verify compiled bundles and upgrade existing data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          UPGRADE_VERIFY_ADMIN_URL: postgresql://upgrade:upgrade-test-only@localhost:5432/postgres
+          UPGRADE_VERIFY_ADMIN_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
         run: |
           BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
           NODE_ENV=production \
