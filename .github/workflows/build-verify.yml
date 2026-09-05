@@ -4,10 +4,7 @@
 # merge/release. The boot step is the #574 circular-dep regression guard.
 name: Build Verify
 
-# Build + boot verification runs at release/preview time only (dispatch or as a
-# called step in full-suite) — NOT on every PR or master push. Keeps PR/master
-# CI to the fast required checks; heavy compile/boot validation happens when you
-# cut a preview/release.
+# Full Suite calls this after merge and before release publication.
 on:
   workflow_dispatch:
   workflow_call:
@@ -36,6 +33,20 @@ jobs:
     name: Server Bundle Boot Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     permissions:
       contents: read
     steps:
@@ -45,11 +56,11 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
       - name: Build api and workers (compiled bundles)
-        # Both packages emit to apps/server/dist, outside their package roots.
-        # Force a real build so a Turbo cache-hit replay cannot skip restoring
-        # the compiled bundles this boot check loads.
-        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/workers --force
-      - name: Boot check — compiled graphs must load
+        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/workers
+      - name: Verify compiled bundles and upgrade existing data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPGRADE_VERIFY_ADMIN_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
         run: |
           BOOT_CHECK=1 timeout 120 node apps/server/dist/apps/api/main.js
           NODE_ENV=production \
@@ -57,6 +68,18 @@ jobs:
             DATABASE_URL=postgresql://localhost/boot_check \
             BOOT_CHECK=1 \
             timeout 120 node apps/server/dist/apps/workers/main.js
+          previous_release="$(gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/releases?per_page=100" | jq -er '[.[][] | select(.draft == false and .prerelease == false and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")))] | sort_by(.published_at) | last | .tag_name // error("No published stable server release")')"
+          [[ "$previous_release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          git fetch origin "refs/tags/${previous_release}:refs/tags/${previous_release}"
+          bun run packages/prisma/scripts/verify-release-upgrade.ts --from="$previous_release"
+      - name: Upload upgrade verification evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-upgrade-evidence
+          path: ~/.codex/artifacts/release-upgrade-*/evidence.json
+          retention-days: 7
+          if-no-files-found: error
 
   build-and-boot:
     name: Build & Boot Check

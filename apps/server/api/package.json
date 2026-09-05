@@ -72,8 +72,8 @@
   "name": "@genfeedai/api",
   "private": true,
   "scripts": {
-    "build": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && nest build api-articles-seed",
-    "build:prod": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && nest build api-articles-seed && cd api && (bun run sentry:sourcemaps || true)",
+    "build": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed",
+    "build:prod": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && cd api && (bun run sentry:sourcemaps || true)",
     "backfill:post-status:dry": "bun run scripts/backfill-post-status.ts",
     "backfill:post-status:live": "bun run scripts/backfill-post-status.ts --live",
     "cleanup:orphan-social-oauth:dry": "bun run scripts/cleanup-orphan-social-oauth.ts",
@@ -92,7 +92,6 @@
     "migrate:review-decisions:dry": "bun run scripts/normalize-review-decisions.ts",
     "migrate:retired-content": "bun run scripts/retire-content-drafts.ts --live",
     "migrate:retired-content:dry": "bun run scripts/retire-content-drafts.ts",
-    "migrate:workflows": "node --max-old-space-size=8192 --expose-gc -r tsconfig-paths/register ../dist/apps/api-workflow-backfill/main",
     "openapi:emit": "bun run scripts/emit-openapi.ts",
     "openapi:emit:prebuilt": "bun run scripts/emit-openapi.ts --skip-build",
     "openapi:validate": "bun run scripts/validate-openapi-spec.ts",

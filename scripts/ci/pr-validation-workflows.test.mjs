@@ -631,6 +631,7 @@ test('spec typecheck scope escalates shared server configs before ignoring apps'
   assert.deepEqual(branches, [
     'apps/server/*/*',
     'apps/server/*',
+    'docs/*|.agents/*|*.md',
     'apps/*',
     '*',
   ]);

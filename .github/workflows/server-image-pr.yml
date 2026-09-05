@@ -11,6 +11,10 @@ on:
   pull_request:
     paths:
       - 'docker/Dockerfile.server'
+      - '.dockerignore'
+      - '.bun-version'
+      - 'configs/**'
+      - 'patches/**'
       # Bundler config decides what lands in the server bundles, so a change
       # here must exercise the image build even when no server source changed.
       - 'webpack.base.config.js'

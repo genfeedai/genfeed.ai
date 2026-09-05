@@ -2,14 +2,6 @@
   "$schema": "https://v2-9-12.turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
-    "type-check": {
-      "dependsOn": ["build", "^build"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json",
-        "$TURBO_ROOT$/apps/server/files/src/**"
-      ]
-    },
     "build": {
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -25,10 +17,8 @@
         "$TURBO_ROOT$/configs/**"
       ],
       "outputs": [
-        "$TURBO_ROOT$/apps/server/dist/apps/api/**",
-        "$TURBO_ROOT$/apps/server/dist/apps/api-credential-backfill/**",
-        "$TURBO_ROOT$/apps/server/dist/apps/api-articles-seed/**",
-        "$TURBO_ROOT$/apps/server/dist/server/api/**"
+        "$TURBO_ROOT$/apps/server/dist/apps/telegram/**",
+        "$TURBO_ROOT$/apps/server/dist/server/telegram/**"
       ]
     }
   }
