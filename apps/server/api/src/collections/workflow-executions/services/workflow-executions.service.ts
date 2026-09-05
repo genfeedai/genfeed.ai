@@ -7,6 +7,10 @@ import type {
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import {
+  buildWorkflowOutcomeInput,
+  type WorkflowExecutionCompletionRow,
+} from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
+import {
   composeEtaMetadata,
   readNodeResults,
   readOptionalNumber,
@@ -17,11 +21,6 @@ import {
   type WorkflowExecutionProgressSnapshot,
   type WorkflowExecutionScalarRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
-import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
-import {
-  getSystemWorkflowMetadata,
-  isHiddenSystemWorkflowMetadata,
-} from '@api/collections/workflows/system-workflow.contract';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import {
@@ -64,20 +63,6 @@ type WorkflowExecutionRuntimeStateRow = {
   remainingDurationMs: number | null;
   result: unknown;
   startedAt: Date | null;
-};
-
-type WorkflowExecutionCompletionRow = {
-  estimatedDurationMs: number | null;
-  organizationId: string;
-  startedAt: Date | null;
-  trigger: string | null;
-  workflowId: string;
-  userId: string;
-  workflow: {
-    label: string | null;
-    metadata: unknown;
-    userId: string;
-  };
 };
 
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
@@ -524,29 +509,13 @@ export class WorkflowExecutionsService extends BaseService<
         const durableDeliveryId =
           await this.workflowNotificationOutboxService.recordWorkflowOutcome(
             transaction,
-            {
-              actorUserId: execution.userId,
-              failure,
-              isAgentRun:
-                isHiddenSystemWorkflowMetadata(execution.workflow.metadata) &&
-                AGENT_CONVERSATION_WORKFLOW_IDS.includes(
-                  getSystemWorkflowMetadata(execution.workflow.metadata)
-                    ?.canonicalId ?? '',
-                ),
-              error: error ?? null,
+            buildWorkflowOutcomeInput(
+              execution,
               executionId,
-              occurredAt: completedAt,
-              organizationId: execution.organizationId,
-              status: error ? 'failed' : 'completed',
-              trigger: execution.trigger,
-              workflowId: execution.workflowId,
-              workflowLabel: execution.workflow.label ?? 'Untitled workflow',
-              workflowOwnerUserId: isHiddenSystemWorkflowMetadata(
-                execution.workflow.metadata,
-              )
-                ? execution.userId
-                : execution.workflow.userId,
-            },
+              completedAt,
+              failure,
+              error,
+            ),
           );
 
         return { deliveryId: durableDeliveryId, result: updatedExecution };

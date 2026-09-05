@@ -314,7 +314,11 @@ describe('WorkflowNotificationDeliveryService', () => {
 });
 
 describe('agent failure delivery', () => {
-  function setup(enabled = true, topic = 'agent.status') {
+  function setup(
+    enabled = true,
+    topic = 'agent.status',
+    sourceType = 'agent_run',
+  ) {
     const prisma = {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
@@ -322,7 +326,7 @@ describe('agent failure delivery', () => {
           topic,
           attemptCount: 1,
           event: {
-            sourceType: 'agent_run',
+            sourceType,
             payload: {
               version: 1,
               executionId: 'run',
@@ -376,6 +380,28 @@ describe('agent failure delivery', () => {
     );
     expect(notifications.deliverEmail.mock.calls[0][0].text).not.toContain(
       'secret',
+    );
+  });
+  it('preserves workflow email wording and error when classified data is present', async () => {
+    const { prisma, notifications, service } = setup(
+      true,
+      'workflow.status',
+      'workflow_execution',
+    );
+    await service.deliver('delivery');
+    expect(prisma.notificationPreference.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ topic: 'workflow.status' }),
+      }),
+    );
+    expect(notifications.deliverEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: 'Workflow failed: <Daily>',
+        text: 'Your workflow <Daily> failed: secret raw error',
+        html: expect.stringContaining(
+          'Your workflow <strong>&lt;Daily&gt;</strong> failed: secret raw error',
+        ),
+      }),
     );
   });
   it('skips opted-out agent notifications', async () => {

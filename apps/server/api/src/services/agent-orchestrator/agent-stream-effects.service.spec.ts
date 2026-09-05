@@ -23,7 +23,6 @@ describe('durable failure publication', () => {
       executionId: 'run-1',
     },
     error: 'HTTP 429',
-    failRun: false,
     threadId: 'thread-1',
   };
 
@@ -64,13 +63,17 @@ describe('durable failure publication', () => {
   });
 
   it('propagates a durable recording outage rather than discarding it', async () => {
-    const { service, publisher, prisma } = setup();
+    const { service, publisher, prisma, logger } = setup();
     publisher.publishError.mockRejectedValue(new Error('Redis unavailable'));
     prisma.notificationEvent.upsert.mockRejectedValue(
       new Error('Database unavailable'),
     );
     await expect(service.publishStreamFailure(params)).rejects.toThrow(
       'Database unavailable',
+    );
+    expect(logger.warn).toHaveBeenCalled();
+    expect(logger.warn.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.notificationEvent.upsert.mock.invocationCallOrder[0],
     );
   });
 });

@@ -367,7 +367,7 @@ export class WorkflowNotificationDeliveryService {
     const subject = isFailure
       ? `${isAgentFailure ? 'Agent run' : 'Workflow'} failed: ${payload.workflowLabel}`
       : `Workflow completed: ${payload.workflowLabel}`;
-    if (isFailure && payload.failure) {
+    if (isAgentFailure && isFailure && payload.failure) {
       const { title, summary, recovery } = payload.failure;
       const text = [subject, title, summary, recovery]
         .filter(Boolean)

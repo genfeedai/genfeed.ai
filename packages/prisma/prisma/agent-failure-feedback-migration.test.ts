@@ -9,18 +9,24 @@ const migration = readFileSync(
   ),
   'utf8',
 );
+const indexMigration = readFileSync(
+  new URL(
+    './migrations/20260905120100_agent_failure_feedback_index/migration.sql',
+    import.meta.url,
+  ),
+  'utf8',
+);
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
 describePostgres('agent failure feedback migration', () => {
-  it('preserves historical errors, backfills unknown reasons, and enforces typed future failures', async () => {
+  it('preserves historical rows, builds the index online, and enforces typed future failures', async () => {
     const pool = new Pool({ connectionString: databaseUrl, max: 1 });
     const client = await pool.connect();
     const schema = `agent_failure_${process.pid}_${Date.now()}`;
     try {
-      await client.query('BEGIN');
       await client.query(`CREATE SCHEMA "${schema}"`);
-      await client.query(`SET LOCAL search_path TO "${schema}"`);
+      await client.query(`SET search_path TO "${schema}"`);
       await client.query(`
         CREATE TYPE "WorkflowExecutionStatus" AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED');
         CREATE TABLE "workflow_executions" (
@@ -32,6 +38,7 @@ describePostgres('agent failure feedback migration', () => {
         VALUES ('failed', 'FAILED', 'legacy provider error'), ('completed', 'COMPLETED', NULL);
       `);
       await client.query(migration);
+      await client.query(indexMigration);
       const rows = await client.query(
         'SELECT "id", "failureReason", "failure", "error" FROM "workflow_executions" ORDER BY "id"',
       );
@@ -39,7 +46,7 @@ describePostgres('agent failure feedback migration', () => {
         { id: 'completed', failureReason: null, failure: null, error: null },
         {
           id: 'failed',
-          failureReason: 'UNKNOWN',
+          failureReason: null,
           failure: null,
           error: 'legacy provider error',
         },
@@ -67,15 +74,13 @@ describePostgres('agent failure feedback migration', () => {
       expect(indexes.rows).toContainEqual({
         indexname: 'workflow_executions_failure_feed_idx',
       });
-      await client.query('SAVEPOINT invalid_reason');
       await expect(
         client.query('UPDATE "workflow_executions" SET "failureReason" = $1', [
           'invented',
         ]),
       ).rejects.toThrow('invalid input value for enum');
-      await client.query('ROLLBACK TO SAVEPOINT invalid_reason');
     } finally {
-      await client.query('ROLLBACK');
+      await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
       client.release();
       await pool.end();
     }

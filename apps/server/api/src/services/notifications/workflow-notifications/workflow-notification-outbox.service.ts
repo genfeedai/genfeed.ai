@@ -47,8 +47,9 @@ export class WorkflowNotificationOutboxService {
   ): Promise<string> {
     const isAgentFailure =
       input.isAgentRun === true && input.status === 'failed';
-    const classifiedFailure =
-      input.failure ?? (isAgentFailure ? formatAgentError(input.error) : null);
+    const classifiedFailure = isAgentFailure
+      ? (input.failure ?? formatAgentError(input.error))
+      : null;
     const failure = classifiedFailure
       ? { ...classifiedFailure, detail: null }
       : null;

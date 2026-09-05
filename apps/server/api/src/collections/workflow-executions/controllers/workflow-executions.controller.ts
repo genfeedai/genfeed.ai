@@ -22,7 +22,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  AgentFailureReason,
+  MemberRole,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import { HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
@@ -176,42 +180,55 @@ export class WorkflowExecutionsController {
           isDeleted: false,
           status: WorkflowExecutionStatus.FAILED,
           ...(query.failureReason
-            ? { failureReason: query.failureReason }
+            ? query.failureReason === AgentFailureReason.UNKNOWN
+              ? {
+                  OR: [
+                    { failureReason: AgentFailureReason.UNKNOWN },
+                    { failureReason: null },
+                  ],
+                }
+              : { failureReason: query.failureReason }
             : {}),
           workflow: {
-            isDeleted: false,
-            AND: [
-              {
-                metadata: {
-                  path: ['sourceType'],
-                  equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-                },
-              },
-              {
-                metadata: {
-                  path: ['systemWorkflow', 'visibility'],
-                  equals: 'internal',
-                },
-              },
-              {
-                metadata: {
-                  path: ['systemWorkflow', 'duplicable'],
-                  equals: false,
-                },
-              },
-              {
-                OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
+            is: {
+              isDeleted: false,
+              AND: [
+                {
                   metadata: {
-                    path: ['systemWorkflow', 'canonicalId'],
-                    equals: canonicalId,
+                    path: ['sourceType'],
+                    equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
                   },
-                })),
-              },
-            ],
+                },
+                {
+                  metadata: {
+                    path: ['systemWorkflow', 'visibility'],
+                    equals: 'internal',
+                  },
+                },
+                {
+                  metadata: {
+                    path: ['systemWorkflow', 'duplicable'],
+                    equals: false,
+                  },
+                },
+                {
+                  OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
+                    metadata: {
+                      path: ['systemWorkflow', 'canonicalId'],
+                      equals: canonicalId,
+                    },
+                  })),
+                },
+              ],
+            },
           },
         },
       },
-      { customLabels, limit: query.limit, offset: query.offset, page: 1 },
+      {
+        customLabels,
+        limit: query.limit,
+        page: Math.floor(query.offset / query.limit) + 1,
+      },
     );
     return serializeCollection(req, WorkflowExecutionSerializer, result);
   }

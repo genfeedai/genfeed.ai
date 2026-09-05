@@ -421,8 +421,6 @@ export class AgentStreamEffectsService {
   async publishStreamFailure(params: {
     context: AgentChatContext;
     error: string;
-    failRun: boolean;
-    persistedError?: string;
     threadId: string;
   }): Promise<void> {
     try {
@@ -505,6 +503,10 @@ export class AgentStreamEffectsService {
       ),
       detail: null,
     };
+    this.loggerService.warn(
+      `${this.constructorName} stream failure publish failed`,
+      { failure, runId: context.executionId, threadId: threadId },
+    );
     const sourceId = context.executionId ?? threadId;
     const deduplicationKey = `agent.failure.delivery_failed/${sourceId}`;
     // tenant-scope-ignore: internally generated idempotency key is qualified by organization; no user-controlled cross-tenant lookup
@@ -524,9 +526,5 @@ export class AgentStreamEffectsService {
         deduplicationKey: `${context.organizationId}/${deduplicationKey}`,
       },
     });
-    this.loggerService.warn(
-      `${this.constructorName} stream failure publish failed`,
-      { failure, runId: context.executionId, threadId: threadId },
-    );
   }
 }

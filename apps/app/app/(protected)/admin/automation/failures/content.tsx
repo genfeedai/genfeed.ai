@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  AgentFailureReason,
-  ButtonVariant,
-  formatEnumLabel,
-} from '@genfeedai/contracts';
+import { AgentFailureReason, ButtonVariant } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
@@ -30,9 +26,11 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function AgentFailuresPage() {
+  const translate = useTranslations('pages.agentFailures');
   const getService = useAuthedService((token: string) =>
     WorkflowExecutionsService.getInstance(token),
   );
@@ -81,27 +79,27 @@ export default function AgentFailuresPage() {
 
   return (
     <Container
-      label="Agent Failures"
-      description="Failed agent runs across all organizations, with recovery guidance."
+      label={translate('title')}
+      description={translate('description')}
       right={
         <Button
-          label="Refresh"
+          label={translate('refresh')}
           isDisabled={state === 'loading'}
           onClick={refreshFailures}
           variant={ButtonVariant.SECONDARY}
         />
       }
     >
-      <WorkspaceSurface title="Failure feed" tone="muted">
+      <WorkspaceSurface title={translate('feed')} tone="muted">
         <Select value={reason ?? 'all'} onValueChange={changeReason}>
-          <SelectTrigger aria-label="Failure reason">
+          <SelectTrigger aria-label={translate('reasonFilter')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All reasons</SelectItem>
+            <SelectItem value="all">{translate('allReasons')}</SelectItem>
             {Object.values(AgentFailureReason).map((value) => (
               <SelectItem key={value} value={value}>
-                {formatEnumLabel(value)}
+                {translate(`reasons.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -110,24 +108,22 @@ export default function AgentFailuresPage() {
           <LazyLoadingFallback variant="grid" />
         ) : state === 'error' ? (
           <Alert variant="destructive">
-            <AlertDescription>
-              Agent failures could not be loaded.
-            </AlertDescription>
-            <Button label="Retry" onClick={refreshFailures} />
+            <AlertDescription>{translate('loadError')}</AlertDescription>
+            <Button label={translate('retry')} onClick={refreshFailures} />
           </Alert>
         ) : failures.length === 0 ? (
-          <CardEmptyContent label="No agent failures found" />
+          <CardEmptyContent label={translate('empty')} />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Run</TableHead>
-                <TableHead>Organization</TableHead>
-                <TableHead>Workflow</TableHead>
-                <TableHead>Failed at</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Error</TableHead>
-                <TableHead>Recovery</TableHead>
+                <TableHead>{translate('columns.run')}</TableHead>
+                <TableHead>{translate('columns.organization')}</TableHead>
+                <TableHead>{translate('columns.workflow')}</TableHead>
+                <TableHead>{translate('columns.failedAt')}</TableHead>
+                <TableHead>{translate('columns.reason')}</TableHead>
+                <TableHead>{translate('columns.error')}</TableHead>
+                <TableHead>{translate('columns.recovery')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -144,18 +140,26 @@ export default function AgentFailuresPage() {
                     ).toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    {formatEnumLabel(
-                      run.failureReason ?? AgentFailureReason.UNKNOWN,
+                    {translate(
+                      `reasons.${run.failureReason ?? AgentFailureReason.UNKNOWN}`,
                     )}
                   </TableCell>
                   <TableCell>
-                    {run.failure?.summary ??
-                      run.error ??
-                      'No error details recorded'}
+                    <p>
+                      {run.failure?.summary ??
+                        run.error ??
+                        translate('noError')}
+                    </p>
+                    {run.error &&
+                    run.failure?.summary &&
+                    run.error !== run.failure.summary ? (
+                      <p className="mt-1 whitespace-pre-wrap font-mono text-xs">
+                        {run.error}
+                      </p>
+                    ) : null}
                   </TableCell>
                   <TableCell>
-                    {run.failure?.recovery ??
-                      'Review the execution details before retrying.'}
+                    {run.failure?.recovery ?? translate('recoveryFallback')}
                   </TableCell>
                 </TableRow>
               ))}
@@ -163,13 +167,13 @@ export default function AgentFailuresPage() {
           </Table>
         )}
         <Button
-          label="Previous"
+          label={translate('previous')}
           variant={ButtonVariant.SECONDARY}
           isDisabled={offset === 0 || state === 'loading'}
           onClick={() => setOffset((value) => Math.max(0, value - 20))}
         />
         <Button
-          label="Next"
+          label={translate('next')}
           variant={ButtonVariant.SECONDARY}
           isDisabled={state !== 'ready' || failures.length < 20}
           onClick={() => setOffset((value) => value + 20)}

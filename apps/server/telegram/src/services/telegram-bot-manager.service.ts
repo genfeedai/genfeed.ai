@@ -826,9 +826,7 @@ export class TelegramBotManager
         this.sanitizeErrorForLog(error),
       );
       await ctx.reply(
-        formatAgentFailureMessage(
-          error instanceof Error ? error.message : undefined,
-        ),
+        formatAgentFailureMessage(error instanceof Error ? error : undefined),
       );
       this.deleteSession(chatId);
     }
@@ -1023,9 +1021,7 @@ export class TelegramBotManager
         this.sanitizeErrorForLog(error),
       );
       await ctx.reply(
-        formatAgentFailureMessage(
-          error instanceof Error ? error.message : undefined,
-        ),
+        formatAgentFailureMessage(error instanceof Error ? error : undefined),
       );
       this.deleteSession(chatId);
     }

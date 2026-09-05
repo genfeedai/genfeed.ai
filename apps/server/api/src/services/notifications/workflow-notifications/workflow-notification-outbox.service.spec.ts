@@ -127,3 +127,46 @@ it('stores a safe classified agent failure with stable deduplication', async () 
     }),
   );
 });
+
+it.each([
+  { isAgentRun: false, status: 'failed' as const },
+  { isAgentRun: true, status: 'completed' as const },
+])('keeps workflow payloads outside agent failures: %j', async (outcome) => {
+  const transaction = {
+    notificationDelivery: {
+      upsert: vi.fn().mockResolvedValue({ id: 'delivery' }),
+    },
+    notificationEvent: { upsert: vi.fn().mockResolvedValue({ id: 'event' }) },
+  };
+  const service = new WorkflowNotificationOutboxService(
+    { enqueue: vi.fn() } as never,
+    { error: vi.fn() } as never,
+  );
+  await service.recordWorkflowOutcome(transaction as never, {
+    ...outcome,
+    executionId: 'run',
+    workflowId: 'workflow',
+    workflowLabel: 'Daily Posts',
+    workflowOwnerUserId: 'owner',
+    organizationId: 'org',
+    occurredAt: new Date(),
+    error: 'Workflow node failed',
+    failure: formatAgentError('insufficient credits'),
+  });
+  expect(transaction.notificationEvent.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      create: expect.objectContaining({
+        sourceType: 'workflow_execution',
+        payload: expect.objectContaining({
+          error: 'Workflow node failed',
+          failure: null,
+        }),
+      }),
+    }),
+  );
+  expect(transaction.notificationDelivery.upsert).toHaveBeenCalledWith(
+    expect.objectContaining({
+      create: expect.objectContaining({ topic: 'workflow.status' }),
+    }),
+  );
+});

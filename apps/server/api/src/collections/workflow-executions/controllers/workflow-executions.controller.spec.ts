@@ -342,6 +342,26 @@ describe('WorkflowExecutionsController', () => {
       expect(mockService.findAll).not.toHaveBeenCalled();
     });
 
+    it('includes unclassified historical failures in the unknown filter', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [] });
+      await controller.findAdminFailures(
+        mockRequest,
+        { isSuperAdmin: true } as never,
+        {
+          failureReason: AgentFailureReason.UNKNOWN,
+          limit: 20,
+          offset: 0,
+        },
+      );
+      const where = mockService.findAll.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { failureReason: AgentFailureReason.UNKNOWN },
+        { failureReason: null },
+      ]);
+      expect(where.isDeleted).toBe(false);
+      expect(JSON.stringify(where.workflow)).toContain('agent.turn.execute');
+    });
+
     it('queries only non-deleted agent failures with stable pagination and reason filtering', async () => {
       mockService.findAll.mockResolvedValue({ docs: [] });
       await controller.findAdminFailures(
@@ -360,13 +380,15 @@ describe('WorkflowExecutionsController', () => {
             isDeleted: false,
             status: WorkflowExecutionStatus.FAILED,
             failureReason: AgentFailureReason.RATE_LIMITED,
-            workflow: expect.objectContaining({
-              isDeleted: false,
-              AND: expect.any(Array),
-            }),
+            workflow: {
+              is: expect.objectContaining({
+                isDeleted: false,
+                AND: expect.any(Array),
+              }),
+            },
           }),
         }),
-        expect.objectContaining({ limit: 20, offset: 40 }),
+        expect.objectContaining({ limit: 20, page: 3 }),
       );
       const where = mockService.findAll.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('organizationId');

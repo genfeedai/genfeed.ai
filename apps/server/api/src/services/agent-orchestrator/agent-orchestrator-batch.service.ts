@@ -177,10 +177,7 @@ export class AgentOrchestratorBatchService {
     });
 
     if (!result.success) {
-      if (params.context.executionMode === 'background') {
-        throw new Error(result.error ?? 'Batch generation failed');
-      }
-      await this.streamEffects.publishStreamErrorOnly(
+      await this.publishBatchFailure(
         params.context,
         params.threadId,
         result.error ?? 'Batch generation failed',
@@ -272,6 +269,17 @@ export class AgentOrchestratorBatchService {
     });
 
     return true;
+  }
+
+  private async publishBatchFailure(
+    context: AgentChatContext,
+    threadId: string,
+    error: string,
+  ): Promise<void> {
+    if (context.executionMode === 'background') {
+      throw new Error(error);
+    }
+    await this.streamEffects.publishStreamErrorOnly(context, threadId, error);
   }
 
   isBatchGenerationIntent(content: string): boolean {

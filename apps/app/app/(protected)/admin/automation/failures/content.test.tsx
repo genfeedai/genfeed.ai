@@ -6,6 +6,12 @@ import AgentFailuresPage from './content';
 import '@testing-library/jest-dom/vitest';
 
 const mocks = vi.hoisted(() => ({ list: vi.fn(), getService: vi.fn() }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
@@ -65,6 +71,7 @@ describe('AgentFailuresPage', () => {
         workflowId: 'workflow-1',
         createdAt: '2026-09-01T12:00:00Z',
         failureReason: 'TIMEOUT',
+        error: 'Provider request abc timed out after 60 seconds.',
         failure: {
           summary: 'The provider timed out.',
           recovery: 'Retry the run.',
@@ -74,6 +81,10 @@ describe('AgentFailuresPage', () => {
     render(<AgentFailuresPage />);
     expect(await screen.findByText('org-19')).toBeInTheDocument();
     expect(screen.getAllByText('Retry the run.')).toHaveLength(20);
+    expect(screen.getAllByText('The provider timed out.')).toHaveLength(20);
+    expect(
+      screen.getAllByText('Provider request abc timed out after 60 seconds.'),
+    ).toHaveLength(20);
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() =>
       expect(mocks.list).toHaveBeenLastCalledWith(

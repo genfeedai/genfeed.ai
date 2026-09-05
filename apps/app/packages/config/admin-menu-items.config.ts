@@ -151,9 +151,9 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
   {
     group: 'AI & Automation',
     hrefScope: 'global',
-    href: '/admin/automation/failures',
+    href: APP_ROUTES.ADMIN.AUTOMATION.FAILURES,
     label: 'Agent Failures',
-    matchPaths: ['/admin/automation/failures'],
+    matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.FAILURES],
     outline: ClipboardList,
     solid: ClipboardList,
   },

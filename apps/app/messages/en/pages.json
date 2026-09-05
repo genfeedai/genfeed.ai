@@ -1207,5 +1207,46 @@
     "verify": "Verify",
     "verifyConnection": "Verify MCP connection",
     "verifyInClient": "Verify in client"
+  },
+  "agentFailures": {
+    "title": "Agent Failures",
+    "description": "Failed agent runs across all organizations, with recovery guidance.",
+    "refresh": "Refresh",
+    "feed": "Failure feed",
+    "reasonFilter": "Failure reason",
+    "allReasons": "All reasons",
+    "loadError": "Agent failures could not be loaded.",
+    "retry": "Retry",
+    "empty": "No agent failures found",
+    "noError": "No error details recorded",
+    "recoveryFallback": "Review the execution details before retrying.",
+    "previous": "Previous",
+    "next": "Next",
+    "columns": {
+      "run": "Run",
+      "organization": "Organization",
+      "workflow": "Workflow",
+      "failedAt": "Failed at",
+      "reason": "Reason",
+      "error": "Error",
+      "recovery": "Recovery"
+    },
+    "reasons": {
+      "PROVIDER_CONFIGURATION": "Provider configuration",
+      "INSUFFICIENT_CREDITS": "Insufficient credits",
+      "RATE_LIMITED": "Rate limited",
+      "TIMEOUT": "Timeout",
+      "DATA_SAVE_FAILED": "Data save failed",
+      "SESSION_EXPIRED": "Session expired",
+      "CONNECTION_INTERRUPTED": "Connection interrupted",
+      "CANCELLED": "Cancelled",
+      "PROVIDER_AUTHENTICATION": "Provider authentication",
+      "WORKSPACE_MISSING": "Workspace missing",
+      "ACTION_NOT_ALLOWED": "Action not allowed",
+      "MODEL_UNAVAILABLE": "Model unavailable",
+      "PROVIDER_ACCESS_DENIED": "Provider access denied",
+      "PROVIDER_UNAVAILABLE": "Provider unavailable",
+      "UNKNOWN": "Unknown"
+    }
   }
 }

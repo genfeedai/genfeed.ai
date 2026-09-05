@@ -85,6 +85,9 @@ describe('SettingsNotificationsPage', () => {
         screen.getByRole('switch', { name: 'Agent Emails' }),
       ).toBeEnabled(),
     );
+    expect(
+      screen.getByText('Send an email when an agent run fails.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Email Notifications')).toBeInTheDocument();
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
     expect(screen.getByText('Video Emails')).toBeInTheDocument();

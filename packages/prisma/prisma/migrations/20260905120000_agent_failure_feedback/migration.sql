@@ -8,10 +8,3 @@ CREATE TYPE "AgentFailureReason" AS ENUM (
 ALTER TABLE "workflow_executions"
   ADD COLUMN "failureReason" "AgentFailureReason",
   ADD COLUMN "failure" JSONB;
-
-UPDATE "workflow_executions"
-SET "failureReason" = 'UNKNOWN'
-WHERE "status" = 'FAILED';
-
-CREATE INDEX "workflow_executions_failure_feed_idx"
-  ON "workflow_executions" ("status", "isDeleted", "failureReason", "completedAt" DESC, "id");
