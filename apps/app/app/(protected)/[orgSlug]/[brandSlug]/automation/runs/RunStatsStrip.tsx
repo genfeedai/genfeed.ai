@@ -1,33 +1,49 @@
 import type { RunStatsStripProps } from '@props/automation/run-stats-strip.props';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
+import {
+  Activity,
+  CheckCircle2,
+  CircleAlert,
+  Coins,
+  ListChecks,
+} from 'lucide-react';
 
+/** Same KPI cards as the other overviews; five stats on one row at desktop. */
 export default function RunStatsStrip({
   isLoading,
   stats,
 }: RunStatsStripProps) {
-  const items = [
-    { label: 'Total', value: stats.total },
-    { label: 'Active', value: stats.active },
-    { label: 'Completed', value: stats.completed },
-    { label: 'Failed', value: stats.failed },
-    { label: 'Credits', value: stats.totalCredits },
-  ];
-
   return (
-    <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-      {items.map((item) => (
-        <div className="gen-card flex flex-col gap-1 p-4" key={item.label}>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            {item.label}
-          </span>
-          {isLoading ? (
-            <div className="h-7 w-16 animate-pulse bg-muted" />
-          ) : (
-            <span className="text-2xl font-bold tabular-nums">
-              {item.value.toLocaleString()}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
+    <KPISection
+      gridCols={{ desktop: 5, mobile: 2, tablet: 3 }}
+      isLoading={isLoading}
+      items={[
+        {
+          icon: ListChecks,
+          label: 'Total',
+          value: stats.total.toLocaleString(),
+        },
+        {
+          icon: Activity,
+          label: 'Active',
+          value: stats.active.toLocaleString(),
+        },
+        {
+          icon: CheckCircle2,
+          label: 'Completed',
+          value: stats.completed.toLocaleString(),
+        },
+        {
+          icon: CircleAlert,
+          label: 'Failed',
+          value: stats.failed.toLocaleString(),
+        },
+        {
+          icon: Coins,
+          label: 'Credits',
+          value: stats.totalCredits.toLocaleString(),
+        },
+      ]}
+    />
   );
 }

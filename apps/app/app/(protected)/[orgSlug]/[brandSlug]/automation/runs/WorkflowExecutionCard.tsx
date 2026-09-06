@@ -4,7 +4,6 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkflowExecutionCardProps } from '@props/automation/workflow-execution-card.props';
 import Badge from '@ui/display/badge/Badge';
@@ -12,41 +11,12 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-const STATUS_LABELS: Record<WorkflowExecutionStatus, string> = {
-  [WorkflowExecutionStatus.CANCELLED]: 'Cancelled',
-  [WorkflowExecutionStatus.COMPLETED]: 'Completed',
-  [WorkflowExecutionStatus.FAILED]: 'Failed',
-  [WorkflowExecutionStatus.PENDING]: 'Pending',
-  [WorkflowExecutionStatus.RUNNING]: 'Running',
-};
-
-function formatDuration(ms?: number): string {
-  if (!ms) return '-';
-  if (ms < 1000) return `${ms}ms`;
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-}
-
-function formatRelativeTime(date: string): string {
-  const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
-}
-
-function getExecutionLabel(
-  execution: IWorkflowExecution,
-  fallback: string,
-): string {
-  const metadataLabel = execution.metadata?.label;
-  return (
-    execution.workflow?.label ??
-    (typeof metadataLabel === 'string' ? metadataLabel : undefined) ??
-    fallback
-  );
-}
+import {
+  EXECUTION_STATUS_LABELS,
+  formatExecutionDuration,
+  formatExecutionRelativeTime,
+  getExecutionLabel,
+} from './workflow-execution.helpers';
 
 export default function WorkflowExecutionCard({
   execution,
@@ -73,7 +43,7 @@ export default function WorkflowExecutionCard({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Badge status={execution.status.toLowerCase()}>
-            {STATUS_LABELS[execution.status]}
+            {EXECUTION_STATUS_LABELS[execution.status]}
           </Badge>
           <span className="truncate text-sm font-medium">
             {getExecutionLabel(execution, translate('unavailableWorkflow'))}
@@ -86,10 +56,10 @@ export default function WorkflowExecutionCard({
             </span>
           ) : null}
           {execution.durationMs ? (
-            <span>{formatDuration(execution.durationMs)}</span>
+            <span>{formatExecutionDuration(execution.durationMs)}</span>
           ) : null}
           <span>
-            {formatRelativeTime(
+            {formatExecutionRelativeTime(
               execution.completedAt ??
                 execution.startedAt ??
                 execution.createdAt,
