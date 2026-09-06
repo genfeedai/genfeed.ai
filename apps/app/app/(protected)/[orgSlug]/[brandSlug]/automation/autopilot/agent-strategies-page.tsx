@@ -10,7 +10,6 @@ import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 import AgentStrategiesEmptyState from './AgentStrategiesEmptyState';
-import AgentStrategiesInfoBanner from './AgentStrategiesInfoBanner';
 import AgentStrategyDialog from './AgentStrategyDialog';
 import { useAgentStrategiesColumns } from './useAgentStrategiesColumns';
 import { useAgentStrategiesPage } from './useAgentStrategiesPage';
@@ -51,9 +50,6 @@ export default function AgentStrategiesPage() {
           </Button>
         }
       >
-        <AgentStrategiesInfoBanner
-          workflowsHref={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}
-        />
         <AppTable<AgentStrategy>
           items={strategies}
           columns={columns}

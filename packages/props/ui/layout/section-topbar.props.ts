@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { PageHelpContent } from './page-help.props';
 
 /**
  * Section topbar contract (reference: Studio's AssetControlsHeader).
@@ -28,7 +29,10 @@ export interface SectionTopbarProps {
    * - `visible`: always show the title row
    */
   titleVisibility?: 'auto' | 'visible' | 'sr-only';
-  /** Optional help popover, rendered as a ghost icon trigger after `actions` */
-  help?: { title: string; body: ReactNode };
+  /**
+   * Optional help popover, rendered as a ghost icon trigger after `actions`.
+   * Falls back to the route-level help supplied by `PageHelpProvider`.
+   */
+  help?: PageHelpContent | null;
   className?: string;
 }

@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-one',
+    credentials: [],
     isReady: true,
     organizationId: 'org-one',
   }),

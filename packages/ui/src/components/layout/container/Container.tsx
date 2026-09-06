@@ -1,9 +1,11 @@
 'use client';
 
+import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
+import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ComponentType, ReactNode } from 'react';
@@ -39,6 +41,7 @@ export default function Container({
   onTabChange: controlledOnTabChange,
   left,
   right,
+  help,
   children,
   bodyClassName,
   fullWidth = true,
@@ -48,11 +51,15 @@ export default function Container({
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
   const hasLeft = Boolean(left);
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+  const routeHelp = usePageHelp();
+  // Nested containers never repeat the page-level help trigger.
+  const resolvedHelp = isNested ? null : help === undefined ? routeHelp : help;
+  const helpNode = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
 
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
-  const hasHeaderRight = Boolean(right);
+  const hasHeaderRight = Boolean(right) || Boolean(helpNode);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -159,6 +166,7 @@ export default function Container({
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
             {right}
+            {helpNode}
             {moduleTabsNode}
           </div>
         ) : usesModuleLocalChrome ? (
@@ -168,7 +176,7 @@ export default function Container({
             icon={sectionIcon}
             titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
             actions={
-              hasHeaderRight ? (
+              right ? (
                 <div
                   data-testid="container-header-actions"
                   className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
@@ -177,6 +185,7 @@ export default function Container({
                 </div>
               ) : undefined
             }
+            help={resolvedHelp}
             tabs={moduleTabsNode ?? undefined}
           />
         ) : null}
@@ -198,6 +207,7 @@ export default function Container({
               className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
             >
               {right}
+              {helpNode}
             </div>
           </div>
         ) : null}
