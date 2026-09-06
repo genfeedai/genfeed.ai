@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
@@ -490,12 +492,21 @@ export class WorkflowNodeGraphRunnerService {
   ): Promise<GraphNodeStep> {
     try {
       const executeNode = (signal?: AbortSignal) =>
-        this.runtimeService.executeSingleNode(
-          node,
-          inputs,
-          state.workflow,
-          state.executionId,
-          signal,
+        runWithWorkflowAccounting(
+          {
+            organizationId: state.workflow.organizationId,
+            workflowExecutionId: state.executionId,
+            workflowNodeId: node.id,
+            workflowOperationId: randomUUID(),
+          },
+          () =>
+            this.runtimeService.executeSingleNode(
+              node,
+              inputs,
+              state.workflow,
+              state.executionId,
+              signal,
+            ),
         );
       const initialResult =
         this.nodeClaimService && claimed.durableLease

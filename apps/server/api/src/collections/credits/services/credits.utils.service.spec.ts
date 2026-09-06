@@ -508,8 +508,38 @@ describe('CreditsUtilsService', () => {
         'refund',
         expect.any(Date),
         txClient,
+        undefined,
       );
     });
+  });
+
+  it('does not move balance or emit another event when a refund is replayed', async () => {
+    const service = buildService();
+    txCreditTransactionFindFirst.mockResolvedValueOnce({
+      id: 'refund',
+      balanceAfter: 110,
+    });
+    await service.refundOrganizationCredits(
+      'org_1',
+      10,
+      'system',
+      'refund',
+      new Date('2027-01-01T00:00:00Z'),
+      { idempotencyKey: 'batch-refund:batch:1' },
+    );
+    expect(txCreditTransactionFindFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org_1',
+        isDeleted: false,
+        category: 'refund',
+        idempotencyKey: 'batch-refund:batch:1',
+      },
+    });
+    expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).not.toHaveBeenCalled();
+    expect(websocketService.emit).not.toHaveBeenCalled();
   });
 
   describe('resetOrganizationCredits', () => {

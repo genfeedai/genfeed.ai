@@ -135,6 +135,7 @@ export interface ICreditsUtilsService {
     source: string,
     description: string,
     expiresAt: Date,
+    options?: IAddCreditsOptions,
   ): Promise<void>;
 
   /**

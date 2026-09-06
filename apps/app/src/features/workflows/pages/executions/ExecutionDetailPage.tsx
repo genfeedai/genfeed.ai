@@ -37,6 +37,7 @@ interface NodeResult {
 }
 
 interface ExecutionDetail {
+  accounting?: ExecutionResult['accounting'];
   runId: string;
   workflowId: string;
   workflowLabel: string;
@@ -71,6 +72,7 @@ function mapExecution(result: ExecutionResult): ExecutionDetail {
   const workflowLabel = result.workflow?.label ?? result.workflowId;
 
   return {
+    accounting: result.accounting,
     completedAt: result.completedAt,
     durationMs: result.durationMs,
     error: result.error,
@@ -231,6 +233,7 @@ export default function ExecutionDetailPage({
       />
 
       <ExecutionSummaryBar
+        accounting={execution.accounting}
         status={execution.status}
         startedAt={startedAt}
         duration={duration}
@@ -250,6 +253,9 @@ export default function ExecutionDetailPage({
               <ExecutionNodeResultItem
                 key={result.nodeId}
                 result={result}
+                accounting={execution.accounting?.nodes.find(
+                  (node) => node.nodeId === result.nodeId,
+                )}
                 isExpanded={expandedNodes.has(result.nodeId)}
                 onToggle={toggleNodeExpand}
               />

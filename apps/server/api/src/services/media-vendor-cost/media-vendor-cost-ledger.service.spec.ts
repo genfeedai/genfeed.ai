@@ -4,7 +4,13 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('MediaVendorCostLedgerService', () => {
   const prisma = {
+    workflowExecution: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+    },
+    workflowNodeContinuation: { findFirst: vi.fn().mockResolvedValue(null) },
     mediaVendorCost: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       create: vi.fn().mockResolvedValue(undefined),
       groupBy: vi.fn().mockResolvedValue([]),
       upsert: vi.fn().mockResolvedValue(undefined),
@@ -42,6 +48,7 @@ describe('MediaVendorCostLedgerService', () => {
 
     expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith({
       create: {
+        costEvidence: 'unknown',
         brandId: 'brand-1',
         category: 'video',
         idempotencyKey: 'media:org-1:ing-1',
@@ -80,5 +87,126 @@ describe('MediaVendorCostLedgerService', () => {
         organizationId: 'org-1',
       },
     });
+  });
+  it('reconstructs durable callback attribution and deduplicates by output', async () => {
+    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
+      id: 'operation',
+      executionId: 'run',
+      nodeId: 'node',
+    });
+    await service.record({
+      ingredientId: 'output',
+      organizationId: 'org',
+      category: 'image',
+      provider: 'replicate',
+      model: 'model',
+      units: 1,
+      vendorCostMicros: 123,
+      isByok: false,
+      costEvidence: 'observed',
+    });
+    expect(prisma.workflowNodeContinuation.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          ingredientId: 'output',
+          organizationId: 'org',
+        },
+      }),
+    );
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      where: { id: 'run', organizationId: 'org', isDeleted: false },
+      select: { id: true },
+    });
+    expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          workflowExecutionId: 'run',
+          workflowNodeId: 'node',
+          workflowOperationId: 'operation',
+          costEvidence: 'observed',
+        }),
+        update: {},
+      }),
+    );
+  });
+  it('settles late evidence using pinned pricing and an atomic unresolved guard', async () => {
+    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
+      id: 'operation',
+      executionId: 'run',
+      nodeId: 'node',
+    });
+    prisma.mediaVendorCost.findFirst.mockResolvedValue({
+      pricingSnapshot: {
+        providerCostUsd: 0.12,
+        pricingType: 'per-second',
+        isByok: false,
+      },
+      costEvidence: 'unknown',
+    });
+    await service.record({
+      ingredientId: 'output',
+      organizationId: 'org',
+      category: 'video',
+      provider: 'replicate',
+      model: 'model',
+      units: 999,
+      realizedDurationSeconds: 2.5,
+      vendorCostMicros: 9999999,
+      isByok: true,
+      costEvidence: 'calculated',
+    });
+    expect(prisma.mediaVendorCost.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org',
+        isDeleted: false,
+        idempotencyKey: 'media:org:output',
+        costEvidence: { in: ['pending', 'unknown'] },
+      },
+      data: {
+        costEvidence: 'calculated',
+        vendorCostMicros: 300000,
+        units: 2.5,
+        brandId: null,
+        isByok: false,
+      },
+    });
+  });
+  it('settles a durable workflow intent even after execution deletion without attributing a new row', async () => {
+    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
+      id: 'continuation',
+      executionId: 'run',
+      nodeId: 'avatar',
+    });
+    prisma.workflowExecution.findFirst.mockResolvedValue(null);
+    prisma.mediaVendorCost.findFirst.mockResolvedValue({
+      costEvidence: 'pending',
+      pricingSnapshot: { isByok: null, billingDisposition: 'pending_charge' },
+    });
+    await service.record({
+      organizationId: 'org-1',
+      ingredientId: 'avatar',
+      category: 'video',
+      provider: 'heygen',
+      model: 'avatar',
+      isByok: true,
+      units: 1,
+      vendorCostMicros: 300000,
+      costEvidence: 'observed',
+    });
+    expect(prisma.mediaVendorCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          idempotencyKey: 'media:org-1:avatar',
+        }),
+        data: expect.objectContaining({
+          isByok: true,
+          vendorCostMicros: 0,
+          costEvidence: 'byok',
+        }),
+      }),
+    );
+    expect(prisma.mediaVendorCost.upsert).not.toHaveBeenCalled();
   });
 });

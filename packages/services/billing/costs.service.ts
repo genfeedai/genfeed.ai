@@ -1,3 +1,4 @@
+import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   ICostReportEntriesQuery,
   ICostReportEntry,
@@ -22,6 +23,24 @@ export class CostsService extends HTTPBaseService {
       CostsService,
       token,
     ) as CostsService;
+  }
+
+  async getWorkflows(
+    query: ICostReportQuery,
+  ): Promise<WorkflowCostReportExecution[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      '/workflows',
+      { params: query },
+    );
+    return deserializeCollection<WorkflowCostReportExecution>(response.data);
+  }
+
+  async exportWorkflows(query: ICostReportQuery): Promise<ArrayBuffer> {
+    const response = await this.instance.get<ArrayBuffer>('/workflows/export', {
+      params: query,
+      responseType: 'arraybuffer',
+    });
+    return response.data;
   }
 
   async getSummary(query: ICostReportQuery): Promise<ICostReportSummary> {

@@ -1,3 +1,4 @@
+import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   ActivitySource,
@@ -31,7 +32,10 @@ describe('CreditDeductionProcessor', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
-  let prisma: { ingredient: { findFirst: ReturnType<typeof vi.fn> } };
+  let prisma: {
+    ingredient: { findFirst: ReturnType<typeof vi.fn> };
+    workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
+  };
 
   beforeEach(() => {
     creditsUtilsService = {
@@ -54,7 +58,10 @@ describe('CreditDeductionProcessor', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
-    prisma = { ingredient: { findFirst: vi.fn() } };
+    prisma = {
+      ingredient: { findFirst: vi.fn() },
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
 
     processor = new CreditDeductionProcessor(
       creditsUtilsService as never,
@@ -66,6 +73,46 @@ describe('CreditDeductionProcessor', () => {
     );
   });
 
+  it('deducts a trusted queued charge when its execution is deleted or unavailable, without attaching its scope', async () => {
+    const job = buildJob({});
+    job.data.workflowAccounting = {
+      organizationId: job.data.organizationId,
+      workflowExecutionId: 'unavailable',
+      workflowNodeId: 'node',
+      workflowOperationId: 'attempt',
+    };
+    creditsUtilsService.deductCreditsFromOrganization.mockImplementation(
+      async () => {
+        expect(currentWorkflowAccountingScope()).toBeUndefined();
+      },
+    );
+    await processor.process(job);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'unavailable',
+        organizationId: job.data.organizationId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+  });
+  it('rejects a forged organization scope before charging', async () => {
+    const job = buildJob({});
+    job.data.workflowAccounting = {
+      organizationId: 'foreign',
+      workflowExecutionId: 'run',
+      workflowNodeId: 'node',
+      workflowOperationId: 'attempt',
+    };
+    await expect(processor.process(job)).rejects.toThrow('does not match');
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
+  });
   it('waits to settle agent media credits until a durable asset is generated', async () => {
     prisma.ingredient.findFirst.mockResolvedValue({
       id: 'asset-1',
@@ -201,6 +248,7 @@ describe('CreditDeductionProcessor', () => {
       'Fleet voice clone compute',
       ActivitySource.VOICE_GENERATION,
       {
+        idempotencyKey: 'fleet-voice-clone-job-1',
         maxOverdraftCredits: undefined,
         metadata: {
           fleetJobId: 'job-1',
@@ -308,6 +356,9 @@ describe('CreditDeductionProcessor', () => {
       1234,
       ActivitySource.IMAGE_GENERATION,
       '[BYOK] BYOK image call',
+      undefined,
+      undefined,
+      { idempotencyKey: 'byok:org-1:job-1' },
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,

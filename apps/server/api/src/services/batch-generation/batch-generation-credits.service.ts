@@ -516,6 +516,11 @@ export class BatchGenerationCreditsService {
           'batch-generation-refund',
           `Batch generation ${params.batchId} settlement`,
           new Date(Date.now() + REFUND_EXPIRY_MS),
+          {
+            idempotencyKey: `batch-refund:${params.batchId}:${params.settlementSeq}`,
+            referenceId: params.batchId,
+            referenceType: 'batch_generation',
+          },
         );
       }
     } catch (error: unknown) {
