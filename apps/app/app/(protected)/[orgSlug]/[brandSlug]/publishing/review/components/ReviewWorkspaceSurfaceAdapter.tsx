@@ -219,8 +219,8 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
 
   const contextLabel = activeItem
-    ? `Review · ${getReviewItemTitle(activeItem)}`
-    : 'Review · Queue';
+    ? `Approval queue · ${getReviewItemTitle(activeItem)}`
+    : 'Approval queue';
 
   const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
     () => ({
