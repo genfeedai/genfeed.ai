@@ -1,3 +1,4 @@
+import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
 /**
  * Workflows Module
  * Automation templates: reusable multi-step workflows, triggers (manual/auto),
@@ -200,6 +201,7 @@ import { Module } from '@nestjs/common';
     BullModule.registerQueue({ name: HEYGEN_POLL_QUEUE }),
   ],
   providers: [
+    DailyPublishingService,
     AdAutomationWorkflowService,
     TwitterSocialAdapter,
     InstagramSocialAdapter,
