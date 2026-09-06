@@ -1,21 +1,14 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { SkillsPageHeaderProps } from '@props/settings/skills.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-import { SOURCE_FILTERS, type SourceFilterValue } from './skill-filter-options';
-
-type Props = {
-  agentHref: string;
-  brandLabel: string | undefined;
-  onRefresh: () => void;
-  onSourceFilterChange: (value: SourceFilterValue) => void;
-  sourceFilter: SourceFilterValue;
-};
+import { SOURCE_FILTERS } from './skill-filter-options';
 
 export default function SkillsPageHeader({
   agentHref,
@@ -23,7 +16,7 @@ export default function SkillsPageHeader({
   onRefresh,
   onSourceFilterChange,
   sourceFilter,
-}: Props) {
+}: SkillsPageHeaderProps) {
   const translate = useTranslations('common.settings.skills');
 
   return (

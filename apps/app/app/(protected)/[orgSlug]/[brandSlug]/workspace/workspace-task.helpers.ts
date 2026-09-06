@@ -1,42 +1,25 @@
-import type { ReviewDecision } from '@genfeedai/contracts';
+import { STATUS_LABELS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
+import type {
+  InboxView,
+  ReviewInboxSummary,
+  WorkspaceSection,
+  WorkspaceTaskRealtimePayload,
+} from '@props/workspace/workspace-task.props';
 import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,
   Task,
-  type TaskEvent,
 } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
-export type WorkspaceSection = 'inbox' | 'overview';
-export type InboxView = 'all' | 'recent' | 'unread';
-
-export interface ReviewInboxItem {
-  createdAt: string;
-  format?: string;
-  id: string;
-  platform?: string;
-  reviewDecision: ReviewDecision;
-  summary: string;
-  continuityQa?: VideoContinuityQaReport;
-}
-
-export interface ReviewInboxSummary {
-  approvedCount: number;
-  changesRequestedCount: number;
-  pendingCount: number;
-  readyCount: number;
-  recentItems: ReviewInboxItem[];
-  rejectedCount: number;
-}
-
-export interface WorkspaceTaskRealtimePayload {
-  event: TaskEvent;
-  organizationId: string;
-  task: Task;
-  taskId: string;
-}
+export type {
+  InboxView,
+  ReviewInboxItem,
+  ReviewInboxSummary,
+  WorkspaceSection,
+  WorkspaceTaskRealtimePayload,
+} from '@props/workspace/workspace-task.props';
 
 export const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
   approvedCount: 0,
@@ -181,23 +164,11 @@ export function formatTaskStatus(task: Task): string {
   if (task.dismissedAt != null) {
     return 'Dismissed';
   }
-
-  switch (task.status) {
-    case 'done':
-      return 'Completed';
-    case 'failed':
-      return 'Failed';
-    case 'in_review':
-      return task.reviewState === 'changes_requested'
-        ? 'Changes Requested'
-        : 'Needs Review';
-    case 'in_progress':
-      return 'In Progress';
-    case 'backlog':
-      return 'Triaged';
-    default:
-      return task.status;
+  if (task.status === 'in_review' && task.reviewState === 'changes_requested') {
+    return 'Changes Requested';
   }
+  // Same vocabulary as the tasks list and board.
+  return STATUS_LABELS[task.status as TaskStatus] ?? task.status;
 }
 
 export function getAdvancedToolHref(task: Task): string {

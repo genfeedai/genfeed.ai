@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { SkillCatalogCardProps } from '@props/settings/skills.props';
 import type { Skill } from '@services/content/skills.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -8,12 +9,7 @@ import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 import { useTranslations } from 'next-intl';
-import {
-  MODALITY_FILTERS,
-  type ModalityFilterValue,
-  STAGE_FILTERS,
-  type StageFilterValue,
-} from './skill-filter-options';
+import { MODALITY_FILTERS, STAGE_FILTERS } from './skill-filter-options';
 
 function getSourceBadgeVariant(
   source: Skill['source'],
@@ -48,20 +44,6 @@ function getModalityBadgeVariant(
   }
 }
 
-type Props = {
-  enabledSlugs: string[];
-  filteredSkills: Skill[];
-  isLoading: boolean;
-  isTogglingSkill: boolean;
-  modalityFilter: ModalityFilterValue;
-  onModalityFilterChange: (value: ModalityFilterValue) => void;
-  onSkillSelect: (id: string) => void;
-  onStageFilterChange: (value: StageFilterValue) => void;
-  onToggleSkill: (slug: string) => void;
-  selectedSkillId: string | undefined;
-  stageFilter: StageFilterValue;
-};
-
 export default function SkillCatalogCard({
   enabledSlugs,
   filteredSkills,
@@ -74,7 +56,7 @@ export default function SkillCatalogCard({
   onToggleSkill,
   selectedSkillId,
   stageFilter,
-}: Props) {
+}: SkillCatalogCardProps) {
   const translate = useTranslations('common.settings.skills');
 
   return (

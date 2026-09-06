@@ -7,13 +7,11 @@ import {
   CardVariant,
   PageScope,
 } from '@genfeedai/contracts';
-import type {
-  IBatchItem,
-  IBatchSummary,
-} from '@genfeedai/contracts/interfaces';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { buildPostsHrefFromApprovalQueue } from '@pages/posts/library/approval-queue-links.helpers';
+import type { ReviewQueueViewProps } from '@props/publishing/review-queue-view.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
@@ -33,10 +31,6 @@ import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
 } from './ReviewStatusFilters';
 import ReviewWorkspaceSurfaceAdapter from './ReviewWorkspaceSurfaceAdapter';
-import type {
-  ReviewFilterCounts,
-  ReviewStatusFilter,
-} from './review-grid.helpers';
 
 export function getBatchOptionLabel(batch: IBatchSummary): string {
   const shortId = batch.id.slice(-6);
@@ -45,40 +39,6 @@ export function getBatchOptionLabel(batch: IBatchSummary): string {
       ? batch.status.replaceAll('_', ' ').toLowerCase()
       : '';
   return `${shortId} · ${batch.totalCount} items${status ? ` · ${status}` : ''}`;
-}
-
-interface ReviewQueueViewProps {
-  activeFilters: readonly ReviewStatusFilter[];
-  activeItem: IBatchItem | null;
-  activeBatch: IBatchSummary | null;
-  activeBatchError: Error | null;
-  activeBatchId: string | null;
-  batchList: IBatchSummary[];
-  batchesError: Error | null;
-  canDiscardBatch: boolean;
-  filterCounts: ReviewFilterCounts;
-  hasInvalidBatchPayload: boolean;
-  isActioning: boolean;
-  isBatchLoading: boolean;
-  isRefreshing?: boolean;
-  selectedIds: Set<string>;
-  selectedPostId: string | null;
-  visibleItems: IBatchItem[];
-  onApprove: (itemId: string) => Promise<void>;
-  onAssign: (itemId: string, assigneeId: string) => Promise<void>;
-  onBatchChange: (value: string) => void;
-  onBulkApprove: () => void;
-  onBulkReject: () => void;
-  onBulkRewriteWithAgent: () => void;
-  onDiscardBatch: () => void;
-  onClosePostDetail: () => void;
-  onFilterChange: (filters: ReviewStatusFilter[]) => void;
-  onRefresh: () => void | Promise<void>;
-  onRequestChanges: (itemId: string, feedback?: string) => Promise<void>;
-  onReject: (itemId: string, feedback?: string) => Promise<void>;
-  onSelectItem: (itemId: string) => void;
-  onToggleSelect: (itemId: string) => void;
-  onUnassign: (itemId: string) => Promise<void>;
 }
 
 /**

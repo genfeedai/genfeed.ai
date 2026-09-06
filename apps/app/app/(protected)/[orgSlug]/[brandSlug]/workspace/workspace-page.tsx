@@ -2,11 +2,10 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { TabsProps } from '@props/ui/navigation/tabs.props';
+import type { WorkspacePageContentProps } from '@props/workspace/workspace-page.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
@@ -33,10 +32,7 @@ import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
   DEFAULT_REVIEW_INBOX,
   INBOX_VIEW_OPTIONS,
-  type InboxView,
-  type ReviewInboxSummary,
   WORKSPACE_SECTION_STACK_CLASS,
-  type WorkspaceSection,
 } from './workspace-task.helpers';
 import { WorkspaceTaskInspector } from './workspace-task-inspector';
 import { WorkspaceTaskQueueCard } from './workspace-task-queue-card';
@@ -48,14 +44,6 @@ const WorkspaceTaskComposer = dynamic(
     ),
   { ssr: false },
 );
-
-interface WorkspacePageContentProps {
-  defaultInboxView?: InboxView;
-  initialAnalytics?: Partial<IAnalytics>;
-  initialReviewInbox?: ReviewInboxSummary;
-  initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
-  section?: WorkspaceSection;
-}
 
 function WorkspacePageContentContent({
   defaultInboxView = 'unread',

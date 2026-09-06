@@ -1,8 +1,10 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, mergeConfig } from 'vitest/config';
 import baseConfig from '../vitest.config.mts';
 
+const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isShardRun = process.argv.some(
@@ -20,7 +22,10 @@ export default mergeConfig(
         // time and throws outside a file:// URL.
         {
           find: /^@sentry\/nextjs$/,
-          replacement: '@sentry/nextjs/build/esm/index.client.js',
+          replacement: path.join(
+            path.dirname(require.resolve('@sentry/nextjs/package.json')),
+            'build/esm/index.client.js',
+          ),
         },
         {
           find: /^@components\/buttons\/refresh\/button-refresh\/ButtonRefresh$/,

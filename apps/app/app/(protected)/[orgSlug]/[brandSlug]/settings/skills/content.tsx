@@ -7,7 +7,11 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { SkillDraft } from '@props/settings/skills.props';
+import type {
+  SkillsPageAction as PageAction,
+  SkillsPageState as PageState,
+  SkillDraft,
+} from '@props/settings/skills.props';
 import { type Skill, SkillsService } from '@services/content/skills.service';
 import Loading from '@ui/loading/default/Loading';
 import { useParams, useRouter } from 'next/navigation';
@@ -23,11 +27,6 @@ import {
 import SkillCatalogCard from './SkillCatalogCard';
 import SkillDetailCard from './SkillDetailCard';
 import SkillsPageHeader from './SkillsPageHeader';
-import type {
-  ModalityFilterValue,
-  SourceFilterValue,
-  StageFilterValue,
-} from './skill-filter-options';
 
 function emptyDraft(): SkillDraft {
   return {
@@ -46,35 +45,6 @@ function draftFromSkill(skill: Skill | null): SkillDraft {
     systemPromptTemplate: skill?.systemPromptTemplate ?? '',
   };
 }
-
-type PageState = {
-  skills: Skill[];
-  selectedSkillId: string;
-  sourceFilter: SourceFilterValue;
-  modalityFilter: ModalityFilterValue;
-  stageFilter: StageFilterValue;
-  isLoading: boolean;
-  isSavingSkill: boolean;
-  isCustomizing: boolean;
-  error: string | null;
-  skillDraft: SkillDraft;
-};
-
-type PageAction =
-  | { type: 'LOAD_START' }
-  | { type: 'LOAD_SUCCESS'; skills: Skill[] }
-  | { type: 'LOAD_ERROR'; message: string }
-  | { type: 'SELECT_SKILL'; id: string; draft: SkillDraft }
-  | { type: 'SET_SOURCE_FILTER'; value: SourceFilterValue }
-  | { type: 'SET_MODALITY_FILTER'; value: ModalityFilterValue }
-  | { type: 'SET_STAGE_FILTER'; value: StageFilterValue }
-  | { type: 'SAVE_START' }
-  | { type: 'SAVE_SUCCESS' }
-  | { type: 'SAVE_ERROR'; message: string }
-  | { type: 'CUSTOMIZE_START' }
-  | { type: 'CUSTOMIZE_SUCCESS'; newSkillId: string }
-  | { type: 'CUSTOMIZE_ERROR'; message: string }
-  | { type: 'SET_SKILL_DRAFT'; draft: SkillDraft };
 
 const initialState: PageState = {
   skills: [],

@@ -1,9 +1,7 @@
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { EnabledModelOption } from '@props/settings/model-routing.props';
 
-export type EnabledModelOption = {
-  label: string;
-  value: string;
-};
+export type { EnabledModelOption } from '@props/settings/model-routing.props';
 
 export function resolveEnabledModelOptions(
   enabledModelIds: string[],

@@ -7,10 +7,10 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Task, TasksService } from '@services/management/tasks.service';
+import type { WorkspaceOverviewSidebarProps } from '@props/workspace/workspace-overview-sidebar.props';
+import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
@@ -24,7 +24,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import type { ReviewInboxSummary } from './workspace-task.helpers';
 import {
   ADVANCED_TOOLS,
   LIBRARY_SNAPSHOT_LINKS,
@@ -33,22 +32,6 @@ import {
 import { WorkspaceTaskCard } from './workspace-task-card';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 import { WorkspaceTaskRow } from './workspace-task-row';
-
-interface WorkspaceOverviewSidebarProps {
-  busyTaskId: string | null;
-  historyPreviewItems: Task[];
-  activeExecutions: IWorkflowExecution[];
-  initialReviewInbox: ReviewInboxSummary;
-  inProgressTasks: Task[];
-  isTasksLoading?: boolean;
-  mutateTask: (
-    taskId: string,
-    operation: (service: TasksService) => Promise<Task>,
-  ) => Promise<void>;
-  openPlanningConversation: (task: Task) => Promise<void>;
-  replaceTaskSearchParam: (taskId: string | null) => void;
-  setSelectedTaskId: (taskId: string | null) => void;
-}
 
 export function WorkspaceOverviewSidebar({
   busyTaskId,

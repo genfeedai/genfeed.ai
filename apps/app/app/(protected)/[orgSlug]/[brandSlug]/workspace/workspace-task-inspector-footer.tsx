@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskInspectorFooterProps } from '@props/workspace/workspace-task-inspector-footer.props';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -13,20 +13,6 @@ import {
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
-import type { WorkspaceTaskLinkedIssueSummary } from './workspace-task-inspector-helpers';
-
-interface WorkspaceTaskInspectorFooterProps {
-  isBusy: boolean;
-  linkedIssueSummary: WorkspaceTaskLinkedIssueSummary;
-  onApprove: (taskId: string) => Promise<void>;
-  onDismiss: (taskId: string) => Promise<void>;
-  onPlanNextSteps: (task: Task) => Promise<void>;
-  onRequestChanges: (taskId: string) => Promise<void>;
-  showReviewActions: boolean;
-  task: Task;
-  taskToolHref: string;
-  taskToolLabel: string;
-}
 
 export function WorkspaceTaskInspectorFooter({
   isBusy,

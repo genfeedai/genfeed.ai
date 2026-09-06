@@ -1,16 +1,12 @@
 'use client';
 
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
 import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
 import { formatTaskStatus } from './workspace-task.helpers';
-
-interface WorkspaceTaskInspectorHeaderProps {
-  task: Task;
-}
 
 export function WorkspaceTaskInspectorHeader({
   task,

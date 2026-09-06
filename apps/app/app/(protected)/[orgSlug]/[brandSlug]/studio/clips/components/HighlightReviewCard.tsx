@@ -2,7 +2,7 @@
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
-  IHighlight,
+  HighlightReviewCardProps,
   RewriteAction,
   RewriteState,
 } from '@props/studio/clips.props';
@@ -21,17 +21,6 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useReducer, useRef } from 'react';
-import type { ClipsApiService } from '../services/clips-api.service';
-
-interface HighlightReviewCardProps {
-  highlight: IHighlight;
-  selected: boolean;
-  onToggle: () => void;
-  onTitleEdit: (text: string) => void;
-  onScriptEdit: (text: string) => void;
-  projectId?: string;
-  clipsService?: ClipsApiService;
-}
 
 const CLIP_TYPE_BADGE_CLASSES =
   'bg-secondary text-muted-foreground border-transparent';

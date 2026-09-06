@@ -3,28 +3,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskOutputsCardProps } from '@props/workspace/workspace-task-outputs-card.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import {
   getWorkspaceLinkedOutputDescription,
   getWorkspaceLinkedOutputTitle,
-  type WorkspaceTaskLinkedOutputSummary,
-  type WorkspaceTaskOutputGroup,
 } from './workspace-task-inspector-helpers';
-
-interface WorkspaceTaskOutputsCardProps {
-  approvedOutputIds: string[];
-  isBusy: boolean;
-  linkedOutputGroups: WorkspaceTaskOutputGroup[];
-  linkedOutputSummary: WorkspaceTaskLinkedOutputSummary;
-  onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
-  onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  taskId: string;
-  outputType: Task['outputType'];
-}
 
 export function WorkspaceTaskOutputsCard({
   approvedOutputIds,

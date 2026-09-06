@@ -5,7 +5,7 @@ import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
-import type { ProjectState } from '@props/studio/clips.props';
+import type { ClipsProgressViewProps } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
@@ -14,18 +14,7 @@ import { Check, Film, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import type { ClipsApiService } from '../services/clips-api.service';
 import ClipResultCard from './ClipResultCard';
-
-interface ClipsProgressViewProps {
-  clipsService: ClipsApiService;
-  isRetrying: boolean;
-  onReset: () => void;
-  onRetryFailedClips: () => void;
-  onRetrySource: () => void;
-  project: ProjectState;
-  selectedCount: number;
-}
 
 export default function ClipsProgressView({
   clipsService,

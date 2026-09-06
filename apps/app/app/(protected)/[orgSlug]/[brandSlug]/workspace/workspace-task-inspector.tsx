@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskInspectorProps } from '@props/workspace/workspace-task-inspector.props';
 import { Sheet, SheetContent } from '@ui/primitives/sheet';
 import { useMemo } from 'react';
 import { getAdvancedToolHref } from './workspace-task.helpers';
@@ -14,19 +14,6 @@ import {
   useWorkspaceTaskLinkedIssue,
   useWorkspaceTaskLinkedOutputs,
 } from './workspace-task-inspector-hooks';
-
-type WorkspaceTaskInspectorProps = {
-  busyTaskId: string | null;
-  onApprove: (taskId: string) => Promise<void>;
-  onDismiss: (taskId: string) => Promise<void>;
-  onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  onOpenChange: (open: boolean) => void;
-  onPlanNextSteps: (task: Task) => Promise<void>;
-  onRequestChanges: (taskId: string) => Promise<void>;
-  onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
-  onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  task: Task | null;
-};
 
 export function WorkspaceTaskInspector({
   busyTaskId,

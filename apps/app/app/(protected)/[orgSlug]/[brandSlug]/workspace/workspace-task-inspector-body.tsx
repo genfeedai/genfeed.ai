@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskInspectorBodyProps } from '@props/workspace/workspace-task-inspector-body.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, Clock } from 'lucide-react';
@@ -14,28 +14,8 @@ import {
   formatTaskTimestamp,
   getTaskContinuityQa,
 } from './workspace-task.helpers';
-import type {
-  WorkspaceTaskLinkedExecutionSummary,
-  WorkspaceTaskLinkedIssueSummary,
-  WorkspaceTaskLinkedOutputSummary,
-  WorkspaceTaskOutputGroup,
-} from './workspace-task-inspector-helpers';
 import { WorkspaceTaskOutputsCard } from './workspace-task-outputs-card';
 import { WorkspaceTaskThreadCard } from './workspace-task-thread-card';
-
-interface WorkspaceTaskInspectorBodyProps {
-  isBusy: boolean;
-  linkedIssueSummary: WorkspaceTaskLinkedIssueSummary;
-  linkedOutputGroups: WorkspaceTaskOutputGroup[];
-  linkedOutputSummary: WorkspaceTaskLinkedOutputSummary;
-  linkedExecutionSummary: WorkspaceTaskLinkedExecutionSummary & {
-    isLoading: boolean;
-  };
-  onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
-  onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  task: Task;
-}
 
 export function WorkspaceTaskInspectorBody({
   isBusy,

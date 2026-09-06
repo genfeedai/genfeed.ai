@@ -21,19 +21,9 @@ import {
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from '@pages/posts/list/release-posts-list-query';
+import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 
-export type PostsListSearchParams = Promise<{
-  view?: string;
-  account?: string | string[];
-  contentType?: string | string[];
-  executionState?: string | string[];
-  page?: string;
-  platform?: string;
-  publicationState?: string;
-  search?: string;
-  sort?: string;
-  status?: string;
-}>;
+export type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 
 /**
  * The single Posts list. Every lifecycle state is a query-param filter
