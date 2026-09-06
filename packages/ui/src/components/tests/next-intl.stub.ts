@@ -190,6 +190,7 @@ const UI_TEST_MESSAGES = {
     },
     publish: {
       calendar: {
+        today: 'Today',
         schedule: 'Schedule',
         scheduleAt: 'Schedule at {label}',
       },
