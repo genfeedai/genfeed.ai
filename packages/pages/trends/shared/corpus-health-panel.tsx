@@ -1,25 +1,16 @@
 'use client';
 
 import type { CorpusHealthPanelProps } from '@props/trends/corpus-health-panel.props';
-import type { TrendCorpusFreshnessProviderFailure } from '@props/trends/trends-page.props';
 import Badge from '@ui/display/badge/Badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { useTranslations } from 'next-intl';
 
 const PLATFORM_LABELS: Record<string, string> = {
   reddit: 'Reddit',
   tiktok: 'TikTok',
   twitter: 'X / Twitter',
 };
-const FAILURE_COPY: Record<
-  TrendCorpusFreshnessProviderFailure['reason'],
-  string
-> = {
-  empty_source_preview: 'No source previews were observed.',
-  fallback_source_preview: 'Saved fallback previews are being used.',
-  stale_source_preview: 'Saved source previews are stale.',
-};
-
 function normalizePlatform(platform: string): string {
   const normalized = platform.toLowerCase();
   return normalized === 'x' ? 'twitter' : normalized;
@@ -30,6 +21,7 @@ export default function CorpusHealthPanel({
   isUnavailable = false,
   selectedPlatforms = [],
 }: CorpusHealthPanelProps) {
+  const translate = useTranslations('pages.analytics.trends.corpusHealth');
   const platforms = Array.from(
     new Set(
       (selectedPlatforms.length > 0
@@ -86,20 +78,22 @@ export default function CorpusHealthPanel({
 
   return (
     <section
-      aria-label="Source health"
+      aria-label={translate('title')}
       className="mb-4 space-y-3 rounded-lg border border-border p-4"
     >
       <div role="status" className="space-y-2">
         <Heading as="h2" size="sm">
-          Source health
+          {translate('title')}
         </Heading>
         <Badge variant={variant}>
-          {status ? `Trend corpus ${status}` : 'Checking trend corpus'}
+          {status
+            ? translate(`corpusStatus.${status}`)
+            : translate('checkingCorpus')}
         </Badge>
         <Text size="sm" color="subtle-60">
           {isUnavailable
-            ? 'Source health could not be loaded. Previously loaded health may be outdated. Saved items remain available.'
-            : 'Health describes saved source coverage. It does not confirm that a provider refresh succeeded.'}
+            ? translate('unavailableDescription')
+            : translate('description')}
         </Text>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
@@ -127,30 +121,33 @@ export default function CorpusHealthPanel({
                 <div className="space-y-1">
                   <Text size="sm">
                     {!health && !isUnavailable
-                      ? 'Checking health'
-                      : 'Health unavailable'}
+                      ? translate('checkingHealth')
+                      : translate('unavailableHealth')}
                   </Text>
                   {health && !isUnavailable && segments.length === 0 ? (
                     <Text size="xs" color="subtle-60">
-                      No saved health is available for this platform. Reload to
-                      check again.
+                      {translate('missingHealth')}
                     </Text>
                   ) : null}
                 </div>
               ) : null}
               {segments.length === 0 ? (
                 <Text size="xs" color="subtle-60">
-                  Last observed source timestamp: Not recorded
+                  {translate('sourceTimestamp', {
+                    timestamp: translate('notRecorded'),
+                  })}
                 </Text>
               ) : null}
               {segments.map((segment) => (
                 <div key={segment.id} className="space-y-1">
                   <Text size="sm">
-                    {segment.provider}: {segment.status}
+                    {segment.provider}: {translate(`status.${segment.status}`)}
                   </Text>
                   <Text size="xs" color="subtle-60">
-                    Last observed source timestamp:{' '}
-                    {segment.latestSeenAt ?? 'Not recorded'}
+                    {translate('sourceTimestamp', {
+                      timestamp:
+                        segment.latestSeenAt ?? translate('notRecorded'),
+                    })}
                   </Text>
                 </div>
               ))}
@@ -160,21 +157,21 @@ export default function CorpusHealthPanel({
                   className="space-y-1"
                 >
                   <Text size="sm">
-                    {failure.provider}:{' '}
-                    {FAILURE_COPY[failure.reason] ??
-                      'Source preview health is unavailable.'}
+                    {failure.provider}: {translate(`failure.${failure.reason}`)}
                   </Text>
                   <Text size="xs" color="subtle-60">
-                    Last preview observation:{' '}
-                    {failure.latestObservedAt ?? 'Not recorded'}
+                    {translate('previewTimestamp', {
+                      timestamp:
+                        failure.latestObservedAt ?? translate('notRecorded'),
+                    })}
                   </Text>
                 </div>
               ))}
               <Text size="xs" color="subtle-60">
-                Last successful refresh: Not recorded
+                {translate('lastRefresh')}
               </Text>
               <Text size="xs" color="subtle-60">
-                Last attempt: Not recorded
+                {translate('lastAttempt')}
               </Text>
             </div>
           );

@@ -1554,14 +1554,6 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-corpus-freshness.service.ts",
-      "fingerprint": "ccc352fb80dccb3d0e8f",
-      "method": "findMany",
-      "model": "Trend",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "trend",
       "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
       "fingerprint": "fd3f70ba9e9572100833",
       "method": "findFirst",

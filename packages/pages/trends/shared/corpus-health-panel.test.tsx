@@ -1,8 +1,13 @@
 import type { TrendCorpusFreshnessHealth } from '@props/trends/trends-page.props';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import CorpusHealthPanel from './corpus-health-panel';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 const emptyHealth: TrendCorpusFreshnessHealth = {
   generatedAt: '2026-09-05T10:00:00Z',

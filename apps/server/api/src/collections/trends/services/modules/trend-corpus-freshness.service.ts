@@ -110,6 +110,7 @@ export class TrendCorpusFreshnessService {
           isDeleted: false,
         },
       }) as Promise<ReferenceHealthDoc[]>,
+      // tenant-scope-ignore: buildFreshnessTrendWhere excludes deleted rows and limits non-admin reads to the current organization plus the public corpus; platform admins inspect all organizations
       this.prisma.trend.findMany({
         orderBy: [{ platform: 'asc' }, { updatedAt: 'asc' }],
         select: {
