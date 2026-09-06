@@ -21,6 +21,7 @@ import {
   type TaskStatus,
 } from '@services/management/tasks.service';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
 export type {
@@ -64,11 +65,15 @@ export function useInboxViewOptions(): Array<{
   label: string;
 }> {
   const translate = useTranslations('pages.workspaceOverview');
-  return INBOX_VIEW_OPTION_KEYS.map((option) => ({
-    description: translate(option.descriptionKey),
-    id: option.id,
-    label: translate(option.labelKey),
-  }));
+  return useMemo(
+    () =>
+      INBOX_VIEW_OPTION_KEYS.map((option) => ({
+        description: translate(option.descriptionKey),
+        id: option.id,
+        label: translate(option.labelKey),
+      })),
+    [translate],
+  );
 }
 
 const SECTION_COPY_KEYS: Record<WorkspaceSection, WorkspaceSectionCopyEntry> = {
@@ -87,16 +92,19 @@ export function useWorkspaceSectionCopy(): Record<
   { description: string; title: string }
 > {
   const translate = useTranslations('pages.workspaceOverview');
-  return {
-    inbox: {
-      description: translate(SECTION_COPY_KEYS.inbox.descriptionKey),
-      title: translate(SECTION_COPY_KEYS.inbox.titleKey),
-    },
-    overview: {
-      description: translate(SECTION_COPY_KEYS.overview.descriptionKey),
-      title: translate(SECTION_COPY_KEYS.overview.titleKey),
-    },
-  };
+  return useMemo(
+    () => ({
+      inbox: {
+        description: translate(SECTION_COPY_KEYS.inbox.descriptionKey),
+        title: translate(SECTION_COPY_KEYS.inbox.titleKey),
+      },
+      overview: {
+        description: translate(SECTION_COPY_KEYS.overview.descriptionKey),
+        title: translate(SECTION_COPY_KEYS.overview.titleKey),
+      },
+    }),
+    [translate],
+  );
 }
 
 const ADVANCED_TOOL_KEYS: WorkspaceAdvancedTool[] = [
@@ -128,11 +136,15 @@ export function useAdvancedTools(): Array<{
   label: string;
 }> {
   const translate = useTranslations('pages.workspaceOverview');
-  return ADVANCED_TOOL_KEYS.map((tool) => ({
-    description: translate(tool.descriptionKey),
-    href: tool.href,
-    label: translate(tool.labelKey),
-  }));
+  return useMemo(
+    () =>
+      ADVANCED_TOOL_KEYS.map((tool) => ({
+        description: translate(tool.descriptionKey),
+        href: tool.href,
+        label: translate(tool.labelKey),
+      })),
+    [translate],
+  );
 }
 
 const LIBRARY_SNAPSHOT_LINK_KEYS: WorkspaceLibrarySnapshotLink[] = [
@@ -159,11 +171,15 @@ export function useLibrarySnapshotLinks(): Array<{
   label: string;
 }> {
   const translate = useTranslations('pages.workspaceOverview');
-  return LIBRARY_SNAPSHOT_LINK_KEYS.map((link) => ({
-    description: translate(link.descriptionKey),
-    href: link.href,
-    label: translate(link.labelKey),
-  }));
+  return useMemo(
+    () =>
+      LIBRARY_SNAPSHOT_LINK_KEYS.map((link) => ({
+        description: translate(link.descriptionKey),
+        href: link.href,
+        label: translate(link.labelKey),
+      })),
+    [translate],
+  );
 }
 
 export const WORKSPACE_CARD_GRID_GAP_CLASS =
