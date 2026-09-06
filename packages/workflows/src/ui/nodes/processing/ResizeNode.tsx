@@ -169,7 +169,8 @@ function ResizeNodeComponent(props: NodeProps) {
               <VideoPlayer
                 src={nodeData.outputMedia}
                 ariaLabel="Resized video output"
-                className="nodrag nowheel h-32 w-full rounded-md object-cover overflow-hidden"
+                mediaClassName="object-cover"
+                className="nodrag nowheel h-32 w-full rounded-md overflow-hidden"
                 config={{
                   autoPlay: false,
                   controls: true,

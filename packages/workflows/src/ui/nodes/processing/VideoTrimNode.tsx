@@ -176,6 +176,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             <VideoPlayer
               src={nodeData.outputVideo}
               ariaLabel="Trimmed video output"
+              mediaClassName="object-cover"
               className="nodrag nowheel w-full h-20 rounded overflow-hidden"
               config={{
                 autoPlay: false,

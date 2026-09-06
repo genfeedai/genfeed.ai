@@ -124,6 +124,21 @@ describe('FastlaneBlitz', () => {
     expect(screen.getByText('Hook A')).toBeInTheDocument();
   });
 
+  it.each(['ArrowLeft', 'ArrowRight'])(
+    'does not review an asset when %s targets its video',
+    (key) => {
+      const asset = makeAsset('video', 'Video hook');
+      asset.idea.format = 'video';
+      asset.ingredientUrl = 'https://cdn.example.com/video.mp4';
+      render(<Harness initial={[asset]} />);
+
+      fireEvent.keyDown(screen.getByLabelText('Video hook'), { key });
+      settleSwipe();
+
+      expect(screen.getByLabelText('Video hook')).toBeInTheDocument();
+    },
+  );
+
   it('reviews every asset in order without skipping (regression: skip-every-other)', () => {
     render(
       <Harness

@@ -60,7 +60,7 @@ export default function FastlaneBlitz({
       if (
         e.defaultPrevented ||
         (e.target instanceof Element &&
-          e.target.closest('button, input, [role="slider"]'))
+          e.target.closest('button, input, video, [role="slider"]'))
       )
         return;
       if (e.key === 'ArrowRight') triggerSwipe('right');

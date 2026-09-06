@@ -613,6 +613,7 @@ export function runControlGuard(options: RunOptions = {}): {
 // ─── Reporting ───────────────────────────────────────────────────────────────
 
 const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
+  'raw-media',
   'raw-html',
   'banned-import',
   'legacy-import',
@@ -624,6 +625,7 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
 ];
 
 const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
+  'raw-media': 'Use shared media components instead of raw media elements.',
   'raw-html': 'Use @ui/primitives/* instead of raw HTML elements.',
   'banned-import':
     'Import primitives from @ui/primitives/*, not dead wrappers.',

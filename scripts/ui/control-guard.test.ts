@@ -1,6 +1,8 @@
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type ControlGuardCategory,
@@ -33,6 +35,23 @@ function categoriesFor(relativePath: string): ControlGuardCategory[] {
 }
 
 describe('control-guard detection', () => {
+  it('reports the raw-media category and offending file through the CLI', () => {
+    const file = write(
+      'apps/app/RawVideo.tsx',
+      'export default function RawVideo(){return <video src="/clip.mp4" />;}',
+    );
+    const result = spawnSync(
+      'bun',
+      [fileURLToPath(new URL('./control-guard.ts', import.meta.url)), file],
+      { cwd: rootDir, encoding: 'utf8' },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('raw-media (required): 1 violation(s).');
+    expect(result.stderr).toContain(`${file}:1`);
+    expect(result.stderr).toContain('shared media');
+  });
+
   it.each(['canvas/NodeSearch', 'nodes/input/Prompt', 'ui/input'])(
     'requires shared controls throughout workflow UI (%s)',
     (surface) => {
