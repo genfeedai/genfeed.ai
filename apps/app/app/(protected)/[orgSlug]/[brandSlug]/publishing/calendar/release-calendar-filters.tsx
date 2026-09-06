@@ -13,8 +13,19 @@ import type {
   ReleaseCalendarFilterOption,
   ReleaseCalendarFiltersProps,
 } from '@props/publisher/release-calendar.props';
-import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { ListFilter } from 'lucide-react';
 
 /**
  * Enum values are lowercase, hyphenated wire identifiers. The dropdown shows a
@@ -81,52 +92,89 @@ export default function ReleaseCalendarFilters({
     }
   };
 
+  const facets: {
+    key: keyof CalendarFilters;
+    label: string;
+    options: ReleaseCalendarFilterOption[];
+  }[] = [
+    { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+    { key: 'platform', label: 'Platform', options: platformOptions },
+    { key: 'credentialId', label: 'Channel', options: credentialOptions },
+    {
+      key: 'executionState',
+      label: 'Target state',
+      options: EXECUTION_STATE_OPTIONS,
+    },
+    { key: 'source', label: 'Source', options: SOURCE_OPTIONS },
+  ];
+  const selectedCount = Object.values(filters).reduce(
+    (count, values) => count + values.length,
+    0,
+  );
+
   return (
-    <fieldset className="flex min-w-0 flex-wrap items-center gap-1.5 border-0">
-      <legend className="sr-only">Calendar filters</legend>
-      <DropdownMultiSelect
-        name="status"
-        onChange={handleChange}
-        options={STATUS_OPTIONS}
-        placeholder="All statuses"
-        values={filters.status}
-      />
-      <DropdownMultiSelect
-        name="platform"
-        onChange={handleChange}
-        options={platformOptions}
-        placeholder="All platforms"
-        values={filters.platform}
-      />
-      <DropdownMultiSelect
-        name="credentialId"
-        onChange={handleChange}
-        options={credentialOptions}
-        placeholder="All channels"
-        values={filters.credentialId}
-      />
-      <DropdownMultiSelect
-        name="executionState"
-        onChange={handleChange}
-        options={EXECUTION_STATE_OPTIONS}
-        placeholder="All target states"
-        values={filters.executionState}
-      />
-      <DropdownMultiSelect
-        name="source"
-        onChange={handleChange}
-        options={SOURCE_OPTIONS}
-        placeholder="All sources"
-        values={filters.source}
-      />
-      {hasAnyFilter(filters) ? (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
-          label="Clear filters"
-          onClick={() => onChange(EMPTY_RELEASE_CALENDAR_FILTERS)}
+          withWrapper={false}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
-        />
-      ) : null}
-    </fieldset>
+          aria-label="Calendar filters"
+        >
+          <ListFilter className="size-3.5" />
+          Filters{selectedCount > 0 ? ` (${selectedCount})` : ''}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {facets.map(({ key, label, options }) => (
+          <DropdownMenuSub key={key}>
+            <DropdownMenuSubTrigger>
+              {label}
+              <span className="ml-auto text-xs text-muted-foreground">
+                {filters[key].length || 'All'}
+              </span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="max-h-80 min-w-52 overflow-y-auto">
+              {options.length === 0 ? (
+                <DropdownMenuItem disabled>
+                  No options available
+                </DropdownMenuItem>
+              ) : (
+                options.map((option) => {
+                  const values: string[] = filters[key];
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={option.value}
+                      checked={values.includes(option.value)}
+                      onSelect={(event) => event.preventDefault()}
+                      onCheckedChange={(checked) =>
+                        handleChange(
+                          key,
+                          checked
+                            ? [...values, option.value]
+                            : values.filter((value) => value !== option.value),
+                        )
+                      }
+                    >
+                      {option.label}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })
+              )}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ))}
+        {hasAnyFilter(filters) ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => onChange(EMPTY_RELEASE_CALENDAR_FILTERS)}
+            >
+              Clear filters
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
