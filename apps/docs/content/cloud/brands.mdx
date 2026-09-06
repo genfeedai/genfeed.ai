@@ -36,7 +36,13 @@ image exports are not supported. Video rendering may take several minutes.
 For operators, apply the brand watermark database migration and configure the same
 `GENFEEDAI_API_KEY` internal service secret on the API and files services. The
 renderer rejects requests when its secret is absent or incorrect. Both local and
-S3 storage providers are supported.
+S3 storage providers are supported. Self-hosted operators must configure
+`GENFEEDAI_CDN_URL` with the browser-reachable files-service origin that serves
+`/local/`; an internal Docker hostname is not a browser URL. The API allows up to
+ten minutes for an export; configure your reverse proxy to allow the same request
+duration. Exports are limited to five per user per minute and two active renders
+per files-service instance. Identical source content and watermark settings reuse
+the existing derivative.
 
 This optional preview feature does not restrict original access by subscription.
 A SaaS paywall requires protected original storage and access enforcement across

@@ -42,9 +42,9 @@ export default function IngredientDownloadButton({
         await onDownloadOriginal();
       }
     } catch {
-      NotificationsService.getInstance().error(
-        translate(watermark ? 'watermarkError' : 'error'),
-      );
+      NotificationsService.getInstance().error(translate('errorTitle'), {
+        description: translate(watermark ? 'watermarkError' : 'error'),
+      });
     } finally {
       inFlight.current = false;
       setIsDownloading(false);
@@ -81,7 +81,11 @@ export default function IngredientDownloadButton({
             <ChevronDown className="size-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <DropdownMenuItem onSelect={() => void download(false)}>
             {translate('original')}
           </DropdownMenuItem>

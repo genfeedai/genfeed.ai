@@ -33,16 +33,16 @@ function setup() {
     download: vi.fn(async (_key, target) => {
       await writeFile(target, await original());
     }),
-    uploadFromFile: vi.fn(async (_key, target) => {
+    uploadFromFile: vi.fn(async (key, target) => {
       exported = await sharp(target).png().toBuffer();
-      return 'https://cdn.example/export.png';
+      return key;
     }),
     upload: vi.fn(),
     delete: vi.fn(),
     list: vi.fn(),
     listObjects: vi.fn(),
-    exists: vi.fn(),
-    getUrl: vi.fn(),
+    exists: vi.fn(async (key) => key.startsWith('logos/')),
+    getUrl: vi.fn((key) => `https://cdn.example/${key}`),
   };
   const ffmpeg = { getVideoMetadata: vi.fn(), executeFFmpegCapture: vi.fn() };
   const service = new WatermarkExportService(
@@ -60,6 +60,8 @@ describe('WatermarkExportService', () => {
     const result = await service.render(request);
     expect(result.storageKey).toMatch(/^exports\/watermarked\/.+\.png$/);
     expect(result.storageKey).not.toBe(request.storageKey);
+    expect(result.url).toBe(`https://cdn.example/${result.storageKey}`);
+    expect(storage.getUrl).toHaveBeenCalledWith(result.storageKey);
     expect(storage.delete).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
     const rendered = await sharp(getExported()).raw().toBuffer();
@@ -190,9 +192,9 @@ describe('WatermarkExportService', () => {
       });
       const output = path.join(fixtureRoot, 'rendered.mp4');
       vi.mocked(storage.uploadFromFile).mockImplementation(
-        async (_key, target) => {
+        async (key, target) => {
           await writeFile(output, await readFile(target));
-          return '/rendered.mp4';
+          return key;
         },
       );
       ffmpeg.getVideoMetadata.mockResolvedValue({
@@ -240,4 +242,39 @@ describe('WatermarkExportService', () => {
       await rm(fixtureRoot, { recursive: true, force: true });
     }
   }, 30_000);
+  it('reuses the rendered content without overwriting an original', async () => {
+    const { service, storage } = setup();
+    const first = await service.render(request);
+    vi.mocked(storage.exists).mockImplementation(
+      async (key) => key === first.storageKey,
+    );
+    const cached = await service.render(request);
+    expect(cached).toEqual(first);
+    expect(storage.uploadFromFile).toHaveBeenCalledTimes(1);
+    const changed = await service.render({
+      ...request,
+      layers: [
+        { text: 'Different client', opacity: 0.5, position: 'bottom-right' },
+      ],
+    });
+    expect(changed.storageKey).not.toBe(first.storageKey);
+    expect(storage.uploadFromFile).toHaveBeenCalledTimes(2);
+  });
+
+  it('limits concurrent rendering and releases capacity on failure', async () => {
+    const { service, storage } = setup();
+    vi.mocked(storage.download).mockRejectedValue(
+      new Error('Storage unavailable'),
+    );
+    const first = service.render(request);
+    const second = service.render(request);
+    await expect(service.render(request)).rejects.toMatchObject({
+      status: 429,
+    });
+    await Promise.allSettled([first, second]);
+    vi.mocked(storage.download).mockImplementation(async (_key, target) => {
+      await writeFile(target, await original());
+    });
+    await expect(service.render(request)).resolves.toHaveProperty('url');
+  });
 });

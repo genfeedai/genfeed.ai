@@ -1,7 +1,14 @@
+const deployment = vi.hoisted(() => ({ selfHosted: false }));
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+  return { ...actual, isSelfHostedDeployment: () => deployment.selfHosted };
+});
+
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigService } from '@libs/config/config.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
@@ -26,10 +33,13 @@ describe('IngredientExportService', () => {
     asset: { findFirst: vi.fn() },
   };
   const files = { watermarkExport: vi.fn() };
+  const config = { cdnUrl: 'https://cdn.example', get: vi.fn() };
   let service: IngredientExportService;
 
   beforeEach(async () => {
     vi.resetAllMocks();
+    deployment.selfHosted = false;
+    config.get.mockReturnValue('https://media.example');
     prisma.ingredient.findFirst.mockResolvedValue(ingredient);
     prisma.brand.findFirst.mockResolvedValue(brand);
     files.watermarkExport.mockResolvedValue({
@@ -40,6 +50,10 @@ describe('IngredientExportService', () => {
       providers: [
         IngredientExportService,
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: ConfigService,
+          useValue: config,
+        },
         { provide: FilesClientService, useValue: files },
       ],
     }).compile();
@@ -94,6 +108,37 @@ describe('IngredientExportService', () => {
       expect(result.filename).toBe(`image-1-watermarked.${extension}`);
     },
   );
+
+  it('normalizes cloud preview keys at the CDN root', async () => {
+    files.watermarkExport.mockResolvedValue({
+      url: '/local/exports/preview.png',
+      storageKey: 'exports/preview.png',
+    });
+    const result = await service.export('image-1', 'org-1', true);
+    expect(result.url).toBe('https://cdn.example/exports/preview.png');
+  });
+
+  it('preserves local storage routing at the explicit self-host public origin', async () => {
+    deployment.selfHosted = true;
+    files.watermarkExport.mockResolvedValue({
+      url: '/local/exports/preview.png',
+      storageKey: 'exports/preview.png',
+    });
+    const result = await service.export('image-1', 'org-1', true);
+    expect(result.url).toBe('https://media.example/local/exports/preview.png');
+  });
+
+  it('rejects local preview URLs without an explicit browser origin', async () => {
+    deployment.selfHosted = true;
+    config.get.mockReturnValue(undefined);
+    files.watermarkExport.mockResolvedValue({
+      url: '/local/exports/preview.png',
+      storageKey: 'exports/preview.png',
+    });
+    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
   it('rejects missing original storage without guessing a key', async () => {
     prisma.ingredient.findFirst.mockResolvedValue({

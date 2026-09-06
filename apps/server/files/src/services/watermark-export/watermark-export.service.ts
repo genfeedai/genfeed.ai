@@ -1,4 +1,5 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
@@ -11,6 +12,8 @@ import type {
 import { assertSafeObjectKey, type StorageProvider } from '@genfeedai/storage';
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -42,12 +45,29 @@ function escapeXml(value: string): string {
 
 @Injectable()
 export class WatermarkExportService {
+  private activeRenders = 0;
   constructor(
     @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
     private readonly ffmpeg: FFmpegService,
   ) {}
 
   async render(
+    request: IWatermarkExportRequest,
+  ): Promise<IWatermarkExportResult> {
+    if (this.activeRenders >= 2)
+      throw new HttpException(
+        'Watermark rendering is busy. Try again shortly.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    this.activeRenders += 1;
+    try {
+      return await this.renderFile(request);
+    } finally {
+      this.activeRenders -= 1;
+    }
+  }
+
+  private async renderFile(
     request: IWatermarkExportRequest,
   ): Promise<IWatermarkExportResult> {
     this.validate(request);
@@ -91,6 +111,14 @@ export class WatermarkExportService {
       }
       if (width < 16 || height < 16 || width * height > MAX_PIXELS)
         throw invalid('Unsupported media dimensions');
+      const digest = createHash('sha256').update(
+        JSON.stringify({
+          version: 1,
+          category: request.category,
+          layers: request.layers,
+        }),
+      );
+      for await (const chunk of createReadStream(input)) digest.update(chunk);
       const overlays: OverlayOptions[] = [];
       const overlayPaths: string[] = [];
       for (const [index, layer] of request.layers.entries()) {
@@ -101,6 +129,7 @@ export class WatermarkExportService {
           directory,
           index,
         );
+        digest.update(overlay);
         const metadata = await sharp(overlay).metadata();
         const margin = Math.max(2, Math.round(Math.min(width, height) * 0.025));
         const left = layer.position.endsWith('right')
@@ -115,6 +144,9 @@ export class WatermarkExportService {
         overlayPaths.push(overlayPath);
       }
       const extension = request.category === 'images' ? 'png' : 'mp4';
+      const storageKey = `exports/watermarked/${digest.digest('hex')}.${extension}`;
+      if (await this.storage.exists(storageKey))
+        return { storageKey, url: this.storage.getUrl(storageKey) };
       const output = path.join(directory, `output.${extension}`);
       if (request.category === 'images') {
         await sharp(input, { limitInputPixels: MAX_PIXELS })
@@ -163,14 +195,13 @@ export class WatermarkExportService {
             'Watermarked video rendering failed',
           );
       }
-      const storageKey = `exports/watermarked/${randomUUID()}.${extension}`;
-      const url = await this.storage.uploadFromFile(
+      const storedKey = await this.storage.uploadFromFile(
         storageKey,
         output,
         FILES_TMP_ROOT,
         request.category === 'images' ? 'image/png' : 'video/mp4',
       );
-      return { storageKey, url };
+      return { storageKey: storedKey, url: this.storage.getUrl(storedKey) };
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -224,6 +255,8 @@ export class WatermarkExportService {
     const parts: Buffer[] = [];
     if (layer.logoStorageKey) {
       const logo = path.join(directory, `logo-${index}.png`);
+      if (!(await this.storage.exists(layer.logoStorageKey)))
+        throw invalid('Upload the brand watermark logo before exporting');
       await this.storage.download(layer.logoStorageKey, logo, FILES_TMP_ROOT);
       if ((await stat(logo)).size > 20 * 1024 * 1024)
         throw invalid('Watermark logo exceeds 20 MB');

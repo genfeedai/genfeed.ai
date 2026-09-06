@@ -63,7 +63,7 @@ export default function BrandWatermarkSettings({
     setStatus(null);
     try {
       const service = await getService();
-      await service.patch(brandId, {
+      await service.updateWatermark(brandId, {
         watermarkText: text.trim() || null,
         watermarkLogoId: logoId === 'none' ? null : logoId,
         watermarkOpacity: Number(opacity) / 100,
@@ -111,11 +111,16 @@ export default function BrandWatermarkSettings({
                     {translate('savedLogo')}
                   </SelectItem>
                 )}
-              {assets.map((asset, index) => (
+              {assets.map((asset) => (
                 <SelectItem key={asset.id} value={asset.id}>
                   {asset.id === brand.logo?.id
                     ? translate('currentLogo')
-                    : translate('reference', { number: index + 1 })}
+                    : translate('reference', {
+                        number:
+                          (brand.references ?? []).findIndex(
+                            (reference) => reference.id === asset.id,
+                          ) + 1,
+                      })}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -3,10 +3,10 @@ import type { BrandWatermarkSettingsProps } from '@props/pages/brand-detail.prop
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { patch } = vi.hoisted(() => ({ patch: vi.fn() }));
+const { updateWatermark } = vi.hoisted(() => ({ updateWatermark: vi.fn() }));
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ patch }),
+  useAuthedService: () => async () => ({ updateWatermark }),
 }));
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: { getInstance: vi.fn() },
@@ -22,7 +22,7 @@ const brand = {
 describe('BrandWatermarkSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    patch.mockResolvedValue({});
+    updateWatermark.mockResolvedValue({});
   });
   it('persists percentages as opacity and empty logo as null', async () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
@@ -41,7 +41,7 @@ describe('BrandWatermarkSettings', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'save' }));
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('brand-1', {
+      expect(updateWatermark).toHaveBeenCalledWith('brand-1', {
         watermarkText: 'Client preview',
         watermarkLogoId: null,
         watermarkOpacity: 0.5,
@@ -63,10 +63,10 @@ describe('BrandWatermarkSettings', () => {
       target: { value: '0' },
     });
     expect(screen.getByRole('button', { name: 'save' })).toBeDisabled();
-    expect(patch).not.toHaveBeenCalled();
+    expect(updateWatermark).not.toHaveBeenCalled();
   });
   it('keeps settings editable after a failed save', async () => {
-    patch.mockRejectedValue(new Error('offline'));
+    updateWatermark.mockRejectedValue(new Error('offline'));
     render(
       <BrandWatermarkSettings
         brand={brand}

@@ -1,11 +1,14 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   IIngredientExportResult,
   IWatermarkLayer,
   WatermarkPosition,
 } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -23,6 +26,7 @@ export class IngredientExportService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: FilesClientService,
+    private readonly config: ConfigService,
   ) {}
 
   async export(
@@ -108,6 +112,31 @@ export class IngredientExportService {
       category,
       layers: [layer],
     });
-    return { id: ingredient.id, url: result.url, filename };
+    let url: string | undefined;
+    if (isSelfHostedDeployment() && result.url.startsWith('/local/')) {
+      const configuredOrigin = this.config.get('GENFEEDAI_CDN_URL');
+      try {
+        if (!configuredOrigin) throw new Error('Missing public media origin');
+        const publicOrigin = new URL(configuredOrigin);
+        if (
+          !['http:', 'https:'].includes(publicOrigin.protocol) ||
+          publicOrigin.username ||
+          publicOrigin.password
+        )
+          throw new Error('Invalid public media origin');
+        url = new URL(result.url, publicOrigin.origin).toString();
+      } catch {
+        throw new BadRequestException(
+          'Configure GENFEEDAI_CDN_URL with the browser-reachable origin serving /local previews',
+        );
+      }
+    } else {
+      url = resolveIngredientMediaUrl(
+        { s3Key: result.storageKey },
+        this.config.cdnUrl,
+      );
+    }
+    if (!url) throw new BadRequestException('The preview URL is unavailable');
+    return { id: ingredient.id, url, filename };
   }
 }

@@ -62,6 +62,34 @@ describe('IngredientDownloadButton', () => {
     expect(exportMedia).toHaveBeenCalledWith('image-1', true);
     expect(original).not.toHaveBeenCalled();
   });
+  it('does not bubble portal menu clicks or pointer events to the media tile', async () => {
+    exportMedia.mockResolvedValue({
+      url: 'https://cdn.example/preview.png',
+      filename: 'preview.png',
+    });
+    const openTile = vi.fn();
+    const selectTile = vi.fn();
+    render(
+      <div role="presentation" onClick={openTile} onPointerDown={selectTile}>
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+        />
+      </div>,
+    );
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+      button: 0,
+    });
+    openTile.mockClear();
+    selectTile.mockClear();
+    const item = await screen.findByRole('menuitem', { name: 'branded' });
+    fireEvent.pointerDown(item, { button: 0 });
+    fireEvent.click(item);
+    await waitFor(() => expect(exportMedia).toHaveBeenCalled());
+    expect(openTile).not.toHaveBeenCalled();
+    expect(selectTile).not.toHaveBeenCalled();
+  });
+
   it('reports failed watermark exports without downloading an original', async () => {
     exportMedia.mockRejectedValue(new Error('missing watermark'));
     const original = vi.fn();
@@ -76,7 +104,9 @@ describe('IngredientDownloadButton', () => {
     });
     fireEvent.click(await screen.findByRole('menuitem', { name: 'branded' }));
     await waitFor(() =>
-      expect(notifyError).toHaveBeenCalledWith('watermarkError'),
+      expect(notifyError).toHaveBeenCalledWith('errorTitle', {
+        description: 'watermarkError',
+      }),
     );
     expect(original).not.toHaveBeenCalled();
     expect(downloadUrl).not.toHaveBeenCalled();

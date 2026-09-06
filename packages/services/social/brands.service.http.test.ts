@@ -15,6 +15,7 @@ import {
 } from '@services/__mocks__/http.mock';
 import { PagesService } from '@services/content/pages.service';
 import { BrandsService } from '@services/social/brands.service';
+import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandsService HTTP methods', () => {
@@ -26,6 +27,43 @@ describe('BrandsService HTTP methods', () => {
     vi.restoreAllMocks();
     service = new BrandsService('brands-token');
     http = installMockHttp(service);
+  });
+
+  it('serializes explicit null watermark values so existing text and logo can be cleared', async () => {
+    let requestBody: unknown;
+    const instance = axios.create({
+      adapter: async (config) => {
+        requestBody = config.data;
+        return {
+          config,
+          data: resourceDocument(
+            { label: 'Acme', watermarkText: null, watermarkLogoId: null },
+            { id: brandId },
+          ),
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      },
+    });
+    Object.defineProperty(service, 'instance', {
+      value: instance,
+      configurable: true,
+    });
+    await service.updateWatermark(brandId, {
+      watermarkText: null,
+      watermarkLogoId: null,
+      watermarkOpacity: 0.35,
+      watermarkPosition: 'bottom-right',
+    });
+    expect(requestBody).toBe(
+      JSON.stringify({
+        watermarkText: null,
+        watermarkLogoId: null,
+        watermarkOpacity: 0.35,
+        watermarkPosition: 'bottom-right',
+      }),
+    );
   });
 
   it('findOneBySlug GETs the slug route and maps a Brand', async () => {
