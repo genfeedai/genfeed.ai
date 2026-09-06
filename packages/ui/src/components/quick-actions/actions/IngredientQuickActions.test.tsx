@@ -12,7 +12,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
   useQuickActions: vi.fn(
     (params: {
-      handlers: { onUsePrompt?: (ingredient: IIngredient) => void };
+      handlers: {
+        onUsePrompt?: (ingredient: IIngredient) => void;
+        onDownload?: unknown;
+      };
       hasPromptControl?: boolean;
       hasScopeControl?: boolean;
       hasStatusControl?: boolean;
@@ -37,7 +40,12 @@ vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
       }
 
       return {
-        actions: [primaryAction],
+        actions: params.handlers.onDownload
+          ? [
+              primaryAction,
+              { id: 'download', label: 'Download', onClick: vi.fn() },
+            ]
+          : [primaryAction],
         contextActions,
         mainActions: [primaryAction],
         menuActions: [],
@@ -45,6 +53,10 @@ vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
       };
     },
   ),
+}));
+
+vi.mock('@ui/quick-actions/actions/IngredientDownloadButton', () => ({
+  default: () => <div data-testid="watermark-download" />,
 }));
 
 vi.mock('@ui/dropdowns/prompt/DropdownPrompt', () => ({
@@ -65,6 +77,21 @@ describe('IngredientQuickActions', () => {
     id: 'ingredient-1',
     promptText: 'test prompt',
   } as IIngredient;
+
+  it.each([
+    IngredientCategory.IMAGE,
+    IngredientCategory.IMAGE_EDIT,
+    IngredientCategory.VIDEO,
+    IngredientCategory.VIDEO_EDIT,
+  ])('offers watermark exports for %s', (category) => {
+    render(
+      <IngredientQuickActions
+        selectedIngredient={{ ...ingredient, category }}
+        onDownload={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('watermark-download')).toBeInTheDocument();
+  });
 
   it('renders the primary action group', () => {
     render(<IngredientQuickActions selectedIngredient={ingredient} />);
@@ -143,7 +170,10 @@ describe('IngredientQuickActions', () => {
     );
 
     const params = mocks.useQuickActions.mock.calls.at(-1)?.[0] as {
-      handlers: { onUsePrompt?: (ingredient: IIngredient) => void };
+      handlers: {
+        onUsePrompt?: (ingredient: IIngredient) => void;
+        onDownload?: unknown;
+      };
     };
     expect(params.handlers.onUsePrompt).toBe(onReprompt);
   });

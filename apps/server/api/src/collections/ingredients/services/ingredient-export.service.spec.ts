@@ -77,6 +77,24 @@ describe('IngredientExportService', () => {
     expect(result.filename).toBe('image-1-watermarked.png');
   });
 
+  it.each([
+    ['IMAGE_EDIT', 'images', 'png'],
+    ['VIDEO_EDIT', 'videos', 'mp4'],
+  ])(
+    'exports %s through the matching renderer',
+    async (category, rendererCategory, extension) => {
+      prisma.ingredient.findFirst.mockResolvedValue({
+        ...ingredient,
+        category,
+      });
+      const result = await service.export('image-1', 'org-1', true);
+      expect(files.watermarkExport).toHaveBeenCalledWith(
+        expect.objectContaining({ category: rendererCategory }),
+      );
+      expect(result.filename).toBe(`image-1-watermarked.${extension}`);
+    },
+  );
+
   it('rejects missing original storage without guessing a key', async () => {
     prisma.ingredient.findFirst.mockResolvedValue({
       ...ingredient,

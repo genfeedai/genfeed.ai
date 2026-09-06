@@ -40,9 +40,10 @@ export class IngredientExportService {
     });
     if (!ingredient) throw new NotFoundException('Ingredient');
     const category =
-      ingredient.category === 'IMAGE'
+      ingredient.category === 'IMAGE' || ingredient.category === 'IMAGE_EDIT'
         ? 'images'
-        : ingredient.category === 'VIDEO'
+        : ingredient.category === 'VIDEO' ||
+            ingredient.category === 'VIDEO_EDIT'
           ? 'videos'
           : undefined;
     if (!category)

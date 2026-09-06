@@ -15,7 +15,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import sharp from 'sharp';
+import sharp, { type OverlayOptions } from 'sharp';
 
 const POSITIONS = new Set([
   'top-left',
@@ -91,7 +91,7 @@ export class WatermarkExportService {
       }
       if (width < 16 || height < 16 || width * height > MAX_PIXELS)
         throw invalid('Unsupported media dimensions');
-      const overlays: sharp.OverlayOptions[] = [];
+      const overlays: OverlayOptions[] = [];
       const overlayPaths: string[] = [];
       for (const [index, layer] of request.layers.entries()) {
         const overlay = await this.createOverlay(
@@ -271,7 +271,7 @@ export class WatermarkExportService {
       );
     }
     let combinedHeight = 0;
-    const composites: sharp.OverlayOptions[] = [];
+    const composites: OverlayOptions[] = [];
     for (const part of parts) {
       const metadata = await sharp(part).metadata();
       composites.push({

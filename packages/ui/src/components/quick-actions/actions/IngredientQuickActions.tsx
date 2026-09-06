@@ -257,7 +257,9 @@ export default function IngredientQuickActions(
 
   const supportsWatermark =
     selectedIngredient.category === IngredientCategory.IMAGE ||
-    selectedIngredient.category === IngredientCategory.VIDEO;
+    selectedIngredient.category === IngredientCategory.IMAGE_EDIT ||
+    selectedIngredient.category === IngredientCategory.VIDEO ||
+    selectedIngredient.category === IngredientCategory.VIDEO_EDIT;
   const downloadAction = actions.find((action) => action.id === 'download');
   const downloadControl =
     supportsWatermark && onDownload && downloadAction ? (
