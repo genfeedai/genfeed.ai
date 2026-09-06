@@ -7,7 +7,7 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@tanstack/react-query": "5.102.8",
-    "@tiptap/core": "3.31.0",
+    "@tiptap/core": "3.31.3",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared React contexts for Genfeed applications",
@@ -18,7 +18,7 @@
     "jsdom": "29.1.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   },
   "exports": {
     "./*": "./*"

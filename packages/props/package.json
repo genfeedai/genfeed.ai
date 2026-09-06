@@ -4,12 +4,12 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@tiptap/core": "3.31.0",
+    "@tiptap/core": "3.31.3",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   },
   "exports": {
     "./*": "./*"
