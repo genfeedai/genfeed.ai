@@ -285,4 +285,3 @@ function EditorPreview({
 }
 
 export default EditorPreview;
-export type { EditorPreviewRef } from '@props/studio/editor-preview.props';

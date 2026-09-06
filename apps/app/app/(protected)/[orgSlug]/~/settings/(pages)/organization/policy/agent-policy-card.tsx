@@ -1,7 +1,10 @@
 'use client';
 
 import { AgentAutonomyMode } from '@genfeedai/contracts';
-import type { AgentPolicyCardProps } from '@props/settings/policy.props';
+import type {
+  AgentPolicyCardProps,
+  AgentPolicyState,
+} from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import {
   Select,

@@ -9,7 +9,10 @@ import type {
   LeaderTableProps,
   ProjectionCardProps,
 } from '@props/admin/analytics.props';
-import { AnalyticsService } from '@services/analytics/analytics.service';
+import {
+  AnalyticsService,
+  type IBusinessAnalytics,
+} from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';

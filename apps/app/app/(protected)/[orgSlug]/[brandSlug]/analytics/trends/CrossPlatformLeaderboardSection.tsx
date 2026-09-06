@@ -1,5 +1,9 @@
 'use client';
 
+import type {
+  ICreatorWatchlist,
+  ITrendVideo,
+} from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/cross-platform-leaderboard-section.props';
