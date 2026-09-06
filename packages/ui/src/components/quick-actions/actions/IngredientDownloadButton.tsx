@@ -42,7 +42,9 @@ export default function IngredientDownloadButton({
         await onDownloadOriginal();
       }
     } catch {
-      NotificationsService.getInstance().error(translate('error'));
+      NotificationsService.getInstance().error(
+        translate(watermark ? 'watermarkError' : 'error'),
+      );
     } finally {
       inFlight.current = false;
       setIsDownloading(false);
