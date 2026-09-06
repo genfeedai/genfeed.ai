@@ -142,7 +142,7 @@ export function MutationApprovalCard({
               {translate('approve')}
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               withWrapper={false}
               isDisabled={!onUiAction || isPending}
               onClick={() => void respond('declined')}
