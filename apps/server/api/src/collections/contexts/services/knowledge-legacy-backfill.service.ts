@@ -144,8 +144,8 @@ export class KnowledgeLegacyBackfillService {
         const version = await this.records.createVersion(actor, created.id, {
           contentHash: hashKnowledgeContent(source.referenceUrl),
           observedAt: capture.provenance.capturedAt,
-          payload: toPrismaJson(capture.payload),
-          provenance: toPrismaJson(capture.provenance),
+          payload: JSON.parse(JSON.stringify(capture.payload)),
+          provenance: JSON.parse(JSON.stringify(capture.provenance)),
         });
         const relinked = await this.prisma.contextEntry.updateMany({
           data: {
@@ -220,8 +220,8 @@ export class KnowledgeLegacyBackfillService {
           capture.payload.text ?? capture.payload.referenceUrl ?? bookmark.id,
         ),
         observedAt: capture.provenance.capturedAt,
-        payload: toPrismaJson(capture.payload),
-        provenance: toPrismaJson(capture.provenance),
+        payload: JSON.parse(JSON.stringify(capture.payload)),
+        provenance: JSON.parse(JSON.stringify(capture.provenance)),
       });
       if (bookmark.folder) {
         const spaceId = await this.ensureSpace(
