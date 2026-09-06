@@ -6080,6 +6080,12 @@ model ContextEntry {
   embedding          Unsupported("vector(1024)")?
   embeddingClaimedAt DateTime?
   embeddingFailedAt  DateTime?
+  // Chunks produced by Knowledge ingestion carry their exact source version so
+  // retrieval can enforce eligibility and return a durable citation. Both link
+  // columns are set together or not at all (CHECK in migration).
+  knowledgeSourceId        String?
+  knowledgeSourceVersionId String?
+  knowledgeSourceVersion   KnowledgeSourceVersion? @relation(fields: [knowledgeSourceVersionId, knowledgeSourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict, map: "context_entries_knowledge_version_fkey")
   isDeleted          Boolean                      @default(false)
   createdAt          DateTime                     @default(now())
   updatedAt          DateTime                     @updatedAt
@@ -6089,6 +6095,7 @@ model ContextEntry {
   // the same query as a tenant-isolation guard.
   @@index([contextBaseId, isDeleted], map: "context_entries_context_base_deleted_idx")
   @@index([organizationId, contextBaseId, isDeleted], map: "context_entries_org_base_deleted_idx")
+  @@index([organizationId, knowledgeSourceId, isDeleted], map: "context_entries_org_knowledge_source_deleted_idx")
   @@map("context_entries")
 }
 
@@ -6755,6 +6762,8 @@ model KnowledgeSourceVersion {
   provenance            Json?
   payload               Json?
   processingState       KnowledgeProcessingState @default(QUEUED)
+  /// Safe, user-facing reason for the last FAILED ingestion; cleared on requeue.
+  processingError       String?
   retrievalState        KnowledgeRetrievalState  @default(ACTIVE)
   retentionState        KnowledgeRetentionState  @default(RETAINED)
   retentionPolicy       KnowledgeRetentionPolicy @default(KEEP)
@@ -6772,6 +6781,7 @@ model KnowledgeSourceVersion {
 
   supersededByVersion KnowledgeSourceVersion? @relation("KnowledgeVersionSupersession", fields: [supersededByVersionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "knowledge_version_supersession_fkey")
   supersedesVersions KnowledgeSourceVersion[] @relation("KnowledgeVersionSupersession")
+  chunks             ContextEntry[]
   @@unique([sourceId, version])
   @@unique([id, sourceId, organizationId])
   @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")

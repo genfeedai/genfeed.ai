@@ -11,60 +11,61 @@ import {
 
 const INGEST_REQUEST = closedObjectSchema(
   {
-    contextBaseId: STRING_SCHEMA,
     organizationId: STRING_SCHEMA,
     sourceId: STRING_SCHEMA,
+    versionId: STRING_SCHEMA,
   },
-  ['contextBaseId', 'organizationId', 'sourceId'],
+  ['organizationId', 'sourceId', 'versionId'],
 );
 const SOURCE = closedObjectSchema(
   {
-    category: enumSchema([
-      'audio',
-      'document',
-      'file',
-      'rss',
-      'url',
-      'video',
-    ] as const),
-    chunkCount: NUMBER_SCHEMA,
-    error: STRING_SCHEMA,
+    brandId: STRING_SCHEMA,
     id: STRING_SCHEMA,
-    isDeleted: BOOLEAN_SCHEMA,
-    label: STRING_SCHEMA,
-    lastIngestedAt: STRING_SCHEMA,
-    referenceUrl: STRING_SCHEMA,
-    status: enumSchema(['completed', 'draft', 'failed', 'processing'] as const),
-    summary: STRING_SCHEMA,
-    tags: arraySchema(STRING_SCHEMA),
+    kind: enumSchema([
+      'AUDIO',
+      'DOCUMENT',
+      'FILE',
+      'RSS',
+      'TEXT',
+      'URL',
+      'VIDEO',
+    ] as const),
+    purpose: enumSchema(['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'] as const),
+    scope: enumSchema(['brand', 'org', 'personal'] as const),
+    title: STRING_SCHEMA,
+    userId: STRING_SCHEMA,
   },
-  ['category', 'id', 'label', 'status'],
+  ['id', 'kind', 'purpose', 'scope', 'title', 'userId'],
+);
+const VERSION = closedObjectSchema(
+  {
+    id: STRING_SCHEMA,
+    isCurrent: BOOLEAN_SCHEMA,
+    referenceUrl: STRING_SCHEMA,
+    text: STRING_SCHEMA,
+    version: NUMBER_SCHEMA,
+  },
+  ['id', 'isCurrent', 'version'],
 );
 const STATE_PROPERTIES = {
   chunks: arraySchema(STRING_SCHEMA),
-  contextBaseId: STRING_SCHEMA,
-  currentData: JSON_DOCUMENT_SCHEMA,
   extracted: closedObjectSchema(
     { mimeType: STRING_SCHEMA, text: STRING_SCHEMA },
     ['text'],
   ),
+  failure: STRING_SCHEMA,
   organizationId: STRING_SCHEMA,
   source: SOURCE,
-  sources: arraySchema(SOURCE),
-  status: enumSchema([
-    'completed',
-    'failed',
-    'ready',
-    'skipped',
-    'unsupported',
-  ] as const),
+  sourceId: STRING_SCHEMA,
+  status: enumSchema(['failed', 'ready', 'skipped', 'unsupported'] as const),
+  version: VERSION,
+  versionId: STRING_SCHEMA,
 } as const;
 const STATE = closedObjectSchema(STATE_PROPERTIES, [
-  'contextBaseId',
-  'currentData',
   'organizationId',
-  'sources',
+  'sourceId',
   'status',
+  'versionId',
 ]);
 const RESULT = closedObjectSchema(
   {
@@ -76,8 +77,9 @@ const RESULT = closedObjectSchema(
       'skipped',
       'unsupported',
     ] as const),
+    versionId: STRING_SCHEMA,
   },
-  ['chunkCount', 'sourceId', 'status'],
+  ['chunkCount', 'sourceId', 'status', 'versionId'],
 );
 const FAILURE = closedObjectSchema(
   {

@@ -39,7 +39,6 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
@@ -318,7 +317,6 @@ const WORKER_DOMAIN_SERVICES = [
   InstagramService,
   KlingAIService,
   KnowledgeSourceIngestService,
-  KnowledgeSourceService,
   LeonardoAIService,
   LifecycleEmailDeliveryService,
   LinkedInPublisherService,
