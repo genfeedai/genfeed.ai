@@ -126,6 +126,8 @@ describe('MutationApprovalCard', () => {
     {},
     { ...approval().data, summary: '' },
     { ...approval().data, status: 'unknown' },
+    { ...approval().data, status: 1 },
+    { ...approval().data, status: { toString: () => 'pending' } },
     { ...approval().data, items: [{ label: 'Draft' }] },
   ])('fails closed for malformed data %j', (data) => {
     render(
