@@ -25,8 +25,9 @@ export interface UseWorkflowExecutionsReturn {
 export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
 ): UseWorkflowExecutionsReturn {
-  const { getToken, orgId, userId } = useAuthIdentity();
-  const isIdentityReady = Boolean(userId && orgId);
+  const { getToken, isLoaded, orgId, userId } = useAuthIdentity();
+  // orgId stays null until the organization plugin lands; key on the session.
+  const isIdentityReady = isLoaded && Boolean(userId);
   const {
     data = [],
     isPending,
