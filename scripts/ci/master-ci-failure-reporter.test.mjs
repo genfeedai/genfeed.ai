@@ -205,6 +205,26 @@ test('reportMasterCiFailure creates tracker, sets native metadata, and adds it t
   );
 });
 
+test('repository credentials label new and existing trackers while project credentials triage', async () => {
+  for (const openIssues of [[], [{ number: 42 }]]) {
+    const repository = createGithubMock({ openIssues });
+    const project = createGithubMock();
+    await reportMasterCiFailure({
+      github: repository.github,
+      projectGithub: project.github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'Failure',
+      date: '2026-09-06',
+      core: { info() {}, warning() {} },
+    });
+    assert.equal(repository.labelCalls.length, 1);
+    assert.equal(project.labelCalls.length, 0);
+    assert.equal(repository.graphqlCalls.length, 0);
+    assert.ok(project.graphqlCalls.length > 0);
+  }
+});
+
 test('reportMasterCiFailure fails loudly when the tracker label does not land', async () => {
   // The silent-drop case (#3634, #3659): the issue is filed, the label is not,
   // and nothing downstream can ever find it again. Surfacing that as a red job
@@ -522,6 +542,9 @@ test('a red master gate files the tracker and a green one resolves it', () => {
   assert.match(report, /github\.event_name == 'push'/);
   assert.match(report, /needs\.tests-gate\.result == 'failure'/);
   assert.match(report, /issues: write/);
+  assert.match(report, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(report, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/);
+  assert.match(report, /projectGithub: github/);
   assert.match(report, /master-ci-failure-reporter\.mjs/);
   assert.match(
     report,
