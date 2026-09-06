@@ -61,6 +61,20 @@ let prisma: PrismaClient;
 let records: KnowledgeRecordsService;
 let schema: string;
 
+function buildSourcesController() {
+  const ingestWorkflow = {
+    enqueueBackfill: vi.fn().mockResolvedValue('backfill-job'),
+    enqueueIngest: vi.fn().mockResolvedValue('ingest-job'),
+  };
+  return {
+    controller: new KnowledgeSourcesController(
+      records,
+      new KnowledgeCaptureService(records, ingestWorkflow as never),
+    ),
+    ingestWorkflow,
+  };
+}
+
 async function createSource(scope = KnowledgeMemoryScope.BRAND) {
   return records.createSource(actor, {
     scope,
@@ -559,7 +573,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     expect([...first.docs, ...second.docs].map((row) => row.id)).toEqual(
       ids.map((id) => `version-${id}`),
     );
-    const controller = new KnowledgeSourcesController(records);
+    const controller = buildSourcesController().controller;
     const response = await controller.eligible(
       {
         originalUrl:
@@ -576,14 +590,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
   });
 
   it('exposes serialized collection APIs while propagating the authenticated actor', async () => {
-    const ingestWorkflow = {
-      enqueueBackfill: vi.fn().mockResolvedValue('backfill-job'),
-      enqueueIngest: vi.fn().mockResolvedValue('ingest-job'),
-    };
-    const sources = new KnowledgeSourcesController(
-      records,
-      new KnowledgeCaptureService(records, ingestWorkflow as never),
-    );
+    const { controller: sources, ingestWorkflow } = buildSourcesController();
     const spaces = new KnowledgeSpacesController(records);
     const request = { originalUrl: '/knowledge-sources' } as Request;
     const source = await createSource();
@@ -661,19 +668,21 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       data: { type: 'knowledge-source', attributes: { title: 'Pricing' } },
       jobId: 'ingest-job',
     });
+    const capturedId = captured.data?.id;
+    if (!capturedId) throw new Error('Capture did not return a source');
     expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
-      sourceId: captured.data.id,
+      sourceId: capturedId,
       versionId: captured.versionId,
     });
-    const current = await records.getCurrentVersion(actor, captured.data.id);
+    const current = await records.getCurrentVersion(actor, capturedId);
     expect(current).toMatchObject({
       id: captured.versionId,
       payload: { text: 'Plans start at $29.' },
       processingState: KnowledgeProcessingState.QUEUED,
     });
     await expect(
-      sources.retry(request, actor, captured.data.id, actor.brandId),
+      sources.retry(request, actor, capturedId, actor.brandId),
     ).resolves.toMatchObject({ jobId: 'ingest-job' });
     expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledTimes(2);
   });
