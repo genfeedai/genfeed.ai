@@ -39,7 +39,7 @@ describe('WorkspaceSurface', () => {
     // Actions share a one-line title row (items-start + flex-nowrap), not a
     // stacked/centered column under the description.
     expect(container.querySelector('.flex-nowrap')).toBeInTheDocument();
-    expect(container.querySelector('.items-start')).toBeInTheDocument();
+    expect(container.querySelector('.items-center')).toBeInTheDocument();
   });
 
   it('supports muted tone and compact density', () => {
