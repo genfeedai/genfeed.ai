@@ -195,7 +195,6 @@ export default function CampaignsListPage() {
         getRowLink={getRowLink}
         isLoading={isLoading}
         items={campaigns}
-        label={translate('title')}
       />
       {totalPages > 1 ? (
         <div className="mt-4">
