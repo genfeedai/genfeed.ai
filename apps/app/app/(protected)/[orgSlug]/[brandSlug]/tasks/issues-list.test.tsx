@@ -137,18 +137,23 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   mocks.getService.mockResolvedValue({ list: mocks.list });
   render(<IssuesList />);
   const title = await screen.findByRole('button', {
-    name: /Recover the failed publish/,
+    name: 'Recover the failed publish',
   });
+  expect(screen.queryByText('QA-9')).not.toBeInTheDocument();
   expect(screen.getByRole('table', { name: 'Tasks' })).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
   expect(
     screen.queryByRole('columnheader', { name: 'Updated' }),
   ).not.toBeInTheDocument();
   expect(
-    screen.getByRole('combobox', { name: 'Status for QA-9' }),
+    screen.getByRole('combobox', {
+      name: 'Status for Recover the failed publish',
+    }),
   ).toBeVisible();
   expect(
-    screen.getByRole('combobox', { name: 'Priority for QA-9' }),
+    screen.getByRole('combobox', {
+      name: 'Priority for Recover the failed publish',
+    }),
   ).toBeVisible();
   expect(screen.getAllByText('Failed')).toHaveLength(1);
   fireEvent.click(title);
@@ -213,7 +218,9 @@ describe('IssuesList inline editing and deep links', () => {
     render(<IssuesList />);
 
     await user.click(
-      await screen.findByRole('combobox', { name: 'Status for QA-9' }),
+      await screen.findByRole('combobox', {
+        name: 'Status for Recover the failed publish',
+      }),
     );
     await user.click(await screen.findByRole('option', { name: 'Done' }));
 
@@ -232,7 +239,9 @@ describe('IssuesList inline editing and deep links', () => {
     render(<IssuesList />);
 
     await user.click(
-      await screen.findByRole('combobox', { name: 'Priority for QA-9' }),
+      await screen.findByRole('combobox', {
+        name: 'Priority for Recover the failed publish',
+      }),
     );
     await user.click(await screen.findByRole('option', { name: 'Critical' }));
 

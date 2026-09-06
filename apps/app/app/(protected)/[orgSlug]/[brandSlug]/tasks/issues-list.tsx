@@ -459,12 +459,11 @@ export default function IssuesList() {
     <div className="flex flex-wrap items-center justify-end gap-2.5">
       {hasItems ? (
         <Button
-          variant={ButtonVariant.DEFAULT}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
-          className="inline-flex items-center gap-1.5"
           onClick={openCreateDialog}
         >
-          <CirclePlus className="size-3.5" aria-hidden="true" />
+          <CirclePlus className="size-4" aria-hidden="true" />
           New Task
         </Button>
       ) : null}
@@ -562,12 +561,7 @@ export default function IssuesList() {
                     handleSelectIssue(issue);
                   }}
                 >
-                  <span className="flex items-baseline gap-2">
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                      {issue.identifier}
-                    </span>
-                    <span>{issue.title}</span>
-                  </span>
+                  <span className="block">{issue.title}</span>
                   {issue.description ? (
                     <span className="mt-1 block line-clamp-2 text-xs font-normal text-muted-foreground">
                       {issue.description}
@@ -588,7 +582,7 @@ export default function IssuesList() {
                   }
                 >
                   <SelectTrigger
-                    aria-label={`Status for ${issue.identifier}`}
+                    aria-label={`Status for ${issue.title}`}
                     className={PILL_TRIGGER_CLASS}
                     onClick={(event) => event.stopPropagation()}
                   >
@@ -618,7 +612,7 @@ export default function IssuesList() {
                   }
                 >
                   <SelectTrigger
-                    aria-label={`Priority for ${issue.identifier}`}
+                    aria-label={`Priority for ${issue.title}`}
                     className={PILL_TRIGGER_CLASS}
                     onClick={(event) => event.stopPropagation()}
                   >
