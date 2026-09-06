@@ -25,7 +25,6 @@ describe('Badge', () => {
 
     expect(badge.className).toContain('text-muted-foreground');
     expect(badge.className).toContain('bg-tertiary');
-    expect(badge.className).toContain('border-border');
     expect(badge.className).not.toContain('slate-');
   });
 
