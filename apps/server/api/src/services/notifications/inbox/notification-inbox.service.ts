@@ -106,7 +106,7 @@ export class NotificationInboxService {
       userId,
       isDeleted: false,
       event: { organizationId, isDeleted: false },
-      user: { isDeleted: false },
+      user: { is: { isDeleted: false } },
       organization: {
         isDeleted: false,
         members: {
@@ -188,13 +188,25 @@ export class NotificationInboxService {
       member.role.key === MemberRole.OWNER ||
       member.role.key === MemberRole.ADMIN;
     const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
-    const brandAccessFilter: Prisma.BrandWhereInput = {
+    const sourceAccessWhere = {
       organizationId,
       isDeleted: false,
-      ...(restrictToAssignedBrands
-        ? { id: { in: member.brands.map((brand) => brand.id) } }
-        : {}),
-    };
+      userId,
+      OR: [
+        { brandId: null },
+        {
+          brand: {
+            is: {
+              organizationId,
+              isDeleted: false,
+              ...(restrictToAssignedBrands
+                ? { id: { in: member.brands.map((brand) => brand.id) } }
+                : {}),
+            },
+          },
+        },
+      ],
+    } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
@@ -204,19 +216,7 @@ export class NotificationInboxService {
             .filter((row) => row.event.sourceType === 'workflow_execution')
             .map((row) => row.event.sourceId),
         },
-        workflow: {
-          is: {
-            organizationId,
-            isDeleted: false,
-            userId,
-            OR: [
-              { brandId: null },
-              {
-                brand: brandAccessFilter,
-              },
-            ],
-          },
-        },
+        workflow: { is: sourceAccessWhere },
       },
       select: {
         id: true,
@@ -248,19 +248,7 @@ export class NotificationInboxService {
               organizationId,
               isDeleted: false,
               runId: row.event.sourceId,
-              thread: {
-                is: {
-                  organizationId,
-                  userId,
-                  isDeleted: false,
-                  OR: [
-                    { brandId: null },
-                    {
-                      brand: brandAccessFilter,
-                    },
-                  ],
-                },
-              },
+              thread: { is: sourceAccessWhere },
             },
             select: {
               runId: true,

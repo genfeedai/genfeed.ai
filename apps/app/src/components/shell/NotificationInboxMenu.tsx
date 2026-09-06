@@ -37,7 +37,7 @@ export default function NotificationInboxMenu() {
           {unreadCount ? (
             <span
               aria-hidden="true"
-              className="absolute -right-1 -top-1 rounded-full bg-info/15 px-1 text-[10px] text-info"
+              className="absolute -right-1 -top-1 rounded-full bg-info px-1 text-[10px] text-info-foreground"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
