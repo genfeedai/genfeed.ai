@@ -68,6 +68,7 @@ function createWorkflowRunner() {
 }
 
 describe('AgentToolExecutorService mutation policy', () => {
+  const logger = { error: vi.fn(), log: vi.fn() };
   const publishHandler = {
     createPost: vi.fn(),
     handles: vi.fn(() => false),
@@ -109,7 +110,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     const workflowRunner = createWorkflowRunner();
     const unused = {} as never;
     service = new AgentToolExecutorService(
-      { error: vi.fn(), log: vi.fn() } as unknown as LoggerService,
+      logger as unknown as LoggerService,
       { scopeToolResultHrefs: vi.fn(async (result) => result) } as never,
       unused,
       unused,
@@ -367,9 +368,22 @@ describe('AgentToolExecutorService mutation policy', () => {
     mcpApprovals.attachResult.mockRejectedValue(
       new Error('Storage unavailable'),
     );
-    mcpApprovals.claimExecution
-      .mockResolvedValueOnce(true)
-      .mockResolvedValue(false);
+    let claimed = false;
+    mcpApprovals.claimExecution.mockImplementation(async () => {
+      if (claimed) return false;
+      claimed = true;
+      return true;
+    });
+    mcpApprovals.findActiveByIdempotencyKey.mockImplementation(async () =>
+      claimed
+        ? {
+            id: 'apr-1',
+            status: 'APPROVED',
+            result: null,
+            toolName: 'create_post',
+          }
+        : null,
+    );
     const invocationContext = context({
       confirmationOrigin: 'thread-ui-action',
       hostSupportsApproval: true,
@@ -387,6 +401,14 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
 
     expect(first.success).toBe(false);
+    expect(mcpApprovals.createPending).toHaveBeenCalledTimes(1);
+    expect(mcpApprovals.resolve).toHaveBeenCalledTimes(1);
+    expect(mcpApprovals.claimExecution).toHaveBeenCalledTimes(2);
+    expect(claimed).toBe(true);
+    expect(logger.error).toHaveBeenCalledWith(
+      `Approved mutation result persistence failed for approval apr-1 in organization ${testId('org')}; outcome reconciliation required`,
+      'AgentToolExecutorService',
+    );
     expect(retry.error).toContain('awaiting outcome reconciliation');
     expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
     expect(mcpApprovals.attachResult).toHaveBeenCalledTimes(2);
@@ -413,6 +435,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
 
     expect(result.error).toBe('Provider failed');
+    expect(logger.log).not.toHaveBeenCalled();
     expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
     expect(mcpApprovals.attachResult).toHaveBeenCalledTimes(2);
     for (const call of mcpApprovals.attachResult.mock.calls) {

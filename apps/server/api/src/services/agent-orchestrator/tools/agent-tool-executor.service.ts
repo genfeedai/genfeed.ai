@@ -296,6 +296,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     const startTime = Date.now();
     let executionApprovalId: string | undefined;
     let executionResult: AgentToolResult;
+    let executionFailed = false;
     try {
       const policyResult = await this.applyMutationPolicy(
         toolName,
@@ -336,6 +337,7 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
       executionResult = scopedResult;
     } catch (error: unknown) {
+      executionFailed = true;
       const durationMs = Date.now() - startTime;
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -355,10 +357,12 @@ export class AgentToolExecutorService implements OnModuleInit {
       context.organizationId,
       executionResult,
     );
-    this.loggerService.log(
-      `Tool ${toolName} executed in ${Date.now() - startTime}ms`,
-      this.constructorName,
-    );
+    if (!executionFailed) {
+      this.loggerService.log(
+        `Tool ${toolName} executed in ${Date.now() - startTime}ms`,
+        this.constructorName,
+      );
+    }
     return toPlainJson(executionResult);
   }
 
@@ -584,11 +588,19 @@ export class AgentToolExecutorService implements OnModuleInit {
     } catch {
       // Retry the same outcome once. Retain the claim if both writes fail:
       // replaying a completed mutation is unsafe without downstream idempotency.
-      await this.mcpApprovalsService.attachResult(
-        approvalId,
-        organizationId,
-        serializedResult,
-      );
+      try {
+        await this.mcpApprovalsService.attachResult(
+          approvalId,
+          organizationId,
+          serializedResult,
+        );
+      } catch (error: unknown) {
+        this.loggerService.error(
+          `Approved mutation result persistence failed for approval ${approvalId} in organization ${organizationId}; outcome reconciliation required`,
+          this.constructorName,
+        );
+        throw error;
+      }
     }
   }
 
