@@ -19,6 +19,7 @@ import {
 import { dailyPublishingAccountDefinition } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ContentIntelligencePlatform,
   CredentialPlatform,
@@ -109,8 +110,7 @@ export class DailyPublishingService implements OnModuleInit {
         throw new Error('Strategy must belong to the selected brand');
     }
     const credentials = await this.prisma.credential.findMany({
-      where: {
-        ...scope,
+      where: scopedWhere(action.context.organizationId, {
         brandId: request.brandId,
         isConnected: true,
         platform: {
@@ -122,7 +122,7 @@ export class DailyPublishingService implements OnModuleInit {
         ...(request.credentialIds?.length
           ? { id: { in: request.credentialIds } }
           : {}),
-      },
+      }),
       orderBy: { id: 'asc' },
     });
     if (
@@ -319,6 +319,7 @@ export class DailyPublishingService implements OnModuleInit {
       !/\d{4}-\d{2}-\d{2}$/.test(state.slotKey)
     )
       throw new Error('Invalid daily account slot');
+    // tenant-scope-ignore: organizationId is pinned by the compound idempotency key; isDeleted is intentionally omitted so a soft-deleted slot is still detected below
     const existing = await this.prisma.post.findFirst({
       where: {
         organizationId: scope.organizationId,
@@ -374,7 +375,7 @@ export class DailyPublishingService implements OnModuleInit {
         brandId: scope.brandId,
         credentialId: scope.credentialId,
         date: { gte: new Date(Date.now() - 30 * 86400000) },
-        post: { ...scope, targetExecutionState: 'published' },
+        post: { is: { ...scope, targetExecutionState: 'published' } },
       },
       orderBy: [{ engagementRate: 'desc' }, { date: 'desc' }],
       take: 20,
@@ -402,6 +403,7 @@ export class DailyPublishingService implements OnModuleInit {
     );
     // The unique organization+slot key is the durable cross-run reservation.
     // A lost race reuses the winner's post and never generates or schedules it.
+    // tenant-scope-ignore: organizationId is pinned by the compound idempotency key; isDeleted is omitted so this can reclaim a tombstoned slot
     const post = await this.prisma.post.upsert({
       where: {
         organizationId_targetIdempotencyKey: {

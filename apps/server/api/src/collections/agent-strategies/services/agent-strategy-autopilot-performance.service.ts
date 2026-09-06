@@ -1,4 +1,5 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import {
@@ -10,12 +11,32 @@ import {
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { TargetExecutionState } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
+
+interface SnapshotSources {
+  posts: PostDocument[];
+  opportunities: AgentStrategyOpportunityDocument[];
+  performance: ContentPerformanceDocument[];
+  sampling: NonNullable<AgentStrategyPerformanceSnapshot['sampling']>;
+}
+
+interface SnapshotCoreMetrics {
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  costPerVisit: null;
+  visits: null;
+  generatedCount: number;
+  publishedCount: number;
+  creditsSpent: number;
+}
 
 @Injectable()
 export class AgentStrategyAutopilotPerformanceService {
@@ -35,10 +56,45 @@ export class AgentStrategyAutopilotPerformanceService {
     const strategy = await this.requireStrategy(strategyId, organizationId);
     const { periodEnd, periodStart } = resolveReportWindow(reportType);
 
+    const { posts, opportunities, performance, sampling } =
+      await this.fetchSnapshotSources(
+        strategy,
+        strategyId,
+        organizationId,
+        periodStart,
+        periodEnd,
+      );
+    const latest = this.buildLatestMeasurementMap(performance);
+    const ranked = [...latest.values()];
+
+    return {
+      bestPlatformFormatPairs: this.computeBestPlatformFormatPairs(ranked),
+      bestPostingWindows: this.computeBestPostingWindows(
+        posts,
+        latest,
+        strategy,
+      ),
+      sampling,
+      topHooks: this.computeTopHooks(ranked),
+      topTopics: this.computeTopTopics(opportunities, ranked),
+      ...this.computeCoreMetrics(posts, ranked, opportunities, {
+        periodEnd,
+        periodStart,
+      }),
+    };
+  }
+
+  private async fetchSnapshotSources(
+    strategy: AgentStrategyDocument,
+    strategyId: string,
+    organizationId: string,
+    periodStart: Date,
+    periodEnd: Date,
+  ): Promise<SnapshotSources> {
     const strategyBrandId = getStrategyBrandId(strategy);
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
-
     const sampleLimit = 250;
+
     const [postPage, opportunities, measurementPage] = await Promise.all([
       this.postsService.findAll(
         {
@@ -72,16 +128,27 @@ export class AgentStrategyAutopilotPerformanceService {
       ),
     ]);
     const posts = postPage.docs;
-    const measurements = measurementPage.docs;
-    const sampling = {
-      limit: sampleLimit,
-      matchedPosts: postPage.totalDocs,
-      matchedMeasurements: measurementPage.totalDocs,
-      postsSampled: posts.length,
-      measurementsSampled: measurements.length,
-      truncated: postPage.hasNextPage || measurementPage.hasNextPage,
+    const performance = measurementPage.docs;
+
+    return {
+      opportunities,
+      performance,
+      posts,
+      sampling: {
+        limit: sampleLimit,
+        matchedPosts: postPage.totalDocs,
+        matchedMeasurements: measurementPage.totalDocs,
+        postsSampled: posts.length,
+        measurementsSampled: performance.length,
+        truncated: postPage.hasNextPage || measurementPage.hasNextPage,
+      },
     };
-    const latest = new Map<string, (typeof measurements)[number]>();
+  }
+
+  private buildLatestMeasurementMap(
+    measurements: ContentPerformanceDocument[],
+  ): Map<string, ContentPerformanceDocument> {
+    const latest = new Map<string, ContentPerformanceDocument>();
     for (const measurement of measurements) {
       if (!measurement.postId) continue;
       const previous = latest.get(measurement.postId);
@@ -93,14 +160,21 @@ export class AgentStrategyAutopilotPerformanceService {
         latest.set(measurement.postId, measurement);
       }
     }
-    const performance = [...latest.values()];
+    return latest;
+  }
 
+  private computeCoreMetrics(
+    posts: PostDocument[],
+    performance: ContentPerformanceDocument[],
+    opportunities: AgentStrategyOpportunityDocument[],
+    period: { periodEnd: Date; periodStart: Date },
+  ): SnapshotCoreMetrics {
+    const { periodEnd, periodStart } = period;
     const impressions = performance.reduce((sum, item) => sum + item.views, 0);
     const clicks = performance.reduce(
       (sum, item) => sum + (item.clicks ?? 0),
       0,
     );
-    const visits = null;
     const generatedCount = posts.filter(
       (post) => post.createdAt >= periodStart && post.createdAt <= periodEnd,
     ).length;
@@ -124,8 +198,23 @@ export class AgentStrategyAutopilotPerformanceService {
       .reduce((sum, opportunity) => sum + opportunity.estimatedCreditCost, 0);
     const ctr =
       impressions > 0 ? Number(((clicks / impressions) * 100).toFixed(2)) : 0;
-    const costPerVisit = null;
 
+    return {
+      clicks,
+      costPerVisit: null,
+      creditsSpent,
+      ctr,
+      generatedCount,
+      impressions,
+      publishedCount,
+      visits: null,
+    };
+  }
+
+  private computeTopTopics(
+    opportunities: AgentStrategyOpportunityDocument[],
+    performance: ContentPerformanceDocument[],
+  ): string[] {
     const topicScores = new Map<string, number>();
     for (const opportunity of opportunities) {
       const postIds = opportunity.metadata?.postIds;
@@ -139,11 +228,15 @@ export class AgentStrategyAutopilotPerformanceService {
           (topicScores.get(opportunity.topic) ?? 0) + score,
         );
     }
-    const topTopics = [...topicScores.entries()]
+    return [...topicScores.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([topic]) => topic);
+  }
 
+  private computeBestPlatformFormatPairs(
+    performance: ContentPerformanceDocument[],
+  ): AgentStrategyPerformanceSnapshot['bestPlatformFormatPairs'] {
     const pairScores = new Map<
       string,
       { format: string; platform: string; score: number }
@@ -158,7 +251,16 @@ export class AgentStrategyAutopilotPerformanceService {
       existing.score += item.performanceScore ?? 0;
       pairScores.set(key, existing);
     }
+    return [...pairScores.values()]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  }
 
+  private computeBestPostingWindows(
+    posts: PostDocument[],
+    latest: Map<string, ContentPerformanceDocument>,
+    strategy: AgentStrategyDocument,
+  ): string[] {
     const postingWindows = new Map<string, number>();
     for (const post of posts) {
       const measured = latest.get(post.id);
@@ -173,34 +275,21 @@ export class AgentStrategyAutopilotPerformanceService {
         (postingWindows.get(hour) ?? 0) + measured.performanceScore,
       );
     }
+    return [...postingWindows.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([hour]) => `${hour}:00`);
+  }
 
-    return {
-      bestPlatformFormatPairs: [...pairScores.values()]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5),
-      bestPostingWindows: [...postingWindows.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([hour]) => `${hour}:00`),
-      clicks,
-      costPerVisit,
-      creditsSpent,
-      ctr,
-      generatedCount,
-      impressions,
-      publishedCount,
-      sampling,
-      topHooks: [
-        ...new Set(
-          performance
-            .sort((a, b) => b.performanceScore - a.performanceScore)
-            .map((item) => item.hookUsed)
-            .filter((hook): hook is string => Boolean(hook)),
-        ),
-      ].slice(0, 5),
-      topTopics,
-      visits,
-    };
+  private computeTopHooks(performance: ContentPerformanceDocument[]): string[] {
+    return [
+      ...new Set(
+        performance
+          .sort((a, b) => b.performanceScore - a.performanceScore)
+          .map((item) => item.hookUsed)
+          .filter((hook): hook is string => Boolean(hook)),
+      ),
+    ].slice(0, 5);
   }
 
   async generateStrategyReport(
