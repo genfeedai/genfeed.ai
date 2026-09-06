@@ -1,51 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { useAudioPlayer } from '@genfeedai/hooks/media/use-audio-player/use-audio-player';
-import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { IngredientSoundProps } from '@genfeedai/props/content/ingredient.props';
-import { logger } from '@genfeedai/services/core/logger.service';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
-import { Button } from '@ui/primitives/button';
-import { Pause, Play } from 'lucide-react';
 
-export default function IngredientSound({
-  ingredients,
-  setIngredients,
-}: IngredientSoundProps) {
-  const { play, stop } = useAudioPlayer();
-
-  function playVoice(sound: IIngredient, onEnded: () => void) {
-    logger.info('playVoice', sound.ingredientUrl);
-
-    if (sound.isPlaying) {
-      return stopAll();
-    }
-
-    setIngredients((prev: IIngredient[]) =>
-      prev.map(
-        (item: IIngredient) =>
-          new Ingredient({
-            ...item,
-            isPlaying: item.id === sound.id,
-          }),
-      ),
-    );
-
-    if (sound.ingredientUrl) {
-      play(sound.ingredientUrl, onEnded);
-    }
-  }
-
-  function stopAll() {
-    stop();
-
-    setIngredients((prev: IIngredient[]) =>
-      prev.map(
-        (item: IIngredient) => new Ingredient({ ...item, isPlaying: false }),
-      ),
-    );
-  }
-
+export default function IngredientSound({ ingredients }: IngredientSoundProps) {
   return (
     <>
       {ingredients.map((sound: IIngredient) => (
@@ -58,19 +16,10 @@ export default function IngredientSound({
               </p>
             </div>
 
-            <Button
-              ariaLabel={sound.isPlaying ? 'Pause' : 'Play'}
-              label={
-                sound.isPlaying ? (
-                  <Pause className="text-2xl" />
-                ) : (
-                  <Play className="text-2xl" />
-                )
-              }
-              variant={ButtonVariant.DEFAULT}
-              size={ButtonSize.ICON}
-              className="transition-colors duration-300"
-              onClick={() => playVoice(sound, stopAll)}
+            <AudioPreviewPlayer
+              audioUrl={sound.ingredientUrl}
+              label={sound.metadataLabel || sound.id}
+              stopOnUnmount
             />
           </div>
         </Card>

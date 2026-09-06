@@ -73,6 +73,26 @@ describe('AudioPreviewPlayer', () => {
     expect(onError).toHaveBeenCalledOnce();
   });
 
+  it('resumes relative sources and stops modal playback on unmount', async () => {
+    const { unmount } = render(
+      <AudioPreviewPlayer
+        audioUrl="/preview.mp3"
+        label="Relative"
+        stopOnUnmount
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Relative' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Relative' }),
+      ).toBeInTheDocument(),
+    );
+    unmount();
+    expect(audio.paused).toBe(true);
+  });
+
   it('disables playback when no source is available', () => {
     render(<AudioPreviewPlayer label="Missing" />);
     expect(

@@ -255,7 +255,7 @@ export default function MediaLightbox({
           const thumbnailSrc = videoSlide.thumbnailSrc;
           const isVideo = videoSlide.type === 'video';
 
-          if (isVideo) {
+          if (isVideo && thumbnailSrc) {
             return (
               <Image
                 src={thumbnailSrc}

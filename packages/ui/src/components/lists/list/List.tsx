@@ -1,9 +1,7 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useAudioPlayer } from '@genfeedai/hooks/media/use-audio-player/use-audio-player';
-import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { ListProps } from '@genfeedai/props/content/list.props';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 
 const PLAYABLE_CATEGORIES = new Set([
@@ -16,44 +14,8 @@ export default function List({
   ingredients,
   className,
   selectedId,
-  setIngredients,
   onConfirm = () => {},
 }: ListProps) {
-  const { play, stop } = useAudioPlayer();
-
-  function stopAll(): void {
-    stop();
-    setIngredients((prev: IIngredient[]) =>
-      prev.map(
-        (item: IIngredient) => new Ingredient({ ...item, isPlaying: false }),
-      ),
-    );
-  }
-
-  function onPlay(e: React.MouseEvent, ingredient: IIngredient): void {
-    e.stopPropagation();
-
-    if (!PLAYABLE_CATEGORIES.has(ingredient.category)) {
-      return;
-    }
-
-    if (ingredient.isPlaying) {
-      stopAll();
-      return;
-    }
-
-    setIngredients((prev: IIngredient[]) =>
-      prev.map(
-        (item: IIngredient) =>
-          new Ingredient({ ...item, isPlaying: item.id === ingredient.id }),
-      ),
-    );
-
-    if (ingredient.ingredientUrl) {
-      play(ingredient.ingredientUrl, stopAll);
-    }
-  }
-
   return (
     <ul className={cn('list', className)}>
       <li className="text-xs opacity-60 tracking-wide">{label}</li>
@@ -65,7 +27,15 @@ export default function List({
           ingredient={ingredient}
           isSelected={selectedId === ingredient.id}
           onClick={onConfirm}
-          onPlay={(e: React.MouseEvent) => onPlay(e, ingredient)}
+          playbackControl={
+            PLAYABLE_CATEGORIES.has(ingredient.category) ? (
+              <AudioPreviewPlayer
+                audioUrl={ingredient.ingredientUrl}
+                label={ingredient.metadataLabel || ingredient.id}
+                stopOnUnmount
+              />
+            ) : undefined
+          }
         />
       ))}
     </ul>
