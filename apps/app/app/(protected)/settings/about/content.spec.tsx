@@ -1,4 +1,12 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { hydrateRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AboutContent from './content';
 
@@ -60,6 +68,28 @@ afterEach(() => {
   vi.mocked(getDeployment).mockReturnValue('self-hosted');
 });
 describe('About', () => {
+  it('hydrates the server surface before loading desktop diagnostics', async () => {
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(<AboutContent />);
+    expect(container.textContent).toContain('web');
+    vi.mocked(getClientSurface).mockReturnValue('desktop');
+    vi.mocked(getDesktopBridge).mockReturnValue({
+      app: {
+        getDiagnostics: vi.fn().mockResolvedValue({ version: '0.3.0' }),
+      },
+    } as unknown as NonNullable<ReturnType<typeof getDesktopBridge>>);
+    const onRecoverableError = vi.fn();
+    const root = hydrateRoot(container, <AboutContent />, {
+      onRecoverableError,
+    });
+    try {
+      await waitFor(() => expect(container.textContent).toContain('0.3.0'));
+      expect(container.textContent).toContain('desktop');
+      expect(onRecoverableError).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
   it('links a real release and copies a complete support line', async () => {
     metadata.releaseTag = 'v0.1.70';
     const writeText = vi.fn().mockResolvedValue(undefined);

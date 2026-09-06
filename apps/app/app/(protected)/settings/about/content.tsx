@@ -7,15 +7,21 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { apiClient } from '@/lib/api/client';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { isNewerRelease, parseLatestRelease } from './release-update';
 
+const subscribeToClientSurface = () => () => {};
+
 export default function AboutContent() {
   const translate = useTranslations('pages.about');
   const deployment = getDeployment();
-  const surface = getClientSurface();
+  const surface = useSyncExternalStore(
+    subscribeToClientSurface,
+    getClientSurface,
+    () => 'web',
+  );
   const { version, releaseTag, commitSha, channel } = BUILD_METADATA;
   const shortSha = commitSha.slice(0, 7);
   const [desktopVersion, setDesktopVersion] = useState<string | null>(null);
