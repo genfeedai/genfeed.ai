@@ -233,6 +233,19 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(publishHandler.schedulePost).not.toHaveBeenCalled();
   });
 
+  it('fails clearly when an approval host has no approval storage', async () => {
+    Reflect.set(service, 'mcpApprovalsService', undefined);
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({ hostSupportsApproval: true }),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Approval service unavailable');
+    expect(result.requiresConfirmation).not.toBe(true);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+  });
+
   it('persists a pending call and does not execute on an approval host', async () => {
     const result = await service.executeTool(
       'create_post',

@@ -207,6 +207,52 @@ describe('persisted mutation approvals', () => {
     );
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
+  it('accepts an already-persisted decline without re-resolving or dispatching', async () => {
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      status: 'DECLINED',
+    });
+    const action = card();
+    action.data.status = 'declined';
+    messages.getMessagesByRoom.mockResolvedValue([
+      { id: 'message-1', role: 'assistant', metadata: { uiActions: [action] } },
+    ]);
+    messages.patchAll.mockResolvedValue({ modifiedCount: 0 });
+    await service.execute('decline_mutation', params());
+    expect(approvals.resolve).not.toHaveBeenCalled();
+    expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('retries card persistence using the executor replay instead of resolving again', async () => {
+    messages.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    await expect(service.execute('confirm_mutation', params())).rejects.toThrow(
+      'Unable to update',
+    );
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      status: 'APPROVED',
+    });
+    executor.executeTool.mockResolvedValue({
+      success: true,
+      creditsUsed: 0,
+      data: { id: 'batch-1' },
+    });
+    await service.execute('confirm_mutation', params());
+    expect(approvals.resolve).toHaveBeenCalledTimes(1);
+    expect(finalizer.finalizeStructuredAssistantTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({
+          nextActions: [
+            expect.objectContaining({
+              id: sourceActionId,
+              requiresConfirmation: false,
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
   it('persists execution failure separately from consent and reports failure', async () => {
     executor.executeTool.mockResolvedValue({
       success: false,
