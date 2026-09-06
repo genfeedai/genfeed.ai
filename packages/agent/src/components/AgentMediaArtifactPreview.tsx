@@ -35,6 +35,8 @@ export function AgentMediaArtifactPreview({
         if (asset.kind === 'audio') return [];
         const ingredient = {
           cdnUrl: asset.url,
+          prompt:
+            asset.alt?.trim() || asset.title?.trim() || `${title} ${index + 1}`,
           id: asset.url,
           metadata: new Metadata({
             label:
@@ -59,6 +61,7 @@ export function AgentMediaArtifactPreview({
       <div
         className={cn(
           'grid gap-2',
+          displayMode === 'grid' && visibleAssets.length === 1 && 'max-w-sm',
           displayMode === 'featured' || visibleAssets.length === 1
             ? 'grid-cols-1'
             : 'grid-cols-2 sm:grid-cols-3',

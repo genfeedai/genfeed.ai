@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import {
   ContentPreviewCard,
   OAuthConnectCard,
@@ -71,7 +72,7 @@ describe('ContentPreviewCard', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Open Image generating 1 preview',
+        name: 'Image generating 1',
       }),
     ).toBeInTheDocument();
     expect(getGeneratedAsset).toHaveBeenCalledWith(
@@ -182,15 +183,16 @@ describe('ContentPreviewCard', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Open Campaign image 2 preview',
+        name: 'Campaign image 2',
       }),
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Image preview · 2 of 2')).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: 'Campaign image 2' }),
-    ).toHaveAttribute('src', 'https://cdn.test/image-2.png');
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-index', '1');
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/image-2.png',
+    );
   });
 
   it('uses a stable fallback title when generated content has no title', () => {
@@ -208,7 +210,7 @@ describe('ContentPreviewCard', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Open Generated content 1 preview',
+        name: 'Generated content 1',
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();

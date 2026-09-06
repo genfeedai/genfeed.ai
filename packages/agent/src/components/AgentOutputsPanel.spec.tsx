@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,12 +63,15 @@ describe('AgentOutputsPanel', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Open Launch variants preview',
+        name: 'Launch variants',
       }),
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Image preview')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/output-1.png',
+    );
   });
 
   it('renders and reuses every segment of a generated thread', () => {

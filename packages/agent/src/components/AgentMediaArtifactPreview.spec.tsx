@@ -1,59 +1,8 @@
+import '@agent-tests/media-preview-mocks';
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
-import type {
-  MasonryImageProps,
-  MasonryVideoProps,
-} from '@genfeedai/props/content/masonry.props';
-import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-
-vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
-  LazyMasonryImage: ({
-    image,
-    onClickIngredient,
-    isActionsEnabled,
-    isDragEnabled,
-  }: MasonryImageProps) => (
-    <button
-      type="button"
-      data-testid="masonry-image"
-      data-url={image.ingredientUrl}
-      data-actions={isActionsEnabled}
-      data-drag={isDragEnabled}
-      onClick={() => onClickIngredient?.(image)}
-    >
-      {image.metadataLabel}
-    </button>
-  ),
-  LazyMasonryVideo: ({ video, onClickIngredient }: MasonryVideoProps) => (
-    <button
-      type="button"
-      data-testid="masonry-video"
-      data-url={video.ingredientUrl}
-      onClick={() => onClickIngredient?.(video)}
-    >
-      {video.metadataLabel}
-    </button>
-  ),
-}));
-vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
-  default: ({ items, startIndex, onClose }: MediaLightboxProps) => (
-    <div
-      role="dialog"
-      data-index={startIndex}
-      data-count={items.length}
-      data-url={items[startIndex].ingredientUrl}
-    >
-      <button type="button" onClick={onClose}>
-        Close preview
-      </button>
-    </div>
-  ),
-}));
-vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
-  default: () => <div data-testid="shared-audio-player" />,
-}));
 
 describe('AgentMediaArtifactPreview', () => {
   it('uses masonry images and opens the selected item in the shared collection viewer', () => {
