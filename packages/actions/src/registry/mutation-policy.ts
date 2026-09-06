@@ -41,6 +41,7 @@ const READ_ONLY_PREFIXES = [
 
 const READ_ONLY_NAMES = new Set<string>([
   'analyze_performance',
+  'read_knowledge_source',
   'open_studio_handoff',
   'resolve_approval',
   'resolve_handle',
@@ -57,8 +58,11 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   ai_action: 'direct',
   analyze_clip_project: 'approval-required',
   approve_social_draft: 'approval-required',
+  archive_knowledge_source: 'direct',
+  assign_knowledge_purpose: 'direct',
   assign_social_conversation: 'direct',
   batch_approve_reject: 'direct',
+  capture_knowledge: 'direct',
   capture_memory: 'direct',
   complete_onboarding: 'direct',
   complete_outreach_sequence: 'direct',
@@ -116,6 +120,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   replicate_top_ingredient: 'direct',
   repurpose_post: 'direct',
   request_asset: 'direct',
+  retry_knowledge_ingestion: 'direct',
   save_brand_voice_profile: 'direct',
   save_dashboard_layout: 'direct',
   schedule_post: 'direct',

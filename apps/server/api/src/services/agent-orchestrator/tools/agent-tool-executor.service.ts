@@ -22,6 +22,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
+import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
@@ -188,6 +189,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly brandContentHandler: AgentBrandContentToolHandler,
     private readonly prepareHandler: AgentPrepareToolHandler,
     private readonly spawnHandler: AgentSpawnToolHandler,
+    private readonly knowledgeHandler: AgentKnowledgeToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
@@ -916,6 +918,27 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'capture_memory':
         return this.memoryGoalsHandler.captureMemory(params, ctx);
+
+      case 'search_knowledge':
+        return this.knowledgeHandler.searchKnowledge(params, ctx);
+
+      case 'list_knowledge_sources':
+        return this.knowledgeHandler.listKnowledgeSources(params, ctx);
+
+      case 'read_knowledge_source':
+        return this.knowledgeHandler.readKnowledgeSource(params, ctx);
+
+      case 'capture_knowledge':
+        return this.knowledgeHandler.captureKnowledge(params, ctx);
+
+      case 'assign_knowledge_purpose':
+        return this.knowledgeHandler.assignKnowledgePurpose(params, ctx);
+
+      case 'archive_knowledge_source':
+        return this.knowledgeHandler.archiveKnowledgeSource(params, ctx);
+
+      case 'retry_knowledge_ingestion':
+        return this.knowledgeHandler.retryKnowledgeIngestion(params, ctx);
 
       case 'create_goal':
         return this.memoryGoalsHandler.createGoal(params, ctx);
