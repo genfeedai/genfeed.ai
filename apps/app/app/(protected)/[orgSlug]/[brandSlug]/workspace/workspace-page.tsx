@@ -201,10 +201,6 @@ function WorkspacePageContentContent({
     unreadInboxTasks.length,
   ]);
 
-  const activeInboxView = INBOX_VIEW_OPTIONS.find(
-    (option) => option.id === defaultInboxView,
-  );
-
   const workspaceHeaderActions = useMemo(() => {
     if (!shouldShowComposer && isOverviewSection) {
       return undefined;
@@ -346,18 +342,18 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              <WorkspaceSurface
-                density="compact"
-                description={
-                  section === 'inbox'
-                    ? (activeInboxView?.description ?? sectionCopy.description)
-                    : 'Latest items waiting on your review.'
-                }
-                framed={false}
-                title={section === 'inbox' ? sectionCopy.title : 'Inbox'}
-              >
-                {inboxTable}
-              </WorkspaceSurface>
+              {section === 'inbox' ? (
+                inboxTable
+              ) : (
+                <WorkspaceSurface
+                  density="compact"
+                  description="Latest items waiting on your review."
+                  framed={false}
+                  title="Inbox"
+                >
+                  {inboxTable}
+                </WorkspaceSurface>
+              )}
             </section>
           ) : null}
         </div>

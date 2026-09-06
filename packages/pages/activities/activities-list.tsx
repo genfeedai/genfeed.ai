@@ -95,20 +95,6 @@ export default function ActivitiesList({
     [openIngredientOverlay],
   );
 
-  // Status variant mapping
-  const statusVariants: Record<
-    string,
-    'success' | 'error' | 'warning' | 'info'
-  > = useMemo(
-    () => ({
-      completed: 'success',
-      failed: 'error',
-      pending: 'warning',
-      processing: 'info',
-    }),
-    [],
-  );
-
   const columns = useMemo(
     () => [
       {
@@ -158,12 +144,7 @@ export default function ActivitiesList({
           } else {
             status = a.status || 'pending';
           }
-          return (
-            <ActivityStatusCell
-              status={status}
-              statusVariants={statusVariants}
-            />
-          );
+          return <ActivityStatusCell status={status} />;
         },
       },
       {
@@ -222,12 +203,7 @@ export default function ActivitiesList({
         },
       },
     ],
-    [
-      activityMessageFormatter,
-      getPreviewUrl,
-      handleViewIngredient,
-      statusVariants,
-    ],
+    [activityMessageFormatter, getPreviewUrl, handleViewIngredient],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
