@@ -204,6 +204,7 @@ describe('GeneratedContentSerializer', () => {
       'cta',
       'hashtags',
       'hook',
+      'knowledgeReceipts',
       'patternId',
       'patternUsed',
     ]);
