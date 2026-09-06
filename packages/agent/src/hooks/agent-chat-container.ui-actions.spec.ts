@@ -81,6 +81,69 @@ describe('handleAgentUiAction', () => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
 
+  it('reconciles consumed mutation consent from a failed execution turn', async () => {
+    const sourceCard = {
+      id: 'approval-card',
+      type: 'mutation_approval_card' as const,
+      data: {
+        approvalId: 'approval-1',
+        sourceActionId: 'approval-card',
+        status: 'pending',
+        summary: 'Delete draft?',
+        items: [],
+      },
+    };
+    useAgentChatStore.getState().setMessages([
+      {
+        id: 'source-message',
+        threadId: 'thread-1',
+        role: 'assistant',
+        content: 'Review draft',
+        createdAt: '2026-09-06T00:00:00Z',
+        metadata: { uiActions: [sourceCard] },
+      },
+    ]);
+    const deps = makeDeps();
+    vi.mocked(deps.apiService.respondToUiAction).mockResolvedValue(
+      makeResponse({
+        message: {
+          content: 'The action failed.',
+          metadata: {
+            uiActions: [
+              {
+                ...sourceCard,
+                data: {
+                  ...sourceCard.data,
+                  status: 'approved',
+                  executionStatus: 'failed',
+                },
+              },
+            ],
+          },
+        },
+        toolCalls: [
+          {
+            id: 'tool-1',
+            name: 'delete_draft',
+            status: 'failed',
+            result: { success: false },
+          },
+        ],
+      }) as Awaited<ReturnType<AgentApiService['respondToUiAction']>>,
+    );
+    await handleAgentUiAction(
+      'confirm_mutation',
+      { approvalId: 'approval-1', sourceActionId: 'approval-card' },
+      deps,
+    );
+    expect(
+      useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0],
+    ).toMatchObject({
+      data: { status: 'approved', executionStatus: 'failed' },
+      ctas: [],
+    });
+  });
+
   it('rejects actions on read-only threads', async () => {
     const deps = makeDeps({ isReadOnly: true });
 
