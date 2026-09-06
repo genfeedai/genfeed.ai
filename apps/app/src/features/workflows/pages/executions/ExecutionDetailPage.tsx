@@ -225,9 +225,13 @@ export default function ExecutionDetailPage({
         workflowLabel={execution.workflowLabel}
         status={execution.status}
         executionsHref={href(APP_ROUTES.AUTOMATION.RUNS)}
-        workflowHref={href(
-          `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${execution.workflowId}?execution=${execution.runId}`,
-        )}
+        workflowHref={
+          execution.metadata?.isSystemAction === true
+            ? null
+            : href(
+                `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${execution.workflowId}?execution=${execution.runId}`,
+              )
+        }
       />
 
       <ExecutionSummaryBar

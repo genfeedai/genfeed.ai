@@ -50,7 +50,6 @@ import {
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
-import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
   'executions',
@@ -259,10 +258,6 @@ export function useAppProtectedLayout(
     [push],
   );
 
-  const handleOpenCommandPalette = useCallback(() => {
-    useCommandPaletteStore.getState().open();
-  }, []);
-
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
@@ -463,7 +458,6 @@ export function useAppProtectedLayout(
     messagesMenuItems,
     // handlers
     handleNavigate,
-    handleOpenCommandPalette,
     // banners
     isLowCreditsBannerEnabled,
     isDesktopShell,

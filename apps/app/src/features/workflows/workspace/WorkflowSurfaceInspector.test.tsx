@@ -107,6 +107,35 @@ describe('WorkflowSurfaceInspector', () => {
     });
   });
 
+  it('shows system run context without fetching its hidden definition', async () => {
+    service.get.mockRejectedValue(new Error('Not found'));
+    service.getExecution.mockResolvedValue({
+      id: 'system-run',
+      workflowId: 'hidden-workflow',
+      workflow: { id: 'hidden-workflow', label: 'Agent turn' },
+      metadata: { isSystemAction: true, canonicalId: 'agent-turn' },
+      status: WorkflowExecutionStatus.FAILED,
+      progress: 100,
+      trigger: 'agent',
+      nodeResults: [],
+    });
+    render(
+      <WorkflowSurfaceInspector
+        pathname="/acme/moonrise/automation/runs/system-run"
+        searchParams={new URLSearchParams()}
+        threadId={null}
+      />,
+    );
+    expect(await screen.findByText('Agent turn')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(service.get).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText('Failed to load workflow context'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Open workflow editor')).not.toBeInTheDocument();
+    expect(screen.queryByText('Resume failed run')).not.toBeInTheDocument();
+  });
+
   it('shows run context and submits scoped approvals', async () => {
     render(
       <WorkflowSurfaceInspector

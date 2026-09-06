@@ -304,12 +304,8 @@ vi.mock('@/lib/workspace/task-composer-events', () => ({
   dispatchOpenTaskComposer: dispatchOpenTaskComposerSpy,
 }));
 
-vi.mock('@/store/commandPaletteStore', () => ({
-  useCommandPaletteStore: {
-    getState: () => ({
-      open: commandPaletteOpenSpy,
-    }),
-  },
+vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
+  useCommandPalette: () => ({ open: commandPaletteOpenSpy }),
 }));
 
 // Render `next/dynamic` lazy boundaries synchronously (repo-wide test
@@ -1293,7 +1289,6 @@ describe('AppProtectedLayout', () => {
         studioMenuItems={[]}
         automationMenuItems={[]}
         messagesMenuItems={[]}
-        onOpenCommandPalette={vi.fn()}
       />,
     );
 
@@ -1334,7 +1329,6 @@ describe('AppProtectedLayout', () => {
         studioMenuItems={[]}
         automationMenuItems={[]}
         messagesMenuItems={[]}
-        onOpenCommandPalette={vi.fn()}
       />,
     );
 
@@ -1378,7 +1372,6 @@ describe('AppProtectedLayout', () => {
           render: () => <div data-testid="module-nav-panel" />,
           sectionLabel: 'Collections',
         }}
-        onOpenCommandPalette={vi.fn()}
       />,
     );
 

@@ -299,6 +299,7 @@ export class WorkflowNodeGraphRunnerService {
         state.workflow.edges,
         state.completedNodes,
         state.skippedNodes,
+        state.nodeResults,
       )
     ) {
       state.skippedNodes.add(nodeId);
@@ -320,6 +321,7 @@ export class WorkflowNodeGraphRunnerService {
       node,
       state.workflow.edges,
       state.nodeCache,
+      state.nodeResults,
     );
     if (node.type === 'reviewGate') {
       const pausedResult = await this.reviewGateService.pauseForReviewGate({
