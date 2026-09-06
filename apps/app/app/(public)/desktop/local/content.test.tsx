@@ -104,7 +104,7 @@ describe('LocalDesktopContent', () => {
     await waitFor(() => {
       expect(mocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(screen.getByText('/Users/test/Genfeed')).toBeVisible();
+    expect(await screen.findByText('/Users/test/Genfeed')).toBeVisible();
     expect(screen.getByText('Local provider settings')).toBeVisible();
   });
 
