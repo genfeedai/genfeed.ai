@@ -23,6 +23,7 @@ import {
 } from '@pages/posts/list/release-posts-list-query';
 
 export type PostsListSearchParams = Promise<{
+  view?: string;
   account?: string | string[];
   contentType?: string | string[];
   executionState?: string | string[];

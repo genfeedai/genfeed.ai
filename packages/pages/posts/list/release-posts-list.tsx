@@ -54,7 +54,7 @@ import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Kbd } from '@ui/primitives/kbd';
-import { Kanban, LayoutGrid, Rows3 } from 'lucide-react';
+import { CalendarDays, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -442,9 +442,18 @@ export default function ReleasePostsList({
       <ViewToggle
         activeView={VIEW_MODE_TO_VIEW_TYPE[viewMode]}
         onChange={(nextView) =>
-          handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
+          nextView === ViewType.CALENDAR
+            ? router.push(
+                `${pathname}?${new URLSearchParams({ ...Object.fromEntries(searchParams.entries()), view: 'calendar' })}`,
+              )
+            : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
         }
         options={[
+          {
+            icon: <CalendarDays className="size-3.5 shrink-0" />,
+            label: 'Calendar view',
+            type: ViewType.CALENDAR,
+          },
           {
             icon: <Rows3 className="size-3.5 shrink-0" />,
             label: translate('viewToggle.list'),
@@ -472,6 +481,9 @@ export default function ReleasePostsList({
     };
   }, [
     handleViewModeChange,
+    router,
+    pathname,
+    searchParams,
     refetch,
     setRefresh,
     setViewToggleNode,

@@ -1,7 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
-  Calendar,
   ClipboardCheck,
   Files,
   Flag,
@@ -57,14 +56,6 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
     outline: ClipboardCheck,
     solid: ClipboardCheck,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.PUBLISHING.CALENDAR,
-    label: 'Calendar',
-    matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
-    outline: Calendar,
-    solid: Calendar,
   },
   {
     group: '',

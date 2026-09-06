@@ -1,4 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import CalendarPageContent from '../calendar/calendar-page-content';
 import type { PostsListSearchParams } from '../publishing-list-page';
 import { renderPostsListPage } from '../publishing-list-page';
 
@@ -14,5 +15,6 @@ export default async function PublishingPostsPage({
 }: {
   searchParams: PostsListSearchParams;
 }) {
+  if ((await searchParams).view === 'calendar') return <CalendarPageContent />;
   return renderPostsListPage({ searchParams });
 }
