@@ -431,13 +431,15 @@ describe('WorkspacePageContent', () => {
       '/workspace/inbox/unread?taskId=task-1',
       { scroll: false },
     );
-    expect(
-      await screen.findByTestId(
-        'workspace-task-inspector',
-        {},
-        { timeout: 5000 },
-      ),
-    ).toBeVisible();
+    const taskInspector = await screen.findByTestId(
+      'workspace-task-inspector',
+      {},
+      { timeout: 5000 },
+    );
+    expect(taskInspector).toBeVisible();
+    fireEvent.click(
+      within(taskInspector).getByRole('tab', { name: 'Activity' }),
+    );
     expect(await screen.findByText('Generated image preview')).toBeVisible();
     expect(await screen.findByText('Visual continuity QA')).toBeVisible();
     expect(
@@ -446,8 +448,8 @@ describe('WorkspacePageContent', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Hero image').length).toBeGreaterThan(0);
     });
-    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledWith('issue-1'));
     expect(await screen.findByText('Open report thread')).toBeVisible();
+    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledWith('issue-1'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove from kept' }));
     await waitFor(() =>

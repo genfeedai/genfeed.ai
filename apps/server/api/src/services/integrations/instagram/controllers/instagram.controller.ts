@@ -342,6 +342,9 @@ export class InstagramController {
       let handle: string | null | undefined = accountDetails.username;
 
       try {
+        if (!credential.brandId) {
+          throw new Error('Credential has no brand for the pages lookup');
+        }
         const pages = await this.instagramService.getInstagramPages(
           organizationId,
           credential.brandId,

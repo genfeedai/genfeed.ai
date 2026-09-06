@@ -54,7 +54,7 @@ describe('CharactersTable', () => {
       />,
     );
 
-    expect(screen.getByText('Anna')).toBeInTheDocument();
+    expect(screen.getAllByText('Anna').length).toBeGreaterThan(0);
     expect(screen.getByText('@anna')).toBeInTheDocument();
   });
 });

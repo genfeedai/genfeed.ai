@@ -692,19 +692,26 @@ describe('WorkspacePageContent', () => {
       expect(getExecutionByIdMock).toHaveBeenCalledWith('execution-1');
     });
 
-    await waitFor(() => {
-      expect(
-        within(screen.getByTestId('workspace-task-inspector')).getByText(
-          'Report threads: 1',
-        ),
-      ).toBeInTheDocument();
-    });
+    const reportInspector = screen.getByTestId('workspace-task-inspector');
+    fireEvent.click(
+      within(reportInspector).getByRole('tab', { name: 'Activity' }),
+    );
 
     expect(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
+      within(reportInspector).getByRole('link', {
         name: 'Open report thread',
       }),
     ).toHaveAttribute('href', '/agent/thread-report-123');
+
+    fireEvent.click(
+      within(reportInspector).getByRole('tab', { name: 'Records' }),
+    );
+
+    await waitFor(() => {
+      expect(
+        within(reportInspector).getByText('Report threads: 1'),
+      ).toBeInTheDocument();
+    });
     await openMoreActions(screen.getByTestId('workspace-task-inspector'));
     expect(
       await screen.findByRole('menuitem', { name: 'Open Report' }),
@@ -741,6 +748,7 @@ describe('WorkspacePageContent', () => {
     });
 
     const inspector = screen.getByTestId('workspace-task-inspector');
+    fireEvent.click(within(inspector).getByRole('tab', { name: 'Activity' }));
 
     expect(
       within(inspector).getByText('Generated outputs'),
@@ -796,6 +804,8 @@ describe('WorkspacePageContent', () => {
     expect(
       await screen.findByRole('menuitem', { name: 'Open Issue' }),
     ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
+
+    fireEvent.click(within(inspector).getByRole('tab', { name: 'Records' }));
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
 });
