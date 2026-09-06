@@ -5,6 +5,9 @@ import {
 } from '@api/collections/contexts/utils/extract-source-text.util';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import {
+  isKnowledgeMemoryScope,
+  isKnowledgeSourceKind,
+  isKnowledgeSourcePurpose,
   KNOWLEDGE_BASE_PURPOSE,
   KNOWLEDGE_SOURCE_CHUNK_KIND,
 } from '@api/collections/contexts/utils/knowledge-source.util';
@@ -160,12 +163,21 @@ export class KnowledgeSourceIngestService {
       return base;
     }
     const payload = readPayload(row.payload);
+    // Prisma enums are string unions; the shared contracts enums carry the
+    // same persisted labels, so the guards narrow without a cast.
+    if (
+      !isKnowledgeSourceKind(row.source.kind) ||
+      !isKnowledgeSourcePurpose(row.source.purpose) ||
+      !isKnowledgeMemoryScope(row.source.scope)
+    ) {
+      return base;
+    }
     const source: KnowledgeSourceIngestSource = {
       ...(row.source.brandId ? { brandId: row.source.brandId } : {}),
       id: row.source.id,
       kind: row.source.kind,
       purpose: row.source.purpose,
-      scope: row.source.scope as KnowledgeMemoryScope,
+      scope: row.source.scope,
       title: row.source.title,
       userId: row.source.userId,
     };

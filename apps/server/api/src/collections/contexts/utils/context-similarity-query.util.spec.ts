@@ -36,7 +36,7 @@ describe('context similarity query', () => {
     expect(query.sql).toContain('"organizationId" = ?');
     expect(query.sql).toContain('"isDeleted" = false');
     expect(query.sql).toContain('"contextBaseId" IN (?,?)');
-    expect(query.sql).toContain('ORDER BY "embedding" <=> ?::vector ASC');
+    expect(query.sql).toContain('ORDER BY e."embedding" <=> ?::vector ASC');
     expect(query.values).toEqual(
       expect.arrayContaining(['org-1', 'context-1', 'context-2', 5]),
     );

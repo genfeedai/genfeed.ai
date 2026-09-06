@@ -1,6 +1,7 @@
 import {
   KnowledgeBaseCategory,
   KnowledgeBaseStatus,
+  KnowledgeMemoryScope,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
@@ -47,6 +48,15 @@ function isKnowledgeBaseStatus(value: unknown): value is KnowledgeBaseStatus {
   return (
     typeof value === 'string' &&
     Object.values(KnowledgeBaseStatus).includes(value as KnowledgeBaseStatus)
+  );
+}
+
+export function isKnowledgeMemoryScope(
+  value: unknown,
+): value is KnowledgeMemoryScope {
+  return (
+    typeof value === 'string' &&
+    Object.values(KnowledgeMemoryScope).includes(value as KnowledgeMemoryScope)
   );
 }
 

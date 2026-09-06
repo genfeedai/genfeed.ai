@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
+import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -111,9 +112,14 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
       await client.query('SET search_path TO public');
       client.release();
     }
+    // Prisma qualifies model queries with `schema`; raw SQL inside the
+    // service relies on search_path, so the pool pins it as well.
     prisma = new PrismaClient({
       adapter: new PrismaPg(
-        { connectionString: process.env.KNOWLEDGE_TEST_DATABASE_URL },
+        {
+          connectionString: process.env.KNOWLEDGE_TEST_DATABASE_URL,
+          options: `-c search_path="${schema}",public`,
+        },
         { schema },
       ),
     });
@@ -570,7 +576,14 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
   });
 
   it('exposes serialized collection APIs while propagating the authenticated actor', async () => {
-    const sources = new KnowledgeSourcesController(records);
+    const ingestWorkflow = {
+      enqueueBackfill: vi.fn().mockResolvedValue('backfill-job'),
+      enqueueIngest: vi.fn().mockResolvedValue('ingest-job'),
+    };
+    const sources = new KnowledgeSourcesController(
+      records,
+      new KnowledgeCaptureService(records, ingestWorkflow as never),
+    );
     const spaces = new KnowledgeSpacesController(records);
     const request = { originalUrl: '/knowledge-sources' } as Request;
     const source = await createSource();
@@ -632,5 +645,36 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     expect(inboxResponse).toMatchObject({
       data: { type: 'knowledge-space', attributes: { isInbox: true } },
     });
+    const captured = await sources.create(
+      request,
+      actor,
+      {
+        scope: KnowledgeMemoryScope.BRAND,
+        title: 'Pricing',
+        kind: KnowledgeSourceKind.TEXT,
+        purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+        text: 'Plans start at $29.',
+      },
+      actor.brandId,
+    );
+    expect(captured).toMatchObject({
+      data: { type: 'knowledge-source', attributes: { title: 'Pricing' } },
+      jobId: 'ingest-job',
+    });
+    expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledWith({
+      organizationId: 'org-a',
+      sourceId: captured.data.id,
+      versionId: captured.versionId,
+    });
+    const current = await records.getCurrentVersion(actor, captured.data.id);
+    expect(current).toMatchObject({
+      id: captured.versionId,
+      payload: { text: 'Plans start at $29.' },
+      processingState: KnowledgeProcessingState.QUEUED,
+    });
+    await expect(
+      sources.retry(request, actor, captured.data.id, actor.brandId),
+    ).resolves.toMatchObject({ jobId: 'ingest-job' });
+    expect(ingestWorkflow.enqueueIngest).toHaveBeenCalledTimes(2);
   });
 });
