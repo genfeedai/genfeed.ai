@@ -222,7 +222,8 @@ export default function NotificationInboxMenu() {
             {history.hasNextPage ? (
               <Button
                 variant={ButtonVariant.GHOST}
-                className="w-full"
+                withWrapper={false}
+                className="w-full justify-center rounded-none border-t border-border"
                 disabled={history.isFetching}
                 onClick={() => void history.fetchNextPage()}
               >
