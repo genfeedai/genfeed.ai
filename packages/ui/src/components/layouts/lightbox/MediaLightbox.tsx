@@ -133,11 +133,11 @@ export default function MediaLightbox({
         slide.playsInline = true;
         slide.preload = 'metadata';
 
-        // Always set poster for video thumbnails (use thumbnailUrl or fallback to src for first frame)
+        // Only image thumbnails can be used as video posters.
         const posterUrl =
           item.thumbnailUrl && item.thumbnailUrl !== src
             ? item.thumbnailUrl
-            : src;
+            : undefined;
 
         slide.poster = posterUrl;
 

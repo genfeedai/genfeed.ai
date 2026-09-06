@@ -1,9 +1,14 @@
-import { render } from '@testing-library/react';
+import { IngredientCategory } from '@genfeedai/contracts';
+import { render, waitFor } from '@testing-library/react';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { describe, expect, it, vi } from 'vitest';
 
+const { lightbox } = vi.hoisted(() => ({ lightbox: vi.fn() }));
 vi.mock('yet-another-react-lightbox', () => ({
-  default: () => <div data-testid="lightbox" />,
+  default: (props: unknown) => {
+    lightbox(props);
+    return <div data-testid="lightbox" />;
+  },
 }));
 
 vi.mock('yet-another-react-lightbox/plugins/video', () => ({
@@ -19,6 +24,35 @@ vi.mock('yet-another-react-lightbox/plugins/thumbnails', () => ({
 }));
 
 describe('MediaLightbox', () => {
+  it('does not use video files as image posters when thumbnails are missing', async () => {
+    render(
+      <MediaLightbox
+        items={[
+          {
+            id: 'video',
+            category: IngredientCategory.VIDEO,
+            ingredientUrl: 'https://cdn.test/video.mp4',
+          },
+        ]}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    await waitFor(() =>
+      expect(lightbox).toHaveBeenCalledWith(
+        expect.objectContaining({
+          slides: [
+            expect.objectContaining({
+              type: 'video',
+              poster: undefined,
+              thumbnailSrc: undefined,
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
   it('should render without crashing', () => {
     const { container } = render(
       <MediaLightbox items={[]} open={false} onClose={vi.fn()} />,
