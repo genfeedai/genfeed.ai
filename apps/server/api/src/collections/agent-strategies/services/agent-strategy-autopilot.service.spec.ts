@@ -124,6 +124,9 @@ describe('AgentStrategyAutopilotService', () => {
     const postsService = {
       create: vi.fn().mockResolvedValue({ id: postId }),
       find: vi.fn().mockResolvedValue([]),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ docs: [], totalDocs: 0, hasNextPage: false }),
       findOne: vi.fn().mockResolvedValue({
         id: draftId,
         targetSettings: { generation: { metadata: {} } },
@@ -143,6 +146,9 @@ describe('AgentStrategyAutopilotService', () => {
     };
     const contentPerformanceService = {
       find: vi.fn().mockResolvedValue([]),
+      findAll: vi
+        .fn()
+        .mockResolvedValue({ docs: [], totalDocs: 0, hasNextPage: false }),
     };
     const logger = {
       debug: vi.fn(),
@@ -1034,27 +1040,31 @@ describe('AgentStrategyAutopilotService', () => {
 
   it('uses the requested reporting period and deduplicates cumulative post snapshots', async () => {
     const deps = createService();
-    deps.contentPerformanceService.find.mockResolvedValue([
-      {
-        postId,
-        measuredAt: new Date(),
-        views: 100,
-        clicks: 10,
-        performanceScore: 80,
-        platform: 'twitter',
-        contentType: 'text',
-        hookUsed: 'Winner',
-      },
-      {
-        postId,
-        measuredAt: new Date(Date.now() - 1000),
-        views: 50,
-        clicks: 5,
-        performanceScore: 70,
-        platform: 'twitter',
-        contentType: 'text',
-      },
-    ]);
+    deps.contentPerformanceService.findAll.mockResolvedValue({
+      totalDocs: 2,
+      hasNextPage: false,
+      docs: [
+        {
+          postId,
+          measuredAt: new Date(),
+          views: 100,
+          clicks: 10,
+          performanceScore: 80,
+          platform: 'twitter',
+          contentType: 'text',
+          hookUsed: 'Winner',
+        },
+        {
+          postId,
+          measuredAt: new Date(Date.now() - 1000),
+          views: 50,
+          clicks: 5,
+          performanceScore: 70,
+          platform: 'twitter',
+          contentType: 'text',
+        },
+      ],
+    });
     await deps.performanceService.generateStrategyReport(
       strategyId,
       organizationId,
@@ -1069,14 +1079,18 @@ describe('AgentStrategyAutopilotService', () => {
         topHooks: ['Winner'],
       }),
     );
-    expect(deps.contentPerformanceService.find).toHaveBeenCalledWith(
+    expect(deps.contentPerformanceService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        post: expect.objectContaining({
-          agentStrategyId: strategyId,
-          organizationId,
-          isDeleted: false,
+        where: expect.objectContaining({
+          post: expect.objectContaining({
+            agentStrategyId: strategyId,
+            organizationId,
+            isDeleted: false,
+          }),
         }),
       }),
+      { limit: 250, page: 1, pagination: true },
+      false,
     );
   });
   it('marks an opportunity published only after every account confirms', async () => {
@@ -1178,6 +1192,109 @@ describe('AgentStrategyAutopilotService', () => {
     );
     expect(deps.opportunitiesService.createIfMissing).toHaveBeenCalledWith(
       expect.objectContaining({ sourceType: 'evergreen' }),
+    );
+  });
+  it.each([undefined, 0])(
+    'executes queued opportunities without a positive weekly cadence target (%s)',
+    async (postsPerWeek) => {
+      const deps = createService();
+      deps.agentStrategiesService.findOneById.mockResolvedValue({
+        ...baseStrategy,
+        postsPerWeek,
+      });
+      deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+        {
+          id: opportunityId,
+          estimatedCreditCost: 1,
+          formatCandidates: ['video'],
+          platformCandidates: ['twitter'],
+          priorityScore: 90,
+          sourceType: 'trend',
+          status: 'queued',
+          topic: 'Topic',
+        },
+      ]);
+      vi.spyOn(deps.planningService, 'selectOpportunities').mockImplementation(
+        (_strategy, opportunities) => opportunities,
+      );
+      const result = await deps.service.executeQueuedRun({
+        organizationId,
+        strategyId,
+        userId,
+        runId: 'run',
+      });
+      expect(deps.opportunitiesService.claimForGeneration).toHaveBeenCalledWith(
+        opportunityId,
+        organizationId,
+      );
+      expect(result.summary).toContain('processed 1 opportunities');
+    },
+  );
+
+  it('holds an opportunity when one linked post is missing or deleted', async () => {
+    const deps = createService();
+    deps.opportunitiesService.listByStrategy.mockResolvedValue([
+      { id: opportunityId, metadata: { postIds: ['a', 'b'] } },
+    ]);
+    deps.postsService.find.mockResolvedValue([
+      { id: 'a', targetExecutionState: 'published' },
+    ]);
+    await deps.performanceService.reconcilePublications(baseStrategy as never);
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'held',
+      expect.objectContaining({
+        decisionReason: expect.stringContaining('missing or deleted'),
+      }),
+    );
+  });
+
+  it('bounds report queries and explicitly marks incomplete sampled totals', async () => {
+    const deps = createService();
+    deps.postsService.findAll.mockResolvedValue({
+      docs: [],
+      totalDocs: 900,
+      hasNextPage: true,
+    });
+    deps.contentPerformanceService.findAll.mockResolvedValue({
+      docs: [],
+      totalDocs: 1000,
+      hasNextPage: true,
+    });
+    await deps.performanceService.generateStrategyReport(
+      strategyId,
+      organizationId,
+      'daily',
+    );
+    expect(deps.postsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+      { limit: 250, page: 1, pagination: true },
+      false,
+    );
+    expect(deps.contentPerformanceService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
+      }),
+      { limit: 250, page: 1, pagination: true },
+      false,
+    );
+    expect(deps.reportsService.createReport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          sampling: expect.objectContaining({
+            limit: 250,
+            matchedPosts: 900,
+            matchedMeasurements: 1000,
+            truncated: true,
+          }),
+        }),
+        allocationChanges: expect.arrayContaining([
+          expect.stringContaining('not complete strategy totals'),
+        ]),
+      }),
     );
   });
 });

@@ -34,6 +34,14 @@ export interface AgentStrategyPerformanceSnapshot {
   generatedCount: number;
   impressions: number;
   publishedCount: number;
+  sampling?: {
+    limit: number;
+    matchedPosts: number;
+    matchedMeasurements: number;
+    postsSampled: number;
+    measurementsSampled: number;
+    truncated: boolean;
+  };
   topHooks: string[];
   topTopics: string[];
   visits: number | null;

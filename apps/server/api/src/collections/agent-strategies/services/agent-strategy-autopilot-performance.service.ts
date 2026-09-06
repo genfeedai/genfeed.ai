@@ -38,28 +38,49 @@ export class AgentStrategyAutopilotPerformanceService {
     const strategyBrandId = getStrategyBrandId(strategy);
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
 
-    const [posts, opportunities, measurements] = await Promise.all([
-      this.postsService.find(
-        scopedWhere(strategyOrganizationId, {
-          agentStrategyId: strategyId,
-          brandId: strategyBrandId ?? '',
-          OR: [
-            { createdAt: { gte: periodStart, lte: periodEnd } },
-            { publishedAt: { gte: periodStart, lte: periodEnd } },
-          ],
-        }),
-      ),
-      this.opportunitiesService.listByStrategy(strategyId, organizationId),
-      this.contentPerformanceService.find(
-        scopedWhere(organizationId, {
-          measuredAt: { gte: periodStart, lte: periodEnd },
-          post: scopedWhere(organizationId, {
+    const sampleLimit = 250;
+    const [postPage, opportunities, measurementPage] = await Promise.all([
+      this.postsService.findAll(
+        {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          where: scopedWhere(strategyOrganizationId, {
             agentStrategyId: strategyId,
             brandId: strategyBrandId ?? '',
+            OR: [
+              { createdAt: { gte: periodStart, lte: periodEnd } },
+              { publishedAt: { gte: periodStart, lte: periodEnd } },
+            ],
           }),
-        }),
+        },
+        { limit: sampleLimit, page: 1, pagination: true },
+        false,
+      ),
+      this.opportunitiesService.listByStrategy(strategyId, organizationId),
+      this.contentPerformanceService.findAll(
+        {
+          orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
+          where: scopedWhere(organizationId, {
+            measuredAt: { gte: periodStart, lte: periodEnd },
+            post: scopedWhere(organizationId, {
+              agentStrategyId: strategyId,
+              brandId: strategyBrandId ?? '',
+            }),
+          }),
+        },
+        { limit: sampleLimit, page: 1, pagination: true },
+        false,
       ),
     ]);
+    const posts = postPage.docs;
+    const measurements = measurementPage.docs;
+    const sampling = {
+      limit: sampleLimit,
+      matchedPosts: postPage.totalDocs,
+      matchedMeasurements: measurementPage.totalDocs,
+      postsSampled: posts.length,
+      measurementsSampled: measurements.length,
+      truncated: postPage.hasNextPage || measurementPage.hasNextPage,
+    };
     const latest = new Map<string, (typeof measurements)[number]>();
     for (const measurement of measurements) {
       if (!measurement.postId) continue;
@@ -168,6 +189,7 @@ export class AgentStrategyAutopilotPerformanceService {
       generatedCount,
       impressions,
       publishedCount,
+      sampling,
       topHooks: [
         ...new Set(
           performance
@@ -201,6 +223,12 @@ export class AgentStrategyAutopilotPerformanceService {
           `Bias next runs toward ${pair.platform}/${pair.format} based on current performance.`,
       );
 
+    if (snapshot.sampling?.truncated) {
+      allocationChanges.push(
+        `Performance report is a bounded sample of up to ${snapshot.sampling.limit} posts and measurements; displayed metrics are not complete strategy totals.`,
+      );
+    }
+
     return this.reportsService.createReport({
       allocationChanges,
       bestPlatformFormatPairs: snapshot.bestPlatformFormatPairs,
@@ -216,6 +244,7 @@ export class AgentStrategyAutopilotPerformanceService {
       metadata: {
         visitsAvailable: false,
         costPerVisitAvailable: false,
+        sampling: snapshot.sampling,
         measurementBasis:
           'latest cumulative post metrics observed within the report period',
       },
@@ -308,6 +337,7 @@ export class AgentStrategyAutopilotPerformanceService {
           },
         );
       } else if (
+        posts.length !== ids.length ||
         posts.some(
           (post) => post.targetExecutionState === TargetExecutionState.FAILED,
         )
@@ -318,7 +348,9 @@ export class AgentStrategyAutopilotPerformanceService {
           'held',
           {
             decisionReason:
-              'An account publication failed; inspect linked posts before retrying.',
+              posts.length !== ids.length
+                ? 'A linked account post is missing or deleted; inspect remaining posts before retrying.'
+                : 'An account publication failed; inspect linked posts before retrying.',
           },
         );
       }

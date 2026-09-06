@@ -126,16 +126,19 @@ export class AgentStrategyAutopilotService {
       strategy,
       true,
     );
-    const cadence =
-      await this.performanceService.getPublishingCadence(strategy);
-    const weeklyTarget = strategy.postsPerWeek ?? 0;
-    const remainingSlots = Math.max(
-      0,
-      Math.min(
-        weeklyTarget - cadence.week,
-        Math.ceil(weeklyTarget / 7) - cadence.today,
-      ),
-    );
+    const weeklyTarget = strategy.postsPerWeek;
+    let remainingSlots = opportunities.length;
+    if (weeklyTarget && weeklyTarget > 0) {
+      const cadence =
+        await this.performanceService.getPublishingCadence(strategy);
+      remainingSlots = Math.max(
+        0,
+        Math.min(
+          weeklyTarget - cadence.week,
+          Math.ceil(weeklyTarget / 7) - cadence.today,
+        ),
+      );
+    }
     const selected = this.planningService
       .selectOpportunities(strategy, opportunities, pacing)
       .slice(0, remainingSlots);
