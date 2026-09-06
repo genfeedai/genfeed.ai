@@ -44,7 +44,6 @@ import {
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
-import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 import {
   createLibraryFolderQuery,
   getLibraryFolderOwnerId,
@@ -239,9 +238,7 @@ export default function LibrarySidebarNav() {
             onClick={dispatchOpenTaskComposer}
             shortcut="⌘⇧N"
           />
-          <SidebarSearchTrigger
-            onClick={() => useCommandPaletteStore.getState().open()}
-          />
+          <SidebarSearchTrigger />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 scrollbar-thin">

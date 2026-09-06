@@ -109,17 +109,23 @@ describe('Analytics work surface state', () => {
     expect(href).not.toContain('overlayRef=');
   });
 
-  it('drops list-only filters when restoring a detail explorer', () => {
-    const restored = restoreAnalyticsSurfaceState({
-      pathname: '/acme/moonrise/analytics/brands/brand-2',
-      searchParams: new URLSearchParams(
-        'startDate=2024-06-01&endDate=2024-06-30&q=moon&sort=views',
-      ),
-    });
+  it.each(['moonrise', '~'])(
+    'restores brand detail within %s scope',
+    (scope) => {
+      const restored = restoreAnalyticsSurfaceState({
+        pathname: `/acme/${scope}/analytics/brands/brand-2`,
+        searchParams: new URLSearchParams(
+          'startDate=2024-06-01&endDate=2024-06-30&q=moon&sort=views',
+        ),
+      });
 
-    expect(restored.filters).toEqual({});
-    expect(restored.canonicalSearchParams.get('q')).toBeNull();
-    expect(restored.canonicalSearchParams.get('sort')).toBeNull();
-    expect(restored.selectedResource).toEqual({ id: 'brand-2', kind: 'brand' });
-  });
+      expect(restored.filters).toEqual({});
+      expect(restored.canonicalSearchParams.get('q')).toBeNull();
+      expect(restored.canonicalSearchParams.get('sort')).toBeNull();
+      expect(restored.selectedResource).toEqual({
+        id: 'brand-2',
+        kind: 'brand',
+      });
+    },
+  );
 });

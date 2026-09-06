@@ -154,9 +154,10 @@ export function WorkflowSurfaceInspector({
         const nextWorkflowId =
           selection.workflowId ??
           (nextExecution ? getWorkflowId(nextExecution) : null);
-        const nextWorkflow = nextWorkflowId
-          ? await service.get(nextWorkflowId)
-          : null;
+        const nextWorkflow =
+          nextWorkflowId && nextExecution?.metadata?.isSystemAction !== true
+            ? await service.get(nextWorkflowId)
+            : null;
         if (controller.signal.aborted) {
           return;
         }
@@ -199,6 +200,7 @@ export function WorkflowSurfaceInspector({
   }, [getService, reloadKey, selection.executionId, selection.workflowId]);
 
   const metadata = (execution?.metadata ?? {}) as WorkflowInspectorMetadata;
+  const isSystemExecution = metadata.isSystemAction === true;
   const pendingApproval = metadata.pendingApproval ?? null;
   const requiredInputs =
     workflow?.inputVariables?.filter((variable) => variable.required) ?? [];
@@ -206,7 +208,7 @@ export function WorkflowSurfaceInspector({
     workflow?.id ??
     (execution ? getWorkflowId(execution) : selection.workflowId);
   const workflowHref =
-    selection.workflowBaseHref && workflowId
+    selection.workflowBaseHref && workflowId && !isSystemExecution
       ? appendWorkflowThread(
           `${selection.workflowBaseHref}/${encodeURIComponent(workflowId)}${
             execution ? `?execution=${encodeURIComponent(execution.id)}` : ''
@@ -367,7 +369,7 @@ export function WorkflowSurfaceInspector({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {workflow?.label ?? 'Workflow run'}
+              {workflow?.label ?? execution?.workflow?.label ?? 'Workflow run'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Deterministic workflow engine
@@ -532,7 +534,8 @@ export function WorkflowSurfaceInspector({
       ) : null}
 
       <div className="space-y-2">
-        {execution?.status === WorkflowExecutionStatus.FAILED ? (
+        {execution?.status === WorkflowExecutionStatus.FAILED &&
+        !isSystemExecution ? (
           <Button
             disabled={isResuming}
             icon={<RefreshCw className="size-4" />}

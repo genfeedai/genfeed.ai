@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +42,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     href: (path: string) => `/test-org/test-brand${path}`,
   }),
 }));
+
+vi.mock(
+  '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms',
+  () => ({
+    useOAuthConnectPlatforms: () =>
+      resolveOAuthConnectPlatformCatalog({ threads: 'unavailable' }),
+  }),
+);
 
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: resolveAuthTokenMock,
