@@ -337,6 +337,89 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(mcpApprovals.attachResult).not.toHaveBeenCalled();
   });
 
+  it('retries persistence with the successful outcome without dispatching again', async () => {
+    const outcome = { success: true, creditsUsed: 0, data: { id: 'post-1' } };
+    publishHandler.createPost.mockResolvedValue(outcome);
+    mcpApprovals.attachResult.mockRejectedValueOnce(
+      new Error('Storage unavailable'),
+    );
+
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({
+        confirmationOrigin: 'thread-ui-action',
+        hostSupportsApproval: true,
+      }),
+    );
+
+    expect(result).toEqual(outcome);
+    expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+    expect(mcpApprovals.attachResult).toHaveBeenCalledTimes(2);
+    for (const call of mcpApprovals.attachResult.mock.calls) {
+      expect(call).toEqual(['apr-1', testId('org'), outcome]);
+    }
+  });
+
+  it('retains the claim after terminal persistence failure and rejects replay', async () => {
+    const outcome = { success: true, creditsUsed: 0, data: { id: 'post-1' } };
+    publishHandler.createPost.mockResolvedValue(outcome);
+    mcpApprovals.attachResult.mockRejectedValue(
+      new Error('Storage unavailable'),
+    );
+    mcpApprovals.claimExecution
+      .mockResolvedValueOnce(true)
+      .mockResolvedValue(false);
+    const invocationContext = context({
+      confirmationOrigin: 'thread-ui-action',
+      hostSupportsApproval: true,
+    });
+
+    const first = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      invocationContext,
+    );
+    const retry = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      invocationContext,
+    );
+
+    expect(first.success).toBe(false);
+    expect(retry.error).toContain('awaiting outcome reconciliation');
+    expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+    expect(mcpApprovals.attachResult).toHaveBeenCalledTimes(2);
+    for (const call of mcpApprovals.attachResult.mock.calls) {
+      expect(call).toEqual(['apr-1', testId('org'), outcome]);
+    }
+  });
+
+  it('retries persistence of a thrown handler failure without executing again', async () => {
+    publishHandler.createPost.mockRejectedValueOnce(
+      new Error('Provider failed'),
+    );
+    mcpApprovals.attachResult.mockRejectedValueOnce(
+      new Error('Storage unavailable'),
+    );
+
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({
+        confirmationOrigin: 'thread-ui-action',
+        hostSupportsApproval: true,
+      }),
+    );
+
+    expect(result.error).toBe('Provider failed');
+    expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+    expect(mcpApprovals.attachResult).toHaveBeenCalledTimes(2);
+    for (const call of mcpApprovals.attachResult.mock.calls) {
+      expect(call).toEqual(['apr-1', testId('org'), result]);
+    }
+  });
+
   it('persists a thrown handler failure on the claimed approval', async () => {
     publishHandler.createPost.mockRejectedValueOnce(
       new Error('Provider failed'),

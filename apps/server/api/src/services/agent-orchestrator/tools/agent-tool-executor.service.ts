@@ -295,6 +295,7 @@ export class AgentToolExecutorService implements OnModuleInit {
   ): Promise<AgentToolResult> {
     const startTime = Date.now();
     let executionApprovalId: string | undefined;
+    let executionResult: AgentToolResult;
     try {
       const policyResult = await this.applyMutationPolicy(
         toolName,
@@ -333,19 +334,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         result,
         context,
       );
-      await this.recordApprovedMutationResult(
-        executionApprovalId,
-        context.organizationId,
-        scopedResult,
-      );
-      const durationMs = Date.now() - startTime;
-
-      this.loggerService.log(
-        `Tool ${toolName} executed in ${durationMs}ms`,
-        this.constructorName,
-      );
-
-      return toPlainJson(scopedResult);
+      executionResult = scopedResult;
     } catch (error: unknown) {
       const durationMs = Date.now() - startTime;
       const errorMessage =
@@ -356,14 +345,21 @@ export class AgentToolExecutorService implements OnModuleInit {
         this.constructorName,
       );
 
-      const result = { creditsUsed: 0, error: errorMessage, success: false };
-      await this.recordApprovedMutationResult(
-        executionApprovalId,
-        context.organizationId,
-        result,
-      );
-      return result;
+      executionResult = { creditsUsed: 0, error: errorMessage, success: false };
     }
+
+    // Persist outside the execution catch: a storage failure must never replace
+    // a completed action's outcome with a tool failure.
+    await this.recordApprovedMutationResult(
+      executionApprovalId,
+      context.organizationId,
+      executionResult,
+    );
+    this.loggerService.log(
+      `Tool ${toolName} executed in ${Date.now() - startTime}ms`,
+      this.constructorName,
+    );
+    return toPlainJson(executionResult);
   }
 
   private async applyMutationPolicy(
@@ -578,11 +574,22 @@ export class AgentToolExecutorService implements OnModuleInit {
     result: AgentToolResult,
   ): Promise<void> {
     if (!approvalId || !this.mcpApprovalsService) return;
-    await this.mcpApprovalsService.attachResult(
-      approvalId,
-      organizationId,
-      toPlainJson({ ...result }),
-    );
+    const serializedResult = toPlainJson({ ...result });
+    try {
+      await this.mcpApprovalsService.attachResult(
+        approvalId,
+        organizationId,
+        serializedResult,
+      );
+    } catch {
+      // Retry the same outcome once. Retain the claim if both writes fail:
+      // replaying a completed mutation is unsafe without downstream idempotency.
+      await this.mcpApprovalsService.attachResult(
+        approvalId,
+        organizationId,
+        serializedResult,
+      );
+    }
   }
 
   private assertToolBrandScope(
