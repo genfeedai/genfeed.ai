@@ -49,6 +49,7 @@ const context = {
   organizationId: 'org-1',
   userId: 'user-1',
   workflowId: 'workflow-1',
+  workflowVersionId: 'version-1',
   runId: 'run-1',
 };
 function setup(category = IngredientCategory.VIDEO) {

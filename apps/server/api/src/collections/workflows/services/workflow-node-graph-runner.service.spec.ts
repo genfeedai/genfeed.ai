@@ -104,6 +104,7 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
         {
           id: 'language',
           type: 'workflowInput',
+          inputs: [],
           label: 'Language',
           config: {},
           isLocked: true,

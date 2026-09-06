@@ -32,7 +32,13 @@ function setup(templateId: string, values: Record<string, unknown>) {
   const template = DYNAMIC_VIDEO_WORKFLOW_TEMPLATES[templateId];
   const converter = new WorkflowEngineConverterService();
   const executable = converter.applyRuntimeInputValues(
-    template,
+    {
+      ...template,
+      inputVariables: template.inputVariables?.map((variable) => ({
+        ...variable,
+        required: variable.required ?? false,
+      })),
+    },
     converter.convertToExecutableWorkflow({
       ...template,
       brandId: 'brand-1',
