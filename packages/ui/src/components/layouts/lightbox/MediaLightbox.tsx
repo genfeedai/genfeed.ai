@@ -75,18 +75,13 @@ export default function MediaLightbox({
     // late resolution cannot setState after teardown (React root races).
     let isCancelled = false;
     Promise.all([
-      import('yet-another-react-lightbox/plugins/video'),
       import('yet-another-react-lightbox/plugins/captions'),
       import('yet-another-react-lightbox/plugins/thumbnails'),
-    ]).then(([VideoModule, CaptionsModule, ThumbnailsModule]) => {
+    ]).then(([CaptionsModule, ThumbnailsModule]) => {
       if (isCancelled) {
         return;
       }
-      setPlugins([
-        VideoModule.default,
-        CaptionsModule.default,
-        ThumbnailsModule.default,
-      ]);
+      setPlugins([CaptionsModule.default, ThumbnailsModule.default]);
     });
     return () => {
       isCancelled = true;
