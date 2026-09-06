@@ -4,6 +4,7 @@ export interface GeneratedContentAttributes {
   cta: unknown;
   hashtags: unknown;
   hook: unknown;
+  knowledgeReceipts: unknown;
   patternId: unknown;
   patternUsed: unknown;
 }
@@ -30,6 +31,7 @@ type GeneratedContentInput = {
   cta?: unknown;
   hashtags?: unknown;
   hook?: unknown;
+  knowledgeReceipts?: unknown;
   patternId?: unknown;
   patternUsed?: unknown;
 };
@@ -58,6 +60,7 @@ export const GeneratedContentSerializer = {
         cta: data.cta,
         hashtags: data.hashtags,
         hook: data.hook,
+        knowledgeReceipts: data.knowledgeReceipts ?? [],
         patternId: data.patternId,
         patternUsed: data.patternUsed,
       },
