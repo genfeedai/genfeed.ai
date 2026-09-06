@@ -214,13 +214,20 @@ export class WorkflowNodeGraphRunnerService {
       triggerEvent,
       workflow,
     });
-    if (options.respectLocks !== false) {
-      this.prepopulateLockedNodes(
-        workflow,
-        state.nodeCache,
-        state.completedNodes,
-      );
-    }
+    this.prepopulateLockedNodes(
+      {
+        ...workflow,
+        nodes: workflow.nodes.filter(
+          (node) =>
+            options.respectLocks !== false ||
+            (options.selectedNodeIds
+              ? !options.selectedNodeIds.includes(node.id)
+              : node.type === 'workflowInput'),
+        ),
+      },
+      state.nodeCache,
+      state.completedNodes,
+    );
     if (options.selectedNodeIds && options.selectedNodeIds.length > 0) {
       const partialPlan = planPartialExecution(
         options.selectedNodeIds,

@@ -1,3 +1,30 @@
+vi.mock(
+  '@api/collections/workflows/services/workflow-engine-executor-helper.service',
+  () => ({ WorkflowEngineExecutorHelperService: class {} }),
+);
+vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
+  FilesClientService: class {},
+}));
+vi.mock(
+  '@api/services/integrations/elevenlabs/services/elevenlabs.service',
+  () => ({ ElevenLabsService: class {} }),
+);
+vi.mock('@api/services/integrations/heygen/services/heygen.service', () => ({
+  HeyGenService: class {},
+}));
+vi.mock(
+  '@api/services/integrations/replicate/services/replicate.service',
+  () => ({ ReplicateService: class {} }),
+);
+vi.mock('@api/services/prompt-builder/prompt-builder.service', () => ({
+  PromptBuilderService: class {},
+}));
+vi.mock('@libs/logger/logger.service', () => ({ LoggerService: class {} }));
+vi.mock('@api/services/media-localization/media-localization.service', () => ({
+  MediaLocalizationService: class {},
+}));
+vi.mock('@api/services/byok/byok.service', () => ({ ByokService: class {} }));
+
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';

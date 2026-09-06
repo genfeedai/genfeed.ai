@@ -45,7 +45,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional() private readonly musicsService?: MusicsService,
     @Optional() private readonly sharedService?: SharedService,
     @Optional()
-    private readonly videoMusicOrchestrationService?: VideoMusicOrchestrationService,
+    readonly _videoMusicOrchestrationService?: VideoMusicOrchestrationService,
     @Optional() private readonly whisperService?: WhisperService,
     @Optional()
     private readonly continuityResolver?: VideoQaContinuityResolverService,
@@ -310,49 +310,95 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
   }
 
   private registerSoundOverlayExecutor(engine: WorkflowEngine): void {
-    const videoMusicOrchestrationService = this.videoMusicOrchestrationService;
-
-    if (!videoMusicOrchestrationService) {
-      return;
-    }
-
+    const files = this.filesClientService;
+    if (!files) return;
     engine.registerExecutor('soundOverlay', async (node, inputs, context) => {
-      const brandId = this.helper.getRequiredBrandId(node);
-      const sourceVideo = this.helper.getVideoResultInput(inputs, 'videoUrl');
-      const videoIngredientId = this.helper.extractIngredientId(sourceVideo);
-
-      if (!videoIngredientId) {
-        throw new Error('soundOverlay requires a source video ingredient id');
+      const video = await this.helper.requireMediaAsset(
+        inputs.get('videoUrl'),
+        context.organizationId,
+        [IngredientCategory.VIDEO],
+      );
+      const soundInput = inputs.get('soundUrl');
+      const sound = await this.helper.requireMediaAsset(
+        this.helper.extractMusicIngredientId(soundInput) ?? soundInput,
+        context.organizationId,
+        [
+          IngredientCategory.MUSIC,
+          IngredientCategory.VOICE,
+          IngredientCategory.AUDIO,
+        ],
+      );
+      const brandId =
+        this.helper.readConfigString(node.config, 'brandId') ?? video.brandId;
+      if (brandId !== video.brandId)
+        throw new Error('Soundtrack brand must match the source video');
+      const mixMode = node.config.mixMode ?? 'replace';
+      if (
+        mixMode !== 'replace' &&
+        mixMode !== 'mix' &&
+        mixMode !== 'background'
+      ) {
+        throw new Error('Soundtrack mode must be replace, mix, or background');
       }
-
-      const soundSource = inputs.get('soundUrl');
-      const musicIngredientId =
-        this.helper.extractMusicIngredientId(soundSource);
-
-      if (!musicIngredientId) {
-        throw new Error(
-          'soundOverlay requires a library music ingredient from musicSource',
+      const pending = await this.helper.createWorkflowOutputIngredient({
+        brandId,
+        category: IngredientCategory.VIDEO,
+        extension: MetadataExtension.MP4,
+        organizationId: context.organizationId,
+        userId: context.userId,
+        parentIngredientId: video.id,
+        references: [video.id, sound.id],
+      });
+      try {
+        const [videoUrl, audioUrl] = await Promise.all([
+          files.getPresignedDownloadUrl(video.storageKey, video.storageType),
+          files.getPresignedDownloadUrl(sound.storageKey, sound.storageType),
+        ]);
+        const result = await files.audioOverlay({
+          videoUrl,
+          audioUrl,
+          mixMode,
+          audioVolume: this.helper.getOptionalNumberConfig(
+            node.config,
+            'audioVolume',
+            100,
+          ),
+          videoVolume: this.helper.getOptionalNumberConfig(
+            node.config,
+            'videoVolume',
+            mixMode === 'replace' ? 0 : 100,
+          ),
+          fadeIn: this.helper.getOptionalNumberConfig(node.config, 'fadeIn', 0),
+          fadeOut: this.helper.getOptionalNumberConfig(
+            node.config,
+            'fadeOut',
+            0,
+          ),
+          outputKey: `${pending.ingredientId}.mp4`,
+        });
+        await this.helper.patchMetadata(
+          pending.metadataId,
+          new MetadataEntity({
+            duration: result.duration,
+            publicUrl: result.publicUrl,
+            s3Key: result.s3Key,
+          }),
         );
+        await this.helper.patchIngredient(pending.ingredientId, {
+          status: IngredientStatus.GENERATED,
+          s3Key: result.s3Key,
+        });
+        return {
+          id: pending.ingredientId,
+          status: IngredientStatus.GENERATED,
+          videoUrl: this.helper.buildVideoIngredientUrl(pending.ingredientId),
+        };
+      } catch (error) {
+        await this.helper.patchIngredient(pending.ingredientId, {
+          status: IngredientStatus.FAILED,
+        });
+        throw error;
       }
-
-      const mergedIngredientId =
-        await videoMusicOrchestrationService.mergeVideoWithMusic(
-          videoIngredientId,
-          musicIngredientId,
-          this.helper.getOptionalNumberConfig(node.config, 'audioVolume', 30),
-          false,
-          {
-            brandId,
-            organizationId: context.organizationId,
-            userId: context.userId,
-          },
-        );
-
-      return {
-        id: mergedIngredientId,
-        status: IngredientStatus.GENERATED,
-        videoUrl: this.helper.buildVideoIngredientUrl(mergedIngredientId),
-      };
     });
   }
 
@@ -466,9 +512,17 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         'videoStitch',
         params.organizationId,
       );
-      const sourceIds = params.videoUrls
-        .map((videoUrl) => this.helper.extractIngredientId(videoUrl))
-        .filter((id): id is string => typeof id === 'string');
+      const sources = await Promise.all(
+        params.videoUrls.map((videoUrl) =>
+          this.helper.requireMediaAsset(videoUrl, params.organizationId, [
+            IngredientCategory.VIDEO,
+          ]),
+        ),
+      );
+      if (sources.some((source) => source.brandId !== brandId)) {
+        throw new Error('All stitched clips must belong to the selected brand');
+      }
+      const sourceIds = sources.map((source) => source.id);
 
       if (sourceIds.length < 2) {
         throw new Error(
@@ -496,6 +550,11 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           organizationId: params.organizationId,
           params: {
             sourceIds,
+            isPersistedOutputOnly: true,
+            sourceStorageKeys: sources.map(
+              (source) =>
+                `ingredients/${source.storageType}/${source.storageKey}`,
+            ),
             transition: params.transitionType,
             transitionDuration: params.transitionDuration,
           },
@@ -506,18 +565,27 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         });
 
         const result = await fileQueueService.waitForJob(job.jobId, 300_000);
-        const outputPath = this.helper.getRequiredJobOutputPath(result);
-        const uploaded = await filesClientService.uploadToS3(
-          ingredientId,
-          'videos',
-          {
-            path: outputPath,
-            type: FileInputType.FILE,
-          },
-        );
+        if (
+          result.success !== true ||
+          typeof result.s3Key !== 'string' ||
+          !result.s3Key.startsWith('ingredients/videos/') ||
+          typeof result.url !== 'string'
+        ) {
+          throw new Error('Video merge did not return a persisted video');
+        }
+        const uploaded = {
+          publicUrl: result.url,
+          s3Key: result.s3Key,
+          duration:
+            typeof result.duration === 'number' ? result.duration : undefined,
+          width: typeof result.width === 'number' ? result.width : undefined,
+          height: typeof result.height === 'number' ? result.height : undefined,
+          size: typeof result.size === 'number' ? result.size : undefined,
+        };
 
         await ingredientsService.patch(ingredientId, {
           status: IngredientStatus.GENERATED,
+          s3Key: result.s3Key,
           transformations: [TransformationCategory.MERGED],
         });
         await metadataService.patch(

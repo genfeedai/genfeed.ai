@@ -8,6 +8,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
+export type ElevenLabsSpeechOptions = {
+  languageCode?: string;
+  speed?: number;
+};
+
 type ElevenLabsVoice = {
   name?: string | null;
   previewUrl?: string | null;
@@ -79,18 +84,24 @@ export class ElevenLabsService {
     }
   }
 
+  public getSpeechModelId(): string {
+    return String(this.configService.get('ELEVENLABS_MODEL') ?? '');
+  }
+
   public async textToSpeech(
     voiceId: string,
     text: string,
     _organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
+    options?: ElevenLabsSpeechOptions,
   ): Promise<ElevenLabsAudioWithTimestampsResponse> {
     const client = this.getClient(apiKeyOverride);
     return (await client.textToSpeech.convertWithTimestamps(voiceId, {
       modelId: this.configService.get('ELEVENLABS_MODEL'),
       outputFormat: 'mp3_44100_128',
       text,
+      ...this.speechOptions(options),
     })) as ElevenLabsAudioWithTimestampsResponse;
   }
 
@@ -105,6 +116,7 @@ export class ElevenLabsService {
     _organizationId?: string,
     _userId?: string,
     apiKeyOverride?: string,
+    options?: ElevenLabsSpeechOptions,
   ): Promise<{
     audioUrl: string;
     duration: number;
@@ -126,6 +138,7 @@ export class ElevenLabsService {
           modelId: this.configService.get('ELEVENLABS_MODEL'),
           outputFormat: 'mp3_44100_128',
           text,
+          ...this.speechOptions(options),
         },
       )) as ElevenLabsAudioWithTimestampsResponse;
 
@@ -173,6 +186,26 @@ export class ElevenLabsService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private speechOptions(options?: ElevenLabsSpeechOptions) {
+    if (options?.languageCode && !/^[a-z]{2}$/.test(options.languageCode)) {
+      throw new Error('Speech language must be an ISO 639-1 code');
+    }
+    if (
+      options?.speed !== undefined &&
+      (!Number.isFinite(options.speed) ||
+        options.speed < 0.7 ||
+        options.speed > 1.2)
+    ) {
+      throw new Error('Speech speed must be between 0.7 and 1.2');
+    }
+    return {
+      ...(options?.languageCode ? { languageCode: options.languageCode } : {}),
+      ...(options?.speed !== undefined
+        ? { voiceSettings: { speed: options.speed } }
+        : {}),
+    };
   }
 
   public async cloneVoice(

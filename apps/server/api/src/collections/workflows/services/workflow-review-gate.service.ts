@@ -830,6 +830,11 @@ export class WorkflowReviewGateService {
       approvedBy: approvedBy ?? null,
       inputCaption: pendingApproval.inputCaption,
       inputMedia: pendingApproval.inputMedia,
+      ...(pendingApproval.rawMedia &&
+      typeof pendingApproval.rawMedia === 'object' &&
+      'audioUrl' in pendingApproval.rawMedia
+        ? { inputType: 'audio' }
+        : {}),
       outputCaption:
         approvalStatus === 'approved'
           ? (pendingApproval.rawCaption ?? null)
@@ -860,7 +865,7 @@ export class WorkflowReviewGateService {
       return null;
     }
 
-    for (const key of ['imageUrl', 'videoUrl', 'mediaUrl', 'url']) {
+    for (const key of ['imageUrl', 'videoUrl', 'audioUrl', 'mediaUrl', 'url']) {
       const candidate = (value as Record<string, unknown>)[key];
       if (typeof candidate === 'string') {
         return candidate;
@@ -902,7 +907,13 @@ export class WorkflowReviewGateService {
       if (record.media !== undefined) {
         return record.media;
       }
-      for (const key of ['imageUrl', 'videoUrl', 'mediaUrl', 'url']) {
+      for (const key of [
+        'imageUrl',
+        'videoUrl',
+        'audioUrl',
+        'mediaUrl',
+        'url',
+      ]) {
         if (record[key] !== undefined) {
           return record[key];
         }

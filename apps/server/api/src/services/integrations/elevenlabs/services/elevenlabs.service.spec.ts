@@ -73,6 +73,31 @@ describe('ElevenLabsService', () => {
     forcedAlignmentCreate.mockResolvedValue({ words: [] });
   });
 
+  it('forwards explicit language and voice speed without changing existing defaults', async () => {
+    const { service } = createHarness();
+    await service.textToSpeech('voice', 'Hola', 'org', 'user', 'byok', {
+      languageCode: 'es',
+      speed: 1.1,
+    });
+    expect(textToSpeechConvert).toHaveBeenCalledWith(
+      'voice',
+      expect.objectContaining({
+        languageCode: 'es',
+        voiceSettings: { speed: 1.1 },
+      }),
+    );
+  });
+
+  it('rejects invalid speed before invoking synthesis', async () => {
+    const { service } = createHarness();
+    await expect(
+      service.textToSpeech('voice', 'Hola', undefined, undefined, undefined, {
+        speed: 2,
+      }),
+    ).rejects.toThrow('between 0.7 and 1.2');
+    expect(textToSpeechConvert).not.toHaveBeenCalled();
+  });
+
   describe('client construction', () => {
     it('builds a single cached client from the configured API key', async () => {
       const { getApiKey, service } = createHarness();

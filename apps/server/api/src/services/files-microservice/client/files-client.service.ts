@@ -168,6 +168,20 @@ export class FilesClientService {
    * Overlay audio onto video using the files microservice.
    * Matches the POST /v1/files/processing/audio-overlay endpoint.
    */
+  async assembleSpeech(params: {
+    segments: { audioUrl: string; startSeconds: number; endSeconds: number }[];
+    durationSeconds: number;
+    outputKey?: string;
+  }): Promise<{ publicUrl: string; s3Key: string; duration: number }> {
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.filesServiceUrl}/v1/files/processing/speech-assembly`,
+        params,
+      ),
+    );
+    return response.data;
+  }
+
   async audioOverlay(params: {
     videoUrl: string;
     audioUrl: string;
