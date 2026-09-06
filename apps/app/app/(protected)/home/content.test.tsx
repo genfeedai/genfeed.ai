@@ -265,15 +265,18 @@ describe('OperationalHomeContent', () => {
     ).toHaveClass('sr-only');
     expect(
       screen.getByText(
-        /Connect Claude Code, Codex, or another MCP client to unlock live/,
+        /Connect Claude Code, Codex, or another MCP client to manage this workspace/,
       ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Connect Genfeed/ }),
     ).toHaveAttribute('href', '/acme/~/connect');
     expect(
-      screen.getByRole('link', { name: /Manage API keys/ }),
-    ).toHaveAttribute('href', '/acme/~/settings/api-keys');
+      screen.queryByRole('link', { name: /Manage API keys/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Connect an AI client (optional)'),
+    ).toBeInTheDocument();
     const connectionState = screen.getByTestId('operational-home-unconfigured');
     const operationalSections = screen.getByTestId('operational-home-sections');
 
