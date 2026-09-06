@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import List from '@ui/lists/list/List';
@@ -14,14 +15,14 @@ vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
 describe('List', () => {
   const mockIngredients: IIngredient[] = [
     {
-      category: 'music',
+      category: IngredientCategory.MUSIC,
       id: 'ing_1',
       ingredientUrl: 'http://example.com/sound1.mp3',
       isPlaying: false,
       name: 'Test Sound 1',
     } as IIngredient,
     {
-      category: 'music',
+      category: IngredientCategory.MUSIC,
       id: 'ing_2',
       ingredientUrl: 'http://example.com/sound2.mp3',
       isPlaying: false,
