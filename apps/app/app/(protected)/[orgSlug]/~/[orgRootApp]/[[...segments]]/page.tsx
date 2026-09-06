@@ -349,10 +349,11 @@ export default async function OrgRootAppPage({
 
     if (publishingSegments.length === 1 && section === 'content') {
       // Legacy content route redirects to the posts list.
-      return PublishingContentPage({
+      await PublishingContentPage({
         params: Promise.resolve({ brandSlug: '~', orgSlug }),
         searchParams: searchParams ?? Promise.resolve({}),
       });
+      return null;
     }
 
     if (publishingSegments.length === 1 && section === 'review') {
@@ -365,10 +366,11 @@ export default async function OrgRootAppPage({
 
     if (publishingSegments.length === 1 && section === 'calendar') {
       // The calendar route redirects to the posts list in calendar view.
-      return PostsCalendarPage({
+      await PostsCalendarPage({
         params: Promise.resolve({ brandSlug: '~', orgSlug }),
         searchParams: searchParams ?? Promise.resolve({}),
       });
+      return null;
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {
