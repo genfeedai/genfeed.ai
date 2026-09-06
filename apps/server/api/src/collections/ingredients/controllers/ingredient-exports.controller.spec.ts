@@ -1,3 +1,8 @@
+// Role authorization has its own guard suite; this unit covers export handler policy and metadata.
+vi.mock('@api/helpers/guards/roles/roles.guard', () => ({
+  RolesGuard: class RolesGuard {},
+}));
+
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { REQUEST_TIMEOUT_MS } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
