@@ -925,7 +925,7 @@ describe('SlackBotManager workflows', () => {
           expect.objectContaining({ message: '500' }),
         );
         expect(respond).toHaveBeenCalledWith({
-          text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+          text: expect.stringContaining('Run failed'),
         });
         expect(sessions().has(USER_ID)).toBe(false);
       });
@@ -1072,7 +1072,7 @@ describe('SlackBotManager workflows', () => {
       httpService.get.mockReturnValue(
         of({
           data: {
-            error: 'GPU exploded',
+            error: 'HTTP 429 Bearer private-token',
             executionId: 'exec-1',
             nodeResults: [],
             status: 'failed',
@@ -1082,7 +1082,10 @@ describe('SlackBotManager workflows', () => {
 
       await service['monitorWorkflowExecution'](ORG_ID, USER_ID, respond);
 
-      expect(respond).toHaveBeenCalledWith({ text: 'GPU exploded' });
+      expect(respond).toHaveBeenCalledWith({
+        text: 'Provider rate limited\nThe model provider asked us to slow down.\nWait a moment, then retry the message.',
+      });
+      expect(JSON.stringify(respond.mock.calls)).not.toContain('private-token');
       expect(sessions().has(USER_ID)).toBe(false);
     });
 
@@ -1100,7 +1103,7 @@ describe('SlackBotManager workflows', () => {
       await service['monitorWorkflowExecution'](ORG_ID, USER_ID, respond);
 
       expect(respond).toHaveBeenCalledWith({
-        text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        text: expect.stringContaining('Run failed'),
       });
     });
 
@@ -1149,7 +1152,7 @@ describe('SlackBotManager workflows', () => {
         expect.objectContaining({ message: 'boom' }),
       );
       expect(respond).toHaveBeenCalledWith({
-        text: 'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
+        text: expect.stringContaining('Run failed'),
       });
       expect(sessions().has(USER_ID)).toBe(false);
     });

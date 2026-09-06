@@ -205,6 +205,12 @@
         "description": "Send an email when a video generation completes or fails.",
         "label": "Video Emails"
       },
+      "agentEmail": {
+        "description": "Send an email when an agent run fails.",
+        "label": "Agent Emails",
+        "loadError": "Agent email preference could not be loaded.",
+        "saveError": "Failed to save your agent email preference."
+      },
       "workflowEmail": {
         "cardTitle": "Email Notifications",
         "description": "Send an email when a workflow completes or fails.",
@@ -1112,5 +1118,24 @@
     "emptyCaption": "No caption yet",
     "firstComment": "First comment",
     "mediaAlt": "Post media"
+  },
+  "notificationInbox": {
+    "title": "Notifications",
+    "open": "Open notifications",
+    "openCount": "Open notifications, {count} unread",
+    "readAll": "Mark all read",
+    "markRead": "Mark read",
+    "retry": "Retry",
+    "countError": "Could not load the unread count.",
+    "readError": "Could not mark notifications read. Try again.",
+    "loading": "Loading notifications…",
+    "loadError": "Could not load notifications.",
+    "empty": "You are all caught up. New workflow outcomes and agent alerts will appear here.",
+    "completed": "Workflow completed",
+    "failed": "Run failed",
+    "unread": "Unread",
+    "openSource": "Open run",
+    "unavailable": "Source unavailable",
+    "loadMore": "Load older notifications"
   }
 }

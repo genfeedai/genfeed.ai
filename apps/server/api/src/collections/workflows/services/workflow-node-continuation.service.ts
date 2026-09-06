@@ -506,18 +506,6 @@ export class WorkflowNodeContinuationService {
             organizationId: input.organizationId,
           },
         }),
-        transaction.workflowExecution.updateMany({
-          data: {
-            completedAt,
-            error: input.error,
-            status: PrismaWorkflowExecutionStatus.FAILED,
-          },
-          where: {
-            id: continuation.executionId,
-            isDeleted: false,
-            organizationId: input.organizationId,
-          },
-        }),
       ]);
     });
   }

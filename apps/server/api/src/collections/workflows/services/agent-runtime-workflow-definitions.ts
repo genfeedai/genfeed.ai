@@ -12,6 +12,12 @@ export const AGENT_RUNTIME_WORKFLOW_IDS = {
   VOICE_GENERATION: 'voice.generate',
 } as const;
 
+export const AGENT_CONVERSATION_WORKFLOW_IDS: readonly string[] = [
+  AGENT_RUNTIME_WORKFLOW_IDS.TURN,
+  AGENT_RUNTIME_WORKFLOW_IDS.UI_ACTION,
+  AGENT_RUNTIME_WORKFLOW_IDS.INPUT_RESPONSE,
+];
+
 export const AGENT_RUNTIME_ACTION_IDS = {
   INPUT_RESPONSE: 'agent.thread.input-response.execute',
   TURN_FAIL: 'agent.turn.fail',

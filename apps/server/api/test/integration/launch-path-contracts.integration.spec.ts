@@ -224,16 +224,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
 
   it('keeps OSS-safe agent coordination memory (no personal fleet routing)', () => {
     const index = readRepo('.agents/memory/MEMORY.md');
+    const catalog = readRepo('.agents/memory/reference_memory_catalog.md');
     const qaQueue = readRepo(
       '.agents/memory/feedback_qa_queue_branch_protocol.md',
     );
     const tdd = readRepo('.agents/memory/feedback_tdd_first.md');
     const gitignore = readRepo('.gitignore');
-    expect(index).toContain('feedback_qa_queue_branch_protocol');
-    expect(index).toContain('feedback_tdd_first');
-    expect(index).toContain('claim_work_before_starting');
+    expect(index).toContain('(reference_memory_catalog.md)');
+    expect(catalog).toContain('feedback_qa_queue_branch_protocol');
+    expect(catalog).toContain('feedback_tdd_first');
+    expect(catalog).toContain('claim_work_before_starting');
     // Personal Claude/Codex/Grok fleet notes stay out of the public tree.
     expect(index).not.toContain('feedback_multi_agent_collaboration');
+    expect(catalog).not.toContain('feedback_multi_agent_collaboration');
     expect(gitignore).toContain('.agents/memory/local/');
     expect(qaQueue).toContain('project_qa_*_closeout');
     expect(qaQueue).not.toMatch(/Claude|Codex|Grok/i);

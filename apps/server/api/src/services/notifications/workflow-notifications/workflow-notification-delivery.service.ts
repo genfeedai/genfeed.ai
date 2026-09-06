@@ -3,6 +3,7 @@ import {
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
 import {
+  AGENT_STATUS_NOTIFICATION_TOPIC,
   EMAIL_NOTIFICATION_CHANNEL,
   NOTIFICATION_DELIVERY_STATUS,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
@@ -10,6 +11,7 @@ import {
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AgentFailureReason } from '@genfeedai/contracts';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
@@ -91,6 +93,22 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
+    const isAgentFailure = delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
+    if (
+      delivery.channel !== EMAIL_NOTIFICATION_CHANNEL ||
+      (delivery.topic !== WORKFLOW_STATUS_NOTIFICATION_TOPIC &&
+        !isAgentFailure) ||
+      delivery.event.sourceType !==
+        (isAgentFailure ? 'agent_run' : 'workflow_execution')
+    ) {
+      await this.failPermanently(
+        deliveryId,
+        delivery.organizationId,
+        'Invalid notification source or topic',
+      );
+      return;
+    }
+
     // tenant-scope-ignore: preferences are globally user-owned; delivery.userId comes from the organization-scoped claimed delivery above
     const preference = await this.prisma.notificationPreference.findFirst({
       select: { isEnabled: true },
@@ -98,7 +116,7 @@ export class WorkflowNotificationDeliveryService {
         channel: EMAIL_NOTIFICATION_CHANNEL,
         isDeleted: false,
         isEnabled: true,
-        topic: WORKFLOW_STATUS_NOTIFICATION_TOPIC,
+        topic: delivery.topic,
         userId: delivery.userId,
       },
     });
@@ -113,7 +131,10 @@ export class WorkflowNotificationDeliveryService {
     }
 
     const payload = this.readPayload(delivery.event.payload);
-    if (!payload) {
+    if (
+      !payload ||
+      (isAgentFailure && (payload.status !== 'failed' || !payload.failure))
+    ) {
       await this.failPermanently(
         deliveryId,
         delivery.organizationId,
@@ -123,7 +144,7 @@ export class WorkflowNotificationDeliveryService {
     }
 
     try {
-      const email = this.buildEmail(payload);
+      const email = this.buildEmail(payload, isAgentFailure);
       const providerMessageId = await this.notificationsService.deliverEmail({
         ...email,
         idempotencyKey: delivery.idempotencyKey,
@@ -296,7 +317,34 @@ export class WorkflowNotificationDeliveryService {
       return null;
     }
 
+    let failure: WorkflowStatusNotificationPayload['failure'] = null;
+    if (payload.failure !== undefined && payload.failure !== null) {
+      if (typeof payload.failure !== 'object') return null;
+      const value = payload.failure as Record<string, unknown>;
+      if (
+        !Object.values(AgentFailureReason).some(
+          (reason) => reason === value.reason,
+        ) ||
+        typeof value.title !== 'string' ||
+        typeof value.summary !== 'string' ||
+        (value.recovery !== null && typeof value.recovery !== 'string') ||
+        typeof value.isConfigurationError !== 'boolean' ||
+        typeof value.isRetryable !== 'boolean'
+      )
+        return null;
+      failure = {
+        reason: value.reason as AgentFailureReason,
+        title: value.title,
+        summary: value.summary,
+        recovery: value.recovery as string | null,
+        detail: null,
+        isConfigurationError: value.isConfigurationError,
+        isRetryable: value.isRetryable,
+      };
+    }
+
     return {
+      failure,
       error: typeof payload.error === 'string' ? payload.error : null,
       executionId: payload.executionId,
       status: payload.status,
@@ -307,15 +355,33 @@ export class WorkflowNotificationDeliveryService {
     };
   }
 
-  private buildEmail(payload: WorkflowStatusNotificationPayload): {
+  private buildEmail(
+    payload: WorkflowStatusNotificationPayload,
+    isAgentFailure: boolean,
+  ): {
     html: string;
     subject: string;
     text: string;
   } {
     const isFailure = payload.status === 'failed';
     const subject = isFailure
-      ? `Workflow failed: ${payload.workflowLabel}`
+      ? `${isAgentFailure ? 'Agent run' : 'Workflow'} failed: ${payload.workflowLabel}`
       : `Workflow completed: ${payload.workflowLabel}`;
+    if (isAgentFailure && isFailure && payload.failure) {
+      const { title, summary, recovery } = payload.failure;
+      const text = [subject, title, summary, recovery]
+        .filter(Boolean)
+        .join('\n');
+      const bodyHtml = [title, summary, recovery]
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => `<p>${escapeSystemEmailHtml(value)}</p>`)
+        .join('');
+      return {
+        html: buildSystemEmailHtml({ bodyHtml, title: subject }),
+        subject,
+        text,
+      };
+    }
     const escapedLabel = escapeSystemEmailHtml(payload.workflowLabel);
     const escapedError = payload.error
       ? `: ${escapeSystemEmailHtml(payload.error)}`

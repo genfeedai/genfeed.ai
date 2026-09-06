@@ -1,16 +1,19 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
+  AgentFailureQueryDto,
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -19,12 +22,18 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  AgentFailureReason,
+  MemberRole,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
+import { HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -144,6 +153,84 @@ export class WorkflowExecutionsController {
               : 20,
         }),
         offset: !Number.isNaN(parsedOffset) ? parsedOffset : 0,
+      },
+    );
+    return serializeCollection(req, WorkflowExecutionSerializer, result);
+  }
+
+  @Get('admin/failures')
+  @RolesDecorator('superadmin')
+  @ApiOperation({ summary: 'List agent failures across organizations' })
+  async findAdminFailures(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Query() query: AgentFailureQueryDto,
+  ) {
+    if (!getIsSuperAdmin(user, req)) {
+      throw new ForbiddenException(
+        'Only platform superadmins can access agent failures',
+      );
+    }
+    if (query.offset % query.limit !== 0) {
+      throw new BadRequestException('Offset must be a multiple of limit');
+    }
+    const result = await this.workflowExecutionsService.findAll(
+      {
+        include: { workflow: { select: { id: true, label: true } } },
+        orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
+        // tenant-scope-ignore: superadmin-only cross-tenant failure feed; both execution and workflow must be non-deleted
+        where: {
+          isDeleted: false,
+          status: WorkflowExecutionStatus.FAILED,
+          ...(query.failureReason
+            ? query.failureReason === AgentFailureReason.UNKNOWN
+              ? {
+                  OR: [
+                    { failureReason: AgentFailureReason.UNKNOWN },
+                    { failureReason: null },
+                  ],
+                }
+              : { failureReason: query.failureReason }
+            : {}),
+          workflow: {
+            is: {
+              isDeleted: false,
+              AND: [
+                {
+                  metadata: {
+                    path: ['sourceType'],
+                    equals: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+                  },
+                },
+                {
+                  metadata: {
+                    path: ['systemWorkflow', 'visibility'],
+                    equals: 'internal',
+                  },
+                },
+                {
+                  metadata: {
+                    path: ['systemWorkflow', 'duplicable'],
+                    equals: false,
+                  },
+                },
+                {
+                  OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
+                    metadata: {
+                      path: ['systemWorkflow', 'canonicalId'],
+                      equals: canonicalId,
+                    },
+                  })),
+                },
+              ],
+            },
+          },
+        },
+      },
+      {
+        customLabels,
+        limit: query.limit,
+        page: Math.floor(query.offset / query.limit) + 1,
       },
     );
     return serializeCollection(req, WorkflowExecutionSerializer, result);

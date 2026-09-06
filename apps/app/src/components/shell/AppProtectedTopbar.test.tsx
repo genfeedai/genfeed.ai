@@ -1,3 +1,7 @@
+vi.mock('@/components/shell/NotificationInboxMenu', () => ({
+  default: () => <div data-testid="notification-inbox" />,
+}));
+
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';

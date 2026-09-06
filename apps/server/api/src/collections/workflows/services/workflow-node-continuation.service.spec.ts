@@ -180,7 +180,7 @@ describe('WorkflowNodeContinuationService', () => {
     });
   });
 
-  it('atomically fails continuation, media, node claim, node result, and execution when submission fails', async () => {
+  it('fails submission resources while leaving execution finalization to the workflow owner', async () => {
     workflowNodeContinuation.findFirst.mockResolvedValue({
       ...baseContinuation,
       externalId: null,
@@ -192,7 +192,6 @@ describe('WorkflowNodeContinuationService', () => {
     prisma.workflowExecutionNodeResult.updateMany.mockResolvedValue({
       count: 1,
     });
-    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 1 });
 
     await service.failProviderSubmission({
       continuationId: 'continuation-1',
@@ -231,11 +230,7 @@ describe('WorkflowNodeContinuationService', () => {
         data: expect.objectContaining({ status: 'FAILED' }),
       }),
     );
-    expect(prisma.workflowExecution.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: 'FAILED' }),
-      }),
-    );
+    expect(prisma.workflowExecution.updateMany).not.toHaveBeenCalled();
   });
 
   it('isolates a poison HeyGen outbox row and dispatches later polls', async () => {

@@ -26,10 +26,7 @@ import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
-import {
-  classifyAgentRunFailure,
-  readAgentRunPublicError,
-} from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
+import { readAgentRunPublicError } from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   extractThreadEnvelope,
@@ -668,11 +665,12 @@ export class AgentOrchestratorStreamLoopService {
       await settleAccruedTurnCredits();
 
       const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
+      if (context.executionMode === 'background') {
+        throw new Error(errorMsg);
+      }
       await this.streamEffects.publishStreamFailure({
         context,
         error: errorMsg,
-        failRun: true,
-        persistedError: classifyAgentRunFailure(errorMsg),
         threadId,
       });
     } catch (error: unknown) {
@@ -701,8 +699,6 @@ export class AgentOrchestratorStreamLoopService {
       await this.streamEffects.publishStreamFailure({
         context,
         error: readAgentRunPublicError(error),
-        failRun: true,
-        persistedError: classifyAgentRunFailure(error),
         threadId,
       });
     } finally {
