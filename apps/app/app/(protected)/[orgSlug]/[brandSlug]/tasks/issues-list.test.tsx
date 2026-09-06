@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { openIssueOverlay } from './issue-overlay-controls';
 import IssuesList from './issues-list';
 
 const mocks = vi.hoisted(() => ({
@@ -33,15 +32,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
-}));
-
-vi.mock('./issue-overlay', () => ({
-  default: () => null,
-}));
-
-vi.mock('./issue-overlay-controls', () => ({
-  openIssueOverlay: vi.fn(),
-  closeIssueOverlay: vi.fn(),
 }));
 
 describe('IssuesList view controls', () => {
@@ -157,7 +147,6 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   ).toBeVisible();
   expect(screen.getAllByText('Failed')).toHaveLength(1);
   fireEvent.click(title);
-  expect(openIssueOverlay).toHaveBeenCalled();
   expect(mocks.replace).toHaveBeenCalledWith('/?taskId=failed-task', {
     scroll: false,
   });
@@ -197,7 +186,6 @@ describe('IssuesList inline editing and deep links', () => {
     await waitFor(() =>
       expect(mocks.findOne).toHaveBeenCalledWith('missing-task'),
     );
-    await waitFor(() => expect(openIssueOverlay).toHaveBeenCalled());
     expect(mocks.notifyError).not.toHaveBeenCalled();
   });
 
@@ -210,7 +198,6 @@ describe('IssuesList inline editing and deep links', () => {
     await waitFor(() =>
       expect(mocks.notifyError).toHaveBeenCalledWith('Could not open task.'),
     );
-    expect(openIssueOverlay).not.toHaveBeenCalled();
   });
 
   it('updates status inline and reloads the list', async () => {
@@ -230,7 +217,6 @@ describe('IssuesList inline editing and deep links', () => {
       }),
     );
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
-    expect(openIssueOverlay).not.toHaveBeenCalled();
   });
 
   it('surfaces a failed inline update', async () => {

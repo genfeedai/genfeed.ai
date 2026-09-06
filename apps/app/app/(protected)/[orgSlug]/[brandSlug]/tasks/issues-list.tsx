@@ -1,12 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,7 +12,6 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -39,15 +33,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  ChevronDown,
-  ChevronsUp,
-  ChevronUp,
-  CirclePlus,
-  Columns2,
-  List,
-  Minus,
-} from 'lucide-react';
+import { CirclePlus, Columns2, List } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   useCallback,
@@ -58,83 +44,19 @@ import {
   useState,
 } from 'react';
 
-import IssueOverlay from './issue-overlay';
-import { closeIssueOverlay, openIssueOverlay } from './issue-overlay-controls';
+import {
+  PRIORITY_LABELS,
+  PRIORITY_ORDER,
+  STATUS_LABELS,
+  STATUS_ORDER,
+  TaskPriorityBadge,
+  TaskPrioritySelect,
+  TaskStatusBadge,
+  TaskStatusSelect,
+} from './task-pills';
+import { useTaskSelection } from './task-selection-context';
 
 type ViewMode = ViewType.KANBAN | ViewType.LIST;
-
-const STATUS_ORDER: TaskStatus[] = [
-  'backlog',
-  'todo',
-  'in_progress',
-  'in_review',
-  'blocked',
-  'failed',
-  'done',
-  'cancelled',
-];
-
-const PRIORITY_ORDER: TaskPriority[] = ['low', 'medium', 'high', 'critical'];
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: 'Backlog',
-  blocked: 'Blocked',
-  cancelled: 'Cancelled',
-  done: 'Done',
-  failed: 'Failed',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  todo: 'To Do',
-};
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  low: 'Low',
-  medium: 'Medium',
-};
-
-const PRIORITY_VARIANTS: Record<
-  TaskPriority,
-  'error' | 'warning' | 'info' | 'secondary'
-> = {
-  critical: 'error',
-  high: 'warning',
-  low: 'secondary',
-  medium: 'info',
-};
-
-const PRIORITY_ICONS: Record<TaskPriority, typeof ChevronsUp> = {
-  critical: ChevronsUp,
-  high: ChevronUp,
-  low: ChevronDown,
-  medium: Minus,
-};
-
-/** Strips field chrome so the badge itself is the select trigger. */
-const PILL_TRIGGER_CLASS =
-  'h-auto w-auto gap-1 rounded-full border-0 bg-transparent p-0 shadow-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring [&>svg:last-child]:size-3';
-
-function TaskStatusBadge({ status }: { status: TaskStatus }) {
-  return (
-    <Badge status={status} size={ComponentSize.SM}>
-      {STATUS_LABELS[status]}
-    </Badge>
-  );
-}
-
-function TaskPriorityIndicator({ priority }: { priority: TaskPriority }) {
-  const Icon = PRIORITY_ICONS[priority];
-  return (
-    <Badge
-      variant={PRIORITY_VARIANTS[priority]}
-      size={ComponentSize.SM}
-      icon={<Icon aria-hidden="true" className="size-3" />}
-    >
-      {PRIORITY_LABELS[priority]}
-    </Badge>
-  );
-}
 
 function IssueCard({
   issue,
@@ -153,7 +75,7 @@ function IssueCard({
         <span className="text-2xs font-mono text-gray-800">
           {issue.identifier}
         </span>
-        <TaskPriorityIndicator priority={issue.priority} />
+        <TaskPriorityBadge priority={issue.priority} />
       </div>
       <p className="mb-2 text-sm leading-snug text-foreground">{issue.title}</p>
       {issue.assigneeUserId ? (
@@ -202,7 +124,6 @@ type IssuesListState = {
   createDescription: string;
   createPriority: TaskPriority;
   isCreating: boolean;
-  selectedIssue: Task | null;
 };
 
 type IssuesListAction =
@@ -215,7 +136,6 @@ type IssuesListAction =
   | { type: 'SET_CREATE_DESCRIPTION'; payload: string }
   | { type: 'SET_CREATE_PRIORITY'; payload: TaskPriority }
   | { type: 'SET_CREATING'; payload: boolean }
-  | { type: 'SET_SELECTED_ISSUE'; payload: Task | null }
   | { type: 'RESET_CREATE_FORM' };
 
 const initialIssuesListState: IssuesListState = {
@@ -225,7 +145,6 @@ const initialIssuesListState: IssuesListState = {
   isCreating: false,
   isLoading: true,
   issues: [],
-  selectedIssue: null,
   showCreateDialog: false,
   statusFilter: '',
   viewMode: ViewType.LIST,
@@ -254,8 +173,6 @@ function issuesListReducer(
       return { ...state, createPriority: action.payload };
     case 'SET_CREATING':
       return { ...state, isCreating: action.payload };
-    case 'SET_SELECTED_ISSUE':
-      return { ...state, selectedIssue: action.payload };
     case 'RESET_CREATE_FORM':
       return {
         ...state,
@@ -281,6 +198,10 @@ export default function IssuesList() {
   const searchParams = useSearchParams();
   const [savingId, setSavingId] = useState<string | null>(null);
   const taskId = searchParams.get('taskId');
+  const selection = useTaskSelection();
+  const selectTask = selection?.selectTask;
+  const commitTask = selection?.commitTask;
+  const selectionRevision = selection?.revision ?? 0;
   const [state, dispatch] = useReducer(
     issuesListReducer,
     initialIssuesListState,
@@ -292,7 +213,6 @@ export default function IssuesList() {
     isCreating,
     isLoading,
     issues,
-    selectedIssue,
     showCreateDialog,
     statusFilter,
     viewMode,
@@ -378,43 +298,49 @@ export default function IssuesList() {
 
   const handleSelectIssue = useCallback(
     (issue: Task) => {
-      dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
+      selectTask?.(issue);
       setTaskUrl(issue.id);
-      openIssueOverlay();
     },
-    [setTaskUrl],
+    [selectTask, setTaskUrl],
   );
 
+  // `?taskId=` is the source of truth for the inspector: resolve it from the
+  // loaded list first, and only fetch when the task is outside the current page.
   useEffect(() => {
     if (!taskId) {
-      dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
-      closeIssueOverlay();
+      selectTask?.(null);
       return;
     }
     let cancelled = false;
-    const showTask = (issue: Task) => {
-      if (cancelled) return;
-      dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
-      openIssueOverlay();
-    };
     const issue = issues.find((item) => item.id === taskId);
-    if (issue) showTask(issue);
-    else if (!isLoading)
+    if (issue) {
+      selectTask?.(issue);
+    } else if (!isLoading) {
       void getTasksService()
         .then((service) => service.findOne(taskId))
-        .then(showTask)
+        .then((task) => {
+          if (!cancelled) selectTask?.(task);
+        })
         .catch(() => {
           if (!cancelled) notificationsService.error('Could not open task.');
         });
+    }
     return () => {
       cancelled = true;
     };
-  }, [taskId, issues, isLoading, getTasksService, notificationsService]);
+  }, [
+    taskId,
+    issues,
+    isLoading,
+    getTasksService,
+    notificationsService,
+    selectTask,
+  ]);
 
-  const handleOverlayClose = useCallback(() => {
-    dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
-    setTaskUrl(null);
-  }, [setTaskUrl]);
+  // The inspector saves through the shared selection; refetch so rows match.
+  useEffect(() => {
+    if (selectionRevision > 0) void loadIssues();
+  }, [selectionRevision, loadIssues]);
 
   const updateIssue = async (
     issue: Task,
@@ -423,8 +349,9 @@ export default function IssuesList() {
     setSavingId(issue.id);
     try {
       const service = await getTasksService();
-      await service.updateTask(issue.id, input);
-      await loadIssues();
+      const updated = await service.updateTask(issue.id, input);
+      if (selection?.selectedTask?.id === issue.id) commitTask?.(updated);
+      else await loadIssues();
     } catch {
       notificationsService.error('Could not update task. Please try again.');
     } finally {
@@ -574,58 +501,24 @@ export default function IssuesList() {
               key: 'status',
               header: 'Status',
               render: (issue) => (
-                <Select
+                <TaskStatusSelect
+                  ariaLabel={`Status for ${issue.title}`}
+                  isDisabled={savingId === issue.id}
                   value={issue.status}
-                  disabled={savingId === issue.id}
-                  onValueChange={(status) =>
-                    void updateIssue(issue, { status: status as TaskStatus })
-                  }
-                >
-                  <SelectTrigger
-                    aria-label={`Status for ${issue.title}`}
-                    className={PILL_TRIGGER_CLASS}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_ORDER.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        <TaskStatusBadge status={status} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(status) => void updateIssue(issue, { status })}
+                />
               ),
             },
             {
               key: 'priority',
               header: 'Priority',
               render: (issue) => (
-                <Select
+                <TaskPrioritySelect
+                  ariaLabel={`Priority for ${issue.title}`}
+                  isDisabled={savingId === issue.id}
                   value={issue.priority}
-                  disabled={savingId === issue.id}
-                  onValueChange={(priority) =>
-                    void updateIssue(issue, {
-                      priority: priority as TaskPriority,
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    aria-label={`Priority for ${issue.title}`}
-                    className={PILL_TRIGGER_CLASS}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIORITY_ORDER.map((priority) => (
-                      <SelectItem key={priority} value={priority}>
-                        <TaskPriorityIndicator priority={priority} />
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(priority) => void updateIssue(issue, { priority })}
+                />
               ),
             },
           ]}
@@ -734,7 +627,6 @@ export default function IssuesList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <IssueOverlay issue={selectedIssue} onClose={handleOverlayClose} />
     </Container>
   );
 }
