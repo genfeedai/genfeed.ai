@@ -6,6 +6,11 @@ import { expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import messages from '../../../../apps/app/messages/en/agent.json';
 
+vi.mock('@genfeedai/helpers', async () => {
+  const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');
+  return { cn };
+});
+
 it('lets a user review the prepared intent and decline in Chromium', async () => {
   const action: AgentUiAction = {
     id: 'card-1',
