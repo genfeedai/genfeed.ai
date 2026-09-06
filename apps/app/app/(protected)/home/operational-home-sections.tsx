@@ -40,7 +40,7 @@ import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, ImageOff, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -322,21 +322,14 @@ function NeedsYouSurface({
                           src={item.mediaUrl}
                         />
                       </span>
-                    ) : (
-                      <span
-                        aria-label="No media"
-                        className="inline-flex size-10 items-center justify-center rounded-md bg-background-secondary text-muted-foreground shadow-border"
-                        role="img"
-                      >
-                        <ImageOff aria-hidden="true" className="size-4" />
-                      </span>
-                    )
+                    ) : null
                   }
                   meta={
                     <span className="flex flex-wrap items-center gap-2">
                       {item.platform ? (
                         <PlatformBadge
                           platform={item.platform}
+                          showLabel={false}
                           size={ComponentSize.SM}
                         />
                       ) : null}
