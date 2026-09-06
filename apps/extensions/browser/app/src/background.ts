@@ -1,6 +1,5 @@
 import {
   BookmarkCategory,
-  BookmarkIntent,
   BookmarkPlatform,
   IngredientStatus,
 } from '@genfeedai/contracts';
@@ -106,6 +105,7 @@ interface AutoModelRequest {
 interface BookmarkData {
   author?: string;
   authorHandle?: string;
+  brandId?: string;
   content?: string;
   description?: string;
   intent?: string;
@@ -195,6 +195,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         request.url,
         sendResponse,
         request.platform || 'twitter',
+        request.brandId,
       );
       return true;
 
@@ -367,21 +368,53 @@ async function checkAuthentication(sendResponse: SendResponse): Promise<void> {
   }
 }
 
+/**
+ * Every capture enters Knowledge through the canonical ingestion workflow.
+ * A brand id scopes the source to that brand; without one it stays personal.
+ */
+function knowledgeCapturePath(brandId?: string): string {
+  return brandId
+    ? `/knowledge-sources?brandId=${encodeURIComponent(brandId)}`
+    : '/knowledge-sources';
+}
+
+function knowledgeCaptureTitle(
+  title: string | undefined,
+  url: string,
+  platform: string,
+): string {
+  const trimmed = title?.trim();
+  if (trimmed) {
+    return trimmed.slice(0, 500);
+  }
+  try {
+    return `${platform} · ${new URL(url).hostname}`;
+  } catch {
+    return `${platform} capture`;
+  }
+}
+
 async function savePostToGenfeed(
   postId: string,
   url: string,
   sendResponse: SendResponse,
   platform: string = 'twitter',
+  brandId?: string,
 ): Promise<void> {
   await executeAuthenticatedRequest(
-    '/bookmarks',
+    knowledgeCapturePath(brandId),
     {
       body: JSON.stringify({
-        ...getBookmarkSource(platform),
-        content: '',
-        intent: BookmarkIntent.INSPIRATION,
-        platformData: { metadata: { postId } },
-        url,
+        kind: 'URL',
+        provenance: {
+          ...getBookmarkSource(platform),
+          capturedBy: 'extension',
+          postId,
+        },
+        purpose: 'INSPIRATION',
+        referenceUrl: url,
+        scope: brandId ? 'brand' : 'personal',
+        title: knowledgeCaptureTitle(undefined, url, platform),
       }),
       method: 'POST',
     },
@@ -578,25 +611,32 @@ async function saveBookmark(
   data: BookmarkData,
   sendResponse: SendResponse,
 ): Promise<void> {
+  const url = data.url ?? '';
+  const platform = data.platform || 'twitter';
+  const content = data.content?.trim();
   const body = JSON.stringify({
-    author: data.author,
-    authorHandle: data.authorHandle,
-    content: data.content || '',
-    description: data.description,
-    intent:
-      Object.values(BookmarkIntent).find(
-        (intent) => intent === data.intent?.toUpperCase(),
-      ) ?? BookmarkIntent.INSPIRATION,
-    mediaUrls: data.mediaUrls || [],
-    ...getBookmarkSource(data.platform || 'twitter'),
-    platformData: data.platformData || {},
-    thumbnailUrl: data.thumbnailUrl,
-    title: data.title,
-    url: data.url,
+    kind: 'URL',
+    provenance: {
+      author: data.author,
+      authorHandle: data.authorHandle,
+      capturedBy: 'extension',
+      description: data.description,
+      intent: data.intent?.toUpperCase(),
+      mediaUrls: data.mediaUrls || [],
+      ...getBookmarkSource(platform),
+      platformData: data.platformData || {},
+      thumbnailUrl: data.thumbnailUrl,
+    },
+    purpose:
+      data.intent?.toUpperCase() === 'REPLY' ? 'RESEARCH' : 'INSPIRATION',
+    referenceUrl: url,
+    scope: data.brandId ? 'brand' : 'personal',
+    ...(content ? { text: content } : {}),
+    title: knowledgeCaptureTitle(data.title, url, platform),
   });
 
   await executeAuthenticatedRequest(
-    '/bookmarks',
+    knowledgeCapturePath(data.brandId),
     { body, method: 'POST' },
     sendResponse,
     (result) => sendResponse({ data: result, success: true }),
