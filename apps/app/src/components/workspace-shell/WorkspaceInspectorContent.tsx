@@ -620,8 +620,9 @@ function WorkspaceInspectorConversationPane({
       <div
         className={cn(
           'min-h-0 flex-1 flex-col overflow-hidden',
-          isExpanded ? 'flex' : 'hidden',
+          isExpanded && 'flex',
         )}
+        hidden={!isExpanded}
       >
         {conversationSlot}
       </div>
