@@ -167,6 +167,7 @@ export default function FastlaneBlitz({
               className="h-64 w-full"
               src={currentAsset.ingredientUrl}
               thumbnail={currentAsset.thumbnailUrl}
+              isActive={!swipeDir}
               config={{
                 preload: 'metadata',
                 controls: true,
