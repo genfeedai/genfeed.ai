@@ -111,6 +111,9 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile.selfhosted
+          build-args: |
+            RELEASE_TAG=${{ inputs.release_tag }}
+            BUILD_ID=${{ inputs.checkout_ref }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

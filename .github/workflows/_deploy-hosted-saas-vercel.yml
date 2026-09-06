@@ -8,6 +8,11 @@ name: Deploy hosted SaaS Vercel frontends
 on:
   workflow_call:
     inputs:
+      release_tag:
+        description: "Product release tag; empty for unreleased deployments"
+        required: false
+        default: ""
+        type: string
       source_sha:
         description: "exact public genfeed.ai source commit to build"
         required: true
@@ -42,6 +47,7 @@ jobs:
       # it first). The other frontends ignore this and keep Next's default buildId.
       # Resolve project ids here, after `environment: production`, not in strategy.matrix
       # — environment vars are empty during matrix expansion.
+      RELEASE_TAG: ${{ inputs.release_tag }}
       BUILD_ID: ${{ inputs.source_sha }}
       DOMAIN: ${{ vars.DOMAIN }}
       FRONTEND_REPOSITORY: ${{ github.repository }}

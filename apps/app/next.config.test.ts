@@ -18,6 +18,12 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
 describe('app next.config', () => {
+  it('bakes the root package version independently from the release tag', () => {
+    expect(config.env?.NEXT_PUBLIC_APP_VERSION).toBe(rootPackage.version);
+    expect(config.env?.NEXT_PUBLIC_RELEASE_TAG).toBe(
+      process.env.RELEASE_TAG?.trim() ?? '',
+    );
+  });
   it('advertises the public agent catalog without indexing the app', async () => {
     const headers = await config.headers?.();
     const rootHeaders = headers?.find((entry) => entry.source === '/(.*)');

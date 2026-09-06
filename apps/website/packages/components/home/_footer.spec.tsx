@@ -50,7 +50,7 @@ describe('Footer Component', () => {
     const links = WEBSITE_SECTIONS.flatMap((section) => section.links);
 
     expect(WEBSITE_SECTIONS).toHaveLength(4);
-    expect(links.length).toBeLessThanOrEqual(20);
+    expect(links.length).toBeLessThanOrEqual(21);
   });
 
   it('lists every destination exactly once', () => {

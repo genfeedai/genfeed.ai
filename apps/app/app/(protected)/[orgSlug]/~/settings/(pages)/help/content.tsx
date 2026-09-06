@@ -21,6 +21,8 @@ interface LinkItem {
 }
 
 const RESOURCES: LinkItem[] = [
+  { icon: FileText, label: 'About Genfeed', url: '/settings/about' },
+  { icon: FileText, label: 'Changelog', url: 'https://genfeed.ai/changelog' },
   {
     icon: FileText,
     label: 'Documentation',
