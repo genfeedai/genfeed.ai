@@ -76,10 +76,17 @@ export default function Searchbar({
     if (onClear) {
       onClear();
     } else if (onChange) {
-      const syntheticEvent = {
-        target: { name, value: '' },
-      } as ChangeEvent<HTMLInputElement>;
-      onChange(syntheticEvent);
+      const input = resolvedRef.current;
+      if (input) {
+        // Use the native setter so React detects the change and creates the
+        // complete event contract (currentTarget, nativeEvent and methods).
+        const setValue = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value',
+        )?.set;
+        setValue?.call(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
 
     resolvedRef.current?.focus();

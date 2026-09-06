@@ -1,18 +1,30 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ChangeEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import Searchbar from './searchbar';
 
 describe('Searchbar', () => {
   it('clears a named filter and restores focus without a supplied ref', async () => {
-    const onChange = vi.fn();
+    const values: string[] = [];
+    const onChange = vi.fn((event: ChangeEvent<HTMLInputElement>) => {
+      values.push(event.currentTarget.value);
+      expect(event.currentTarget).toBe(screen.getByRole('textbox'));
+      expect(event.target).toBe(screen.getByRole('textbox'));
+      expect(event.nativeEvent).toBeInstanceOf(Event);
+      event.preventDefault();
+      expect(event.isDefaultPrevented()).toBe(true);
+    });
     render(
       <Searchbar ariaLabel="Search brands" value="Acme" onChange={onChange} />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ target: { name: 'search', value: '' } }),
+      expect.objectContaining({
+        target: expect.objectContaining({ name: 'search' }),
+      }),
     );
+    expect(values).toEqual(['']);
     expect(
       screen.getByRole('textbox', { name: 'Search brands' }),
     ).toHaveFocus();
