@@ -6,12 +6,14 @@ import type { ReleaseUpdateState } from '@genfeedai/contracts/interfaces/system/
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api/client';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
 import { isNewerRelease, parseLatestRelease } from './release-update';
 
 export default function AboutContent() {
+  const translate = useTranslations('pages.about');
   const deployment = getDeployment();
   const surface = getClientSurface();
   const { version, releaseTag, commitSha, channel } = BUILD_METADATA;
@@ -44,13 +46,15 @@ export default function AboutContent() {
 
   async function copyBuild() {
     const line = [
-      releaseTag ?? 'unreleased build',
+      releaseTag ?? translate('unreleased'),
       shortSha,
       deployment,
       surface,
-      `version ${version}`,
-      `channel ${channel}`,
-      ...(desktopVersion ? [`desktop ${desktopVersion}`] : []),
+      translate('copyVersion', { version }),
+      translate('copyChannel', { channel }),
+      ...(desktopVersion
+        ? [translate('copyDesktop', { version: desktopVersion })]
+        : []),
     ].join(' · ');
     try {
       await navigator.clipboard.writeText(line);
@@ -87,23 +91,23 @@ export default function AboutContent() {
     <Card bodyClassName="space-y-6">
       <div>
         <h1 id="about-title" className="text-xl font-semibold">
-          About Genfeed
+          {translate('title')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Build details for support and updates.
+          {translate('description')}
         </p>
       </div>
       <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-muted-foreground">Version</dt>
+          <dt className="text-muted-foreground">{translate('version')}</dt>
           <dd className="font-medium">{version}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Channel</dt>
+          <dt className="text-muted-foreground">{translate('channel')}</dt>
           <dd className="font-medium">{channel}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Release</dt>
+          <dt className="text-muted-foreground">{translate('release')}</dt>
           <dd className="font-medium">
             {releaseTag ? (
               <Link
@@ -115,26 +119,28 @@ export default function AboutContent() {
                 {releaseTag}
               </Link>
             ) : (
-              'unreleased build'
+              translate('unreleased')
             )}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Commit</dt>
+          <dt className="text-muted-foreground">{translate('commit')}</dt>
           <dd className="font-mono">{shortSha}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Deployment</dt>
+          <dt className="text-muted-foreground">{translate('deployment')}</dt>
           <dd>{deployment}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Client</dt>
+          <dt className="text-muted-foreground">{translate('client')}</dt>
           <dd>{surface}</dd>
         </div>
         {surface === 'desktop' && (
           <div>
-            <dt className="text-muted-foreground">Desktop version</dt>
-            <dd>{desktopVersion ?? 'Unavailable'}</dd>
+            <dt className="text-muted-foreground">
+              {translate('desktopVersion')}
+            </dt>
+            <dd>{desktopVersion ?? translate('unavailable')}</dd>
           </div>
         )}
       </dl>
@@ -144,10 +150,10 @@ export default function AboutContent() {
             void copyBuild();
           }}
         >
-          Copy build details
+          {translate('copyBuild')}
         </Button>
         <Link href="https://genfeed.ai/changelog" className="text-sm underline">
-          Changelog
+          {translate('changelog')}
         </Link>
         {deployment === 'self-hosted' && (
           <Button
@@ -156,7 +162,9 @@ export default function AboutContent() {
               void checkUpdates();
             }}
           >
-            {update.status === 'loading' ? 'Checking…' : 'Check for updates'}
+            {update.status === 'loading'
+              ? translate('checking')
+              : translate('checkUpdates')}
           </Button>
         )}
       </div>
@@ -165,12 +173,10 @@ export default function AboutContent() {
         aria-live="polite"
         className="text-sm text-muted-foreground"
       >
-        {copyState === 'copied' && <p>Build details copied.</p>}
-        {copyState === 'error' && <p>Could not copy build details.</p>}
-        {update.status === 'current' && <p>Up to date.</p>}
-        {update.status === 'error' && (
-          <p>Could not check for updates. Try again later.</p>
-        )}
+        {copyState === 'copied' && <p>{translate('copied')}</p>}
+        {copyState === 'error' && <p>{translate('copyError')}</p>}
+        {update.status === 'current' && <p>{translate('current')}</p>}
+        {update.status === 'error' && <p>{translate('updateError')}</p>}
         {update.status === 'available' && (
           <Link
             href={update.url}
@@ -178,7 +184,7 @@ export default function AboutContent() {
             rel="noopener noreferrer"
             className="underline"
           >
-            {update.tag} available
+            {translate('available', { tag: update.tag })}
           </Link>
         )}
       </div>

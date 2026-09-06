@@ -1,4 +1,33 @@
 {
+  "about": {
+    "apiReference": "API Reference",
+    "available": "{tag} available",
+    "changelog": "Changelog",
+    "channel": "Channel",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking…",
+    "client": "Client",
+    "commit": "Commit",
+    "copied": "Build details copied.",
+    "copyBuild": "Copy build details",
+    "copyChannel": "channel {channel}",
+    "copyDesktop": "desktop {version}",
+    "copyError": "Could not copy build details.",
+    "copyVersion": "version {version}",
+    "current": "Up to date.",
+    "deployment": "Deployment",
+    "description": "Build details for support and updates.",
+    "desktopVersion": "Desktop version",
+    "documentation": "Documentation",
+    "helpCommunity": "Community",
+    "helpResources": "Resources",
+    "release": "Release",
+    "title": "About Genfeed",
+    "unavailable": "Unavailable",
+    "unreleased": "unreleased build",
+    "updateError": "Could not check for updates. Try again later.",
+    "version": "Version"
+  },
   "analytics": {
     "accounts": {
       "errorTitle": "Account analytics error",

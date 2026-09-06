@@ -2,6 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AboutContent from './content';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
+  const translate = translateFromCatalog('pages.about');
+  return { useTranslations: () => translate };
+});
+
 const metadata = vi.hoisted(() => ({
   channel: 'main',
   commitSha: 'abc123456',
