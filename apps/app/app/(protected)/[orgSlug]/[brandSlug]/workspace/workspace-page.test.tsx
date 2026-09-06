@@ -480,10 +480,18 @@ describe('WorkspacePageContent', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'Dismiss' }));
     await waitFor(() => expect(mocks.dismiss).toHaveBeenCalledWith('task-1'));
 
-    await openMoreActions();
-    await user.click(
-      await screen.findByRole('menuitem', { name: 'Plan Next Steps' }),
-    );
+    // Once the task leaves review, Plan Next Steps is the primary button.
+    const primaryPlan = screen.queryByRole('button', {
+      name: 'Plan Next Steps',
+    });
+    if (primaryPlan) {
+      await user.click(primaryPlan);
+    } else {
+      await openMoreActions();
+      await user.click(
+        await screen.findByRole('menuitem', { name: 'Plan Next Steps' }),
+      );
+    }
     await waitFor(() =>
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),
     );
