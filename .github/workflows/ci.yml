@@ -1229,6 +1229,7 @@ jobs:
       - name: Open or update tracking issue (Priority P0)
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          REPOSITORY_TOKEN: ${{ github.token }}
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:
           # This trusted master-only job reuses the existing maintainer PAT so
@@ -1263,7 +1264,8 @@ jobs:
             });
 
             const result = await reportMasterCiFailure({
-              github,
+              github: getOctokit(process.env.REPOSITORY_TOKEN),
+              projectGithub: github,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body,
