@@ -807,6 +807,28 @@ describe('UniversalWorkspaceShell', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('preserves saved Chat tabs while editing panels on an agent route', () => {
+    window.localStorage.setItem(
+      'genfeed:workspace-inspector:tabs',
+      JSON.stringify({
+        activeKind: 'conversation',
+        openKinds: ['context', 'conversation'],
+      }),
+    );
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+    fireEvent(window, new Event(OPEN_FILES_TAB_EVENT));
+    fireEvent.click(screen.getByRole('button', { name: 'Close Files' }));
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('genfeed:workspace-inspector:tabs') ?? '{}',
+      ).openKinds,
+    ).toEqual(['context', 'conversation']);
+  });
+
   it('carries one conversation from the agent surface into the canvas inspector', () => {
     const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>

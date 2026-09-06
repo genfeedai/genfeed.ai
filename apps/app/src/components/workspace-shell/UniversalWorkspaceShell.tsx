@@ -335,7 +335,7 @@ function UniversalWorkspaceShellContent({
     (kind: WorkspaceInspectorTabKind) => {
       setInspectorPaneIntent((intent) => {
         const current = resolveInspectorPaneLayout({
-          available: availableInspectorKinds,
+          available: WORKSPACE_INSPECTOR_TAB_KINDS,
           intent,
         });
 
@@ -351,14 +351,14 @@ function UniversalWorkspaceShellContent({
       setInspectorPaneIntent((intent) =>
         closeInspectorTab(
           resolveInspectorPaneLayout({
-            available: availableInspectorKinds,
+            available: WORKSPACE_INSPECTOR_TAB_KINDS,
             intent,
           }),
           kind,
         ),
       );
     },
-    [availableInspectorKinds],
+    [],
   );
 
   useEffect(() => {
