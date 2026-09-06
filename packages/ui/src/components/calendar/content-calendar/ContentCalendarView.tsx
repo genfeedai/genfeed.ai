@@ -712,6 +712,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
         leading={
           <div className="flex items-center gap-2">
             <Button
+              tooltip="Previous period"
               aria-label="Previous period"
               size={ButtonSize.ICON}
               variant={ButtonVariant.GHOST}
@@ -720,6 +721,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
               <ChevronLeft className="size-3.5" />
             </Button>
             <Button
+              tooltip="Next period"
               aria-label="Next period"
               size={ButtonSize.ICON}
               variant={ButtonVariant.GHOST}

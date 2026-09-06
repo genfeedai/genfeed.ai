@@ -128,7 +128,7 @@ export default function ReleaseCalendarFilters({
       <DropdownMenuContent align="end" className="w-52">
         {facets.map(({ key, label, options }) => (
           <DropdownMenuSub key={key}>
-            <DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger className="[&>svg]:ml-0">
               {label}
               <span className="ml-auto text-xs text-muted-foreground">
                 {filters[key].length || 'All'}

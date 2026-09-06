@@ -22,8 +22,6 @@ import type {
   IPostingCadence,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
@@ -70,15 +68,12 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { Button } from '@ui/primitives/button';
-import { FileText, List, Repeat } from 'lucide-react';
-import Link from 'next/link';
+import { FileText, Repeat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
-  'Help me write a new long-form article for my brand.',
-);
+import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 import CadenceFormSheet from './cadence-form-sheet';
 import {
@@ -166,6 +161,7 @@ export default function ContentCalendarPage({
 
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
+  const openAgentComposer = useOpenAgentComposer();
   const [slots, setSlots] = useState<ICalendarSlot[]>([]);
   const [cadences, setCadences] = useState<IPostingCadence[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
@@ -1143,20 +1139,19 @@ export default function ContentCalendarPage({
         onChange={setFilters}
         platformOptions={platformOptions}
       />
-      <Link
-        href={href(getPublishingPostsHref())}
-        aria-label="Open the list view"
-        className="inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground size-8 transition-colors"
-      >
-        <List className="size-3.5" />
-      </Link>
-      <Link
-        href={href(WRITE_ARTICLE_AGENT_HREF)}
+      <Button
+        size={ButtonSize.ICON}
+        variant={ButtonVariant.GHOST}
+        tooltip="Write an article with the agent"
         aria-label="Write an article"
-        className="inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground size-8 transition-colors"
+        onClick={() =>
+          openAgentComposer(
+            'Help me write a new long-form article for my brand.',
+          )
+        }
       >
         <FileText className="size-3.5" />
-      </Link>
+      </Button>
     </div>
   );
 
