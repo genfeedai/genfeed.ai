@@ -11,19 +11,15 @@ import {
   CredentialPlatform,
   ModalEnum,
   PostFormat,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import { normalizeReleaseExecutionStates } from '@pages/posts/list/release-posts-list-query';
-import { railSegmentFromSearchParams } from '@pages/posts/rail/release-rail-segments.helpers';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
@@ -110,10 +106,8 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 };
 
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
-  const { refresh, replace } = useRouter();
+  const { refresh } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
   const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
 
@@ -141,40 +135,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
     routeSuffix[0] === 'campaigns' ||
     routeSuffix[0] === 'calendar';
-  const isPostsListRoute =
-    routeSuffix[0] === 'posts' && routeSuffix.length === 1;
-  const statusValues = useMemo(() => {
-    const params = new URLSearchParams(searchParamsString);
-    const states = normalizeReleaseExecutionStates(
-      params.getAll('executionState'),
-    );
-    if (states) return states;
-    const legacy = railSegmentFromSearchParams(params);
-    return Object.values(TargetExecutionState).filter(
-      (state) => state === legacy,
-    );
-  }, [searchParamsString]);
-  const statusOptions = Object.values(TargetExecutionState).map((value) => ({
-    value,
-    label: value.charAt(0).toUpperCase() + value.slice(1),
-  }));
-  const handleStatusesChange = (_name: string, values: string[]) => {
-    const params = new URLSearchParams(searchParamsString);
-    for (const key of [
-      'page',
-      'status',
-      'publicationState',
-      'executionState',
-    ]) {
-      params.delete(key);
-    }
-    for (const value of normalizeReleaseExecutionStates(values) ?? []) {
-      params.append('executionState', value);
-    }
-    const query = params.toString();
-    replace(query ? `${pathname}?${query}` : pathname);
-  };
-
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
       refreshFn();
@@ -268,17 +228,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         titleVisibility="sr-only"
         right={
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {isPostsListRoute &&
-            new URLSearchParams(searchParamsString).get('view') !==
-              'calendar' ? (
-              <DropdownMultiSelect
-                name="executionState"
-                options={statusOptions}
-                values={statusValues}
-                onChange={handleStatusesChange}
-                placeholder="All statuses"
-              />
-            ) : null}
             {filtersNode}
             {viewToggleNode}
             {exportNode}
@@ -295,7 +244,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   variant={ButtonVariant.DEFAULT}
                   withWrapper={false}
                   icon={<Plus className="size-4" />}
-                  label="New content"
+                  label="New post"
                 />
               }
             >
@@ -305,8 +254,32 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="Post with Agent"
+                  label="Social post"
                   onClick={handleNewPost}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="Article"
+                  onClick={() =>
+                    openAgentComposer(
+                      'Help me write a new long-form article for my brand.',
+                    )
+                  }
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="Newsletter"
+                  onClick={() =>
+                    openAgentComposer(
+                      'Help me write a new newsletter for my brand.',
+                    )
+                  }
                 />
                 <Button
                   withWrapper={false}

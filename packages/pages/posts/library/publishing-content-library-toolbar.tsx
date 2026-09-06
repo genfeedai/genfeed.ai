@@ -3,6 +3,7 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
+import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -23,11 +24,11 @@ export interface PublishingContentLibraryToolbarProps {
   channelValue: string;
   searchValue: string;
   statusOptions: FilterOption[];
-  statusValue: string;
+  statusValue: string[];
   typeValue: PublishingContentTypeFilter;
   onChannelChange: (value: string) => void;
   onSearchChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
+  onStatusChange: (value: string[]) => void;
   onTypeChange: (value: PublishingContentTypeFilter) => void;
 }
 
@@ -52,7 +53,7 @@ export default function PublishingContentLibraryToolbar({
             onSearchChange(event.target.value)
           }
           onClear={() => onSearchChange('')}
-          placeholder="Search content"
+          placeholder="Search posts"
           size={ComponentSize.SM}
           className="w-full"
           inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
@@ -76,7 +77,7 @@ export default function PublishingContentLibraryToolbar({
           {PUBLISHING_CONTENT_TYPES.map((type) => (
             <SelectItem key={type} value={type}>
               {type === 'post'
-                ? 'Posts'
+                ? 'Social posts'
                 : type === 'article'
                   ? 'Articles'
                   : 'Newsletters'}
@@ -102,22 +103,13 @@ export default function PublishingContentLibraryToolbar({
         </SelectContent>
       </Select>
 
-      <Select value={statusValue} onValueChange={onStatusChange}>
-        <SelectTrigger
-          aria-label="Lifecycle status"
-          className="h-8 w-40 rounded-md border-border bg-card text-foreground"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          {statusOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <DropdownMultiSelect
+        name="status"
+        options={statusOptions}
+        values={statusValue}
+        onChange={(_name, values) => onStatusChange(values)}
+        placeholder="All statuses"
+      />
     </div>
   );
 }

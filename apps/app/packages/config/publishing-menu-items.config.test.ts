@@ -7,18 +7,16 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('is a flat Overview → Posts → Content → Review → Campaigns bar', () => {
+  it('is a flat Overview → Posts → Review → Campaigns bar', () => {
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
-      'Content',
       'Review',
       'Campaigns',
     ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
       APP_ROUTES.PUBLISHING.OVERVIEW,
       APP_ROUTES.PUBLISHING.POSTS,
-      APP_ROUTES.PUBLISHING.CONTENT,
       APP_ROUTES.PUBLISHING.REVIEW,
       APP_ROUTES.PUBLISHING.CAMPAIGNS,
     ]);

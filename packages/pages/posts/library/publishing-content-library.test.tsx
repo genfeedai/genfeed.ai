@@ -47,6 +47,10 @@ const collections = {
   ],
 };
 
+vi.mock('@pages/posts/release/release-detail-drawer', () => ({
+  default: () => null,
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
@@ -110,7 +114,7 @@ describe('PublishingContentLibrary', () => {
     expect(
       screen.getByRole('link', { name: 'Open Founder weekly' }),
     ).toBeVisible();
-    expect(screen.getByText('3 items')).toBeVisible();
+    expect(screen.getByText('3 posts')).toBeVisible();
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
   });
@@ -128,13 +132,31 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
+  it('combines multiple statuses with the content type', () => {
+    mocks.search = 'status=published&status=draft&type=article';
+    render(<PublishingContentLibrary />);
+    expect(
+      screen.getByRole('link', { name: 'Open Launch guide' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('link', { name: 'Open Founder weekly' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retains the view selector around calendar content', () => {
+    mocks.search = 'view=calendar';
+    render(<PublishingContentLibrary calendar={<div>Calendar content</div>} />);
+    expect(screen.getByText('Calendar content')).toBeVisible();
+    expect(mocks.setViewToggleNode).toHaveBeenCalled();
+  });
+
   it('shows the combination empty state when URL filters match no rows', () => {
     mocks.search = 'type=newsletter&platform=email&status=published';
 
     render(<PublishingContentLibrary />);
 
-    expect(screen.getByText('0 items')).toBeVisible();
-    expect(screen.getByText('No matching content')).toBeVisible();
+    expect(screen.getByText('0 posts')).toBeVisible();
+    expect(screen.getByText('No matching posts')).toBeVisible();
     expect(
       screen.getByText(
         'Try a different type, channel, lifecycle status, or search.',
@@ -151,7 +173,7 @@ describe('PublishingContentLibrary', () => {
 
     render(<PublishingContentLibrary />);
 
-    expect(screen.getByText('No content yet')).toBeVisible();
+    expect(screen.getByText('No posts yet')).toBeVisible();
     expect(
       screen.getByText(
         'Posts, articles, and newsletters will appear here as you create them.',

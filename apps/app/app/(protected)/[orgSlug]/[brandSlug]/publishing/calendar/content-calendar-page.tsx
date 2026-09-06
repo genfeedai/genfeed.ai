@@ -26,6 +26,12 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
+import type { Newsletter } from '@models/content/newsletter.model';
+import {
+  createPublishingContentLibraryItems,
+  filterPublishingContentLibraryItems,
+  parsePublishingContentType,
+} from '@pages/posts/library/publishing-content-library.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
@@ -61,6 +67,7 @@ import {
   usePostRepurposeModal,
 } from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
+import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
@@ -70,7 +77,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { Button } from '@ui/primitives/button';
 import { FileText, Repeat } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -91,6 +98,11 @@ import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
+
+interface NewsletterContentCalendarItem extends CalendarItem {
+  itemType: 'newsletter';
+  newsletter: Newsletter;
+}
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;
@@ -115,6 +127,7 @@ interface DayAggregateContentCalendarItem extends CalendarItem {
 }
 
 type ContentCalendarItem =
+  | NewsletterContentCalendarItem
   | ArticleContentCalendarItem
   | DayAggregateContentCalendarItem
   | ReleaseContentCalendarItem
@@ -133,6 +146,12 @@ export default function ContentCalendarPage({
   campaignId?: string;
   embedded?: boolean;
 } = {}): React.JSX.Element {
+  const searchParams = useSearchParams();
+  const globalFilterQuery = embedded ? searchParams.toString() : '';
+  const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
+  const getNewslettersService = useAuthedService(
+    useCallback((token: string) => NewslettersService.getInstance(token), []),
+  );
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -219,12 +238,17 @@ export default function ContentCalendarPage({
       setIsLoading(true);
 
       try {
-        const [articlesService, releaseGroupsService, cadencesService] =
-          await Promise.all([
-            getArticlesService(),
-            getReleaseGroupsService(),
-            getPostingCadencesService(),
-          ]);
+        const [
+          articlesService,
+          releaseGroupsService,
+          cadencesService,
+          newslettersService,
+        ] = await Promise.all([
+          getArticlesService(),
+          getReleaseGroupsService(),
+          getPostingCadencesService(),
+          getNewslettersService(),
+        ]);
 
         const window = {
           endDate: dateRange.end.toISOString(),
@@ -257,6 +281,7 @@ export default function ContentCalendarPage({
           fetchedReleases,
           fetchedSlots,
           fetchedCadences,
+          fetchedNewsletters,
         ] = await Promise.all([
           campaignId
             ? Promise.resolve([])
@@ -275,12 +300,19 @@ export default function ContentCalendarPage({
           brandId && !campaignId
             ? cadencesService.list(brandId, controller.signal)
             : Promise.resolve([]),
+          campaignId
+            ? Promise.resolve([])
+            : newslettersService.findAllPages(
+                brandId ? { brandId } : {},
+                controller.signal,
+              ),
         ]);
 
         if (controller.signal.aborted) {
           return;
         }
 
+        setNewsletters(fetchedNewsletters);
         setArticles(fetchedArticles);
         setReleases(fetchedReleases);
         setSlots(fetchedSlots);
@@ -307,45 +339,94 @@ export default function ContentCalendarPage({
     campaignId,
     filters,
     getArticlesService,
+    getNewslettersService,
     getPostingCadencesService,
     getReleaseGroupsService,
     notificationsService,
   ]);
 
   const calendarItems: ContentCalendarItem[] = useMemo(() => {
-    const articleItems: ArticleContentCalendarItem[] = articles.map(
-      (article) => ({
+    const params = new URLSearchParams(globalFilterQuery);
+    const globalItems = filterPublishingContentLibraryItems(
+      createPublishingContentLibraryItems({
+        articles,
+        newsletters,
+        posts: [],
+        releases,
+      }),
+      {
+        type: parsePublishingContentType(params.get('type')),
+        status: (params.getAll('status').length
+          ? params.getAll('status')
+          : params.getAll('executionState')
+        ).map((value) => (value === 'public' ? 'published' : value)),
+        search: params.get('search') ?? '',
+        channel: params.get('platform') ?? 'all',
+      },
+    );
+    const visibleIds = new Set(globalItems.map((item) => item.id));
+    const newsletterItems: NewsletterContentCalendarItem[] = newsletters
+      .filter(
+        (newsletter) =>
+          visibleIds.has(newsletter.id) &&
+          (newsletter.scheduledFor || newsletter.publishedAt),
+      )
+      .map((newsletter) => ({
+        id: newsletter.id,
+        itemType: 'newsletter',
+        newsletter,
+        scheduledDate: newsletter.scheduledFor || newsletter.publishedAt,
+        status: newsletter.status,
+        title: newsletter.label,
+      }));
+    const articleItems: ArticleContentCalendarItem[] = articles
+      .filter((article) => visibleIds.has(article.id))
+      .map((article) => ({
         article,
         id: article.id,
         itemType: 'article',
         scheduledDate: article.createdAt,
         status: article.status,
         title: article.label,
-      }),
-    );
+      }));
 
-    const releaseItems: ReleaseContentCalendarItem[] = releases.map(
-      (release) => ({
+    const releaseItems: ReleaseContentCalendarItem[] = releases
+      .filter((release) => visibleIds.has(release.id))
+      .map((release) => ({
         id: release.id,
         itemType: 'release',
         release,
         scheduledDate: releaseScheduledInstant(release),
         status: release.status,
         title: release.title,
-      }),
-    );
+      }));
 
-    const slotItems: SlotContentCalendarItem[] = slots.map((slot) => ({
-      id: slot.identityKey,
-      itemType: 'slot',
-      scheduledDate: slot.instant,
-      slot,
-      status: slot.state,
-      title: slot.format,
-    }));
+    const slotItems: SlotContentCalendarItem[] = slots
+      .filter(
+        () =>
+          !globalFilterQuery ||
+          (params.get('type') !== 'article' &&
+            params.get('type') !== 'newsletter' &&
+            !params.has('status') &&
+            !params.has('search') &&
+            !params.has('platform')),
+      )
+      .map((slot) => ({
+        id: slot.identityKey,
+        itemType: 'slot',
+        scheduledDate: slot.instant,
+        slot,
+        status: slot.state,
+        title: slot.format,
+      }));
 
     if (calendarView !== 'month') {
-      return [...releaseItems, ...articleItems, ...slotItems];
+      return [
+        ...releaseItems,
+        ...articleItems,
+        ...newsletterItems,
+        ...slotItems,
+      ];
     }
 
     const aggregates = aggregateCalendarItemsByDay([
@@ -353,7 +434,7 @@ export default function ContentCalendarPage({
         instant: String(item.scheduledDate ?? ''),
         kind: 'filled' as const,
       })),
-      ...articleItems.map((item) => ({
+      ...[...articleItems, ...newsletterItems].map((item) => ({
         instant: String(item.scheduledDate ?? ''),
         kind: 'filled' as const,
       })),
@@ -383,7 +464,15 @@ export default function ContentCalendarPage({
         }),
       }),
     );
-  }, [articles, calendarView, releases, slots, translate]);
+  }, [
+    articles,
+    newsletters,
+    globalFilterQuery,
+    calendarView,
+    releases,
+    slots,
+    translate,
+  ]);
 
   const selectedRelease = useMemo(
     () => releases.find((release) => release.id === selectedReleaseId) ?? null,
@@ -591,6 +680,10 @@ export default function ContentCalendarPage({
         return;
       }
 
+      if (item.itemType === 'newsletter') {
+        push(href(createArtifactEditorRoute('newsletter', item.newsletter.id)));
+        return;
+      }
       if (item.itemType === 'article') {
         // Refinement belongs to the artifact — open the article's editor page.
         push(href(createArtifactEditorRoute('article', item.article.id)));
@@ -611,7 +704,7 @@ export default function ContentCalendarPage({
   );
 
   const getEventColor = useCallback((item: ContentCalendarItem) => {
-    if (item.itemType === 'day-aggregate') {
+    if (item.itemType === 'day-aggregate' || item.itemType === 'newsletter') {
       return CALENDAR_SLOT_EVENT_COLOR;
     }
 
