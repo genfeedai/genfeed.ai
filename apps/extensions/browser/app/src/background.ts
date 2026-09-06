@@ -1,3 +1,10 @@
+import {
+  BookmarkCategory,
+  BookmarkIntent,
+  BookmarkPlatform,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
 // Source of truth: environment.service.ts (PLASMO_PUBLIC_* config boundary)
 import {
@@ -367,9 +374,15 @@ async function savePostToGenfeed(
   platform: string = 'twitter',
 ): Promise<void> {
   await executeAuthenticatedRequest(
-    '/posts/save',
+    '/bookmarks',
     {
-      body: JSON.stringify({ platform, postId, url }),
+      body: JSON.stringify({
+        ...getBookmarkSource(platform),
+        content: '',
+        intent: BookmarkIntent.INSPIRATION,
+        platformData: { metadata: { postId } },
+        url,
+      }),
       method: 'POST',
     },
     sendResponse,
@@ -391,16 +404,11 @@ async function generateAIReply(
   sendResponse: SendResponse,
 ): Promise<void> {
   const body = JSON.stringify({
-    data: {
-      attributes: {
-        length: 'medium',
-        tone: 'friendly',
-        tweetAuthor: postAuthor || '',
-        tweetContent: postContent || 'No content found',
-        tweetUrl: url || '',
-      },
-      type: 'tweet-reply',
-    },
+    length: 'medium',
+    tone: 'friendly',
+    tweetAuthor: postAuthor || '',
+    tweetContent: postContent || 'No content found',
+    tweetUrl: url || '',
   });
 
   await executeAuthenticatedRequest<{ reply?: string; message?: string }>(
@@ -421,71 +429,43 @@ async function generateAIReply(
   );
 }
 
-interface ImprovedTweetResponse {
-  improvedTweet?: string;
-  reply?: string;
-  data?: { attributes?: { text?: string } };
-  message?: string;
-}
-
 async function improveTweetContent(
   tweetContent: string,
   sendResponse: SendResponse,
 ): Promise<void> {
-  await executeAuthenticatedRequest<ImprovedTweetResponse>(
-    '/ai/improve-tweet',
-    { body: JSON.stringify({ tweetContent }), method: 'POST' },
-    sendResponse,
-    (data) => {
-      const improvedTweet =
-        data.improvedTweet || data.reply || data.data?.attributes?.text;
-
-      if (improvedTweet) {
-        sendResponse({ improvedTweet, success: true });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to improve tweet',
-          success: false,
-        });
-      }
-    },
-    'improve tweet',
-  );
-}
-
-interface GenerateImageResponse {
-  imageUrl?: string;
-  url?: string;
-  data?: { attributes?: { imageUrl?: string; url?: string } };
-  message?: string;
+  try {
+    const token = await authService.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const improvedTweet = await new AgentToolsService(token).generateText(
+      `Improve the following post while preserving its meaning. Return only the improved text.\n${tweetContent}`,
+      'twitter',
+    );
+    sendResponse({ improvedTweet, success: true });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to improve post', error);
+  }
 }
 
 async function generateImageFromTweet(
   tweetContent: string,
   sendResponse: SendResponse,
 ): Promise<void> {
-  await executeAuthenticatedRequest<GenerateImageResponse>(
-    '/ai/generate-image',
-    { body: JSON.stringify({ prompt: tweetContent }), method: 'POST' },
-    sendResponse,
-    (data) => {
-      const imageUrl =
-        data.imageUrl ||
-        data.url ||
-        data.data?.attributes?.imageUrl ||
-        data.data?.attributes?.url;
-
-      if (imageUrl) {
-        sendResponse({ imageUrl, success: true });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to generate image',
-          success: false,
-        });
-      }
-    },
-    'generate image',
-  );
+  try {
+    const token = await authService.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const result = await new AgentToolsService(token).execute('image', {
+      prompt: tweetContent,
+    });
+    const imageUrl = result.data?.url;
+    if (typeof imageUrl !== 'string' || !imageUrl) {
+      throw new Error(
+        'Image is still processing. Open Genfeed to view it when ready.',
+      );
+    }
+    sendResponse({ imageUrl, success: true });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate image', error);
+  }
 }
 
 async function createVideoFromPrompt(
@@ -493,8 +473,8 @@ async function createVideoFromPrompt(
   sendResponse: SendResponse,
 ): Promise<void> {
   await executeAuthenticatedRequest(
-    '/videos/create',
-    { body: JSON.stringify({ prompt }), method: 'POST' },
+    '/videos',
+    { body: JSON.stringify({ text: prompt }), method: 'POST' },
     sendResponse,
     (data) => sendResponse({ data, success: true }),
     'create video',
@@ -521,82 +501,33 @@ async function getLatestVideos(sendResponse: SendResponse): Promise<void> {
   );
 }
 
-const MODEL_KEYWORDS: Record<string, string[]> = {
-  'google/imagen-4': ['realistic', 'photo', 'portrait'],
-  leonardoai: ['art', 'painting', 'style'],
-  sdxl: ['logo', 'design'],
-};
-const MODEL_KEYWORD_PATTERNS = Object.entries(MODEL_KEYWORDS).map(
-  ([model, keywords]) => ({
-    keywords: keywords.map((keyword) => new RegExp(`\\b${keyword}\\b`)),
-    model,
-  }),
-);
-
-function selectImageModel(prompt: string): string {
-  const lowerPrompt = prompt.toLowerCase();
-
-  for (const { model, keywords } of MODEL_KEYWORD_PATTERNS) {
-    if (keywords.some((keyword) => keyword.test(lowerPrompt))) {
-      return model;
-    }
-  }
-
-  return 'gpt-image-1'; // Default
-}
-
 async function generateImageFromPrompt(
   request: ImagePromptRequest,
   sendResponse: SendResponse,
 ): Promise<void> {
-  const prompt =
-    request.prompt || 'Create an image inspired by the provided reference.';
-  const selectedModel = selectImageModel(prompt);
-
-  const body = JSON.stringify({
-    height: 1024,
-    model: selectedModel,
-    outputs: 1,
-    prompt,
-    referenceImage: request.referenceImage,
-    width: 1024,
-  });
-
-  await executeAuthenticatedRequest<{ id?: string; message?: string }>(
-    '/images',
-    { body, method: 'POST' },
-    sendResponse,
-    (data) => {
-      if (data.id) {
-        sendResponse({
-          imageUrl: `${ingredientsEndpoint}/images/${data.id}`,
-          ingredientId: data.id,
-          model: selectedModel,
-          success: true,
-        });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to generate image',
-          success: false,
-        });
-      }
-    },
-    'generate image',
-  );
-}
-
-type ProcessingType = 'generate' | 'reply' | 'enhance';
-
-function detectProcessingType(content: string): ProcessingType {
-  const lowerContent = content.toLowerCase();
-
-  if (['generate', 'create', 'make'].some((kw) => lowerContent.includes(kw))) {
-    return 'generate';
+  try {
+    const token = await authService.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const reference = request.referenceImageUrl || request.referenceImage;
+    const result = await new AgentToolsService(token).execute('image', {
+      prompt:
+        request.prompt || 'Create an image inspired by the provided reference.',
+      ...(reference ? { references: [reference] } : {}),
+    });
+    const id = result.data?.id;
+    if (typeof id !== 'string')
+      throw new Error('No image returned from the action.');
+    sendResponse({
+      imageUrl:
+        typeof result.data?.url === 'string'
+          ? result.data.url
+          : `${ingredientsEndpoint}/images/${id}`,
+      ingredientId: id,
+      success: true,
+    });
+  } catch (error) {
+    sendError(sendResponse, 'Failed to generate image', error);
   }
-  if (['reply', 'respond'].some((kw) => lowerContent.includes(kw))) {
-    return 'reply';
-  }
-  return 'enhance';
 }
 
 async function processWithAutoModel(
@@ -604,52 +535,42 @@ async function processWithAutoModel(
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
-    const headers = await getAuthHeaders();
-    if (!headers) {
-      sendResponse({ error: 'Not authenticated', success: false });
-      return;
-    }
-
-    const content = request.content || '';
-    const processingType = detectProcessingType(content);
-
-    let result = content; // Fallback
-
-    if (processingType === 'reply') {
-      const response = await fetch(`${API_BASE}/prompts/tweet`, {
-        body: JSON.stringify({
-          length: 'medium',
-          tone: 'friendly',
-          tweetContent: content,
-        }),
-        headers,
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (response.ok && data.reply) {
-        result = data.reply;
-      }
-    } else {
-      const category =
-        processingType === 'generate' ? 'generate-image' : 'general';
-      const response = await fetch(`${API_BASE}/prompts`, {
-        body: JSON.stringify({ category, original: content }),
-        headers,
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (response.ok && data.enhanced) {
-        result = data.enhanced;
-      }
-    }
-
+    const token = await authService.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const result = await new AgentToolsService(token).generateText(
+      request.content || '',
+      'twitter',
+    );
     sendResponse({ processed: true, result, success: true });
   } catch (error) {
-    logger.error('Error processing with auto model', error);
-    sendResponse({
-      error: 'Failed to process with auto model',
-      success: false,
-    });
+    sendError(sendResponse, 'Failed to process content', error);
+  }
+}
+
+function getBookmarkSource(platform?: string) {
+  switch (platform?.toLowerCase()) {
+    case 'twitter':
+      return {
+        category: BookmarkCategory.TWEET,
+        platform: BookmarkPlatform.TWITTER,
+      };
+    case 'instagram':
+      return {
+        category: BookmarkCategory.INSTAGRAM,
+        platform: BookmarkPlatform.INSTAGRAM,
+      };
+    case 'tiktok':
+      return {
+        category: BookmarkCategory.TIKTOK,
+        platform: BookmarkPlatform.TIKTOK,
+      };
+    case 'youtube':
+      return {
+        category: BookmarkCategory.YOUTUBE,
+        platform: BookmarkPlatform.YOUTUBE,
+      };
+    default:
+      return { category: BookmarkCategory.URL, platform: BookmarkPlatform.WEB };
   }
 }
 
@@ -662,13 +583,15 @@ async function saveBookmark(
     authorHandle: data.authorHandle,
     content: data.content || '',
     description: data.description,
-    intent: data.intent || 'inspiration',
+    intent:
+      Object.values(BookmarkIntent).find(
+        (intent) => intent === data.intent?.toUpperCase(),
+      ) ?? BookmarkIntent.INSPIRATION,
     mediaUrls: data.mediaUrls || [],
-    platform: data.platform || 'twitter',
+    ...getBookmarkSource(data.platform || 'twitter'),
     platformData: data.platformData || {},
     thumbnailUrl: data.thumbnailUrl,
     title: data.title,
-    type: data.type || 'tweet',
     url: data.url,
   });
 
@@ -710,16 +633,11 @@ async function generateReplyText(
   });
 
   const replyBody = JSON.stringify({
-    data: {
-      attributes: {
-        length: 'medium',
-        tone: 'friendly',
-        tweetAuthor: request.postAuthor || '',
-        tweetContent: request.postContent || 'No content found',
-        tweetUrl: request.url || '',
-      },
-      type: 'tweet-reply',
-    },
+    length: 'medium',
+    tone: 'friendly',
+    tweetAuthor: request.postAuthor || '',
+    tweetContent: request.postContent || 'No content found',
+    tweetUrl: request.url || '',
   });
 
   const response = await fetch(`${API_BASE}/prompts/tweet`, {
@@ -776,7 +694,7 @@ async function generateReplyWithMedia(
         height: 1024,
         model: 'gpt-image-1',
         outputs: 1,
-        prompt: imagePrompt,
+        text: imagePrompt,
         width: 1024,
       }),
       headers,
@@ -784,7 +702,7 @@ async function generateReplyWithMedia(
     });
 
     const imageData = await imageResponse.json();
-    if (!imageResponse.ok || !imageData.id) {
+    if (!imageResponse.ok || !imageData.data?.id) {
       sendResponse({
         error: 'Image generation failed, reply generated without media',
         reply,
@@ -793,7 +711,7 @@ async function generateReplyWithMedia(
       return;
     }
 
-    const imageUrl = `${ingredientsEndpoint}/images/${imageData.id}`;
+    const imageUrl = `${ingredientsEndpoint}/images/${imageData.data.id}`;
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const imageDataUrl = await fetchBlobAsDataUrl(imageUrl, token);
@@ -935,17 +853,17 @@ async function generateReplyWithVideo(
       request.videoPrompt ||
       `Create a short engaging video that complements this reply: "${reply.substring(0, 200)}"`;
 
-    const videoResponse = await fetch(`${API_BASE}/videos/create`, {
+    const videoResponse = await fetch(`${API_BASE}/videos`, {
       body: JSON.stringify({
         duration: request.duration || 5,
-        prompt: videoPrompt,
+        text: videoPrompt,
       }),
       headers,
       method: 'POST',
     });
 
     const videoData = await videoResponse.json();
-    if (!videoResponse.ok || !videoData.id) {
+    if (!videoResponse.ok || !videoData.data?.id) {
       sendResponse({
         error: 'Video creation failed, reply generated without media',
         reply,
@@ -955,7 +873,7 @@ async function generateReplyWithVideo(
     }
 
     // Poll for video completion
-    const videoUrl = await pollForVideoCompletion(videoData.id, token);
+    const videoUrl = await pollForVideoCompletion(videoData.data.id, token);
 
     if (videoUrl === 'failed') {
       sendResponse({
@@ -1021,12 +939,19 @@ async function pollForVideoCompletion(
       method: 'GET',
     });
 
-    const data = await response.json();
-
-    if (data.status === 'completed' && data.url) {
-      return data.url;
+    const data = (await response.json()) as {
+      data?: { attributes?: { status?: string; url?: string } };
+      message?: string;
+    };
+    if (!response.ok) throw new Error(data.message || 'Failed to fetch video');
+    const attributes = data.data?.attributes;
+    if (attributes?.url) {
+      return attributes.url;
     }
-    if (data.status === 'failed') {
+    if (attributes?.status === IngredientStatus.GENERATED) {
+      return `${ingredientsEndpoint}/videos/${videoId}`;
+    }
+    if (attributes?.status === IngredientStatus.FAILED) {
       return 'failed';
     }
   }
@@ -1051,11 +976,11 @@ async function handleChatCreateThread(
   sendResponse: SendResponse,
 ): Promise<void> {
   await executeAuthenticatedRequest<{ data?: { id?: string } }>(
-    '/threads',
+    '/agent/threads',
     {
       body: JSON.stringify({
-        brand: payload.brandId,
-        platform: payload.platform,
+        brandId: payload.brandId,
+        source: 'extension',
         title: payload.title,
       }),
       method: 'POST',
@@ -1088,45 +1013,87 @@ async function handleChatSendMessage(
   payload: ChatSendMessagePayload,
   sendResponse: SendResponse,
 ): Promise<void> {
-  await executeAuthenticatedRequest<{
-    data?: {
-      id?: string;
-      attributes?: {
-        content?: string;
-        role?: string;
-        metadata?: Record<string, unknown>;
-        createdAt?: string;
-      };
+  try {
+    const headers = await getAuthHeaders();
+    if (!headers) throw new Error('Not authenticated');
+    const response = await fetch(
+      `${API_BASE}/agent/threads/${payload.threadId}/turns`,
+      {
+        body: JSON.stringify({
+          brandId: payload.brandId,
+          clientRequestId: crypto.randomUUID(),
+          content: payload.content,
+          hostSupportsApproval: false,
+          pageContext: payload.pageContext?.url
+            ? { url: payload.pageContext.url }
+            : undefined,
+        }),
+        headers,
+        method: 'POST',
+      },
+    );
+    const acknowledgement = (await response.json()) as {
+      executionId?: string;
+      message?: string;
     };
-  }>(
-    `/threads/${payload.threadId}/messages`,
-    {
-      body: JSON.stringify({
-        brandId: payload.brandId,
-        content: payload.content,
-        pageContext: payload.pageContext,
-        platform: payload.platform,
-      }),
-      method: 'POST',
-    },
-    sendResponse,
-    (data) => {
-      if (data.data) {
-        sendResponse({
-          message: {
-            content: data.data.attributes?.content,
-            createdAt: data.data.attributes?.createdAt,
-            id: data.data.id,
-            metadata: data.data.attributes?.metadata,
-          },
-          success: true,
-        });
-      } else {
-        sendResponse({ error: 'Failed to send message', success: false });
+    if (!response.ok || !acknowledgement.executionId) {
+      throw new Error(acknowledgement.message || 'Failed to start chat turn');
+    }
+    let afterSequence = 0;
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 120_000) {
+      const eventsResponse = await fetch(
+        `${API_BASE}/agent/threads/${payload.threadId}/events?afterSequence=${afterSequence}`,
+        { headers },
+      );
+      if (!eventsResponse.ok) {
+        const error = (await eventsResponse.json()) as { message?: string };
+        throw new Error(error.message || 'Failed to load chat response');
       }
-    },
-    'send chat message',
-  );
+      const events = (await eventsResponse.json()) as Array<{
+        runId: string;
+        sequence: number;
+        type: string;
+        occurredAt?: string;
+        payload: {
+          content?: string;
+          messageId?: string;
+          error?: string;
+          message?: string;
+          metadata?: Record<string, unknown>;
+        };
+      }>;
+      for (const event of events) {
+        afterSequence = Math.max(afterSequence, event.sequence);
+        if (event.runId !== acknowledgement.executionId) continue;
+        if (event.type === 'run.failed' || event.type === 'error.raised') {
+          throw new Error(
+            event.payload.error ||
+              event.payload.message ||
+              'Chat generation failed',
+          );
+        }
+        if (event.type === 'assistant.finalized') {
+          sendResponse({
+            success: true,
+            message: {
+              content: event.payload.content || '',
+              id: event.payload.messageId,
+              createdAt: event.occurredAt,
+              metadata: event.payload.metadata,
+            },
+          });
+          return;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    throw new Error(
+      'The response is still processing. Open Genfeed to continue this conversation.',
+    );
+  } catch (error) {
+    sendError(sendResponse, 'Failed to send chat message', error);
+  }
 }
 
 interface ChatGetThreadsPayload {
@@ -1144,7 +1111,7 @@ async function handleChatGetThreads(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/threads?page=${page}&limit=${limit}`,
+    `/agent/threads?page=${page}&limit=${limit}`,
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1174,7 +1141,7 @@ async function handleChatGetMessages(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/threads/${payload.threadId}/messages?page=${page}&limit=${limit}`,
+    `/agent/threads/${payload.threadId}/messages?page=${page}&limit=${limit}`,
     { method: 'GET' },
     sendResponse,
     (data) => {
@@ -1250,7 +1217,7 @@ async function handleGetCredentials(
   await executeAuthenticatedRequest<{
     data?: Array<{ id: string; attributes: Record<string, unknown> }>;
   }>(
-    `/credentials?brand=${payload.brandId}`,
+    `/credentials?brandId=${encodeURIComponent(payload.brandId)}`,
     { method: 'GET' },
     sendResponse,
     (data) => {

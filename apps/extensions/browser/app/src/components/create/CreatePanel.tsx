@@ -6,7 +6,6 @@ import {
   type AnalyticsSnapshot,
   extractAnalyticsSnapshot,
   extractGeneratedPreview,
-  extractPostResults,
   type PostResultEntry,
 } from '~components/create/content-engine.utils';
 import { TemplateCard } from '~components/create/TemplateCard';
@@ -599,6 +598,34 @@ function useCreatePanelController(onStartChat: () => void) {
     setComposerFeedback(null);
 
     try {
+      if (actionType === 'post') {
+        const content =
+          typeof parameters.content === 'string' ? parameters.content : '';
+        const platform =
+          typeof parameters.platform === 'string'
+            ? parameters.platform
+            : currentPlatform;
+        if (!platform)
+          throw new Error('Select a platform before saving a draft.');
+        await new AgentToolsService(token).saveDraft(
+          content,
+          platform,
+          content.slice(0, 100),
+          activeBrandId,
+        );
+        setPostResults((previous) =>
+          [
+            {
+              message: 'Post draft created.',
+              platform,
+              status: 'draft',
+              timestamp: new Date().toISOString(),
+            },
+            ...previous,
+          ].slice(0, 12),
+        );
+        return;
+      }
       const result = await new AgentToolsService(token).execute(
         actionType,
         parameters,
@@ -612,23 +639,6 @@ function useCreatePanelController(onStartChat: () => void) {
         if (generated) {
           setPreviewContent(generated);
         }
-      }
-
-      if (actionType === 'post') {
-        const entries = extractPostResults(result.data);
-        setPostResults((previous) =>
-          entries.length > 0
-            ? [...entries, ...previous].slice(0, 12)
-            : [
-                {
-                  message: 'Post draft created.',
-                  platform: currentPlatform ?? undefined,
-                  status: 'unknown',
-                  timestamp: new Date().toISOString(),
-                },
-                ...previous,
-              ],
-        );
       }
 
       if (actionType === 'analytics') {

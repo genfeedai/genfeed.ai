@@ -4,8 +4,8 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer, useRef } from 'react';
 import { LoadingSpinner } from '~components/ui';
+import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
 import type { ReplyTone } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
@@ -162,73 +162,11 @@ export function ReplyPage({
       const currentUrl = urlRef.current;
       const toneInstruction = TONE_PROMPT_MAP[tone];
 
-      // Generate 3 replies via the background message handler
-      const response = await chrome.runtime.sendMessage({
-        event: 'generateReply',
-        platform: currentUrl ? detectPlatformFromUrl(currentUrl) : 'twitter',
-        postAuthor: author,
-        postContent,
-        postId: `reply_${Date.now()}`,
-        url: currentUrl,
-      });
-
-      if (response?.success && response.reply) {
-        // We got 1 reply; use it plus tone-specific variations
-        const baseReply = response.reply as string;
-        dispatch({
-          payload: [
-            { text: baseReply },
-            ...generateToneVariations(baseReply, tone, toneInstruction),
-          ],
-          type: 'RESULT',
-        });
-      } else {
-        // Fallback: direct API call
-        const apiResponse = await fetch(`${apiEndpoint}/ai/generate`, {
-          body: JSON.stringify({
-            count: 3,
-            post: postContent,
-            postAuthor: author,
-            postUrl: currentUrl,
-            task: `${toneInstruction} The reply should be concise, natural, and ready to post. Return only the reply text.`,
-            tone,
-            type: 'social-reply',
-          }),
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        });
-
-        if (!apiResponse.ok) {
-          throw new Error(
-            (await apiResponse
-              .json()
-              .then((d: { message?: string }) => d.message)
-              .catch(() => null)) ?? 'Failed to generate replies',
-          );
-        }
-
-        const data = (await apiResponse.json()) as {
-          replies?: string[];
-          reply?: string;
-          content?: string;
-        };
-        const replyTexts =
-          data.replies ??
-          (data.reply ? [data.reply] : null) ??
-          (data.content ? [data.content] : null);
-
-        if (!replyTexts || replyTexts.length === 0) {
-          throw new Error('No replies returned from API');
-        }
-
-        dispatch({
-          payload: replyTexts.map((text) => ({ text })),
-          type: 'RESULT',
-        });
-      }
+      const reply = await new AgentToolsService(token).generateText(
+        `${toneInstruction} Write a concise natural reply to ${author || 'the author'}. Return only the reply text.\nPost URL: ${currentUrl}\nPost: ${postContent}`,
+        detectPlatformFromUrl(currentUrl),
+      );
+      dispatch({ payload: [{ text: reply }], type: 'RESULT' });
     } catch (err) {
       logger.error('Reply generation error', err);
       dispatch({
@@ -417,24 +355,4 @@ function detectPlatformFromUrl(url: string): string {
     return 'tiktok';
   }
   return 'twitter';
-}
-
-function generateToneVariations(
-  baseReply: string,
-  tone: ReplyTone,
-  _instruction: string,
-): ReplyOption[] {
-  // Provide 2 structural variations when we only get 1 from the API
-  const shorter = baseReply.split('. ').slice(0, 1).join('. ');
-  const withHashtag =
-    tone === 'add-value' || tone === 'agree'
-      ? `${baseReply} 💡`
-      : tone === 'funny'
-        ? `${baseReply} 😄`
-        : `${baseReply}`;
-
-  return [
-    { text: shorter.length > 10 ? shorter : baseReply },
-    { text: withHashtag },
-  ];
 }

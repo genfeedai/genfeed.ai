@@ -871,7 +871,7 @@ export function createSaveButton(
         }, 3000);
       } else {
         button.innerHTML = icons.x;
-        button.title = 'Failed to save';
+        button.title = response?.error || 'Failed to save';
         setTimeout(() => {
           button.innerHTML = originalContent;
           button.title = 'Save to Genfeed';
