@@ -69,9 +69,8 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
-import { EmptyState } from '@ui/feedback';
 import { Button } from '@ui/primitives/button';
-import { Calendar, FileText, List, Repeat } from 'lucide-react';
+import { FileText, List, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -79,9 +78,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
   'Help me write a new long-form article for my brand.',
-);
-const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
-  'Help me draft a new post for my brand.',
 );
 
 import CadenceFormSheet from './cadence-form-sheet';
@@ -1260,19 +1256,6 @@ export default function ContentCalendarPage({
     </>
   );
 
-  const emptyState =
-    !isLoading && calendarItems.length === 0 ? (
-      <EmptyState
-        icon={Calendar}
-        title="Nothing scheduled yet"
-        description="Plan and schedule your first post to see it on the calendar."
-        action={{
-          label: 'Create a post',
-          onClick: () => push(href(CREATE_POST_AGENT_HREF)),
-        }}
-      />
-    ) : undefined;
-
   return (
     <ContentCalendar
       items={calendarItems}
@@ -1290,7 +1273,6 @@ export default function ContentCalendarPage({
       onEventDrop={handleEventDrop}
       filterControls={filterControls}
       modal={modal}
-      emptyState={emptyState}
       isLoading={isLoading}
     />
   );

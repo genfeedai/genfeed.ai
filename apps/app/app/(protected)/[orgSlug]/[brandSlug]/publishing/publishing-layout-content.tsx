@@ -140,10 +140,11 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     publishingSegmentIndex === -1
       ? []
       : pathSegments.slice(publishingSegmentIndex + 1);
-  // Content desk (`/publishing/posts/:id`) and Campaigns own their chrome.
-  const isDetailRoute =
+  // Content desk, Campaigns, and Calendar own their controls.
+  const hasOwnPageLayout =
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
-    routeSuffix[0] === 'campaigns';
+    routeSuffix[0] === 'campaigns' ||
+    routeSuffix[0] === 'calendar';
   const isPostsListRoute =
     routeSuffix[0] === 'posts' && routeSuffix.length === 1;
   const publishingHeaderTabs = useMemo<TabsProps | undefined>(() => {
@@ -250,8 +251,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     ],
   );
 
-  // Detail routes (e.g. /publishing/abc123) skip the Container layout
-  if (isDetailRoute) {
+  if (hasOwnPageLayout) {
     return (
       <PostsLayoutContext.Provider value={NOOP_POSTS_LAYOUT_CONTEXT_VALUE}>
         {children}
