@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Tabs from '@ui/navigation/tabs/Tabs';
+import Tabs, { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock next/navigation
@@ -422,5 +422,69 @@ describe('Tabs', () => {
       'border-input',
       'data-[state=active]:bg-accent',
     );
+  });
+});
+
+describe('PanelTabs', () => {
+  it('keeps a hidden panel mounted and its footer visible across selection', () => {
+    const items = [
+      {
+        id: 'context',
+        label: 'Context',
+        isOpen: true,
+        content: <div>Asset preview</div>,
+      },
+      {
+        id: 'chat',
+        label: 'Chat',
+        isOpen: true,
+        keepMounted: true,
+        content: <div>Transcript</div>,
+      },
+    ];
+    const props = {
+      ariaLabel: 'Panels',
+      closeLabel: (label: string) => `Close ${label}`,
+      footer: <div>Prompt bar</div>,
+      items,
+      onClose: vi.fn(),
+      onTabChange: vi.fn(),
+    };
+    const view = render(<PanelTabs {...props} activeTab="context" />);
+    const transcript = screen.getByText('Transcript');
+    expect(transcript).not.toBeVisible();
+    expect(screen.getByText('Prompt bar')).toBeVisible();
+    view.rerender(<PanelTabs {...props} activeTab="chat" />);
+    expect(screen.getByText('Transcript')).toBe(transcript);
+    expect(transcript).toBeVisible();
+    expect(screen.queryByText('Asset preview')).not.toBeInTheDocument();
+  });
+  it('supports keyboard selection and closing without nested buttons', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const onTabChange = vi.fn();
+    render(
+      <PanelTabs
+        activeTab="context"
+        ariaLabel="Panels"
+        closeLabel={(label) => `Close ${label}`}
+        onClose={onClose}
+        onTabChange={onTabChange}
+        items={[
+          { id: 'context', label: 'Context', isOpen: true, content: 'Preview' },
+          { id: 'files', label: 'Files', isOpen: true, content: 'Library' },
+        ]}
+      />,
+    );
+    screen.getByRole('tab', { name: 'Context' }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(onTabChange).toHaveBeenCalledWith('files');
+    await user.keyboard('{Delete}');
+    expect(onClose).toHaveBeenCalledWith('files');
+    expect(
+      screen
+        .getByRole('button', { name: 'Close Context' })
+        .closest('[role="tab"]'),
+    ).toBeNull();
   });
 });

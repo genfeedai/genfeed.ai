@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
@@ -11,6 +12,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   OPEN_CONTEXT_TAB_EVENT,
   OPEN_CONVERSATION_TAB_EVENT,
+  OPEN_FILES_TAB_EVENT,
 } from '@/lib/workspace/agent-composer-events';
 import {
   useWorkspaceInspector,
@@ -611,9 +613,41 @@ describe('UniversalWorkspaceShell', () => {
     router.push.mockClear();
     router.replace.mockClear();
     vi.mocked(captureWorkspaceShellTransition).mockClear();
-    window.localStorage?.removeItem('genfeed:workspace-inspector:panes');
+    window.localStorage?.removeItem('genfeed:workspace-inspector:tabs');
     libraryPickerState.items = [];
     libraryPickerState.status = 'empty';
+  });
+
+  it('keeps library history collapsed while its composer and asset context stay available', async () => {
+    navigation.pathname = '/acme/moonrise/library/assets';
+    function LibrarySurface() {
+      useRegisterWorkspaceSurfaceAdapter({
+        contextLabel: 'Library',
+        references: [],
+        renderInspector: () => <p>Selected asset preview</p>,
+        scope: { organizationId: 'org-acme' },
+        surfaceKey: 'library',
+      });
+      return <div>Library grid</div>;
+    }
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <LibrarySurface />
+      </UniversalWorkspaceShell>,
+    );
+    const conversation = screen.getByTestId('inspector-conversation');
+    await waitFor(() => expect(conversation).not.toBeVisible());
+    expect(
+      screen.getByTestId('workspace-inspector-composer-slot'),
+    ).toBeVisible();
+    expect(screen.getByText('Selected asset preview')).toBeVisible();
+    fireEvent(window, new Event(OPEN_CONVERSATION_TAB_EVENT));
+    expect(conversation).toBeVisible();
+    fireEvent(window, new Event('workspace:open-context-tab'));
+    expect(conversation).not.toBeVisible();
+    fireEvent(window, new Event('workspace:open-conversation-tab'));
+    expect(conversation).toBeVisible();
+    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
@@ -678,9 +712,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('workspace-inspector-composer-slot'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).not.toHaveClass('border-t');
+    expect(screen.getByTestId('workspace-inspector-composer-slot')).toHaveClass(
+      'shrink-0',
+    );
     expect(
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'false');
@@ -771,6 +805,28 @@ describe('UniversalWorkspaceShell', () => {
         'Context and conversation for the active workspace surface.',
       ),
     ).not.toBeInTheDocument();
+  });
+
+  it('preserves saved Chat tabs while editing panels on an agent route', () => {
+    window.localStorage.setItem(
+      'genfeed:workspace-inspector:tabs',
+      JSON.stringify({
+        activeKind: 'conversation',
+        openKinds: ['context', 'conversation'],
+      }),
+    );
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+    fireEvent(window, new Event(OPEN_FILES_TAB_EVENT));
+    fireEvent.click(screen.getByRole('button', { name: 'Close Files' }));
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('genfeed:workspace-inspector:tabs') ?? '{}',
+      ).openKinds,
+    ).toEqual(['context', 'conversation']);
   });
 
   it('carries one conversation from the agent surface into the canvas inspector', () => {
@@ -906,6 +962,7 @@ describe('UniversalWorkspaceShell', () => {
 
     // Brand-scoped agent route so the expanded conversation keeps topbar brand
     // context (not org `~/agent` which drops brand selection).
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
     const expandLink = screen.getByRole('link', {
       name: 'Open full conversation',
     });
@@ -939,6 +996,7 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
     fireEvent.click(
       screen.getByRole('button', { name: 'Expand conversation panel' }),
     );
@@ -965,38 +1023,25 @@ describe('UniversalWorkspaceShell', () => {
     expect(conversationSection).toBeInTheDocument();
   });
 
-  it('expands the Context pane on the composer context event', async () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
+  it('reopens and selects Context after the tab was closed', () => {
+    navigation.pathname = '/acme/moonrise/library/assets';
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
+        <div>Library</div>
       </UniversalWorkspaceShell>,
     );
-
-    const [contextTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-context',
-    );
-    const [filesTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-files',
-    );
-
-    // Collapse the default-expanded Context pane first, so the event's
-    // effect is observable rather than a no-op.
-    fireEvent.click(contextTrigger);
-    await waitFor(() =>
-      expect(contextTrigger).toHaveAttribute('aria-expanded', 'false'),
-    );
-
+    fireEvent.click(screen.getByRole('button', { name: 'Close Context' }));
+    expect(
+      screen.queryByRole('tab', { name: 'Context' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('workspace-inspector-composer-slot'),
+    ).toBeVisible();
     fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
-
-    await waitFor(() =>
-      expect(contextTrigger).toHaveAttribute('aria-expanded', 'true'),
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
-    // A dropped listener would leave Files at its default state either way —
-    // assert it stays collapsed so this isn't proving something trivial.
-    expect(filesTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('opens the mobile inspector drawer on the composer conversation event', async () => {
@@ -1061,154 +1106,85 @@ describe('UniversalWorkspaceShell', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('leads the inspector rail with Context, Files, Browser, then pins Conversation last', () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
+  it('opens panels from the add menu and only displays the active panel', async () => {
+    const user = userEvent.setup();
+    navigation.pathname = '/acme/moonrise/library/assets';
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
+        <div>Library</div>
       </UniversalWorkspaceShell>,
     );
-
-    // The desktop rail and the mobile drawer both render the stack; order is
-    // identical in each, so assert on the first one.
-    const [panes] = screen.getAllByTestId('workspace-inspector-panes');
-    const [contextTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-context',
+    expect(screen.getAllByRole('tab')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Add panel' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Files' }));
+    expect(screen.getByRole('tab', { name: 'Files' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
-    const [filesTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-files',
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+      'aria-selected',
+      'false',
     );
-    const [browserTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-browser',
-    );
-
-    expect(
-      contextTrigger.compareDocumentPosition(filesTrigger) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      filesTrigger.compareDocumentPosition(browserTrigger) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    const [conversationSection] = screen.getAllByTestId(
-      'workspace-inspector-conversation-section',
-    );
-    expect(
-      panes.compareDocumentPosition(conversationSection) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('collapses and re-expands a product pane from its accordion trigger', async () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    const [filesTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-files',
-    );
-    expect(filesTrigger).toHaveAttribute('aria-expanded', 'false');
-
-    fireEvent.click(filesTrigger);
-    await waitFor(() =>
-      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
-    );
-
-    fireEvent.click(filesTrigger);
-    await waitFor(() =>
-      expect(filesTrigger).toHaveAttribute('aria-expanded', 'false'),
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Close Files' }));
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveFocus();
+    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
   });
 
-  it('expands multiple product panes at the same time', async () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
+  it('keeps Chat and its composer mounted while switching and closing tabs', async () => {
+    const user = userEvent.setup();
+    navigation.pathname = '/acme/moonrise/library/assets';
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
+        <div>Library</div>
       </UniversalWorkspaceShell>,
     );
-
-    const [contextTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-context',
+    const conversation = screen.getByTestId('inspector-conversation');
+    const composer = screen.getByTestId('workspace-inspector-composer-slot');
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+    expect(conversation).toBeVisible();
+    await user.click(screen.getByRole('tab', { name: 'Context' }));
+    expect(conversation).not.toBeVisible();
+    expect(composer).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Close Chat' }));
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
+    expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
+      composer,
     );
-    const [filesTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-files',
-    );
-    const [browserTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-browser',
-    );
-
-    // Context is expanded by default.
-    expect(contextTrigger).toHaveAttribute('aria-expanded', 'true');
-
-    fireEvent.click(filesTrigger);
-    await waitFor(() =>
-      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
-    );
-
-    fireEvent.click(browserTrigger);
-    await waitFor(() =>
-      expect(browserTrigger).toHaveAttribute('aria-expanded', 'true'),
-    );
-
-    // Expanding Files and then Browser never collapsed Context — unlike the
-    // old exclusive tabs, the accordion supports N panes open at once.
-    expect(contextTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(filesTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(browserTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(conversation).toBeVisible();
   });
 
-  it('lets the operator expand the Files pane and preview a library source in Browser without collapsing Files', async () => {
+  it('selects Browser for a file preview and keeps Files available as a tab', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
     libraryPickerState.status = 'ready';
     libraryPickerState.items = [
       { id: 'image-1', metadataLabel: 'Source image-1' },
     ];
-
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
         <div>Publishing overview</div>
       </UniversalWorkspaceShell>,
     );
-
-    const [filesTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-files',
-    );
-    fireEvent.click(filesTrigger);
-
-    await waitFor(() =>
-      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
-    );
-    expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
-
+    fireEvent(window, new CustomEvent(OPEN_FILES_TAB_EVENT));
     fireEvent.click(
       screen.getByRole('button', { name: 'Select Source image-1' }),
     );
-
-    const [browserTrigger] = screen.getAllByTestId(
-      'workspace-inspector-pane-trigger-browser',
-    );
     await waitFor(() =>
-      expect(browserTrigger).toHaveAttribute('aria-expanded', 'true'),
+      expect(screen.getByRole('tab', { name: 'Browser' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
     );
-
-    // Browser opening to preview the selection never collapsed Files — both
-    // panes stay expanded simultaneously.
-    expect(filesTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(
-      screen.getAllByTestId('source-preview-image-1').length,
-    ).toBeGreaterThan(1);
+    expect(screen.getByRole('tab', { name: 'Files' })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
+    expect(screen.getByTestId('source-preview-image-1')).toBeVisible();
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {
