@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -10,6 +10,13 @@ const navigationState = vi.hoisted(() => ({
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => navigationState,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 
 describe('SectionTopbar', () => {
   it('keeps semantic back navigation out of the tab slot', () => {
@@ -184,5 +191,34 @@ describe('SectionTopbar', () => {
     expect(topbar.tagName).toBe('H1');
     expect(topbar).toHaveClass('sr-only');
     expect(topbar.className).not.toMatch(/border-b/);
+  });
+
+  it('renders a help trigger after actions that opens a popover with the given title and body', () => {
+    render(
+      <SectionTopbar
+        title="Trending Content"
+        actions={<button type="button">Refresh</button>}
+        help={{ title: 'About Trending', body: 'How this page works.' }}
+      />,
+    );
+
+    const actionsSlot = screen.getByTestId('section-topbar-actions');
+    const helpTrigger = screen.getByRole('button', {
+      name: 'About this page',
+    });
+    expect(actionsSlot).toContainElement(helpTrigger);
+
+    fireEvent.click(helpTrigger);
+
+    expect(screen.getByText('About Trending')).toBeInTheDocument();
+    expect(screen.getByText('How this page works.')).toBeInTheDocument();
+  });
+
+  it('omits the help trigger when the help prop is not provided', () => {
+    render(<SectionTopbar title="Trending Content" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'About this page' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -144,11 +144,12 @@ export default defineConfig({
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
       },
       {
-        // jsdom tests run the browser SDK; the package root is the server entry.
+        // jsdom suites never load the Sentry bundles: the server entry throws
+        // outside a file:// URL and the client entry needs next/router.
         find: /^@sentry\/nextjs$/,
-        replacement: path.join(
-          path.dirname(require.resolve('@sentry/nextjs/package.json')),
-          'build/esm/index.client.js',
+        replacement: path.resolve(
+          __dirname,
+          '../config/test/sentry-nextjs.shim.ts',
         ),
       },
       {

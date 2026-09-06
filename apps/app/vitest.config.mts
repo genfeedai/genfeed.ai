@@ -21,10 +21,12 @@ export default mergeConfig(
         // the server entry, which since 10.73 loads a webpack plugin at import
         // time and throws outside a file:// URL.
         {
+          // jsdom suites never load the Sentry bundles: the server entry throws
+          // outside a file:// URL and the client entry needs next/router.
           find: /^@sentry\/nextjs$/,
-          replacement: path.join(
-            path.dirname(require.resolve('@sentry/nextjs/package.json')),
-            'build/esm/index.client.js',
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/config/test/sentry-nextjs.shim.ts',
           ),
         },
         {

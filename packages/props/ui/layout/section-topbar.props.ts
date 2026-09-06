@@ -28,5 +28,7 @@ export interface SectionTopbarProps {
    * - `visible`: always show the title row
    */
   titleVisibility?: 'auto' | 'visible' | 'sr-only';
+  /** Optional help popover, rendered as a ghost icon trigger after `actions` */
+  help?: { title: string; body: ReactNode };
   className?: string;
 }

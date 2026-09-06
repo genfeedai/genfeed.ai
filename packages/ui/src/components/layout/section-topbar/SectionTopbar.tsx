@@ -1,8 +1,17 @@
 'use client';
 
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
+import { Button } from '@ui/primitives/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@ui/primitives/popover';
+import { CircleHelp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -26,18 +35,37 @@ export default function SectionTopbar({
   leading,
   tabs,
   titleVisibility = 'auto',
+  help,
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+  const translate = useTranslations('ui.sectionTopbar');
   const hasVisibleTitle =
     titleVisibility === 'visible'
       ? true
       : titleVisibility === 'sr-only'
         ? false
         : !hasCanonicalBreadcrumb;
-  const hasActions = Boolean(actions);
   const hasLeading = Boolean(leading);
   const hasTabs = Boolean(tabs);
+  const helpTrigger = help ? (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          ariaLabel={translate('help')}
+          icon={<CircleHelp className="size-4" />}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          className="shrink-0"
+        />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="max-w-80 text-sm">
+        <p className="font-semibold text-foreground">{help.title}</p>
+        <div className="mt-1 text-foreground/70">{help.body}</div>
+      </PopoverContent>
+    </Popover>
+  ) : null;
+  const hasActions = Boolean(actions) || Boolean(helpTrigger);
 
   // Chrome-only title with no tools: do not paint an empty border-b strip.
   if (!hasVisibleTitle && !hasLeading && !hasTabs && !hasActions) {
@@ -80,6 +108,7 @@ export default function SectionTopbar({
               )}
             >
               {actions}
+              {helpTrigger}
             </div>
           ) : null}
           {hasTabs ? (
@@ -138,6 +167,7 @@ export default function SectionTopbar({
             className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
             {actions}
+            {helpTrigger}
           </div>
         ) : null}
       </div>

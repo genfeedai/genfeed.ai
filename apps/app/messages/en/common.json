@@ -145,6 +145,12 @@
     "download": "Download",
     "merge": "Merge"
   },
+  "sidebar": {
+    "newTask": "New Task",
+    "newTaskAriaLabel": "Open new task modal",
+    "search": "Search",
+    "workspace": "Workspace"
+  },
   "settings": {
     "search": {
       "empty": "No settings found",
@@ -593,7 +599,9 @@
       "statsActive": "Active",
       "statsCompleted": "Completed",
       "statsFailed": "Failed",
-      "statsCredits": "Credits"
+      "statsCredits": "Credits",
+      "creditsEstimated": "Estimated credits; the run has not been reconciled yet.",
+      "paginationLabel": "runs"
     },
     "workflowRun": {
       "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",
