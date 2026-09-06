@@ -40,6 +40,8 @@ const refetchMock = vi.fn();
 let queryError: Error | null = null;
 let queryReleases = releases;
 
+HTMLElement.prototype.scrollIntoView = vi.fn();
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/genfeed-ai/paperclip/publishing/posts',
   useRouter: () => ({
@@ -115,6 +117,7 @@ vi.mock('@pages/posts/rail/release-rail-accounts', () => ({
 }));
 
 vi.mock('@pages/posts/rail/release-rail-row', () => ({
+  ReleaseRailActions: () => null,
   __esModule: true,
   default: ({
     onActivate,
@@ -263,7 +266,7 @@ describe('ReleasePostsList', () => {
   });
 
   it('renders the rail row component instead of inline per-target JSX', () => {
-    expect(source).toContain('ReleaseRailRow');
+    expect(source).toContain('ReleaseRailActions');
     expect(source).toContain('browserTimezone={browserTimezone}');
     expect(source).not.toContain('target.executionState');
     expect(source).not.toContain('buildSourcePostVariationsHref');

@@ -16,6 +16,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
+import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import {
   createPublishingContentLibraryItems,
   filterPublishingContentLibraryItems,
@@ -243,14 +244,11 @@ export default function PublishingContentLibrary() {
         header: 'Content',
         key: 'title',
         render: (item) => (
-          <div className="max-w-xl">
-            <p className="font-medium text-foreground">{item.title}</p>
-            {item.summary ? (
-              <p className="mt-1 line-clamp-1 text-sm text-foreground/55">
-                {item.summary}
-              </p>
-            ) : null}
-          </div>
+          <PublishingContentIdentity
+            channels={[item.channel]}
+            title={item.title}
+            summary={item.summary}
+          />
         ),
       },
       {
@@ -259,11 +257,6 @@ export default function PublishingContentLibrary() {
         render: (item) => (
           <Badge>{formatPublishingContentType(item.type)}</Badge>
         ),
-      },
-      {
-        header: 'Channel',
-        key: 'channel',
-        render: (item) => formatPublishingContentChannel(item.channel),
       },
       {
         header: 'Status',

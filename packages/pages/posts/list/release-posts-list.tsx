@@ -18,16 +18,24 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
-import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import {
+  formatDateInTimezone,
+  getBrowserTimezone,
+} from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
 import ReleaseBoard from '@pages/posts/board/release-board';
 import AccountGrid from '@pages/posts/grid/account-grid';
+import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
-import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
+import { ReleaseRailActions } from '@pages/posts/rail/release-rail-row';
+import {
+  releaseNextInstant,
+  releaseOutcomeSummary,
+} from '@pages/posts/rail/release-rail-row.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
@@ -40,6 +48,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
@@ -566,22 +575,84 @@ export default function ReleasePostsList({
           label={translate('empty.label')}
         />
       ) : (
-        <div className="flex flex-col" role="listbox">
-          {data.releases.map((release, index) => (
-            <ReleaseRailRow
-              browserTimezone={browserTimezone}
-              index={index}
-              isActive={index === activeIndex}
-              key={release.id}
-              onActivate={() => {
-                setActiveIndex(index);
-                selectRelease(release.id);
-              }}
-              registerRow={registerItem(index)}
-              release={release}
-            />
-          ))}
-        </div>
+        <Table
+          items={data.releases}
+          getRowKey={(release) => release.id}
+          getRowClassName={(release) =>
+            data.releases[activeIndex]?.id === release.id ? 'bg-accent' : ''
+          }
+          onRowClick={(release) => {
+            setActiveIndex(
+              data.releases.findIndex((item) => item.id === release.id),
+            );
+            selectRelease(release.id);
+          }}
+          columns={[
+            {
+              key: 'title',
+              header: 'Content',
+              render: (release) => (
+                <div
+                  ref={registerItem(data.releases.indexOf(release))}
+                  data-release-id={release.id}
+                >
+                  <PublishingContentIdentity
+                    channels={release.targets.map((target) => target.platform)}
+                    title={release.title || translateRail('open')}
+                    summary={release.baseContent?.split('\n')[0]}
+                  />
+                </div>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              render: (release) => {
+                const outcome = releaseOutcomeSummary(release);
+                return (
+                  <div className="flex flex-wrap gap-2 text-xs text-foreground/55">
+                    {outcome.published > 0 ? (
+                      <span>
+                        {translateRail('outcome.published', {
+                          count: outcome.published,
+                        })}
+                      </span>
+                    ) : null}
+                    {outcome.failed > 0 ? (
+                      <span className="text-destructive">
+                        {translateRail('outcome.failed', {
+                          count: outcome.failed,
+                        })}
+                      </span>
+                    ) : null}
+                    {outcome.pending > 0 ? (
+                      <span>
+                        {translateRail('outcome.pending', {
+                          count: outcome.pending,
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'scheduledDate',
+              header: 'Scheduled',
+              render: (release) => {
+                const next = releaseNextInstant(release);
+                return next
+                  ? formatDateInTimezone(next, browserTimezone, 'short')
+                  : '—';
+              },
+            },
+            {
+              key: 'actions',
+              header: <span className="sr-only">Actions</span>,
+              render: (release) => <ReleaseRailActions release={release} />,
+            },
+          ]}
+        />
       )}
 
       {!error && viewMode === 'list' && data.releases.length > 0 ? (

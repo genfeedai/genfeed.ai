@@ -1,8 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -92,33 +91,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
-vi.mock('@ui/display/table/Table', () => ({
-  default: ({
-    emptyState,
-    items,
-    onRowClick,
-  }: {
-    emptyState?: ReactNode;
-    items: Array<{ id: string; title: string; type: string }>;
-    onRowClick: (item: { id: string; title: string; type: string }) => void;
-  }) =>
-    items.length === 0 ? (
-      emptyState
-    ) : (
-      <div>
-        {items.map((item) => (
-          <button
-            key={`${item.type}:${item.id}`}
-            type="button"
-            onClick={() => onRowClick(item)}
-          >
-            {item.title}
-          </button>
-        ))}
-      </div>
-    ),
-}));
-
 describe('PublishingContentLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -130,11 +102,13 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(
-      screen.getByRole('button', { name: 'Social launch copy' }),
+      screen.getByRole('link', { name: 'Open Social launch copy' }),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Launch guide' })).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Founder weekly' }),
+      screen.getByRole('link', { name: 'Open Launch guide' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Open Founder weekly' }),
     ).toBeVisible();
     expect(screen.getByText('3 items')).toBeVisible();
 
@@ -143,14 +117,15 @@ describe('PublishingContentLibrary', () => {
 
   it.each([
     ['Social launch copy', '/publishing/posts/post-1'],
-    ['Launch guide', '/edit/article/article-1'],
-    ['Founder weekly', '/edit/newsletter/newsletter-1'],
+    ['Launch guide', '/publishing/posts/article-1'],
+    ['Founder weekly', '/publishing/posts/newsletter-1'],
   ])('opens %s through its canonical editor route', (title, route) => {
     render(<PublishingContentLibrary />);
 
-    fireEvent.click(screen.getByRole('button', { name: title }));
-
-    expect(mocks.push).toHaveBeenCalledWith(`/acme/main${route}`);
+    expect(screen.getByRole('link', { name: `Open ${title}` })).toHaveAttribute(
+      'href',
+      `/acme/main${route}`,
+    );
   });
 
   it('shows the combination empty state when URL filters match no rows', () => {
