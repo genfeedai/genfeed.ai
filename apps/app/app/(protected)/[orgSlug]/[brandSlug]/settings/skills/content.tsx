@@ -364,7 +364,7 @@ export default function BrandSettingsSkillsPage() {
 
   if (!isScopeMatch) {
     return (
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-6 lg:px-8">
+      <div className="w-full">
         <div
           className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
           role="alert"
@@ -376,7 +376,7 @@ export default function BrandSettingsSkillsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
+    <div className="flex w-full flex-col gap-6">
       <SkillsPageHeader
         agentHref={href(APP_ROUTES.AGENT.ROOT)}
         brandLabel={selectedBrand?.label}
