@@ -447,6 +447,71 @@ describe('AgentToolExecutorService mutation policy', () => {
     },
   );
 
+  it.each([
+    { storedThread: undefined, storedScope: undefined, allowed: true },
+    {
+      storedThread: 'requester-thread',
+      storedScope: undefined,
+      allowed: false,
+    },
+    {
+      storedThread: undefined,
+      storedScope: { brandId: 'brand-1', contextVersion: 1 },
+      allowed: false,
+    },
+    {
+      storedThread: 'requester-thread',
+      storedScope: { brandId: 'brand-1', contextVersion: 1 },
+      allowed: false,
+    },
+  ])(
+    'allows a server-authorized reviewer only for stored threadless, scopeless intent %j',
+    async ({ storedThread, storedScope, allowed }) => {
+      mcpApprovals.findOwned.mockResolvedValue({
+        id: 'apr-1',
+        arguments: { content: 'hello' },
+        isDeleted: false,
+        status: 'APPROVED',
+        userId: testId('requester'),
+        toolName: 'create_post',
+        idempotencyKey: buildLogicalWriteKey({
+          arguments: { content: 'hello' },
+          organizationId: testId('org'),
+          userId: testId('requester'),
+          threadId: storedThread,
+          scope: storedScope,
+          toolName: 'create_post',
+        }),
+      });
+      publishHandler.createPost.mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+      const result = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          approvedApprovalId: 'apr-1',
+          approvalReviewerAuthorized: true,
+          userId: testId('reviewer'),
+        }),
+      );
+      expect(result.success).toBe(allowed);
+      if (allowed) {
+        expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
+          'apr-1',
+          testId('org'),
+        );
+        expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+      } else {
+        expect(result.error).toContain('does not authorize');
+        expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+        expect(publishHandler.createPost).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   it('does not dispatch when another request already claimed execution', async () => {
     mcpApprovals.claimExecution.mockResolvedValue(false);
     const result = await service.executeTool(

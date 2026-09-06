@@ -111,6 +111,8 @@ export interface ToolExecutionContext {
   hostSupportsApproval?: boolean;
   /** Already-claimed MCP/tool approval that authorizes this exact logical write. */
   approvedApprovalId?: string;
+  /** Server-derived reviewer authority, restricted to threadless approval redemption. */
+  approvalReviewerAuthorized?: boolean;
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
@@ -603,11 +605,15 @@ export class AgentToolExecutorService implements OnModuleInit {
     claimed: McpApprovalDocument | null,
   ): boolean {
     if (context.approvedApprovalId) {
+      const isAuthorizedReviewer =
+        context.approvalReviewerAuthorized === true &&
+        !context.threadId &&
+        !context.validatedScope;
       if (
         !claimed ||
         claimed.status !== McpApprovalStatus.APPROVED ||
         claimed.toolName !== toolName ||
-        claimed.userId !== context.userId ||
+        (claimed.userId !== context.userId && !isAuthorizedReviewer) ||
         claimed.isDeleted ||
         !claimed.arguments ||
         typeof claimed.arguments !== 'object' ||
@@ -620,7 +626,7 @@ export class AgentToolExecutorService implements OnModuleInit {
       const invocation = {
         organizationId: context.organizationId,
         toolName,
-        userId: context.userId,
+        userId: isAuthorizedReviewer ? claimed.userId : context.userId,
         threadId: context.threadId,
         scope: context.validatedScope,
       };
