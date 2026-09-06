@@ -11,14 +11,23 @@ import type {
   IBatchItem,
   IBatchSummary,
 } from '@genfeedai/contracts/interfaces';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import { buildPostsHrefFromApprovalQueue } from '@pages/posts/library/approval-queue-links.helpers';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
+import {
+  ClipboardCheck,
+  ExternalLink,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo } from 'react';
-
 import ReviewGrid from './ReviewGrid';
 import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
@@ -111,6 +120,10 @@ export default function ReviewQueueView({
   onUnassign,
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
+  const translate = useTranslations('pages.publishing.review.approvalQueue');
+  const { href } = useOrgUrl();
+  const searchParams = useSearchParams();
+  const postsHref = href(buildPostsHrefFromApprovalQueue(searchParams));
 
   const batchOptions = useMemo(
     () =>
@@ -221,6 +234,31 @@ export default function ReviewQueueView({
 
   return (
     <>
+      {/* Explicit framing: this is the decision queue, not the content library. */}
+      <div
+        className="mb-4 flex flex-wrap items-center justify-between gap-3"
+        data-testid="approval-queue-framing"
+      >
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-foreground">
+            {translate('title')}
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {translate('description')}
+          </p>
+        </div>
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          withWrapper={false}
+        >
+          <Link href={postsHref}>
+            <ExternalLink aria-hidden="true" className="size-3.5" />
+            {translate('openPosts')}
+          </Link>
+        </Button>
+      </div>
       {isBatchLoading && !activeBatch ? (
         <Loading />
       ) : activeBatchError ? (

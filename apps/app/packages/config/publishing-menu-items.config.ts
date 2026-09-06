@@ -24,7 +24,7 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.PUBLISHING.REVIEW,
-    label: 'Review',
+    label: 'Approval queue',
     matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
     outline: ClipboardCheck,
     solid: ClipboardCheck,

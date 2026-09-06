@@ -197,7 +197,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/posts': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
   '/:orgSlug/~/publishing/content': 'Content',
-  '/:orgSlug/~/publishing/review': 'Review',
+  '/:orgSlug/~/publishing/review': 'Approval queue',
   '/:orgSlug/~/publishing/calendar': 'Calendar',
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',

@@ -1,9 +1,10 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
+import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -12,6 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { ClipboardCheck } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 
 interface FilterOption {
@@ -20,6 +24,8 @@ interface FilterOption {
 }
 
 export interface PublishingContentLibraryToolbarProps {
+  /** Link to the approval queue, carrying any selected batch/item along. */
+  approvalQueueHref?: string;
   channelOptions: FilterOption[];
   channelValue: string;
   searchValue: string;
@@ -33,6 +39,7 @@ export interface PublishingContentLibraryToolbarProps {
 }
 
 export default function PublishingContentLibraryToolbar({
+  approvalQueueHref,
   channelOptions,
   channelValue,
   searchValue,
@@ -44,6 +51,7 @@ export default function PublishingContentLibraryToolbar({
   onStatusChange,
   onTypeChange,
 }: PublishingContentLibraryToolbarProps) {
+  const translate = useTranslations('pages.posts.library');
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-48 sm:w-56 xl:w-64">
@@ -110,6 +118,20 @@ export default function PublishingContentLibraryToolbar({
         onChange={(_name, values) => onStatusChange(values)}
         placeholder="All statuses"
       />
+
+      {approvalQueueHref ? (
+        <Button
+          asChild
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <Link href={approvalQueueHref}>
+            <ClipboardCheck aria-hidden="true" className="size-3.5" />
+            {translate('approvalQueue')}
+          </Link>
+        </Button>
+      ) : null}
     </div>
   );
 }

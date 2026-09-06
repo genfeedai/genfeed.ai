@@ -72,6 +72,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
 }));
@@ -129,6 +133,21 @@ describe('PublishingContentLibrary', () => {
     expect(screen.getByRole('link', { name: `Open ${title}` })).toHaveAttribute(
       'href',
       `/acme/main${route}`,
+    );
+  });
+
+  it('links to the approval queue and carries the selected batch and item', async () => {
+    mocks.search = 'batch=batch-1&item=item-9&status=draft';
+
+    render(<PublishingContentLibrary />);
+
+    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+    const [toolbar] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
+    render(<>{toolbar}</>);
+
+    expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
+      'href',
+      '/acme/main/publishing/review?batch=batch-1&item=item-9',
     );
   });
 

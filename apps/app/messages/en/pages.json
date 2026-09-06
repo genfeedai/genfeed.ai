@@ -633,6 +633,9 @@
       "reconnect": "Reconnect",
       "review": "Review",
       "untitled": "Untitled release"
+    },
+    "library": {
+      "approvalQueue": "Approval queue"
     }
   },
   "publishing": {
@@ -876,6 +879,11 @@
       },
       "preview": {
         "empty": "No preview available for this draft."
+      },
+      "approvalQueue": {
+        "title": "Approval queue",
+        "description": "Drafts from generated batches that are waiting for a human decision. Posts is the complete publishing library.",
+        "openPosts": "Open in Posts"
       }
     }
   },

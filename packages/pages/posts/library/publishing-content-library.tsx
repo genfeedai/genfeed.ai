@@ -49,6 +49,7 @@ import { CalendarDays, Files, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { buildApprovalQueueHref } from './approval-queue-links.helpers';
 
 interface PublishingContentCollections {
   articles: Article[];
@@ -379,6 +380,7 @@ export default function PublishingContentLibrary({
   useEffect(() => {
     setFiltersNode(
       <PublishingContentLibraryToolbar
+        approvalQueueHref={href(buildApprovalQueueHref(searchParamsString))}
         channelOptions={channelOptions}
         channelValue={channel}
         searchValue={search}
@@ -396,8 +398,10 @@ export default function PublishingContentLibrary({
   }, [
     channel,
     channelOptions,
+    href,
     replaceQueryParam,
     search,
+    searchParamsString,
     setFiltersNode,
     status,
     statusOptions,
