@@ -4,6 +4,13 @@
  * placeholder text. Semantic roles (`text-foreground`, `text-muted-foreground`)
  * carry the same value at every variant and every specificity.
  */
+/**
+ * Compact control row height shared by toolbars, filter triggers, tabs, and
+ * every field control. Lives in primitives (not `components/constants`) because
+ * the package build compiles primitives without the components tree.
+ */
+export const controlHeightClassName = 'h-8';
+
 export const fieldControlClassName =
   'flex h-8 w-full min-w-0 rounded-lg border border-border bg-background-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 

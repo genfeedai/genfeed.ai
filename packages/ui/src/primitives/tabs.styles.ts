@@ -1,9 +1,9 @@
 import { cn } from '@genfeedai/helpers';
-import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui-constants/shell-chrome.constant';
+import { controlHeightClassName } from '@ui/primitives/field-control';
 
 export function getTabsListClassName(className?: string) {
   return cn(
-    SHELL_CONTROL_HEIGHT_CLASS,
+    controlHeightClassName,
     'ml-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted/50 p-0.5 text-foreground/70',
     className,
   );
