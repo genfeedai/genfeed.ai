@@ -1,5 +1,13 @@
 {
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
+  },
+  "watermarkDownload": {
+    "options": "Download options",
+    "original": "Download original",
+    "branded": "Download with brand watermark",
+    "error": "Could not download. Please try again.",
+    "watermarkError": "Could not create the watermarked download. Configure watermark text or a logo in Brand Settings → Brand Kit, then try again.",
+    "errorTitle": "Download"
   }
 }

@@ -1540,5 +1540,24 @@
       "taskTitlePlaceholder": "Task title",
       "descriptionPlaceholder": "Optional description"
     }
+  },
+  "brandWatermark": {
+    "title": "Brand watermark",
+    "description": "Add a gentle watermark to client previews. Clean originals stay available. Configure text, a logo, or both before downloading with your brand watermark.",
+    "text": "Watermark text",
+    "logo": "Watermark logo",
+    "noLogo": "No logo",
+    "currentLogo": "Current brand logo",
+    "reference": "Brand reference {number}",
+    "opacity": "Opacity (%)",
+    "position": "Position",
+    "top-left": "Top left",
+    "top-right": "Top right",
+    "bottom-left": "Bottom left",
+    "bottom-right": "Bottom right",
+    "save": "Save watermark",
+    "saved": "Watermark settings saved.",
+    "error": "Could not save watermark settings. Please try again.",
+    "savedLogo": "Saved watermark logo"
   }
 }

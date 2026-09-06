@@ -6,6 +6,7 @@ import type {
   IActivity,
   IAnalytics,
   IArticle,
+  IBrand,
   IBrandAgentPrompting,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
@@ -486,6 +487,21 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<IBrandSetupResponse>(`/${id}/scrape`, dto)
       .then((res) => res.data);
+  }
+
+  public async updateWatermark(
+    id: string,
+    settings: Pick<
+      IBrand,
+      | 'watermarkText'
+      | 'watermarkLogoId'
+      | 'watermarkOpacity'
+      | 'watermarkPosition'
+    >,
+  ): Promise<Brand> {
+    return this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, settings)
+      .then((res) => this.mapOne(res.data));
   }
 
   /**

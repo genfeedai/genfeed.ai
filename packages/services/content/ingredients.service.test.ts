@@ -28,6 +28,36 @@ describe('IngredientsService', () => {
     http = installMockHttp(service);
   });
 
+  it('requests a brand-watermarked export and reads the JSON API result', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument({
+          url: 'https://cdn.example/preview.mp4',
+          filename: 'preview.mp4',
+        }),
+      ),
+    );
+    const result = await service.exportMedia('ingredient-1', true);
+    expect(http.post).toHaveBeenCalledWith(
+      '/ingredient-1/export',
+      {
+        watermark: true,
+      },
+      { timeout: 600_000 },
+    );
+    expect(result).toMatchObject({
+      url: 'https://cdn.example/preview.mp4',
+      filename: 'preview.mp4',
+    });
+  });
+
+  it('propagates export failure without substituting the clean original', async () => {
+    http.post.mockRejectedValue(new Error('Watermark unavailable'));
+    await expect(service.exportMedia('ingredient-1', true)).rejects.toThrow(
+      'Watermark unavailable',
+    );
+  });
+
   describe('constructor model mapping', () => {
     const cases: Array<[string, unknown]> = [
       ['avatars', Avatar],

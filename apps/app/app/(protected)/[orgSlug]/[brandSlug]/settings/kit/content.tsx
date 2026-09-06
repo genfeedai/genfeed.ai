@@ -5,6 +5,7 @@ import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
+import BrandWatermarkSettings from '@pages/brands/components/sidebar/BrandWatermarkSettings';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
@@ -93,6 +94,13 @@ export default function BrandSettingsKitPage() {
           onUploadReference={() =>
             handleOpenUploadModal(AssetCategory.REFERENCE)
           }
+        />
+
+        <BrandWatermarkSettings
+          key={brandId}
+          brand={brand}
+          brandId={brandId}
+          onRefreshBrand={() => handleRefreshBrand(true)}
         />
 
         <BrandDetailReferencesCard
