@@ -348,11 +348,11 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'content') {
-      return (
-        <PublishingLayoutContent>
-          <PublishingContentPage />
-        </PublishingLayoutContent>
-      );
+      // Legacy content route redirects to the posts list.
+      return PublishingContentPage({
+        params: Promise.resolve({ brandSlug: '~', orgSlug }),
+        searchParams: searchParams ?? Promise.resolve({}),
+      });
     }
 
     if (publishingSegments.length === 1 && section === 'review') {
