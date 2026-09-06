@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/agent": "workspace:*",
     "@genfeedai/auth-client": "*",
     "@genfeedai/config": "*",
     "@genfeedai/helpers": "*",

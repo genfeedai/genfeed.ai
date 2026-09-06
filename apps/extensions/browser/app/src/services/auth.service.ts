@@ -217,7 +217,7 @@ class AuthService {
       }
 
       const response = await this.makeAuthenticatedRequest(
-        `${apiEndpoint}/auth/validate`,
+        `${apiEndpoint}/auth/whoami`,
         { method: 'GET' },
       );
 

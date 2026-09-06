@@ -3,145 +3,102 @@ export const WORKSPACE_INSPECTOR_ASSET_KINDS = [
   'files',
   'browser',
 ] as const;
-
 export type WorkspaceInspectorAssetKind =
   (typeof WORKSPACE_INSPECTOR_ASSET_KINDS)[number];
-
-/**
- * The rail's product-pane accordion state. Conversation is not part of this
- * catalog — it is a fixed section pinned to the bottom of the rail and is
- * never selected, expanded, or collapsed through this layout.
- */
+export const WORKSPACE_INSPECTOR_TAB_KINDS = [
+  ...WORKSPACE_INSPECTOR_ASSET_KINDS,
+  'conversation',
+] as const;
+export type WorkspaceInspectorTabKind =
+  (typeof WORKSPACE_INSPECTOR_TAB_KINDS)[number];
 export type WorkspaceInspectorPaneLayout = {
-  readonly expandedKinds: readonly WorkspaceInspectorAssetKind[];
+  readonly activeKind: WorkspaceInspectorTabKind | null;
+  readonly openKinds: readonly WorkspaceInspectorTabKind[];
 };
-
 export const WORKSPACE_INSPECTOR_PANES_STORAGE_KEY =
-  'genfeed:workspace-inspector:panes';
-
-export function isWorkspaceInspectorAssetKind(
+  'genfeed:workspace-inspector:tabs';
+export function isWorkspaceInspectorTabKind(
   value: string,
-): value is WorkspaceInspectorAssetKind {
-  return (WORKSPACE_INSPECTOR_ASSET_KINDS as readonly string[]).includes(value);
+): value is WorkspaceInspectorTabKind {
+  return (WORKSPACE_INSPECTOR_TAB_KINDS as readonly string[]).includes(value);
 }
-
 export function defaultInspectorPaneLayout(): WorkspaceInspectorPaneLayout {
-  return { expandedKinds: ['context'] };
+  return { activeKind: 'context', openKinds: ['context'] };
 }
-
-export function resolveAvailableInspectorKinds(): readonly WorkspaceInspectorAssetKind[] {
-  return WORKSPACE_INSPECTOR_ASSET_KINDS;
-}
-
-export function uniqueInspectorKinds(
-  kinds: readonly WorkspaceInspectorAssetKind[],
-): WorkspaceInspectorAssetKind[] {
-  const seen = new Set<WorkspaceInspectorAssetKind>();
-  const unique: WorkspaceInspectorAssetKind[] = [];
-
-  for (const kind of kinds) {
-    if (seen.has(kind)) {
-      continue;
-    }
-
-    seen.add(kind);
-    unique.push(kind);
-  }
-
-  return unique;
-}
-
 export function resolveInspectorPaneLayout(input: {
-  available: readonly WorkspaceInspectorAssetKind[];
+  available: readonly WorkspaceInspectorTabKind[];
   intent: WorkspaceInspectorPaneLayout | null;
 }): WorkspaceInspectorPaneLayout {
-  const fallback = defaultInspectorPaneLayout();
-  const source = input.intent ?? fallback;
-  const expandedKinds = uniqueInspectorKinds(
-    source.expandedKinds.filter((kind) => input.available.includes(kind)),
-  );
-
-  return { expandedKinds };
-}
-
-export function expandInspectorPaneKind(
-  layout: WorkspaceInspectorPaneLayout,
-  kind: WorkspaceInspectorAssetKind,
-  available: readonly WorkspaceInspectorAssetKind[],
-): WorkspaceInspectorPaneLayout {
-  if (!available.includes(kind)) {
-    return layout;
-  }
-
-  if (layout.expandedKinds.includes(kind)) {
-    return layout;
-  }
-
-  return { expandedKinds: [...layout.expandedKinds, kind] };
-}
-
-export function collapseInspectorPaneKind(
-  layout: WorkspaceInspectorPaneLayout,
-  kind: WorkspaceInspectorAssetKind,
-): WorkspaceInspectorPaneLayout {
-  if (!layout.expandedKinds.includes(kind)) {
-    return layout;
-  }
-
+  const source = input.intent ?? defaultInspectorPaneLayout();
+  const openKinds = [
+    ...new Set(
+      source.openKinds.filter((kind) => input.available.includes(kind)),
+    ),
+  ];
   return {
-    expandedKinds: layout.expandedKinds.filter((openKind) => openKind !== kind),
+    activeKind:
+      source.activeKind && openKinds.includes(source.activeKind)
+        ? source.activeKind
+        : (openKinds[0] ?? null),
+    openKinds,
   };
 }
-
-export function toggleInspectorPaneKind(
+export function openInspectorTab(
   layout: WorkspaceInspectorPaneLayout,
-  kind: WorkspaceInspectorAssetKind,
-  available: readonly WorkspaceInspectorAssetKind[],
+  kind: WorkspaceInspectorTabKind,
 ): WorkspaceInspectorPaneLayout {
-  if (layout.expandedKinds.includes(kind)) {
-    return collapseInspectorPaneKind(layout, kind);
-  }
-
-  return expandInspectorPaneKind(layout, kind, available);
+  return {
+    activeKind: kind,
+    openKinds: layout.openKinds.includes(kind)
+      ? layout.openKinds
+      : [...layout.openKinds, kind],
+  };
 }
-
+export function closeInspectorTab(
+  layout: WorkspaceInspectorPaneLayout,
+  kind: WorkspaceInspectorTabKind,
+): WorkspaceInspectorPaneLayout {
+  const index = layout.openKinds.indexOf(kind);
+  const openKinds = layout.openKinds.filter((tab) => tab !== kind);
+  return {
+    activeKind:
+      layout.activeKind === kind
+        ? (openKinds[Math.max(0, index - 1)] ?? null)
+        : layout.activeKind,
+    openKinds,
+  };
+}
 export function parsePersistedInspectorPaneLayout(
   raw: string | null,
 ): WorkspaceInspectorPaneLayout | null {
-  if (!raw) {
-    return null;
-  }
-
+  if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-
-    if (!parsed || typeof parsed !== 'object') {
-      return null;
-    }
-
+    if (!parsed || typeof parsed !== 'object') return null;
     const record = parsed as Record<string, unknown>;
-
-    if (!Array.isArray(record.expandedKinds)) {
-      return null;
-    }
-
-    const expandedKinds = uniqueInspectorKinds(
-      record.expandedKinds.filter(
-        (kind): kind is WorkspaceInspectorAssetKind =>
-          typeof kind === 'string' && isWorkspaceInspectorAssetKind(kind),
-      ),
-    );
-
-    return { expandedKinds };
+    if (!Array.isArray(record.openKinds)) return null;
+    return resolveInspectorPaneLayout({
+      available: WORKSPACE_INSPECTOR_TAB_KINDS,
+      intent: {
+        activeKind:
+          typeof record.activeKind === 'string' &&
+          isWorkspaceInspectorTabKind(record.activeKind)
+            ? record.activeKind
+            : null,
+        openKinds: record.openKinds.filter(
+          (kind): kind is WorkspaceInspectorTabKind =>
+            typeof kind === 'string' && isWorkspaceInspectorTabKind(kind),
+        ),
+      },
+    });
   } catch {
     return null;
   }
 }
-
 export function serializeInspectorPaneLayout(
   layout: WorkspaceInspectorPaneLayout,
 ): string {
-  return JSON.stringify({ expandedKinds: layout.expandedKinds });
+  return JSON.stringify(layout);
 }
 
 export function persistInspectorPaneLayout(

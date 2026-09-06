@@ -91,7 +91,6 @@ describe('useTrendContent', () => {
 
     expect(mockGetTrendContent).toHaveBeenCalledWith({
       platform: 'tiktok',
-      refresh: true,
     });
     await waitFor(() => {
       expect(result.current.items).toEqual([refreshedItem]);

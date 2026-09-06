@@ -567,6 +567,7 @@
       "name": "@genfeedai/website",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/agent": "workspace:*",
         "@genfeedai/auth-client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/contracts": "workspace:*",

@@ -13,6 +13,7 @@ describe('buildSettingsMenuItems', () => {
         'Notifications',
         'Progress',
         'Help',
+        'About',
       ]);
     });
 

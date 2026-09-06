@@ -16,6 +16,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/changelog',
+    },
+    {
       changeFrequency: 'daily',
       lastModified: new Date(),
       priority: 1,

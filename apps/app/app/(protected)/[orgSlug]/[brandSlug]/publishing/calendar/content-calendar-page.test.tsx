@@ -104,6 +104,7 @@ const getPostingCadencesServiceMock = vi.fn(async () => ({
 }));
 
 const calendarRenderProps: Array<{
+  emptyState?: ReactNode;
   getEventActions: (item: CalendarItemShape) => CalendarEventAction[];
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
   getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
@@ -187,6 +188,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   default: ({
+    emptyState,
     filterControls,
     getEventActions,
     getEventBadge,
@@ -202,6 +204,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     preferredTimes,
     timezone,
   }: {
+    emptyState?: ReactNode;
     filterControls: ReactNode;
     getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
     getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
@@ -218,6 +221,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     timezone?: string;
   }) => {
     calendarRenderProps.push({
+      emptyState,
       getEventActions: getEventActions ?? (() => []),
       getEventBadge,
       getEventChannels,
@@ -444,6 +448,18 @@ describe('ContentCalendarPage', () => {
     findReleasesMock.mockResolvedValue([release()]);
     listSlotsMock.mockResolvedValue([]);
     listCadencesMock.mockResolvedValue([]);
+  });
+
+  it('keeps the calendar available after loading an empty schedule', async () => {
+    findReleasesMock.mockResolvedValue([]);
+
+    render(<ContentCalendarPage />);
+
+    await waitFor(() => {
+      expect(latestCalendarProps().isLoading).toBe(false);
+    });
+    expect(latestCalendarProps().items).toEqual([]);
+    expect(latestCalendarProps().emptyState).toBeUndefined();
   });
 
   it('queries the scheduler read model for the visible window only', async () => {

@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('LlmVendorCostLedgerService', () => {
   const llmVendorCost = {
+    findFirst: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     groupBy: vi.fn(),
   };
   const logger = {
@@ -20,6 +22,8 @@ describe('LlmVendorCostLedgerService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    llmVendorCost.updateMany.mockResolvedValue({ count: 1 });
+    llmVendorCost.findFirst.mockResolvedValue(null);
     llmVendorCost.create.mockResolvedValue({ id: 'cost-1' });
     llmVendorCost.groupBy.mockResolvedValue([]);
 
@@ -51,6 +55,7 @@ describe('LlmVendorCostLedgerService', () => {
 
     expect(llmVendorCost.create).toHaveBeenCalledWith({
       data: {
+        costEvidence: 'unknown',
         brandId: 'brand-1',
         completionTokens: 5,
         isByok: false,
@@ -139,5 +144,82 @@ describe('LlmVendorCostLedgerService', () => {
         vendorCostMicros: 180,
       },
     ]);
+  });
+  it('replays settlement without inserting or downgrading observed evidence', async () => {
+    const input = {
+      workflowLedgerId: 'operation',
+      brandId: 'brand-1',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      organizationId: 'org-1',
+      provider: 'openrouter',
+      model: 'model',
+      isByok: false,
+      latencyMs: 5,
+      promptTokens: 10,
+      completionTokens: 20,
+      vendorCostMicros: 150,
+      costEvidence: 'observed' as const,
+    };
+    await service.record(input);
+    await service.record(input);
+    expect(llmVendorCost.create).not.toHaveBeenCalled();
+    expect(llmVendorCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          brandId: 'brand-1',
+          runId: 'run-1',
+          threadId: 'thread-1',
+        }),
+        where: {
+          id: 'operation',
+          organizationId: 'org-1',
+          isDeleted: false,
+          costEvidence: { in: ['pending', 'unknown', 'calculated'] },
+        },
+      }),
+    );
+  });
+  it.each([null, { costEvidence: 'pending' }])(
+    'rejects a lost settlement instead of acknowledging %j',
+    async (existing) => {
+      llmVendorCost.updateMany.mockResolvedValue({ count: 0 });
+      llmVendorCost.findFirst.mockResolvedValue(existing);
+      await expect(
+        service.record({
+          workflowLedgerId: 'operation',
+          organizationId: 'org-1',
+          provider: 'openrouter',
+          model: 'model',
+          isByok: false,
+          latencyMs: 5,
+          promptTokens: 10,
+          completionTokens: 20,
+          vendorCostMicros: 150,
+          costEvidence: 'observed',
+        }),
+      ).rejects.toThrow('not persisted');
+      expect(llmVendorCost.findFirst).toHaveBeenCalledWith({
+        where: { id: 'operation', organizationId: 'org-1', isDeleted: false },
+        select: { costEvidence: true },
+      });
+    },
+  );
+  it('acknowledges an already observed receipt without overwriting it', async () => {
+    llmVendorCost.updateMany.mockResolvedValue({ count: 0 });
+    llmVendorCost.findFirst.mockResolvedValue({ costEvidence: 'observed' });
+    await service.record({
+      workflowLedgerId: 'operation',
+      organizationId: 'org-1',
+      provider: 'openrouter',
+      model: 'model',
+      isByok: false,
+      latencyMs: 5,
+      promptTokens: 10,
+      completionTokens: 20,
+      vendorCostMicros: 150,
+      costEvidence: 'calculated',
+    });
+    expect(llmVendorCost.create).not.toHaveBeenCalled();
   });
 });

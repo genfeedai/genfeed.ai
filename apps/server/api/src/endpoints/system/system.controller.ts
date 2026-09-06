@@ -1,4 +1,5 @@
 import { LocalhostOnlyGuard } from '@api/endpoints/system/guards/localhost-only.guard';
+import { ReleasesService } from '@api/endpoints/system/releases.service';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, UseGuards } from '@nestjs/common';
@@ -7,7 +8,16 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 @ApiTags('System')
 @Controller('system')
 export class SystemController {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly releasesService: ReleasesService,
+  ) {}
+
+  @Get('latest-release')
+  @ApiOperation({ summary: 'Check the latest stable Genfeed release' })
+  getLatestRelease() {
+    return this.releasesService.latest();
+  }
 
   @Public()
   @Get('db-mode')

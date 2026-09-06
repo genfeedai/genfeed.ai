@@ -165,6 +165,52 @@ describe('CreditReservationService', () => {
     expect(creditBalanceService.applyDelta).toHaveBeenCalledTimes(1);
   });
 
+  it.each([null, 'reserved-run'])(
+    'preserves transaction attribution when reservation run is %s',
+    async (workflowExecutionId) => {
+      prisma.creditReservation.findFirst.mockResolvedValue({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+        workflowExecutionId,
+        workflowNodeId: workflowExecutionId ? 'reserved-node' : null,
+        workflowOperationId: workflowExecutionId ? 'reserved-operation' : null,
+      });
+      const transaction: Record<string, unknown> = {};
+      creditTransactionsService.createTransactionEntry.mockImplementation(
+        async () => {
+          Object.assign(transaction, {
+            workflowExecutionId: 'current-run',
+            workflowNodeId: 'current-node',
+            workflowOperationId: 'current-operation',
+          });
+        },
+      );
+      prisma.creditTransaction.updateMany.mockImplementation(
+        async ({ data }) => {
+          Object.assign(transaction, data);
+          return { count: 1 };
+        },
+      );
+      await service.settle({
+        actualAmount: 15,
+        actorUserId: 'user_1',
+        description: 'complete',
+        organizationId: 'org_1',
+        reservationId: 'res_1',
+      });
+      expect(transaction).toMatchObject({
+        workflowExecutionId: workflowExecutionId ?? 'current-run',
+        workflowNodeId: workflowExecutionId ? 'reserved-node' : 'current-node',
+        workflowOperationId: workflowExecutionId
+          ? 'reserved-operation'
+          : 'current-operation',
+      });
+    },
+  );
+
   it('treats a settlement claim lost to a concurrent caller as an idempotent replay', async () => {
     prisma.creditReservation.findFirst
       .mockResolvedValueOnce({

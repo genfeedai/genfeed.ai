@@ -5,7 +5,7 @@ import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
 import ArticlesList from '@pages/articles/list/articles-list';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -131,6 +131,32 @@ describe('ArticlesList', () => {
     vi.clearAllMocks();
     closeModal(ModalEnum.ARTICLE);
     mockFindAll.mockResolvedValue([]);
+  });
+
+  it('retains loaded rows and bounded retry progress until a failed refresh retry settles', async () => {
+    mockFindAll.mockResolvedValueOnce([buildArticle()]);
+    const { rerender } = render(<ArticlesList />);
+    await screen.findByText('My Draft');
+    mockFindAll.mockRejectedValueOnce(new Error('Refresh failed'));
+    rerender(<ArticlesList status="published" />);
+    await screen.findByText('Failed to load articles');
+    let resolveRetry: (articles: Article[]) => void = () => {};
+    mockFindAll.mockImplementationOnce(
+      () =>
+        new Promise<Article[]>((resolve) => {
+          resolveRetry = resolve;
+        }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(screen.getByText('My Draft')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeDisabled();
+    await act(async () =>
+      resolveRetry([buildArticle({ label: 'Updated draft' })]),
+    );
+    await screen.findByText('Updated draft');
+    expect(
+      screen.queryByText('Failed to load articles'),
+    ).not.toBeInTheDocument();
   });
 
   it('should render without crashing', async () => {

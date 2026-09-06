@@ -1,5 +1,6 @@
 import { SystemController } from '@api/endpoints/system/system.controller';
 import type { ConfigService } from '@libs/config/config.service';
+import type { ReleasesService } from './releases.service';
 
 describe('SystemController', () => {
   let controller: SystemController;
@@ -10,7 +11,10 @@ describe('SystemController', () => {
       get: vi.fn().mockReturnValue('development'),
     };
 
-    controller = new SystemController(configService as never as ConfigService);
+    controller = new SystemController(
+      configService as never as ConfigService,
+      { latest: vi.fn() } as unknown as ReleasesService,
+    );
   });
 
   it('returns the current db mode', () => {

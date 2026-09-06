@@ -1,4 +1,5 @@
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { WorkflowAccounting } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecution as PrismaWorkflowExecution } from '@genfeedai/prisma';
 
 export type WorkflowNodeResult = {
@@ -21,6 +22,7 @@ export interface WorkflowExecutionDocument
     PrismaWorkflowExecution,
     'creditsUsed' | 'durationMs' | 'failedNodeId' | 'progress' | 'result'
   > {
+  accounting?: WorkflowAccounting | null;
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   nodeResults: WorkflowNodeResult[];

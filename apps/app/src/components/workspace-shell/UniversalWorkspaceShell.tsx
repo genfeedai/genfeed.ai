@@ -61,6 +61,7 @@ import {
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
 import {
+  dispatchOpenConversationTab,
   OPEN_BROWSER_TAB_EVENT,
   OPEN_CONTEXT_TAB_EVENT,
   OPEN_CONVERSATION_TAB_EVENT,
@@ -75,14 +76,15 @@ import {
 } from '@/lib/workspace-shell/workspace-composer-action.util';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import {
-  expandInspectorPaneKind,
-  isWorkspaceInspectorAssetKind,
+  closeInspectorTab,
+  openInspectorTab,
   persistInspectorPaneLayout,
   readPersistedInspectorPaneLayout,
-  resolveAvailableInspectorKinds,
   resolveInspectorPaneLayout,
-  type WorkspaceInspectorAssetKind,
+  WORKSPACE_INSPECTOR_ASSET_KINDS,
+  WORKSPACE_INSPECTOR_TAB_KINDS,
   type WorkspaceInspectorPaneLayout,
+  type WorkspaceInspectorTabKind,
 } from '@/lib/workspace-shell/workspace-inspector-panes.util';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
@@ -301,9 +303,12 @@ function UniversalWorkspaceShellContent({
   const [inspectorPaneIntent, setInspectorPaneIntent] =
     useState<WorkspaceInspectorPaneLayout | null>(null);
   const [hasLoadedInspectorPanes, setHasLoadedInspectorPanes] = useState(false);
-  const availableInspectorKinds = useMemo(
-    () => resolveAvailableInspectorKinds(),
-    [],
+  const availableInspectorKinds = useMemo<readonly WorkspaceInspectorTabKind[]>(
+    () =>
+      isAgentRoute
+        ? WORKSPACE_INSPECTOR_ASSET_KINDS
+        : WORKSPACE_INSPECTOR_TAB_KINDS,
+    [isAgentRoute],
   );
 
   useEffect(() => {
@@ -327,23 +332,31 @@ function UniversalWorkspaceShellContent({
     intent: inspectorPaneIntent,
   });
   const expandInspectorPane = useCallback(
-    (kind: WorkspaceInspectorAssetKind) => {
+    (kind: WorkspaceInspectorTabKind) => {
       setInspectorPaneIntent((intent) => {
         const current = resolveInspectorPaneLayout({
-          available: availableInspectorKinds,
+          available: WORKSPACE_INSPECTOR_TAB_KINDS,
           intent,
         });
 
-        return expandInspectorPaneKind(current, kind, availableInspectorKinds);
+        return availableInspectorKinds.includes(kind)
+          ? openInspectorTab(current, kind)
+          : current;
       });
     },
     [availableInspectorKinds],
   );
-  const handleExpandedInspectorKindsChange = useCallback(
-    (expandedKinds: readonly string[]) => {
-      setInspectorPaneIntent({
-        expandedKinds: expandedKinds.filter(isWorkspaceInspectorAssetKind),
-      });
+  const handleCloseInspectorTab = useCallback(
+    (kind: WorkspaceInspectorTabKind) => {
+      setInspectorPaneIntent((intent) =>
+        closeInspectorTab(
+          resolveInspectorPaneLayout({
+            available: WORKSPACE_INSPECTOR_TAB_KINDS,
+            intent,
+          }),
+          kind,
+        ),
+      );
     },
     [],
   );
@@ -353,6 +366,7 @@ function UniversalWorkspaceShellContent({
       expandInspectorPane('context');
     };
     const openConversationTab = () => {
+      expandInspectorPane('conversation');
       if (window.matchMedia('(max-width: 1279px)').matches) {
         setIsMobileInspectorOpen(true);
       }
@@ -985,7 +999,8 @@ function UniversalWorkspaceShellContent({
 
   const inspectorSharedProps = {
     actions: {
-      onExpandedKindsChange: handleExpandedInspectorKindsChange,
+      onCloseTab: handleCloseInspectorTab,
+      onOpenTab: expandInspectorPane,
       onOpenOverlay: handleOpenOverlay,
       onOpenWorkflowPicker: handleOpenWorkflowPicker,
       onReturnToConversation: handleReturnToConversation,
@@ -1000,7 +1015,9 @@ function UniversalWorkspaceShellContent({
       workspaceSurfaceAdapter: resolvedWorkspaceSurfaceAdapter,
     },
     chrome: {
-      expandedKinds: inspectorPaneLayout.expandedKinds,
+      activeKind: inspectorPaneLayout.activeKind,
+      openKinds: inspectorPaneLayout.openKinds,
+      availableKinds: availableInspectorKinds,
       hasAgentInspectorPanel,
       inspectorBreadcrumbLabel,
       inspectorScope: conversationScope.inspectorScope,
@@ -1047,6 +1064,7 @@ function UniversalWorkspaceShellContent({
               ? 'surface'
               : 'inspector'
         }
+        onSendMessage={isAgentRoute ? undefined : dispatchOpenConversationTab}
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={

@@ -53,4 +53,24 @@ describe('buildCostReportCsv', () => {
       expect(buildCostReportCsv([entry])).toContain(`'${brandLabel}`);
     },
   );
+  it('keeps negative numbers numeric while escaping negative-looking text', () => {
+    const entry: ICostReportEntry = {
+      id: 'row',
+      createdAt: '2026-09-05',
+      entryType: 'credit',
+      brandId: null,
+      brandLabel: '-2.75',
+      category: 'refund',
+      provider: null,
+      model: null,
+      referenceId: null,
+      isByok: false,
+      creditsUsed: -2.75,
+      providerCostMicros: 0,
+      providerCostUsd: 0,
+    };
+    const csv = buildCostReportCsv([entry]);
+    expect(csv).toContain(",'-2.75");
+    expect(csv).toContain(',0,0,-2.75,false');
+  });
 });

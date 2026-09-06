@@ -253,35 +253,45 @@ export default function ReleaseBoard({
     );
     void (async () => {
       setPendingAction(SCHEDULE_NEXT_SLOT_ACTION);
-      const credentialsService = await getCredentialsService();
-      const releaseGroupsService = await getReleaseGroupsService();
-      for (const release of selected) {
-        // One API call per selected release — the bulk action is a fan-out of
-        // individual reschedules, not a single batched endpoint.
-        const credentialId = release.targets?.[0]?.credentialId;
-        if (!credentialId) {
-          notificationsService.error(translate('bulk.scheduleNextSlotError'));
-          continue;
-        }
-        try {
-          const slot = await credentialsService.findNextSlot(credentialId);
-          if (!slot.found || !slot.instant) {
+      try {
+        const credentialsService = await getCredentialsService();
+        const releaseGroupsService = await getReleaseGroupsService();
+        for (const release of selected) {
+          // One API call per selected release — the bulk action is a fan-out of
+          // individual reschedules, not a single batched endpoint.
+          const credentialId = release.targets?.[0]?.credentialId;
+          if (!credentialId) {
             notificationsService.error(translate('bulk.scheduleNextSlotError'));
             continue;
           }
-          const updated = await releaseGroupsService.update(release.id, {
-            scheduledDate: slot.instant,
-          });
-          setItems((current) =>
-            current.map((entry) => (entry.id === updated.id ? updated : entry)),
-          );
-        } catch (error) {
-          logger.error('Failed to schedule release at next slot', error);
-          notificationsService.error(mutationErrorMessage(error));
+          try {
+            const slot = await credentialsService.findNextSlot(credentialId);
+            if (!slot.found || !slot.instant) {
+              notificationsService.error(
+                translate('bulk.scheduleNextSlotError'),
+              );
+              continue;
+            }
+            const updated = await releaseGroupsService.update(release.id, {
+              scheduledDate: slot.instant,
+            });
+            setItems((current) =>
+              current.map((entry) =>
+                entry.id === updated.id ? updated : entry,
+              ),
+            );
+          } catch (error) {
+            logger.error('Failed to schedule release at next slot', error);
+            notificationsService.error(mutationErrorMessage(error));
+          }
         }
+        clearSelection();
+      } catch (error) {
+        logger.error('Failed to acquire services for bulk scheduling', error);
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setPendingAction(null);
       }
-      setPendingAction(null);
-      clearSelection();
     })();
   }, [
     clearSelection,
@@ -299,22 +309,30 @@ export default function ReleaseBoard({
     );
     void (async () => {
       setPendingAction(CANCEL_ACTION);
-      const service = await getReleaseGroupsService();
-      for (const release of selected) {
-        // No true delete exists on release groups; `cancel` is the closest
-        // supported terminal action and is what the calendar/list use too.
-        try {
-          const updated = await service.cancel(release.id);
-          setItems((current) =>
-            current.map((entry) => (entry.id === updated.id ? updated : entry)),
-          );
-        } catch (error) {
-          logger.error('Failed to cancel release from the board', error);
-          notificationsService.error(mutationErrorMessage(error));
+      try {
+        const service = await getReleaseGroupsService();
+        for (const release of selected) {
+          // No true delete exists on release groups; `cancel` is the closest
+          // supported terminal action and is what the calendar/list use too.
+          try {
+            const updated = await service.cancel(release.id);
+            setItems((current) =>
+              current.map((entry) =>
+                entry.id === updated.id ? updated : entry,
+              ),
+            );
+          } catch (error) {
+            logger.error('Failed to cancel release from the board', error);
+            notificationsService.error(mutationErrorMessage(error));
+          }
         }
+        clearSelection();
+      } catch (error) {
+        logger.error('Failed to acquire service for bulk cancellation', error);
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setPendingAction(null);
       }
-      setPendingAction(null);
-      clearSelection();
     })();
   }, [
     clearSelection,

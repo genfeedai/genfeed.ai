@@ -133,7 +133,7 @@ describe('TrendsService HTTP methods', () => {
   });
 
   describe('discovery', () => {
-    it('getTrendsDiscovery passes platform and refresh flags', async () => {
+    it('getTrendsDiscovery reads saved discovery data with platform filters', async () => {
       const payload = {
         summary: {
           connectedPlatforms: ['tiktok'],
@@ -146,11 +146,10 @@ describe('TrendsService HTTP methods', () => {
 
       const result = await service.getTrendsDiscovery({
         platform: 'tiktok',
-        refresh: true,
       });
 
       expect(http.get).toHaveBeenCalledWith('/discovery', {
-        params: { platform: 'tiktok', refresh: 'true' },
+        params: { platform: 'tiktok' },
       });
       expect(result).toEqual(payload);
     });
@@ -213,11 +212,10 @@ describe('TrendsService HTTP methods', () => {
       const result = await service.getTrendContent({
         limit: 4,
         platform: 'youtube',
-        refresh: true,
       });
 
       expect(http.get).toHaveBeenCalledWith('/content', {
-        params: { limit: 4, platform: 'youtube', refresh: 'true' },
+        params: { limit: 4, platform: 'youtube' },
       });
       expect(result).toEqual({
         items: [],

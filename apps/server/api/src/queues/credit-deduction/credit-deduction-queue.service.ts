@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { currentWorkflowAccountingScope } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
   CREDIT_DEDUCTION_QUEUE,
   CreditDeductionJobData,
@@ -21,6 +23,13 @@ export class CreditDeductionQueueService {
   ) {}
 
   async queueDeduction(data: CreditDeductionJobData): Promise<void> {
+    const scope = currentWorkflowAccountingScope();
+    if (scope?.organizationId === data.organizationId)
+      data = {
+        ...data,
+        workflowAccounting: scope,
+        idempotencyKey: data.idempotencyKey ?? randomUUID(),
+      };
     await this.queue.add('deduct-credits', data, {
       ...(data.settlementAssetId
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
@@ -41,6 +50,13 @@ export class CreditDeductionQueueService {
   }
 
   async queueByokUsage(data: CreditDeductionJobData): Promise<void> {
+    const scope = currentWorkflowAccountingScope();
+    if (scope?.organizationId === data.organizationId)
+      data = {
+        ...data,
+        workflowAccounting: scope,
+        idempotencyKey: data.idempotencyKey ?? randomUUID(),
+      };
     await this.queue.add('record-byok-usage', data, {
       jobId: toBullMqJobId(
         data.idempotencyKey

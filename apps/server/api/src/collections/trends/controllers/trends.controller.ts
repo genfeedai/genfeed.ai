@@ -28,6 +28,7 @@ import {
 import { ActivitySource } from '@genfeedai/contracts';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -63,9 +64,10 @@ export class TrendsController {
     const organizationId = user.organizationId;
     const brandId = user.brandId;
 
-    // Check if user wants to force refresh
     if (refresh === 'true') {
-      await this.trendsService.refreshTrends(organizationId, brandId);
+      throw new BadRequestException(
+        'Use POST /trends/refresh to start ingestion.',
+      );
     }
 
     // Get trends with access control

@@ -31,6 +31,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/docs', label: 'Docs' },
+      { href: '/changelog', label: 'Changelog' },
       { href: '/agent', label: 'Genfeed Agent' },
       { href: '/mcp', label: 'MCP Server' },
       { href: '/self-hosted', label: 'Self-host' },

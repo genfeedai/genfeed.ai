@@ -70,13 +70,11 @@ describe('TrendsService', () => {
 
     const result = await service.getTrendsDiscovery({
       platform: 'twitter',
-      refresh: true,
     });
 
     expect(getSpy).toHaveBeenCalledWith('/discovery', {
       params: {
         platform: 'twitter',
-        refresh: 'true',
       },
     });
     expect(result.summary.totalTrends).toBe(1);
@@ -145,14 +143,12 @@ describe('TrendsService', () => {
     const result = await service.getTrendContent({
       limit: 5,
       platform: 'twitter',
-      refresh: true,
     });
 
     expect(getSpy).toHaveBeenCalledWith('/content', {
       params: {
         limit: 5,
         platform: 'twitter',
-        refresh: 'true',
       },
     });
     expect(result.items[0]?.sourceReferenceId).toBe('ref-1');

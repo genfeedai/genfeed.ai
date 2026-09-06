@@ -1,7 +1,10 @@
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
+import { useQueryClient } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const mockGetCorpusFreshnessHealth = vi.fn();
+const mockRefreshTrends = vi.fn();
 const mockGetTrendContent = vi.fn();
 const mockGetFollowingFeed = vi.fn();
 const mockGetViralVideos = vi.fn();
@@ -73,6 +76,11 @@ describe('useDiscoveryDeskItems', () => {
       pageScope: 'brand',
     });
 
+    mockGetCorpusFreshnessHealth.mockResolvedValue({
+      segments: [],
+      providerFailures: [],
+      status: 'empty',
+    });
     mockGetTrendContent.mockResolvedValue({
       items: [TREND_ITEM],
       summary: SUMMARY,
@@ -85,6 +93,8 @@ describe('useDiscoveryDeskItems', () => {
     mockGetViralVideos.mockResolvedValue([VIRAL_VIDEO]);
 
     mockGetTrendsService.mockResolvedValue({
+      getCorpusFreshnessHealth: mockGetCorpusFreshnessHealth,
+      refreshTrends: mockRefreshTrends,
       getTrendContent: mockGetTrendContent,
       getViralVideos: mockGetViralVideos,
     });
@@ -132,6 +142,7 @@ describe('useDiscoveryDeskItems', () => {
     expect(mockGetTrendContent).not.toHaveBeenCalled();
     expect(mockGetFollowingFeed).not.toHaveBeenCalled();
     expect(mockGetViralVideos).not.toHaveBeenCalled();
+    expect(mockGetCorpusFreshnessHealth).not.toHaveBeenCalled();
   });
 
   it('starts with an empty item list before data resolves', () => {
@@ -178,5 +189,73 @@ describe('useDiscoveryDeskItems', () => {
     });
 
     expect(result.current.error?.message).toBe('trend content failed');
+  });
+  it('keeps cached items visible when health refetch fails and only reads cached GET endpoints', async () => {
+    const { result } = renderHook(() => useDiscoveryDeskItems(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(3));
+    mockGetCorpusFreshnessHealth.mockRejectedValue(
+      new Error('private provider failure'),
+    );
+    await act(async () => {
+      await result.current.refresh();
+    });
+    await waitFor(() => expect(result.current.healthError).not.toBeNull());
+    expect(result.current.error).toBeNull();
+    expect(result.current.items).toHaveLength(3);
+    expect(result.current.corpusHealth?.status).toBe('empty');
+    expect(mockGetCorpusFreshnessHealth).toHaveBeenCalledWith(
+      expect.any(AbortSignal),
+    );
+    expect(
+      mockGetTrendContent.mock.calls.every(
+        ([params]) => params.refresh === undefined,
+      ),
+    ).toBe(true);
+    expect(
+      mockGetViralVideos.mock.calls.every(
+        ([params]) => params.refresh === undefined,
+      ),
+    ).toBe(true);
+    expect(mockRefreshTrends).not.toHaveBeenCalled();
+  });
+
+  it('isolates the health cache by organization and brand', async () => {
+    const { result, rerender } = renderHook(
+      () => ({
+        desk: useDiscoveryDeskItems(),
+        client: useQueryClient(),
+      }),
+      { wrapper: createQueryWrapper() },
+    );
+    await waitFor(() =>
+      expect(result.current.desk.corpusHealth).not.toBeNull(),
+    );
+    expect(
+      result.current.client.getQueryData([
+        'trend-corpus-health',
+        'org-1',
+        'brand-1',
+      ]),
+    ).toBeDefined();
+    mockGetCorpusFreshnessHealth.mockImplementation(
+      () => new Promise(() => {}),
+    );
+    mockUseCollectionScope.mockReturnValue({
+      brandId: 'brand-2',
+      organizationId: 'org-2',
+      pageScope: 'brand',
+      isReady: true,
+    });
+    rerender();
+    expect(result.current.desk.corpusHealth).toBeNull();
+    expect(
+      result.current.client.getQueryState([
+        'trend-corpus-health',
+        'org-2',
+        'brand-2',
+      ]),
+    ).toBeDefined();
   });
 });

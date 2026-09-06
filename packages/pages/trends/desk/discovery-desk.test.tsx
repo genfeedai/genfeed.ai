@@ -73,33 +73,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations:
-    () => (key: string, values?: Record<string, string | number>) => {
-      const messages: Record<string, string> = {
-        'errors.loadDescription': 'Retry to fetch the latest discovery signal.',
-        'errors.loadTitle': 'Failed to load the Desk',
-        'errors.remixUnavailable': 'Remix is not available for this item.',
-        'errors.retry': 'Retry',
-        loading: 'Loading the Desk…',
-        searchPlaceholder: 'Search the Desk',
-        'selectionBar.clear': 'Clear',
-        'selectionBar.count': '{count} selected',
-        'selectionBar.remix': 'Remix {count}',
-        'selectionBar.skippedRemix': '{count} items skipped',
-        signalsLoading: 'Loading…',
-        signalsCount: '{count} signals',
-        subtitle: 'Signal Desk',
-        title: 'Discovery',
-        'viewToggle.desk': 'Desk',
-        'viewToggle.lightTable': 'Light table',
-      };
-      const template = messages[key] ?? key;
-      return template.replace(/\{(\w+)\}/g, (_match, name: string) =>
-        String(values?.[name] ?? ''),
-      );
-    },
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useOptionalResearchWorkSurface: () => null,
@@ -295,5 +272,25 @@ describe('DiscoveryDesk', () => {
       expect(mocks.openRemix).toHaveBeenCalledTimes(1);
     });
     expect(mocks.openRemix).toHaveBeenCalledWith(ITEM_ONE.remixSelector);
+  });
+  it('shows unavailable health alongside retained signals after a health failure', () => {
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      healthError: new Error('internal health error'),
+    });
+    render(<DiscoveryDesk />);
+    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
+    expect(screen.getByText('First signal')).toBeInTheDocument();
+    expect(screen.getByTestId('desk-table-view')).toBeInTheDocument();
+    expect(screen.queryByText('internal health error')).not.toBeInTheDocument();
+  });
+
+  it('scopes the source health panel to the platform URL filter', () => {
+    mocks.paramState.platform = 'reddit';
+    render(<DiscoveryDesk />);
+    expect(screen.getByRole('group', { name: 'Reddit' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'X / Twitter' }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,5 @@
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { LlmCostSettlementProcessor } from '@workers/processors/api/queues/llm-cost-settlement/llm-cost-settlement.processor';
 /**
  * Processors Module (Workers)
  *
@@ -69,6 +71,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 
 @Module({
   imports: [
+    LlmDispatcherModule,
     // Infrastructure
     LoggerModule,
     HttpModule,
@@ -124,6 +127,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
   providers: [
     // --- queues/ processors ---
     CreditDeductionProcessor,
+    LlmCostSettlementProcessor,
     HeygenPollProcessor,
     ReplicatePollProcessor,
     NotificationDeliveryProcessor,

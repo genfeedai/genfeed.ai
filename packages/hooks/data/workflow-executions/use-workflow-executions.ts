@@ -88,7 +88,7 @@ export function useWorkflowExecutions(
   return {
     cancelExecution,
     executions: data,
-    isRefreshing: isFetching,
+    isRefreshing: isFetching && !isLoading,
     isError,
     isLoading,
     refresh: async () => {

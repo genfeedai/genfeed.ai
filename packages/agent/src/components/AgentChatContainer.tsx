@@ -116,9 +116,10 @@ export function AgentChatContainer({
       attachments?: Parameters<typeof container.handleSend>[2],
       options?: Parameters<typeof container.handleSend>[3],
     ) => {
+      composerShell?.onSendMessage?.();
       return container.handleSend(content, mentions, attachments, options);
     },
-    [container.handleSend],
+    [composerShell?.onSendMessage, container.handleSend],
   );
 
   const handleSuggestionSend = useCallback(
