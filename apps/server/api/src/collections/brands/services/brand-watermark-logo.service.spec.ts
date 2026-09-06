@@ -88,6 +88,21 @@ describe('BrandWatermarkLogoService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('rejects a watermark logo with a null MIME type', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: 'brand-1',
+        organizationId: 'org-1',
+      });
+      assetDelegate.findFirst.mockResolvedValue({
+        id: 'logo-1',
+        mimeType: null,
+      });
+
+      await expect(
+        service.validateWatermarkLogo('brand-1', 'org-1', 'logo-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('accepts a valid image logo belonging to the brand', async () => {
       delegate.findFirst.mockResolvedValue({
         id: 'brand-1',

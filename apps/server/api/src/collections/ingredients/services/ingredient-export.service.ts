@@ -58,7 +58,7 @@ export class IngredientExportService {
       throw new BadRequestException(
         'The original must be stored before creating a preview',
       );
-    const filename = `${ingredient.id}${watermark ? '-watermarked' : ''}.${category === 'videos' ? 'mp4' : 'png'}`;
+    const filename = `${ingredient.id}-watermarked.${category === 'videos' ? 'mp4' : 'png'}`;
     if (!ingredient.brandId)
       throw new BadRequestException(
         'Assign a brand before exporting a watermark',

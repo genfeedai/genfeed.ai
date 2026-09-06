@@ -46,6 +46,7 @@ describe('TimeoutInterceptor', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('honors a bounded route timeout without changing the default', async () => {

@@ -30,7 +30,7 @@ export class BrandWatermarkLogoService {
         isDeleted: false,
       },
     });
-    if (!logo || (logo.mimeType && !logo.mimeType.startsWith('image/')))
+    if (!logo?.mimeType?.startsWith('image/'))
       throw new BadRequestException(
         'The watermark logo must be an image belonging to this brand',
       );
