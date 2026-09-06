@@ -34,10 +34,7 @@ import {
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { formatAgentError } from '@genfeedai/agent/server';
-import {
-  type ActionOriginContext,
-  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
-} from '@genfeedai/contracts';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   PopulateOption,
   WorkflowCostEstimate,
