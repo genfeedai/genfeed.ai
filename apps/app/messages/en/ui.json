@@ -1,5 +1,11 @@
 {
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
+  },
+  "watermarkDownload": {
+    "options": "Download options",
+    "original": "Download original",
+    "branded": "Download with brand watermark",
+    "error": "Could not download. Check your brand watermark settings and try again."
   }
 }

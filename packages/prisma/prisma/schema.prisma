@@ -908,6 +908,10 @@ model McpApproval {
 }
 
 model Brand {
+  watermarkText            String?
+  watermarkLogoId          String?
+  watermarkOpacity         Float        @default(0.35)
+  watermarkPosition        String       @default("bottom-right")
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())

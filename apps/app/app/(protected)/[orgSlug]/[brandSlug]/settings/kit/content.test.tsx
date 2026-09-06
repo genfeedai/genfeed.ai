@@ -57,6 +57,12 @@ vi.mock('@pages/brands/components/sidebar/BrandDetailManualKitCard', () => ({
   default: () => <section data-testid="manual-card">Manual Brand Kit</section>,
 }));
 
+vi.mock('@pages/brands/components/sidebar/BrandWatermarkSettings', () => ({
+  default: () => (
+    <section data-testid="watermark-settings">Brand watermark</section>
+  ),
+}));
+
 vi.mock('@pages/brands/components/sidebar/BrandDetailReferencesCard', () => ({
   default: () => <section data-testid="references-card">References</section>,
 }));
@@ -99,6 +105,7 @@ describe('BrandSettingsKitPage', () => {
     const review = screen.getByTestId('review-card');
     const manual = screen.getByTestId('manual-card');
     const references = screen.getByTestId('references-card');
+    expect(screen.getByTestId('watermark-settings')).toBeInTheDocument();
 
     expect(
       review.compareDocumentPosition(manual) & Node.DOCUMENT_POSITION_FOLLOWING,

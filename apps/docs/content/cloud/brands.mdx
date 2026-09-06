@@ -16,3 +16,28 @@ multiple brands inside its single organization.
 
 Use the product's brand settings as the source of truth for the fields available
 in the deployed release.
+
+## Watermarked client previews
+
+In **Brand settings → Brand Kit**, configure watermark text, choose an uploaded
+brand logo or reference image, and set opacity and corner position. Text and a
+logo can be combined. The settings are available in Cloud and self-hosted installs.
+
+On an image or video, open the arrow beside Download and choose **Download with
+brand watermark**. The export creates a separate PNG image or MP4 video and keeps
+the original unchanged. The main Download action continues to download the original.
+You can send the preview to a client and deliver the original after collecting payment.
+Payment collection and automatic original unlocking are not included.
+
+Watermarked exports require media already saved in storage and a configured brand
+watermark. Logos must be still PNG, JPEG, or WebP images from that brand. Animated
+image exports are not supported. Video rendering may take several minutes.
+
+For operators, apply the brand watermark database migration and configure the same
+`GENFEEDAI_API_KEY` internal service secret on the API and files services. The
+renderer rejects requests when its secret is absent or incorrect. Both local and
+S3 storage providers are supported.
+
+This optional preview feature does not restrict original access by subscription.
+A SaaS paywall requires protected original storage and access enforcement across
+all media delivery paths; a watermarked preview alone is not access control.

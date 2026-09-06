@@ -342,6 +342,30 @@ export class BrandsService extends BaseService<
     return brands;
   }
 
+  async validateWatermarkLogo(
+    brandId: string,
+    organizationId: string,
+    logoId: string,
+  ): Promise<void> {
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, organizationId, isDeleted: false },
+    });
+    if (!brand) throw new NotFoundException('Brand', brandId);
+    const logo = await this.prisma.asset.findFirst({
+      where: {
+        id: logoId,
+        parentOrgId: organizationId,
+        parentBrandId: brandId,
+        parentType: 'BRAND',
+        isDeleted: false,
+      },
+    });
+    if (!logo || (logo.mimeType && !logo.mimeType.startsWith('image/')))
+      throw new BadRequestException(
+        'The watermark logo must be an image belonging to this brand',
+      );
+  }
+
   async patch(
     id: string,
     updateBrandDto: Partial<UpdateBrandDto>,

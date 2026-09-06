@@ -149,6 +149,14 @@ export class BrandsController extends BaseCRUDController<
         syncOrganizationName?: boolean;
       };
 
+    if (rest.watermarkLogoId) {
+      await this.brandsService.validateWatermarkLogo(
+        id,
+        user.organizationId.toString(),
+        rest.watermarkLogoId,
+      );
+    }
+
     if (rest.agentConfig !== undefined && !syncOrganizationName) {
       throw new BadRequestException(
         'Use the brand agent-config endpoint to update agentConfig',

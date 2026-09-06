@@ -7,6 +7,8 @@ import type {
   IFFprobeStream,
   IFileMetadata,
   IVideoDimensions,
+  IWatermarkExportRequest,
+  IWatermarkExportResult,
   UploadSource,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -58,6 +60,24 @@ export class FilesClientService {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
       'http://localhost:3012';
+  }
+
+  async watermarkExport(
+    payload: IWatermarkExportRequest,
+  ): Promise<IWatermarkExportResult> {
+    const response = await firstValueFrom(
+      this.httpService.post<IWatermarkExportResult>(
+        `${this.filesServiceUrl}/v1/files/watermark-export`,
+        payload,
+        {
+          headers: {
+            'x-api-key': this.configService.get('GENFEEDAI_API_KEY') || '',
+          },
+          timeout: 600000,
+        },
+      ),
+    );
+    return response.data;
   }
 
   async resizeImage(imageData: Buffer, target: IVideoDimensions) {

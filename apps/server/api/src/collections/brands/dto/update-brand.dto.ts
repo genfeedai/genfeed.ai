@@ -9,13 +9,47 @@ import {
   Equals,
   IsArray,
   IsBoolean,
+  IsIn,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  @ApiProperty({ required: false, nullable: true })
+  readonly watermarkText?: string | null;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: 'Brand image asset used as a watermark',
+  })
+  readonly watermarkLogoId?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0.05)
+  @Max(1)
+  @ApiProperty({ required: false, minimum: 0.05, maximum: 1 })
+  readonly watermarkOpacity?: number;
+
+  @IsOptional()
+  @IsIn(['top-left', 'top-right', 'bottom-left', 'bottom-right'])
+  @ApiProperty({
+    required: false,
+    enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+  })
+  readonly watermarkPosition?: string;
+
   @IsBoolean()
   @IsOptional()
   @ApiProperty({

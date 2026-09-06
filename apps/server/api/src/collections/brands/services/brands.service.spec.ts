@@ -339,6 +339,30 @@ describe('BrandsService', () => {
   });
 
   describe('patch', () => {
+    it('rejects watermark logos outside the current brand', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: 'brand-1',
+        organizationId: 'org-1',
+      });
+      assetDelegate.findFirst.mockResolvedValue(null);
+      await expect(
+        service.validateWatermarkLogo('brand-1', 'org-1', 'other-logo'),
+      ).rejects.toThrow(BadRequestException);
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'brand-1', organizationId: 'org-1', isDeleted: false },
+      });
+      expect(assetDelegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'other-logo',
+          parentOrgId: 'org-1',
+          parentBrandId: 'brand-1',
+          parentType: 'BRAND',
+          isDeleted: false,
+        },
+      });
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+
     it('writes only mutable brand fields', async () => {
       const existing = {
         id: 'brand-1',
