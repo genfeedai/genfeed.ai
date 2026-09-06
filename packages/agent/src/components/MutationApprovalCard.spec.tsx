@@ -107,6 +107,16 @@ describe('MutationApprovalCard', () => {
     },
   );
 
+  it('keeps a consumed approval resolved when execution fails', () => {
+    const action = approval('approved');
+    action.data = { ...action.data, executionStatus: 'failed' };
+    render(<MutationApprovalCard action={action} onUiAction={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'could not be completed',
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
   it('honors a live server resolution', () => {
     const { rerender } = render(
       <MutationApprovalCard action={approval()} onUiAction={vi.fn()} />,

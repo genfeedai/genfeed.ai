@@ -251,6 +251,7 @@
     "approved": "Approved",
     "declined": "Declined",
     "error": "Your response could not be saved. Try again.",
-    "unavailable": "This approval is unavailable. Ask for a new preview."
+    "unavailable": "This approval is unavailable. Ask for a new preview.",
+    "failed": "Approved, but the action could not be completed. Ask for a new preview to try again."
   }
 }

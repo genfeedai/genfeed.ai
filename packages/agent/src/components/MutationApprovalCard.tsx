@@ -153,7 +153,13 @@ export function MutationApprovalCard({
         </>
       ) : (
         <p className="mt-3 text-sm text-muted-foreground" role="status">
-          {translate(status === 'approved' ? 'approved' : 'declined')}
+          {translate(
+            status === 'approved' && action.data?.executionStatus === 'failed'
+              ? 'failed'
+              : status === 'approved'
+                ? 'approved'
+                : 'declined',
+          )}
         </p>
       )}
     </div>
