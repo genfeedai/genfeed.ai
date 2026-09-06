@@ -98,6 +98,55 @@ type WorkflowActionCatalogEntry = readonly [
 
 const WORKFLOW_ACTIONS = [
   [
+    'daily-publishing.collect-analytics',
+    'Collect Daily Account Analytics',
+    'Collects recent account post metrics from the provider before winner selection.',
+    'input',
+    'ChartLine',
+  ],
+  [
+    'daily-publishing.resolve',
+    'Resolve Daily Accounts',
+    'Validates brand settings and selected connected accounts.',
+    'input',
+    'Users',
+  ],
+  [
+    'daily-publishing.refresh',
+    'Refresh Daily Sources',
+    'Refreshes scoped trend sources for daily publishing.',
+    'input',
+    'TrendingUp',
+  ],
+  [
+    'daily-publishing.select',
+    'Select Daily Source',
+    'Reserves a unique account date slot and selects a fresh source.',
+    'input',
+    'Calendar',
+  ],
+  [
+    'daily-publishing.generate',
+    'Generate Daily Draft',
+    'Generates an original account post using brand context.',
+    'ai',
+    'Sparkles',
+  ],
+  [
+    'daily-publishing.evaluate',
+    'Evaluate Daily Draft',
+    'Scores a draft and holds weak content for review.',
+    'processing',
+    'Check',
+  ],
+  [
+    'daily-publishing.schedule',
+    'Schedule Daily Draft',
+    'Schedules quality-approved posts only when automatic publishing is enabled.',
+    'output',
+    'Send',
+  ],
+  [
     'ai-enhance',
     'Enhance Media',
     'Enhances media quality with AI.',

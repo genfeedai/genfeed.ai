@@ -6,9 +6,19 @@ describe('AgentStrategyOpportunitiesService', () => {
   const create = vi.fn();
   const findFirst = vi.fn();
   const findMany = vi.fn();
+  const updateMany = vi.fn();
+  const queryRaw = vi.fn().mockResolvedValue([]);
+  const transaction = {
+    $queryRaw: queryRaw,
+    agentStrategyOpportunity: { create, findFirst, findMany, updateMany },
+  };
   const service = new AgentStrategyOpportunitiesService(
     {
-      agentStrategyOpportunity: { create, findFirst, findMany },
+      agentStrategyOpportunity: { create, findFirst, findMany, updateMany },
+      $transaction: vi.fn(
+        async (callback: (client: typeof transaction) => Promise<unknown>) =>
+          callback(transaction),
+      ),
     } as unknown as PrismaService,
     { log: vi.fn() } as unknown as LoggerService,
   );
@@ -75,5 +85,48 @@ describe('AgentStrategyOpportunitiesService', () => {
       },
     });
     expect(create).not.toHaveBeenCalled();
+  });
+  it('persists a selectable queued status for new opportunities', async () => {
+    findFirst.mockResolvedValue(null);
+    create.mockImplementation(async ({ data }) => ({
+      ...data,
+      id: 'new',
+      createdAt: new Date(),
+    }));
+    const result = await service.createIfMissing({
+      strategyId: 'strategy',
+      organizationId: 'org',
+      sourceType: 'evergreen',
+      topic: 'Topic',
+      platformCandidates: ['twitter'],
+      formatCandidates: ['text'],
+      relevanceScore: 80,
+      expectedTrafficScore: 80,
+      estimatedCreditCost: 5,
+      priorityScore: 80,
+    });
+    expect(result.status).toBe('queued');
+    expect(queryRaw).toHaveBeenCalled();
+    expect(queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      findFirst.mock.invocationCallOrder[0],
+    );
+  });
+  it('claims queued execution atomically and rejects a lost race', async () => {
+    findFirst.mockResolvedValue({ data: { status: 'queued', topic: 'Topic' } });
+    updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    expect(await service.claimForGeneration('opportunity', 'org')).toBe(true);
+    expect(await service.claimForGeneration('opportunity', 'org')).toBe(false);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'opportunity',
+          organizationId: 'org',
+          isDeleted: false,
+          data: { equals: 'queued', path: ['status'] },
+        },
+      }),
+    );
   });
 });

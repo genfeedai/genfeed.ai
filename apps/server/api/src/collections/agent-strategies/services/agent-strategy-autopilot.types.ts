@@ -28,15 +28,23 @@ export interface AgentStrategyPerformanceSnapshot {
   }>;
   bestPostingWindows: string[];
   clicks: number;
-  costPerVisit: number;
+  costPerVisit: number | null;
   creditsSpent: number;
   ctr: number;
   generatedCount: number;
   impressions: number;
   publishedCount: number;
+  sampling?: {
+    limit: number;
+    matchedPosts: number;
+    matchedMeasurements: number;
+    postsSampled: number;
+    measurementsSampled: number;
+    truncated: boolean;
+  };
   topHooks: string[];
   topTopics: string[];
-  visits: number;
+  visits: number | null;
 }
 
 export interface ExecuteRunResult {

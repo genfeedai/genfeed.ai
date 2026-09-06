@@ -1,4 +1,5 @@
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
+import { DAILY_PUBLISHING_TEMPLATE } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
@@ -100,6 +101,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
       template,
     ]),
   ),
+  'daily-brand-social-publishing': DAILY_PUBLISHING_TEMPLATE,
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'weekly-brand-ai-content-loop': WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE,
