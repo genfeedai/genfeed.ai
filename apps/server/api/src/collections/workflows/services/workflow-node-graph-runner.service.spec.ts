@@ -106,7 +106,7 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
       const graph: ExecutableWorkflow = {
         ...workflow,
         nodes: [...sources, 'fail-turn'].map((id) =>
-          createExecutableActionNode({ actionId: id, id, label: id }),
+          createExecutableActionNode({ actionId: 'publish', id, label: id }),
         ),
         edges: [
           { id: 'prepare-infer', source: 'prepare', target: 'infer' },
@@ -200,7 +200,7 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
       const graph: ExecutableWorkflow = {
         ...workflow,
         nodes: ['work', 'delay', 'handler'].map((id) =>
-          createExecutableActionNode({ actionId: id, id, label: id }),
+          createExecutableActionNode({ actionId: 'publish', id, label: id }),
         ),
         edges: [
           {
