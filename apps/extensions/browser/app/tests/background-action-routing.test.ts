@@ -22,7 +22,7 @@ vi.mock('~services/agent-tools.service', () => ({
 
 beforeAll(async () => {
   vi.stubGlobal('fetch', mocks.fetch);
-  vi.stubGlobal('chrome', {
+  Object.assign(chrome, {
     sidePanel: { setPanelBehavior: vi.fn().mockResolvedValue(undefined) },
     runtime: {
       onInstalled: { addListener: vi.fn() },

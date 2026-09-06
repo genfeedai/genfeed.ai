@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const root = fileURLToPath(new URL('../../../../../', import.meta.url));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
 const extensionRoot = resolve(root, 'apps/extensions/browser/app/src');
 
 function sourceFiles(directory: string): string[] {
