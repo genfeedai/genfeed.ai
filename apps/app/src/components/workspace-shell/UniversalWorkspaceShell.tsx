@@ -61,6 +61,7 @@ import {
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
 import {
+  dispatchOpenConversationTab,
   OPEN_BROWSER_TAB_EVENT,
   OPEN_CONTEXT_TAB_EVENT,
   OPEN_CONVERSATION_TAB_EVENT,
@@ -1047,6 +1048,7 @@ function UniversalWorkspaceShellContent({
               ? 'surface'
               : 'inspector'
         }
+        onSendMessage={isAgentRoute ? undefined : dispatchOpenConversationTab}
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={

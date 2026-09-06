@@ -33,6 +33,7 @@ export interface ConversationComposerShellContextValue {
   draftScopeKey: string | null;
   isConsequentiallyBlocked?: boolean;
   isComposerVisible?: boolean;
+  onSendMessage?: () => void;
   placement?: 'inspector' | 'overlay' | 'surface';
   portalTarget: HTMLElement | null;
   references?: readonly ConversationComposerContextReference[];
@@ -57,6 +58,7 @@ export function ConversationComposerShellProvider({
   draftScopeKey,
   isConsequentiallyBlocked,
   isComposerVisible,
+  onSendMessage,
   placement = 'surface',
   portalTarget,
   references,
@@ -102,6 +104,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
+      onSendMessage,
       placement,
       portalTarget,
       references,
@@ -119,6 +122,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
+      onSendMessage,
       placement,
       portalTarget,
       references,

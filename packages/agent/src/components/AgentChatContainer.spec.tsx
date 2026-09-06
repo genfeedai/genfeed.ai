@@ -1164,6 +1164,35 @@ describe('AgentChatContainer', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('notifies the shell when a prompt is sent so a collapsed transcript can open', () => {
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    const onSendMessage = vi.fn();
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Library"
+        draftScopeKey="library"
+        portalTarget={null}
+        shellState="canvas"
+        onSendMessage={onSendMessage}
+      >
+        <AgentChatContainer
+          apiService={createApiService() as never}
+          suggestedActions={[
+            {
+              id: 'reprompt',
+              label: 'Reprompt',
+              prompt: 'Make the apple green',
+            },
+          ]}
+        />
+      </ConversationComposerShellProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reprompt' }));
+    expect(onSendMessage).toHaveBeenCalledOnce();
+    expect(sendNonStreaming).toHaveBeenCalled();
+  });
+
   it('submits a shared suggestion chip through chat send in the empty state', async () => {
     const apiService = createApiService();
 
