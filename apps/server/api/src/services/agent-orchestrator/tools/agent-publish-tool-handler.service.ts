@@ -484,17 +484,17 @@ export class AgentPublishToolHandler {
   ): string {
     const candidates = [
       caption,
-      this.readOptionalString(ingredient.label),
-      this.readOptionalString(ingredient.description),
-      this.readOptionalString(ingredient.assetLabel),
-      this.readOptionalString(ingredient.generationPrompt),
+      readOptionalString(ingredient.label),
+      readOptionalString(ingredient.description),
+      readOptionalString(ingredient.assetLabel),
+      readOptionalString(ingredient.generationPrompt),
     ];
     const resolved = candidates.find((candidate) => Boolean(candidate?.trim()));
     if (resolved) {
       return resolved.trim();
     }
 
-    const category = this.readOptionalString(ingredient.category) ?? 'content';
+    const category = readOptionalString(ingredient.category) ?? 'content';
     return `Selected ${category} asset`;
   }
 
@@ -559,12 +559,6 @@ export class AgentPublishToolHandler {
       error: 'sourceActionId does not match a persisted publish card.',
       success: false,
     };
-  }
-
-  private readOptionalString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : undefined;
   }
 
   private normalizePlatforms(value: unknown): string[] {
@@ -682,6 +676,12 @@ export class AgentPublishToolHandler {
         success: false,
       };
     }
+
+    await this.assertPublishingScope(
+      ctx,
+      readOptionalString(ingredient.brandId),
+      'selected content',
+    );
 
     const requestedPlatforms = params.platforms ?? [];
     const credentials = await this.resolveBrandCredentials({

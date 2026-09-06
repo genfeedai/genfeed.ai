@@ -130,6 +130,43 @@ function createHandler() {
 }
 
 describe('AgentPublishToolHandler per-channel review', () => {
+  it('rejects another brand before preparing connected account details', async () => {
+    const {
+      agentScopeContextService,
+      cacheService,
+      credentialsService,
+      handler,
+      ingredientsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-2',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-2',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'other-brand-account', platform: 'LINKEDIN' },
+    ]);
+    agentScopeContextService.assertResourceBrand.mockImplementation(() => {
+      throw new Error(
+        'selected content is outside the validated thread brand scope.',
+      );
+    });
+
+    await expect(
+      handler.preparePost(
+        { contentId: 'ingredient-2' },
+        scopedContext('brand-1'),
+      ),
+    ).rejects.toThrow('outside the validated thread brand scope');
+    expect(agentScopeContextService.assertResourceBrand).toHaveBeenCalledWith(
+      scopedContext('brand-1').validatedScope,
+      'brand-2',
+      'selected content',
+    );
+    expect(credentialsService.find).not.toHaveBeenCalled();
+    expect(cacheService.set).not.toHaveBeenCalled();
+  });
+
   it('attaches structured target proposals to the publish review card', async () => {
     const { credentialsService, handler, ingredientsService } = createHandler();
     ingredientsService.findOne.mockResolvedValue({
