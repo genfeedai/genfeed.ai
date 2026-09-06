@@ -2,11 +2,9 @@
 
 import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
-import { Button } from '@ui/primitives/button';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
