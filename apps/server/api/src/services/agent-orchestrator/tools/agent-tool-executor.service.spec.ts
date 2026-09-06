@@ -1102,6 +1102,7 @@ describe('AgentToolExecutorService', () => {
       brandContentHandler,
       prepareHandler,
       spawnHandler,
+      {} as never,
       agentScopeContextService as never,
       undefined,
       systemWorkflowRunner as never,

@@ -1,5 +1,6 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface';
 import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools';
+import { OVERLAP_KNOWLEDGE_TOOLS } from './overlap-knowledge.tools';
 import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools';
 import { OVERLAP_QUERY_TOOLS } from './overlap-query.tools';
 import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
@@ -449,6 +450,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     requiredRole: 'user',
   },
   ...OVERLAP_QUERY_TOOLS,
+  ...OVERLAP_KNOWLEDGE_TOOLS,
   ...OVERLAP_GENERATION_TOOLS,
   ...OVERLAP_PUBLISHING_TOOLS,
   ...WORKFLOW_CONTROL_TOOLS,
