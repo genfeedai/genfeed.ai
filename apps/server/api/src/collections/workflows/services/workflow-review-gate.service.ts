@@ -832,7 +832,8 @@ export class WorkflowReviewGateService {
       inputMedia: pendingApproval.inputMedia,
       ...(pendingApproval.rawMedia &&
       typeof pendingApproval.rawMedia === 'object' &&
-      'audioUrl' in pendingApproval.rawMedia
+      typeof (pendingApproval.rawMedia as Record<string, unknown>).audioUrl ===
+        'string'
         ? { inputType: 'audio' }
         : {}),
       outputCaption:

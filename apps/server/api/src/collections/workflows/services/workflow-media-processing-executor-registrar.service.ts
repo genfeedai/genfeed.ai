@@ -332,6 +332,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         this.helper.readConfigString(node.config, 'brandId') ?? video.brandId;
       if (brandId !== video.brandId)
         throw new Error('Soundtrack brand must match the source video');
+      if (sound.brandId !== video.brandId)
+        throw new Error('Soundtrack brand must match the source video');
       const mixMode = node.config.mixMode ?? 'replace';
       if (
         mixMode !== 'replace' &&

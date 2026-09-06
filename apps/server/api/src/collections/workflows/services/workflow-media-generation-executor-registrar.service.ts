@@ -389,6 +389,11 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         if (configuredBrandId && configuredBrandId !== media.brandId) {
           throw new Error('Lip-sync brand must match the source asset brand');
         }
+        if (audio.brandId !== media.brandId) {
+          throw new Error(
+            'Lip-sync source media and audio must belong to the same brand',
+          );
+        }
         const [mediaUrl, audioUrl] = await Promise.all([
           this.filesClientService.getPresignedDownloadUrl(
             media.storageKey,
@@ -517,14 +522,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           organizationId: context.organizationId,
           userId: context.userId,
         });
-        const byok = await this.byokService?.resolveApiKey(
-          context.organizationId,
-          ByokProvider.ELEVENLABS,
-        );
         let result: Awaited<
           ReturnType<ElevenLabsService['generateAndUploadAudio']>
         >;
         try {
+          const byok = await this.byokService?.resolveApiKey(
+            context.organizationId,
+            ByokProvider.ELEVENLABS,
+          );
           result = await elevenLabsService.generateAndUploadAudio(
             voiceId,
             text,

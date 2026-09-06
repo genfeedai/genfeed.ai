@@ -84,10 +84,10 @@ export class LocalizeSpeechExecutor extends BaseExecutor {
     if (!validation.valid) throw new Error(validation.errors.join('; '));
     const videoUrl = mediaArtifactUrl(input.inputs.get('video'), 'video');
     if (!videoUrl) throw new Error('Missing required input: video');
-    const script = input.inputs.get('script') ?? config.script;
+    const script = config.script;
     if (script !== undefined && typeof script !== 'string')
       throw new Error('Script override must be text');
-    const segments = input.inputs.get('segments') ?? config.segments;
+    const segments = config.segments;
     if (
       segments !== undefined &&
       (!Array.isArray(segments) || !segments.every(isSpeechSegmentOverride))

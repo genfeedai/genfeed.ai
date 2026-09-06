@@ -215,7 +215,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Execute an existing workflow immediately. For an installed workflow, select nodeIds to rerun edited steps while reusing locked source outputs. Pass required workflow variables for full or partial execution. Locked upstream outputs are reused only when explicitly locked and respectLocks is true.',
+      'Execute an existing workflow immediately. For an installed workflow, select nodeIds to rerun edited steps while reusing locked source outputs. Pass required workflow variables for full or partial execution. Locked outputs for unselected dependencies are always reused; respectLocks only controls whether selected locked nodes are reused (true, default) or rerun (false).',
     name: 'execute_workflow',
     parameters: {
       properties: {

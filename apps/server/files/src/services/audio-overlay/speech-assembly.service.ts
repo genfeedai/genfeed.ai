@@ -13,6 +13,9 @@ export type SpeechAssemblyRequest = {
   outputKey?: string;
 };
 
+const MAX_SEGMENT_BYTES = 25 * 1024 * 1024;
+const TOTAL_SEGMENT_BYTES_BUDGET = 200 * 1024 * 1024;
+
 @Injectable()
 export class SpeechAssemblyService {
   constructor(
@@ -39,6 +42,8 @@ export class SpeechAssemblyService {
     let previousEnd = 0;
     for (const segment of body.segments) {
       if (
+        !segment ||
+        typeof segment !== 'object' ||
         !segment.audioUrl ||
         !Number.isFinite(segment.startSeconds) ||
         !Number.isFinite(segment.endSeconds) ||
@@ -58,16 +63,25 @@ export class SpeechAssemblyService {
     try {
       const args: string[] = [];
       const filters: string[] = [];
+      let remainingBudgetBytes = TOTAL_SEGMENT_BYTES_BUDGET;
       for (const [index, segment] of body.segments.entries()) {
         const file = path.join(dir, `${index}.mp3`);
-        await fs.writeFile(
-          file,
-          await downloadPublicMedia(
-            segment.audioUrl,
-            25 * 1024 * 1024,
-            this.configService,
-          ),
+        const segmentLimitBytes = Math.min(
+          MAX_SEGMENT_BYTES,
+          remainingBudgetBytes,
         );
+        if (segmentLimitBytes <= 0) {
+          throw new BadRequestException(
+            'Speech segments exceed the total assembly size budget',
+          );
+        }
+        const downloaded = await downloadPublicMedia(
+          segment.audioUrl,
+          segmentLimitBytes,
+          this.configService,
+        );
+        remainingBudgetBytes -= downloaded.byteLength;
+        await fs.writeFile(file, downloaded);
         const metadata = await this.ffmpeg.probe(file);
         const duration = Number(metadata.format.duration);
         if (

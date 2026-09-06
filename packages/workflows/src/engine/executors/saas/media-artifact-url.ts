@@ -14,7 +14,8 @@ export function mediaArtifactUrl(
     'data',
   ]) {
     const candidate = artifact[field];
-    if (typeof candidate === 'string' && candidate.trim()) return candidate;
+    if (typeof candidate === 'string' && candidate.trim())
+      return candidate.trim();
     if (candidate && typeof candidate === 'object' && candidate !== value) {
       const nested = mediaArtifactUrl(candidate, kind);
       if (nested) return nested;
