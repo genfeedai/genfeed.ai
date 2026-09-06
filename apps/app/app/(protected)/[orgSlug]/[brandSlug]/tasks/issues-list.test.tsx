@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { openIssueOverlay } from './issue-overlay-controls';
 import IssuesList from './issues-list';
 
 const mocks = vi.hoisted(() => ({
@@ -107,4 +108,30 @@ describe('IssuesList view controls', () => {
     expect(listView).toHaveAttribute('aria-checked', 'false');
     expect(kanbanView).toHaveAttribute('aria-checked', 'true');
   });
+});
+
+it('keeps failed tasks visible in the shared table and opens their details', async () => {
+  mocks.list.mockResolvedValue([
+    {
+      id: 'failed-task',
+      identifier: 'QA-9',
+      priority: 'high',
+      status: 'failed',
+      title: 'Recover the failed publish',
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
+  mocks.getService.mockResolvedValue({ list: mocks.list });
+  render(<IssuesList />);
+  const title = await screen.findByRole('button', {
+    name: 'Recover the failed publish',
+  });
+  expect(
+    screen.getByRole('table', { name: 'Tasks grouped by status' }),
+  ).toBeVisible();
+  expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
+  expect(screen.getByRole('columnheader', { name: 'Updated' })).toBeVisible();
+  expect(screen.getAllByText('Failed')).toHaveLength(1);
+  fireEvent.click(title);
+  expect(openIssueOverlay).toHaveBeenCalled();
 });

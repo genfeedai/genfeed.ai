@@ -16,7 +16,6 @@ import {
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
-import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
@@ -38,9 +37,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { Textarea } from '@ui/primitives/textarea';
 import { CirclePlus, Columns2, List } from 'lucide-react';
-import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import IssueOverlay from './issue-overlay';
 import { openIssueOverlay } from './issue-overlay-controls';
@@ -53,6 +60,7 @@ const STATUS_ORDER: TaskStatus[] = [
   'in_progress',
   'in_review',
   'blocked',
+  'failed',
   'done',
   'cancelled',
 ];
@@ -111,23 +119,31 @@ function IssueRow({
   onSelect: (issue: Task) => void;
 }) {
   return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      className="flex w-full items-center gap-4 border-b border-border px-4 py-3 text-left transition-colors hover:bg-muted/40"
-      onClick={() => onSelect(issue)}
-    >
-      <span className="w-20 shrink-0 text-xs font-mono text-gray-800">
+    <TableRow className="cursor-pointer" onClick={() => onSelect(issue)}>
+      <TableCell className="font-mono text-muted-foreground">
         {issue.identifier}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-        {issue.title}
-      </span>
-      <TaskPriorityIndicator priority={issue.priority} />
-      <TaskStatusBadge status={issue.status} />
-      <span className="w-28 shrink-0 text-right text-xs text-gray-800">
+      </TableCell>
+      <TableCell>
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          textTransform="none"
+          className="block w-full truncate text-left text-sm text-foreground"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(issue);
+          }}
+        >
+          {issue.title}
+        </Button>
+      </TableCell>
+      <TableCell>
+        <TaskPriorityIndicator priority={issue.priority} />
+      </TableCell>
+      <TableCell className="text-right text-muted-foreground">
         {getRelativeTime(issue.updatedAt)}
-      </span>
-    </Button>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -469,36 +485,50 @@ export default function IssuesList() {
           }
         />
       ) : viewMode === ViewType.LIST ? (
-        <Card>
-          <div className="divide-y divide-border/40">
-            {STATUS_ORDER.reduce<JSX.Element[]>((sections, status) => {
-              if (groupedByStatus[status].length === 0) {
-                return sections;
-              }
-              const statusTasks = groupedByStatus[status];
-              sections.push(
-                <div key={status}>
-                  <div className="flex items-center gap-2 bg-card/60 px-4 py-2">
+        <Table
+          className="min-w-[640px] table-fixed"
+          aria-label="Tasks grouped by status"
+        >
+          <colgroup>
+            <col className="w-28" />
+            <col />
+            <col className="w-24" />
+            <col className="w-32" />
+          </colgroup>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">ID</TableHead>
+              <TableHead scope="col">Task</TableHead>
+              <TableHead scope="col">Priority</TableHead>
+              <TableHead scope="col" className="text-right">
+                Updated
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          {STATUS_ORDER.filter(
+            (status) => groupedByStatus[status].length > 0,
+          ).map((status) => (
+            <TableBody key={status}>
+              <TableRow className="bg-muted/30">
+                <TableHead scope="rowgroup" colSpan={4} className="normal-case">
+                  <div className="flex items-center gap-2">
                     <TaskStatusBadge status={status} />
-                    <span className="text-xs text-gray-800">
-                      {statusTasks.length}
+                    <span className="text-xs text-muted-foreground">
+                      {groupedByStatus[status].length}
                     </span>
                   </div>
-                  <div>
-                    {statusTasks.map((issue) => (
-                      <IssueRow
-                        issue={issue}
-                        key={issue.id}
-                        onSelect={handleSelectIssue}
-                      />
-                    ))}
-                  </div>
-                </div>,
-              );
-              return sections;
-            }, [])}
-          </div>
-        </Card>
+                </TableHead>
+              </TableRow>
+              {groupedByStatus[status].map((issue) => (
+                <IssueRow
+                  issue={issue}
+                  key={issue.id}
+                  onSelect={handleSelectIssue}
+                />
+              ))}
+            </TableBody>
+          ))}
+        </Table>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {STATUS_ORDER.map((status) => (
