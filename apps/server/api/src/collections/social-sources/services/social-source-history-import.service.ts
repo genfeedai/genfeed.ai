@@ -324,10 +324,10 @@ export class SocialSourceHistoryImportService {
       await this.prisma.socialSource.updateMany({
         data: {
           ...profile,
-          metadata: {
+          metadata: toMetadataJson({
             ...metadata,
             historyImport: params.historyImport,
-          } as Prisma.InputJsonObject,
+          }),
         },
         where: scopedWhere(params.organizationId, {
           brandId: params.brandId,
@@ -355,9 +355,7 @@ export class SocialSourceHistoryImportService {
         ...profile,
         bio: null,
         followersCount: null,
-        metadata: {
-          historyImport: params.historyImport,
-        } as Prisma.InputJsonObject,
+        metadata: toMetadataJson({ historyImport: params.historyImport }),
         organizationId: params.organizationId,
         userId: params.userId,
       },
@@ -377,10 +375,10 @@ export class SocialSourceHistoryImportService {
     };
     await this.prisma.socialSource.updateMany({
       data: {
-        metadata: {
+        metadata: toMetadataJson({
           ...metadata,
           historyImport: { ...current, ...patch },
-        } as Prisma.InputJsonObject,
+        }),
       },
       where: scopedWhere(source.organizationId, {
         brandId: source.brandId,
@@ -431,4 +429,14 @@ function readMetadata(value: unknown): SocialSourceMetadata {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as SocialSourceMetadata)
     : {};
+}
+
+/**
+ * Round-trip through JSON so the typed metadata becomes a plain Prisma JSON
+ * object (drops `undefined` fields, which JSON columns cannot hold).
+ */
+function toMetadataJson(
+  metadata: SocialSourceMetadata,
+): Prisma.InputJsonObject {
+  return JSON.parse(JSON.stringify(metadata)) as Prisma.InputJsonObject;
 }
