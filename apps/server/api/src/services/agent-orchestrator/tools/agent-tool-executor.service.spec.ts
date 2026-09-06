@@ -5545,6 +5545,7 @@ describe('AgentToolExecutorService', () => {
         { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
       ),
       new AgentSpawnToolHandler(loggerService, undefined),
+      {} as never, // knowledgeHandler
       undefined as never, // agentScopeContextService
       undefined,
       systemWorkflowRunner as never,
