@@ -17,6 +17,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
@@ -35,14 +36,14 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   })
   readonly watermarkLogoId?: string | null;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsNumber()
   @Min(0.05)
   @Max(1)
   @ApiProperty({ required: false, minimum: 0.05, maximum: 1 })
   readonly watermarkOpacity?: number;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsIn(['top-left', 'top-right', 'bottom-left', 'bottom-right'])
   @ApiProperty({
     required: false,

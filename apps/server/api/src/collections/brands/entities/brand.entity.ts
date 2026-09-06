@@ -24,6 +24,10 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly description: string;
   declare readonly text: BrandDocument['text']; // system prompt for the brand
   declare readonly fontFamily: BrandDocument['fontFamily'];
+  declare readonly watermarkText: BrandDocument['watermarkText'];
+  declare readonly watermarkLogoId: BrandDocument['watermarkLogoId'];
+  declare readonly watermarkOpacity: BrandDocument['watermarkOpacity'];
+  declare readonly watermarkPosition: BrandDocument['watermarkPosition'];
 
   declare readonly primaryColor: BrandDocument['primaryColor'];
   declare readonly secondaryColor: BrandDocument['secondaryColor'];
