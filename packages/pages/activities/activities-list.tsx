@@ -324,6 +324,7 @@ export default function ActivitiesList({
       isMarkingRead,
       refresh,
       selectedActivityIds.length,
+      translate,
     ],
   );
 

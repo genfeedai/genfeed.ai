@@ -69,7 +69,7 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
-  it('lets Campaigns own their chrome instead of the Posts New content menu', () => {
+  it('lets Campaigns own their chrome instead of the Posts New post menu', () => {
     usePathnameMock.mockReturnValue('/acme/moonrise/publishing/campaigns');
 
     render(
@@ -80,7 +80,7 @@ describe('PublishingLayoutContent', () => {
 
     expect(screen.getByText('campaign desk')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /new content/i }),
+      screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -95,12 +95,12 @@ describe('PublishingLayoutContent', () => {
 
     expect(screen.getByText('calendar grid')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /new content/i }),
+      screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('container')).not.toBeInTheDocument();
   });
 
-  it('renders list actions with a status dropdown', () => {
+  it('renders the New post menu and leaves filters to the posts list', () => {
     render(
       <PublishingLayoutContent>
         <div>child content</div>
@@ -109,50 +109,14 @@ describe('PublishingLayoutContent', () => {
 
     expect(screen.getByText('child content')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /new content/i }),
+      screen.getByRole('button', { name: /new post/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /new content/i }),
+      screen.queryByRole('link', { name: /new post/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'All statuses' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('navigation', { name: 'Publishing status' }),
+      screen.queryByRole('button', { name: 'All statuses' }),
     ).not.toBeInTheDocument();
-  });
-
-  it('shows legacy published deep links in the status dropdown', () => {
-    useSearchParamsMock.mockReturnValue(
-      new URLSearchParams('status=public&platform=youtube'),
-    );
-    render(
-      <PublishingLayoutContent>
-        <div>child content</div>
-      </PublishingLayoutContent>,
-    );
-    expect(
-      screen.getByRole('button', { name: 'Published' }),
-    ).toBeInTheDocument();
-  });
-
-  it('combines statuses while preserving other filters and resetting pagination', async () => {
-    const replace = vi.fn();
-    useRouterMock.mockReturnValue({ refresh: vi.fn(), replace });
-    useSearchParamsMock.mockReturnValue(
-      new URLSearchParams('platform=youtube&page=3&executionState=scheduled'),
-    );
-    const user = userEvent.setup();
-    render(
-      <PublishingLayoutContent>
-        <div>child content</div>
-      </PublishingLayoutContent>,
-    );
-    await user.click(screen.getByRole('button', { name: 'Scheduled' }));
-    await user.click(screen.getByText('Failed', { exact: true }));
-    expect(replace).toHaveBeenCalledWith(
-      '/publishing/posts?platform=youtube&executionState=scheduled&executionState=failed',
-    );
   });
 
   it('seeds the agent composer without leaving Publishing', async () => {
@@ -163,10 +127,10 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
 
-    // The New content menu is a pointer-driven dropdown, so fireEvent.click on
+    // The New post menu is a pointer-driven dropdown, so fireEvent.click on
     // the trigger never opens it — drive it through userEvent.
-    await user.click(screen.getByRole('button', { name: /new content/i }));
-    await user.click(screen.getByRole('button', { name: /post with agent/i }));
+    await user.click(screen.getByRole('button', { name: /new post/i }));
+    await user.click(screen.getByRole('button', { name: /social post/i }));
 
     expect(openAgentComposerMock).toHaveBeenCalledTimes(1);
     expect(openAgentComposerMock).toHaveBeenCalledWith(
@@ -185,8 +149,8 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
 
-    await user.click(screen.getByRole('button', { name: /new content/i }));
-    await user.click(screen.getByRole('button', { name: /post with agent/i }));
+    await user.click(screen.getByRole('button', { name: /new post/i }));
+    await user.click(screen.getByRole('button', { name: /social post/i }));
 
     const prompt = openAgentComposerMock.mock.calls[0][0] as string;
     expect(prompt).toContain(
@@ -203,9 +167,7 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
 
-    await user.click(
-      await screen.findByRole('button', { name: /new content/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /new post/i }));
     await user.click(
       await screen.findByRole('button', { name: /x long post/i }),
     );
@@ -219,9 +181,7 @@ describe('PublishingLayoutContent', () => {
       expect(document.body).not.toHaveAttribute('data-scroll-locked');
     });
 
-    await user.click(
-      await screen.findByRole('button', { name: /new content/i }),
-    );
+    await user.click(await screen.findByRole('button', { name: /new post/i }));
     await user.click(await screen.findByRole('button', { name: /x thread/i }));
     expect(openModalMock).toHaveBeenCalledWith('modal-thread-create');
   });
@@ -240,7 +200,7 @@ describe('PublishingLayoutContent', () => {
 
     expect(screen.getByText('detail content')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /new content/i }),
+      screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
   });
 });
