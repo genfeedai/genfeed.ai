@@ -102,3 +102,28 @@ export interface KnowledgeSourceCaptureProvenance {
   url?: string;
   [key: string]: unknown;
 }
+
+/** `POST /knowledge-sources` body: metadata plus an optional first capture. */
+export interface KnowledgeSourceCaptureRequest {
+  scope: KnowledgeMemoryScope;
+  title: string;
+  kind: KnowledgeSourceKind;
+  purpose: KnowledgeSourcePurpose;
+  text?: string;
+  referenceUrl?: string;
+  provenance?: Record<string, unknown>;
+}
+
+/** `PATCH /knowledge-sources/:id` body. */
+export interface KnowledgeSourceUpdateRequest {
+  title?: string;
+  purpose?: KnowledgeSourcePurpose;
+  isVisible?: boolean;
+}
+
+/** Capture response: the source plus the ingestion handle when content was sent. */
+export interface KnowledgeSourceCaptureResult {
+  source: KnowledgeSourceRecord;
+  jobId?: string;
+  versionId?: string;
+}

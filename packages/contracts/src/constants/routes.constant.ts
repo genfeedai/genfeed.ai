@@ -162,6 +162,11 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
+    /**
+     * Brand Knowledge: saved sources and spaces that ground generation. A
+     * sibling destination, not an asset type or shelf.
+     */
+    KNOWLEDGE: '/library/knowledge',
     MUSIC: '/library/music',
     /** Assets touched most recently, newest first. */
     RECENT: '/library/recent',

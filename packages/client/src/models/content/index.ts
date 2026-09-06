@@ -5,6 +5,7 @@ export * from './dashboard-layout.model';
 export * from './engagement-rule.model';
 export * from './ingredient.model';
 export * from './knowledge-base.model';
+export * from './knowledge-source.model';
 export * from './model.model';
 export * from './mood-board.model';
 export * from './newsletter.model';

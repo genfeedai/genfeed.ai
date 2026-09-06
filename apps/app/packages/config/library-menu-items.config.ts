@@ -6,6 +6,7 @@ import {
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Archive,
+  BookOpen,
   CircleCheck,
   ClipboardCheck,
   Clock,
@@ -108,10 +109,20 @@ export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] = [
 
 /**
  * Destinations that are neither a place over the asset table nor a shelf.
- * Trash sits here because it is the end of the lifecycle, not a state you
- * generate into.
+ * Knowledge holds the sources generations cite (not generated assets). Trash
+ * sits here because it is the end of the lifecycle, not a state you generate
+ * into.
  */
 export const LIBRARY_TAIL_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: 'Library',
+    href: APP_ROUTES.LIBRARY.KNOWLEDGE,
+    isExactMatch: true,
+    label: 'Knowledge',
+    matchPaths: [APP_ROUTES.LIBRARY.KNOWLEDGE],
+    outline: BookOpen,
+    solid: BookOpen,
+  },
   {
     group: 'Library',
     href: APP_ROUTES.LIBRARY.TRASH,
