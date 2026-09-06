@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import {
   Accordion,
@@ -10,6 +11,7 @@ import {
 } from '@ui/primitives/accordion';
 import { Button } from '@ui/primitives/button';
 import {
+  ChevronDown,
   Eye,
   File,
   Globe,
@@ -20,11 +22,19 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { MutableRefObject, ReactNode } from 'react';
-
+import {
+  type MutableRefObject,
+  type ReactNode,
+  useEffect,
+  useState,
+} from 'react';
 import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 import type { ResearchWorkspaceSurfaceAdapterRegistration } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
+import {
+  OPEN_CONTEXT_TAB_EVENT,
+  OPEN_CONVERSATION_TAB_EVENT,
+} from '@/lib/workspace/agent-composer-events';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import type { WorkspaceInspectorAssetKind } from '@/lib/workspace-shell/workspace-inspector-panes.util';
 import type { WorkspaceShellPendingTransition } from '@/lib/workspace-shell/workspace-shell-transition.util';
@@ -546,6 +556,9 @@ function WorkspaceInspectorBrowserAccordionItem() {
 }
 
 function WorkspaceInspectorConversationPane({
+  isCollapsible,
+  isExpanded,
+  onToggleExpanded,
   conversationSlot,
   fullConversationHref,
   isAgentRoute,
@@ -553,6 +566,9 @@ function WorkspaceInspectorConversationPane({
   onSetComposerPortalTarget,
   pendingTransitionRef,
 }: {
+  readonly isCollapsible: boolean;
+  readonly isExpanded: boolean;
+  readonly onToggleExpanded: () => void;
   readonly conversationSlot?: ReactNode;
   readonly fullConversationHref: string;
   readonly isAgentRoute: boolean;
@@ -568,13 +584,32 @@ function WorkspaceInspectorConversationPane({
 
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col border-t border-border"
+      className={cn(
+        'flex min-h-0 flex-col border-t border-border',
+        isExpanded ? 'flex-1' : 'shrink-0',
+      )}
       data-testid="workspace-inspector-conversation-section"
     >
       <div className="flex h-9 shrink-0 items-center justify-between gap-1 px-3">
-        <span className="gen-label-sm min-w-0 truncate text-muted-foreground">
-          {translate('conversation')}
-        </span>
+        {isCollapsible ? (
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground"
+            aria-expanded={isExpanded}
+            onClick={onToggleExpanded}
+          >
+            <ChevronDown
+              aria-hidden="true"
+              className={cn('size-3.5', isExpanded && 'rotate-180')}
+            />
+            {translate('conversation')}
+          </Button>
+        ) : (
+          <span className="gen-label-sm min-w-0 truncate text-muted-foreground">
+            {translate('conversation')}
+          </span>
+        )}
         <WorkspaceInspectorExpandControl
           conversationSlot={conversationSlot}
           fullConversationHref={fullConversationHref}
@@ -582,16 +617,21 @@ function WorkspaceInspectorConversationPane({
           pendingTransitionRef={pendingTransitionRef}
         />
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div
+        className={cn(
+          'min-h-0 flex-1 flex-col overflow-hidden',
+          isExpanded ? 'flex' : 'hidden',
+        )}
+      >
         {conversationSlot}
-        {isComposerOwner ? (
-          <div
-            className="shrink-0 p-2"
-            data-testid="workspace-inspector-composer-slot"
-            ref={onSetComposerPortalTarget}
-          />
-        ) : null}
       </div>
+      {isComposerOwner ? (
+        <div
+          className="shrink-0 p-2"
+          data-testid="workspace-inspector-composer-slot"
+          ref={onSetComposerPortalTarget}
+        />
+      ) : null}
     </div>
   );
 }
@@ -604,6 +644,26 @@ function WorkspaceInspectorContent({
   conversationSlot = null,
   route,
 }: WorkspaceInspectorContentProps) {
+  const isLibrarySurface =
+    adapters.productSurfaceAdapter?.surfaceKey === 'library' ||
+    adapters.surfacePresentationAdapter?.surfaceKey === 'library';
+  const [isLibraryConversationExpanded, setIsLibraryConversationExpanded] =
+    useState(false);
+  const isConversationExpanded =
+    !isLibrarySurface || isLibraryConversationExpanded;
+
+  useEffect(() => {
+    if (!isLibrarySurface) return;
+    const openConversation = () => setIsLibraryConversationExpanded(true);
+    const openContext = () => setIsLibraryConversationExpanded(false);
+    window.addEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversation);
+    window.addEventListener(OPEN_CONTEXT_TAB_EVENT, openContext);
+    return () => {
+      window.removeEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversation);
+      window.removeEventListener(OPEN_CONTEXT_TAB_EVENT, openContext);
+    };
+  }, [isLibrarySurface]);
+
   const isAgentOwned = isAgentOwnedInspector(
     agentPanelSlot !== null,
     chrome.hasAgentInspectorPanel,
@@ -630,7 +690,12 @@ function WorkspaceInspectorContent({
       className="flex h-full min-h-0 flex-col bg-background"
       data-testid="workspace-inspector-panes"
     >
-      <div className="max-h-[50%] shrink-0 overflow-y-auto">
+      <div
+        className={cn(
+          'min-h-0 overflow-y-auto',
+          isConversationExpanded ? 'max-h-[50%] shrink-0' : 'flex-1',
+        )}
+      >
         <Accordion
           type="multiple"
           value={[...chrome.expandedKinds]}
@@ -663,6 +728,11 @@ function WorkspaceInspectorContent({
         </Accordion>
       </div>
       <WorkspaceInspectorConversationPane
+        isCollapsible={isLibrarySurface}
+        isExpanded={isConversationExpanded}
+        onToggleExpanded={() =>
+          setIsLibraryConversationExpanded((expanded) => !expanded)
+        }
         conversationSlot={conversationSlot}
         fullConversationHref={route.fullConversationHref}
         isAgentRoute={route.isAgentRoute}

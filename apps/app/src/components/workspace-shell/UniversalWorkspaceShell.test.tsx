@@ -616,6 +616,39 @@ describe('UniversalWorkspaceShell', () => {
     libraryPickerState.status = 'empty';
   });
 
+  it('keeps library history collapsed while its composer and asset context stay available', async () => {
+    navigation.pathname = '/acme/moonrise/library/assets';
+    function LibrarySurface() {
+      useRegisterWorkspaceSurfaceAdapter({
+        contextLabel: 'Library',
+        references: [],
+        renderInspector: () => <p>Selected asset preview</p>,
+        scope: { organizationId: 'org-acme' },
+        surfaceKey: 'library',
+      });
+      return <div>Library grid</div>;
+    }
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <LibrarySurface />
+      </UniversalWorkspaceShell>,
+    );
+    const conversation = screen.getByTestId('inspector-conversation');
+    await waitFor(() => expect(conversation).not.toBeVisible());
+    expect(
+      screen.getByTestId('workspace-inspector-composer-slot'),
+    ).toBeVisible();
+    expect(screen.getByText('Selected asset preview')).toBeVisible();
+    const toggle = screen.getAllByRole('button', { name: 'Conversation' })[0];
+    fireEvent.click(toggle);
+    expect(conversation).toBeVisible();
+    fireEvent(window, new Event('workspace:open-context-tab'));
+    expect(conversation).not.toBeVisible();
+    fireEvent(window, new Event('workspace:open-conversation-tab'));
+    expect(conversation).toBeVisible();
+    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
+  });
+
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
     navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams();

@@ -2,13 +2,16 @@
 
 import {
   ComponentSize,
+  IngredientCategory,
   LIBRARY_SHELF_LABELS,
   LibraryShelf,
 } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import Badge from '@ui/display/badge/Badge';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -124,14 +127,27 @@ export default function IngredientInspectorRail({
       )}
     >
       {previewUrl ? (
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-foreground/4">
-          <Image
-            alt={ingredient.metadataLabel || translate('untitled')}
-            className="object-cover outline-media"
-            fill
-            sizes="(min-width: 1024px) 288px, 90vw"
-            src={previewUrl}
-          />
+        <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/4">
+          {ingredient.category === IngredientCategory.VIDEO &&
+          ingredient.ingredientUrl ? (
+            <VideoPlayer
+              key={ingredient.id}
+              src={ingredient.ingredientUrl}
+              thumbnail={ingredient.thumbnailUrl}
+            />
+          ) : (
+            <Image
+              alt={ingredient.metadataLabel || translate('untitled')}
+              className="object-contain outline-media"
+              fill
+              sizes="(min-width: 1024px) 480px, 90vw"
+              src={previewUrl}
+              unoptimized={
+                ingredient.category === IngredientCategory.GIF ||
+                !canOptimizeImageSource(previewUrl)
+              }
+            />
+          )}
         </div>
       ) : null}
 
