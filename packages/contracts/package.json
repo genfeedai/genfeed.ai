@@ -15,7 +15,7 @@
     "react-dom": "19.2.8",
     "react-hook-form": "7.87.0",
     "typescript": "6.0.3",
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   },
   "exports": {
     ".": {
