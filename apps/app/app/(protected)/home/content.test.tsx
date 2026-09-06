@@ -415,7 +415,7 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     for (const name of [
-      'catalog:home.approvals.open',
+      'catalog:home.approvals.viewAll',
       'catalog:home.publishing.open',
       'catalog:home.schedule.open',
       'catalog:home.credentials.manage',

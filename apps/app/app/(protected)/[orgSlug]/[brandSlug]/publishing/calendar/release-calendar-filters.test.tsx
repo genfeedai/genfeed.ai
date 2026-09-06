@@ -3,6 +3,14 @@ import { CredentialPlatform, ReleaseStatus } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
