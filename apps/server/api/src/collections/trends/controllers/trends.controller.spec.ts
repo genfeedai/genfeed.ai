@@ -136,7 +136,7 @@ describe('TrendsController', () => {
       expect(result.data).toEqual(mockResult.trends);
     });
 
-    it('should refresh trends when refresh parameter is true', async () => {
+    it('rejects refresh on trend reads without starting ingestion', async () => {
       const mockResult = {
         connectedPlatforms: ['twitter'],
         lockedPlatforms: [],
@@ -148,18 +148,10 @@ describe('TrendsController', () => {
         mockResult,
       );
 
-      const result = await controller.getTrends(
-        mockReq,
-        mockUser,
-        'twitter',
-        'true',
-      );
-
-      expect(trendsService.refreshTrends).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.brandId,
-      );
-      expect(result).toBeDefined();
+      await expect(
+        controller.getTrends(mockReq, mockUser, 'twitter', 'true'),
+      ).rejects.toThrow('Use POST /trends/refresh');
+      expect(trendsService.refreshTrends).not.toHaveBeenCalled();
     });
   });
 
@@ -194,7 +186,7 @@ describe('TrendsController', () => {
       });
     });
 
-    it('should refresh discovery payload when refresh parameter is true', async () => {
+    it('rejects refresh on discovery reads without starting ingestion', async () => {
       const mockResult = {
         connectedPlatforms: ['twitter'],
         lockedPlatforms: [],
@@ -204,12 +196,10 @@ describe('TrendsController', () => {
       mockTrendsService.refreshTrends.mockResolvedValue([mockTrend]);
       mockTrendsService.getTrendsDiscovery.mockResolvedValue(mockResult);
 
-      await discoveryController.getTrendsDiscovery(mockUser, undefined, 'true');
-
-      expect(trendsService.refreshTrends).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.brandId,
-      );
+      await expect(
+        discoveryController.getTrendsDiscovery(mockUser, undefined, 'true'),
+      ).rejects.toThrow('Use POST /trends/refresh');
+      expect(trendsService.refreshTrends).not.toHaveBeenCalled();
     });
   });
 
@@ -266,27 +256,17 @@ describe('TrendsController', () => {
       });
     });
 
-    it('should pass refresh through to content generation', async () => {
-      mockTrendsService.getTrendContent.mockResolvedValue({
-        connectedPlatforms: [],
-        items: [],
-        lockedPlatforms: [],
-      });
-
-      await discoveryController.getTrendContent(
-        mockUser,
-        undefined,
-        undefined,
-        'true',
-      );
-
-      expect(trendsService.getTrendContent).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.brandId,
-        expect.objectContaining({
-          refresh: true,
-        }),
-      );
+    it('rejects refresh on content reads without starting preview fetches', async () => {
+      await expect(
+        discoveryController.getTrendContent(
+          mockUser,
+          undefined,
+          undefined,
+          'true',
+        ),
+      ).rejects.toThrow('Use POST /trends/refresh');
+      expect(trendsService.getTrendContent).not.toHaveBeenCalled();
+      expect(trendsService.refreshTrends).not.toHaveBeenCalled();
     });
   });
 

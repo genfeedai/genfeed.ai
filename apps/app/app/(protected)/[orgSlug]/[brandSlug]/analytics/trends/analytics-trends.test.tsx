@@ -6,6 +6,11 @@ import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsTrends from './analytics-trends';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   cacheGet: vi.fn(),
   cacheSet: vi.fn(),
@@ -434,7 +439,8 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
-    expect(screen.getByText('Trend corpus healthy')).toBeInTheDocument();
+    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
+    expect(screen.getByText('native-api: healthy')).toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
     // detail route before the click and cmd-click opens it in a new tab.
@@ -516,11 +522,15 @@ describe('AnalyticsTrends', () => {
       await screen.findByText('Trend corpus degraded'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /Affected: youtube \(apify: fallback source preview\)\. Cached trends remain available\. Last successful refresh/,
-      ),
+      screen.getByText(/apify: Saved fallback previews are being used/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText('Last successful refresh: Not recorded').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('Last attempt: Not recorded').length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows corpus health as unavailable when its request fails', async () => {
@@ -534,7 +544,7 @@ describe('AnalyticsTrends', () => {
       await screen.findByText('Trend corpus unavailable'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Scheduled ingestion status could not be loaded.'),
+      screen.getByText(/Source health could not be loaded/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Checking trend corpus')).not.toBeInTheDocument();
   });
