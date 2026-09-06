@@ -1355,10 +1355,7 @@ describe('AgentToolExecutorService', () => {
         contentId: testId('ingredient'),
         scheduledAt: '2026-07-18T09:00',
       },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
+      scopedContext(testId('brand')),
     );
 
     expect(result.success).toBe(true);
@@ -2987,10 +2984,7 @@ describe('AgentToolExecutorService', () => {
       {
         contentId: testId('ingredientnoanalytics'),
       },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
+      scopedContext(testId('brandcontent')),
     );
 
     expect(result.success).toBe(true);

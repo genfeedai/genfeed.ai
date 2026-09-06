@@ -37,13 +37,14 @@ function reconcileMutationApproval(
   actions: unknown,
   payload: Record<string, unknown> | undefined,
   threadId: string,
-): void {
+): Set<unknown> {
+  const reconciled = new Set<unknown>();
   if (
     !Array.isArray(actions) ||
     typeof payload?.approvalId !== 'string' ||
     typeof payload.sourceActionId !== 'string'
   )
-    return;
+    return reconciled;
   const returnedActions: unknown[] = actions;
   for (const candidate of returnedActions) {
     if (
@@ -68,6 +69,20 @@ function reconcileMutationApproval(
       (data.status !== 'approved' && data.status !== 'declined')
     )
       continue;
+    const hasSourceCard = useAgentChatStore
+      .getState()
+      .messages.some(
+        (message) =>
+          message.threadId === threadId &&
+          message.metadata?.uiActions?.some(
+            (card) =>
+              card.type === 'mutation_approval_card' &&
+              card.id === payload.sourceActionId &&
+              card.data?.approvalId === payload.approvalId,
+          ),
+      );
+    if (!hasSourceCard) continue;
+    reconciled.add(candidate);
     const resolvedData = { ...data };
     useAgentChatStore.setState((state) => ({
       messages: state.messages.map((message) =>
@@ -94,6 +109,7 @@ function reconcileMutationApproval(
       ),
     }));
   }
+  return reconciled;
 }
 
 export async function handleAgentUiAction(
@@ -204,13 +220,11 @@ export async function handleAgentUiAction(
       },
     );
 
-    if (action === 'confirm_mutation' || action === 'decline_mutation') {
-      reconcileMutationApproval(
-        response.message.metadata?.uiActions,
-        payload,
-        response.threadId,
-      );
-    }
+    const returnedActions = response.message.metadata?.uiActions;
+    const reconciledApprovals =
+      action === 'confirm_mutation' || action === 'decline_mutation'
+        ? reconcileMutationApproval(returnedActions, payload, response.threadId)
+        : new Set<unknown>();
 
     const sourceActionId =
       typeof payload?.sourceActionId === 'string'
@@ -248,6 +262,13 @@ export async function handleAgentUiAction(
       metadata: {
         toolCalls: response.toolCalls.map(mapToolCallResponse),
         ...response.message.metadata,
+        ...(Array.isArray(returnedActions)
+          ? {
+              uiActions: returnedActions.filter(
+                (card) => !reconciledApprovals.has(card),
+              ),
+            }
+          : {}),
       },
       role: 'assistant',
       threadId: response.threadId,

@@ -42,11 +42,16 @@ export type AgentUiActionType =
   | 'brand_interview_complete_card'
   | 'agent_transfer_card';
 
+export interface AgentMutationApprovalItem {
+  label: string;
+  value: string;
+}
+
 export interface AgentMutationApprovalData {
   approvalId: string;
   sourceActionId: string;
   summary: string;
-  items: Array<{ label: string; value: string }>;
+  items: AgentMutationApprovalItem[];
   status: 'pending' | 'approved' | 'declined';
   scopeVersion?: number;
   brandId: string | null;
