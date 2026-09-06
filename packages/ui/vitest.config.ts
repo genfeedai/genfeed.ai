@@ -142,6 +142,21 @@ export default defineConfig({
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
       },
       {
+        find: /^@genfeedai\/contracts\/interfaces$/,
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/interfaces/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/api-types/$1'),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },

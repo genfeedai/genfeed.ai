@@ -15,6 +15,13 @@ export default mergeConfig(
   defineConfig({
     resolve: {
       alias: [
+        // jsdom tests only ever run the browser SDK. The package root resolves to
+        // the server entry, which since 10.73 loads a webpack plugin at import
+        // time and throws outside a file:// URL.
+        {
+          find: /^@sentry\/nextjs$/,
+          replacement: '@sentry/nextjs/build/esm/index.client.js',
+        },
         {
           find: /^@components\/buttons\/refresh\/button-refresh\/ButtonRefresh$/,
           replacement: path.resolve(

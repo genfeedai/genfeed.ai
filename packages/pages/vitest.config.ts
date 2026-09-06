@@ -166,6 +166,10 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('contracts'), 'interfaces/$1'),
       },
       {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(packageSrc('contracts'), 'api-types/$1'),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(packageSrc('contracts'), 'index.ts'),
       },

@@ -1,11 +1,15 @@
 {
   "dependencies": {
+    "@genfeedai/agent": "workspace:*",
     "@genfeedai/client": "workspace:*",
+    "@genfeedai/contexts": "workspace:*",
+    "@genfeedai/contracts": "workspace:*",
+    "@genfeedai/hooks": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@tiptap/core": "3.31.3",
-    "@genfeedai/contracts": "workspace:*"
+    "@remotion/player": "4.0.521",
+    "@tiptap/core": "3.31.3"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
