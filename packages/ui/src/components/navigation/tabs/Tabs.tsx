@@ -416,7 +416,7 @@ export function PanelTabs({
                     value={item.id}
                     aria-label={item.label}
                     title={item.label}
-                    className="h-8 w-full min-w-0 gap-1 rounded-lg border-0 pl-1 pr-6 text-xs shadow-none data-[state=active]:bg-background @[360px]/panel-tabs:gap-2 @[360px]/panel-tabs:pl-2 @[360px]/panel-tabs:pr-7"
+                    className="h-full w-full min-w-0 gap-1 rounded-lg border-0 pl-1 pr-6 text-xs shadow-none data-[state=active]:bg-background @[360px]/panel-tabs:gap-2 @[360px]/panel-tabs:pl-2 @[360px]/panel-tabs:pr-7"
                     onKeyDown={(event) => {
                       if (event.key === 'Delete') {
                         event.preventDefault();

@@ -134,7 +134,7 @@ describe('SectionTopbar', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
-  it('pins actions to the right when the breadcrumb owns the title', () => {
+  it('places tabs after actions at the far right when the breadcrumb owns the title', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -151,10 +151,10 @@ describe('SectionTopbar', () => {
 
     expect(row).toContainElement(tabs);
     expect(row).toContainElement(actions);
-    expect(tabs).toHaveClass('flex-1');
+    expect(tabs).toHaveClass('min-w-0');
     expect(actions).toHaveClass('shrink-0');
-    // Actions are the trailing sibling — right edge of the header toolbar.
-    expect(row?.lastElementChild).toBe(actions);
+    // Tabs follow actions in visual and keyboard order.
+    expect(row?.lastElementChild).toBe(tabs);
   });
 
   it('honors titleVisibility=sr-only even without a breadcrumb', () => {
