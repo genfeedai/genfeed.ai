@@ -112,4 +112,30 @@ describe('IngredientDownloadButton', () => {
     expect(downloadUrl).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'original' })).toBeEnabled();
   });
+
+  it('renders a single trigger that opens the dropdown in compact mode', async () => {
+    exportMedia.mockResolvedValue({
+      url: 'https://cdn.example/preview.png',
+      filename: 'preview.png',
+    });
+    const original = vi.fn();
+    render(
+      <IngredientDownloadButton
+        ingredientId="image-1"
+        onDownloadOriginal={original}
+        isCompact
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'original' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+      button: 0,
+    });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'original' }));
+    await waitFor(() => expect(original).toHaveBeenCalledOnce());
+    expect(exportMedia).not.toHaveBeenCalled();
+  });
 });

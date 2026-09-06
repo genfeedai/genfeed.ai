@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { getAdvancedToolHref } from './workspace-task.helpers';
 import { WorkspaceTaskInspectorBody } from './workspace-task-inspector-body';
-import { WorkspaceTaskInspectorFooter } from './workspace-task-inspector-footer';
 import { WorkspaceTaskInspectorHeader } from './workspace-task-inspector-header';
 import { groupWorkspaceLinkedOutputs } from './workspace-task-inspector-helpers';
 import {
@@ -14,9 +13,10 @@ import {
 } from './workspace-task-inspector-hooks';
 
 /**
- * Renders a task's header, body, and footer in the workspace inspector rail.
- * Both `/workspace/inbox` and `/workspace/tasks` mount this same detail view
- * inside their own surface adapters instead of each owning a bespoke panel.
+ * Renders a task's header (with primary actions) and tabbed body in the
+ * workspace inspector rail. Both `/workspace/inbox` and `/workspace/tasks`
+ * mount this same detail view inside their own surface adapters instead of
+ * each owning a bespoke panel.
  */
 export function WorkspaceTaskDetail({
   busyTaskId,
@@ -61,7 +61,18 @@ export function WorkspaceTaskDetail({
       data-testid="workspace-task-inspector"
     >
       {leading}
-      <WorkspaceTaskInspectorHeader task={task} />
+      <WorkspaceTaskInspectorHeader
+        isBusy={isBusy}
+        linkedIssueSummary={linkedIssueSummary}
+        onApprove={onApprove}
+        onDismiss={onDismiss}
+        onPlanNextSteps={onPlanNextSteps}
+        onRequestChanges={onRequestChanges}
+        showReviewActions={showReviewActions ?? false}
+        task={task}
+        taskToolHref={taskToolHref}
+        taskToolLabel={taskToolLabel}
+      />
       <WorkspaceTaskInspectorBody
         isBusy={isBusy}
         linkedIssueSummary={linkedIssueSummary}
@@ -74,18 +85,6 @@ export function WorkspaceTaskDetail({
         task={task}
       />
       {trailing}
-      <WorkspaceTaskInspectorFooter
-        isBusy={isBusy}
-        linkedIssueSummary={linkedIssueSummary}
-        onApprove={onApprove}
-        onDismiss={onDismiss}
-        onPlanNextSteps={onPlanNextSteps}
-        onRequestChanges={onRequestChanges}
-        showReviewActions={showReviewActions ?? false}
-        task={task}
-        taskToolHref={taskToolHref}
-        taskToolLabel={taskToolLabel}
-      />
     </div>
   );
 }

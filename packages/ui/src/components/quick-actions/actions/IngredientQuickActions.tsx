@@ -267,6 +267,7 @@ export default function IngredientQuickActions(
         ingredientId={selectedIngredient.id}
         disabled={downloadAction.isDisabled || downloadAction.isLoading}
         onDownloadOriginal={() => onDownload(selectedIngredient)}
+        isCompact={isMasonryCompact}
       />
     ) : null;
   const visibleActions = (items: IQuickAction[]) =>
@@ -279,7 +280,7 @@ export default function IngredientQuickActions(
   // pill shell was exactly the mismatch the quick-action sweep removed.
   const sharedShellClassName = cn(
     isMasonryCompact
-      ? 'rounded-lg bg-secondary/80 p-0.5 shadow-dropdown'
+      ? 'rounded-lg bg-background/90 backdrop-blur shadow-border p-0.5'
       : cn(BG_BLUR, BORDER_WHITE_30, 'p-1'),
     'quick-actions-wrapper transition-colors duration-300',
   );
@@ -301,6 +302,7 @@ export default function IngredientQuickActions(
             setIsMenuOpen={setIsMenuOpen}
             size={size}
             onActionClick={handleActionClick}
+            triggerClassName="size-7 rounded-md"
           />
         </div>
       </div>

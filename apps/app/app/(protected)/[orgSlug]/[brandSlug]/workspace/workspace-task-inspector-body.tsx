@@ -3,10 +3,12 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { WorkspaceTaskInspectorBodyProps } from '@props/workspace/workspace-task-inspector-body.props';
 import Card from '@ui/card/Card';
+import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -15,6 +17,8 @@ import {
 } from './workspace-task.helpers';
 import { WorkspaceTaskOutputsCard } from './workspace-task-outputs-card';
 import { WorkspaceTaskThreadCard } from './workspace-task-thread-card';
+
+type WorkspaceTaskInspectorTabId = 'details' | 'activity' | 'records';
 
 export function WorkspaceTaskInspectorBody({
   isBusy,
@@ -28,57 +32,100 @@ export function WorkspaceTaskInspectorBody({
   task,
 }: WorkspaceTaskInspectorBodyProps) {
   const translate = useTranslations('pages.workspaceOverview');
+  const translateTabs = useTranslations('pages.tasks.inspector.tabs');
+  const [activeTab, setActiveTab] =
+    useState<WorkspaceTaskInspectorTabId>('details');
   const continuityQa = getTaskContinuityQa(task);
   const taskTimestamp = useTaskTimestamp(task);
-  return (
-    <div className="flex-1 space-y-6 p-6">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card bodyClassName="space-y-2 p-4">
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
-            {translate('inspector.routing')}
-          </p>
-          <p className="text-sm text-foreground">
-            {task.routingSummary ?? translate('inspector.autoRouted')}
-          </p>
-        </Card>
-        <Card bodyClassName="space-y-2 p-4">
-          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
-            {translate('inspector.progress')}
-          </p>
-          <div className="space-y-1 text-sm text-foreground/60">
-            <p>{task.progress?.stage ?? translate('inspector.queued')}</p>
-            <p>
-              {translate('inspector.percentComplete', {
-                percent: task.progress?.percent ?? 0,
-              })}
-            </p>
-            <p>
-              {translate('inspector.activeRuns', {
-                count: task.progress?.activeRunCount ?? 0,
-              })}
-            </p>
-            {task.progress?.message ? <p>{task.progress.message}</p> : null}
-            <p className="flex items-center gap-2">
-              <Clock className="size-4" />
-              {translate('inspector.updated')} {taskTimestamp}
-            </p>
-            {task.createdAt ? (
-              <p>
-                {translate('inspector.created')}{' '}
-                <ClientFormattedDate value={task.createdAt} />
-              </p>
-            ) : null}
-            {task.completedAt ? (
-              <p>
-                {translate('inspector.completed')}{' '}
-                <ClientFormattedDate value={task.completedAt} />
-              </p>
-            ) : null}
-          </div>
-        </Card>
-      </div>
 
-      {task.resultPreview ? (
+  const hasResultPreview = Boolean(task.resultPreview);
+  const hasContinuityQa = Boolean(continuityQa);
+  const hasThread = (task.eventStream?.length ?? 0) > 0;
+  const hasOutputs = (task.linkedOutputIds?.length ?? 0) > 0;
+  const hasReportLocation = Boolean(linkedExecutionSummary.reportThreadId);
+  const hasFailure = Boolean(task.failureReason);
+  const hasRequestedChanges = Boolean(task.requestedChangesReason);
+  const hasActivity =
+    hasResultPreview ||
+    hasContinuityQa ||
+    hasThread ||
+    hasOutputs ||
+    hasReportLocation ||
+    hasFailure ||
+    hasRequestedChanges;
+
+  const detailsContent = (
+    <div className="space-y-4 p-6">
+      <Card
+        label={translate('inspector.routing')}
+        bodyClassName="space-y-2 p-4"
+      >
+        <p className="text-sm text-foreground">
+          {task.routingSummary ?? translate('inspector.autoRouted')}
+        </p>
+      </Card>
+      <Card
+        label={translate('inspector.progress')}
+        bodyClassName="space-y-2 p-4"
+      >
+        <div className="space-y-1 text-sm text-foreground/60">
+          <p>{task.progress?.stage ?? translate('inspector.queued')}</p>
+          <p>
+            {translate('inspector.percentComplete', {
+              percent: task.progress?.percent ?? 0,
+            })}
+          </p>
+          <p>
+            {translate('inspector.activeRuns', {
+              count: task.progress?.activeRunCount ?? 0,
+            })}
+          </p>
+          {task.progress?.message ? <p>{task.progress.message}</p> : null}
+          <p className="flex items-center gap-2">
+            <Clock className="size-4" />
+            {translate('inspector.updated')} {taskTimestamp}
+          </p>
+          {task.createdAt ? (
+            <p>
+              {translate('inspector.created')}{' '}
+              <ClientFormattedDate value={task.createdAt} />
+            </p>
+          ) : null}
+          {task.completedAt ? (
+            <p>
+              {translate('inspector.completed')}{' '}
+              <ClientFormattedDate value={task.completedAt} />
+            </p>
+          ) : null}
+        </div>
+      </Card>
+      <Card
+        label={translate('inspector.labels.taskMetadata')}
+        bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
+      >
+        <p>{translate('inspector.priority', { value: task.priority })}</p>
+        <p>
+          {translate('inspector.reviewState', {
+            value:
+              task.reviewState?.replaceAll('_', ' ') ??
+              translate('inspector.reviewStateNone'),
+          })}
+        </p>
+        <p>
+          {translate('inspector.organization', {
+            value: task.organizationId,
+          })}
+        </p>
+        {task.brandId ? (
+          <p>{translate('inspector.brand', { value: task.brandId })}</p>
+        ) : null}
+      </Card>
+    </div>
+  );
+
+  const activityContent = (
+    <div className="space-y-4 p-6">
+      {hasResultPreview ? (
         <Card
           label={translate('inspector.labels.resultPreview')}
           bodyClassName="border-l border-emerald-400/30 p-4 text-sm text-foreground/75"
@@ -171,11 +218,11 @@ export function WorkspaceTaskInspectorBody({
         </Card>
       ) : null}
 
-      {(task.eventStream?.length ?? 0) > 0 ? (
+      {hasThread ? (
         <WorkspaceTaskThreadCard eventStream={task.eventStream ?? []} />
       ) : null}
 
-      {(task.linkedOutputIds?.length ?? 0) > 0 ? (
+      {hasOutputs ? (
         <WorkspaceTaskOutputsCard
           approvedOutputIds={task.approvedOutputIds ?? []}
           isBusy={isBusy}
@@ -189,7 +236,7 @@ export function WorkspaceTaskInspectorBody({
         />
       ) : null}
 
-      {linkedExecutionSummary.reportThreadId ? (
+      {hasReportLocation ? (
         <Card
           label={translate('inspector.labels.reportLocation')}
           bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
@@ -210,7 +257,7 @@ export function WorkspaceTaskInspectorBody({
         </Card>
       ) : null}
 
-      {task.failureReason ? (
+      {hasFailure ? (
         <Card
           label={translate('inspector.labels.failure')}
           bodyClassName="border-l border-rose-400/35 p-4 text-sm text-rose-200"
@@ -219,7 +266,7 @@ export function WorkspaceTaskInspectorBody({
         </Card>
       ) : null}
 
-      {task.requestedChangesReason ? (
+      {hasRequestedChanges ? (
         <Card
           label={translate('inspector.labels.requestedChanges')}
           bodyClassName="border-l border-amber-400/35 p-4 text-sm text-amber-200"
@@ -227,82 +274,97 @@ export function WorkspaceTaskInspectorBody({
           {task.requestedChangesReason}
         </Card>
       ) : null}
+    </div>
+  );
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card
-          label={translate('inspector.labels.taskMetadata')}
-          bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
-        >
-          <p>{translate('inspector.priority', { value: task.priority })}</p>
+  const recordsContent = (
+    <div className="space-y-4 p-6">
+      <Card
+        label={translate('inspector.labels.linkedRecords')}
+        bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
+      >
+        <p>
+          {translate('inspector.runs', {
+            count: task.linkedExecutionIds?.length ?? 0,
+          })}
+        </p>
+        {task.linkedIssueId ? (
           <p>
-            {translate('inspector.reviewState', {
-              value:
-                task.reviewState?.replaceAll('_', ' ') ??
-                translate('inspector.reviewStateNone'),
+            {translate('inspector.issue', {
+              value: linkedIssueSummary.isLoading
+                ? translate('inspector.loading')
+                : (linkedIssueSummary.identifier ??
+                  translate('inspector.unavailable')),
             })}
           </p>
-          <p>
-            {translate('inspector.organization', {
-              value: task.organizationId,
+        ) : null}
+        <p>
+          {translate('inspector.outputs', {
+            count: task.linkedOutputIds?.length ?? 0,
+          })}
+        </p>
+        <p>
+          {translate('inspector.reportThreads', {
+            count: linkedExecutionSummary.isLoading
+              ? translate('inspector.loading')
+              : linkedExecutionSummary.reportThreadCount,
+          })}
+        </p>
+        <p>
+          {translate('inspector.generatedContent', {
+            count: linkedExecutionSummary.isLoading
+              ? translate('inspector.loading')
+              : linkedExecutionSummary.generatedContentCount,
+          })}
+        </p>
+        <p>
+          {translate('inspector.approvals', {
+            count: task.linkedApprovalIds?.length ?? 0,
+          })}
+        </p>
+        {task.planningThreadId ? (
+          <p className="truncate">
+            {translate('inspector.thread', {
+              value: task.planningThreadId,
             })}
           </p>
-          {task.brandId ? (
-            <p>{translate('inspector.brand', { value: task.brandId })}</p>
-          ) : null}
-        </Card>
+        ) : null}
+      </Card>
+    </div>
+  );
 
-        <Card
-          label={translate('inspector.labels.linkedRecords')}
-          bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
-        >
-          <p>
-            {translate('inspector.runs', {
-              count: task.linkedExecutionIds?.length ?? 0,
-            })}
-          </p>
-          {task.linkedIssueId ? (
-            <p>
-              {translate('inspector.issue', {
-                value: linkedIssueSummary.isLoading
-                  ? translate('inspector.loading')
-                  : (linkedIssueSummary.identifier ??
-                    translate('inspector.unavailable')),
-              })}
-            </p>
-          ) : null}
-          <p>
-            {translate('inspector.outputs', {
-              count: task.linkedOutputIds?.length ?? 0,
-            })}
-          </p>
-          <p>
-            {translate('inspector.reportThreads', {
-              count: linkedExecutionSummary.isLoading
-                ? translate('inspector.loading')
-                : linkedExecutionSummary.reportThreadCount,
-            })}
-          </p>
-          <p>
-            {translate('inspector.generatedContent', {
-              count: linkedExecutionSummary.isLoading
-                ? translate('inspector.loading')
-                : linkedExecutionSummary.generatedContentCount,
-            })}
-          </p>
-          <p>
-            {translate('inspector.approvals', {
-              count: task.linkedApprovalIds?.length ?? 0,
-            })}
-          </p>
-          {task.planningThreadId ? (
-            <p className="truncate">
-              {translate('inspector.thread', {
-                value: task.planningThreadId,
-              })}
-            </p>
-          ) : null}
-        </Card>
-      </div>
+  return (
+    <div
+      className="flex min-h-0 flex-1 flex-col"
+      data-testid="workspace-task-inspector-body"
+    >
+      <PanelTabs
+        activeTab={activeTab}
+        ariaLabel={translateTabs('details')}
+        className="flex-1"
+        testId="workspace-task-inspector-tabs"
+        onTabChange={(id) => setActiveTab(id as WorkspaceTaskInspectorTabId)}
+        items={[
+          {
+            id: 'details',
+            label: translateTabs('details'),
+            content: detailsContent,
+            isOpen: true,
+          },
+          {
+            id: 'activity',
+            label: translateTabs('activity'),
+            content: activityContent,
+            isOpen: hasActivity,
+          },
+          {
+            id: 'records',
+            label: translateTabs('records'),
+            content: recordsContent,
+            isOpen: true,
+          },
+        ]}
+      />
     </div>
   );
 }

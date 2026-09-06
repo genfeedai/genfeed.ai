@@ -22,10 +22,12 @@ export interface QuickActionsMenuProps {
   setIsMenuOpen: (open: boolean) => void;
   size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
   onActionClick: (action: IQuickAction) => void;
+  triggerClassName?: string;
 }
 
 export interface IngredientDownloadButtonProps {
   ingredientId: string;
   disabled?: boolean;
   onDownloadOriginal: () => unknown;
+  isCompact?: boolean;
 }
