@@ -1,10 +1,62 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
+import type {
+  MasonryImageProps,
+  MasonryVideoProps,
+} from '@genfeedai/props/content/masonry.props';
+import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
+  LazyMasonryImage: ({
+    image,
+    onClickIngredient,
+    isActionsEnabled,
+    isDragEnabled,
+  }: MasonryImageProps) => (
+    <button
+      type="button"
+      data-testid="masonry-image"
+      data-url={image.ingredientUrl}
+      data-actions={isActionsEnabled}
+      data-drag={isDragEnabled}
+      onClick={() => onClickIngredient?.(image)}
+    >
+      {image.metadataLabel}
+    </button>
+  ),
+  LazyMasonryVideo: ({ video, onClickIngredient }: MasonryVideoProps) => (
+    <button
+      type="button"
+      data-testid="masonry-video"
+      data-url={video.ingredientUrl}
+      onClick={() => onClickIngredient?.(video)}
+    >
+      {video.metadataLabel}
+    </button>
+  ),
+}));
+vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({
+  default: ({ items, startIndex, onClose }: MediaLightboxProps) => (
+    <div
+      role="dialog"
+      data-index={startIndex}
+      data-count={items.length}
+      data-url={items[startIndex].ingredientUrl}
+    >
+      <button type="button" onClick={onClose}>
+        Close preview
+      </button>
+    </div>
+  ),
+}));
+vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+  default: () => <div data-testid="shared-audio-player" />,
+}));
+
 describe('AgentMediaArtifactPreview', () => {
-  it('opens an image collection and navigates between generated variants', () => {
+  it('uses masonry images and opens the selected item in the shared collection viewer', () => {
     render(
       <AgentMediaArtifactPreview
         assets={[
@@ -19,29 +71,28 @@ describe('AgentMediaArtifactPreview', () => {
             url: 'https://cdn.test/image-2.png',
           },
         ]}
-        title="Campaign images"
       />,
     );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open Image 2 preview' }),
+    const images = screen.getAllByTestId('masonry-image');
+    expect(images[0]).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/image-1.png',
     );
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Image preview · 2 of 2')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Image 2' })).toHaveAttribute(
-      'src',
+    expect(images[0]).toHaveAttribute('data-actions', 'false');
+    expect(images[0]).toHaveAttribute('data-drag', 'false');
+    fireEvent.click(screen.getByRole('button', { name: 'Image 2' }));
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-index', '1');
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-count', '2');
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
       'https://cdn.test/image-2.png',
     );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Previous generated asset' }),
-    );
-    expect(screen.getByText('Image preview · 1 of 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close preview' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('opens generated video in the expanded viewer', () => {
-    render(
+  it('uses masonry video without inline native controls and preserves the source URL', () => {
+    const { container } = render(
       <AgentMediaArtifactPreview
         assets={[
           {
@@ -52,38 +103,43 @@ describe('AgentMediaArtifactPreview', () => {
         ]}
       />,
     );
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Expand Launch video preview',
-      }),
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/video.mp4',
     );
-
-    expect(
-      screen.getByLabelText('Launch video expanded preview'),
-    ).toHaveAttribute('src', 'https://cdn.test/video.mp4');
+    expect(container.querySelector('video[controls]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Launch video' }));
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/video.mp4',
+    );
   });
 
-  it('opens generated audio in the expanded viewer', () => {
+  it('keeps mixed audio and visual outputs aligned when opening the lightbox', () => {
     render(
       <AgentMediaArtifactPreview
         assets={[
+          { kind: 'image', url: '   ' },
           {
             kind: 'audio',
             title: 'Voiceover',
             url: 'https://cdn.test/voice.mp3',
           },
+          { kind: 'video', title: 'Video', url: 'https://cdn.test/video.mp4' },
+          { kind: 'image', title: 'Image', url: 'https://cdn.test/image.png' },
         ]}
       />,
     );
+    expect(screen.getByTestId('shared-audio-player')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-index', '1');
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-count', '2');
+  });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Expand Voiceover preview' }),
+  it('renders nothing for empty output URLs', () => {
+    const { container } = render(
+      <AgentMediaArtifactPreview assets={[{ kind: 'image', url: ' ' }]} />,
     );
-
-    expect(screen.getByLabelText('Voiceover expanded preview')).toHaveAttribute(
-      'src',
-      'https://cdn.test/voice.mp3',
-    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -1,4 +1,5 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import {
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
@@ -35,26 +36,14 @@ interface AgentCompletionSummaryCardProps {
 function renderOutputPreview(
   variant: AgentUiActionOutputVariant,
 ): ReactElement | null {
-  if (variant.kind === 'image' && variant.url) {
+  if (variant.kind !== 'text' && variant.url) {
     return (
-      <img
-        src={variant.url}
-        alt={variant.title ?? 'Generated output'}
-        className="aspect-square w-full border border-border/60 bg-muted/20 object-cover"
+      <AgentMediaArtifactPreview
+        assets={[
+          { kind: variant.kind, title: variant.title, url: variant.url },
+        ]}
+        displayMode="featured"
       />
-    );
-  }
-
-  if (variant.kind === 'video' && variant.url) {
-    return (
-      <video
-        src={variant.url}
-        controls
-        aria-label={variant.title ?? 'Generated output video'}
-        className="aspect-square w-full border border-border/60 bg-muted/20 object-cover"
-      >
-        <track kind="captions" />
-      </video>
     );
   }
 

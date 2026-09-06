@@ -200,7 +200,7 @@ export default function MediaLightbox({
       controller={{
         closeOnBackdropClick: true,
       }}
-      styles={backdropStyles}
+      styles={backdropStyles ?? {}}
       on={{
         view: ({ index }) => setActiveIndex(index),
       }}
