@@ -3,15 +3,21 @@ import {
   IngredientStatus,
   ViewType,
 } from '@genfeedai/contracts';
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
+import type {
+  MasonryImageProps,
+  MasonryVideoProps,
+} from '@genfeedai/props/content/masonry.props';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { describe, expect, it, vi } from 'vitest';
 
 const masonryMocks = vi.hoisted(() => ({
-  image: vi.fn(),
-  video: vi.fn(),
+  image: vi.fn<(props: MasonryImageProps) => void>(),
+  video: vi.fn<(props: MasonryVideoProps) => void>(),
+  audio: vi.fn<(props: AudioPreviewPlayerProps) => void>(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -28,12 +34,23 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+  default: (props: AudioPreviewPlayerProps) => {
+    masonryMocks.audio(props);
+    return (
+      <button type="button" data-testid="shared-audio-player">
+        Play audio
+      </button>
+    );
+  },
+}));
+
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
-  LazyMasonryImage: (props: Record<string, unknown>) => {
+  LazyMasonryImage: (props: MasonryImageProps) => {
     masonryMocks.image(props);
     return <div data-testid="shared-masonry-image" />;
   },
-  LazyMasonryVideo: (props: Record<string, unknown>) => {
+  LazyMasonryVideo: (props: MasonryVideoProps) => {
     masonryMocks.video(props);
     return <div data-testid="shared-masonry-video" />;
   },
@@ -117,7 +134,8 @@ describe('StudioGenerateCard', () => {
       />,
     );
 
-    fireEvent.error(screen.getByRole('img', { name: generatedJob.prompt }));
+    const props = masonryMocks.image.mock.calls.at(-1)?.[0];
+    act(() => props?.onMediaError?.());
 
     expect(
       screen.queryByRole('img', { name: generatedJob.prompt }),
@@ -184,7 +202,7 @@ describe('StudioGenerateCard', () => {
       id: generatedJob.id,
       promptText: generatedJob.prompt,
       status: IngredientStatus.GENERATED,
-    } as IIngredient;
+    } as IImage;
     const job = { ...generatedJob, ingredient };
     const assetActions = buildAssetActions();
     const onReprompt = vi.fn();
@@ -207,19 +225,14 @@ describe('StudioGenerateCard', () => {
         .closest('[data-asset-hover-details]'),
     ).toHaveClass('opacity-0', 'group-focus-within:opacity-100');
 
-    const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0] as {
-      onCopyPrompt: StudioGenerateAssetActions['onCopyPrompt'];
-      onMediaError: () => void;
-      onReprompt: (ingredient: IIngredient) => void;
-      onToggleFavorite: StudioGenerateAssetActions['onToggleFavorite'];
-    };
-    expect(imageProps.onCopyPrompt).toBe(assetActions.onCopyPrompt);
-    expect(imageProps.onToggleFavorite).toBe(assetActions.onToggleFavorite);
+    const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0];
+    expect(imageProps?.onCopyPrompt).toBe(assetActions.onCopyPrompt);
+    expect(imageProps?.onToggleFavorite).toBe(assetActions.onToggleFavorite);
 
-    act(() => imageProps.onReprompt(ingredient));
+    act(() => imageProps?.onReprompt?.(ingredient));
     expect(onReprompt).toHaveBeenCalledWith(job);
 
-    act(imageProps.onMediaError);
+    act(() => imageProps?.onMediaError?.());
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
@@ -229,7 +242,7 @@ describe('StudioGenerateCard', () => {
       id: generatedJob.id,
       promptText: generatedJob.prompt,
       status: IngredientStatus.GENERATED,
-    } as IIngredient;
+    } as IVideo;
 
     render(
       <StudioGenerateCard
@@ -247,6 +260,67 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(screen.getByTestId('shared-masonry-video')).toBeInTheDocument();
+  });
+
+  it.each(['image', 'video'] as const)(
+    'uses masonry for %s URLs before ingredient hydration',
+    (type) => {
+      render(
+        <StudioGenerateCard
+          assetActions={buildAssetActions()}
+          job={{ ...generatedJob, type }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={ViewType.GRID}
+        />,
+      );
+      expect(screen.getByTestId(`shared-masonry-${type}`)).toBeInTheDocument();
+      const props = masonryMocks[type].mock.calls.at(-1)?.[0];
+      const media =
+        type === 'image'
+          ? masonryMocks.image.mock.calls.at(-1)?.[0].image
+          : masonryMocks.video.mock.calls.at(-1)?.[0].video;
+      expect(props?.isActionsEnabled).toBe(false);
+      expect(media).toMatchObject({
+        id: generatedJob.id,
+        cdnUrl: generatedJob.url,
+      });
+    },
+  );
+
+  it('reports video errors through the shared fallback before hydration', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'video' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    const props = masonryMocks.video.mock.calls.at(-1)?.[0];
+    act(() => props?.onMediaError?.());
+    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+  });
+
+  it('uses shared audio transport without selecting the generation when playing', () => {
+    const onSelect = vi.fn();
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'voice' }}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+        view={ViewType.GRID}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('shared-audio-player'));
+    expect(onSelect).not.toHaveBeenCalled();
+    const props = masonryMocks.audio.mock.calls.at(-1)?.[0];
+    expect(props?.audioUrl).toBe(generatedJob.url);
+    expect(props?.isTimelineVisible).toBe(true);
+    act(() => props?.onError?.());
+    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
   it('selects a card so the inspector can open', () => {

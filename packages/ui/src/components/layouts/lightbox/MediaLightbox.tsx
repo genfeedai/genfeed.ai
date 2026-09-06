@@ -4,6 +4,7 @@ import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -74,18 +75,13 @@ export default function MediaLightbox({
     // late resolution cannot setState after teardown (React root races).
     let isCancelled = false;
     Promise.all([
-      import('yet-another-react-lightbox/plugins/video'),
       import('yet-another-react-lightbox/plugins/captions'),
       import('yet-another-react-lightbox/plugins/thumbnails'),
-    ]).then(([VideoModule, CaptionsModule, ThumbnailsModule]) => {
+    ]).then(([CaptionsModule, ThumbnailsModule]) => {
       if (isCancelled) {
         return;
       }
-      setPlugins([
-        VideoModule.default,
-        CaptionsModule.default,
-        ThumbnailsModule.default,
-      ]);
+      setPlugins([CaptionsModule.default, ThumbnailsModule.default]);
     });
     return () => {
       isCancelled = true;
@@ -132,11 +128,11 @@ export default function MediaLightbox({
         slide.playsInline = true;
         slide.preload = 'metadata';
 
-        // Always set poster for video thumbnails (use thumbnailUrl or fallback to src for first frame)
+        // Only image thumbnails can be used as video posters.
         const posterUrl =
           item.thumbnailUrl && item.thumbnailUrl !== src
             ? item.thumbnailUrl
-            : src;
+            : undefined;
 
         slide.poster = posterUrl;
 
@@ -197,7 +193,7 @@ export default function MediaLightbox({
       controller={{
         closeOnBackdropClick: true,
       }}
-      styles={backdropStyles}
+      styles={backdropStyles ?? {}}
       on={{
         view: ({ index }) => setActiveIndex(index),
       }}
@@ -205,12 +201,12 @@ export default function MediaLightbox({
         buttonNext: slides.length <= 1 ? () => null : undefined,
         buttonPrev: slides.length <= 1 ? () => null : undefined,
         // Custom slide render to show poster before video loads
-        slide: ({ slide }) => {
+        slide: ({ slide, offset }) => {
           const videoSlide = slide as Slide & VideoSlideProps;
           const isVideo = videoSlide.type === 'video';
           const thumbnailSrc = videoSlide.thumbnailSrc;
 
-          if (isVideo && thumbnailSrc) {
+          if (isVideo) {
             return (
               <div
                 style={{
@@ -223,21 +219,20 @@ export default function MediaLightbox({
                   width: '100%',
                 }}
               >
-                {/* biome-ignore lint/a11y/useMediaCaption: user-generated video content */}
-                <video
-                  aria-label="Media lightbox video"
+                <VideoPlayer
+                  ariaLabel="Media lightbox video"
+                  isActive={offset === 0 && open}
                   src={videoSlide.sources?.[0]?.src}
-                  poster={thumbnailSrc}
-                  controls
-                  playsInline
-                  preload="none"
-                  style={{
-                    maxHeight: '100%',
-                    maxWidth: '100%',
-                    objectFit: 'contain',
+                  thumbnail={thumbnailSrc}
+                  config={{
+                    controls: true,
+                    playsInline: true,
+                    preload: 'none',
+                    muted: false,
+                    loop: false,
+                    autoPlay: false,
                   }}
-                  // Force poster to show by not auto-loading
-                  autoPlay={false}
+                  mediaProps={{ poster: thumbnailSrc }}
                 />
               </div>
             );

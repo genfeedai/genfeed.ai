@@ -25,6 +25,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
+import Image from 'next/image';
 import {
   memo,
   type ReactElement,
@@ -347,7 +348,10 @@ function AgentChatMessageInner({
                   key={attachment.ingredientId}
                   className="size-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
                 >
-                  <img
+                  <Image
+                    width={40}
+                    height={40}
+                    unoptimized
                     src={attachment.url}
                     alt={attachment.name ?? 'Attached image'}
                     className="h-full w-full object-cover"

@@ -63,7 +63,6 @@ export default function ModalGallery({
     selectedItemsData,
     activeTab,
     localFormat,
-    playingId,
     filterReferenceId,
     uploads,
     references,
@@ -78,7 +77,6 @@ export default function ModalGallery({
     findAllUploads,
     findAllCreations,
     handleItemSelect,
-    handleMusicPlayPause,
     notifySelectionLimit,
     selectionLimit,
     tabs,
@@ -221,7 +219,6 @@ export default function ModalGallery({
             creations={creations}
             selectedItems={selectedItems}
             selectedItem={selectedItem}
-            playingId={playingId}
             localFormat={localFormat}
             onSelectItem={handleItemSelectWithVideo}
             onSelectReference={handleReferenceSelect}
@@ -229,7 +226,6 @@ export default function ModalGallery({
             selectionLimit={selectionLimit}
             getFormatLabel={getFormatLabel}
             getImageFormat={getImageFormat}
-            onMusicPlayPause={handleMusicPlayPause}
           />
         </div>
 

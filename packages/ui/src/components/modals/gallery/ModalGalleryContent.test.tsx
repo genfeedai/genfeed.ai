@@ -87,11 +87,9 @@ describe('ModalGalleryContent', () => {
     isLoading: false,
     items: [],
     localFormat: IngredientFormat.PORTRAIT,
-    onMusicPlayPause: vi.fn(),
     onSelectItem: vi.fn(),
     onSelectionLimit: vi.fn(),
     onSelectReference: vi.fn(),
-    playingId: '',
     selectedItem: '',
     selectedItems: [],
     selectionLimit: Infinity,
@@ -408,19 +406,6 @@ describe('ModalGalleryContent', () => {
           category={IngredientCategory.MUSIC}
           items={items as (IImage | IVideo | IMusic)[]}
           selectedItem="music-1"
-        />,
-      );
-      expect(screen.getByTestId('music-item-music-1')).toBeInTheDocument();
-    });
-
-    it('passes playing state to music items', () => {
-      const items: GalleryItem[] = [{ id: 'music-1' }];
-      render(
-        <ModalGalleryContent
-          {...defaultProps}
-          category={IngredientCategory.MUSIC}
-          items={items as (IImage | IVideo | IMusic)[]}
-          playingId="music-1"
         />,
       );
       expect(screen.getByTestId('music-item-music-1')).toBeInTheDocument();

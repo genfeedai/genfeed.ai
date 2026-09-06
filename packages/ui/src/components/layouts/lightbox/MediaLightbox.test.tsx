@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
@@ -20,6 +21,28 @@ const image = {
 } as IIngredient;
 
 describe('MediaLightbox', () => {
+  it('does not use video files as image posters when thumbnails are missing', async () => {
+    render(
+      <MediaLightbox
+        items={[
+          {
+            ...image,
+            category: IngredientCategory.VIDEO,
+            ingredientUrl: 'https://cdn.test/video.mp4',
+            thumbnailUrl: undefined,
+          },
+        ]}
+        startIndex={0}
+        open
+        onClose={vi.fn()}
+      />,
+    );
+    const video = await screen.findByLabelText('Media lightbox video');
+    expect(video).toHaveAttribute('src', 'https://cdn.test/video.mp4');
+    expect(video).not.toHaveAttribute('poster');
+    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
+  });
+
   it('opens the real viewer while the dominant colour is unavailable', async () => {
     render(
       <MediaLightbox items={[image]} open startIndex={0} onClose={vi.fn()} />,

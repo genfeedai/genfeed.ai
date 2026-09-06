@@ -1,6 +1,8 @@
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   type ControlGuardCategory,
@@ -33,6 +35,23 @@ function categoriesFor(relativePath: string): ControlGuardCategory[] {
 }
 
 describe('control-guard detection', () => {
+  it('reports the raw-media category and offending file through the CLI', () => {
+    const file = write(
+      'apps/app/RawVideo.tsx',
+      'export default function RawVideo(){return <video src="/clip.mp4" />;}',
+    );
+    const result = spawnSync(
+      'bun',
+      [fileURLToPath(new URL('./control-guard.ts', import.meta.url)), file],
+      { cwd: rootDir, encoding: 'utf8' },
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('raw-media (required): 1 violation(s).');
+    expect(result.stderr).toContain(`${file}:1`);
+    expect(result.stderr).toContain('shared media');
+  });
+
   it.each(['canvas/NodeSearch', 'nodes/input/Prompt', 'ui/input'])(
     'requires shared controls throughout workflow UI (%s)',
     (surface) => {
@@ -370,5 +389,44 @@ describe('control-guard run modes', () => {
       rootDir,
     });
     expect(violations).toHaveLength(0);
+  });
+});
+
+describe('shared media boundary', () => {
+  it.each([
+    'apps/app/src/Preview.tsx',
+    'packages/pages/studio/Card.tsx',
+    'packages/agent/src/components/Card.tsx',
+    'packages/workflows/src/ui/nodes/Preview.tsx',
+    'packages/ui/src/components/workflow-builder/Preview.tsx',
+  ])('rejects bespoke media in %s', (file) => {
+    write(
+      file,
+      'export default function Preview(){ return <div><img src="image.png" /><video src="video.mp4" controls /><audio src="audio.mp3" controls /></div>; }',
+    );
+    expect(
+      detectViolations([file], rootDir).filter(
+        (item) => item.category === 'raw-media',
+      ),
+    ).toHaveLength(3);
+  });
+  it('allows the single shared media implementation, shared components, test doubles and comments', () => {
+    const leaf = write(
+      'packages/ui/src/components/display/video-player/VideoPlayer.tsx',
+      'export default function Video(){ return <video />; }',
+    );
+    const caller = write(
+      'packages/agent/src/Preview.tsx',
+      'export default function Preview(){ return <div>{/* <video /> */}<VideoPlayer /><Image /><AudioPreviewPlayer /></div>; }',
+    );
+    const test = write(
+      'packages/agent/src/Preview.spec.tsx',
+      'const mock = <video />;',
+    );
+    expect(
+      detectViolations([leaf, caller, test], rootDir).filter(
+        (item) => item.category === 'raw-media',
+      ),
+    ).toHaveLength(0);
   });
 });

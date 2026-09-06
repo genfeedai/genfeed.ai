@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
 import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
 import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';

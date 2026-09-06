@@ -15,6 +15,7 @@ import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.mo
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
   LazyMasonryImage,
@@ -29,7 +30,6 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react';
-import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   type MouseEvent,
@@ -67,12 +67,12 @@ const MODEL_GETTER_FIELDS = new Set([
 function buildMasonryIngredient(
   job: StudioGenerateCardProps['job'],
 ): IImage | IVideo | null {
-  if (!job.ingredient || (job.type !== 'image' && !VIDEO_TYPES.has(job.type))) {
+  if (job.type !== 'image' && !VIDEO_TYPES.has(job.type)) {
     return null;
   }
 
   const sourceMetadata =
-    typeof job.ingredient.metadata === 'object'
+    typeof job.ingredient?.metadata === 'object'
       ? job.ingredient.metadata
       : undefined;
   const metadata =
@@ -86,15 +86,17 @@ function buildMasonryIngredient(
           } as IMetadata)
         : sourceMetadata;
   const persistedIngredient = Object.fromEntries(
-    Object.entries(job.ingredient).filter(
+    Object.entries(job.ingredient ?? {}).filter(
       ([key]) => !MODEL_GETTER_FIELDS.has(key),
     ),
   );
   const ingredient = {
     ...persistedIngredient,
-    cdnUrl: job.url || job.ingredient.cdnUrl,
+    cdnUrl: job.url || job.ingredient?.cdnUrl,
+    id: job.ingredient?.id || job.id,
+    status: job.ingredient?.status || job.status,
     metadata,
-    prompt: job.ingredient.prompt || job.prompt,
+    prompt: job.ingredient?.prompt || job.prompt,
   };
 
   return job.type === 'image'
@@ -144,7 +146,10 @@ export default function StudioGenerateCard({
 
   const handleCardActivate = useCallback(
     (event: MouseEvent<HTMLElement>) => {
-      if (event.target instanceof Element && event.target.closest('button')) {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('button, input, [role="slider"]')
+      ) {
         return;
       }
       onSelect(job);
@@ -262,7 +267,7 @@ export default function StudioGenerateCard({
 
   if (mediaState === 'ready' && masonryIngredient) {
     const sharedProps = {
-      isActionsEnabled: true,
+      isActionsEnabled: Boolean(job.ingredient),
       isContainerHovered: true,
       isDragEnabled: false,
       onClickIngredient: () => onSelect(job),
@@ -311,11 +316,14 @@ export default function StudioGenerateCard({
             <LazyMasonryVideo
               {...sharedProps}
               video={masonryIngredient as IVideo}
+              onMediaError={handleMediaError}
             />
           )}
         </div>
 
-        {isListView ? renderDetails() : renderHoverDetails()}
+        {isListView
+          ? renderDetails(!job.ingredient)
+          : renderHoverDetails(!job.ingredient)}
       </article>
     );
   }
@@ -370,34 +378,14 @@ export default function StudioGenerateCard({
           </div>
         ) : null}
 
-        {mediaState === 'ready' && job.url ? (
-          AUDIO_TYPES.has(job.type) ? (
-            // biome-ignore lint/a11y/useMediaCaption: generated audio has no track
-            <audio
-              className="pointer-events-auto w-full px-3"
-              controls
-              onError={handleMediaError}
-              src={job.url}
-            />
-          ) : VIDEO_TYPES.has(job.type) ? (
-            // biome-ignore lint/a11y/useMediaCaption: generated video has no track
-            <video
-              className="pointer-events-auto size-full object-cover"
-              controls
-              onError={handleMediaError}
-              src={job.url}
-            />
-          ) : (
-            <NextImage
-              alt={job.prompt}
-              className="object-cover"
-              fill
-              onError={handleMediaError}
-              sizes="(max-width: 768px) 50vw, 25vw"
-              src={job.url}
-              unoptimized
-            />
-          )
+        {mediaState === 'ready' && job.url && AUDIO_TYPES.has(job.type) ? (
+          <AudioPreviewPlayer
+            audioUrl={job.url}
+            className="pointer-events-auto w-full px-3"
+            isTimelineVisible
+            label={job.prompt || label}
+            onError={handleMediaError}
+          />
         ) : null}
       </div>
 

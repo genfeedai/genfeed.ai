@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   TopazUpscaleFactor,
   TopazVideoFPS,
@@ -10,6 +9,7 @@ import type {
   UpscaleNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -430,15 +430,23 @@ function UpscaleVideoOutput({
         />
       ) : (
         <div className="relative">
-          <video
-            ref={videoRef}
+          <VideoPlayer
             src={nodeData.outputVideo}
-            aria-label="Upscaled video output"
-            className="h-32 w-full rounded-md object-cover cursor-pointer"
-            onClick={togglePlayback}
-            onEnded={() => setIsPlaying(false)}
-            loop
-            muted
+            ariaLabel="Upscaled video output"
+            className="nodrag nowheel h-32 w-full rounded-md overflow-hidden"
+            videoRef={videoRef}
+            config={{
+              autoPlay: false,
+              controls: false,
+              loop: true,
+              muted: true,
+              playsInline: true,
+              preload: 'metadata',
+            }}
+            mediaProps={{
+              onClick: togglePlayback,
+              onEnded: () => setIsPlaying(false),
+            }}
           />
           <RefreshOutputButton onProcess={onProcess} status={nodeData.status} />
         </div>

@@ -1,6 +1,6 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import IngredientInspectorRail from './IngredientInspectorRail';
 
@@ -48,7 +48,15 @@ describe('IngredientInspectorRail', () => {
     );
     const player = screen.getByLabelText('Video player');
     expect(player).toHaveAttribute('src', 'https://cdn.genfeed.ai/apple.mp4');
-    expect(player).toHaveAttribute('controls');
+    expect(
+      screen.getByRole('slider', { name: 'Seek video' }),
+    ).toBeInTheDocument();
+    const play = vi
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockResolvedValue();
+    fireEvent.click(screen.getByRole('button', { name: 'Play video' }));
+    expect(play).toHaveBeenCalledOnce();
+    play.mockRestore();
     expect(player).not.toHaveAttribute('autoplay');
   });
 });

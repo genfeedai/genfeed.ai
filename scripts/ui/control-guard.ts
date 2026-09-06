@@ -33,6 +33,7 @@ const logger = {
 // ─── Categories ────────────────────────────────────────────────────────────
 
 export type ControlGuardCategory =
+  | 'raw-media'
   | 'raw-html'
   | 'banned-import'
   | 'legacy-import'
@@ -56,6 +57,9 @@ export type ControlGuardViolation = {
 // grouped by the concern it serves. No other file carries UI-control allowlist
 // state.
 export const ALLOWLIST = {
+  sharedMediaFiles: new Set<string>([
+    'packages/ui/src/components/display/video-player/VideoPlayer.tsx',
+  ]),
   /**
    * Path segments where raw HTML primitives and dead-wrapper imports are the
    * legitimate implementation (the primitive wrappers themselves, editors,
@@ -310,6 +314,39 @@ function matchLines(content: string, pattern: RegExp): number[] {
 
 const RULES: readonly Rule[] = [
   {
+    category: 'raw-media',
+    severity: 'required',
+    scope: {
+      prefixes: [...PRODUCT_UI_PREFIXES, 'packages/workflows/src/ui/'],
+      exts: JSX_EXTS,
+    },
+    detect: (rel, content) => {
+      if (ALLOWLIST.sharedMediaFiles.has(rel)) return [];
+      const source = ts.createSourceFile(
+        rel,
+        content,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      const lines: number[] = [];
+      const visit = (node: ts.Node): void => {
+        if (
+          (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) &&
+          ['img', 'video', 'audio'].includes(node.tagName.getText(source))
+        ) {
+          lines.push(
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+              1,
+          );
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return lines;
+    },
+  },
+  {
     category: 'raw-button',
     severity: 'advisory',
     scope: { prefixes: APP_PAGES_PREFIXES, exts: JSX_EXTS },
@@ -490,6 +527,7 @@ const BOUNDED_GLOBS = [
   'packages/pages/**/*.{tsx,jsx}',
   'packages/ui/src/**/*.{tsx,jsx}',
   'packages/ui/workflow-builder/**/*.{tsx,jsx}',
+  'packages/workflows/src/ui/**/*.{tsx,jsx}',
 ];
 const BOUNDED_GLOB_IGNORE = [
   '**/*.test.*',
@@ -575,6 +613,7 @@ export function runControlGuard(options: RunOptions = {}): {
 // ─── Reporting ───────────────────────────────────────────────────────────────
 
 const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
+  'raw-media',
   'raw-html',
   'banned-import',
   'legacy-import',
@@ -586,6 +625,7 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
 ];
 
 const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
+  'raw-media': 'Use shared media components instead of raw media elements.',
   'raw-html': 'Use @ui/primitives/* instead of raw HTML elements.',
   'banned-import':
     'Import primitives from @ui/primitives/*, not dead wrappers.',

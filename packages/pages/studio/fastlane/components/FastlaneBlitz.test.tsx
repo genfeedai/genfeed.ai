@@ -4,6 +4,22 @@ import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FastlaneBlitz from './FastlaneBlitz';
 
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: ({
+    src,
+    thumbnail,
+    ariaLabel,
+  }: {
+    src: string;
+    thumbnail?: string;
+    ariaLabel: string;
+  }) => (
+    <video src={src} poster={thumbnail} aria-label={ariaLabel}>
+      <track kind="captions" />
+    </video>
+  ),
+}));
+
 function makeAsset(id: string, hook: string): FastlaneAssetItem {
   return {
     idea: {
@@ -77,6 +93,51 @@ describe('FastlaneBlitz', () => {
 
     expect(screen.getByText(/generating your assets/i)).toBeTruthy();
   });
+
+  it('plays generated video using the asset URL and keeps its thumbnail as the poster', () => {
+    const asset = makeAsset('video', 'Video hook');
+    asset.idea.format = 'video';
+    asset.ingredientUrl = 'https://cdn.example.com/video.mp4';
+    asset.thumbnailUrl = 'https://cdn.example.com/poster.jpg';
+    render(<Harness initial={[asset]} />);
+    expect(screen.getByLabelText('Video hook')).toHaveAttribute(
+      'src',
+      asset.ingredientUrl,
+    );
+    expect(screen.getByLabelText('Video hook')).toHaveAttribute(
+      'poster',
+      asset.thumbnailUrl,
+    );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('does not approve an asset when arrow keys are used on media controls', () => {
+    render(
+      <Harness
+        initial={[makeAsset('a', 'Hook A'), makeAsset('b', 'Hook B')]}
+      />,
+    );
+    fireEvent.keyDown(screen.getByRole('button', { name: /approve/i }), {
+      key: 'ArrowRight',
+    });
+    settleSwipe();
+    expect(screen.getByText('Hook A')).toBeInTheDocument();
+  });
+
+  it.each(['ArrowLeft', 'ArrowRight'])(
+    'does not review an asset when %s targets its video',
+    (key) => {
+      const asset = makeAsset('video', 'Video hook');
+      asset.idea.format = 'video';
+      asset.ingredientUrl = 'https://cdn.example.com/video.mp4';
+      render(<Harness initial={[asset]} />);
+
+      fireEvent.keyDown(screen.getByLabelText('Video hook'), { key });
+      settleSwipe();
+
+      expect(screen.getByLabelText('Video hook')).toBeInTheDocument();
+    },
+  );
 
   it('reviews every asset in order without skipping (regression: skip-every-other)', () => {
     render(

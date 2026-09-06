@@ -1,13 +1,14 @@
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/hooks/media/use-audio-player/use-audio-player', () => ({
-  useAudioPlayer: () => ({
-    play: vi.fn(),
-    stop: vi.fn(),
-  }),
+vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+  default: ({ audioUrl }: { audioUrl?: string }) => (
+    <button type="button" data-testid="shared-audio-player" data-url={audioUrl}>
+      Play preview
+    </button>
+  ),
 }));
 
 describe('IngredientSound', () => {
@@ -34,14 +35,18 @@ describe('IngredientSound', () => {
     expect(getByTestId('ingredient-sound-item')).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
+  it('uses shared playback without mutating ingredient data', () => {
+    const setIngredients = vi.fn();
+    render(
       <IngredientSound
         ingredients={ingredients}
         setIngredients={setIngredients}
       />,
     );
-    expect(container.firstChild).toBeInTheDocument();
+    const player = screen.getByTestId('shared-audio-player');
+    expect(player).toHaveAttribute('data-url', 'https://example.com/sound.mp3');
+    fireEvent.click(player);
+    expect(setIngredients).not.toHaveBeenCalled();
   });
 
   it('should apply correct styles and classes', () => {

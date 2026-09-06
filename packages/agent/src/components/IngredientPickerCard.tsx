@@ -1,5 +1,12 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import {
+  LazyMasonryImage,
+  LazyMasonryVideo,
+} from '@ui/lazy/masonry/LazyMasonry';
 import { Button } from '@ui/primitives/button';
 import { Check, Image } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
@@ -20,63 +27,39 @@ function IngredientThumbnail({
   isSelected: boolean;
   onPick: (ingredient: Ingredient) => void;
 }): ReactElement {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const src = ingredient.thumbnailUrl ?? ingredient.url;
+  const media = {
+    id: ingredient.id,
+    cdnUrl: ingredient.url,
+    metadata: new Metadata({
+      label: ingredient.title ?? 'Select ingredient',
+      width: 1,
+      height: 1,
+    }),
+  };
+  const sharedProps = {
+    isActionsEnabled: false,
+    isContainerHovered: true,
+    isDragEnabled: false,
+    isSelected,
+    onClickIngredient: () => onPick(ingredient),
+  };
 
   return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={() => onPick(ingredient)}
-      aria-label={ingredient.title ?? 'Select ingredient'}
-      className={`group relative aspect-square overflow-hidden border transition-all duration-150 ${
-        isSelected
-          ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
-          : 'border-border hover:border-primary/60'
-      }`}
-    >
-      {!isLoaded && <div className="absolute inset-0 animate-pulse bg-muted" />}
+    <div className="min-w-0">
       {ingredient.type === 'video' ? (
-        <video
-          src={src}
-          className={`h-full w-full object-cover transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoadedData={() => setIsLoaded(true)}
-          muted
-          playsInline
-        />
+        <LazyMasonryVideo {...sharedProps} video={new Video(media)} />
       ) : (
-        <img
-          src={src}
-          alt={ingredient.title ?? 'Ingredient'}
-          className={`h-full w-full object-cover transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setIsLoaded(true)}
+        <LazyMasonryImage
+          {...sharedProps}
+          image={
+            new IngredientImage({
+              ...media,
+              cdnUrl: ingredient.thumbnailUrl ?? ingredient.url,
+            })
+          }
         />
       )}
-
-      {/* Hover overlay with title */}
-      {ingredient.title && (
-        <div
-          className={
-            'absolute inset-0 flex items-end bg-black/0 p-1 opacity-0 transition-all duration-150 group-hover:bg-black/40 group-hover:opacity-100' /* design-system-allow-content-color */
-          }
-        >
-          <span
-            className={
-              'line-clamp-2 text-2xs font-medium leading-tight text-white' /* design-system-allow-content-color */
-            }
-          >
-            {ingredient.title}
-          </span>
-        </div>
-      )}
-
-      {/* Selected checkmark */}
-      {isSelected && (
-        <div className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary">
-          <Check className="size-2.5 text-primary-foreground" />
-        </div>
-      )}
-    </Button>
+    </div>
   );
 }
 

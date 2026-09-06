@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -119,8 +120,8 @@ describe('IngredientAlternativesCard', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByAltText('Generated result')).toHaveAttribute(
-        'src',
+      expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+        'data-url',
         'https://cdn.test/gen-1.png',
       ),
     );
@@ -201,8 +202,8 @@ describe('IngredientAlternativesCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
     await waitFor(() =>
-      expect(screen.getByAltText('Generated result')).toHaveAttribute(
-        'src',
+      expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+        'data-url',
         'https://cdn.test/gen-retried.png',
       ),
     );

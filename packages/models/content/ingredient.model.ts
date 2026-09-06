@@ -279,6 +279,10 @@ export class Ingredient extends BaseIngredient {
       return this.rewriteFilesServiceUrl(trimmed) ?? trimmed;
     }
 
+    if (/^(?:data:|blob:)/i.test(trimmed)) {
+      return trimmed;
+    }
+
     const normalizedPath = this.normalizeStoragePath(trimmed);
     return normalizedPath
       ? `${this.publicCdnOrigin()}/${normalizedPath}`

@@ -4,6 +4,8 @@ import type {
   HandleType,
   WorkflowOutputNodeData,
 } from '@genfeedai/contracts/types';
+import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
 import {
@@ -153,15 +155,23 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               />
             )}
             {outputType === 'video' && (
-              <video
-                ref={videoRef}
+              <VideoPlayer
                 src={nodeData.inputValue as string}
-                aria-label="Connected video output preview"
-                className="mt-1 h-24 w-full rounded-md object-cover cursor-pointer"
-                onClick={togglePlayback}
-                onEnded={() => setIsPlaying(false)}
-                loop
-                muted
+                ariaLabel="Connected video output preview"
+                className="nodrag nowheel mt-1 h-24 w-full rounded-md overflow-hidden"
+                videoRef={videoRef}
+                config={{
+                  autoPlay: false,
+                  controls: false,
+                  loop: true,
+                  muted: true,
+                  playsInline: true,
+                  preload: 'metadata',
+                }}
+                mediaProps={{
+                  onClick: togglePlayback,
+                  onEnded: () => setIsPlaying(false),
+                }}
               />
             )}
             {outputType === 'text' && (
@@ -171,14 +181,12 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               </div>
             )}
             {outputType === 'audio' && (
-              <audio
-                src={nodeData.inputValue as string}
-                aria-label="Connected audio output preview"
-                controls
-                className="mt-1 w-full h-8"
-              >
-                <track kind="captions" />
-              </audio>
+              <AudioPreviewPlayer
+                audioUrl={nodeData.inputValue as string}
+                label="Connected audio output preview"
+                className="nodrag nowheel mt-1 w-full"
+                isTimelineVisible
+              />
             )}
             {outputType === 'number' && (
               <div className="mt-1 p-2 bg-secondary/50 text-sm font-mono">

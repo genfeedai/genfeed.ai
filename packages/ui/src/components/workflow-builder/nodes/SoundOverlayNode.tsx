@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Slider } from '@ui/primitives/slider';
@@ -223,11 +224,10 @@ function SoundOverlayNodeComponent({
           <div className="text-xs text-green-400 font-medium mb-1">
             Processing Complete
           </div>
-          <video
-            aria-label="Output video"
+          <VideoPlayer
+            ariaLabel="Output video"
             src={data.outputVideoUrl}
-            controls
-            className="w-full"
+            className="aspect-video w-full"
           />
         </div>
       )}

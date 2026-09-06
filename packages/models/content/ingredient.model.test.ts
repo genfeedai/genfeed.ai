@@ -827,6 +827,20 @@ describe('Ingredient', () => {
       );
     });
 
+    it.each([
+      'data:image/png;base64,iVBORw0KGgo=',
+      'blob:https://app.genfeed.ai/preview-asset',
+    ])('preserves browser media URL %s without adding a CDN origin', (url) => {
+      const ingredient = createIngredient({
+        category: IngredientCategory.IMAGE,
+        cdnUrl: url,
+        id: 'inline-preview',
+        status: IngredientStatus.GENERATED,
+      });
+
+      expect(ingredient.ingredientUrl).toBe(url);
+    });
+
     it('should build CDN URL from s3Key when cdnUrl is missing', () => {
       const ingredient = createIngredient({
         category: IngredientCategory.IMAGE,

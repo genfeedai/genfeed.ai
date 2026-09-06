@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   NodeType,
   PromptNodeData,
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   ChevronLeft,
@@ -202,16 +202,19 @@ function MediaPreviewContent({
         />
       )}
       {mediaType === 'video' && (
-        <video
+        <VideoPlayer
           src={displayUrl}
-          aria-label={nodeLabel}
-          controls
-          autoPlay
-          loop
-          className="max-h-[calc(100vh-200px)] max-w-[calc(100vw-100px)] rounded-lg"
-        >
-          <track kind="captions" />
-        </video>
+          ariaLabel={nodeLabel}
+          className="h-[calc(100vh-200px)] w-[calc(100vw-100px)] max-w-full rounded-lg overflow-hidden"
+          config={{
+            autoPlay: true,
+            controls: true,
+            loop: true,
+            muted: false,
+            playsInline: true,
+            preload: 'metadata',
+          }}
+        />
       )}
     </div>
   );

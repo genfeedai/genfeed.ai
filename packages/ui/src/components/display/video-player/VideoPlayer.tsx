@@ -1,10 +1,14 @@
+'use client';
+
 import { ComponentSize } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import VideoPlayerControls from '@genfeedai/ui/components/display/video-player/VideoPlayerControls';
+import Spinner from '@genfeedai/ui/components/feedback/spinner/Spinner';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface VideoOverlayContentProps {
   hasError: boolean;
@@ -86,10 +90,14 @@ function VideoOverlayContent({
 
 export default function VideoPlayer({
   ariaLabel = 'Video player',
+  mediaClassName,
+  mediaProps = {},
+  onLoad,
   videoRef,
   src = '',
   thumbnail = '',
   priority = false,
+  isActive = true,
   className = '',
   config = {
     autoPlay: false,
@@ -100,10 +108,33 @@ export default function VideoPlayer({
     preload: 'metadata',
   },
 }: VideoPlayerProps) {
+  const internalVideoRef = useRef<HTMLVideoElement>(null);
+  const resolvedVideoRef = videoRef ?? internalVideoRef;
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(
+    mediaProps.muted ?? config.muted ?? false,
+  );
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const hasControls = mediaProps.controls ?? config.controls;
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isMetadataLoaded, setIsMetadataLoaded] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsLoaded(false);
+    setHasError(false);
+    setIsMetadataLoaded(false);
+    setShowLoader(Boolean(src));
+  }, [src]);
+
+  useEffect(() => {
+    if (!isActive) resolvedVideoRef.current?.pause();
+  }, [isActive, resolvedVideoRef]);
 
   // Hide loader faster when thumbnail is available
   useEffect(() => {
@@ -158,8 +189,8 @@ export default function VideoPlayer({
   return (
     <div className={`relative size-full ${className}`}>
       {/* Show thumbnail or loading state when video isn't ready */}
-      {((showLoader && !isLoaded) || hasError) && (
-        <div className="absolute inset-0 z-10">
+      {((!isLoaded && (showLoader || thumbnail)) || hasError) && (
+        <div className="pointer-events-none absolute inset-0 z-10">
           <VideoOverlayContent
             hasError={hasError}
             thumbnail={thumbnail}
@@ -171,26 +202,86 @@ export default function VideoPlayer({
       )}
 
       <video
-        aria-label={ariaLabel}
-        controls={config?.controls}
-        muted={config?.muted}
-        loop={config?.loop}
-        playsInline={config?.playsInline}
-        autoPlay={config?.autoPlay}
-        preload={config?.preload}
-        ref={videoRef}
+        {...mediaProps}
+        aria-label={mediaProps['aria-label'] ?? ariaLabel}
+        controls={false}
+        muted={mediaProps.muted ?? config?.muted}
+        loop={mediaProps.loop ?? config?.loop}
+        playsInline={mediaProps.playsInline ?? config?.playsInline}
+        autoPlay={mediaProps.autoPlay ?? config?.autoPlay}
+        preload={mediaProps.preload ?? config?.preload}
+        ref={resolvedVideoRef}
         src={
           src ||
           `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
         }
-        onLoadedMetadata={handleLoadedMetadata}
-        onLoadedData={handleLoadedData}
-        onCanPlay={handleCanPlay}
-        onError={handleError}
-        className={`size-full object-contain object-center ${
-          isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
-        }`}
+        onLoadedMetadata={(event) => {
+          handleLoadedMetadata();
+          setDuration(
+            Number.isFinite(event.currentTarget.duration)
+              ? event.currentTarget.duration
+              : 0,
+          );
+          setIsMuted(event.currentTarget.muted);
+          mediaProps.onLoadedMetadata?.(event);
+        }}
+        onDurationChange={(event) => {
+          setDuration(
+            Number.isFinite(event.currentTarget.duration)
+              ? event.currentTarget.duration
+              : 0,
+          );
+          mediaProps.onDurationChange?.(event);
+        }}
+        onTimeUpdate={(event) => {
+          if (hasControls) setCurrentTime(event.currentTarget.currentTime);
+          mediaProps.onTimeUpdate?.(event);
+        }}
+        onPlay={(event) => {
+          setIsPlaying(true);
+          mediaProps.onPlay?.(event);
+        }}
+        onPause={(event) => {
+          setIsPlaying(false);
+          mediaProps.onPause?.(event);
+        }}
+        onEnded={(event) => {
+          setIsPlaying(false);
+          mediaProps.onEnded?.(event);
+        }}
+        onVolumeChange={(event) => {
+          setIsMuted(event.currentTarget.muted);
+          mediaProps.onVolumeChange?.(event);
+        }}
+        onLoadedData={(event) => {
+          handleLoadedData();
+          onLoad?.();
+          mediaProps.onLoadedData?.(event);
+        }}
+        onCanPlay={(event) => {
+          handleCanPlay();
+          mediaProps.onCanPlay?.(event);
+        }}
+        onError={(event) => {
+          handleError(event);
+          mediaProps.onError?.(event);
+        }}
+        className={cn(
+          'size-full object-contain object-center',
+          mediaClassName,
+          isLoaded && !hasError ? 'opacity-100' : 'opacity-0',
+        )}
       />
+      {hasControls && (
+        <VideoPlayerControls
+          videoRef={resolvedVideoRef}
+          isPlaying={isPlaying}
+          isMuted={isMuted}
+          currentTime={currentTime}
+          duration={duration}
+          onPlaybackError={() => setHasError(true)}
+        />
+      )}
     </div>
   );
 }

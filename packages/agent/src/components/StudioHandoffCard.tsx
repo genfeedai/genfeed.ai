@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ExternalLink, Paintbrush } from 'lucide-react';
+import Image from 'next/image';
 import type { ReactElement } from 'react';
 
 interface StudioHandoffCardProps {
@@ -18,7 +19,10 @@ export function StudioHandoffCard({
       {/* Thumbnail */}
       {thumbnailUrl && (
         <div className="bg-muted">
-          <img
+          <Image
+            width={640}
+            height={360}
+            unoptimized
             src={thumbnailUrl}
             alt="Content preview"
             className="h-auto max-h-40 w-full object-contain"

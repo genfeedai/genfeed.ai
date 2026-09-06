@@ -9,6 +9,14 @@ const mocks = vi.hoisted(() => ({
   updateNodeData: vi.fn(),
 }));
 
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: ({ src, ariaLabel }: { src: string; ariaLabel: string }) => (
+    <video aria-label={ariaLabel} src={src}>
+      <track kind="captions" />
+    </video>
+  ),
+}));
+
 vi.mock('@genfeedai/workflows/ui/nodes', () => ({
   BaseNode: ({
     children,

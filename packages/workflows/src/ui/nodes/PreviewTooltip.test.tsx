@@ -6,6 +6,22 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PreviewTooltip } from './PreviewTooltip';
 
+const { videoPlayerMock } = vi.hoisted(() => ({ videoPlayerMock: vi.fn() }));
+
+vi.mock('@genfeedai/ui/components/display/video-player/VideoPlayer', () => ({
+  default: (props: { src: string; ariaLabel: string }) => {
+    videoPlayerMock(props);
+    return (
+      <div
+        aria-label={props.ariaLabel}
+        data-src={props.src}
+        data-testid="shared-video-player"
+        role="group"
+      />
+    );
+  },
+}));
+
 vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
     <span aria-label={alt} data-src={src} data-testid="next-image" role="img" />
@@ -87,7 +103,7 @@ describe('PreviewTooltip', () => {
     expect(screen.queryByTestId('next-image')).not.toBeInTheDocument();
   });
 
-  it('renders a video element for video nodes', () => {
+  it('uses the shared player with silent looping playback for video previews', () => {
     render(
       <PreviewTooltip
         anchorRect={makeAnchor()}
@@ -104,7 +120,18 @@ describe('PreviewTooltip', () => {
     );
 
     const video = screen.getByLabelText('Video preview');
-    expect(video).toHaveAttribute('src', 'https://cdn/clip.mp4');
+    expect(video).toHaveAttribute('data-src', 'https://cdn/clip.mp4');
+    expect(videoPlayerMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          autoPlay: true,
+          controls: false,
+          loop: true,
+          muted: true,
+          playsInline: true,
+        }),
+      }),
+    );
   });
 
   it('flips below the anchor when there is no room above', () => {

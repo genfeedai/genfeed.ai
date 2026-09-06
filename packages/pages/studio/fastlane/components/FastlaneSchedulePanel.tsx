@@ -7,11 +7,13 @@ import type {
   ICredential,
 } from '@genfeedai/contracts/interfaces';
 import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import DateTimePicker from '@ui/primitives/date-time-picker';
 import { Textarea } from '@ui/primitives/textarea';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
+import Image from 'next/image';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
 import type { ScheduleApprovedParams } from '../types';
@@ -249,13 +251,32 @@ export default function FastlaneSchedulePanel({
             className="gen-glass rounded-lg p-4 flex flex-col gap-3"
           >
             <div className="flex items-center gap-2">
-              {(asset.thumbnailUrl ?? asset.ingredientUrl) && (
-                <img
-                  src={asset.thumbnailUrl ?? asset.ingredientUrl}
+              {asset.idea.format !== 'image' &&
+              !asset.thumbnailUrl &&
+              asset.ingredientUrl ? (
+                <VideoPlayer
+                  ariaLabel={asset.idea.hook}
+                  className="size-12 shrink-0 overflow-hidden rounded-md"
+                  src={asset.ingredientUrl}
+                  config={{
+                    preload: 'metadata',
+                    controls: false,
+                    autoPlay: false,
+                    muted: true,
+                    loop: false,
+                    playsInline: true,
+                  }}
+                />
+              ) : (asset.thumbnailUrl ?? asset.ingredientUrl) ? (
+                <Image
+                  unoptimized
+                  width={48}
+                  height={48}
+                  src={asset.thumbnailUrl ?? asset.ingredientUrl ?? ''}
                   alt={asset.idea.hook}
                   className="w-12 h-12 rounded-md object-cover shrink-0"
                 />
-              )}
+              ) : null}
               <div className="flex flex-col gap-1 min-w-0">
                 <Badge variant="secondary">{asset.idea.format}</Badge>
                 <p className="text-sm font-medium truncate">

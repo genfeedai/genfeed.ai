@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   AudioCodec,
   TransitionType,
   VideoStitchNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import {
@@ -236,12 +236,19 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Output Preview */}
         {nodeData.outputVideo && (
           <div className="relative">
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Stitched video output"
-              className="w-full h-20 object-cover rounded"
-              controls
-              loop={nodeData.seamlessLoop}
+              ariaLabel="Stitched video output"
+              mediaClassName="object-cover"
+              className="nodrag nowheel w-full h-20 rounded overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: nodeData.seamlessLoop,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
             />
             <Button
               withWrapper={false}

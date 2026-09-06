@@ -78,7 +78,9 @@ describe('ModalMusic', () => {
 
     render(<ModalMusic {...defaultProps} onConfirm={onConfirm} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /Focus Track/ }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: /^Focus Track/ }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Use Selected Music' }));
 
     expect(onConfirm).toHaveBeenCalledOnce();

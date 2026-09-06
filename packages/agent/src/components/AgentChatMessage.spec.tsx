@@ -1,6 +1,7 @@
+import '@agent-tests/media-preview-mocks';
 import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -469,9 +470,15 @@ describe('AgentChatMessage', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('img', { name: 'Generated content 1' }),
-    ).toHaveAttribute('src', ONE_PIXEL_IMAGE);
+    expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+      'data-url',
+      ONE_PIXEL_IMAGE,
+    );
+    fireEvent.click(screen.getByTestId('masonry-image'));
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
+      ONE_PIXEL_IMAGE,
+    );
   });
 
   it('renders a generated post once when its product preview card owns the turn', () => {
@@ -593,8 +600,13 @@ describe('AgentChatMessage', () => {
     expect(
       screen.getByRole('button', { name: 'Create Variant' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Variant 1' })).toHaveAttribute(
-      'src',
+    expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+      'data-url',
+      ONE_PIXEL_IMAGE,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Variant 1' }));
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
       ONE_PIXEL_IMAGE,
     );
     expect(
@@ -643,7 +655,7 @@ describe('AgentChatMessage', () => {
     expect(
       screen.getByRole('link', { name: 'Use in Workflow' }),
     ).toHaveAttribute('href', '/automation/workflows/workflow-1');
-    expect(screen.queryByRole('img', { name: /Variant/i })).toBeNull();
+    expect(screen.queryByTestId('masonry-image')).not.toBeInTheDocument();
   });
 
   it('makes structured actions inert while the conversation is busy', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 
 interface MediaPreviewProps {
@@ -34,18 +35,19 @@ export function MediaPreview({
   if (type === 'video') {
     return (
       <div className={containerClass}>
-        <video
-          aria-label="Media preview"
+        <VideoPlayer
+          ariaLabel="Media preview"
           src={src}
-          className="h-24 w-full object-contain"
-          controls={controls}
-          autoPlay={autoPlay}
-          muted={muted}
-          loop={loop}
-          playsInline
-        >
-          <track kind="captions" />
-        </video>
+          className="h-24 w-full"
+          config={{
+            preload: 'metadata',
+            controls,
+            autoPlay,
+            muted,
+            loop,
+            playsInline: true,
+          }}
+        />
       </div>
     );
   }

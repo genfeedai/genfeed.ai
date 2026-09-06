@@ -237,7 +237,6 @@
     "packages/agent/src/components/AgentFullPageMobileDrawers.tsx": 3,
     "packages/agent/src/components/AgentFullPageOnboardingChrome.tsx": 4,
     "packages/agent/src/components/AgentInputRequestOverlay.tsx": 2,
-    "packages/agent/src/components/AgentMediaArtifactPreview.tsx": 1,
     "packages/agent/src/components/AgentOAuthConnectMenu.tsx": 2,
     "packages/agent/src/components/AgentOnboardingChecklist.tsx": 7,
     "packages/agent/src/components/AgentOutputsPanel.tsx": 8,

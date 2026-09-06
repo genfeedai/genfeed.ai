@@ -33,6 +33,7 @@ import Loading from '@ui/loading/default/Loading';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
@@ -137,7 +138,14 @@ function AccountGridTile({
       withWrapper={false}
     >
       {thumbnail ? (
-        <img alt="" className="size-full object-cover" src={thumbnail} />
+        <Image
+          unoptimized
+          width={400}
+          height={400}
+          alt=""
+          className="size-full object-cover"
+          src={thumbnail}
+        />
       ) : (
         <span className="flex size-full items-center p-2 text-xs text-foreground/70">
           {title}

@@ -8,6 +8,7 @@ import type {
   ReframeNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -232,15 +233,23 @@ function ReframeNodeComponent(props: NodeProps) {
         {/* Output Preview - Video */}
         {inputType === 'video' && nodeData.outputVideo && (
           <div className="relative mt-1">
-            <video
-              ref={videoRef}
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Reframed video output"
-              className="h-32 w-full rounded-md object-cover cursor-pointer"
-              onClick={togglePlayback}
-              onEnded={() => setIsPlaying(false)}
-              loop
-              muted
+              ariaLabel="Reframed video output"
+              className="nodrag nowheel h-32 w-full rounded-md overflow-hidden"
+              videoRef={videoRef}
+              config={{
+                autoPlay: false,
+                controls: false,
+                loop: true,
+                muted: true,
+                playsInline: true,
+                preload: 'metadata',
+              }}
+              mediaProps={{
+                onClick: togglePlayback,
+                onEnded: () => setIsPlaying(false),
+              }}
             />
             <Button
               withWrapper={false}

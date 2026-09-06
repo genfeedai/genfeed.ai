@@ -1,6 +1,7 @@
+import '@agent-tests/media-preview-mocks';
 import DynamicBlockGrid from '@genfeedai/agent/components/blocks/DynamicBlockGrid';
 import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/agent/components/blocks/DynamicChart', () => ({
@@ -379,7 +380,12 @@ describe('DynamicBlockGrid', () => {
       } as unknown as AgentUIBlock),
     ]);
 
-    expect(screen.getByAltText('A photo')).toBeInTheDocument();
+    expect(screen.getAllByTestId('masonry-image')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'A photo' }));
+    expect(screen.getByRole('dialog')).toHaveAttribute(
+      'data-url',
+      'https://cdn.test/a.jpg',
+    );
     expect(screen.getByText('Shot one')).toBeInTheDocument();
   });
 

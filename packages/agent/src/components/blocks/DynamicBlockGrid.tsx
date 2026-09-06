@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout';
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
@@ -24,6 +25,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -240,7 +242,10 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
           }`}
         >
           {post.thumbnail && (
-            <img
+            <Image
+              width={320}
+              height={180}
+              unoptimized
               src={post.thumbnail}
               alt={post.title ?? 'Post thumbnail'}
               className={`rounded object-cover ${
@@ -375,10 +380,16 @@ function ImageGrid({ block }: { block: ImageGridBlock }): ReactElement {
     >
       {block.images.map((image) => (
         <div key={image.url} className="overflow-hidden rounded-lg">
-          <img
-            src={image.url}
-            alt={image.alt ?? ''}
-            className="h-auto w-full object-cover"
+          <AgentMediaArtifactPreview
+            displayMode="featured"
+            assets={[
+              {
+                kind: 'image',
+                url: image.url,
+                alt: image.alt,
+                title: image.alt ?? image.caption,
+              },
+            ]}
           />
           {image.caption && (
             <p className="mt-1 text-xs text-muted-foreground">

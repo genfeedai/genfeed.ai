@@ -29,7 +29,6 @@ export default function ModalGalleryContent({
   creations = EMPTY_ARRAY,
   selectedItems,
   selectedItem,
-  playingId,
   localFormat,
   onSelectItem,
   onSelectReference,
@@ -37,7 +36,6 @@ export default function ModalGalleryContent({
   selectionLimit,
   getFormatLabel,
   getImageFormat,
-  onMusicPlayPause,
 }: ModalGalleryContentProps) {
   const { openUpload } = useUploadModal({
     onComplete: () => {
@@ -168,9 +166,7 @@ export default function ModalGalleryContent({
             key={item.id}
             music={item as IMusic}
             isSelected={selectedItem === item.id}
-            isPlaying={playingId === item.id}
             onSelect={onSelectItem}
-            onPlayPause={onMusicPlayPause}
           />
         ))}
       </div>

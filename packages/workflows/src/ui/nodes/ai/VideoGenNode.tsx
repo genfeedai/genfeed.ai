@@ -1,6 +1,7 @@
 'use client';
 
 import type { VideoGenNodeData, VideoModel } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -138,14 +139,19 @@ function VideoGenNodeComponent(props: NodeProps) {
               'relative aspect-video w-full rounded-md overflow-hidden bg-black/20' /* design-system-allow-content-color */
             }
           >
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Generated video output"
-              className="absolute inset-0 size-full object-contain cursor-pointer"
-              controls
-            >
-              <track kind="captions" />
-            </video>
+              ariaLabel="Generated video output"
+              className="nodrag nowheel absolute inset-0 size-full overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: false,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
+            />
             {/* Processing overlay spinner */}
             {nodeData.status === 'processing' && (
               <ProcessingOverlay onStop={handleStop} />

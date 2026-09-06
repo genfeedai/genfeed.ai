@@ -1,3 +1,4 @@
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import type { GenerationActionCardStatus } from '@genfeedai/agent/components/useGenerationActionCard';
 import {
   ButtonSize,
@@ -87,11 +88,10 @@ export function GenerationActionCardStatusPanel({
     return (
       <div className="space-y-2">
         {resultUrl ? (
-          <div className="overflow-hidden border border-border">
-            <video src={resultUrl} controls className="w-full">
-              <track kind="captions" />
-            </video>
-          </div>
+          <AgentMediaArtifactPreview
+            assets={[{ kind: 'video', title: 'Pilot preview', url: resultUrl }]}
+            displayMode="featured"
+          />
         ) : null}
         <p className="text-sm text-muted-foreground">
           {translate('pilotReviewTitle', {
@@ -139,19 +139,16 @@ export function GenerationActionCardStatusPanel({
 
     return (
       <div className="space-y-2">
-        <div className="overflow-hidden border border-border">
-          {isImage ? (
-            <img
-              src={resultUrl}
-              alt="Generated result"
-              className="w-full object-cover"
-            />
-          ) : (
-            <video src={resultUrl} controls className="w-full">
-              <track kind="captions" />
-            </video>
-          )}
-        </div>
+        <AgentMediaArtifactPreview
+          assets={[
+            {
+              kind: isImage ? 'image' : 'video',
+              title: 'Generated result',
+              url: resultUrl,
+            },
+          ]}
+          displayMode="featured"
+        />
         {qualityScore !== undefined && (
           <GenerationActionCardQualityBadge
             score={qualityScore}

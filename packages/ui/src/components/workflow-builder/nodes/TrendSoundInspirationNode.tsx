@@ -1,12 +1,13 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
-import { LoaderCircle, Music, Play, TrendingUp } from 'lucide-react';
+import { LoaderCircle, Music, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback, useId, useState } from 'react';
+import { memo, useCallback, useId } from 'react';
 
 export type { TrendSoundInspirationNodeData };
 
@@ -33,7 +34,6 @@ function TrendSoundInspirationNodeComponent({
   onUpdate,
   onExecute,
 }: TrendSoundInspirationNodeProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const minUsageCountId = useId();
   const maxDurationId = useId();
 
@@ -55,15 +55,6 @@ function TrendSoundInspirationNodeComponent({
   const handleFetch = useCallback(() => {
     onExecute(id);
   }, [id, onExecute]);
-
-  const handlePlayPreview = useCallback(() => {
-    if (data.soundUrl) {
-      const audio = new Audio(data.soundUrl);
-      audio.play();
-      setIsPlaying(true);
-      audio.onended = () => setIsPlaying(false);
-    }
-  }, [data.soundUrl]);
 
   const isProcessing = data.status === WorkflowNodeStatus.PROCESSING;
 
@@ -172,16 +163,12 @@ function TrendSoundInspirationNodeComponent({
 
           {/* Play Preview */}
           {data.soundUrl && (
-            <Button
-              onClick={handlePlayPreview}
-              isDisabled={isPlaying}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              className="w-full mt-2 py-1.5 bg-background border border-white/[0.08] text-xs flex items-center justify-center gap-1 hover:bg-border transition"
-            >
-              <Play className="size-3" />
-              {isPlaying ? 'Playing…' : 'Preview Sound'}
-            </Button>
+            <AudioPreviewPlayer
+              audioUrl={data.soundUrl}
+              label={data.soundName || 'Trending sound'}
+              className="nodrag nowheel mt-2 w-full"
+              isTimelineVisible
+            />
           )}
 
           {/* Sound ID for reference */}

@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type { VoiceChangeNodeData } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Slider } from '@genfeedai/ui/primitives/slider';
@@ -118,11 +118,18 @@ function VoiceChangeNodeComponent(props: NodeProps) {
         {/* Output Video Preview */}
         {nodeData.outputVideo && (
           <div className="relative">
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Voice-changed video output"
-              controls
-              className="w-full rounded border border-border"
+              ariaLabel="Voice-changed video output"
+              className="nodrag nowheel w-full rounded border border-border aspect-video overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: false,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
             />
             <Button
               withWrapper={false}

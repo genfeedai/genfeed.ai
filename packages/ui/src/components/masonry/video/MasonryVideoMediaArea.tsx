@@ -29,6 +29,7 @@ type MasonryVideoMediaAreaProps = {
   onClickIngredient?: (video: IVideo) => void;
   onRefresh?: () => void;
   onImageLoad?: () => void;
+  onMediaError?: () => void;
   onReprompt?: (video: IVideo) => void;
 };
 
@@ -60,6 +61,7 @@ export default function MasonryVideoMediaArea({
   onClickIngredient,
   onRefresh,
   onImageLoad,
+  onMediaError,
   onReprompt,
 }: MasonryVideoMediaAreaProps) {
   const translate = useTranslations('common.libraryRetry');
@@ -169,6 +171,7 @@ export default function MasonryVideoMediaArea({
       ) : (
         <div {...sharedWrapperProps}>
           <VideoPlayer
+            mediaProps={{ onError: onMediaError }}
             src={
               ingredientUrl && ingredientUrl !== ''
                 ? ingredientUrl

@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoInputNodeData } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
@@ -176,11 +177,18 @@ function VideoInputNodeComponent(props: NodeProps) {
             'relative max-h-32 overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
           }
         >
-          <video
+          <VideoPlayer
             src={nodeData.video}
-            aria-label={nodeData.filename || 'Video preview'}
-            className="w-full h-auto max-h-32 object-contain cursor-pointer"
-            muted
+            ariaLabel={nodeData.filename || 'Video preview'}
+            className="nodrag nowheel w-full h-32 overflow-hidden"
+            config={{
+              autoPlay: false,
+              controls: false,
+              loop: false,
+              muted: true,
+              playsInline: true,
+              preload: 'metadata',
+            }}
           />
           <Button
             withWrapper={false}

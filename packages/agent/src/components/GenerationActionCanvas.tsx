@@ -1,5 +1,7 @@
 'use client';
 
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
+
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   extractThreadAssets,
@@ -143,7 +145,6 @@ export function GenerationActionCanvas({
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
         {assets.map((asset) => {
           const isSelected = referenceIds.includes(asset.id);
-          const previewUrl = asset.thumbnailUrl || asset.url;
 
           return (
             <div
@@ -155,18 +156,23 @@ export function GenerationActionCanvas({
                   : 'border-border',
               )}
             >
+              <AgentMediaArtifactPreview
+                assets={[
+                  {
+                    kind: asset.type,
+                    url: asset.url,
+                    title: asset.title ?? translate('generatedAssetAlt'),
+                  },
+                ]}
+                displayMode="featured"
+              />
               <Button
                 type="button"
                 isDisabled={isDisabled}
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => onToggleReference(asset)}
-                className={cn(
-                  'relative block aspect-square w-full overflow-hidden',
-                  isDisabled
-                    ? 'cursor-not-allowed opacity-60'
-                    : 'cursor-pointer',
-                )}
+                className="flex w-full items-center justify-center gap-1 border-t border-border px-1 py-1 text-2xs"
                 aria-pressed={isSelected}
                 aria-label={
                   isSelected
@@ -180,29 +186,8 @@ export function GenerationActionCanvas({
                       })
                 }
               >
-                {asset.type === 'video' ? (
-                  <video
-                    src={previewUrl}
-                    className="size-full object-cover"
-                    muted
-                    playsInline
-                  >
-                    <track kind="captions" />
-                  </video>
-                ) : (
-                  <img
-                    src={previewUrl}
-                    alt={asset.title ?? translate('generatedAssetAlt')}
-                    className="size-full object-cover"
-                  />
-                )}
-                {isSelected ? (
-                  <span className="absolute inset-0 flex items-center justify-center bg-primary/25">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="size-3.5" />
-                    </span>
-                  </span>
-                ) : null}
+                {isSelected ? <Check className="size-3" /> : null}
+                {resolvedSelectionLabel}
               </Button>
 
               <div className="flex border-t border-border">
