@@ -250,11 +250,22 @@ function WorkspacePageContentContent({
             label: 'Inbox is empty',
           };
 
+  const inboxTableItems =
+    section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5);
+  // Only agent-run tasks carry an execution path; hide the column when none do
+  // so seeded or manual queues never show an empty column.
+  const hasInboxPaths = inboxTableItems.some((task) =>
+    Boolean(task.executionPathUsed),
+  );
+  const inboxTableColumns = hasInboxPaths
+    ? workspaceInboxTableColumns
+    : workspaceInboxTableColumns.filter(
+        (column) => column.key !== 'executionPathUsed',
+      );
+
   const inboxTable = (
     <AppTable<Task>
-      items={
-        section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
-      }
+      items={inboxTableItems}
       isLoading={isWorkspaceTasksLoading}
       emptyLabel={inboxEmpty.label}
       emptyDescription={inboxEmpty.description}
@@ -271,7 +282,7 @@ function WorkspacePageContentContent({
         setSelectedTaskId(task.id);
         replaceTaskSearchParam(task.id);
       }}
-      columns={workspaceInboxTableColumns}
+      columns={inboxTableColumns}
     />
   );
 
