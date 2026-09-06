@@ -9,6 +9,7 @@ import { OrganizationsCoreModule } from '@api/collections/organizations/organiza
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
+import { UsersNotificationInboxController } from '@api/collections/users/controllers/users-notification-inbox.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
@@ -17,7 +18,11 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [UsersRelationshipsController, UsersController],
+  controllers: [
+    UsersNotificationInboxController,
+    UsersRelationshipsController,
+    UsersController,
+  ],
   exports: [UsersCoreModule],
   imports: [
     UsersCoreModule,

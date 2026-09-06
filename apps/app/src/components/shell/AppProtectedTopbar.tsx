@@ -28,6 +28,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
 import TopbarActivityMenu from '@/components/shell/TopbarActivityMenu';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -245,7 +246,7 @@ function AppProtectedTopbarContent({
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3"
+        className="grid h-full w-full grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(min-content,1fr)] items-center gap-3 px-3"
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
           {onSidebarToggle && isSidebarCollapsed ? (
@@ -328,7 +329,12 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
-          {!isAdminChrome ? <TopbarActivityMenu /> : null}
+          {!isAdminChrome ? (
+            <>
+              <NotificationInboxMenu />
+              <TopbarActivityMenu />
+            </>
+          ) : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
