@@ -6,7 +6,7 @@ import BrandKitReviewCard from './BrandKitReviewCard';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../apps/app/tests/next-intl.stub'
+    '../../../../../apps/app/tests/next-intl.stub'
   );
   return { useTranslations: translateFromCatalog };
 });

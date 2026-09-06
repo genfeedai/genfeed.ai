@@ -134,11 +134,11 @@ export default function BrandSettingsHarnessPage() {
 
   const brandLabel = brand?.label;
   useEffect(() => {
-    const resolvedLabel = brandLabel;
-    if (!brandId || resolvedLabel === undefined) {
+    if (!brandId || brandLabel === undefined) {
       setIsFetching(false);
       return;
     }
+    const resolvedLabel: string = brandLabel;
 
     const controller = new AbortController();
 
