@@ -558,13 +558,14 @@ function WorkspaceInspectorContent({
           onOpenTab={actions.onOpenTab}
         />
       }
-      // The agent composer belongs to the Chat pane; Context and Files end at
-      // their own content.
+      // The composer stays mounted so drafts survive tab switches, but it is
+      // only shown under the Chat pane; Context and Files end at their content.
       footer={
-        isComposerOwner && chrome.activeKind === 'conversation' ? (
+        isComposerOwner ? (
           <div
             className="shrink-0 border-t border-border p-2"
             data-testid="workspace-inspector-composer-slot"
+            hidden={chrome.activeKind !== 'conversation'}
             ref={actions.onSetComposerPortalTarget}
           />
         ) : null

@@ -636,9 +636,10 @@ describe('UniversalWorkspaceShell', () => {
     );
     const conversation = screen.getByTestId('inspector-conversation');
     await waitFor(() => expect(conversation).not.toBeVisible());
+    // The composer only shows under Chat; Context ends at its own content.
     expect(
       screen.getByTestId('workspace-inspector-composer-slot'),
-    ).toBeVisible();
+    ).not.toBeVisible();
     expect(screen.getByText('Selected asset preview')).toBeVisible();
     fireEvent(window, new Event(OPEN_CONVERSATION_TAB_EVENT));
     expect(conversation).toBeVisible();
@@ -1103,8 +1104,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(conversation).toBeVisible();
     await user.click(screen.getByRole('tab', { name: 'Context' }));
     expect(conversation).not.toBeVisible();
-    expect(composer).toBeVisible();
+    expect(composer).not.toBeVisible();
     fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+    expect(composer).toBeVisible();
     expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
     expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
       composer,
