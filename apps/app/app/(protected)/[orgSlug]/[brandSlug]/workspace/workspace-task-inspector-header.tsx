@@ -36,7 +36,7 @@ export function WorkspaceTaskInspectorHeader({
   const translate = useTranslations('pages.workspaceOverview.actions');
   return (
     <div className="border-b border-border px-6 py-5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-4">
         <div className="flex min-w-0 flex-col space-y-3 text-left">
           <div className="flex flex-wrap items-center gap-2">
             <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
@@ -58,7 +58,7 @@ export function WorkspaceTaskInspectorHeader({
           <p className="text-sm leading-6 text-foreground/55">{task.request}</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
