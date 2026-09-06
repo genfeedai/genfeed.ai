@@ -303,9 +303,7 @@
     "openOverlayPreview": "Open overlay preview",
     "returnToConversation": "Return to conversation",
     "tabs": {
-      "add": "Add panel",
       "chat": "Chat",
-      "close": "Close {panel}",
       "panels": "Inspector panels",
       "browser": "Browser",
       "browserEmptyDescription": "Page and generation previews appear here when you open them.",

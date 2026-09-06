@@ -449,10 +449,8 @@ describe('PanelTabs', () => {
     ];
     const props = {
       ariaLabel: 'Panels',
-      closeLabel: (label: string) => `Close ${label}`,
       footer: <div>Prompt bar</div>,
       items,
-      onClose: vi.fn(),
       onTabChange: vi.fn(),
     };
     const view = render(<PanelTabs {...props} activeTab="context" />);
@@ -464,16 +462,13 @@ describe('PanelTabs', () => {
     expect(transcript).toBeVisible();
     expect(screen.queryByText('Asset preview')).not.toBeInTheDocument();
   });
-  it('supports keyboard selection and closing without nested buttons', async () => {
+  it('supports keyboard selection across the segmented strip', async () => {
     const user = userEvent.setup();
-    const onClose = vi.fn();
     const onTabChange = vi.fn();
     render(
       <PanelTabs
         activeTab="context"
         ariaLabel="Panels"
-        closeLabel={(label) => `Close ${label}`}
-        onClose={onClose}
         onTabChange={onTabChange}
         items={[
           { id: 'context', label: 'Context', isOpen: true, content: 'Preview' },
@@ -484,12 +479,6 @@ describe('PanelTabs', () => {
     screen.getByRole('tab', { name: 'Context' }).focus();
     await user.keyboard('{ArrowRight}');
     expect(onTabChange).toHaveBeenCalledWith('files');
-    await user.keyboard('{Delete}');
-    expect(onClose).toHaveBeenCalledWith('files');
-    expect(
-      screen
-        .getByRole('button', { name: 'Close Context' })
-        .closest('[role="tab"]'),
-    ).toBeNull();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
