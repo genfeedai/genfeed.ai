@@ -6,9 +6,15 @@ import { render, screen, waitFor } from '@testing-library/react';
 import type { ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const pushMock = vi.fn();
 const getBrandsWithStatsMock = vi.fn();
-const getPlatformBreakdownMock = vi.fn();
+const getPlatformComparisonMock = vi.fn();
+let contextBrandId: string | null = null;
 
 let analyticsResult: {
   analytics: IAnalytics | null;
@@ -62,13 +68,14 @@ const stableDateRange = {
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({
-    brandId: null,
+    brandId: contextBrandId,
     dateRange: stableDateRange,
     refreshTrigger: 0,
   }),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
   useCollectionScope: () => ({
     brandId: undefined,
     isReady: true,
@@ -87,7 +94,8 @@ vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
 
 const getAnalyticsServiceMock = async () => ({
   getBrandsWithStats: getBrandsWithStatsMock,
-  getPlatformBreakdown: getPlatformBreakdownMock,
+  getPlatformComparison: getPlatformComparisonMock,
+  getTopAccounts: async () => [],
 });
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -99,7 +107,18 @@ describe('AnalyticsOrganizationOverview', () => {
     vi.clearAllMocks();
     analyticsResult = { analytics: analyticsFixture, isLoading: false };
     getBrandsWithStatsMock.mockResolvedValue({ data: [brandFixture] });
-    getPlatformBreakdownMock.mockResolvedValue([]);
+    getPlatformComparisonMock.mockResolvedValue({});
+    contextBrandId = null;
+  });
+
+  it('omits an empty brand ID for organization-wide platform comparison', async () => {
+    contextBrandId = '';
+    render(<AnalyticsOrganizationOverview />);
+    await waitFor(() => {
+      expect(getPlatformComparisonMock).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: undefined }),
+      );
+    });
   });
 
   it('renders the four-card organization metric strip without a redundant page title', async () => {
