@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   CharacterOrientation,
   KlingQualityMode,
   MotionControlMode,
   MotionControlNodeData,
 } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import {
@@ -307,14 +307,19 @@ function MotionOutputPreview({
 
   return (
     <div className="relative">
-      <video
+      <VideoPlayer
         src={outputVideo}
-        aria-label="Motion-controlled video output"
-        className="w-full h-20 object-cover rounded cursor-pointer"
-        controls
-      >
-        <track kind="captions" />
-      </video>
+        ariaLabel="Motion-controlled video output"
+        className="nodrag nowheel w-full h-20 rounded overflow-hidden"
+        config={{
+          autoPlay: false,
+          controls: true,
+          loop: false,
+          muted: false,
+          playsInline: true,
+          preload: 'metadata',
+        }}
+      />
       <Button
         withWrapper={false}
         variant={ButtonVariant.GHOST}

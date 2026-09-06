@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { LUMA_ASPECT_RATIOS } from '@genfeedai/pricing';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
@@ -165,14 +166,19 @@ function ResizeNodeComponent(props: NodeProps) {
         {nodeData.outputMedia && (
           <div className="relative mt-1">
             {mediaType === 'video' ? (
-              <video
+              <VideoPlayer
                 src={nodeData.outputMedia}
-                aria-label="Resized video output"
-                className="h-32 w-full rounded-md object-cover"
-                controls
-              >
-                <track kind="captions" />
-              </video>
+                ariaLabel="Resized video output"
+                className="nodrag nowheel h-32 w-full rounded-md object-cover overflow-hidden"
+                config={{
+                  autoPlay: false,
+                  controls: true,
+                  loop: false,
+                  muted: false,
+                  playsInline: true,
+                  preload: 'metadata',
+                }}
+              />
             ) : (
               <Image
                 src={nodeData.outputMedia}

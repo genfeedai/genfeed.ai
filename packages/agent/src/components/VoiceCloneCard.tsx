@@ -3,6 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { CircleAlert, Mic } from 'lucide-react';
 import {
   type ReactElement,
@@ -336,14 +337,10 @@ export function VoiceCloneCard({
       {/* Audio preview if provided */}
       {action.audioUrl && (
         <div className="mb-3">
-          <audio
-            src={action.audioUrl}
-            controls
-            aria-label="Voice preview"
-            className="w-full"
-          >
-            <track kind="captions" />
-          </audio>
+          <AudioPreviewPlayer
+            audioUrl={action.audioUrl}
+            label="Voice preview"
+          />
         </div>
       )}
 

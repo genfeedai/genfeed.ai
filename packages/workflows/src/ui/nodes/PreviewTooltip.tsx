@@ -1,6 +1,7 @@
 'use client';
 
 import type { NodeType, WorkflowNodeData } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import Image from 'next/image';
 import { useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -102,14 +103,18 @@ export function PreviewTooltip({
             />
           )}
           {mediaInfo.type === 'video' && (
-            <video
+            <VideoPlayer
               src={mediaInfo.url}
-              aria-label="Video preview"
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="size-full object-contain"
+              ariaLabel="Video preview"
+              className="size-full overflow-hidden"
+              config={{
+                autoPlay: true,
+                controls: false,
+                loop: true,
+                muted: true,
+                playsInline: true,
+                preload: 'metadata',
+              }}
             />
           )}
         </div>

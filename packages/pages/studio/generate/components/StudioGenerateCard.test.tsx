@@ -12,6 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 const masonryMocks = vi.hoisted(() => ({
   image: vi.fn(),
   video: vi.fn(),
+  audio: vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -26,6 +27,17 @@ vi.mock('next/image', () => ({
   default: ({ alt, onError, src }: React.ComponentProps<'img'>) => (
     <img alt={alt} onError={onError} src={String(src)} />
   ),
+}));
+
+vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+  default: (props: Record<string, unknown>) => {
+    masonryMocks.audio(props);
+    return (
+      <button type="button" data-testid="shared-audio-player">
+        Play audio
+      </button>
+    );
+  },
 }));
 
 vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
@@ -117,7 +129,10 @@ describe('StudioGenerateCard', () => {
       />,
     );
 
-    fireEvent.error(screen.getByRole('img', { name: generatedJob.prompt }));
+    const props = masonryMocks.image.mock.calls.at(-1)?.[0] as {
+      onMediaError: () => void;
+    };
+    act(props.onMediaError);
 
     expect(
       screen.queryByRole('img', { name: generatedJob.prompt }),
@@ -247,6 +262,72 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(screen.getByTestId('shared-masonry-video')).toBeInTheDocument();
+  });
+
+  it.each(['image', 'video'] as const)(
+    'uses masonry for %s URLs before ingredient hydration',
+    (type) => {
+      render(
+        <StudioGenerateCard
+          assetActions={buildAssetActions()}
+          job={{ ...generatedJob, type }}
+          onReprompt={vi.fn()}
+          onSelect={vi.fn()}
+          view={ViewType.GRID}
+        />,
+      );
+      expect(screen.getByTestId(`shared-masonry-${type}`)).toBeInTheDocument();
+      const props = masonryMocks[type].mock.calls.at(-1)?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(props.isActionsEnabled).toBe(false);
+      expect(props[type]).toMatchObject({
+        id: generatedJob.id,
+        cdnUrl: generatedJob.url,
+      });
+    },
+  );
+
+  it('reports video errors through the shared fallback before hydration', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'video' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    const props = masonryMocks.video.mock.calls.at(-1)?.[0] as {
+      onMediaError: () => void;
+    };
+    act(props.onMediaError);
+    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+  });
+
+  it('uses shared audio transport without selecting the generation when playing', () => {
+    const onSelect = vi.fn();
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'voice' }}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+        view={ViewType.GRID}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('shared-audio-player'));
+    expect(onSelect).not.toHaveBeenCalled();
+    const props = masonryMocks.audio.mock.calls.at(-1)?.[0] as {
+      onError: () => void;
+      audioUrl: string;
+      isTimelineVisible: boolean;
+    };
+    expect(props.audioUrl).toBe(generatedJob.url);
+    expect(props.isTimelineVisible).toBe(true);
+    act(props.onError);
+    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
   it('selects a card so the inspector can open', () => {

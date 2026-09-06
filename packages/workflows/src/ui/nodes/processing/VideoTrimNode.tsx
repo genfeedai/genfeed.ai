@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoTrimNodeData } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Slider } from '@genfeedai/ui/primitives/slider';
@@ -172,14 +173,19 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Output Preview */}
         {nodeData.outputVideo && (
           <div className="relative">
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Trimmed video output"
-              className="w-full h-20 object-cover rounded"
-              controls
-            >
-              <track kind="captions" />
-            </video>
+              ariaLabel="Trimmed video output"
+              className="nodrag nowheel w-full h-20 rounded overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: false,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
+            />
             <Button
               withWrapper={false}
               variant={ButtonVariant.GHOST}

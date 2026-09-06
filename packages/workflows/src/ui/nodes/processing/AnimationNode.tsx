@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   AnimationNodeData,
   EasingPreset,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Select,
@@ -242,11 +242,18 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Output Preview */}
         {nodeData.outputVideo && (
           <div className="relative">
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Animated video output"
-              className="w-full h-20 object-cover rounded"
-              controls
+              ariaLabel="Animated video output"
+              className="nodrag nowheel w-full h-20 rounded overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: false,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
             />
             <Button
               withWrapper={false}

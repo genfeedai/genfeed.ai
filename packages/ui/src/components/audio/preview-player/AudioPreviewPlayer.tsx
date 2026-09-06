@@ -1,13 +1,18 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { formatDuration } from '@helpers/video-duration.helper';
 import { Button } from '@ui/primitives/button';
+import { Slider } from '@ui/primitives/slider';
 import { useEffect, useMemo, useState } from 'react';
 
-type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing';
+type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing' | 'error';
 
 type SharedAudioSnapshot = {
   currentUrl: string | null;
+  currentTime: number;
+  duration: number;
   status: SharedAudioStatus;
 };
 
@@ -16,15 +21,19 @@ const listeners = new Set<() => void>();
 let sharedAudio: HTMLAudioElement | null = null;
 let sharedSnapshot: SharedAudioSnapshot = {
   currentUrl: null,
+  currentTime: 0,
+  duration: 0,
   status: 'idle',
 };
 
 function emitSnapshot() {
-  listeners.forEach((listener) => listener());
+  listeners.forEach((listener) => {
+    listener();
+  });
 }
 
-function setSharedSnapshot(nextSnapshot: SharedAudioSnapshot) {
-  sharedSnapshot = nextSnapshot;
+function setSharedSnapshot(nextSnapshot: Partial<SharedAudioSnapshot>) {
+  sharedSnapshot = { ...sharedSnapshot, ...nextSnapshot };
   emitSnapshot();
 }
 
@@ -59,10 +68,21 @@ function ensureSharedAudio(): HTMLAudioElement | null {
     });
     sharedAudio.addEventListener('error', () => {
       setSharedSnapshot({
-        currentUrl: null,
-        status: 'idle',
+        currentUrl: sharedAudio?.src ?? null,
+        status: 'error',
       });
     });
+    const updateProgress = () =>
+      setSharedSnapshot({
+        currentTime: sharedAudio?.currentTime ?? 0,
+        duration:
+          sharedAudio && Number.isFinite(sharedAudio.duration)
+            ? sharedAudio.duration
+            : 0,
+      });
+    sharedAudio.addEventListener('loadedmetadata', updateProgress);
+    sharedAudio.addEventListener('timeupdate', updateProgress);
+    sharedAudio.addEventListener('durationchange', updateProgress);
   }
 
   return sharedAudio;
@@ -70,15 +90,20 @@ function ensureSharedAudio(): HTMLAudioElement | null {
 
 export interface AudioPreviewPlayerProps {
   audioUrl?: string | null;
+  className?: string;
+  onError?: () => void;
+  isTimelineVisible?: boolean;
   label: string;
 }
 
 export default function AudioPreviewPlayer({
   audioUrl,
   label,
+  className,
+  onError,
+  isTimelineVisible = false,
 }: AudioPreviewPlayerProps) {
   const [snapshot, setSnapshot] = useState(sharedSnapshot);
-  const [isErrored, setIsErrored] = useState(false);
 
   useEffect(() => {
     const listener = () => {
@@ -106,6 +131,11 @@ export default function AudioPreviewPlayer({
     }
   }, [audioUrl, snapshot.currentUrl]);
 
+  const isErrored = isCurrent && snapshot.status === 'error';
+  useEffect(() => {
+    if (isErrored) onError?.();
+  }, [isErrored, onError]);
+
   const isLoading = isCurrent && snapshot.status === 'loading';
   const isPlaying = isCurrent && snapshot.status === 'playing';
 
@@ -120,8 +150,6 @@ export default function AudioPreviewPlayer({
       return;
     }
 
-    setIsErrored(false);
-
     if (isCurrent && !audio.paused) {
       audio.pause();
       return;
@@ -130,6 +158,7 @@ export default function AudioPreviewPlayer({
     setSharedSnapshot({
       currentUrl: audioUrl,
       status: 'loading',
+      ...(isCurrent ? {} : { currentTime: 0, duration: 0 }),
     });
 
     if (audio.src !== audioUrl) {
@@ -139,16 +168,12 @@ export default function AudioPreviewPlayer({
     try {
       await audio.play();
     } catch {
-      setIsErrored(true);
-      setSharedSnapshot({
-        currentUrl: null,
-        status: 'idle',
-      });
+      setSharedSnapshot({ currentUrl: audioUrl, status: 'error' });
     }
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn('nodrag nopan flex items-center gap-2', className)}>
       <Button
         ariaLabel={
           isPlaying ? `Pause preview for ${label}` : `Play preview for ${label}`
@@ -156,7 +181,10 @@ export default function AudioPreviewPlayer({
         isDisabled={!audioUrl}
         onClick={() => {
           handleToggle().catch(() => {
-            setIsErrored(true);
+            setSharedSnapshot({
+              currentUrl: audioUrl ?? null,
+              status: 'error',
+            });
           });
         }}
         size={ButtonSize.SM}
@@ -171,6 +199,26 @@ export default function AudioPreviewPlayer({
               ? 'Pause'
               : 'Play'}
       </Button>
+      {isTimelineVisible && (
+        <div className="min-w-0 flex-1 space-y-1">
+          <Slider
+            aria-label={`Seek ${label}`}
+            min={0}
+            max={isCurrent && snapshot.duration ? snapshot.duration : 1}
+            step={0.1}
+            value={[isCurrent ? snapshot.currentTime : 0]}
+            disabled={!isCurrent || !snapshot.duration}
+            onValueChange={([time]) => {
+              if (sharedAudio && isCurrent && time !== undefined)
+                sharedAudio.currentTime = time;
+            }}
+          />
+          <span className="block text-2xs tabular-nums text-muted-foreground">
+            {formatDuration(isCurrent ? snapshot.currentTime : 0)} /{' '}
+            {formatDuration(isCurrent ? snapshot.duration : 0)}
+          </span>
+        </div>
+      )}
       {isErrored ? (
         <span className="text-xs text-destructive">Preview failed</span>
       ) : null}

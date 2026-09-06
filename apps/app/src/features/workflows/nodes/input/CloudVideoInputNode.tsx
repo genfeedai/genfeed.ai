@@ -5,6 +5,7 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback, useMemo } from 'react';
 import { NodeButton } from '@/features/workflows/components/ui/button';
@@ -149,13 +150,17 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
                 'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
               }
             >
-              <video
-                aria-label="Cloud video preview"
+              <VideoPlayer
+                ariaLabel="Cloud video preview"
                 src={mediaConfig.resolvedUrl}
-                className="h-28 w-full object-contain"
-                controls
-                muted
-                playsInline
+                className="h-28 w-full"
+                config={{
+                  controls: true,
+                  autoPlay: false,
+                  loop: false,
+                  muted: true,
+                  playsInline: true,
+                }}
               />
             </div>
             <div className="space-y-1 text-2xs text-muted-foreground">

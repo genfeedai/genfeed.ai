@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   LipSyncMode,
   LipSyncModel,
   LipSyncNodeData,
 } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import {
@@ -189,11 +189,18 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Output Video Preview */}
         {nodeData.outputVideo && (
           <div className="relative">
-            <video
+            <VideoPlayer
               src={nodeData.outputVideo}
-              aria-label="Lip-synced video output"
-              controls
-              className="w-full rounded border border-border"
+              ariaLabel="Lip-synced video output"
+              className="nodrag nowheel w-full rounded border border-border aspect-video overflow-hidden"
+              config={{
+                autoPlay: false,
+                controls: true,
+                loop: false,
+                muted: false,
+                playsInline: true,
+                preload: 'metadata',
+              }}
             />
             <Button
               withWrapper={false}

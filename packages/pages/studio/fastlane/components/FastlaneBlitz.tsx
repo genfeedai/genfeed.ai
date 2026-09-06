@@ -2,8 +2,10 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { FastlaneAssetItem } from '@genfeedai/contracts/interfaces';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 interface FastlaneBlitzProps {
@@ -55,6 +57,12 @@ export default function FastlaneBlitz({
   // Keyboard left/right arrow support
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (
+        e.defaultPrevented ||
+        (e.target instanceof Element &&
+          e.target.closest('button, input, [role="slider"]'))
+      )
+        return;
       if (e.key === 'ArrowRight') triggerSwipe('right');
       if (e.key === 'ArrowLeft') triggerSwipe('left');
     }
@@ -142,21 +150,39 @@ export default function FastlaneBlitz({
       {failedCount > 0 && (
         <Badge variant="destructive">{failedCount} failed</Badge>
       )}
-
       <p className="gen-label-sm text-muted-foreground">
         {reviewedCount + 1} / {reviewedCount + readyAssets.length} — ← reject ·
         approve →
       </p>
-
       {/* Card */}
       <div className="relative w-full" style={{ minHeight: 420 }}>
         <div
           className="gen-glass rounded-2xl overflow-hidden w-full absolute inset-0"
           style={swipeStyle}
         >
-          {currentAsset?.thumbnailUrl || currentAsset?.ingredientUrl ? (
-            <img
-              src={currentAsset.thumbnailUrl ?? currentAsset.ingredientUrl}
+          {currentAsset?.idea.format !== 'image' &&
+          currentAsset?.ingredientUrl ? (
+            <VideoPlayer
+              ariaLabel={currentAsset.idea.hook}
+              className="h-64 w-full"
+              src={currentAsset.ingredientUrl}
+              thumbnail={currentAsset.thumbnailUrl}
+              config={{
+                controls: true,
+                autoPlay: false,
+                muted: true,
+                loop: false,
+                playsInline: true,
+              }}
+            />
+          ) : currentAsset?.thumbnailUrl || currentAsset?.ingredientUrl ? (
+            <Image
+              unoptimized
+              width={800}
+              height={512}
+              src={
+                currentAsset.thumbnailUrl ?? currentAsset.ingredientUrl ?? ''
+              }
               alt={currentAsset.idea.hook}
               className="w-full h-64 object-cover"
             />
@@ -184,7 +210,6 @@ export default function FastlaneBlitz({
           </div>
         </div>
       </div>
-
       {/* Controls */}
       <div className="flex gap-4 mt-4" style={{ paddingTop: 420 }}>
         <Button
@@ -202,7 +227,6 @@ export default function FastlaneBlitz({
           isDisabled={!!swipeDir}
         />
       </div>
-
       {isGenerating && (
         <p className="text-xs text-muted-foreground">
           More assets still generating…

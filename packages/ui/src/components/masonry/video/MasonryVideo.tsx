@@ -48,6 +48,7 @@ export default function MasonryVideo({
   onMirror,
   onUpdateParent,
   onImageLoad,
+  onMediaError,
   onScopeChange,
   onRefresh,
   isDragEnabled = true,
@@ -142,6 +143,7 @@ export default function MasonryVideo({
           onClickIngredient={onClickIngredient}
           onRefresh={onRefresh}
           onImageLoad={onImageLoad}
+          onMediaError={onMediaError}
           onReprompt={onReprompt}
         />
       </div>

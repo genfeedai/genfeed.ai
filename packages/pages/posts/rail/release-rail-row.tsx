@@ -27,6 +27,7 @@ import {
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 import { ExternalLink, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -77,7 +78,14 @@ export default function ReleaseRailRow({
 
       <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-secondary text-[10px] text-foreground/40">
         {thumbnail ? (
-          <img alt="" className="size-full object-cover" src={thumbnail} />
+          <Image
+            unoptimized
+            width={40}
+            height={40}
+            alt=""
+            className="size-full object-cover"
+            src={thumbnail}
+          />
         ) : (
           translate('noMedia')
         )}

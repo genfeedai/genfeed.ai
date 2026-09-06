@@ -2,6 +2,22 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DownloadNode } from './OutputNode';
 
+const { videoPlayerMock } = vi.hoisted(() => ({ videoPlayerMock: vi.fn() }));
+
+vi.mock('@genfeedai/ui/components/display/video-player/VideoPlayer', () => ({
+  default: (props: { src: string; ariaLabel: string }) => {
+    videoPlayerMock(props);
+    return (
+      <div
+        aria-label={props.ariaLabel}
+        data-src={props.src}
+        data-testid="shared-video-player"
+        role="group"
+      />
+    );
+  },
+}));
+
 // Mock ReactFlow
 vi.mock('@xyflow/react', () => ({
   Handle: () => null,
@@ -162,17 +178,27 @@ describe('DownloadNode', () => {
     it('should display video when inputVideo is provided', () => {
       render(<DownloadNode {...videoProps} />);
 
-      const video = document.querySelector('video');
+      const video = screen.getByTestId('shared-video-player');
       expect(video).toBeInTheDocument();
-      expect(video?.getAttribute('src')).toBe('https://example.com/video.mp4');
+      expect(video.getAttribute('data-src')).toBe(
+        'https://example.com/video.mp4',
+      );
     });
 
-    it('should have autoplay and loop attributes', () => {
+    it('should preserve silent looping autoplay through shared player configuration', () => {
       render(<DownloadNode {...videoProps} />);
 
-      const video = document.querySelector('video');
-      expect(video?.hasAttribute('autoplay')).toBe(true);
-      expect(video?.hasAttribute('loop')).toBe(true);
+      expect(videoPlayerMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          config: expect.objectContaining({
+            autoPlay: true,
+            controls: false,
+            loop: true,
+            muted: true,
+            playsInline: true,
+          }),
+        }),
+      );
     });
 
     it('should show download button for video', () => {

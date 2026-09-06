@@ -2,6 +2,7 @@
 
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
@@ -36,15 +37,19 @@ export default function WorkflowCardPreview({
   return (
     <div className="relative aspect-video overflow-hidden rounded shadow-border bg-tertiary">
       {isVideoPreview ? (
-        <video
-          aria-label="Workflow preview"
+        <VideoPlayer
+          ariaLabel="Workflow preview"
           src={previewUrl}
-          className="h-full w-full object-cover object-center"
-          autoPlay
-          muted
-          loop
-          playsInline
-          onError={() => setHasAssetError(true)}
+          className="h-full w-full"
+          mediaClassName="object-cover"
+          config={{
+            autoPlay: true,
+            muted: true,
+            loop: true,
+            playsInline: true,
+            controls: false,
+          }}
+          mediaProps={{ onError: () => setHasAssetError(true) }}
         />
       ) : (
         <Image

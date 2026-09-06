@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   TextToSpeechNodeData,
   TTSProvider,
   TTSVoice,
 } from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
+import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Select,
@@ -265,11 +265,11 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Output Audio Player */}
         {nodeData.outputAudio && (
-          <audio
-            src={nodeData.outputAudio}
-            aria-label="Generated speech audio"
-            controls
-            className="w-full"
+          <AudioPreviewPlayer
+            audioUrl={nodeData.outputAudio}
+            label="Generated speech audio"
+            className="nodrag nowheel w-full"
+            isTimelineVisible
           />
         )}
 

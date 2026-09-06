@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { VoiceCloneStatus } from '@genfeedai/contracts';
@@ -79,6 +80,7 @@ describe('VoiceCloneCard', () => {
     );
 
     expect(screen.getByText('Voice setup')).toBeInTheDocument();
+    expect(screen.getByTestId('shared-audio-player')).toBeInTheDocument();
     expect(
       screen.getByText('Clone your voice for narration'),
     ).toBeInTheDocument();
@@ -307,6 +309,7 @@ describe('VoiceCloneCard', () => {
 
     // Cloning keeps the card visible with a disabled clone button.
     expect(screen.getByText('Voice setup')).toBeInTheDocument();
+    expect(screen.getByTestId('shared-audio-player')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /clone new voice/i }),
     ).toBeDisabled();

@@ -1,6 +1,7 @@
 'use client';
 
 import type { DownloadNodeData } from '@genfeedai/contracts/types';
+import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
@@ -103,14 +104,18 @@ function DownloadNodeComponent(props: NodeProps) {
                   'relative aspect-video min-h-[120px] w-full overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
                 }
               >
-                <video
+                <VideoPlayer
                   src={activeMedia}
-                  aria-label="Output video preview"
-                  className="absolute inset-0 size-full object-contain cursor-pointer"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                  ariaLabel="Output video preview"
+                  className="nodrag nowheel absolute inset-0 size-full overflow-hidden"
+                  config={{
+                    autoPlay: true,
+                    controls: false,
+                    loop: true,
+                    muted: true,
+                    playsInline: true,
+                    preload: 'metadata',
+                  }}
                 />
                 {nodeData.status === 'processing' && (
                   <div

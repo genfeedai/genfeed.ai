@@ -15,6 +15,7 @@ import {
 } from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
 import { Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
 type ByokProviderCardState = {
@@ -77,7 +78,8 @@ function ProviderLogo({
       <div
         className={`flex shrink-0 items-center justify-center overflow-hidden border border-border bg-muted/40 ${shell}`}
       >
-        <img
+        <Image
+          unoptimized
           src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
           alt=""
           width={size === 'lg' ? 28 : 24}

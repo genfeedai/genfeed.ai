@@ -4,6 +4,7 @@ import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
@@ -226,21 +227,19 @@ export default function MediaLightbox({
                   width: '100%',
                 }}
               >
-                {/* biome-ignore lint/a11y/useMediaCaption: user-generated video content */}
-                <video
-                  aria-label="Media lightbox video"
+                <VideoPlayer
+                  ariaLabel="Media lightbox video"
                   src={videoSlide.sources?.[0]?.src}
-                  poster={thumbnailSrc}
-                  controls
-                  playsInline
-                  preload="none"
-                  style={{
-                    maxHeight: '100%',
-                    maxWidth: '100%',
-                    objectFit: 'contain',
+                  thumbnail={thumbnailSrc}
+                  config={{
+                    controls: true,
+                    playsInline: true,
+                    preload: 'none',
+                    muted: false,
+                    loop: false,
+                    autoPlay: false,
                   }}
-                  // Force poster to show by not auto-loading
-                  autoPlay={false}
+                  mediaProps={{ poster: thumbnailSrc }}
                 />
               </div>
             );
