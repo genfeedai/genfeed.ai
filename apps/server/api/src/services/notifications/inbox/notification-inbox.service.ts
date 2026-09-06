@@ -106,7 +106,7 @@ export class NotificationInboxService {
       userId,
       isDeleted: false,
       event: { organizationId, isDeleted: false },
-      user: { isDeleted: false },
+      user: { is: { isDeleted: false } },
       organization: {
         isDeleted: false,
         members: {
@@ -125,8 +125,8 @@ export class NotificationInboxService {
         userId,
         isActive: true,
         isDeleted: false,
-        user: { isDeleted: false },
-        organization: { isDeleted: false },
+        user: { is: { isDeleted: false } },
+        organization: { is: { isDeleted: false } },
       },
       select: {
         role: { select: { key: true } },
@@ -188,6 +188,25 @@ export class NotificationInboxService {
       member.role.key === MemberRole.OWNER ||
       member.role.key === MemberRole.ADMIN;
     const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
+    const sourceAccessWhere = {
+      organizationId,
+      isDeleted: false,
+      userId,
+      OR: [
+        { brandId: null },
+        {
+          brand: {
+            is: {
+              organizationId,
+              isDeleted: false,
+              ...(restrictToAssignedBrands
+                ? { id: { in: member.brands.map((brand) => brand.id) } }
+                : {}),
+            },
+          },
+        },
+      ],
+    } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
@@ -197,23 +216,7 @@ export class NotificationInboxService {
             .filter((row) => row.event.sourceType === 'workflow_execution')
             .map((row) => row.event.sourceId),
         },
-        workflow: {
-          organizationId,
-          isDeleted: false,
-          userId,
-          OR: [
-            { brandId: null },
-            {
-              brand: {
-                organizationId,
-                isDeleted: false,
-                ...(restrictToAssignedBrands
-                  ? { id: { in: member.brands.map((brand) => brand.id) } }
-                  : {}),
-              },
-            },
-          ],
-        },
+        workflow: { is: sourceAccessWhere },
       },
       select: {
         id: true,
@@ -245,23 +248,7 @@ export class NotificationInboxService {
               organizationId,
               isDeleted: false,
               runId: row.event.sourceId,
-              thread: {
-                organizationId,
-                userId,
-                isDeleted: false,
-                OR: [
-                  { brandId: null },
-                  {
-                    brand: {
-                      organizationId,
-                      isDeleted: false,
-                      ...(restrictToAssignedBrands
-                        ? { id: { in: member.brands.map((brand) => brand.id) } }
-                        : {}),
-                    },
-                  },
-                ],
-              },
+              thread: { is: sourceAccessWhere },
             },
             select: {
               runId: true,
