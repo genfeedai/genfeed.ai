@@ -15,7 +15,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
-  notificationsService: { error: mocks.notifyError },
+  NotificationsService: {
+    getInstance: () => ({ error: mocks.notifyError }),
+  },
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

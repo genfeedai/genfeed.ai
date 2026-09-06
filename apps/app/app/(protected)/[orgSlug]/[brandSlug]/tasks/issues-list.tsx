@@ -39,7 +39,15 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { CirclePlus, Columns2, List } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronsUp,
+  ChevronUp,
+  CirclePlus,
+  Columns2,
+  List,
+  Minus,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   useCallback,
@@ -86,12 +94,26 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
   medium: 'Medium',
 };
 
-const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  critical: 'text-red-400',
-  high: 'text-orange-400',
-  low: 'text-gray-800',
-  medium: 'text-muted-foreground',
+const PRIORITY_VARIANTS: Record<
+  TaskPriority,
+  'error' | 'warning' | 'info' | 'secondary'
+> = {
+  critical: 'error',
+  high: 'warning',
+  low: 'secondary',
+  medium: 'info',
 };
+
+const PRIORITY_ICONS: Record<TaskPriority, typeof ChevronsUp> = {
+  critical: ChevronsUp,
+  high: ChevronUp,
+  low: ChevronDown,
+  medium: Minus,
+};
+
+/** Strips field chrome so the badge itself is the select trigger. */
+const PILL_TRIGGER_CLASS =
+  'h-auto w-auto gap-1 rounded-full border-0 bg-transparent p-0 shadow-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring [&>svg:last-child]:size-3';
 
 function TaskStatusBadge({ status }: { status: TaskStatus }) {
   return (
@@ -102,15 +124,15 @@ function TaskStatusBadge({ status }: { status: TaskStatus }) {
 }
 
 function TaskPriorityIndicator({ priority }: { priority: TaskPriority }) {
+  const Icon = PRIORITY_ICONS[priority];
   return (
-    <span
-      className={cn(
-        'text-2xs font-medium uppercase tracking-wider',
-        PRIORITY_COLORS[priority],
-      )}
+    <Badge
+      variant={PRIORITY_VARIANTS[priority]}
+      size={ComponentSize.SM}
+      icon={<Icon aria-hidden="true" className="size-3" />}
     >
       {PRIORITY_LABELS[priority]}
-    </span>
+    </Badge>
   );
 }
 
@@ -567,7 +589,7 @@ export default function IssuesList() {
                 >
                   <SelectTrigger
                     aria-label={`Status for ${issue.identifier}`}
-                    className="w-36"
+                    className={PILL_TRIGGER_CLASS}
                     onClick={(event) => event.stopPropagation()}
                   >
                     <SelectValue />
@@ -597,7 +619,7 @@ export default function IssuesList() {
                 >
                   <SelectTrigger
                     aria-label={`Priority for ${issue.identifier}`}
-                    className="w-28"
+                    className={PILL_TRIGGER_CLASS}
                     onClick={(event) => event.stopPropagation()}
                   >
                     <SelectValue />
