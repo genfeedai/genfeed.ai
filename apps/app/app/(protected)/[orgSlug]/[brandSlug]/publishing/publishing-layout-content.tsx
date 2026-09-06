@@ -138,8 +138,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       : pathSegments.slice(publishingSegmentIndex + 1);
   // Content desk, Campaigns, and Calendar own their controls.
   const hasOwnPageLayout =
-    (routeSuffix[0] === 'posts' &&
-      new URLSearchParams(searchParamsString).get('view') === 'calendar') ||
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
     routeSuffix[0] === 'campaigns' ||
     routeSuffix[0] === 'calendar';
@@ -270,7 +268,9 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         titleVisibility="sr-only"
         right={
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {isPostsListRoute ? (
+            {isPostsListRoute &&
+            new URLSearchParams(searchParamsString).get('view') !==
+              'calendar' ? (
               <DropdownMultiSelect
                 name="executionState"
                 options={statusOptions}

@@ -349,10 +349,6 @@ export default function PublishingContentLibrary() {
             Social posts, articles, and newsletters across every lifecycle.
           </p>
         </div>
-        <p className="text-sm tabular-nums text-foreground/55">
-          {filteredItems.length.toLocaleString()}{' '}
-          {filteredItems.length === 1 ? 'item' : 'items'}
-        </p>
       </div>
 
       <AppTable<PublishingContentLibraryItem>
@@ -366,15 +362,15 @@ export default function PublishingContentLibrary() {
         getRowLink={getRowLink}
       />
 
-      {totalPages > 1 ? (
-        <div className="mt-4">
-          <Pagination
-            currentPage={visiblePage}
-            totalPages={totalPages}
-            onPageChange={(page) => replaceQueryParam('page', String(page))}
-          />
-        </div>
-      ) : null}
+      <div className="mt-4">
+        <Pagination
+          totalItems={filteredItems.length}
+          totalLabel="items"
+          currentPage={visiblePage}
+          totalPages={totalPages}
+          onPageChange={(page) => replaceQueryParam('page', String(page))}
+        />
+      </div>
     </div>
   );
 }

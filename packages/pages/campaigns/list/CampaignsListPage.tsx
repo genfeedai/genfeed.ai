@@ -57,10 +57,11 @@ export default function CampaignsListPage() {
   const status = parseCampaignStatusFilter(searchParams?.get('status'));
   const parsedPage = Number.parseInt(searchParams?.get('page') ?? '1', 10);
   const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
-  const { campaigns, isLoading, isError, refetch, totalPages } = useCampaigns({
-    page,
-    status,
-  });
+  const { campaigns, isLoading, isError, refetch, total, totalPages } =
+    useCampaigns({
+      page,
+      status,
+    });
   const brandLabels = useMemo(() => {
     return new Map(brands.map((brand) => [brand.id, brand.label]));
   }, [brands]);
@@ -196,15 +197,15 @@ export default function CampaignsListPage() {
         isLoading={isLoading}
         items={campaigns}
       />
-      {totalPages > 1 ? (
-        <div className="mt-4">
-          <Pagination
-            currentPage={page}
-            onPageChange={replacePage}
-            totalPages={totalPages}
-          />
-        </div>
-      ) : null}
+      <div className="mt-4">
+        <Pagination
+          totalItems={total}
+          totalLabel="campaigns"
+          currentPage={page}
+          onPageChange={replacePage}
+          totalPages={totalPages}
+        />
+      </div>
     </Container>
   );
 }

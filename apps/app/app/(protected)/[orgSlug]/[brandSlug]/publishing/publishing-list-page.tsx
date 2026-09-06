@@ -42,10 +42,12 @@ export type PostsListSearchParams = Promise<{
  */
 export async function renderPostsListPage({
   campaignId,
+  calendar,
   searchParams,
   scope = PageScope.PUBLISHING,
 }: {
   campaignId?: string;
+  calendar?: React.ReactNode;
   searchParams: PostsListSearchParams;
   scope?: PageScope;
 }) {
@@ -140,6 +142,7 @@ export async function renderPostsListPage({
   return (
     <ServerQueryHydrationBoundary>
       <ReleasePostsList
+        calendar={calendar}
         campaignId={campaignId}
         contentTypes={contentTypes}
         credentialIds={credentialIds}

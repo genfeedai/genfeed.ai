@@ -338,6 +338,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   initialView = 'week',
   views = DEFAULT_VIEWS,
   filterControls,
+  embedded = false,
   modal,
   emptyState,
   isLoading = false,
@@ -708,7 +709,11 @@ export default function ContentCalendarView<T extends CalendarItem>({
       <SectionTopbar
         title="Calendar"
         titleVisibility="sr-only"
-        className="overflow-x-auto [&>div]:min-w-max"
+        className={
+          embedded
+            ? 'mb-4 overflow-x-auto border-0 [&>div]:min-w-max [&>div]:px-0 [&>div]:pt-0'
+            : 'overflow-x-auto [&>div]:min-w-max'
+        }
         leading={
           <div className="flex items-center gap-2">
             <Button
@@ -760,7 +765,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
           )
         }
       />
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
+      <div className={embedded ? undefined : 'px-5 py-5 sm:px-6 sm:py-6'}>
         <Card className="w-full border border-border" bodyClassName="p-0">
           {isLoading ? (
             <div

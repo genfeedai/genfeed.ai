@@ -213,10 +213,6 @@ export default function PostsList({
                       : 'Posts across every publishing state.'}
           </p>
         </div>
-        <p className="text-sm tabular-nums text-foreground/55">
-          {pagination.total.toLocaleString()}{' '}
-          {pagination.total === 1 ? 'post' : 'posts'}
-        </p>
       </div>
 
       {isError && posts.length > 0 ? (
@@ -255,15 +251,15 @@ export default function PostsList({
             />
           )}
 
-          {pagination.totalPages > 1 && (
-            <div className="mt-4">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={pagination.totalPages}
-                onPageChange={handlePageChange}
-              />
-            </div>
-          )}
+          <div className="mt-4">
+            <Pagination
+              totalItems={pagination.total}
+              totalLabel="posts"
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
         </>
       )}
 

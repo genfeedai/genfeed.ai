@@ -4,7 +4,6 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   PageScope,
   type PostCategory,
-  PostStatus,
   type TargetExecutionState,
   TargetExecutionState as TargetState,
   ViewType,
@@ -53,13 +52,11 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import { Kbd } from '@ui/primitives/kbd';
 import { CalendarDays, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostsListToolbar from './components/PostsListToolbar';
-import type { PublishingPostsView } from './posts-list-query';
 import {
   buildReleasePostsListQueryKey,
   RELEASE_POSTS_SORT_OPTIONS,
@@ -75,6 +72,7 @@ type ReleaseListPagination = {
 };
 
 export interface ReleasePostsListProps extends ContentProps {
+  calendar?: React.ReactNode;
   campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
@@ -85,21 +83,6 @@ export interface ReleasePostsListProps extends ContentProps {
   publicationState?: ReleasePostsPublicationState;
   search: string;
   sort: ReleasePostsSort;
-}
-
-function viewMessageKey(
-  view?: PublishingPostsView,
-): 'all' | 'failed' | 'notPosted' | 'posted' {
-  if (view === 'posted') {
-    return 'posted';
-  }
-  if (view === 'failed') {
-    return 'failed';
-  }
-  if (view === 'not-posted') {
-    return 'notPosted';
-  }
-  return 'all';
 }
 
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
@@ -117,6 +100,7 @@ const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
 
 export default function ReleasePostsList({
   campaignId,
+  calendar,
   contentTypes,
   credentialIds,
   executionStates,
@@ -136,6 +120,8 @@ export default function ReleasePostsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
+  const isCalendar =
+    Boolean(calendar) && searchParams?.get('view') === 'calendar';
   const currentPage = Math.max(
     1,
     Number(new URLSearchParams(searchParamsString).get('page')) || 1,
@@ -232,14 +218,6 @@ export default function ReleasePostsList({
     queryKey,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const publishingView: PublishingPostsView | undefined =
-    executionStates?.length === 1 && executionStates[0] === TargetState.FAILED
-      ? PostStatus.FAILED
-      : executionStates?.length === 1 &&
-          executionStates[0] === TargetState.PUBLISHED
-        ? 'posted'
-        : publicationState;
-  const viewKey = viewMessageKey(publishingView);
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParamsString);
@@ -417,35 +395,43 @@ export default function ReleasePostsList({
 
   useEffect(() => {
     setFiltersNode(
-      <PostsListToolbar
-        onSearchChange={setToolbarSearchValue}
-        onSortChange={(nextSort) =>
-          replaceSearchParams((params) => {
-            if (nextSort === 'createdAt: -1') {
-              params.delete('sort');
-            } else {
-              params.set('sort', nextSort);
-            }
-            params.delete('page');
-          })
-        }
-        searchValue={toolbarSearchValue}
-        sortOptions={RELEASE_POSTS_SORT_OPTIONS}
-        sortValue={sort}
-      />,
+      isCalendar ? null : (
+        <PostsListToolbar
+          onSearchChange={setToolbarSearchValue}
+          onSortChange={(nextSort) =>
+            replaceSearchParams((params) => {
+              if (nextSort === 'createdAt: -1') {
+                params.delete('sort');
+              } else {
+                params.set('sort', nextSort);
+              }
+              params.delete('page');
+            })
+          }
+          searchValue={toolbarSearchValue}
+          sortOptions={RELEASE_POSTS_SORT_OPTIONS}
+          sortValue={sort}
+        />
+      ),
     );
     return () => setFiltersNode(null);
-  }, [replaceSearchParams, setFiltersNode, sort, toolbarSearchValue]);
+  }, [
+    isCalendar,
+    replaceSearchParams,
+    setFiltersNode,
+    sort,
+    toolbarSearchValue,
+  ]);
 
   useEffect(() => {
     setViewToggleNode(
       <ViewToggle
-        activeView={VIEW_MODE_TO_VIEW_TYPE[viewMode]}
+        activeView={
+          isCalendar ? ViewType.CALENDAR : VIEW_MODE_TO_VIEW_TYPE[viewMode]
+        }
         onChange={(nextView) =>
           nextView === ViewType.CALENDAR
-            ? router.push(
-                `${pathname}?${new URLSearchParams({ ...Object.fromEntries(searchParams.entries()), view: 'calendar' })}`,
-              )
+            ? replaceSearchParams((params) => params.set('view', 'calendar'))
             : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
         }
         options={[
@@ -472,18 +458,18 @@ export default function ReleasePostsList({
         ]}
       />,
     );
-    setRefresh(() => () => {
-      void refetch();
-    });
+    if (!isCalendar)
+      setRefresh(() => () => {
+        void refetch();
+      });
     return () => {
-      setRefresh(() => () => {});
+      if (!isCalendar) setRefresh(() => () => {});
       setViewToggleNode(null);
     };
   }, [
     handleViewModeChange,
-    router,
-    pathname,
-    searchParams,
+    isCalendar,
+    replaceSearchParams,
     refetch,
     setRefresh,
     setViewToggleNode,
@@ -515,6 +501,7 @@ export default function ReleasePostsList({
   }, [error]);
 
   const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
+    enabled: !isCalendar,
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
@@ -525,23 +512,11 @@ export default function ReleasePostsList({
     onRefresh: () => void refetch(),
   });
 
+  if (isCalendar) return <>{calendar}</>;
+
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">
-            {translate(`views.${viewKey}.title`)}
-          </h2>
-          <p className="mt-1 text-sm text-foreground/55">
-            {translate(`views.${viewKey}.description`)}
-          </p>
-        </div>
-        <p className="text-sm tabular-nums text-foreground/55">
-          {translate('postCount', { count: data.pagination.total })}
-        </p>
-      </div>
-
-      <div className="mb-3">
+      <div className="mb-3 empty:hidden">
         <ReleaseRailAccounts
           brandId={brandId}
           onToggle={handleAccountToggle}
@@ -667,41 +642,20 @@ export default function ReleasePostsList({
         />
       )}
 
-      {!error && viewMode === 'list' && data.releases.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.jKey')}</Kbd>
-            <Kbd>{translateRail('keys.kKey')}</Kbd>
-            {translateRail('keys.next')}
-          </span>
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.enterKey')}</Kbd>
-            {translateRail('keys.open')}
-          </span>
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.rKey')}</Kbd>
-            {translateRail('keys.refresh')}
-          </span>
-        </div>
-      ) : null}
-
-      {data.pagination.totalPages > 1 ? (
-        <div className="mt-4">
-          <Pagination
-            currentPage={currentPage}
-            onPageChange={(page) =>
-              replaceSearchParams((params) => {
-                if (page <= 1) {
-                  params.delete('page');
-                } else {
-                  params.set('page', String(page));
-                }
-              })
-            }
-            totalPages={data.pagination.totalPages}
-          />
-        </div>
-      ) : null}
+      <div className="mt-4">
+        <Pagination
+          currentPage={currentPage}
+          totalItems={data.pagination.total}
+          totalLabel="posts"
+          onPageChange={(page) =>
+            replaceSearchParams((params) => {
+              if (page <= 1) params.delete('page');
+              else params.set('page', String(page));
+            })
+          }
+          totalPages={data.pagination.totalPages}
+        />
+      </div>
 
       <ReleaseDetailDrawer
         brandId={brandId}

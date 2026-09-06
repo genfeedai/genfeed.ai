@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -127,8 +128,10 @@ function mutationErrorMessage(error: unknown): string {
 
 export default function ContentCalendarPage({
   campaignId,
+  embedded = false,
 }: {
   campaignId?: string;
+  embedded?: boolean;
 } = {}): React.JSX.Element {
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
@@ -194,6 +197,16 @@ export default function ContentCalendarPage({
       bulkAbortRef.current?.abort();
     };
   }, []);
+
+  const { setRefresh } = usePostsLayout();
+  useEffect(() => {
+    if (!embedded) return;
+    setRefresh(
+      () => () =>
+        setDateRange((current) => (current ? { ...current } : current)),
+    );
+    return () => setRefresh(() => () => {});
+  }, [embedded, setRefresh, setDateRange]);
 
   useEffect(() => {
     if (!dateRange) {
@@ -1253,6 +1266,7 @@ export default function ContentCalendarPage({
 
   return (
     <ContentCalendar
+      embedded={embedded}
       items={calendarItems}
       onEventClick={handleEventClick}
       onDateClick={handleDateClick}

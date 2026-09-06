@@ -37,6 +37,7 @@ const releases = [
 let searchParams = new URLSearchParams('');
 const replaceMock = vi.fn();
 const refetchMock = vi.fn();
+const setViewToggleNode = vi.fn();
 let queryError: Error | null = null;
 let queryReleases = releases;
 
@@ -73,7 +74,7 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setFiltersNode: vi.fn(),
     setRefresh: vi.fn(),
-    setViewToggleNode: vi.fn(),
+    setViewToggleNode,
   }),
 }));
 
@@ -149,6 +150,27 @@ describe('ReleasePostsList selection from the release URL param', () => {
     refetchMock.mockClear();
     queryError = null;
     queryReleases = releases;
+  });
+
+  it('keeps the parent view selector while rendering the calendar content', () => {
+    searchParams = new URLSearchParams('view=calendar&account=a&account=b');
+    render(
+      <ReleasePostsList
+        scope={PageScope.PUBLISHING}
+        search=""
+        sort="createdAt: -1"
+        calendar={<div>Calendar content</div>}
+      />,
+    );
+    expect(screen.getByText('Calendar content')).toBeInTheDocument();
+    expect(screen.queryByText('Campaign release')).not.toBeInTheDocument();
+    const toggle = setViewToggleNode.mock.calls.at(-1)?.[0];
+    render(toggle);
+    act(() => screen.getByRole('radio', { name: 'viewToggle.list' }).click());
+    expect(replaceMock).toHaveBeenCalledWith(
+      '/genfeed-ai/paperclip/publishing/posts?account=a&account=b',
+      { scroll: false },
+    );
   });
 
   it.each([false, true])(
@@ -332,7 +354,6 @@ describe('ReleasePostsList', () => {
     expect(source).toContain("viewMode === 'board'");
     expect(source).toContain('<ReleaseBoard');
     expect(source).toContain('releases={data.releases}');
-    expect(source).toContain("viewMode === 'list' && data.releases.length > 0");
   });
 
   it('renders the account grid only in grid view mode', () => {

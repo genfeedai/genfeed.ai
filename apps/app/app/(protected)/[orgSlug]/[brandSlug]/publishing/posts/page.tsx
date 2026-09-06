@@ -15,6 +15,8 @@ export default async function PublishingPostsPage({
 }: {
   searchParams: PostsListSearchParams;
 }) {
-  if ((await searchParams).view === 'calendar') return <CalendarPageContent />;
-  return renderPostsListPage({ searchParams });
+  return renderPostsListPage({
+    searchParams,
+    calendar: <CalendarPageContent embedded />,
+  });
 }
