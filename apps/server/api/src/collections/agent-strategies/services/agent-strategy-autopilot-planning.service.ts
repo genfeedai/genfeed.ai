@@ -16,7 +16,9 @@ import type { BudgetPacingState } from '@api/collections/agent-strategies/servic
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class AgentStrategyAutopilotPlanningService {
@@ -24,6 +26,7 @@ export class AgentStrategyAutopilotPlanningService {
     private readonly opportunitiesService: AgentStrategyOpportunitiesService,
     private readonly trendsService: TrendsService,
     private readonly performanceService: AgentStrategyAutopilotPerformanceService,
+    private readonly logger: LoggerService,
   ) {}
 
   computeBudgetPacingState(strategy: AgentStrategyDocument): BudgetPacingState {
@@ -70,12 +73,15 @@ export class AgentStrategyAutopilotPlanningService {
     await this.performanceService.reconcilePublications(strategy);
     const created: AgentStrategyOpportunityDocument[] = [];
     const platforms = strategyPlatforms(strategy);
-    const day = new Intl.DateTimeFormat('en-CA', {
-      timeZone: strategy.timezone || 'UTC',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
+    const localNow = DateTime.fromJSDate(new Date(), {
+      zone: strategy.timezone || 'UTC',
+    });
+    const day = localNow.toFormat('yyyy-MM-dd');
+    const expiresAt = localNow
+      .plus({ days: 1 })
+      .startOf('day')
+      .toUTC()
+      .toJSDate();
     const topics = strategy.topics?.length
       ? strategy.topics
       : [strategy.label || 'General update'];
@@ -88,11 +94,24 @@ export class AgentStrategyAutopilotPlanningService {
     if (strategy.opportunitySources?.trendWatchersEnabled && strategyBrandId) {
       for (const platform of platforms.slice(0, 3)) {
         const trends = refreshTrends
-          ? await this.trendsService.fetchAndCachePlatformTrends(
-              platform,
-              strategyOrganizationId,
-              strategyBrandId,
-            )
+          ? await this.trendsService
+              .fetchAndCachePlatformTrends(
+                platform,
+                strategyOrganizationId,
+                strategyBrandId,
+              )
+              .catch((error: unknown) => {
+                this.logger.warn(
+                  'Autopilot trend refresh failed; continuing with other opportunity sources',
+                  {
+                    organizationId: strategyOrganizationId,
+                    strategyId,
+                    platform,
+                    error,
+                  },
+                );
+                return [];
+              })
           : await this.trendsService.getTrends(
               strategyOrganizationId,
               strategyBrandId,
@@ -187,6 +206,7 @@ export class AgentStrategyAutopilotPlanningService {
           await this.opportunitiesService.createIfMissing({
             brandId: strategyBrandId ?? '',
             decisionReason: 'Evergreen cadence filled a weekly publishing gap.',
+            expiresAt,
             estimatedCreditCost: estimateOpportunityCost(
               resolveFormatsForStrategy(strategy),
             ),
@@ -241,6 +261,11 @@ export class AgentStrategyAutopilotPlanningService {
       }
       return a.estimatedCreditCost - b.estimatedCreditCost;
     })) {
+      if (
+        opportunity.expiresAt &&
+        new Date(opportunity.expiresAt).getTime() <= Date.now()
+      )
+        continue;
       if (opportunity.status !== 'queued') {
         continue;
       }

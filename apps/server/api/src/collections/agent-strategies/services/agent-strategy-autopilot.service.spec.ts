@@ -96,6 +96,7 @@ describe('AgentStrategyAutopilotService', () => {
     };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
+      fetchAndCachePlatformTrends: vi.fn().mockResolvedValue([]),
     };
     const contentGatewayService = {
       processManualRequest: vi.fn(),
@@ -161,6 +162,7 @@ describe('AgentStrategyAutopilotService', () => {
       opportunitiesService as never,
       trendsService as never,
       performanceService,
+      logger as never,
     );
     const executionService = new AgentStrategyAutopilotExecutionService(
       opportunitiesService as never,
@@ -187,6 +189,8 @@ describe('AgentStrategyAutopilotService', () => {
       contentPerformanceService,
       planningService,
       performanceService,
+      logger,
+      trendsService,
       agentStrategiesService,
       batchGenerationService,
       contentGatewayService,
@@ -1096,6 +1100,84 @@ describe('AgentStrategyAutopilotService', () => {
       organizationId,
       'published',
       expect.any(Object),
+    );
+  });
+  it.each([
+    ['2026-03-08T05:00:00Z', '2026-03-09T04:00:00.000Z'],
+    ['2026-11-01T04:00:00Z', '2026-11-02T05:00:00.000Z'],
+    ['2026-09-07T02:00:00Z', '2026-09-07T04:00:00.000Z'],
+  ])(
+    'expires daily opportunities at the next local midnight across DST (%s)',
+    async (now, midnight) => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date(now));
+        const deps = createService();
+        deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+        await deps.planningService.refreshOpportunities({
+          ...baseStrategy,
+          timezone: 'America/New_York',
+          opportunitySources: {
+            ...baseStrategy.opportunitySources,
+            evergreenCadenceEnabled: true,
+          },
+        } as never);
+        expect(deps.opportunitiesService.createIfMissing).toHaveBeenCalledWith(
+          expect.objectContaining({ expiresAt: new Date(midnight) }),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("does not select yesterday's budget-blocked daily opportunity", () => {
+    const deps = createService();
+    const opportunity = {
+      id: opportunityId,
+      status: 'queued',
+      expiresAt: new Date(Date.now() - 1),
+      estimatedCreditCost: 1,
+      formatCandidates: ['text'],
+      sourceType: 'evergreen',
+      priorityScore: 90,
+    };
+    expect(
+      deps.planningService.selectOpportunities(
+        baseStrategy as never,
+        [opportunity] as never,
+        deps.planningService.computeBudgetPacingState(baseStrategy as never),
+      ),
+    ).toEqual([]);
+  });
+
+  it('logs trend provider failure and still creates the evergreen fallback', async () => {
+    const deps = createService();
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+    deps.trendsService.fetchAndCachePlatformTrends.mockRejectedValue(
+      new Error('Provider unavailable'),
+    );
+    await deps.planningService.refreshOpportunities(
+      {
+        ...baseStrategy,
+        opportunitySources: {
+          ...baseStrategy.opportunitySources,
+          evergreenCadenceEnabled: true,
+          trendWatchersEnabled: true,
+        },
+      } as never,
+      true,
+    );
+    expect(deps.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('trend refresh failed'),
+      expect.objectContaining({
+        organizationId,
+        strategyId,
+        platform: 'twitter',
+      }),
+    );
+    expect(deps.opportunitiesService.createIfMissing).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceType: 'evergreen' }),
     );
   });
 });
