@@ -4,6 +4,7 @@ import Badge from '@ui/display/badge/Badge';
 import {
   formatTaskStatus,
   formatTaskTimestamp,
+  getTaskBadgeStatus,
 } from './workspace-task.helpers';
 
 export const workspaceInboxTableColumns = [
