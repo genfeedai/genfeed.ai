@@ -404,6 +404,7 @@ export class UploadService {
     size?: number;
     hasAudio?: boolean;
     publicUrl: string;
+    s3Key: string;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const uploadStartTime = Date.now();
@@ -503,6 +504,7 @@ export class UploadService {
         hasAudio: processed.hasAudio,
         height: processed.height || 0,
         publicUrl,
+        s3Key: storedPath,
         size: processedSize,
         width: processed.width || 0,
       };
@@ -596,6 +598,14 @@ export class UploadService {
         return 'image/webp';
       case '.gif':
         return 'image/gif';
+      case '.wav':
+        return 'audio/wav';
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.m4a':
+        return 'audio/mp4';
+      case '.ogg':
+        return 'audio/ogg';
       case '.zip':
         return 'application/zip';
       default:

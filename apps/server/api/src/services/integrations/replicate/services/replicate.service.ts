@@ -526,6 +526,42 @@ export class ReplicateService {
     return input;
   }
 
+  public async separateDialogue(
+    videoUrl: string,
+    apiKeyOverride?: string,
+  ): Promise<{ backgroundUrl: string }> {
+    const client = this.getClientForRequest(apiKeyOverride);
+    const prediction = await client.predictions.create({
+      version:
+        '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953',
+      input: { audio: videoUrl, stem: 'vocals', output_format: 'wav' },
+    });
+    const result = await client.wait(prediction);
+    const output: unknown = result.output;
+    if (
+      result.status !== 'succeeded' ||
+      !output ||
+      typeof output !== 'object' ||
+      !('other' in output) ||
+      typeof output.other !== 'string'
+    ) {
+      throw new Error(
+        'Dialogue separation did not return a background audio stem',
+      );
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(output.other);
+    } catch {
+      throw new Error('Dialogue separation returned an invalid background URL');
+    }
+    if (parsed.protocol !== 'https:')
+      throw new Error(
+        'Dialogue separation returned an insecure background URL',
+      );
+    return { backgroundUrl: parsed.href };
+  }
+
   /**
    * Transcribe audio using Whisper model via Replicate
    * Supports both URL and buffer inputs

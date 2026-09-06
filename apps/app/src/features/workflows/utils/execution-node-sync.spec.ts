@@ -39,6 +39,30 @@ describe('execution-node-sync', () => {
     });
   });
 
+  it.each([
+    ['https://cdn.example.com/background.wav?signature=x', undefined],
+    ['https://api.example.com/musics/background-1', undefined],
+    ['https://api.example.com/audios/background-1', undefined],
+    ['https://cdn.example.com/extensionless-asset', 'audio'],
+  ])('hydrates playable review audio for %s', (inputMedia, inputType) => {
+    const result = buildExecutionNodePatch({
+      nodeId: 'review-audio',
+      nodeType: 'reviewGate',
+      status: WorkflowExecutionStatus.RUNNING,
+      output: {
+        approvalId: 'approval-audio',
+        approvalStatus: 'pending',
+        inputMedia,
+        ...(inputType ? { inputType } : {}),
+      },
+    });
+    expect(result?.patch).toMatchObject({
+      inputType: 'audio',
+      inputMedia,
+      outputMedia: null,
+    });
+  });
+
   it('hydrates approved review gate execution output into node data', () => {
     const patch = buildExecutionNodePatch({
       nodeId: 'review-1',

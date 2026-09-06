@@ -615,7 +615,12 @@ export class FFmpegEffectsService {
     const audioVolumeNormalized = safeAudioVolume / 100;
     const videoVolumeNormalized = safeVideoVolume / 100;
 
+    const metadata = await this.core.probe(validatedVideoPath);
     const args = buildAudioOverlayArgs({
+      durationSeconds: Number(metadata.format.duration),
+      hasVideoAudio: metadata.streams.some(
+        (stream) => stream.codec_type === 'audio',
+      ),
       audioPath: validatedAudioPath,
       audioVolume: audioVolumeNormalized,
       fadeIn: safeFadeIn,

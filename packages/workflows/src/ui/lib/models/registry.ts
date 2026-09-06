@@ -109,14 +109,9 @@ export interface LipSyncModelConfig {
 
 export const LIPSYNC_MODELS: LipSyncModelConfig[] = [
   {
-    label: 'OmniHuman (Image)',
+    label: 'HeyGen Photo Avatar (Image)',
     supportsImage: true,
-    value: 'bytedance/omni-human',
-  },
-  {
-    label: 'VEED Fabric (Image)',
-    supportsImage: true,
-    value: 'veed/fabric-1.0',
+    value: 'heygen/avatar',
   },
   {
     label: 'Sync Labs Pro (Video)',
@@ -124,7 +119,6 @@ export const LIPSYNC_MODELS: LipSyncModelConfig[] = [
     value: 'sync/lipsync-2-pro',
   },
   { label: 'Sync Labs (Video)', supportsImage: false, value: 'sync/lipsync-2' },
-  { label: 'Pixverse', supportsImage: true, value: 'pixverse/lipsync' },
 ];
 
 export const LIPSYNC_SYNC_MODES = [
@@ -135,7 +129,7 @@ export const LIPSYNC_SYNC_MODES = [
   { label: 'Remap', value: 'remap' as const },
 ];
 
-export const DEFAULT_LIPSYNC_MODEL: LipSyncModel = 'bytedance/omni-human';
+export const DEFAULT_LIPSYNC_MODEL: LipSyncModel = 'heygen/avatar';
 
 // =============================================================================
 // LLM (TEXT) MODELS
