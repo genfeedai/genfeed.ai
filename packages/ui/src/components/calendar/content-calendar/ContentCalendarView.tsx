@@ -345,6 +345,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
   preferredTimes = [],
   timezone = 'UTC',
 }: ContentCalendarProps<T>) {
+  const translate = useTranslations('pages.publishing.calendar');
   const calendarRef = useRef<FullCalendarInstance | null>(null);
   const visibleDateRef = useRef<Date | undefined>(undefined);
   const [dateTitle, setDateTitle] = useState('Calendar');
