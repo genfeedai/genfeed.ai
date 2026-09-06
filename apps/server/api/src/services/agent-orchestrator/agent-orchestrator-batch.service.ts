@@ -83,14 +83,7 @@ export class AgentOrchestratorBatchService {
 
     const toolName = 'generate_content_batch';
     const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
-    const toolParams: Record<string, unknown> = {
-      count: draft.count,
-      dateRange: draft.dateRange,
-      platforms: draft.platforms,
-      ...(draft.brandId ? { brandId: draft.brandId } : {}),
-      ...(draft.handle ? { handle: draft.handle } : {}),
-      ...(draft.topics?.length ? { topics: draft.topics } : {}),
-    };
+    const toolParams = this.buildBatchToolParameters(draft);
     const startedAtIso = new Date().toISOString();
     const startTime = Date.now();
 
@@ -111,7 +104,7 @@ export class AgentOrchestratorBatchService {
       threadId: params.threadId,
       toolCallId,
       toolName,
-      workEventDetail: `Creating ${draft.count} post${draft.count === 1 ? '' : 's'} and streaming drafts as they finish.`,
+      workEventDetail: `Preparing ${draft.count} post${draft.count === 1 ? '' : 's'} for your review.`,
       workEventLabel: 'Batch generation',
     });
     const result = await this.toolExecutorService.executeTool(
@@ -131,6 +124,7 @@ export class AgentOrchestratorBatchService {
         runId: params.context.executionId,
         strategyId: params.context.strategyId,
         streamBatchToUser: true,
+        hostSupportsApproval: params.context.hostSupportsApproval ?? true,
         thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,
@@ -144,8 +138,9 @@ export class AgentOrchestratorBatchService {
       durationMs,
       error: result.error,
       parameters: toolParams,
-      resultSummary:
-        typeof result.data?.message === 'string'
+      resultSummary: result.requiresConfirmation
+        ? 'Waiting for your approval before generation starts.'
+        : typeof result.data?.message === 'string'
           ? result.data.message
           : undefined,
       status: result.success ? 'completed' : 'failed',
@@ -185,8 +180,9 @@ export class AgentOrchestratorBatchService {
       return true;
     }
 
-    const fullContent =
-      typeof result.data?.streamedTranscript === 'string'
+    const fullContent = result.requiresConfirmation
+      ? 'Review the batch details and approve to start generation.'
+      : typeof result.data?.streamedTranscript === 'string'
         ? result.data.streamedTranscript
         : typeof result.data?.message === 'string'
           ? result.data.message
@@ -253,7 +249,9 @@ export class AgentOrchestratorBatchService {
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
-      detail: 'Agent completed',
+      detail: result.requiresConfirmation
+        ? 'Waiting for your approval'
+        : 'Agent completed',
       runId: params.context.executionId,
       threadId: params.threadId,
     });
@@ -269,6 +267,19 @@ export class AgentOrchestratorBatchService {
     });
 
     return true;
+  }
+
+  private buildBatchToolParameters(
+    draft: BatchGenerationDraft,
+  ): Record<string, unknown> {
+    return {
+      count: draft.count,
+      dateRange: draft.dateRange,
+      platforms: draft.platforms,
+      ...(draft.brandId ? { brandId: draft.brandId } : {}),
+      ...(draft.handle ? { handle: draft.handle } : {}),
+      ...(draft.topics?.length ? { topics: draft.topics } : {}),
+    };
   }
 
   private async publishBatchFailure(

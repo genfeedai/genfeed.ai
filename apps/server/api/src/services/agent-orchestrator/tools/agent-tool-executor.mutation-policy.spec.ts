@@ -71,9 +71,11 @@ describe('AgentToolExecutorService mutation policy', () => {
   const logger = { error: vi.fn(), log: vi.fn() };
   const publishHandler = {
     createPost: vi.fn(),
+    schedulePost: vi.fn(),
     handles: vi.fn(() => false),
     execute: vi.fn(),
   };
+  const workspaceHandler = { getCreditsBalance: vi.fn() };
   const instagramHandler = {
     handles: vi.fn(() => false),
     execute: vi.fn(),
@@ -120,6 +122,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       instagramHandler as never,
       xActionsHandler as never,
       unused,
+      workspaceHandler as never,
       unused,
       unused,
       unused,
@@ -134,8 +137,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       unused,
       unused,
       unused,
-      unused,
-      undefined,
+      { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,
       mcpApprovals as never,
@@ -148,6 +150,15 @@ describe('AgentToolExecutorService mutation policy', () => {
   ): ToolExecutionContext => ({
     organizationId: testId('org'),
     userId: testId('user'),
+    ...(overrides.threadId
+      ? {
+          validatedScope: {
+            threadId: overrides.threadId,
+            brandId: 'brand-1',
+            contextVersion: 1,
+          } as ToolExecutionContext['validatedScope'],
+        }
+      : {}),
     ...overrides,
   });
 
@@ -162,6 +173,77 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(result.error).toBe(UNSUPPORTED_APPROVAL_ERROR);
     expect(publishHandler.createPost).not.toHaveBeenCalled();
     expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+  });
+
+  it('rejects approval-required tools when host capability is omitted', async () => {
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(UNSUPPORTED_APPROVAL_ERROR);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
+    expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+  });
+
+  it.each(['schedule_post', 'get_credits_balance'] as const)(
+    'executes %s without approval lookups when host capability is omitted',
+    async (toolName) => {
+      const handler =
+        toolName === 'schedule_post'
+          ? publishHandler.schedulePost
+          : workspaceHandler.getCreditsBalance;
+      handler.mockResolvedValue({ creditsUsed: 0, success: true });
+      mcpApprovals.findActiveByIdempotencyKey.mockRejectedValue(
+        new Error('Approval storage unavailable'),
+      );
+
+      const result = await service.executeTool(toolName, {}, context());
+
+      expect(result.success).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(mcpApprovals.findActiveByIdempotencyKey).not.toHaveBeenCalled();
+      expect(mcpApprovals.createPending).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a mismatched approval id even for a direct action', async () => {
+    mcpApprovals.findOwned.mockResolvedValue({
+      id: 'apr-1',
+      arguments: { content: 'approved' },
+      isDeleted: false,
+      status: 'APPROVED',
+      userId: testId('user'),
+      toolName: 'create_post',
+    });
+
+    const result = await service.executeTool(
+      'schedule_post',
+      { content: 'approved' },
+      context({ approvedApprovalId: 'apr-1' }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(
+      'Approval does not authorize this exact tool invocation',
+    );
+    expect(mcpApprovals.findOwned).toHaveBeenCalledWith('apr-1', testId('org'));
+    expect(publishHandler.schedulePost).not.toHaveBeenCalled();
+  });
+
+  it('fails clearly when an approval host has no approval storage', async () => {
+    Reflect.set(service, 'mcpApprovalsService', undefined);
+    const result = await service.executeTool(
+      'create_post',
+      { content: 'hello' },
+      context({ hostSupportsApproval: true }),
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Approval service unavailable');
+    expect(result.requiresConfirmation).not.toBe(true);
+    expect(publishHandler.createPost).not.toHaveBeenCalled();
   });
 
   it('persists a pending call and does not execute on an approval host', async () => {
@@ -180,49 +262,58 @@ describe('AgentToolExecutorService mutation policy', () => {
       expect.any(String),
       'create_post',
       { content: 'hello' },
-      { threadId: expect.any(String) },
+      {
+        threadId: expect.any(String),
+        scope: expect.objectContaining({
+          brandId: 'brand-1',
+          contextVersion: 1,
+        }),
+      },
     );
     expect(publishHandler.createPost).not.toHaveBeenCalled();
   });
 
-  it('executes once after a trusted approval and replays later retries', async () => {
-    publishHandler.createPost.mockResolvedValue({
-      creditsUsed: 0,
-      data: { id: 'post-1' },
-      success: true,
-    });
+  it.each([true, undefined])(
+    'executes a trusted approval once and replays with host capability %s',
+    async (hostSupportsApproval) => {
+      publishHandler.createPost.mockResolvedValue({
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+        success: true,
+      });
 
-    const first = await service.executeTool(
-      'create_post',
-      { content: 'hello' },
-      context({
-        confirmationOrigin: 'thread-ui-action',
-        hostSupportsApproval: true,
-      }),
-    );
-    expect(first.success).toBe(true);
-    expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+      const first = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          confirmationOrigin: 'thread-ui-action',
+          hostSupportsApproval,
+        }),
+      );
+      expect(first.success).toBe(true);
+      expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
 
-    mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
-      id: 'apr-1',
-      result: { creditsUsed: 0, data: { id: 'post-1' }, success: true },
-      status: 'APPROVED',
-      toolName: 'create_post',
-    });
-    publishHandler.createPost.mockClear();
+      mcpApprovals.findActiveByIdempotencyKey.mockResolvedValue({
+        id: 'apr-1',
+        result: { creditsUsed: 0, data: { id: 'post-1' }, success: true },
+        status: 'APPROVED',
+        toolName: 'create_post',
+      });
+      publishHandler.createPost.mockClear();
 
-    const retry = await service.executeTool(
-      'create_post',
-      { content: 'hello' },
-      context({
-        confirmationOrigin: 'thread-ui-action',
-        hostSupportsApproval: true,
-      }),
-    );
-    expect(retry.success).toBe(true);
-    expect(retry.data).toEqual({ id: 'post-1' });
-    expect(publishHandler.createPost).not.toHaveBeenCalled();
-  });
+      const retry = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          confirmationOrigin: 'thread-ui-action',
+          hostSupportsApproval,
+        }),
+      );
+      expect(retry.success).toBe(true);
+      expect(retry.data).toEqual({ id: 'post-1' });
+      expect(publishHandler.createPost).not.toHaveBeenCalled();
+    },
+  );
   it('rejects changed arguments under an approved action id', async () => {
     mcpApprovals.findOwned.mockResolvedValue({
       id: 'apr-1',
@@ -277,10 +368,41 @@ describe('AgentToolExecutorService mutation policy', () => {
     },
   );
 
-  it.each([undefined, 'requester-thread'])(
-    'allows a reviewer to resume an approved write from thread %s',
-    async (threadId) => {
-      const approval = {
+  it.each([
+    {
+      userId: testId('requester'),
+      storedThread: undefined,
+      requestedThread: undefined,
+      allowed: true,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: 'requester-thread',
+      allowed: true,
+    },
+    {
+      userId: testId('reviewer'),
+      storedThread: undefined,
+      requestedThread: undefined,
+      allowed: false,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: undefined,
+      allowed: false,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: 'other-thread',
+      allowed: false,
+    },
+  ])(
+    'binds explicit redemption to stored user and thread: %j',
+    async ({ userId, storedThread, requestedThread, allowed }) => {
+      mcpApprovals.findOwned.mockResolvedValue({
         id: 'apr-1',
         arguments: { content: 'hello' },
         isDeleted: false,
@@ -288,14 +410,16 @@ describe('AgentToolExecutorService mutation policy', () => {
         userId: testId('requester'),
         toolName: 'create_post',
         idempotencyKey: buildLogicalWriteKey({
-          threadId,
           arguments: { content: 'hello' },
           organizationId: testId('org'),
           userId: testId('requester'),
+          threadId: storedThread,
+          ...(storedThread
+            ? { scope: { brandId: 'brand-1', contextVersion: 1 } }
+            : {}),
           toolName: 'create_post',
         }),
-      };
-      mcpApprovals.findOwned.mockResolvedValue(approval);
+      });
       publishHandler.createPost.mockResolvedValue({
         success: true,
         creditsUsed: 0,
@@ -307,19 +431,84 @@ describe('AgentToolExecutorService mutation policy', () => {
         context({
           approvedApprovalId: 'apr-1',
           hostSupportsApproval: true,
+          userId,
+          threadId: requestedThread,
+        }),
+      );
+      expect(result.success).toBe(allowed);
+      if (allowed) {
+        expect(mcpApprovals.claimExecution).toHaveBeenCalledTimes(1);
+        expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+      } else {
+        expect(result.error).toContain('does not authorize');
+        expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+        expect(publishHandler.createPost).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each([
+    { storedThread: undefined, storedScope: undefined, allowed: true },
+    {
+      storedThread: 'requester-thread',
+      storedScope: undefined,
+      allowed: false,
+    },
+    {
+      storedThread: undefined,
+      storedScope: { brandId: 'brand-1', contextVersion: 1 },
+      allowed: false,
+    },
+    {
+      storedThread: 'requester-thread',
+      storedScope: { brandId: 'brand-1', contextVersion: 1 },
+      allowed: false,
+    },
+  ])(
+    'allows a server-authorized reviewer only for stored threadless, scopeless intent %j',
+    async ({ storedThread, storedScope, allowed }) => {
+      mcpApprovals.findOwned.mockResolvedValue({
+        id: 'apr-1',
+        arguments: { content: 'hello' },
+        isDeleted: false,
+        status: 'APPROVED',
+        userId: testId('requester'),
+        toolName: 'create_post',
+        idempotencyKey: buildLogicalWriteKey({
+          arguments: { content: 'hello' },
+          organizationId: testId('org'),
+          userId: testId('requester'),
+          threadId: storedThread,
+          scope: storedScope,
+          toolName: 'create_post',
+        }),
+      });
+      publishHandler.createPost.mockResolvedValue({
+        success: true,
+        creditsUsed: 0,
+        data: { id: 'post-1' },
+      });
+      const result = await service.executeTool(
+        'create_post',
+        { content: 'hello' },
+        context({
+          approvedApprovalId: 'apr-1',
+          approvalReviewerAuthorized: true,
           userId: testId('reviewer'),
         }),
       );
-      expect(result.success).toBe(true);
-      expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
-        'apr-1',
-        testId('org'),
-      );
-      expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
-        'apr-1',
-        testId('org'),
-        { success: true, creditsUsed: 0, data: { id: 'post-1' } },
-      );
+      expect(result.success).toBe(allowed);
+      if (allowed) {
+        expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
+          'apr-1',
+          testId('org'),
+        );
+        expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+      } else {
+        expect(result.error).toContain('does not authorize');
+        expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+        expect(publishHandler.createPost).not.toHaveBeenCalled();
+      }
     },
   );
 

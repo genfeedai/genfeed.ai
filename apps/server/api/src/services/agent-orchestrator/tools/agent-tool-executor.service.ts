@@ -34,6 +34,10 @@ import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
+import {
+  hasTrustedMutationApproval,
+  specializedConfirmationTool,
+} from '@api/services/agent-orchestrator/tools/agent-tool-mutation-approval.util';
 import type { AgentMutationAuthorization } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-policy.types';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
@@ -45,6 +49,7 @@ import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import type { CuratedActionName } from '@genfeedai/actions';
 import {
   buildLogicalWriteKey,
@@ -105,11 +110,13 @@ export interface ToolExecutionContext {
   /**
    * Whether this invoking host can persist and resume an approval.
    * Web agent turns are true; CLI and bare HTTP execute are false.
-   * Unspecified leaves current handler behavior for unit tests.
+   * An unspecified host cannot authorize mutations.
    */
   hostSupportsApproval?: boolean;
   /** Already-claimed MCP/tool approval that authorizes this exact logical write. */
   approvedApprovalId?: string;
+  /** Server-derived reviewer authority, restricted to threadless approval redemption. */
+  approvalReviewerAuthorized?: boolean;
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
@@ -298,16 +305,6 @@ export class AgentToolExecutorService implements OnModuleInit {
     let executionResult: AgentToolResult;
     let executionFailed = false;
     try {
-      const policyResult = await this.applyMutationPolicy(
-        toolName,
-        parameters,
-        context,
-      );
-      if (policyResult.kind === 'return') {
-        return policyResult.result;
-      }
-      executionApprovalId = policyResult.approvalId;
-
       if (context.threadId) {
         if (!context.validatedScope || !this.agentScopeContextService) {
           throw new Error(
@@ -321,6 +318,16 @@ export class AgentToolExecutorService implements OnModuleInit {
         );
         this.assertToolBrandScope(toolName, parameters, context);
       }
+
+      const policyResult = await this.applyMutationPolicy(
+        toolName,
+        parameters,
+        context,
+      );
+      if (policyResult.kind === 'return') {
+        return policyResult.result;
+      }
+      executionApprovalId = policyResult.approvalId;
 
       const result = this.instagramInspirationHandler.handles(toolName)
         ? await this.instagramInspirationHandler.execute(
@@ -371,21 +378,52 @@ export class AgentToolExecutorService implements OnModuleInit {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentMutationAuthorization> {
-    if (
-      context.hostSupportsApproval === undefined &&
-      !context.approvedApprovalId
-    ) {
-      return { kind: 'execute' };
-    }
-
     const definition = getToolByName(toolName);
     const isAvailableOnSurface = Boolean(
       definition?.surfaces.agent || definition?.surfaces.mcp,
     );
+    if (
+      isAvailableOnSurface &&
+      !context.approvedApprovalId &&
+      definition?.mutationPolicy !== 'approval-required'
+    ) {
+      return { kind: 'execute' };
+    }
+
+    if (isAvailableOnSurface && !context.approvedApprovalId) {
+      const specialized = specializedConfirmationTool(toolName, parameters);
+      if (specialized && context.confirmationOrigin === 'thread-ui-action') {
+        return { kind: 'execute' };
+      }
+      if (specialized) {
+        const previewContext = {
+          ...context,
+          confirmationOrigin: undefined,
+          approvedApprovalId: undefined,
+        };
+        const result =
+          toolName === 'create_post'
+            ? await this.publishHandler.preparePost(parameters, previewContext)
+            : await this.dispatch(
+                toolName,
+                { ...parameters, confirmed: false },
+                previewContext,
+              );
+        return {
+          kind: 'return',
+          result: await this.routeRewriteService.scopeToolResultHrefs(
+            result,
+            context,
+          ),
+        };
+      }
+    }
+
     const idempotencyKey = buildLogicalWriteKey({
       arguments: parameters,
       organizationId: context.organizationId,
       threadId: context.threadId,
+      scope: context.validatedScope,
       toolName,
       userId: context.userId,
     });
@@ -401,7 +439,7 @@ export class AgentToolExecutorService implements OnModuleInit {
               idempotencyKey,
             )
           : null;
-    const hasTrustedApproval = this.hasTrustedMutationApproval(
+    const hasTrustedApproval = hasTrustedMutationApproval(
       toolName,
       parameters,
       context,
@@ -464,15 +502,26 @@ export class AgentToolExecutorService implements OnModuleInit {
       };
     }
 
-    const approval = this.mcpApprovalsService
-      ? await this.mcpApprovalsService.createPending(
-          context.organizationId,
-          context.userId,
-          toolName,
-          parameters,
-          { threadId: context.threadId },
-        )
-      : null;
+    return this.createMutationApproval(toolName, parameters, context);
+  }
+
+  private async createMutationApproval(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentMutationAuthorization> {
+    if (!this.mcpApprovalsService) {
+      throw new Error(
+        'Approval service unavailable. Please retry when approval storage is available.',
+      );
+    }
+    const approval = await this.mcpApprovalsService.createPending(
+      context.organizationId,
+      context.userId,
+      toolName,
+      parameters,
+      { threadId: context.threadId, scope: context.validatedScope },
+    );
 
     return {
       kind: 'return',
@@ -488,6 +537,9 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
         mutationPolicy: 'approval-required',
         requiresConfirmation: true,
+        nextActions: [
+          buildMutationApprovalCard(approval.id, toolName, parameters, context),
+        ],
         success: true,
       },
     };
@@ -508,7 +560,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         context.userId,
         toolName,
         parameters,
-        { threadId: context.threadId },
+        { threadId: context.threadId, scope: context.validatedScope },
       ));
     if (approval.status === McpApprovalStatus.PENDING) {
       await this.mcpApprovalsService.resolve(
@@ -530,46 +582,6 @@ export class AgentToolExecutorService implements OnModuleInit {
       );
     }
     return { kind: 'execute', approvalId: approval.id };
-  }
-
-  private hasTrustedMutationApproval(
-    toolName: CuratedActionName,
-    parameters: Record<string, unknown>,
-    context: ToolExecutionContext,
-    claimed: McpApprovalDocument | null,
-  ): boolean {
-    if (context.approvedApprovalId) {
-      if (
-        !claimed ||
-        claimed.status !== McpApprovalStatus.APPROVED ||
-        claimed.toolName !== toolName ||
-        claimed.isDeleted ||
-        !claimed.arguments ||
-        typeof claimed.arguments !== 'object' ||
-        Array.isArray(claimed.arguments)
-      ) {
-        throw new Error(
-          'Approval does not authorize this exact tool invocation',
-        );
-      }
-      const invocation = {
-        organizationId: context.organizationId,
-        toolName,
-        userId: claimed.userId,
-      };
-      if (
-        buildLogicalWriteKey({
-          ...invocation,
-          arguments: claimed.arguments,
-        }) !== buildLogicalWriteKey({ ...invocation, arguments: parameters })
-      ) {
-        throw new Error(
-          'Approval does not authorize this exact tool invocation',
-        );
-      }
-      return true;
-    }
-    return context.confirmationOrigin === 'thread-ui-action';
   }
 
   private async recordApprovedMutationResult(

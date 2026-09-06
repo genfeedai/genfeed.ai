@@ -1,3 +1,8 @@
+import {
+  buildLogicalWriteKey,
+  type CuratedActionName,
+} from '@genfeedai/actions';
+
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',
   () => ({
@@ -1065,6 +1070,12 @@ describe('AgentToolExecutorService', () => {
     const spawnHandler = new AgentSpawnToolHandler(loggerService, undefined);
 
     const systemWorkflowRunner = createWorkflowRunner();
+    const approvals = {
+      findOwned: vi.fn(),
+      findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
+      claimExecution: vi.fn().mockResolvedValue(true),
+      attachResult: vi.fn(),
+    };
     const service = new AgentToolExecutorService(
       loggerService,
       routeRewriteService,
@@ -1094,10 +1105,39 @@ describe('AgentToolExecutorService', () => {
       agentScopeContextService as never,
       undefined,
       systemWorkflowRunner as never,
+      approvals as never,
     );
     service.onModuleInit();
 
+    const executeApprovedTool = (
+      toolName: CuratedActionName,
+      parameters: Record<string, unknown>,
+      context: ToolExecutionContext,
+    ) => {
+      approvals.findOwned.mockResolvedValue({
+        id: 'approved-test-intent',
+        idempotencyKey: buildLogicalWriteKey({
+          arguments: parameters,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          threadId: context.threadId,
+          scope: context.validatedScope,
+          toolName,
+        }),
+        arguments: parameters,
+        isDeleted: false,
+        status: 'APPROVED',
+        userId: context.userId,
+        toolName,
+      });
+      return service.executeTool(toolName, parameters, {
+        ...context,
+        approvedApprovalId: 'approved-test-intent',
+      });
+    };
+
     return {
+      executeApprovedTool,
       adsResearchService,
       agentScopeContextService,
       agentGoalsService,
@@ -1315,10 +1355,7 @@ describe('AgentToolExecutorService', () => {
         contentId: testId('ingredient'),
         scheduledAt: '2026-07-18T09:00',
       },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
+      scopedContext(testId('brand')),
     );
 
     expect(result.success).toBe(true);
@@ -2054,9 +2091,10 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('rejects Instagram remix creation when no brand is selected', async () => {
-    const { instagramInspirationService, service } = createService();
+    const { instagramInspirationService, executeApprovedTool } =
+      createService();
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'create_instagram_remix_workflow',
       { shortcode: 'ABC123', username: 'peer' },
       {
@@ -2099,14 +2137,14 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('creates a review-only Instagram remix workflow for an explicit organization brand', async () => {
-    const { brandsService, instagramInspirationService, service } =
+    const { brandsService, instagramInspirationService, executeApprovedTool } =
       createService();
     brandsService.findOne.mockResolvedValueOnce({
       id: testId('goal'),
       label: 'Genfeed',
     });
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'create_instagram_remix_workflow',
       {
         brandId: testId('goal'),
@@ -2140,9 +2178,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('creates an ad remix workflow and returns a workflow card', async () => {
-    const { adsResearchService, service } = createService();
+    const { adsResearchService, executeApprovedTool } = createService();
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'create_ad_remix_workflow',
       {
         adId: 'public-ad-1',
@@ -2946,10 +2984,7 @@ describe('AgentToolExecutorService', () => {
       {
         contentId: testId('ingredientnoanalytics'),
       },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
+      scopedContext(testId('brandcontent')),
     );
 
     expect(result.success).toBe(true);
@@ -3846,7 +3881,8 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should use the selected brand when batch generation omits brandId', async () => {
-    const { batchGenerationService, brandsService, service } = createService();
+    const { batchGenerationService, brandsService, executeApprovedTool } =
+      createService();
 
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',
@@ -3858,7 +3894,7 @@ describe('AgentToolExecutorService', () => {
       text: 'Publish content. Now.',
     });
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'generate_content_batch',
       {
         count: 20,
@@ -3895,7 +3931,7 @@ describe('AgentToolExecutorService', () => {
       batchGenerationService,
       batchGenerationWorkflowService,
       brandsService,
-      service,
+      executeApprovedTool,
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
@@ -3908,7 +3944,7 @@ describe('AgentToolExecutorService', () => {
       text: 'Publish content. Now.',
     });
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'generate_content_batch',
       {
         count: 2,
@@ -6365,9 +6401,9 @@ describe('AgentToolExecutorService', () => {
   // ──────────────────────────────────────────────
 
   it('start_brand_interview calls engine start and returns interview data', async () => {
-    const { brandInterviewService, service } = createService();
+    const { brandInterviewService, executeApprovedTool } = createService();
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'start_brand_interview',
       { brandId: testId('org2') },
       CTX,
@@ -6390,18 +6426,18 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('start_brand_interview returns error when brandId is missing', async () => {
-    const { service } = createService();
+    const { executeApprovedTool } = createService();
 
-    const result = await service.executeTool('start_brand_interview', {}, CTX);
+    const result = await executeApprovedTool('start_brand_interview', {}, CTX);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain('brandId');
   });
 
   it('submit_brand_interview_answer calls engine submitAnswer and returns next question', async () => {
-    const { brandInterviewService, service } = createService();
+    const { brandInterviewService, executeApprovedTool } = createService();
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'submit_brand_interview_answer',
       { interviewId: 'interview-1', answer: 'Developers and startup founders' },
       CTX,
@@ -6425,9 +6461,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('skip_brand_interview_question calls engine skipField and returns next question', async () => {
-    const { brandInterviewService, service } = createService();
+    const { brandInterviewService, executeApprovedTool } = createService();
 
-    const result = await service.executeTool(
+    const result = await executeApprovedTool(
       'skip_brand_interview_question',
       { interviewId: 'interview-1' },
       CTX,

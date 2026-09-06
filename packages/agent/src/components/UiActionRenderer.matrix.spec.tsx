@@ -72,6 +72,18 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
   ['campaign_launch_prep_card', {}],
   ['publish_post_card', {}],
   [
+    'mutation_approval_card',
+    {
+      data: {
+        approvalId: 'approval-1',
+        sourceActionId: 'source-1',
+        summary: 'Delete this draft?',
+        items: [],
+        status: 'pending',
+      },
+    },
+  ],
+  [
     'image_transform_card',
     {
       ctas: [

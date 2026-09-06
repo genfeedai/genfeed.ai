@@ -33,6 +33,85 @@ export type HandleUiActionDeps = {
   upsertThread: (thread: AgentThread) => void;
 };
 
+function reconcileMutationApproval(
+  actions: unknown,
+  payload: Record<string, unknown> | undefined,
+  threadId: string,
+): Set<unknown> {
+  const reconciled = new Set<unknown>();
+  if (
+    !Array.isArray(actions) ||
+    typeof payload?.approvalId !== 'string' ||
+    typeof payload.sourceActionId !== 'string'
+  )
+    return reconciled;
+  const returnedActions: unknown[] = actions;
+  for (const candidate of returnedActions) {
+    if (
+      !candidate ||
+      typeof candidate !== 'object' ||
+      !('type' in candidate) ||
+      candidate.type !== 'mutation_approval_card' ||
+      !('id' in candidate) ||
+      candidate.id !== payload.sourceActionId ||
+      !('data' in candidate) ||
+      !candidate.data ||
+      typeof candidate.data !== 'object'
+    )
+      continue;
+    const data = candidate.data;
+    if (
+      !('approvalId' in data) ||
+      data.approvalId !== payload.approvalId ||
+      !('sourceActionId' in data) ||
+      data.sourceActionId !== payload.sourceActionId ||
+      !('status' in data) ||
+      (data.status !== 'approved' && data.status !== 'declined')
+    )
+      continue;
+    const hasSourceCard = useAgentChatStore
+      .getState()
+      .messages.some(
+        (message) =>
+          message.threadId === threadId &&
+          message.metadata?.uiActions?.some(
+            (card) =>
+              card.type === 'mutation_approval_card' &&
+              card.id === payload.sourceActionId &&
+              card.data?.approvalId === payload.approvalId,
+          ),
+      );
+    if (!hasSourceCard) continue;
+    reconciled.add(candidate);
+    const resolvedData = { ...data };
+    useAgentChatStore.setState((state) => ({
+      messages: state.messages.map((message) =>
+        message.threadId !== threadId
+          ? message
+          : {
+              ...message,
+              metadata: {
+                ...message.metadata,
+                uiActions: message.metadata?.uiActions?.map((card) =>
+                  card.type === 'mutation_approval_card' &&
+                  card.id === payload.sourceActionId &&
+                  card.data?.approvalId === payload.approvalId
+                    ? {
+                        ...card,
+                        ctas: [],
+                        data: { ...card.data, ...resolvedData },
+                        status: 'completed',
+                      }
+                    : card,
+                ),
+              },
+            },
+      ),
+    }));
+  }
+  return reconciled;
+}
+
 export async function handleAgentUiAction(
   action: string,
   payload: Record<string, unknown> | undefined,
@@ -141,6 +220,12 @@ export async function handleAgentUiAction(
       },
     );
 
+    const returnedActions = response.message.metadata?.uiActions;
+    const reconciledApprovals =
+      action === 'confirm_mutation' || action === 'decline_mutation'
+        ? reconcileMutationApproval(returnedActions, payload, response.threadId)
+        : new Set<unknown>();
+
     const sourceActionId =
       typeof payload?.sourceActionId === 'string'
         ? payload.sourceActionId
@@ -177,6 +262,13 @@ export async function handleAgentUiAction(
       metadata: {
         toolCalls: response.toolCalls.map(mapToolCallResponse),
         ...response.message.metadata,
+        ...(Array.isArray(returnedActions)
+          ? {
+              uiActions: returnedActions.filter(
+                (card) => !reconciledApprovals.has(card),
+              ),
+            }
+          : {}),
       },
       role: 'assistant',
       threadId: response.threadId,

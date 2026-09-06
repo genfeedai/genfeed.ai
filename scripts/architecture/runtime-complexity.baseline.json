@@ -180,7 +180,7 @@
     "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
   },
   {
-    "actual": 210,
+    "actual": 208,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-batch.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
@@ -246,7 +246,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1274,
+    "actual": 1239,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"

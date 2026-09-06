@@ -42,12 +42,16 @@ export class McpApprovalsService extends BaseService<
     userId: string,
     toolName: string,
     args: Record<string, unknown>,
-    options?: { threadId?: string },
+    options?: {
+      threadId?: string;
+      scope?: { brandId?: string; contextVersion: number };
+    },
   ): Promise<McpApprovalDocument> {
     const idempotencyKey = buildLogicalWriteKey({
       arguments: args,
       organizationId,
       threadId: options?.threadId,
+      scope: options?.scope,
       toolName,
       userId,
     });

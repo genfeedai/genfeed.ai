@@ -31,6 +31,7 @@ interface ExecuteToolBody {
   context?: Partial<
     Omit<
       ToolExecutionContext,
+      | 'approvalReviewerAuthorized'
       | 'confirmationOrigin'
       | 'hostSupportsApproval'
       | 'organizationId'
@@ -89,6 +90,7 @@ export class AgentToolsController {
         ...(body.context ?? {}),
       } as Partial<ToolExecutionContext>;
       delete clientContext.confirmationOrigin;
+      delete clientContext.approvalReviewerAuthorized;
       const approvedApprovalId = clientContext.approvedApprovalId;
       delete clientContext.hostSupportsApproval;
       delete clientContext.approvedApprovalId;
@@ -97,6 +99,8 @@ export class AgentToolsController {
         ...clientContext,
         apiKeyContext: user,
         approvedApprovalId,
+        approvalReviewerAuthorized:
+          Boolean(approvedApprovalId) && getIsSuperAdmin(user, request),
         hostSupportsApproval: Boolean(approvedApprovalId),
         organizationId,
         userId,

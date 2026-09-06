@@ -11,6 +11,7 @@ export type ToolUiActionType =
   | 'outreach_sequence_create_card'
   | 'engagement_opportunity_card'
   | 'generation_action_card'
+  | 'mutation_approval_card'
   | 'batch_generation_card'
   | 'voice_clone_card'
   | 'content_calendar_card'

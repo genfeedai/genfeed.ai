@@ -123,4 +123,69 @@ describe('AgentToolsController publishing scopes', () => {
       }),
     );
   });
+  it('rejects client-injected reviewer authority for an ordinary user', async () => {
+    await controller.execute(
+      'create_post',
+      {
+        parameters: { content: 'draft' },
+        context: {
+          approvedApprovalId: 'apr-1',
+          approvalReviewerAuthorized: true,
+          hostSupportsApproval: true,
+        } as never,
+      },
+      apiKeyUser([ApiKeyScope.POSTS_CREATE]),
+      request,
+    );
+    expect(executor.executeTool).toHaveBeenLastCalledWith(
+      'create_post',
+      expect.anything(),
+      expect.objectContaining({
+        approvalReviewerAuthorized: false,
+        approvedApprovalId: 'apr-1',
+        userId: 'user-1',
+        organizationId: 'org-1',
+      }),
+    );
+  });
+
+  it('derives legitimate reviewer authority from authenticated superadmin state', async () => {
+    await controller.execute(
+      'create_post',
+      {
+        parameters: { content: 'draft' },
+        context: { approvedApprovalId: 'apr-1' },
+      },
+      { ...apiKeyUser([ApiKeyScope.POSTS_CREATE]), isSuperAdmin: true },
+      request,
+    );
+    expect(executor.executeTool).toHaveBeenLastCalledWith(
+      'create_post',
+      expect.anything(),
+      expect.objectContaining({
+        approvalReviewerAuthorized: true,
+        approvedApprovalId: 'apr-1',
+      }),
+    );
+  });
+
+  it('honors server request role revocation despite injected reviewer flags', async () => {
+    await controller.execute(
+      'create_post',
+      {
+        parameters: { content: 'draft' },
+        context: {
+          approvedApprovalId: 'apr-1',
+          approvalReviewerAuthorized: true,
+        } as never,
+      },
+      { ...apiKeyUser([ApiKeyScope.POSTS_CREATE]), isSuperAdmin: true },
+      { context: { isSuperAdmin: false } } as unknown as Request,
+    );
+    expect(executor.executeTool).toHaveBeenLastCalledWith(
+      'create_post',
+      expect.anything(),
+      expect.objectContaining({ approvalReviewerAuthorized: false }),
+    );
+  });
 });

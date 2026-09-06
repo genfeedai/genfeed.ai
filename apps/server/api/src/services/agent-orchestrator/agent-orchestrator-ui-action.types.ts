@@ -53,9 +53,12 @@ export type FinalizeStructuredAssistantTurnParams = {
   content: string;
   context: AgentChatContext;
   eventIdempotencyKey?: string;
+  messageId?: string;
   metadata?: Record<string, unknown>;
   model: string;
   result: {
+    success?: boolean;
+    error?: string;
     creditsUsed?: number;
     data?: Record<string, unknown>;
     nextActions?: AgentUiAction[];

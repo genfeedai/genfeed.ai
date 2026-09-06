@@ -1,5 +1,7 @@
 export type ThreadUiActionFamily = 'brand-identity' | 'confirmed-tool' | 'plan';
 export type SupportedThreadUiAction =
+  | 'confirm_mutation'
+  | 'decline_mutation'
   | 'approve_plan'
   | 'revise_plan'
   | 'confirm_create_brand'
@@ -12,6 +14,8 @@ export type SupportedThreadUiAction =
   | 'confirm_save_brand_voice_profile';
 
 const THREAD_UI_ACTION_FAMILIES = {
+  confirm_mutation: 'confirmed-tool',
+  decline_mutation: 'confirmed-tool',
   approve_plan: 'plan',
   revise_plan: 'plan',
   confirm_create_brand: 'brand-identity',

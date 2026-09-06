@@ -25,6 +25,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
         releaseLock: vi.fn(),
         set: vi.fn(),
       } as never,
+      { execute: vi.fn() } as never,
     );
 
     await service.execute('confirm_generate_media', {
@@ -86,6 +87,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
         releaseLock: vi.fn(),
         set: vi.fn(),
       } as never,
+      { execute: vi.fn() } as never,
     );
 
     await service.execute('confirm_install_official_workflow', {

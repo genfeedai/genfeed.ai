@@ -81,6 +81,91 @@ describe('handleAgentUiAction', () => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
 
+  it.each(
+    (['completed', 'failed', 'cancelled'] as const).flatMap((executionStatus) =>
+      [true, false].map((hasSource) => ({ executionStatus, hasSource })),
+    ),
+  )(
+    'keeps one approval card after $executionStatus execution (source present: $hasSource)',
+    async ({ executionStatus, hasSource }) => {
+      const status = executionStatus === 'cancelled' ? 'declined' : 'approved';
+      const sourceCard = {
+        id: 'approval-card',
+        type: 'mutation_approval_card' as const,
+        data: {
+          approvalId: 'approval-1',
+          sourceActionId: 'approval-card',
+          status: 'pending',
+          summary: 'Delete draft?',
+          items: [],
+        },
+      };
+      useAgentChatStore.getState().setMessages([
+        {
+          id: 'source-message',
+          threadId: 'thread-1',
+          role: 'assistant',
+          content: 'Review draft',
+          createdAt: '2026-09-06T00:00:00Z',
+          metadata: { uiActions: [sourceCard] },
+        },
+      ]);
+      if (!hasSource) useAgentChatStore.getState().setMessages([]);
+      const deps = makeDeps({
+        addMessage: (message) =>
+          useAgentChatStore.getState().addMessage(message),
+      });
+      vi.mocked(deps.apiService.respondToUiAction).mockResolvedValue(
+        makeResponse({
+          message: {
+            content: `The action ${executionStatus}.`,
+            metadata: {
+              uiActions: [
+                { id: 'unrelated', type: 'next_steps_card' },
+                {
+                  ...sourceCard,
+                  data: {
+                    ...sourceCard.data,
+                    status,
+                    executionStatus,
+                  },
+                },
+              ],
+            },
+          },
+          toolCalls: [
+            {
+              id: 'tool-1',
+              name: 'delete_draft',
+              status: executionStatus === 'completed' ? 'completed' : 'failed',
+              result: { success: executionStatus === 'completed' },
+            },
+          ],
+        }) as Awaited<ReturnType<AgentApiService['respondToUiAction']>>,
+      );
+      await handleAgentUiAction(
+        executionStatus === 'cancelled'
+          ? 'decline_mutation'
+          : 'confirm_mutation',
+        { approvalId: 'approval-1', sourceActionId: 'approval-card' },
+        deps,
+      );
+      const cards = useAgentChatStore
+        .getState()
+        .messages.flatMap((message) => message.metadata?.uiActions ?? []);
+      expect(
+        cards.filter((card) => card.type === 'mutation_approval_card'),
+      ).toHaveLength(1);
+      expect(
+        cards.find((card) => card.type === 'mutation_approval_card'),
+      ).toMatchObject({
+        data: { status, executionStatus },
+        ...(hasSource ? { ctas: [] } : {}),
+      });
+      expect(cards.find((card) => card.id === 'unrelated')).toBeDefined();
+    },
+  );
+
   it('rejects actions on read-only threads', async () => {
     const deps = makeDeps({ isReadOnly: true });
 

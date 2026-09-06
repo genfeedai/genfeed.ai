@@ -7,6 +7,7 @@ import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
+import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -50,7 +51,6 @@ import {
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
-  type AgentPublishTargetPayload,
   type AgentToolResult,
   type AgentUiAction,
   type PublishConfirmedContentInput,
@@ -189,7 +189,7 @@ export class AgentPublishToolHandler {
         return credentialId ? [[credentialId, credential] as const] : [];
       }),
     );
-    const resolvedTargets = this.resolveConfirmedTargets({
+    const resolvedTargets = resolveConfirmedPublishTargets({
       credentials,
       credentialsById,
       requestedTargets,
@@ -484,95 +484,18 @@ export class AgentPublishToolHandler {
   ): string {
     const candidates = [
       caption,
-      this.readOptionalString(ingredient.label),
-      this.readOptionalString(ingredient.description),
-      this.readOptionalString(ingredient.assetLabel),
-      this.readOptionalString(ingredient.generationPrompt),
+      readOptionalString(ingredient.label),
+      readOptionalString(ingredient.description),
+      readOptionalString(ingredient.assetLabel),
+      readOptionalString(ingredient.generationPrompt),
     ];
     const resolved = candidates.find((candidate) => Boolean(candidate?.trim()));
     if (resolved) {
       return resolved.trim();
     }
 
-    const category = this.readOptionalString(ingredient.category) ?? 'content';
+    const category = readOptionalString(ingredient.category) ?? 'content';
     return `Selected ${category} asset`;
-  }
-
-  private resolveConfirmedTargets(params: {
-    credentials: PublishConfirmedContentInput['credentials'];
-    credentialsById: Map<
-      string,
-      PublishConfirmedContentInput['credentials'][number]
-    >;
-    requestedTargets: AgentPublishTargetPayload[] | undefined;
-    visibility: PostVisibility;
-  }):
-    | {
-        payloads: AgentPublishTargetPayload[];
-        targets: Array<{
-          credentialId: string;
-          platform: CredentialPlatform;
-        }>;
-      }
-    | { error: AgentToolResult } {
-    if (params.requestedTargets && params.requestedTargets.length > 0) {
-      const payloads: AgentPublishTargetPayload[] = [];
-      const targets: Array<{
-        credentialId: string;
-        platform: CredentialPlatform;
-      }> = [];
-
-      for (const requested of params.requestedTargets) {
-        const credential = params.credentialsById.get(requested.credentialId);
-        const platform =
-          readDomainPlatform(credential?.platform) ??
-          readDomainPlatform(requested.platform);
-        if (!credential || !platform) {
-          return {
-            error: {
-              creditsUsed: 0,
-              error: `Missing connected accounts for: ${requested.platform}.`,
-              success: false,
-            },
-          };
-        }
-
-        payloads.push({
-          ...requested,
-          platform,
-          visibility: requested.visibility ?? params.visibility,
-        });
-        targets.push({
-          credentialId: requested.credentialId,
-          platform,
-        });
-      }
-
-      return { payloads, targets };
-    }
-
-    const payloads: AgentPublishTargetPayload[] = [];
-    const targets: Array<{
-      credentialId: string;
-      platform: CredentialPlatform;
-    }> = [];
-
-    for (const credential of params.credentials) {
-      const credentialId = readCredentialId(credential.id);
-      const platform = readDomainPlatform(credential.platform);
-      if (!credentialId || !platform) {
-        continue;
-      }
-
-      payloads.push({
-        credentialId,
-        platform,
-        visibility: params.visibility,
-      });
-      targets.push({ credentialId, platform });
-    }
-
-    return { payloads, targets };
   }
 
   private readPublishRequest(params: Record<string, unknown>): {
@@ -636,12 +559,6 @@ export class AgentPublishToolHandler {
       error: 'sourceActionId does not match a persisted publish card.',
       success: false,
     };
-  }
-
-  private readOptionalString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : undefined;
   }
 
   private normalizePlatforms(value: unknown): string[] {
@@ -760,6 +677,12 @@ export class AgentPublishToolHandler {
       };
     }
 
+    await this.assertPublishingScope(
+      ctx,
+      readOptionalString(ingredient.brandId),
+      'selected content',
+    );
+
     const requestedPlatforms = params.platforms ?? [];
     const credentials = await this.resolveBrandCredentials({
       brandId: ingredient.brandId,
@@ -872,6 +795,48 @@ export class AgentPublishToolHandler {
       resourceLabel,
     );
   }
+  async preparePost(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const visibility = z
+      .nativeEnum(PostVisibility)
+      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
+    const contentId =
+      readOptionalString(params.contentId) ??
+      readOptionalString(params.ingredientId);
+    if (!visibility.success || !contentId) {
+      return {
+        creditsUsed: 0,
+        success: false,
+        error:
+          'Valid content and visibility are required to prepare publishing.',
+      };
+    }
+    const { caption, platforms, requestedScheduledAt } =
+      this.readPublishRequest(params);
+    if (
+      requestedScheduledAt &&
+      Number.isNaN(new Date(requestedScheduledAt).getTime())
+    ) {
+      return {
+        creditsUsed: 0,
+        success: false,
+        error: 'scheduledAt must be a valid date and time.',
+      };
+    }
+    return this.buildPublishCardResult(
+      {
+        caption,
+        contentId,
+        platforms,
+        scheduledAt: requestedScheduledAt,
+        visibility: visibility.data,
+      },
+      ctx,
+    );
+  }
+
   async createPost(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

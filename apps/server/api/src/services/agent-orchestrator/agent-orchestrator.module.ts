@@ -59,6 +59,7 @@ import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrat
 import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service';
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
 import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -215,6 +216,7 @@ import { Module } from '@nestjs/common';
     AgentOrchestratorSyncLoopService,
     AgentOrchestratorUiActionBrandIdentityService,
     AgentOrchestratorUiActionConfirmedToolService,
+    AgentOrchestratorUiActionMutationService,
     AgentOrchestratorUiActionFinalizerService,
     AgentOrchestratorUiActionPlanService,
     AgentOrchestratorUiActionService,
