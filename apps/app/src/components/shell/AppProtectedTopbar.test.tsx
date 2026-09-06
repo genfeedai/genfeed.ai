@@ -272,7 +272,7 @@ describe('AppProtectedTopbar', () => {
       name: 'Breadcrumb',
     });
     const switcher = screen.getByTestId('app-switcher');
-    const activityMenu = screen.getByTestId('topbar-activity-menu');
+    const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
@@ -449,7 +449,7 @@ describe('AppProtectedTopbar', () => {
   it('places credits first in the right-side control cluster', () => {
     render(<AppProtectedTopbar />);
 
-    const activityMenu = screen.getByTestId('topbar-activity-menu');
+    const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
     const credits = screen.getByTestId('topbar-credits-bar');

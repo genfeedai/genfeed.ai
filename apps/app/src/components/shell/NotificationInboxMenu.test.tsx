@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/components/shell/TopbarActivityMenu', () => ({
+  ActivityFeed: () => <a href="/workspace/activity">View all activity</a>,
+}));
+
 const hook = vi.fn();
 vi.mock('@/components/shell/use-notification-inbox', () => ({
   useNotificationInbox: (...args: unknown[]) => hook(...args),
@@ -61,6 +65,24 @@ async function open() {
   return user;
 }
 describe('NotificationInboxMenu', () => {
+  it('defaults to notifications and keeps activity in a separate tab', async () => {
+    const user = await open();
+    expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await user.click(screen.getByRole('tab', { name: 'Activity' }));
+    expect(
+      screen.getByRole('link', { name: 'View all activity' }),
+    ).toHaveAttribute('href', '/workspace/activity');
+    expect(
+      screen.queryByRole('button', { name: 'Mark all read' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Notifications' }));
+    expect(
+      screen.getByRole('button', { name: 'Mark all read' }),
+    ).toBeInTheDocument();
+  });
   it('exposes unread state, source link, read actions, and older pages', async () => {
     const user = await open();
     expect(screen.getByText('Unread')).toBeInTheDocument();

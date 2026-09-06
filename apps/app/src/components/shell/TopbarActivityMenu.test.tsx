@@ -99,12 +99,12 @@ describe('TopbarActivityMenu', () => {
 
     render(<TopbarActivityMenu />);
 
+    expect(useActivitiesMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Open activity' }));
     expect(useActivitiesMock).toHaveBeenCalledWith({
       limit: TOPBAR_ACTIVITY_LIMIT,
       scope: PageScope.ORGANIZATION,
     });
-
-    await user.click(screen.getByRole('button', { name: 'Open activity' }));
 
     expect(screen.getByText('Recent activity')).toBeInTheDocument();
     const rows = screen.getAllByTestId('topbar-activity-row');

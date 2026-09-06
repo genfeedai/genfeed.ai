@@ -66,7 +66,7 @@ function ActivityStatusIcon({
   );
 }
 
-export default function TopbarActivityMenu() {
+export function ActivityFeed() {
   const translate = useTranslations('common.activity');
   const { href } = useOrgUrl();
   const activityHref = href(APP_ROUTES.WORKSPACE.ACTIVITY);
@@ -78,10 +78,111 @@ export default function TopbarActivityMenu() {
   const recentActivities = filteredActivities.slice(0, TOPBAR_ACTIVITY_LIMIT);
 
   return (
+    <>
+      <div className="max-h-80 overflow-y-auto">
+        {isLoading ? (
+          <p className="px-3 py-4 text-sm text-foreground/70">
+            {translate('loading')}
+          </p>
+        ) : isError ? (
+          <p className="px-3 py-4 text-sm text-foreground/70">
+            {translate('error')}
+          </p>
+        ) : recentActivities.length === 0 ? (
+          <p className="px-3 py-4 text-sm text-foreground/70">
+            {translate('empty')}
+          </p>
+        ) : (
+          <ol className="divide-y divide-border/60">
+            {recentActivities.map((activity: IActivity) => {
+              const creditActivity = isCreditActivity(activity.key);
+              const creditAmount = getActivityCreditAmount(activity);
+              const sourceLabel = getActivitySourceLabel(activity.source);
+              const isCreditAdded = activity.key === ActivityKey.CREDITS_ADD;
+              const isSimpleCreditChange =
+                activity.key === ActivityKey.CREDITS_ADD ||
+                activity.key === ActivityKey.CREDITS_REMOVE;
+              const status = isBackgroundTask(activity)
+                ? getBackgroundTaskStatus(activity.key)
+                : (activity.status ?? 'completed');
+              const creditDetail =
+                isSimpleCreditChange && creditAmount !== null
+                  ? translate(isCreditAdded ? 'creditAdded' : 'creditUsage', {
+                      count: creditAmount,
+                    })
+                  : null;
+              const title = isSimpleCreditChange
+                ? (sourceLabel ??
+                  translate(
+                    isCreditAdded ? 'creditBalanceLabel' : 'creditUsageLabel',
+                  ))
+                : getActivityDescription(activity, activityMessageFormatter);
+              const detail = isSimpleCreditChange ? creditDetail : sourceLabel;
+
+              return (
+                <li
+                  className="relative flex gap-2.5 px-3 py-2.5"
+                  data-testid="topbar-activity-row"
+                  key={activity.id}
+                >
+                  <ActivityStatusIcon
+                    isCredit={creditActivity}
+                    status={status}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {title}
+                    </p>
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
+                      {detail ? (
+                        <>
+                          <span className="truncate">{detail}</span>
+                          <span aria-hidden="true" className="shrink-0">
+                            ·
+                          </span>
+                        </>
+                      ) : null}
+                      <ClientFormattedDate
+                        className="shrink-0"
+                        fallback=""
+                        format="relative"
+                        value={activity.createdAt}
+                      />
+                    </div>
+                  </div>
+                  {!activity.isRead ? (
+                    <span
+                      aria-hidden="true"
+                      className="mt-1 size-1.5 shrink-0 rounded-full bg-info"
+                      data-testid="activity-unread-dot"
+                    />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
+      <div className="border-t border-border p-1.5">
+        <Button
+          asChild
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+          className="w-full justify-center"
+        >
+          <Link href={activityHref}>{translate('viewAll')}</Link>
+        </Button>
+      </div>
+    </>
+  );
+}
+
+export default function TopbarActivityMenu() {
+  const translate = useTranslations('common.activity');
+  return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          type="button"
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           className="size-8"
@@ -93,106 +194,9 @@ export default function TopbarActivityMenu() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-96 p-0">
         <div className="border-b border-border px-3 py-2.5">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
-            {translate('recentLabel')}
-          </h2>
+          <h2 className="text-xs font-semibold">{translate('recentLabel')}</h2>
         </div>
-        <div className="max-h-80 overflow-y-auto">
-          {isLoading ? (
-            <p className="px-3 py-4 text-sm text-foreground/70">
-              {translate('loading')}
-            </p>
-          ) : isError ? (
-            <p className="px-3 py-4 text-sm text-foreground/70">
-              {translate('error')}
-            </p>
-          ) : recentActivities.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-foreground/70">
-              {translate('empty')}
-            </p>
-          ) : (
-            <ol className="divide-y divide-border/60">
-              {recentActivities.map((activity: IActivity) => {
-                const creditActivity = isCreditActivity(activity.key);
-                const creditAmount = getActivityCreditAmount(activity);
-                const sourceLabel = getActivitySourceLabel(activity.source);
-                const isCreditAdded = activity.key === ActivityKey.CREDITS_ADD;
-                const isSimpleCreditChange =
-                  activity.key === ActivityKey.CREDITS_ADD ||
-                  activity.key === ActivityKey.CREDITS_REMOVE;
-                const status = isBackgroundTask(activity)
-                  ? getBackgroundTaskStatus(activity.key)
-                  : (activity.status ?? 'completed');
-                const creditDetail =
-                  isSimpleCreditChange && creditAmount !== null
-                    ? translate(isCreditAdded ? 'creditAdded' : 'creditUsage', {
-                        count: creditAmount,
-                      })
-                    : null;
-                const title = isSimpleCreditChange
-                  ? (sourceLabel ??
-                    translate(
-                      isCreditAdded ? 'creditBalanceLabel' : 'creditUsageLabel',
-                    ))
-                  : getActivityDescription(activity, activityMessageFormatter);
-                const detail = isSimpleCreditChange
-                  ? creditDetail
-                  : sourceLabel;
-
-                return (
-                  <li
-                    className="relative flex gap-2.5 px-3 py-2.5"
-                    data-testid="topbar-activity-row"
-                    key={activity.id}
-                  >
-                    <ActivityStatusIcon
-                      isCredit={creditActivity}
-                      status={status}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {title}
-                      </p>
-                      <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
-                        {detail ? (
-                          <>
-                            <span className="truncate">{detail}</span>
-                            <span aria-hidden="true" className="shrink-0">
-                              ·
-                            </span>
-                          </>
-                        ) : null}
-                        <ClientFormattedDate
-                          className="shrink-0"
-                          fallback=""
-                          format="relative"
-                          value={activity.createdAt}
-                        />
-                      </div>
-                    </div>
-                    {!activity.isRead ? (
-                      <span
-                        aria-hidden="true"
-                        className="mt-1 size-1.5 shrink-0 rounded-full bg-info"
-                        data-testid="activity-unread-dot"
-                      />
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </div>
-        <div className="border-t border-border p-1.5">
-          <Button
-            asChild
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-            className="w-full justify-center"
-          >
-            <Link href={activityHref}>{translate('viewAll')}</Link>
-          </Button>
-        </div>
+        <ActivityFeed />
       </PopoverContent>
     </Popover>
   );

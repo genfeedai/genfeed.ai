@@ -29,7 +29,6 @@ import { Suspense, useCallback } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
-import TopbarActivityMenu from '@/components/shell/TopbarActivityMenu';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
@@ -329,12 +328,7 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
-          {!isAdminChrome ? (
-            <>
-              <NotificationInboxMenu />
-              <TopbarActivityMenu />
-            </>
-          ) : null}
+          {!isAdminChrome ? <NotificationInboxMenu /> : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
