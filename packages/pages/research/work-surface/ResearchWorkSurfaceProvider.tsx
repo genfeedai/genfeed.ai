@@ -306,6 +306,7 @@ export function useResearchPagination<Item>(
   const pagination =
     surface && totalPages > 1 ? (
       <Pagination
+        totalItems={items.length}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={(page) => {

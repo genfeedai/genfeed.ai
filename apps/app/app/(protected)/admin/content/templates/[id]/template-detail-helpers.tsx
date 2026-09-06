@@ -1,5 +1,3 @@
-'use client';
-
 import Card from '@ui/card/Card';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';

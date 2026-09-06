@@ -1,5 +1,5 @@
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
-import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import {
@@ -85,6 +85,48 @@ describe('publishing content library federation', () => {
         type: 'article',
       },
     ]);
+  });
+
+  it('merges publishing jobs without duplicating their post targets and keeps empty drafts', () => {
+    const releases = [
+      {
+        id: 'group-1',
+        title: 'Scheduled launch',
+        createdAt: '2026-08-09T10:00:00Z',
+        status: 'scheduled',
+        targets: [{ id: 'post-1', platform: Platform.INSTAGRAM }],
+      },
+      {
+        id: 'group-2',
+        title: 'New draft',
+        createdAt: '2026-08-10T10:00:00Z',
+        status: 'draft',
+        targets: [],
+      },
+    ] as unknown as IReleaseGroup[];
+    const items = createPublishingContentLibraryItems({
+      ...collections,
+      releases,
+    });
+    expect(items.map((item) => item.id)).not.toContain('post-1');
+    expect(
+      items.filter((item) => item.type === 'post').map((item) => item.id),
+    ).toEqual(['group-2', 'group-1']);
+  });
+
+  it('normalizes public posts to the same published status used by articles', () => {
+    const items = createPublishingContentLibraryItems({
+      ...collections,
+      posts: [{ ...collections.posts[0], status: PostStatus.PUBLIC }],
+    });
+    expect(
+      filterPublishingContentLibraryItems(items, {
+        channel: 'all',
+        search: '',
+        type: 'all',
+        status: ['published'],
+      }),
+    ).toHaveLength(2);
   });
 
   it('applies type, channel, lifecycle, and search filters together', () => {

@@ -73,7 +73,7 @@ export default function StreaksPage() {
         : 'Start your first daily creation streak.';
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
+    <div className="flex w-full flex-col gap-6">
       <section className="relative overflow-hidden rounded-3xl bg-secondary p-6 shadow-border">
         <StreakCelebrationBurst isVisible={isCelebrating} />
         <div className="flex flex-wrap items-start justify-between gap-4">

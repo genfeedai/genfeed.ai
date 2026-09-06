@@ -1,6 +1,5 @@
-'use client';
-
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { ProactiveOutputsCardProps } from '@props/onboarding/proactive-outputs-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -11,11 +10,9 @@ function getOutputTitle(post: IPost): string {
   );
 }
 
-type Props = {
-  outputs: IPost[];
-};
-
-export default function ProactiveOutputsCard({ outputs }: Props) {
+export default function ProactiveOutputsCard({
+  outputs,
+}: ProactiveOutputsCardProps) {
   return (
     <Card bodyClassName="gap-0 p-6" className="border-border bg-card">
       <div className="flex items-center justify-between gap-4">

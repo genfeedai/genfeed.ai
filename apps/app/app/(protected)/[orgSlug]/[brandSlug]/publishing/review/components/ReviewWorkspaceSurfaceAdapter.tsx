@@ -1,8 +1,6 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentChatStore } from '@genfeedai/agent';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -18,18 +16,6 @@ import { dispatchOpenContextTab } from '@/lib/workspace/agent-composer-events';
 import ReviewDetailPanel from './ReviewDetailPanel';
 import { getReviewItemTitle } from './review-item.helpers';
 import { isReadyToReview } from './review-state';
-
-interface ReviewWorkspaceSurfaceAdapterProps {
-  activeItem: IBatchItem | null;
-  isActioning: boolean;
-  isSelected: boolean;
-  onApprove: (itemId: string) => void;
-  onAssign: (itemId: string, assigneeId: string) => void;
-  onReject: (itemId: string, feedback?: string) => void;
-  onRequestChanges: (itemId: string, feedback?: string) => void;
-  onToggleSelect: (itemId: string) => void;
-  onUnassign: (itemId: string) => void;
-}
 
 /**
  * Project review details into the workspace agent Context rail so the canvas
@@ -219,8 +205,8 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
 
   const contextLabel = activeItem
-    ? `Review · ${getReviewItemTitle(activeItem)}`
-    : 'Review · Queue';
+    ? `Approval queue · ${getReviewItemTitle(activeItem)}`
+    : 'Approval queue';
 
   const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
     () => ({

@@ -1,5 +1,3 @@
-'use client';
-
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
@@ -8,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { IAgentWizardFormData } from '@genfeedai/contracts/interfaces';
+import type { Props } from '@props/automation/agent-wizard-step-configure.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -29,14 +28,6 @@ const PLATFORM_OPTIONS = [
   { label: 'YouTube', value: 'youtube' },
   { label: 'LinkedIn', value: 'linkedin' },
 ];
-
-type Props = {
-  form: IAgentWizardFormData;
-  setForm: React.Dispatch<React.SetStateAction<IAgentWizardFormData>>;
-  onTogglePlatform: (platform: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-};
 
 export default function AgentWizardStepConfigure({
   form,

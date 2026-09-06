@@ -107,6 +107,52 @@ describe('YoutubeAnalyticsService', () => {
     );
   });
 
+  it('requests up to 50 channels and warns when the account has more than one', async () => {
+    mockChannelsList.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            brandingSettings: { channel: {}, image: {} },
+            id: 'UCfirst',
+            snippet: {
+              customUrl: '@first',
+              thumbnails: {},
+              title: 'First Channel',
+            },
+            statistics: {},
+          },
+          {
+            brandingSettings: { channel: {}, image: {} },
+            id: 'UCsecond',
+            snippet: {
+              customUrl: '@second',
+              thumbnails: {},
+              title: 'Second Channel',
+            },
+            statistics: {},
+          },
+        ],
+      },
+    });
+
+    const details = await service.getChannelDetails('org-1', 'brand-1');
+
+    expect(mockChannelsList).toHaveBeenCalledWith(
+      expect.objectContaining({ maxResults: 50, mine: true }),
+    );
+    expect((details as { id: string }).id).toBe('UCfirst');
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('multiple channels found'),
+      expect.objectContaining({
+        channelCount: 2,
+        channels: [
+          { id: 'UCfirst', title: 'First Channel' },
+          { id: 'UCsecond', title: 'Second Channel' },
+        ],
+      }),
+    );
+  });
+
   it('should throw when no channel items returned', async () => {
     mockChannelsList.mockResolvedValueOnce({ data: { items: [] } });
 

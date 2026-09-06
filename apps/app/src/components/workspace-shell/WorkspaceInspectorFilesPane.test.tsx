@@ -125,8 +125,9 @@ describe('WorkspaceInspectorFilesPane', () => {
     expect(
       screen.getByRole('link', { name: 'Manage Library' }),
     ).toHaveAttribute('href', '/acme/moonrise/library/images');
-    expect(screen.getByRole('tab', { name: 'Images' })).toHaveClass(
-      'border-input',
+    expect(screen.getByRole('tab', { name: 'Images' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
 
     fireEvent.click(
@@ -151,11 +152,10 @@ describe('WorkspaceInspectorFilesPane', () => {
     expect(
       screen.getByRole('link', { name: 'Manage Library' }),
     ).toHaveAttribute('href', '/acme/moonrise/library/videos');
-    expect(screen.getByRole('tab', { name: 'Videos' })).toHaveClass(
-      'border-input',
+    expect(screen.getByRole('tab', { name: 'Videos' })).toHaveAttribute(
+      'aria-selected',
+      'true',
     );
-    expect(screen.getByRole('tab', { name: 'Images' })).toHaveClass(
-      'border-input',
-    );
+    expect(screen.getByRole('tab', { name: 'Images' })).toBeInTheDocument();
   });
 });

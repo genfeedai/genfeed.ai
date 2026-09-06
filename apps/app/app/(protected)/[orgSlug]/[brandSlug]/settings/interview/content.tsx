@@ -11,6 +11,7 @@ import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';
+import type { BrandExampleContext } from '@props/settings/interview-content.props';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
@@ -39,11 +40,6 @@ const GROUP_LABELS: Record<BrandInterviewGroup, string> = {
   identity: 'Identity',
   strategy: 'Strategy',
   voice: 'Voice',
-};
-
-type BrandExampleContext = {
-  brandName?: string | null;
-  description?: string | null;
 };
 
 function parseListDraft(value: string): string[] {

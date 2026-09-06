@@ -1,29 +1,11 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IssueComment } from '@services/management/issue-comments.service';
+import type { IssueCommentsCardProps } from '@props/tasks/issue-comments-card.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, ChevronsDown, MessageCircle } from 'lucide-react';
-import type { RefObject } from 'react';
 
 import { CommentItem } from './comment-item';
-
-type IssueCommentsCardProps = {
-  comments: IssueComment[];
-  visibleComments: IssueComment[];
-  hiddenCommentCount: number;
-  showAllComments: boolean;
-  commentBody: string;
-  isSubmitting: boolean;
-  lastCommentRef: RefObject<HTMLDivElement | null>;
-  visibleCommentCount: number;
-  onShowAllComments: () => void;
-  onScrollToLatest: () => void;
-  onCommentBodyChange: (value: string) => void;
-  onAddComment: () => Promise<void>;
-};
 
 export default function IssueCommentsCard({
   comments,

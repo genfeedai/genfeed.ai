@@ -1,30 +1,18 @@
 import type { Ingredient } from '@models/content/ingredient.model';
+import type {
+  WorkspaceTaskLinkedExecutionSummary,
+  WorkspaceTaskLinkedIssueSummary,
+  WorkspaceTaskLinkedOutputSummary,
+  WorkspaceTaskOutputGroup,
+} from '@props/workspace/workspace-task-inspector.props';
 import type { TaskEvent } from '@services/management/tasks.service';
 
-// ─── Private types ────────────────────────────────────────────────────────────
-
-export interface WorkspaceTaskLinkedExecutionSummary {
-  generatedContentCount: number;
-  reportThreadCount: number;
-  reportThreadId: string | null;
-}
-
-export interface WorkspaceTaskLinkedOutputSummary {
-  error: string | null;
-  isLoading: boolean;
-  outputs: Ingredient[];
-}
-
-export interface WorkspaceTaskOutputGroup {
-  children: Ingredient[];
-  root: Ingredient;
-}
-
-export interface WorkspaceTaskLinkedIssueSummary {
-  href: string | null;
-  identifier: string | null;
-  isLoading: boolean;
-}
+export type {
+  WorkspaceTaskLinkedExecutionSummary,
+  WorkspaceTaskLinkedIssueSummary,
+  WorkspaceTaskLinkedOutputSummary,
+  WorkspaceTaskOutputGroup,
+} from '@props/workspace/workspace-task-inspector.props';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -1,13 +1,15 @@
 export interface PaginationProps {
   currentPage: number;
   totalPages: number;
+  totalItems?: number;
+  totalLabel?: string;
   onPageChange?: (page: number) => void;
 }
 
 export interface AutoPaginationProps {
   /**
-   * Show total results count (e.g., "Showing 1-10 of 156")
-   * @default false
+   * Show total results count
+   * @default true
    */
   showTotal?: boolean;
 

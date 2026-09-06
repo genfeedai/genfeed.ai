@@ -330,26 +330,20 @@ export class ModelsService extends BaseService<
   private getFindAllOrderBy(
     input: unknown,
     options: AggregationOptions,
-  ): Record<string, 'asc' | 'desc'> {
+  ): Prisma.ModelOrderByWithRelationInput[] {
     if (this.isModelRecord(input) && this.isModelRecord(input.orderBy)) {
-      return Object.fromEntries(
-        Object.entries(input.orderBy).map(([key, value]) => [
-          key,
-          value === 1 ? 'asc' : 'desc',
-        ]),
-      );
+      return Object.entries(input.orderBy).map(([key, value]) => ({
+        [key]: value === 1 ? 'asc' : 'desc',
+      }));
     }
 
     if (this.isModelRecord(options.sort)) {
-      return Object.fromEntries(
-        Object.entries(options.sort).map(([key, value]) => [
-          key,
-          value === 1 ? 'asc' : 'desc',
-        ]),
-      );
+      return Object.entries(options.sort).map(([key, value]) => ({
+        [key]: value === 1 ? 'asc' : 'desc',
+      }));
     }
 
-    return { createdAt: 'desc' };
+    return [{ createdAt: 'desc' }];
   }
 
   private toPublicModelCatalogDocument(
@@ -570,7 +564,7 @@ export class ModelsService extends BaseService<
     const isPaginated = options.pagination !== false;
     const [docs, totalDocs] = await Promise.all([
       this.prisma.model.findMany({
-        orderBy: orderBy as Prisma.ModelOrderByWithRelationInput,
+        orderBy,
         skip: isPaginated ? (page - 1) * limit : undefined,
         take: isPaginated ? limit : undefined,
         where: dbWhere as Prisma.ModelWhereInput,

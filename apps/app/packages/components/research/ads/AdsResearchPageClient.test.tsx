@@ -1156,7 +1156,10 @@ describe('AdsResearchPageClient', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
-    ).toHaveAttribute('href', '/moonrise-org/moonrise-studio/settings/social');
+    ).toHaveAttribute(
+      'href',
+      '/moonrise-org/moonrise-studio/settings/integrations',
+    );
   });
 
   it('keeps public ads visible and a slim connect strip when only public winners exist', () => {

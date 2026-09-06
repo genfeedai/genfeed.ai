@@ -1,6 +1,8 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+const require = createRequire(import.meta.url);
 const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
@@ -140,6 +142,30 @@ export default defineConfig({
       {
         find: /^@genfeedai\/constants\/(.*)$/,
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
+      },
+      {
+        // jsdom suites never load the Sentry bundles: the server entry throws
+        // outside a file:// URL and the client entry needs next/router.
+        find: /^@sentry\/nextjs$/,
+        replacement: path.resolve(
+          __dirname,
+          '../config/test/sentry-nextjs.shim.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/interfaces$/,
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/interfaces/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/api-types/$1'),
       },
       {
         find: /^@genfeedai\/contracts$/,

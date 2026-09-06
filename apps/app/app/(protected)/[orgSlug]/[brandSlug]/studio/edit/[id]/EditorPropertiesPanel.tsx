@@ -5,23 +5,13 @@ import {
   ButtonVariant,
   EditorTrackType,
 } from '@genfeedai/contracts';
-import type {
-  IEditorClip,
-  IEditorTrack,
-} from '@genfeedai/contracts/interfaces';
+import type { IEditorClip } from '@genfeedai/contracts/interfaces';
+import type { EditorPropertiesPanelProps } from '@props/studio/editor-properties-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback } from 'react';
 import { formatPreciseFrameTime } from './editor-time-format.util';
-
-interface EditorPropertiesPanelProps {
-  tracks: IEditorTrack[];
-  fps: number;
-  selectedTrackId: string | null;
-  selectedClipId: string | null;
-  onTrackUpdate: (trackId: string, updates: Partial<IEditorTrack>) => void;
-}
 
 function EditorPropertiesPanel({
   tracks,

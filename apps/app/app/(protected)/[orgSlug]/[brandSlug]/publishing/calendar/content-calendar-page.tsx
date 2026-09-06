@@ -1,5 +1,6 @@
 'use client';
 
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -22,11 +23,15 @@ import type {
   IPostingCadence,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
+import type { Newsletter } from '@models/content/newsletter.model';
+import {
+  createPublishingContentLibraryItems,
+  filterPublishingContentLibraryItems,
+  parsePublishingContentType,
+} from '@pages/posts/library/publishing-content-library.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
@@ -49,7 +54,6 @@ import type {
   CalendarEventBadge,
   CalendarEventChannel,
   CalendarEventDrop,
-  CalendarItem,
   CalendarViewKey,
 } from '@props/components/calendar.props';
 import type {
@@ -57,11 +61,20 @@ import type {
   ReleaseCalendarFilterOption,
   ReleaseCalendarFilters as ReleaseFilters,
 } from '@props/publisher/release-calendar.props';
+import type {
+  ArticleContentCalendarItem,
+  ContentCalendarItem,
+  DayAggregateContentCalendarItem,
+  NewsletterContentCalendarItem,
+  ReleaseContentCalendarItem,
+  SlotContentCalendarItem,
+} from '@props/publishing/content-calendar-page.props';
 import {
   useConfirmModal,
   usePostRepurposeModal,
 } from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
+import { NewslettersService } from '@services/content/newsletters.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
@@ -70,15 +83,12 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { Button } from '@ui/primitives/button';
-import { FileText, List, Repeat } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { FileText, Repeat } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
-  'Help me write a new long-form article for my brand.',
-);
+import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 import CadenceFormSheet from './cadence-form-sheet';
 import {
@@ -96,34 +106,6 @@ import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
 
-interface ArticleContentCalendarItem extends CalendarItem {
-  article: IArticle;
-  itemType: 'article';
-}
-
-interface ReleaseContentCalendarItem extends CalendarItem {
-  itemType: 'release';
-  release: IReleaseGroup;
-}
-
-interface SlotContentCalendarItem extends CalendarItem {
-  itemType: 'slot';
-  slot: ICalendarSlot;
-}
-
-interface DayAggregateContentCalendarItem extends CalendarItem {
-  filledCount: number;
-  itemType: 'day-aggregate';
-  missingCount: number;
-  missingIdentityKeys: string[];
-}
-
-type ContentCalendarItem =
-  | ArticleContentCalendarItem
-  | DayAggregateContentCalendarItem
-  | ReleaseContentCalendarItem
-  | SlotContentCalendarItem;
-
 function mutationErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
@@ -132,9 +114,17 @@ function mutationErrorMessage(error: unknown): string {
 
 export default function ContentCalendarPage({
   campaignId,
+  embedded = false,
 }: {
   campaignId?: string;
+  embedded?: boolean;
 } = {}): React.JSX.Element {
+  const searchParams = useSearchParams();
+  const globalFilterQuery = embedded ? searchParams.toString() : '';
+  const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
+  const getNewslettersService = useAuthedService(
+    useCallback((token: string) => NewslettersService.getInstance(token), []),
+  );
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -166,6 +156,7 @@ export default function ContentCalendarPage({
 
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
+  const openAgentComposer = useOpenAgentComposer();
   const [slots, setSlots] = useState<ICalendarSlot[]>([]);
   const [cadences, setCadences] = useState<IPostingCadence[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
@@ -199,6 +190,16 @@ export default function ContentCalendarPage({
     };
   }, []);
 
+  const { setRefresh } = usePostsLayout();
+  useEffect(() => {
+    if (!embedded) return;
+    setRefresh(
+      () => () =>
+        setDateRange((current) => (current ? { ...current } : current)),
+    );
+    return () => setRefresh(() => () => {});
+  }, [embedded, setRefresh, setDateRange]);
+
   useEffect(() => {
     if (!dateRange) {
       return;
@@ -210,12 +211,17 @@ export default function ContentCalendarPage({
       setIsLoading(true);
 
       try {
-        const [articlesService, releaseGroupsService, cadencesService] =
-          await Promise.all([
-            getArticlesService(),
-            getReleaseGroupsService(),
-            getPostingCadencesService(),
-          ]);
+        const [
+          articlesService,
+          releaseGroupsService,
+          cadencesService,
+          newslettersService,
+        ] = await Promise.all([
+          getArticlesService(),
+          getReleaseGroupsService(),
+          getPostingCadencesService(),
+          getNewslettersService(),
+        ]);
 
         const window = {
           endDate: dateRange.end.toISOString(),
@@ -248,6 +254,7 @@ export default function ContentCalendarPage({
           fetchedReleases,
           fetchedSlots,
           fetchedCadences,
+          fetchedNewsletters,
         ] = await Promise.all([
           campaignId
             ? Promise.resolve([])
@@ -266,12 +273,19 @@ export default function ContentCalendarPage({
           brandId && !campaignId
             ? cadencesService.list(brandId, controller.signal)
             : Promise.resolve([]),
+          campaignId
+            ? Promise.resolve([])
+            : newslettersService.findAllPages(
+                brandId ? { brandId } : {},
+                controller.signal,
+              ),
         ]);
 
         if (controller.signal.aborted) {
           return;
         }
 
+        setNewsletters(fetchedNewsletters);
         setArticles(fetchedArticles);
         setReleases(fetchedReleases);
         setSlots(fetchedSlots);
@@ -298,45 +312,94 @@ export default function ContentCalendarPage({
     campaignId,
     filters,
     getArticlesService,
+    getNewslettersService,
     getPostingCadencesService,
     getReleaseGroupsService,
     notificationsService,
   ]);
 
   const calendarItems: ContentCalendarItem[] = useMemo(() => {
-    const articleItems: ArticleContentCalendarItem[] = articles.map(
-      (article) => ({
+    const params = new URLSearchParams(globalFilterQuery);
+    const globalItems = filterPublishingContentLibraryItems(
+      createPublishingContentLibraryItems({
+        articles,
+        newsletters,
+        posts: [],
+        releases,
+      }),
+      {
+        type: parsePublishingContentType(params.get('type')),
+        status: (params.getAll('status').length
+          ? params.getAll('status')
+          : params.getAll('executionState')
+        ).map((value) => (value === 'public' ? 'published' : value)),
+        search: params.get('search') ?? '',
+        channel: params.get('platform') ?? 'all',
+      },
+    );
+    const visibleIds = new Set(globalItems.map((item) => item.id));
+    const newsletterItems: NewsletterContentCalendarItem[] = newsletters
+      .filter(
+        (newsletter) =>
+          visibleIds.has(newsletter.id) &&
+          (newsletter.scheduledFor || newsletter.publishedAt),
+      )
+      .map((newsletter) => ({
+        id: newsletter.id,
+        itemType: 'newsletter',
+        newsletter,
+        scheduledDate: newsletter.scheduledFor || newsletter.publishedAt,
+        status: newsletter.status,
+        title: newsletter.label,
+      }));
+    const articleItems: ArticleContentCalendarItem[] = articles
+      .filter((article) => visibleIds.has(article.id))
+      .map((article) => ({
         article,
         id: article.id,
         itemType: 'article',
         scheduledDate: article.createdAt,
         status: article.status,
         title: article.label,
-      }),
-    );
+      }));
 
-    const releaseItems: ReleaseContentCalendarItem[] = releases.map(
-      (release) => ({
+    const releaseItems: ReleaseContentCalendarItem[] = releases
+      .filter((release) => visibleIds.has(release.id))
+      .map((release) => ({
         id: release.id,
         itemType: 'release',
         release,
         scheduledDate: releaseScheduledInstant(release),
         status: release.status,
         title: release.title,
-      }),
-    );
+      }));
 
-    const slotItems: SlotContentCalendarItem[] = slots.map((slot) => ({
-      id: slot.identityKey,
-      itemType: 'slot',
-      scheduledDate: slot.instant,
-      slot,
-      status: slot.state,
-      title: slot.format,
-    }));
+    const slotItems: SlotContentCalendarItem[] = slots
+      .filter(
+        () =>
+          !globalFilterQuery ||
+          (params.get('type') !== 'article' &&
+            params.get('type') !== 'newsletter' &&
+            !params.has('status') &&
+            !params.has('search') &&
+            !params.has('platform')),
+      )
+      .map((slot) => ({
+        id: slot.identityKey,
+        itemType: 'slot',
+        scheduledDate: slot.instant,
+        slot,
+        status: slot.state,
+        title: slot.format,
+      }));
 
     if (calendarView !== 'month') {
-      return [...releaseItems, ...articleItems, ...slotItems];
+      return [
+        ...releaseItems,
+        ...articleItems,
+        ...newsletterItems,
+        ...slotItems,
+      ];
     }
 
     const aggregates = aggregateCalendarItemsByDay([
@@ -344,7 +407,7 @@ export default function ContentCalendarPage({
         instant: String(item.scheduledDate ?? ''),
         kind: 'filled' as const,
       })),
-      ...articleItems.map((item) => ({
+      ...[...articleItems, ...newsletterItems].map((item) => ({
         instant: String(item.scheduledDate ?? ''),
         kind: 'filled' as const,
       })),
@@ -374,7 +437,15 @@ export default function ContentCalendarPage({
         }),
       }),
     );
-  }, [articles, calendarView, releases, slots, translate]);
+  }, [
+    articles,
+    newsletters,
+    globalFilterQuery,
+    calendarView,
+    releases,
+    slots,
+    translate,
+  ]);
 
   const selectedRelease = useMemo(
     () => releases.find((release) => release.id === selectedReleaseId) ?? null,
@@ -582,6 +653,10 @@ export default function ContentCalendarPage({
         return;
       }
 
+      if (item.itemType === 'newsletter') {
+        push(href(createArtifactEditorRoute('newsletter', item.newsletter.id)));
+        return;
+      }
       if (item.itemType === 'article') {
         // Refinement belongs to the artifact — open the article's editor page.
         push(href(createArtifactEditorRoute('article', item.article.id)));
@@ -602,7 +677,7 @@ export default function ContentCalendarPage({
   );
 
   const getEventColor = useCallback((item: ContentCalendarItem) => {
-    if (item.itemType === 'day-aggregate') {
+    if (item.itemType === 'day-aggregate' || item.itemType === 'newsletter') {
       return CALENDAR_SLOT_EVENT_COLOR;
     }
 
@@ -1101,7 +1176,7 @@ export default function ContentCalendarPage({
   );
 
   const filterControls = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center justify-end gap-2">
       <Button
         aria-label="New cadence"
         isDisabled={!defaultCredentialId}
@@ -1143,20 +1218,19 @@ export default function ContentCalendarPage({
         onChange={setFilters}
         platformOptions={platformOptions}
       />
-      <Link
-        href={href(getPublishingPostsHref())}
-        aria-label="Open the list view"
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
-      >
-        <List />
-      </Link>
-      <Link
-        href={href(WRITE_ARTICLE_AGENT_HREF)}
+      <Button
+        size={ButtonSize.ICON}
+        variant={ButtonVariant.GHOST}
+        tooltip="Write an article with the agent"
         aria-label="Write an article"
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
+        onClick={() =>
+          openAgentComposer(
+            'Help me write a new long-form article for my brand.',
+          )
+        }
       >
-        <FileText />
-      </Link>
+        <FileText className="size-3.5" />
+      </Button>
     </div>
   );
 
@@ -1258,6 +1332,7 @@ export default function ContentCalendarPage({
 
   return (
     <ContentCalendar
+      embedded={embedded}
       items={calendarItems}
       onEventClick={handleEventClick}
       onDateClick={handleDateClick}

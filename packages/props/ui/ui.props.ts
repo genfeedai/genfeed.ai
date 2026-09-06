@@ -11,6 +11,7 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
+import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
@@ -39,7 +40,7 @@ export interface CardProps {
   overlay?: string;
   className?: string;
   bodyClassName?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }> | ReactNode;
   iconWrapperClassName?: string;
   iconClassName?: string;
   id?: string;
@@ -72,6 +73,8 @@ export interface ContainerProps {
   fullWidth?: boolean;
   left?: ReactNode;
   right?: ReactNode;
+  /** Explicit help popover; `null` hides the route-level help for this page. */
+  help?: PageHelpContent | null;
 }
 
 export interface LinkProps {

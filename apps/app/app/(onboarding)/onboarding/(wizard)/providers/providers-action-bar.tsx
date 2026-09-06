@@ -1,27 +1,12 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
+import type { ProvidersActionBarProps } from '@props/onboarding/providers-action-bar.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import type { MouseEvent } from 'react';
 
-export type ProvidersAccessSurface = 'desktop-local' | 'saas' | 'self-hosted';
-
-type Props = {
-  loading: boolean;
-  pendingMode: OnboardingAccessMode | null;
-  selectedMode: OnboardingAccessMode | null;
-  surface: ProvidersAccessSurface;
-  onByokClick: (event: MouseEvent<HTMLAnchorElement>) => void;
-  onServerContinue: () => void;
-  onCloudContinue: () => void;
-  onDesktopContinue: () => void;
-  onBack: () => void;
-};
+export type { ProvidersAccessSurface } from '@props/onboarding/providers-action-bar.props';
 
 const CURRENT_RING = 'ring-1 ring-border-strong';
 
@@ -43,7 +28,7 @@ export default function ProvidersActionBar({
   onCloudContinue,
   onDesktopContinue,
   onBack,
-}: Props) {
+}: ProvidersActionBarProps) {
   const guidance =
     surface === 'saas'
       ? 'Use Genfeed Cloud for hosted generation, or add your own provider keys if you want BYOK.'

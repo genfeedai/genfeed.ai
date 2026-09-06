@@ -1,7 +1,8 @@
-'use client';
-
 import { AgentAutonomyMode } from '@genfeedai/contracts';
-import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentPolicyCardProps,
+  AgentPolicyState,
+} from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -10,25 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
-
-type AgentPolicyState = NonNullable<IOrganizationSetting['agentPolicy']>;
-
-type QualityTierOption = {
-  description: string;
-  label: string;
-  value: NonNullable<AgentPolicyState['qualityTierDefault']>;
-};
-
-type AgentPolicyCardProps = {
-  autonomyDefault: AgentAutonomyMode;
-  isSaving: boolean;
-  onAutonomyDefaultChange: (value: AgentAutonomyMode) => void;
-  onQualityTierDefaultChange: (
-    value: NonNullable<AgentPolicyState['qualityTierDefault']>,
-  ) => void;
-  qualityTierDefault: NonNullable<AgentPolicyState['qualityTierDefault']>;
-  qualityTierOptions: QualityTierOption[];
-};
 
 export default function AgentPolicyCard({
   autonomyDefault,

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   PAYG_CREDIT_PACKS,
@@ -8,11 +6,12 @@ import {
   PAYG_MIN_PURCHASE_USD,
 } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { CreditTopUpPanelProps } from '@props/settings/credit-top-up-panel.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { CreditCard } from 'lucide-react';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 
 function parseUsd(value: string): number | null {
@@ -28,20 +27,6 @@ function parseUsd(value: string): number | null {
 function formatUsd(value: number): string {
   return `$${value.toLocaleString()}`;
 }
-
-type CreditTopUpPanelProps = {
-  helperContent?: ReactNode;
-  isSubmitDisabled?: boolean;
-  isStartingCheckout: boolean;
-  /** Rendered next to the primary submit button (e.g. secondary portal link). */
-  secondaryAction?: ReactNode;
-  submitLabel?: string;
-  title?: string;
-  onSubmit: (selection: {
-    credits: number;
-    usd: number;
-  }) => void | Promise<void>;
-};
 
 export default function CreditTopUpPanel({
   helperContent,

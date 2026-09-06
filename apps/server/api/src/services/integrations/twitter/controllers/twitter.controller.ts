@@ -10,7 +10,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
-import { isTwitterOAuthCodeError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import {
+  isTwitterClientAuthError,
+  isTwitterOAuthCodeError,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
@@ -266,6 +269,17 @@ export class TwitterController {
           },
           HttpStatus.BAD_REQUEST,
         );
+      }
+      if (isTwitterClientAuthError(error)) {
+        this.loggerService.error(
+          `${url} X rejected this deployment's app credentials`,
+          error,
+        );
+        throw new ServiceUnavailableException({
+          detail:
+            "X rejected this deployment's app credentials (client id/secret or app type). Check the X developer portal and TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET.",
+          title: 'OAuth Configuration Error',
+        });
       }
       if (error instanceof HttpException && error.getStatus() < 500) {
         this.loggerService.warn(`${url} rejected an invalid OAuth callback`);

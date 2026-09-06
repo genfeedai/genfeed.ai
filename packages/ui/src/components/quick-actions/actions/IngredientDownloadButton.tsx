@@ -21,6 +21,7 @@ export default function IngredientDownloadButton({
   ingredientId,
   disabled,
   onDownloadOriginal,
+  isCompact = false,
 }: IngredientDownloadButtonProps) {
   const translate = useTranslations('ui.watermarkDownload');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -49,6 +50,39 @@ export default function IngredientDownloadButton({
       inFlight.current = false;
       setIsDownloading(false);
     }
+  }
+
+  if (isCompact) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+            className="size-7 rounded-md"
+            ariaLabel={translate('options')}
+            tooltip={translate('options')}
+            tooltipPosition="top"
+            isDisabled={disabled || isDownloading}
+            isLoading={isDownloading}
+          >
+            <Download className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <DropdownMenuItem onSelect={() => void download(false)}>
+            {translate('original')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void download(true)}>
+            {translate('branded')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   }
 
   return (

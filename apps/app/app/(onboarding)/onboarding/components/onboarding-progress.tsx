@@ -1,5 +1,3 @@
-'use client';
-
 import type { OnboardingProgressProps } from '@props/onboarding/onboarding-progress.props';
 import { Progress } from '@ui/primitives';
 import { Check } from 'lucide-react';

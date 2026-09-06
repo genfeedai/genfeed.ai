@@ -11,6 +11,7 @@ import CredentialPostingTimesEditor from '@pages/brands/components/sidebar/Crede
 import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import type {
   BrandDetailConnectedAccountProps,
+  BrandDetailIntegrationAccountRowProps,
   BrandDetailSocialMediaCardProps,
 } from '@props/pages/brand-detail.props';
 import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
@@ -24,6 +25,7 @@ import {
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
+import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
@@ -34,7 +36,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { Check } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -171,6 +179,88 @@ function ConnectedAccount({
   );
 }
 
+function IntegrationAccountRow({
+  connection,
+  isPostingTimesDisabled,
+  isReconnectDisabled,
+  onDisconnect,
+  onPostingTimes,
+  onReconnect,
+}: BrandDetailIntegrationAccountRowProps) {
+  const translate = useTranslations('pages.brandSocialMedia');
+  const label = getConnectionLabel(connection);
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 shadow-border">
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="relative shrink-0">
+          <Avatar className="size-8 bg-background-secondary shadow-border">
+            {connection.avatarUrl ? (
+              <AvatarImage
+                src={connection.avatarUrl}
+                alt={translate('profilePictureAlt', { account: label })}
+                className="object-cover"
+              />
+            ) : null}
+            <AvatarFallback className="text-2xs font-semibold text-foreground/70">
+              {getConnectionInitials(connection)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="absolute -bottom-1 -right-1 rounded-full bg-background p-0.5 shadow-border-strong">
+            <PlatformBadge
+              platform={connection.platform}
+              showLabel={false}
+              className="size-3.5 justify-center rounded-full p-0"
+            />
+          </span>
+        </span>
+
+        <span className="min-w-0 text-left">
+          <span className="block truncate text-sm font-medium">{label}</span>
+          {connection.handle ? (
+            <span className="block truncate text-xs text-muted-foreground">
+              @{connection.handle.replace(/^@/, '')}
+            </span>
+          ) : null}
+        </span>
+      </span>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={translate('moreActionsAria', { account: label })}
+            className="size-7 shrink-0"
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+          >
+            <MoreVertical className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            disabled={isReconnectDisabled}
+            onSelect={() => onReconnect(connection)}
+          >
+            {translate('reconnect')}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={isPostingTimesDisabled}
+            onSelect={() => onPostingTimes(connection)}
+          >
+            {translate('postingTimes')}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={() => onDisconnect(connection)}
+          >
+            {translate('disconnect')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 function getHealthToneClass(summary: AccountHealthSummary): string {
   if (summary.override.isActive) {
     return 'border-info/30 bg-info/10 text-info';
@@ -215,6 +305,8 @@ export default function BrandDetailSocialMediaCard({
   const [disconnectTarget, setDisconnectTarget] =
     useState<SocialConnection | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [postingTimesTarget, setPostingTimesTarget] =
+    useState<SocialConnection | null>(null);
 
   const connectedConnections = connections;
   // Every channel stays on the connect list even once it holds an account: a
@@ -481,97 +573,26 @@ export default function BrandDetailSocialMediaCard({
     // GOOGLE_ADS credential, so resolving the icon from the platform drew a
     // Google "G" on the YouTube Ads card.
     const { Icon } = item;
+    const isReconnectDisabled =
+      !item.isConnectAvailable || connectingPlatform !== null;
 
     return (
-      <div
+      <Card
         key={item.connectId ?? item.platform}
-        className="flex h-full flex-col gap-3 rounded-lg bg-background-secondary p-4 shadow-border"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-background shadow-border">
-              {/* Square tile: force SVG to a fixed box so FA 448×512 glyphs center. */}
-              <span className="inline-flex size-4 items-center justify-center overflow-hidden leading-none [&_svg]:block [&_svg]:size-4">
-                <Icon
-                  className={`block size-4 shrink-0 ${item.iconClassName}`}
-                />
-              </span>
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{item.label}</p>
-              <p className="text-xs text-muted-foreground">
-                {isConnected
-                  ? translate('connectedCount', {
-                      count: platformConnections.length,
-                    })
-                  : translate('notConnected')}
-              </p>
-            </div>
-          </div>
-          {isConnected ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-2 py-0.5 text-2xs font-semibold uppercase text-success">
-              <Check className="size-3" />
-              {translate('linked')}
-            </span>
-          ) : null}
-        </div>
-
-        {isConnected ? (
-          <div className="space-y-3">
-            {platformConnections.map((connection) => (
-              <div className="space-y-2" key={connection.credentialId}>
-                <ConnectedAccount
-                  connection={connection}
-                  isSelected={
-                    selectedConnection?.credentialId === connection.credentialId
-                  }
-                  onSelect={
-                    hasWarmupBlueprint(connection.platform)
-                      ? setSelectedCredentialId
-                      : undefined
-                  }
-                />
-                {/* Per account, not per platform: reconnecting one account of
-                    a brand that runs several must not touch its siblings. */}
-                <div className="flex flex-wrap items-center gap-1">
-                  <Button
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    className="h-7 px-2 text-2xs"
-                    onClick={() => handleConnectPlatform(item)}
-                    isDisabled={
-                      !item.isConnectAvailable || connectingPlatform !== null
-                    }
-                  >
-                    {translate('reconnectAccount', {
-                      account: getConnectionLabel(connection),
-                    })}
-                  </Button>
-                  <Button
-                    variant={ButtonVariant.GHOST}
-                    size={ButtonSize.SM}
-                    className="h-7 px-2 text-2xs text-muted-foreground"
-                    onClick={() => setDisconnectTarget(connection)}
-                  >
-                    {translate('disconnectNamed', {
-                      account: getConnectionLabel(connection),
-                    })}
-                  </Button>
-                </div>
-                {isPageVariant ? (
-                  <CredentialPostingTimesEditor
-                    credentialId={connection.credentialId}
-                    initialTimes={connection.postingTimes}
-                  />
-                ) : null}
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-auto pt-1">
-          {/* Stays available after the first account connects — that is how a
-              brand adds the second one. */}
+        className="flex h-full flex-col"
+        bodyClassName="flex h-full flex-col gap-3"
+        description={translate('connectedStatus', {
+          count: platformConnections.length,
+        })}
+        headerAction={
+          isConnected ? (
+            <Badge variant="success">{translate('linked')}</Badge>
+          ) : null
+        }
+        icon={<Icon className={`size-5 ${item.iconClassName}`} />}
+        iconWrapperClassName="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted"
+        label={item.label}
+        actions={
           <Button
             variant={
               isConnected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
@@ -586,8 +607,24 @@ export default function BrandDetailSocialMediaCard({
               ? translate('addAnotherAccount', { platform: item.label })
               : translate('connectPlatform', { platform: item.label })}
           </Button>
-        </div>
-      </div>
+        }
+      >
+        {isConnected ? (
+          <div className="flex-1 space-y-2">
+            {platformConnections.map((connection) => (
+              <IntegrationAccountRow
+                key={connection.credentialId}
+                connection={connection}
+                isPostingTimesDisabled={false}
+                isReconnectDisabled={isReconnectDisabled}
+                onDisconnect={setDisconnectTarget}
+                onPostingTimes={setPostingTimesTarget}
+                onReconnect={() => handleConnectPlatform(item)}
+              />
+            ))}
+          </div>
+        ) : null}
+      </Card>
     );
   };
 
@@ -724,6 +761,36 @@ export default function BrandDetailSocialMediaCard({
     </Dialog>
   );
 
+  const postingTimesDialog = (
+    <Dialog
+      open={Boolean(postingTimesTarget)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setPostingTimesTarget(null);
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {postingTimesTarget
+              ? translate('postingTimesDialogTitle', {
+                  account: getConnectionLabel(postingTimesTarget),
+                })
+              : translate('postingTimes')}
+          </DialogTitle>
+        </DialogHeader>
+
+        {postingTimesTarget ? (
+          <CredentialPostingTimesEditor
+            credentialId={postingTimesTarget.credentialId}
+            initialTimes={postingTimesTarget.postingTimes}
+          />
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+
   const overrideDialog = (
     <Dialog
       open={Boolean(selectedOverrideHealth)}
@@ -795,26 +862,22 @@ export default function BrandDetailSocialMediaCard({
         <div className="space-y-6">
           {allPlatformGroups.map((group) => (
             <section key={group.id} className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <h2 className="text-sm font-semibold text-foreground">
                 {group.label}
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {group.description ? (
+                <p className="text-xs text-foreground/55">
+                  {group.description}
+                </p>
+              ) : null}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {group.platforms.map(renderIntegrationCard)}
               </div>
             </section>
           ))}
-
-          {accountHealthSection ? (
-            <Card
-              label={translate('accountHealth')}
-              description={translate('accountHealthDescription')}
-            >
-              {accountHealthSection}
-            </Card>
-          ) : null}
         </div>
         {disconnectDialog}
-        {overrideDialog}
+        {postingTimesDialog}
       </>
     );
   }

@@ -1,15 +1,16 @@
 'use client';
 
 import { EditorTrackType } from '@genfeedai/contracts';
-import type {
-  IEditorClip,
-  IEditorTrack,
-} from '@genfeedai/contracts/interfaces';
+import type { IEditorClip } from '@genfeedai/contracts/interfaces';
 import { buildEditorRenderStyle } from '@genfeedai/utils/media/editor-render-style.util';
-import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
+import type {
+  EditorCompositionProps,
+  EditorPreviewPlayerProps,
+  EditorPreviewProps,
+  EditorPreviewRef,
+} from '@props/studio/editor-preview.props';
 import { Player, type PlayerRef } from '@remotion/player';
 import {
-  type ComponentProps,
   type ComponentType,
   type ReactNode,
   type Ref,
@@ -27,19 +28,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 
-interface EditorCompositionProps extends Record<string, unknown> {
-  backgroundColor: string;
-  tracks: IEditorTrack[];
-}
-
-type EditorPreviewPlayerProps = Omit<
-  ComponentProps<typeof Player>,
-  'component' | 'inputProps'
-> & {
-  component: ComponentType<EditorCompositionProps>;
-  inputProps: EditorCompositionProps;
-  ref?: Ref<PlayerRef>;
-};
+export type { EditorPreviewRef } from '@props/studio/editor-preview.props';
 
 const EditorPreviewPlayer = Player as unknown as ComponentType<
   EditorPreviewPlayerProps & { ref?: Ref<PlayerRef> }
@@ -198,14 +187,6 @@ function EditorComposition({
       )}
     </AbsoluteFill>
   );
-}
-
-export interface EditorPreviewRef {
-  play: () => void;
-  pause: () => void;
-  toggle: () => void;
-  seekToFrame: (frame: number) => void;
-  getCurrentFrame: () => number;
 }
 
 function EditorPreview({

@@ -1,33 +1,13 @@
-'use client';
-
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  BrandFormFieldsProps,
+  ChipOption,
+} from '@props/onboarding/brand-form-fields.props';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { ArrowRight, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-type Props = {
-  brandName: string;
-  organizationName: string;
-  targetAudience: string;
-  tone: string;
-  websiteUrl: string;
-  errorMessage: string | null;
-  submitting: boolean;
-  onBrandNameChange: (value: string) => void;
-  onOrganizationNameChange: (value: string) => void;
-  onTargetAudienceChange: (value: string) => void;
-  onToneChange: (value: string) => void;
-  onWebsiteUrlChange: (value: string) => void;
-  onContinue: () => void;
-  onSkip: () => void;
-};
-
-type ChipOption = {
-  label: string;
-  value: string;
-};
 
 function ChipGroup({
   label,
@@ -91,7 +71,7 @@ export default function BrandFormFields({
   onWebsiteUrlChange,
   onContinue,
   onSkip,
-}: Props) {
+}: BrandFormFieldsProps) {
   const translate = useTranslations('pages.onboarding.brand');
   const audienceOptions: readonly ChipOption[] = [
     {

@@ -1,3 +1,4 @@
+import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
@@ -144,8 +145,9 @@ export class ReplicateService {
 
       return res.id;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
+      const providerError = toReplicateProviderError(error);
+      this.loggerService.error(`${url} failed`, providerError);
+      throw providerError;
     }
   }
 

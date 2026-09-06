@@ -176,7 +176,7 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/skills')).toBe(
       '/settings/brands',
     );
-    expect(resolveOrganizationScopePath('/settings/social')).toBe(
+    expect(resolveOrganizationScopePath('/settings/integrations')).toBe(
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/kit')).toBe(

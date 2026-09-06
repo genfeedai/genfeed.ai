@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -10,6 +8,11 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementScene } from '@models/elements/scene.model';
+import type {
+  SceneFetchStatus as FetchStatus,
+  ScenesAction,
+  ScenesState,
+} from '@props/admin/scenes.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -30,24 +33,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type FetchStatus = 'loading' | 'refreshing' | 'idle';
-
-type ScenesState = {
-  adminOrg: string;
-  adminBrand: string;
-  scenes: ElementScene[];
-  fetchStatus: FetchStatus;
-  selectedScene: IElementScene | null;
-};
-
-type ScenesAction =
-  | { type: 'SET_ADMIN_ORG'; payload: string }
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | { type: 'FETCH_START'; isRefresh: boolean }
-  | { type: 'FETCH_SUCCESS'; scenes: ElementScene[] }
-  | { type: 'FETCH_DONE' }
-  | { type: 'SET_SELECTED_SCENE'; scene: IElementScene | null };
 
 function scenesReducer(state: ScenesState, action: ScenesAction): ScenesState {
   switch (action.type) {

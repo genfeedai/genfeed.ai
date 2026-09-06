@@ -76,7 +76,6 @@ import {
 } from '@/lib/workspace-shell/workspace-composer-action.util';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import {
-  closeInspectorTab,
   openInspectorTab,
   persistInspectorPaneLayout,
   readPersistedInspectorPaneLayout,
@@ -346,21 +345,6 @@ function UniversalWorkspaceShellContent({
     },
     [availableInspectorKinds],
   );
-  const handleCloseInspectorTab = useCallback(
-    (kind: WorkspaceInspectorTabKind) => {
-      setInspectorPaneIntent((intent) =>
-        closeInspectorTab(
-          resolveInspectorPaneLayout({
-            available: WORKSPACE_INSPECTOR_TAB_KINDS,
-            intent,
-          }),
-          kind,
-        ),
-      );
-    },
-    [],
-  );
-
   useEffect(() => {
     const openContextTab = () => {
       expandInspectorPane('context');
@@ -999,7 +983,6 @@ function UniversalWorkspaceShellContent({
 
   const inspectorSharedProps = {
     actions: {
-      onCloseTab: handleCloseInspectorTab,
       onOpenTab: expandInspectorPane,
       onOpenOverlay: handleOpenOverlay,
       onOpenWorkflowPicker: handleOpenWorkflowPicker,

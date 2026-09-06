@@ -27,5 +27,7 @@ export const SHELL_ICON_SVG_CLASS = '[&_svg]:size-3.5';
 /** Compact square hit target for icon-only shell buttons (refresh, etc.). */
 export const SHELL_ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 
+import { controlHeightClassName } from '@ui/primitives/field-control';
+
 /** Compact control row height used by toolbars and filter triggers. */
-export const SHELL_CONTROL_HEIGHT_CLASS = 'h-8';
+export const SHELL_CONTROL_HEIGHT_CLASS = controlHeightClassName;

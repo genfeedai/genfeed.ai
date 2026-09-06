@@ -179,6 +179,7 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+  --shadow-sidebar-footer: var(--shadow-sidebar-footer);
 
   /* Control + icon rhythm (32 / 36 / 40 and 14 / 16 / 20). Every control that
      sits on a toolbar row should pick one of these instead of a bare h-[34px]. */

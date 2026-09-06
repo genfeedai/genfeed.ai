@@ -42,7 +42,7 @@ import { Suspense, useCallback } from 'react';
  * ```
  */
 function AutoPaginationContent({
-  showTotal = false,
+  showTotal = true,
   totalLabel = 'results',
 }: AutoPaginationProps) {
   const { replace } = useRouter();
@@ -78,25 +78,14 @@ function AutoPaginationContent({
     [pathname, replace, searchParamsString],
   );
 
-  // Don't render if there's only 1 page
-  if (totalPages <= 1) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-row justify-between items-center gap-4">
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-      />
-
-      {showTotal && totalDocs > 0 && (
-        <div className="text-foreground/60">
-          Showing page {currentPage} of {totalPages} ({totalDocs} {totalLabel})
-        </div>
-      )}
-    </div>
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      totalItems={showTotal ? totalDocs : undefined}
+      totalLabel={totalLabel}
+      onPageChange={handlePageChange}
+    />
   );
 }
 

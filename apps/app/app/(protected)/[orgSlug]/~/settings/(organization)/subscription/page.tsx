@@ -4,14 +4,11 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import type { SettingsOrganizationSubscriptionRouteProps } from '@props/settings/subscription-page.props';
 import { redirect } from 'next/navigation';
 import SettingsSubscriptionPage from '../../(pages)/organization/subscription/content';
 
 export const generateMetadata = createPageMetadata('Subscription Settings');
-
-interface SettingsOrganizationSubscriptionRouteProps {
-  params: Promise<{ orgSlug: string }>;
-}
 
 export default async function SettingsOrganizationSubscriptionRoute({
   params,

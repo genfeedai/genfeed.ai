@@ -1,14 +1,8 @@
-'use client';
-
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
-import type { NewsletterContextPreview } from '@props/content/artifact-editor.props';
+import type { Props } from '@props/edit/newsletter-context-review.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-
-type Props = {
-  contextPreview: NewsletterContextPreview | null;
-};
 
 export default function NewsletterContextReview({ contextPreview }: Props) {
   return (

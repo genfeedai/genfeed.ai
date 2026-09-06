@@ -1,21 +1,11 @@
-'use client';
-
 import { ComponentSize, PageScope } from '@genfeedai/contracts';
-import type { ContentScope, ISound } from '@genfeedai/contracts/interfaces';
-import type { Sound } from '@models/ingredients/sound.model';
+import type { ISound } from '@genfeedai/contracts/interfaces';
+import type {
+  SoundCellProps,
+  SoundCheckboxCellProps,
+} from '@props/admin/sounds.props';
 import Badge from '@ui/display/badge/Badge';
 import { Checkbox } from '@ui/primitives/checkbox';
-
-type SoundCellProps = {
-  sound: Sound;
-};
-
-type SoundCheckboxCellProps = {
-  sound: Sound;
-  updatingIds: Set<string>;
-  scope: ContentScope;
-  onChange: (sound: Sound) => void;
-};
 
 export function SoundCategoryCell({ sound }: SoundCellProps) {
   return (

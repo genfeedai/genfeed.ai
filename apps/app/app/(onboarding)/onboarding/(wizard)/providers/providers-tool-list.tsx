@@ -1,20 +1,11 @@
-'use client';
-
+import type { ProvidersToolListProps } from '@props/onboarding/providers-tool-list.props';
 import Card from '@ui/card/Card';
 
 import ProvidersRowItem from './providers-row-item';
 
-type ToolRow = {
-  description: string;
-  enabled: boolean;
-  key: string;
-};
-
-type Props = {
-  localToolRows: ToolRow[];
-};
-
-export default function ProvidersToolList({ localToolRows }: Props) {
+export default function ProvidersToolList({
+  localToolRows,
+}: ProvidersToolListProps) {
   return (
     <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">

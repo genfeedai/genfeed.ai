@@ -1,5 +1,3 @@
-'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -7,10 +5,10 @@ import {
   ReviewDecision,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Task, TasksService } from '@services/management/tasks.service';
+import type { WorkspaceOverviewSidebarProps } from '@props/workspace/workspace-overview-sidebar.props';
+import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
@@ -24,31 +22,14 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import type { ReviewInboxSummary } from './workspace-task.helpers';
 import {
-  ADVANCED_TOOLS,
-  LIBRARY_SNAPSHOT_LINKS,
+  useAdvancedTools,
+  useLibrarySnapshotLinks,
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
 import { WorkspaceTaskCard } from './workspace-task-card';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 import { WorkspaceTaskRow } from './workspace-task-row';
-
-interface WorkspaceOverviewSidebarProps {
-  busyTaskId: string | null;
-  historyPreviewItems: Task[];
-  activeExecutions: IWorkflowExecution[];
-  initialReviewInbox: ReviewInboxSummary;
-  inProgressTasks: Task[];
-  isTasksLoading?: boolean;
-  mutateTask: (
-    taskId: string,
-    operation: (service: TasksService) => Promise<Task>,
-  ) => Promise<void>;
-  openPlanningConversation: (task: Task) => Promise<void>;
-  replaceTaskSearchParam: (taskId: string | null) => void;
-  setSelectedTaskId: (taskId: string | null) => void;
-}
 
 export function WorkspaceOverviewSidebar({
   busyTaskId,
@@ -65,7 +46,9 @@ export function WorkspaceOverviewSidebar({
   const translate = useTranslations('pages.workspaceOverview');
   const isStudioEnabled = useFeatureFlag('studio');
   const { href, orgHref } = useOrgUrl();
-  const availableAdvancedTools = ADVANCED_TOOLS.filter(
+  const advancedTools = useAdvancedTools();
+  const librarySnapshotLinks = useLibrarySnapshotLinks();
+  const availableAdvancedTools = advancedTools.filter(
     (tool) => isStudioEnabled || !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT),
   );
   const taskStreamContent =
@@ -128,8 +111,8 @@ export function WorkspaceOverviewSidebar({
     <div className={WORKSPACE_SECTION_STACK_CLASS}>
       <section aria-busy={isTasksLoading} data-testid="workspace-in-progress">
         <Card
-          label="In progress"
-          description="Active workspace tasks and live execution state."
+          label={translate('sidebarCards.inProgress.label')}
+          description={translate('sidebarCards.inProgress.description')}
           bodyClassName="space-y-3 p-4"
         >
           {taskStreamContent}
@@ -145,8 +128,8 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-recent-outputs">
         <Card
-          label="Recent outputs"
-          description="Latest generated ingredients and posts."
+          label={translate('sidebarCards.recentOutputs.label')}
+          description={translate('sidebarCards.recentOutputs.description')}
           headerAction={
             <Button
               asChild
@@ -260,8 +243,8 @@ export function WorkspaceOverviewSidebar({
         data-testid="workspace-history-preview"
       >
         <Card
-          label="Recent activity"
-          description="Execution logs stay available without owning the main navigation."
+          label={translate('sidebarCards.recentActivity.label')}
+          description={translate('sidebarCards.recentActivity.description')}
           headerAction={
             <Button
               asChild
@@ -281,12 +264,12 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-library-snapshot">
         <Card
-          label="Library snapshot"
-          description="Keep the ingredient library one click away from the dashboard."
+          label={translate('sidebarCards.librarySnapshot.label')}
+          description={translate('sidebarCards.librarySnapshot.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">
-            {LIBRARY_SNAPSHOT_LINKS.map((item) => (
+            {librarySnapshotLinks.map((item) => (
               <Link
                 key={item.href}
                 href={href(item.href)}
@@ -306,8 +289,8 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-advanced-tools">
         <Card
-          label="Operator tools"
-          description="Manual and expert surfaces stay available without owning the main navigation."
+          label={translate('sidebarCards.operatorTools.label')}
+          description={translate('sidebarCards.operatorTools.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">
