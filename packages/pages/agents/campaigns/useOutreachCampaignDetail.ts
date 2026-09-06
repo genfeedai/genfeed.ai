@@ -2,6 +2,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { CampaignTargetStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type CampaignTarget,
   type OutreachCampaign,
@@ -15,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export function useOutreachCampaignDetail() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const params = useParams();
   const campaignId = params.id as string;
   const { organizationId } = useBrand();
@@ -212,8 +214,8 @@ export function useOutreachCampaignDetail() {
   }, [targets]);
 
   const handleBack = useCallback(() => {
-    router.push(APP_ROUTES.MESSAGES.OUTREACH);
-  }, [router]);
+    router.push(href(APP_ROUTES.MESSAGES.OUTREACH));
+  }, [href, router]);
 
   return {
     campaign,

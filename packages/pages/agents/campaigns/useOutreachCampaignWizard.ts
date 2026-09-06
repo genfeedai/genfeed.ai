@@ -12,6 +12,7 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { OutreachCampaignsService } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -58,6 +59,7 @@ export interface CampaignFormData {
 
 export function useOutreachCampaignWizard() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const { organizationId, credentials } = useBrand();
   const translate = useTranslations('common.outreachCampaign');
 
@@ -221,7 +223,7 @@ export function useOutreachCampaignWizard() {
       const created = await service.post(campaignData);
 
       notificationsService.success(translate('notifications.created'));
-      router.push(`${APP_ROUTES.MESSAGES.OUTREACH}/${created.id}`);
+      router.push(href(`${APP_ROUTES.MESSAGES.OUTREACH}/${created.id}`));
     } catch (error) {
       logger.error('Failed to create campaign', error);
       notificationsService.error(translate('notifications.createFailed'));
@@ -233,6 +235,7 @@ export function useOutreachCampaignWizard() {
     getService,
     isPairExecutable,
     isScheduleComplete,
+    href,
     notificationsService,
     organizationId,
     pairEvaluation.ui.body,

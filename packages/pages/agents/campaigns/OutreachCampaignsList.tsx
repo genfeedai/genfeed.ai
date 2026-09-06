@@ -7,6 +7,7 @@ import {
   isCollectionFetchReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type OutreachCampaign,
   OutreachCampaignsService,
@@ -26,6 +27,7 @@ import OutreachCampaignsTable from './OutreachCampaignsTable';
 
 export default function OutreachCampaignsList() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const translate = useTranslations('common.outreachCampaign');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const isFetchReady = isCollectionFetchReady({
@@ -164,14 +166,14 @@ export default function OutreachCampaignsList() {
   );
 
   const handleCreateCampaign = useCallback(() => {
-    router.push(APP_ROUTES.MESSAGES.OUTREACH_NEW);
-  }, [router]);
+    router.push(href(APP_ROUTES.MESSAGES.OUTREACH_NEW));
+  }, [href, router]);
 
   const handleConfigureCampaign = useCallback(
     (campaign: OutreachCampaign) => {
-      router.push(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`);
+      router.push(href(`${APP_ROUTES.MESSAGES.OUTREACH}/${campaign.id}`));
     },
-    [router],
+    [href, router],
   );
 
   const handleDeleteCampaign = useCallback(

@@ -34,6 +34,10 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => path }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: vi.fn(() => ({
