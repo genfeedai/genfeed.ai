@@ -2,18 +2,11 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ErrorFallbackProps } from '@genfeedai/props/ui/feedback/error-fallback.props';
 import { Button } from '@ui/primitives/button';
 import { Pre } from '@ui/primitives/pre';
 import { TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
-
-interface ErrorFallbackProps {
-  error?: Error;
-  resetErrorBoundary?: () => unknown;
-  compact?: boolean;
-  title?: string;
-  description?: string;
-}
 
 export function ErrorFallback({
   error,

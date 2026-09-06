@@ -90,7 +90,6 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
 
     const currentRequest = ++requestId.current;
     setIsLoading(true);
-    setIsError(false);
 
     try {
       const service = await getArticlesService();
@@ -105,6 +104,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
       const data = await service.findAll(query);
       if (currentRequest !== requestId.current) return;
       setArticles(data);
+      setIsError(false);
       logger.info('GET /articles success', data);
     } catch (error) {
       if (currentRequest !== requestId.current) return;
@@ -161,7 +161,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         items={articles}
         columns={columns}
         actions={[]}
-        isLoading={isLoading}
+        isLoading={isLoading && articles.length === 0}
         getRowKey={(item) => item.id}
         getRowLink={getRowLink}
         emptyLabel="No articles found"
