@@ -10,6 +10,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
@@ -113,6 +114,9 @@ export default function IngredientInspectorRail({
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
   const previewUrl = getIngredientPreviewUrl(ingredient);
+  const videoUrl = isVideoIngredient(ingredient)
+    ? ingredient.ingredientUrl
+    : undefined;
   const dimensions =
     ingredient.width && ingredient.height
       ? `${ingredient.width} × ${ingredient.height}`
@@ -126,16 +130,15 @@ export default function IngredientInspectorRail({
         className,
       )}
     >
-      {previewUrl ? (
+      {previewUrl || videoUrl ? (
         <div className="relative h-[clamp(12rem,35dvh,24rem)] w-full shrink-0 overflow-hidden rounded-lg bg-foreground/4">
-          {ingredient.category === IngredientCategory.VIDEO &&
-          ingredient.ingredientUrl ? (
+          {videoUrl ? (
             <VideoPlayer
               key={ingredient.id}
-              src={ingredient.ingredientUrl}
+              src={videoUrl}
               thumbnail={ingredient.thumbnailUrl}
             />
-          ) : (
+          ) : previewUrl ? (
             <Image
               alt={ingredient.metadataLabel || translate('untitled')}
               className="object-contain outline-media"
@@ -147,7 +150,7 @@ export default function IngredientInspectorRail({
                 !canOptimizeImageSource(previewUrl)
               }
             />
-          )}
+          ) : null}
         </div>
       ) : null}
 
