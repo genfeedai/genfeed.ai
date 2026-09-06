@@ -149,7 +149,7 @@ export function buildMasterCiFailureBody({ date, sha, headline, runUrl }) {
 
 async function commentAndTriageExistingTracker(
   github,
-  { owner, repo, issueNumber, body, core },
+  { owner, repo, issueNumber, body, core, projectGithub },
 ) {
   await github.rest.issues.createComment({
     owner,
@@ -164,7 +164,7 @@ async function commentAndTriageExistingTracker(
     label: MASTER_CI_FAILURE_LABEL,
   });
   // Re-assert P0 every red push so backlog drift cannot deprioritize it.
-  await triageCiFailureOnProject(github, {
+  await triageCiFailureOnProject(projectGithub, {
     owner,
     repo,
     issueNumber,
@@ -177,6 +177,7 @@ async function commentAndTriageExistingTracker(
 
 export async function reportMasterCiFailure({
   github,
+  projectGithub = github,
   owner,
   repo,
   body,
@@ -199,6 +200,7 @@ export async function reportMasterCiFailure({
       issueNumber: issue.number,
       body,
       core,
+      projectGithub,
     });
   }
 
@@ -219,7 +221,7 @@ export async function reportMasterCiFailure({
     label: MASTER_CI_FAILURE_LABEL,
   });
 
-  await triageCiFailureOnProject(github, {
+  await triageCiFailureOnProject(projectGithub, {
     owner,
     repo,
     issueNumber: created.data.number,
