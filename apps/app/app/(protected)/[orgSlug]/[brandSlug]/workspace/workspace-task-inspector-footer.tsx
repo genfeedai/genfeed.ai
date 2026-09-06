@@ -3,6 +3,14 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Task } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 import type { WorkspaceTaskLinkedIssueSummary } from './workspace-task-inspector-helpers';
@@ -33,73 +41,79 @@ export function WorkspaceTaskInspectorFooter({
   taskToolLabel,
 }: WorkspaceTaskInspectorFooterProps) {
   return (
-    <div className="space-y-3 border-t border-border px-6 py-4">
-      {showReviewActions ? (
-        <div className="flex gap-2">
-          <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
-            disabled={isBusy}
-            onClick={() => void onApprove(task.id)}
-          >
-            Approve
-          </Button>
+    <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+      <Button
+        size={ButtonSize.SM}
+        variant={ButtonVariant.DEFAULT}
+        disabled={isBusy}
+        onClick={() =>
+          void (showReviewActions ? onApprove(task.id) : onPlanNextSteps(task))
+        }
+      >
+        {showReviewActions ? 'Approve' : 'Plan Next Steps'}
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             disabled={isBusy}
-            onClick={() => void onRequestChanges(task.id)}
+            withWrapper={false}
           >
-            Request Changes
+            More actions
+            <ChevronDown aria-hidden="true" className="size-4" />
           </Button>
-        </div>
-      ) : null}
-
-      <div className="flex gap-2">
-        <Button
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          disabled={isBusy}
-          onClick={() => void onDismiss(task.id)}
-        >
-          Dismiss
-        </Button>
-        <Button
-          size={ButtonSize.SM}
-          variant={ButtonVariant.SECONDARY}
-          disabled={isBusy}
-          onClick={() => void onPlanNextSteps(task)}
-        >
-          Plan Next Steps
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link href={buildTaskLaunchHref(task, 'write')}>Open in Write</Link>
-        </Button>
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link href={buildTaskLaunchHref(task, 'generate')}>
-            Open in Generate
-          </Link>
-        </Button>
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link href={buildTaskLaunchHref(task, 'edit')}>Open in Edit</Link>
-        </Button>
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link href={buildTaskLaunchHref(task, 'automation')}>
-            Open in Automation
-          </Link>
-        </Button>
-        {linkedIssueSummary.href ? (
-          <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-            <Link href={linkedIssueSummary.href}>Open Issue</Link>
-          </Button>
-        ) : null}
-        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link href={taskToolHref}>{taskToolLabel}</Link>
-        </Button>
-      </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {showReviewActions ? (
+            <>
+              <DropdownMenuItem
+                disabled={isBusy}
+                onSelect={() => void onRequestChanges(task.id)}
+              >
+                Request Changes
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={isBusy}
+                onSelect={() => void onPlanNextSteps(task)}
+              >
+                Plan Next Steps
+              </DropdownMenuItem>
+            </>
+          ) : null}
+          <DropdownMenuItem
+            disabled={isBusy}
+            onSelect={() => void onDismiss(task.id)}
+          >
+            Dismiss
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href={buildTaskLaunchHref(task, 'write')}>Open in Write</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={buildTaskLaunchHref(task, 'generate')}>
+              Open in Generate
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={buildTaskLaunchHref(task, 'edit')}>Open in Edit</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={buildTaskLaunchHref(task, 'automation')}>
+              Open in Automation
+            </Link>
+          </DropdownMenuItem>
+          {linkedIssueSummary.href ? (
+            <DropdownMenuItem asChild>
+              <Link href={linkedIssueSummary.href}>Open Issue</Link>
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem asChild>
+            <Link href={taskToolHref}>{taskToolLabel}</Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
