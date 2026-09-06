@@ -184,6 +184,7 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
