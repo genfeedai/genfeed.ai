@@ -7,6 +7,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
@@ -456,8 +457,17 @@ describe('WorkspacePageContent', () => {
       expect(mocks.trashOutput).toHaveBeenCalledWith('task-1', 'output-1'),
     );
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Request Changes' })[0],
+    // Secondary actions sit behind the More actions menu.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup();
+    const openMoreActions = async () =>
+      user.click(screen.getAllByRole('button', { name: /more actions/i })[0]);
+
+    await openMoreActions();
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Request Changes' }),
     );
     await waitFor(() =>
       expect(mocks.requestChanges).toHaveBeenCalledWith(
@@ -466,11 +476,13 @@ describe('WorkspacePageContent', () => {
       ),
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dismiss' })[0]);
+    await openMoreActions();
+    await user.click(await screen.findByRole('menuitem', { name: 'Dismiss' }));
     await waitFor(() => expect(mocks.dismiss).toHaveBeenCalledWith('task-1'));
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Plan Next Steps' })[0],
+    await openMoreActions();
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Plan Next Steps' }),
     );
     await waitFor(() =>
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),

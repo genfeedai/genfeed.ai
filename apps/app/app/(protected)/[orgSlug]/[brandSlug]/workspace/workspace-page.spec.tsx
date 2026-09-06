@@ -672,14 +672,14 @@ describe('WorkspacePageContent', () => {
       ).toBeInTheDocument();
     });
 
-    await openMoreActions(screen.getByTestId('workspace-task-inspector'));
-    expect(
-      await screen.findByRole('menuitem', { name: 'Open Report' }),
-    ).toHaveAttribute('href', '/agent/thread-report-123');
     expect(
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
         name: 'Open report thread',
       }),
+    ).toHaveAttribute('href', '/agent/thread-report-123');
+    await openMoreActions(screen.getByTestId('workspace-task-inspector'));
+    expect(
+      await screen.findByRole('menuitem', { name: 'Open Report' }),
     ).toHaveAttribute('href', '/agent/thread-report-123');
   });
 
