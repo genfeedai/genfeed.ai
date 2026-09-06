@@ -4,6 +4,13 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandKitReviewCard from './BrandKitReviewCard';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   applyBrandKitDraft: vi.fn(),
   crawlBrandKitWebsite: vi.fn(),

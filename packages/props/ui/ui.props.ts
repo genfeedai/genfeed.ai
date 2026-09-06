@@ -40,7 +40,7 @@ export interface CardProps {
   overlay?: string;
   className?: string;
   bodyClassName?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }> | ReactNode;
   iconWrapperClassName?: string;
   iconClassName?: string;
   id?: string;

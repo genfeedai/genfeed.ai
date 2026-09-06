@@ -1053,6 +1053,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/characters',
       '/:orgSlug/:brandSlug/settings/integrations',
+      // Redirect-only alias kept for saved links.
+      '/:orgSlug/:brandSlug/settings/social',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',
