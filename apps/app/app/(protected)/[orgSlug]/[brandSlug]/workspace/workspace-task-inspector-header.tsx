@@ -1,5 +1,6 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
+import Badge from '@ui/display/badge/Badge';
 import {
   SheetDescription,
   SheetHeader,
