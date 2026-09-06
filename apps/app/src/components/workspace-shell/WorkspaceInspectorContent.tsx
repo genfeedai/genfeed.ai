@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { Eye, Maximize2, MessageSquare, Zap } from 'lucide-react';
+import { Eye, LayoutGrid, Maximize2, MessageSquare, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';

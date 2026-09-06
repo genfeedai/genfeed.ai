@@ -712,9 +712,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('workspace-inspector-composer-slot'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).not.toHaveClass('border-t');
+    expect(screen.getByTestId('workspace-inspector-composer-slot')).toHaveClass(
+      'shrink-0',
+    );
     expect(
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'false');
