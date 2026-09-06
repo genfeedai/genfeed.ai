@@ -20,7 +20,10 @@ import {
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
-import type { KnowledgeSourceIngestWorkflowInput } from '@genfeedai/contracts/interfaces';
+import type {
+  BrandContentMemoryRetrievalParams,
+  KnowledgeSourceIngestWorkflowInput,
+} from '@genfeedai/contracts/interfaces';
 import { PrismaClient } from '@genfeedai/prisma';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
@@ -62,6 +65,11 @@ const FIXTURE_SQL = `
   CREATE TABLE context_bases (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE context_entries (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', embedding vector(${CONTEXT_EMBEDDING_DIMENSION}), "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   CREATE TABLE data_backfills (id text PRIMARY KEY, "completedAt" timestamptz NOT NULL DEFAULT now(), report jsonb NOT NULL);
+  CREATE TABLE folders (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "parentId" text, label text NOT NULL, description text, "isActive" boolean NOT NULL DEFAULT true, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+  CREATE TYPE "BookmarkCategory" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWEET', 'URL', 'YOUTUBE');
+  CREATE TYPE "BookmarkPlatform" AS ENUM ('INSTAGRAM', 'TIKTOK', 'TWITTER', 'WEB', 'YOUTUBE');
+  CREATE TYPE "BookmarkIntent" AS ENUM ('VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION');
+  CREATE TABLE bookmarks (id text PRIMARY KEY, "userId" text NOT NULL, "organizationId" text NOT NULL, "brandId" text, "folderId" text, category "BookmarkCategory" NOT NULL DEFAULT 'URL', url text NOT NULL, platform "BookmarkPlatform" NOT NULL DEFAULT 'WEB', title text, content text NOT NULL DEFAULT '', description text, author text, "authorHandle" text, "thumbnailUrl" text, "mediaUrls" text[] NOT NULL DEFAULT '{}', "platformData" jsonb NOT NULL DEFAULT '{}', intent "BookmarkIntent" NOT NULL DEFAULT 'INSPIRATION', "savedAt" timestamptz NOT NULL DEFAULT now(), "processedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
   INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
   INSERT INTO users(id) VALUES ('user-a'), ('user-b');
   INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-a2', 'org-a'), ('brand-b', 'org-b');
@@ -138,7 +146,7 @@ const workflowStub = {
 async function retrieve(
   actor: typeof actorA,
   query: string,
-  extra: Record<string, unknown> = {},
+  extra: Partial<BrandContentMemoryRetrievalParams> = {},
 ) {
   return contexts.retrieveBrandContentMemory({
     brandId: actor.brandId,
