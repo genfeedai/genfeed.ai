@@ -38,7 +38,9 @@
       "@services/*": ["../services/*"],
       "@styles/*": ["../styles/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
-      "@utils/*": ["../utils/*"]
+      "@utils/*": ["../utils/*"],
+      "@genfeedai/helpers": ["../helpers/src/index.ts"],
+      "@ui-constants/*": ["../ui/src/components/constants/*"]
     }
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],

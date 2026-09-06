@@ -995,11 +995,8 @@
       "name": "@genfeedai/props",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/agent": "workspace:*",
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/contexts": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
-        "@genfeedai/hooks": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/services": "workspace:*",
