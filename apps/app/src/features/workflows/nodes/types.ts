@@ -329,7 +329,7 @@ interface PublishNodeData extends BaseNodeData {
 export interface ReviewGateNodeData extends BaseNodeData {
   // Input from connections
   inputMedia: string | null;
-  inputType: 'image' | 'video' | 'text' | null;
+  inputType: 'image' | 'video' | 'audio' | 'text' | null;
   inputCaption: string | null;
 
   // Config

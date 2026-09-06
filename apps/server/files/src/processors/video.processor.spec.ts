@@ -71,6 +71,10 @@ class MockFFmpegService {
     streams: [],
     width: 1920,
   });
+  probe = vi.fn().mockResolvedValue({
+    format: { duration: '10', size: '1024' },
+    streams: [{ codec_type: 'video', height: 1080, width: 1920 }],
+  });
 }
 
 class MockS3Service {

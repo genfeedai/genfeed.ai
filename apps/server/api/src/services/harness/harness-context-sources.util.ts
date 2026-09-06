@@ -1,14 +1,32 @@
+import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
 import type {
   HarnessRecordKind,
   HarnessSourceRecord,
 } from '@genfeedai/harness';
 
 export type BrandMemoryHit = {
+  citation?: KnowledgeRetrievalCitation;
   content: string;
   kind?: string | null;
   metadata?: Record<string, unknown> | null;
   relevance: number;
   source?: string | null;
+};
+
+const HARNESS_KIND_BY_PURPOSE: Record<
+  KnowledgeSourcePurpose,
+  HarnessRecordKind
+> = {
+  [KnowledgeSourcePurpose.BRAND_TRUTH]: 'brand_voice',
+  [KnowledgeSourcePurpose.INSPIRATION]: 'brand_example',
+  [KnowledgeSourcePurpose.RESEARCH]: 'audience_signal',
+};
+
+const PURPOSE_LABEL: Record<KnowledgeSourcePurpose, string> = {
+  [KnowledgeSourcePurpose.BRAND_TRUTH]: 'Brand Truth',
+  [KnowledgeSourcePurpose.INSPIRATION]: 'Inspiration',
+  [KnowledgeSourcePurpose.RESEARCH]: 'Research',
 };
 
 /**
@@ -31,6 +49,9 @@ export function brandMemoryHitsToHarnessSources(
     )
     .slice(0, limit)
     .map((hit, index) => {
+      if (hit.citation) {
+        return knowledgeHitToHarnessSource(hit, hit.citation, index);
+      }
       const kind = normalizeHarnessKind(hit.kind);
       return {
         content: hit.content.trim().slice(0, 500),
@@ -44,6 +65,29 @@ export function brandMemoryHitsToHarnessSources(
         weight: hit.relevance,
       };
     });
+}
+
+/**
+ * A cited Knowledge passage keeps its purpose visible in the brief and carries
+ * the exact source version so downstream receipts can point back to it.
+ */
+function knowledgeHitToHarnessSource(
+  hit: BrandMemoryHit,
+  citation: KnowledgeRetrievalCitation,
+  index: number,
+): HarnessSourceRecord {
+  return {
+    content: hit.content.trim().slice(0, 500),
+    id: `knowledge-${citation.sourceId}-${citation.versionId}-${index}`,
+    kind: HARNESS_KIND_BY_PURPOSE[citation.purpose],
+    metadata: {
+      ...(hit.metadata ?? {}),
+      citation,
+      relevance: hit.relevance,
+    },
+    source: `${citation.title} · ${PURPOSE_LABEL[citation.purpose]}`,
+    weight: hit.relevance,
+  };
 }
 
 function normalizeHarnessKind(

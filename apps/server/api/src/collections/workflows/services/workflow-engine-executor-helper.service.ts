@@ -343,6 +343,82 @@ export class WorkflowEngineExecutorHelperService {
     );
   }
 
+  async requireMediaAsset(
+    value: unknown,
+    organizationId: string,
+    categories: readonly IngredientCategory[],
+  ): Promise<{
+    id: string;
+    brandId: string;
+    category: IngredientCategory;
+    storageKey: string;
+    storageType: string;
+  }> {
+    const id =
+      this.extractIngredientId(value) ??
+      (typeof value === 'string' && !value.includes('/') ? value : undefined);
+    if (!id || !this.ingredientsService) {
+      throw new Error(
+        'Select a saved Library media asset before running this node',
+      );
+    }
+    const asset = await this.ingredientsService.findOne({
+      id,
+      organizationId,
+      isDeleted: false,
+    });
+    if (
+      !asset ||
+      !categories.includes(asset.category as IngredientCategory) ||
+      !(
+        [
+          IngredientStatus.GENERATED,
+          IngredientStatus.UPLOADED,
+          IngredientStatus.VALIDATED,
+        ].includes(asset.status as IngredientStatus) ||
+        (asset.status === IngredientStatus.DRAFT &&
+          typeof asset.s3Key === 'string' &&
+          asset.s3Key.trim().length > 0)
+      ) ||
+      !asset.brandId
+    ) {
+      throw new Error(
+        'Media asset is unavailable, unfinished, or has an incompatible type',
+      );
+    }
+    const stored =
+      typeof asset.s3Key === 'string'
+        ? asset.s3Key.match(/^ingredients\/([^/]+)\/(.+)$/)
+        : null;
+    const storageType =
+      stored?.[1] ??
+      (
+        {
+          [IngredientCategory.VIDEO]: 'videos',
+          [IngredientCategory.IMAGE]: 'images',
+          [IngredientCategory.AVATAR]: 'avatars',
+          [IngredientCategory.MUSIC]: 'musics',
+          [IngredientCategory.VOICE]: 'voices',
+          [IngredientCategory.AUDIO]: 'audios',
+        } as Partial<Record<IngredientCategory, string>>
+      )[asset.category as IngredientCategory];
+    if (
+      !storageType ||
+      !['videos', 'images', 'avatars', 'musics', 'voices', 'audios'].includes(
+        storageType,
+      )
+    ) {
+      throw new Error('Media asset has an unsupported storage location');
+    }
+    return {
+      id,
+      brandId: asset.brandId,
+      category: asset.category as IngredientCategory,
+      storageKey: stored?.[2] ?? id,
+      storageType,
+    };
+  }
+
   resolveMediaOutputCategory(mediaValue: unknown): IngredientCategory {
     const mediaUrl =
       typeof mediaValue === 'string'
@@ -364,7 +440,7 @@ export class WorkflowEngineExecutorHelperService {
   extractIngredientId(value: unknown): string | undefined {
     if (typeof value === 'string') {
       const match = value.match(
-        /\/(?:images|videos|musics|audios|avatars)\/([^/?#]+)(?:[/?#]|$)/i,
+        /\/(?:images|videos|musics|audios|avatars|voices)\/([^/?#]+)(?:[/?#]|$)/i,
       );
       return match?.[1];
     }
@@ -375,7 +451,7 @@ export class WorkflowEngineExecutorHelperService {
         return record.id;
       }
 
-      for (const key of ['video', 'music']) {
+      for (const key of ['video', 'music', 'audio']) {
         const nested = record[key];
         if (nested && typeof nested === 'object') {
           const nestedRecord = nested as Record<string, unknown>;

@@ -103,7 +103,7 @@ export class KnowledgeSourceIngestWorkflowService implements OnModuleInit {
         organizationId: request.organizationId,
         source: 'knowledge-source',
       },
-      `knowledge-source-ingest-${request.contextBaseId}-${request.sourceId}`,
+      `knowledge-source-ingest-${request.sourceId}-${request.versionId}`,
       { attempts: 3, replaceTerminalJob: true },
     );
   }

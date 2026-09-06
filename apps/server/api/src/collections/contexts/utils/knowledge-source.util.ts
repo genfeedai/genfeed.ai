@@ -1,12 +1,20 @@
 import {
   KnowledgeBaseCategory,
   KnowledgeBaseStatus,
+  KnowledgeMemoryScope,
+  KnowledgeSourceKind,
+  KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
 
+/** `data.purpose` of every context base that stores Knowledge chunks. */
 export const KNOWLEDGE_BASE_PURPOSE = 'knowledge-base';
 export const KNOWLEDGE_SOURCE_CHUNK_KIND = 'knowledge-source-chunk';
 
+/**
+ * Legacy source metadata persisted on `ContextBase.data.sources` before
+ * canonical Knowledge records existed. Read-only: the #4123 migration moves
+ * these rows into `knowledge_sources`; nothing writes this shape any more.
+ */
 export interface PersistedKnowledgeSource {
   category: KnowledgeBaseCategory;
   chunkCount?: number;
@@ -40,6 +48,35 @@ function isKnowledgeBaseStatus(value: unknown): value is KnowledgeBaseStatus {
   return (
     typeof value === 'string' &&
     Object.values(KnowledgeBaseStatus).includes(value as KnowledgeBaseStatus)
+  );
+}
+
+export function isKnowledgeMemoryScope(
+  value: unknown,
+): value is KnowledgeMemoryScope {
+  return (
+    typeof value === 'string' &&
+    Object.values(KnowledgeMemoryScope).includes(value as KnowledgeMemoryScope)
+  );
+}
+
+export function isKnowledgeSourceKind(
+  value: unknown,
+): value is KnowledgeSourceKind {
+  return (
+    typeof value === 'string' &&
+    Object.values(KnowledgeSourceKind).includes(value as KnowledgeSourceKind)
+  );
+}
+
+export function isKnowledgeSourcePurpose(
+  value: unknown,
+): value is KnowledgeSourcePurpose {
+  return (
+    typeof value === 'string' &&
+    Object.values(KnowledgeSourcePurpose).includes(
+      value as KnowledgeSourcePurpose,
+    )
   );
 }
 
@@ -102,52 +139,4 @@ export function parseKnowledgeSources(
 
     return [source];
   });
-}
-
-export function writeKnowledgeSources(
-  data: unknown,
-  sources: PersistedKnowledgeSource[],
-): Prisma.InputJsonValue {
-  return JSON.parse(
-    JSON.stringify({
-      ...getContextDataRecord(data),
-      purpose: KNOWLEDGE_BASE_PURPOSE,
-      sources,
-    }),
-  ) as Prisma.InputJsonValue;
-}
-
-export function findKnowledgeSource(
-  sources: PersistedKnowledgeSource[],
-  sourceId: string,
-): PersistedKnowledgeSource | undefined {
-  return sources.find((source) => source.id === sourceId);
-}
-
-export function upsertKnowledgeSource(
-  sources: PersistedKnowledgeSource[],
-  next: PersistedKnowledgeSource,
-): PersistedKnowledgeSource[] {
-  const index = sources.findIndex((source) => source.id === next.id);
-  if (index === -1) {
-    return [...sources, next];
-  }
-
-  const copy = [...sources];
-  copy[index] = { ...copy[index], ...next };
-  return copy;
-}
-
-export function sourceNeedsIngest(source: PersistedKnowledgeSource): boolean {
-  if (source.isDeleted) {
-    return false;
-  }
-  if (!source.referenceUrl) {
-    return false;
-  }
-  return (
-    source.status === KnowledgeBaseStatus.DRAFT ||
-    source.status === KnowledgeBaseStatus.FAILED ||
-    source.status === KnowledgeBaseStatus.PROCESSING
-  );
 }

@@ -85,7 +85,7 @@ describe('model label lookups', () => {
 
 describe('lipSyncModelSupportsImage', () => {
   it('reflects the supportsImage flag', () => {
-    expect(lipSyncModelSupportsImage('bytedance/omni-human')).toBe(true);
+    expect(lipSyncModelSupportsImage('heygen/avatar')).toBe(true);
     expect(lipSyncModelSupportsImage('sync/lipsync-2')).toBe(false);
   });
 

@@ -44,6 +44,7 @@ export interface KnowledgeSourceVersionRecord
   provenance: Record<string, unknown> | null;
   payload: Record<string, unknown> | null;
   processingState: KnowledgeProcessingState;
+  processingError: string | null;
   retrievalState: KnowledgeRetrievalState;
   retentionState: KnowledgeRetentionState;
   retentionPolicy: KnowledgeRetentionPolicy;
@@ -71,4 +72,33 @@ export interface KnowledgeSpaceMembershipRecord {
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Stable identity of the source version behind one retrieved passage. Enough
+ * to persist a receipt and render a citation after the payload is purged.
+ */
+export interface KnowledgeRetrievalCitation {
+  sourceId: string;
+  versionId: string;
+  version: number;
+  title: string;
+  kind: KnowledgeSourceKind;
+  purpose: KnowledgeSourcePurpose;
+  url?: string;
+}
+
+/** Captured content stored on a source version until payload purge. */
+export interface KnowledgeSourceCapturePayload {
+  text?: string;
+  referenceUrl?: string;
+}
+
+/** Where and when a capture happened; cleared on payload purge. */
+export interface KnowledgeSourceCaptureProvenance {
+  capturedAt: string;
+  capturedBy: string;
+  title?: string;
+  url?: string;
+  [key: string]: unknown;
 }

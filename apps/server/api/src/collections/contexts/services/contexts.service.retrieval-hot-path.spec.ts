@@ -174,4 +174,101 @@ describe('ContextsService retrieval hot path', () => {
       expect.arrayContaining(['usageCount', 'org-1', 1, 'ctx-1', 'ctx-2']),
     );
   });
+
+  it('retrieves brand memory plus organization Knowledge and returns citations', async () => {
+    const { service, queryRaw, contextBase } = buildService();
+    contextBase.findMany.mockResolvedValue([
+      { data: { label: 'Voice' }, id: 'ctx-brand', sourceBrandId: 'brand-1' },
+      {
+        data: { knowledgeScope: 'org', purpose: 'knowledge-base' },
+        id: 'ctx-org-knowledge',
+        sourceBrandId: null,
+      },
+    ]);
+    queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        content: 'Plans start at $29',
+        contextBaseId: 'ctx-org-knowledge',
+        kind: 'knowledge-source-chunk',
+        knowledgeSourceId: 'source-1',
+        knowledgeSourceKind: 'URL',
+        knowledgeSourcePurpose: 'BRAND_TRUTH',
+        knowledgeSourceTitle: 'Pricing page',
+        knowledgeSourceUrl: 'https://brand.example/pricing',
+        knowledgeSourceVersion: 2,
+        knowledgeSourceVersionId: 'version-2',
+        metadata: { chunkIndex: 0 },
+        similarity: 0.91,
+      },
+      {
+        content: 'Legacy winner',
+        contextBaseId: 'ctx-brand',
+        kind: 'performance_winner',
+        knowledgeSourceId: null,
+        knowledgeSourceKind: null,
+        knowledgeSourcePurpose: null,
+        knowledgeSourceTitle: null,
+        knowledgeSourceUrl: null,
+        knowledgeSourceVersion: null,
+        knowledgeSourceVersionId: null,
+        metadata: {},
+        similarity: 0.8,
+      },
+    ]);
+
+    const hits = await service.retrieveBrandContentMemory({
+      brandId: 'brand-1',
+      knowledgePurposes: ['BRAND_TRUTH'] as never,
+      knowledgeSourceIds: ['source-1'],
+      organizationId: 'org-1',
+      query: 'pricing',
+    });
+
+    const baseWhere = contextBase.findMany.mock.calls[0]?.[0]?.where as {
+      OR: unknown[];
+    };
+    expect(baseWhere.OR).toHaveLength(3);
+    expect(baseWhere.OR[2]).toEqual({
+      AND: [
+        { sourceBrandId: null },
+        { data: { equals: 'knowledge-base', path: ['purpose'] } },
+        { data: { equals: 'org', path: ['knowledgeScope'] } },
+      ],
+    });
+    const similarity = queryRaw.mock.calls[1]?.[0] as MockSql;
+    expect(similarity.sql).toContain('e."knowledgeSourceId" IN (?)');
+    expect(similarity.values).toEqual(
+      expect.arrayContaining([
+        'source-1',
+        'BRAND_TRUTH',
+        'ctx-brand',
+        'ctx-org-knowledge',
+      ]),
+    );
+    expect(hits).toEqual([
+      {
+        citation: {
+          kind: 'URL',
+          purpose: 'BRAND_TRUTH',
+          sourceId: 'source-1',
+          title: 'Pricing page',
+          url: 'https://brand.example/pricing',
+          version: 2,
+          versionId: 'version-2',
+        },
+        content: 'Plans start at $29',
+        kind: 'knowledge-source-chunk',
+        metadata: { chunkIndex: 0 },
+        relevance: 0.91,
+        source: 'Pricing page',
+      },
+      {
+        content: 'Legacy winner',
+        kind: 'performance_winner',
+        metadata: {},
+        relevance: 0.8,
+        source: 'Voice',
+      },
+    ]);
+  });
 });

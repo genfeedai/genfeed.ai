@@ -9,6 +9,7 @@ import {
 } from '@api/collections/contexts/dto/knowledge-lifecycle.dto';
 import { KnowledgeListDto } from '@api/collections/contexts/dto/knowledge-list.dto';
 import { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
+import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -39,8 +40,15 @@ import type { Request } from 'express';
 @ApiBearerAuth()
 @Controller('knowledge-sources')
 export class KnowledgeSourcesController {
-  constructor(private readonly records: KnowledgeRecordsService) {}
+  constructor(
+    private readonly records: KnowledgeRecordsService,
+    private readonly capture: KnowledgeCaptureService,
+  ) {}
 
+  /**
+   * Create a source. With `text` or `referenceUrl` the capture also records
+   * version 1 and starts the canonical ingestion workflow.
+   */
   @Post()
   @ApiQuery({
     name: 'brandId',
@@ -55,14 +63,21 @@ export class KnowledgeSourcesController {
     @Body() dto: CreateKnowledgeSourceDto,
     @Query('brandId') brandId?: string,
   ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceSerializer,
-      await this.records.createSource(
-        resolveKnowledgeActor(user, brandId),
-        dto,
-      ),
+    const result = await this.capture.capture(
+      resolveKnowledgeActor(user, brandId),
+      dto,
     );
+    return {
+      ...serializeSingle(request, KnowledgeSourceSerializer, result.source),
+      ...(result.jobId ? { jobId: result.jobId } : {}),
+      ...(result.version ? { versionId: result.version.id } : {}),
+    };
+  }
+
+  /** Queue ingestion for every current version that is not ready yet. */
+  @Post('backfill')
+  async backfill(@CurrentUser() user: AuthenticatedUser) {
+    return this.capture.backfill(user.organizationId);
   }
 
   @Get()
@@ -198,15 +213,48 @@ export class KnowledgeSourcesController {
     @Body() dto: CreateKnowledgeVersionDto,
     @Query('brandId') brandId?: string,
   ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceVersionSerializer,
-      await this.records.createVersion(
-        resolveKnowledgeActor(user, brandId),
-        id,
-        dto,
-      ),
+    const result = await this.capture.createVersion(
+      resolveKnowledgeActor(user, brandId),
+      id,
+      dto,
     );
+    return {
+      ...serializeSingle(
+        request,
+        KnowledgeSourceVersionSerializer,
+        result.version,
+      ),
+      jobId: result.jobId,
+    };
+  }
+
+  /** Requeue the current version after a failure without creating duplicates. */
+  @Post(':sourceId/retry')
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description:
+      'Selected brand in the authenticated organization; omit for organization scope',
+  })
+  async retry(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sourceId') id: string,
+    @Query('brandId') brandId?: string,
+  ) {
+    const result = await this.capture.retry(
+      resolveKnowledgeActor(user, brandId),
+      id,
+    );
+    return {
+      ...serializeSingle(
+        request,
+        KnowledgeSourceVersionSerializer,
+        result.version,
+      ),
+      jobId: result.jobId,
+    };
   }
 
   @Get(':sourceId/versions')

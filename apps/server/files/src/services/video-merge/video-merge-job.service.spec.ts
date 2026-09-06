@@ -31,6 +31,10 @@ const createJob = (data: VideoJobData): Job<VideoJobData> =>
 describe('VideoMergeJobService', () => {
   const ffmpegService = {
     cleanupTempFiles: vi.fn(),
+    probe: vi.fn().mockResolvedValue({
+      format: { duration: '6', size: '100' },
+      streams: [{ codec_type: 'video', width: 64, height: 64 }],
+    }),
     convertToPortrait: vi.fn().mockResolvedValue(undefined),
     getTempPath: vi.fn(
       (type: string, ingredientId: string) => `/tmp/${type}-${ingredientId}`,
@@ -90,8 +94,8 @@ describe('VideoMergeJobService', () => {
       'video/mp4',
     );
     expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-      data.ingredientId,
-      'merge',
+      '/tmp/merge-ingredient-123/input_0.mp4',
+      '/tmp/merge-ingredient-123/input_1.mp4',
     );
     expect(webSocketService.emitSuccess).toHaveBeenCalledWith(
       data.metadata.websocketUrl,
@@ -109,10 +113,60 @@ describe('VideoMergeJobService', () => {
     );
     expect(result).toEqual({
       outputPath: '/tmp/merge-ingredient-123/merged.mp4',
+      duration: 6,
+      size: 100,
+      width: 64,
+      height: 64,
+      url: 'https://cdn.example.com/videos/ingredient-123.mp4',
       s3Key: 'videos/ingredient-123.mp4',
       success: true,
     });
   });
+
+  it('downloads ordered persisted keys instead of guessing extensions', async () => {
+    const result = await service.process(
+      createJob(
+        createJobData({
+          params: {
+            sourceIds: ['source-1', 'source-2'],
+            isPersistedOutputOnly: true,
+            sourceStorageKeys: [
+              'ingredients/videos/source-1.mp4',
+              'ingredients/videos/nested/source-2.webm',
+            ],
+          },
+        }),
+      ),
+    );
+    expect(s3Service.downloadFile.mock.calls.map((call) => call[0])).toEqual([
+      'ingredients/videos/source-1.mp4',
+      'ingredients/videos/nested/source-2.webm',
+    ]);
+    expect(result.outputPath).toBeUndefined();
+    expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+      '/tmp/merge-ingredient-123/input_0.mp4',
+      '/tmp/merge-ingredient-123/input_1.mp4',
+      '/tmp/merge-ingredient-123/merged.mp4',
+    );
+  });
+  it.each(['ingredients/videos/../secret', 'ingredients/audios/secret.wav'])(
+    'rejects unsafe source key %s before download',
+    async (key) => {
+      await expect(
+        service.process(
+          createJob(
+            createJobData({
+              params: {
+                sourceIds: ['source-1', 'source-2'],
+                sourceStorageKeys: [key, 'ingredients/videos/ok.mp4'],
+              },
+            }),
+          ),
+        ),
+      ).rejects.toThrow();
+      expect(s3Service.downloadFile).not.toHaveBeenCalled();
+    },
+  );
 
   it('preserves music, progress, and resize orchestration', async () => {
     const data = createJobData({
@@ -163,6 +217,9 @@ describe('VideoMergeJobService', () => {
       data.room,
     );
     expect(result.outputPath).toBe('/tmp/merge-ingredient-123/resized.mp4');
+    expect(result.url).toBe(
+      'https://cdn.example.com/videos/ingredient-123.mp4',
+    );
   });
 
   it('falls back to transition-free merge when music download fails', async () => {

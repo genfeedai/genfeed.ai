@@ -80,6 +80,48 @@ describe('ReplicateService', () => {
     wait.mockImplementation(async (prediction) => prediction);
   });
 
+  it('separates vocals and validates the pinned model background output', async () => {
+    const { service } = createHarness();
+    wait.mockResolvedValue({
+      status: 'succeeded',
+      output: {
+        vocals: 'https://cdn.test/vocals.wav',
+        other: 'https://cdn.test/background.wav',
+      },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4', 'organization-key'),
+    ).resolves.toEqual({ backgroundUrl: 'https://cdn.test/background.wav' });
+    expect(predictionsCreate).toHaveBeenCalledWith({
+      version:
+        '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953',
+      input: {
+        audio: 'https://cdn.test/ad.mp4',
+        stem: 'vocals',
+        output_format: 'wav',
+      },
+    });
+    expect(constructed.at(-1)).toEqual({ auth: 'organization-key' });
+  });
+
+  it('rejects failed or malformed background separation instead of returning a vocal stem', async () => {
+    const { service } = createHarness();
+    wait.mockResolvedValue({
+      status: 'succeeded',
+      output: { vocals: 'https://cdn.test/vocals.wav' },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4'),
+    ).rejects.toThrow('background audio stem');
+    wait.mockResolvedValue({
+      status: 'failed',
+      output: { other: 'https://cdn.test/background.wav' },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4'),
+    ).rejects.toThrow('background audio stem');
+  });
+
   describe('construction', () => {
     it('eagerly builds a client with the configured key', () => {
       createHarness();

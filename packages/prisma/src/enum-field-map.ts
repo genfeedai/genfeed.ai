@@ -1733,6 +1733,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'embeddingFailedAt',
       'id',
       'isDeleted',
+      'knowledgeSourceId',
+      'knowledgeSourceVersion',
+      'knowledgeSourceVersionId',
       'organization',
       'organizationId',
       'updatedAt',
@@ -1741,6 +1744,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {},
     relationIdFields: {
       contextBase: 'contextBaseId',
+      knowledgeSourceVersion: 'knowledgeSourceVersionId',
       organization: 'organizationId',
     },
   },
@@ -2716,6 +2720,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'observedAt',
       'organizationId',
       'payload',
+      'processingError',
       'processingState',
       'provenance',
       'purgeScheduledAt',
@@ -2731,7 +2736,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'verifiedAt',
       'version',
     ],
-    listFields: ['supersedesVersions'],
+    listFields: ['chunks', 'supersedesVersions'],
     enumFields: {
       processingState: {
         enumType: 'KnowledgeProcessingState',

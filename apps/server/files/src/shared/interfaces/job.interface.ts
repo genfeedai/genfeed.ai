@@ -91,6 +91,8 @@ export interface VideoProcessingParams {
 
   // Merge params
   sourceIds?: string[];
+  sourceStorageKeys?: string[];
+  isPersistedOutputOnly?: boolean;
   isCaptionsEnabled?: boolean;
   isResizeEnabled?: boolean;
   transition?: VideoTransition;

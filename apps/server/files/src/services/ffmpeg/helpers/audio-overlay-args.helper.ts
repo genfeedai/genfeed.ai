@@ -7,35 +7,8 @@ export interface AudioOverlayArgsOptions {
   outputPath: string;
   videoPath: string;
   videoVolume: number;
-}
-
-function appendFades(base: string, fadeIn: number, fadeOut: number): string {
-  let filter = base;
-  if (fadeIn > 0) {
-    filter += `,afade=t=in:st=0:d=${fadeIn}`;
-  }
-  if (fadeOut > 0) {
-    filter += `,afade=t=out:st=-${fadeOut}:d=${fadeOut}`;
-  }
-  return filter;
-}
-
-function outputArgs(filter: string, outputPath: string): string[] {
-  return [
-    '-filter_complex',
-    filter,
-    '-map',
-    '0:v',
-    '-map',
-    '[aout]',
-    '-c:v',
-    'copy',
-    '-c:a',
-    'aac',
-    '-shortest',
-    '-y',
-    outputPath,
-  ];
+  durationSeconds: number;
+  hasVideoAudio: boolean;
 }
 
 export function buildAudioOverlayArgs(
@@ -50,33 +23,41 @@ export function buildAudioOverlayArgs(
     outputPath,
     videoPath,
     videoVolume,
+    durationSeconds,
+    hasVideoAudio,
   } = options;
-  const args = ['-i', videoPath, '-i', audioPath];
-
-  if (mixMode === 'replace') {
-    const filter = `${appendFades(
-      `[1:a]volume=${audioVolume}`,
-      fadeIn,
-      fadeOut,
-    )}[aout]`;
-    return [...args, ...outputArgs(filter, outputPath)];
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new Error('Video duration must be positive');
   }
-
-  if (mixMode === 'mix') {
-    const addedAudio = appendFades(
-      `[1:a]volume=${audioVolume}`,
-      fadeIn,
-      fadeOut,
-    );
-    const filter = `[0:a]volume=${videoVolume}[va];${addedAudio}[aa];[va][aa]amix=inputs=2:duration=first:dropout_transition=0[aout]`;
-    return [...args, ...outputArgs(filter, outputPath)];
-  }
-
-  const backgroundAudio = appendFades(
-    `[1:a]volume=${audioVolume * 0.3}`,
-    fadeIn,
-    fadeOut,
-  );
-  const filter = `[0:a]volume=${videoVolume}[va];${backgroundAudio}[bg];[va][bg]amix=inputs=2:duration=first:dropout_transition=0[aout]`;
-  return [...args, ...outputArgs(filter, outputPath)];
+  let added = `[1:a]volume=${audioVolume * (mixMode === 'background' ? 0.3 : 1)},apad,atrim=duration=${durationSeconds},asetpts=PTS-STARTPTS`;
+  if (fadeIn > 0)
+    added += `,afade=t=in:st=0:d=${Math.min(fadeIn, durationSeconds)}`;
+  if (fadeOut > 0)
+    added += `,afade=t=out:st=${Math.max(0, durationSeconds - fadeOut)}:d=${Math.min(fadeOut, durationSeconds)}`;
+  const filter =
+    mixMode === 'replace' || !hasVideoAudio
+      ? `${added},alimiter=limit=0.707:level=false:latency=true[aout]`
+      : `[0:a]volume=${videoVolume},apad,atrim=duration=${durationSeconds},asetpts=PTS-STARTPTS[va];${added}[aa];[va][aa]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.707:level=false:latency=true[aout]`;
+  return [
+    '-i',
+    videoPath,
+    '-i',
+    audioPath,
+    '-filter_complex',
+    filter,
+    '-map',
+    '0:v:0',
+    '-map',
+    '[aout]',
+    '-c:v',
+    'copy',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '192k',
+    '-t',
+    String(durationSeconds),
+    '-y',
+    outputPath,
+  ];
 }
