@@ -708,10 +708,8 @@ export default function ContentCalendarView<T extends CalendarItem>({
       <SectionTopbar
         title="Calendar"
         titleVisibility="sr-only"
-        actions={filterControls}
-      />
-      <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        className="overflow-x-auto [&>div]:min-w-max"
+        leading={
           <div className="flex items-center gap-2">
             <Button
               aria-label="Previous period"
@@ -738,7 +736,10 @@ export default function ContentCalendarView<T extends CalendarItem>({
               Today
             </Button>
           </div>
-          {views.length > 1 && (
+        }
+        actions={filterControls}
+        tabs={
+          views.length > 1 && (
             <Tabs
               ariaLabel="Calendar view"
               className="mb-0"
@@ -754,8 +755,10 @@ export default function ContentCalendarView<T extends CalendarItem>({
                 label: view.charAt(0).toUpperCase() + view.slice(1),
               }))}
             />
-          )}
-        </div>
+          )
+        }
+      />
+      <div className="px-5 py-5 sm:px-6 sm:py-6">
         <Card className="w-full border border-border" bodyClassName="p-0">
           {isLoading ? (
             <div
