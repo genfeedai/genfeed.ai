@@ -158,6 +158,89 @@ export class AgentOrchestratorUiActionMutationService {
             },
           )
         : { creditsUsed: 0, success: true };
+    const resolvedCard = await this.updateProposalCards(
+      proposals,
+      sourceActionId,
+      status,
+      result,
+      params,
+    );
+    return this.finalizeMutationResult(
+      params,
+      approvalId,
+      approval.toolName,
+      status,
+      result,
+      resolvedCard,
+    );
+  }
+
+  private finalizeMutationResult(
+    params: ThreadUiActionExecutionParams,
+    approvalId: string,
+    toolName: string,
+    status: 'approved' | 'declined',
+    result: AgentToolResult,
+    resolvedCard: AgentUiAction,
+  ) {
+    const { context, threadId } = params;
+    const digest = createHash('sha256')
+      .update(
+        [
+          context.organizationId,
+          context.userId,
+          threadId,
+          approvalId,
+          status,
+        ].join('\u001f'),
+      )
+      .digest('hex');
+    const messageId = [
+      digest.slice(0, 8),
+      digest.slice(8, 12),
+      `5${digest.slice(13, 16)}`,
+      `a${digest.slice(17, 20)}`,
+      digest.slice(20, 32),
+    ].join('-');
+    return this.finalizer.finalizeStructuredAssistantTurn({
+      content:
+        status === 'declined'
+          ? 'Action declined. Nothing was executed.'
+          : result.success
+            ? 'Approved action completed.'
+            : `Approved action failed: ${result.error ?? 'Please retry later.'}`,
+      context,
+      messageId,
+      model: params.model,
+      result: {
+        ...result,
+        nextActions: [resolvedCard, ...(result.nextActions ?? [])],
+      },
+      threadId,
+      eventIdempotencyKey: `mutation-result:${approvalId}:${status}`,
+      toolCalls:
+        status === 'approved'
+          ? [
+              {
+                toolName: toolName,
+                creditsUsed: result.creditsUsed,
+                durationMs: 0,
+                status: result.success ? 'completed' : 'failed',
+                error: result.error,
+              },
+            ]
+          : [],
+    });
+  }
+
+  private async updateProposalCards(
+    proposals: PersistedMutationProposal[],
+    sourceActionId: string,
+    status: 'approved' | 'declined',
+    result: AgentToolResult,
+    params: ThreadUiActionExecutionParams,
+  ): Promise<AgentUiAction> {
+    const { context, threadId } = params;
     let resolvedCard: AgentUiAction | undefined;
     for (const copy of proposals) {
       const actions = copy.actions.map((candidate) => {
@@ -204,53 +287,7 @@ export class AgentOrchestratorUiActionMutationService {
     }
     if (!resolvedCard)
       throw new ConflictException('The approval card is unavailable.');
-    const digest = createHash('sha256')
-      .update(
-        [
-          context.organizationId,
-          context.userId,
-          threadId,
-          approvalId,
-          status,
-        ].join('\u001f'),
-      )
-      .digest('hex');
-    const messageId = [
-      digest.slice(0, 8),
-      digest.slice(8, 12),
-      `5${digest.slice(13, 16)}`,
-      `a${digest.slice(17, 20)}`,
-      digest.slice(20, 32),
-    ].join('-');
-    return this.finalizer.finalizeStructuredAssistantTurn({
-      content:
-        status === 'declined'
-          ? 'Action declined. Nothing was executed.'
-          : result.success
-            ? 'Approved action completed.'
-            : `Approved action failed: ${result.error ?? 'Please retry later.'}`,
-      context,
-      messageId,
-      model: params.model,
-      result: {
-        ...result,
-        nextActions: [resolvedCard, ...(result.nextActions ?? [])],
-      },
-      threadId,
-      eventIdempotencyKey: `mutation-result:${approvalId}:${status}`,
-      toolCalls:
-        status === 'approved'
-          ? [
-              {
-                toolName: approval.toolName,
-                creditsUsed: result.creditsUsed,
-                durationMs: 0,
-                status: result.success ? 'completed' : 'failed',
-                error: result.error,
-              },
-            ]
-          : [],
-    });
+    return resolvedCard;
   }
 
   private async loadProposals(

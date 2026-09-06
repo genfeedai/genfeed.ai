@@ -83,14 +83,7 @@ export class AgentOrchestratorBatchService {
 
     const toolName = 'generate_content_batch';
     const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
-    const toolParams: Record<string, unknown> = {
-      count: draft.count,
-      dateRange: draft.dateRange,
-      platforms: draft.platforms,
-      ...(draft.brandId ? { brandId: draft.brandId } : {}),
-      ...(draft.handle ? { handle: draft.handle } : {}),
-      ...(draft.topics?.length ? { topics: draft.topics } : {}),
-    };
+    const toolParams = this.buildBatchToolParameters(draft);
     const startedAtIso = new Date().toISOString();
     const startTime = Date.now();
 
@@ -274,6 +267,19 @@ export class AgentOrchestratorBatchService {
     });
 
     return true;
+  }
+
+  private buildBatchToolParameters(
+    draft: BatchGenerationDraft,
+  ): Record<string, unknown> {
+    return {
+      count: draft.count,
+      dateRange: draft.dateRange,
+      platforms: draft.platforms,
+      ...(draft.brandId ? { brandId: draft.brandId } : {}),
+      ...(draft.handle ? { handle: draft.handle } : {}),
+      ...(draft.topics?.length ? { topics: draft.topics } : {}),
+    };
   }
 
   private async publishBatchFailure(

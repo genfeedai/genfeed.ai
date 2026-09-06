@@ -7,6 +7,7 @@ import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
+import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -50,7 +51,6 @@ import {
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
-  type AgentPublishTargetPayload,
   type AgentToolResult,
   type AgentUiAction,
   type PublishConfirmedContentInput,
@@ -189,7 +189,7 @@ export class AgentPublishToolHandler {
         return credentialId ? [[credentialId, credential] as const] : [];
       }),
     );
-    const resolvedTargets = this.resolveConfirmedTargets({
+    const resolvedTargets = resolveConfirmedPublishTargets({
       credentials,
       credentialsById,
       requestedTargets,
@@ -496,83 +496,6 @@ export class AgentPublishToolHandler {
 
     const category = this.readOptionalString(ingredient.category) ?? 'content';
     return `Selected ${category} asset`;
-  }
-
-  private resolveConfirmedTargets(params: {
-    credentials: PublishConfirmedContentInput['credentials'];
-    credentialsById: Map<
-      string,
-      PublishConfirmedContentInput['credentials'][number]
-    >;
-    requestedTargets: AgentPublishTargetPayload[] | undefined;
-    visibility: PostVisibility;
-  }):
-    | {
-        payloads: AgentPublishTargetPayload[];
-        targets: Array<{
-          credentialId: string;
-          platform: CredentialPlatform;
-        }>;
-      }
-    | { error: AgentToolResult } {
-    if (params.requestedTargets && params.requestedTargets.length > 0) {
-      const payloads: AgentPublishTargetPayload[] = [];
-      const targets: Array<{
-        credentialId: string;
-        platform: CredentialPlatform;
-      }> = [];
-
-      for (const requested of params.requestedTargets) {
-        const credential = params.credentialsById.get(requested.credentialId);
-        const platform =
-          readDomainPlatform(credential?.platform) ??
-          readDomainPlatform(requested.platform);
-        if (!credential || !platform) {
-          return {
-            error: {
-              creditsUsed: 0,
-              error: `Missing connected accounts for: ${requested.platform}.`,
-              success: false,
-            },
-          };
-        }
-
-        payloads.push({
-          ...requested,
-          platform,
-          visibility: requested.visibility ?? params.visibility,
-        });
-        targets.push({
-          credentialId: requested.credentialId,
-          platform,
-        });
-      }
-
-      return { payloads, targets };
-    }
-
-    const payloads: AgentPublishTargetPayload[] = [];
-    const targets: Array<{
-      credentialId: string;
-      platform: CredentialPlatform;
-    }> = [];
-
-    for (const credential of params.credentials) {
-      const credentialId = readCredentialId(credential.id);
-      const platform = readDomainPlatform(credential.platform);
-      if (!credentialId || !platform) {
-        continue;
-      }
-
-      payloads.push({
-        credentialId,
-        platform,
-        visibility: params.visibility,
-      });
-      targets.push({ credentialId, platform });
-    }
-
-    return { payloads, targets };
   }
 
   private readPublishRequest(params: Record<string, unknown>): {
