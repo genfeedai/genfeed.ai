@@ -111,8 +111,8 @@ export function WorkspaceOverviewSidebar({
     <div className={WORKSPACE_SECTION_STACK_CLASS}>
       <section aria-busy={isTasksLoading} data-testid="workspace-in-progress">
         <Card
-          label="In progress"
-          description="Active workspace tasks and live execution state."
+          label={translate('sidebarCards.inProgress.label')}
+          description={translate('sidebarCards.inProgress.description')}
           bodyClassName="space-y-3 p-4"
         >
           {taskStreamContent}
@@ -128,8 +128,8 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-recent-outputs">
         <Card
-          label="Recent outputs"
-          description="Latest generated ingredients and posts."
+          label={translate('sidebarCards.recentOutputs.label')}
+          description={translate('sidebarCards.recentOutputs.description')}
           headerAction={
             <Button
               asChild
@@ -243,8 +243,8 @@ export function WorkspaceOverviewSidebar({
         data-testid="workspace-history-preview"
       >
         <Card
-          label="Recent activity"
-          description="Execution logs stay available without owning the main navigation."
+          label={translate('sidebarCards.recentActivity.label')}
+          description={translate('sidebarCards.recentActivity.description')}
           headerAction={
             <Button
               asChild
@@ -264,8 +264,8 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-library-snapshot">
         <Card
-          label="Library snapshot"
-          description="Keep the ingredient library one click away from the dashboard."
+          label={translate('sidebarCards.librarySnapshot.label')}
+          description={translate('sidebarCards.librarySnapshot.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">
@@ -289,8 +289,8 @@ export function WorkspaceOverviewSidebar({
 
       <section data-testid="workspace-advanced-tools">
         <Card
-          label="Operator tools"
-          description="Manual and expert surfaces stay available without owning the main navigation."
+          label={translate('sidebarCards.operatorTools.label')}
+          description={translate('sidebarCards.operatorTools.description')}
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">

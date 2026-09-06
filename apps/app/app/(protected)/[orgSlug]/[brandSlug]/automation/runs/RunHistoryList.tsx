@@ -45,6 +45,7 @@ export default function RunHistoryList({
         ),
       },
       {
+        className: 'w-full max-w-0',
         header: translate('columnRun'),
         key: 'label',
         render: (execution) => (

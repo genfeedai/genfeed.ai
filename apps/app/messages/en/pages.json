@@ -1279,7 +1279,43 @@
       "requestedChangesReason": "Requested changes: {reason}"
     },
     "openDetailsFor": "Open details for {title}",
-    "needsAttention": "Needs attention"
+    "needsAttention": "Needs attention",
+    "inboxEmpty": {
+      "unread": {
+        "label": "You're caught up",
+        "description": "New work will land here when something needs you."
+      },
+      "recent": {
+        "label": "No inbox activity yet",
+        "description": "Your five most recently updated inbox tasks will appear here as work moves through the queue."
+      },
+      "all": {
+        "label": "Inbox is empty",
+        "description": "Tasks enter the inbox when they need review, a decision, or follow-up."
+      }
+    },
+    "sidebarCards": {
+      "inProgress": {
+        "label": "In progress",
+        "description": "Active workspace tasks and live execution state."
+      },
+      "recentOutputs": {
+        "label": "Recent outputs",
+        "description": "Latest generated ingredients and posts."
+      },
+      "recentActivity": {
+        "label": "Recent activity",
+        "description": "Execution logs stay available without owning the main navigation."
+      },
+      "librarySnapshot": {
+        "label": "Library snapshot",
+        "description": "Keep the ingredient library one click away from the dashboard."
+      },
+      "operatorTools": {
+        "label": "Operator tools",
+        "description": "Manual and expert surfaces stay available without owning the main navigation."
+      }
+    }
   },
   "workflows": {
     "actionNode": {

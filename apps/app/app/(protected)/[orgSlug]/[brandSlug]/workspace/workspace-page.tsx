@@ -227,23 +227,16 @@ function WorkspacePageContentContent({
     shouldShowComposer,
   ]);
 
-  const inboxEmpty =
+  const inboxEmptyKey =
     section === 'inbox' && defaultInboxView === 'unread'
-      ? {
-          description: 'New work will land here when something needs you.',
-          label: "You're caught up",
-        }
+      ? 'unread'
       : section === 'inbox' && defaultInboxView === 'recent'
-        ? {
-            description:
-              'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
-            label: 'No inbox activity yet',
-          }
-        : {
-            description:
-              'Tasks enter the inbox when they need review, a decision, or follow-up.',
-            label: 'Inbox is empty',
-          };
+        ? 'recent'
+        : 'all';
+  const inboxEmpty = {
+    description: translate(`inboxEmpty.${inboxEmptyKey}.description`),
+    label: translate(`inboxEmpty.${inboxEmptyKey}.label`),
+  };
 
   const inboxTableItems =
     section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5);
