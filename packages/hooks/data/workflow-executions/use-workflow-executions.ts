@@ -26,13 +26,16 @@ export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
 ): UseWorkflowExecutionsReturn {
   const { getToken, orgId, userId } = useAuthIdentity();
+  const isIdentityReady = Boolean(userId && orgId);
   const {
     data = [],
-    isLoading,
+    isPending,
     isError,
     isFetching,
     refetch,
   } = useQuery({
+    // Wait for identity so the first paint never shows an empty "0" strip.
+    enabled: isIdentityReady,
     queryKey: [
       'workflow-executions',
       userId ?? 'anonymous',
@@ -88,9 +91,9 @@ export function useWorkflowExecutions(
   return {
     cancelExecution,
     executions: data,
-    isRefreshing: isFetching && !isLoading,
+    isRefreshing: isFetching && !isPending,
     isError,
-    isLoading,
+    isLoading: isPending,
     refresh: async () => {
       await refetch();
     },
