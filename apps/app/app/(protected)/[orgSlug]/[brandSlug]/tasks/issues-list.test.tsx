@@ -108,8 +108,9 @@ describe('IssuesList view controls', () => {
 
     fireEvent.click(kanbanView);
 
-    expect(listView).toHaveAttribute('aria-checked', 'false');
-    expect(kanbanView).toHaveAttribute('aria-checked', 'true');
+    expect(mocks.replace).toHaveBeenCalledWith('/?view=kanban', {
+      scroll: false,
+    });
   });
 });
 
@@ -235,6 +236,38 @@ describe('IssuesList inline editing and deep links', () => {
       expect(mocks.notifyError).toHaveBeenCalledWith(
         'Could not update task. Please try again.',
       ),
+    );
+  });
+});
+
+describe('IssuesList URL view state', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.list.mockResolvedValue([
+      {
+        id: 'task-1',
+        identifier: 'TASK-1',
+        priority: 'medium',
+        status: 'todo',
+        title: 'Ship empty-state CTA',
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    mocks.getService.mockResolvedValue({ list: mocks.list });
+  });
+
+  it('restores the kanban view and status filter from the URL', async () => {
+    mocks.searchParams = new URLSearchParams('view=kanban&status=todo');
+
+    render(<IssuesList />);
+
+    expect(await screen.findByTestId('tasks-kanban-board')).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Kanban view' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(mocks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'todo' }),
     );
   });
 });

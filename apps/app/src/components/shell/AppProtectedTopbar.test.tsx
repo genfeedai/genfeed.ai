@@ -468,22 +468,6 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('shows task context with a scoped return link', () => {
-    mockSearchParams = new URLSearchParams([
-      ['taskId', 'task-1'],
-      ['taskTitle', 'Launch plan'],
-    ]);
-
-    render(<AppProtectedTopbar />);
-
-    expect(screen.getByText('Task context')).toBeInTheDocument();
-    expect(screen.getByText('Launch plan')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
-      'href',
-      '/workspace/overview?taskId=task-1',
-    );
-  });
-
   it('does not render a settings cog in the topbar (settings lives in the sidebar user menu)', () => {
     render(<AppProtectedTopbar />);
 

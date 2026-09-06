@@ -95,30 +95,31 @@ function KanbanColumn({
   onSelect: (issue: Task) => void;
 }) {
   return (
-    <div className="flex w-72 shrink-0 flex-col">
-      <div className="mb-3 flex items-center gap-2 px-1">
+    <section
+      aria-label={STATUS_LABELS[status]}
+      className="flex h-full w-72 shrink-0 flex-col rounded-lg bg-background-secondary"
+    >
+      <div className="flex shrink-0 items-center gap-2 px-3 py-2.5">
         <TaskStatusBadge status={status} />
-        <span className="text-xs text-gray-800">{issues.length}</span>
+        <span className="text-xs text-muted-foreground">{issues.length}</span>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {issues.map((issue) => (
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <div className="rounded border border-dashed border-border p-4 text-center text-xs text-gray-800">
+          <p className="py-6 text-center text-xs text-muted-foreground">
             No tasks
-          </div>
+          </p>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }
 
 type IssuesListState = {
   issues: Task[];
   isLoading: boolean;
-  viewMode: ViewMode;
-  statusFilter: TaskStatus | '';
   showCreateDialog: boolean;
   createTitle: string;
   createDescription: string;
@@ -129,8 +130,6 @@ type IssuesListState = {
 type IssuesListAction =
   | { type: 'SET_ISSUES'; payload: Task[] }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_VIEW_MODE'; payload: ViewMode }
-  | { type: 'SET_STATUS_FILTER'; payload: TaskStatus | '' }
   | { type: 'SET_SHOW_CREATE_DIALOG'; payload: boolean }
   | { type: 'SET_CREATE_TITLE'; payload: string }
   | { type: 'SET_CREATE_DESCRIPTION'; payload: string }
@@ -146,8 +145,6 @@ const initialIssuesListState: IssuesListState = {
   isLoading: true,
   issues: [],
   showCreateDialog: false,
-  statusFilter: '',
-  viewMode: ViewType.LIST,
 };
 
 function issuesListReducer(
@@ -159,10 +156,6 @@ function issuesListReducer(
       return { ...state, issues: action.payload };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_VIEW_MODE':
-      return { ...state, viewMode: action.payload };
-    case 'SET_STATUS_FILTER':
-      return { ...state, statusFilter: action.payload };
     case 'SET_SHOW_CREATE_DIALOG':
       return { ...state, showCreateDialog: action.payload };
     case 'SET_CREATE_TITLE':
@@ -198,6 +191,16 @@ export default function IssuesList() {
   const searchParams = useSearchParams();
   const [savingId, setSavingId] = useState<string | null>(null);
   const taskId = searchParams.get('taskId');
+  // View and filter live in the URL so a refresh or shared link restores them.
+  const viewMode: ViewMode =
+    searchParams.get('view') === ViewType.KANBAN
+      ? ViewType.KANBAN
+      : ViewType.LIST;
+  const statusParam = searchParams.get('status');
+  const statusFilter: TaskStatus | '' =
+    statusParam && STATUS_ORDER.includes(statusParam as TaskStatus)
+      ? (statusParam as TaskStatus)
+      : '';
   const selection = useTaskSelection();
   const selectTask = selection?.selectTask;
   const commitTask = selection?.commitTask;
@@ -214,8 +217,6 @@ export default function IssuesList() {
     isLoading,
     issues,
     showCreateDialog,
-    statusFilter,
-    viewMode,
   } = state;
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -284,16 +285,20 @@ export default function IssuesList() {
     };
   }, [loadIssues]);
 
-  const setTaskUrl = useCallback(
-    (id: string | null) => {
+  const setUrlParam = useCallback(
+    (key: 'status' | 'taskId' | 'view', value: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (id) params.set('taskId', id);
-      else params.delete('taskId');
+      if (value) params.set(key, value);
+      else params.delete(key);
       router.replace(`${pathname}${params.size ? `?${params}` : ''}`, {
         scroll: false,
       });
     },
     [pathname, router, searchParams],
+  );
+  const setTaskUrl = useCallback(
+    (id: string | null) => setUrlParam('taskId', id),
+    [setUrlParam],
   );
 
   const handleSelectIssue = useCallback(
@@ -397,10 +402,7 @@ export default function IssuesList() {
       <Select
         value={statusFilter || 'all'}
         onValueChange={(value) =>
-          dispatch({
-            type: 'SET_STATUS_FILTER',
-            payload: value === 'all' ? '' : (value as TaskStatus),
-          })
+          setUrlParam('status', value === 'all' ? null : value)
         }
       >
         <SelectTrigger className="w-auto text-xs">
@@ -419,7 +421,10 @@ export default function IssuesList() {
         <ViewToggle
           activeView={viewMode}
           onChange={(nextView) =>
-            dispatch({ type: 'SET_VIEW_MODE', payload: nextView })
+            setUrlParam(
+              'view',
+              nextView === ViewType.KANBAN ? ViewType.KANBAN : null,
+            )
           }
           options={[
             {
@@ -524,7 +529,10 @@ export default function IssuesList() {
           ]}
         />
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div
+          className="flex h-[calc(100dvh-10rem)] min-h-96 gap-3 overflow-x-auto"
+          data-testid="tasks-kanban-board"
+        >
           {STATUS_ORDER.map((status) => (
             <KanbanColumn
               issues={groupedByStatus[status]}

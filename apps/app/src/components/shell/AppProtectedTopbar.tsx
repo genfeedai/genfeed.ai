@@ -10,7 +10,6 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_DISPLAY_LABELS,
-  APP_ROUTES,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
@@ -23,7 +22,6 @@ import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 
@@ -130,11 +128,8 @@ function AppProtectedTopbarContent({
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
   // views instead of trapping a stale brand. The brand context (brandId/brands)
   // still drives the brand switcher itself.
-  const {
-    href,
-    brandSlug: resolvedBrandSlug,
-    orgSlug: resolvedOrgSlug,
-  } = useOrgUrl();
+  const { brandSlug: resolvedBrandSlug, orgSlug: resolvedOrgSlug } =
+    useOrgUrl();
   const {
     brandAwareAppSlug,
     effectiveBrandSlug,
@@ -201,8 +196,6 @@ function AppProtectedTopbarContent({
     }
   }, [effectiveOrgSlug, pathname, push, setBrandId]);
 
-  const taskId = searchParams.get('taskId');
-  const taskTitle = searchParams.get('taskTitle');
   const currentHref = appendSearchParamsToHref(
     pathname,
     new URLSearchParams(searchParams.toString()),
@@ -231,15 +224,6 @@ function AppProtectedTopbarContent({
   const breadcrumbFallbackApp = isAdminChrome
     ? 'admin'
     : (currentApp ?? 'workspace');
-  const backToTaskHref = taskId
-    ? href(
-        appendSearchParamsToHref(
-          APP_ROUTES.WORKSPACE.OVERVIEW,
-          new URLSearchParams([['taskId', taskId]]),
-        ),
-      )
-    : null;
-
   return (
     <header className="h-full w-full bg-transparent">
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
@@ -305,27 +289,6 @@ function AppProtectedTopbarContent({
         </div>
 
         <div className="flex min-w-0 items-center justify-end gap-1.5">
-          {taskId ? (
-            <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-2xs lg:flex">
-              <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Task context
-              </span>
-              {taskTitle ? (
-                <span className="max-w-[18rem] truncate text-foreground/75">
-                  {taskTitle}
-                </span>
-              ) : null}
-              {backToTaskHref ? (
-                <Link
-                  href={backToTaskHref}
-                  className="font-semibold text-foreground hover:text-foreground/80"
-                >
-                  Back to task
-                </Link>
-              ) : null}
-            </div>
-          ) : null}
-
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <NotificationInboxMenu /> : null}
