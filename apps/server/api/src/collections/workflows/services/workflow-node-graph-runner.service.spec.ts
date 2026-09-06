@@ -149,6 +149,84 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
     },
   );
 
+  it.each([false, true])(
+    'restores failed status after delay resume (cached failure: %s)',
+    async (cachedFailure) => {
+      const failure = { error: 'boom', failedNodeId: 'work', nodeOutputs: {} };
+      const called: string[] = [];
+      const receivedFailures: unknown[] = [];
+      engineAdapter.executeNode.mockImplementation(
+        async (
+          current: ExecutableNode,
+          inputs: Map<string, unknown>,
+        ): Promise<NodeExecutionResult> => {
+          called.push(current.id);
+          receivedFailures.push(inputs.get('failure'));
+          return {
+            nodeId: current.id,
+            status: 'completed',
+            output: {},
+            startedAt: new Date(),
+            retryCount: 0,
+            creditsUsed: 0,
+          };
+        },
+      );
+      const resumedRunner = new WorkflowNodeGraphRunnerService(
+        engineAdapter as never,
+        new WorkflowExecutionGraphService(),
+        progressService as never,
+        nodeProgressTracker as never,
+        reviewGateService as never,
+        {
+          findOne: vi.fn().mockResolvedValue({
+            nodeResults: [
+              {
+                nodeId: 'work',
+                status: 'failed',
+                error: 'boom',
+                creditsUsed: 0,
+              },
+              {
+                nodeId: 'delay',
+                status: 'completed',
+                output: {},
+                creditsUsed: 0,
+              },
+            ],
+          }),
+        } as never,
+      );
+      const graph: ExecutableWorkflow = {
+        ...workflow,
+        nodes: ['work', 'delay', 'handler'].map((id) =>
+          createExecutableActionNode({ actionId: id, id, label: id }),
+        ),
+        edges: [
+          {
+            id: 'failure-handler',
+            source: 'work',
+            sourceHandle: 'failure',
+            target: 'handler',
+            targetHandle: 'failure',
+          },
+          { id: 'delay-handler', source: 'delay', target: 'handler' },
+        ],
+      };
+      await resumedRunner.executeNodeGraph(graph, triggerEvent, 'execution-1', {
+        startedAt: new Date(),
+        workflowLabel: 'Resumed workflow',
+        nodeOutputCache: cachedFailure
+          ? { work: { failure }, delay: {} }
+          : { delay: {} },
+      });
+      expect(called).toEqual(['handler']);
+      expect(receivedFailures).toEqual([
+        expect.objectContaining({ error: 'boom', failedNodeId: 'work' }),
+      ]);
+    },
+  );
+
   it('records the node as failed and never throws when the lease was lost, without a redundant stale-owner complete() write', async () => {
     nodeClaimService.runWithLeaseHeartbeat.mockRejectedValue(
       new WorkflowNodeClaimLeaseLostError({

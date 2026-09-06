@@ -176,12 +176,12 @@ vi.mock('@app-components/settings-search/SettingsSearch', () => ({
 }));
 
 vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
-  default: ({ onClick }: { onClick?: () => void }) => (
+  default: () => (
     <button
       type="button"
       data-testid="sidebar-search-trigger"
       aria-label="Search"
-      onClick={onClick}
+      onClick={commandPaletteOpenSpy}
     >
       Search
     </button>
