@@ -6,17 +6,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('persisted mutation approvals', () => {
   const args = { count: 3, platforms: ['twitter'], topics: ['Launch'] };
   const sourceActionId = 'mutation-approval:apr-1';
-  const params = (): ThreadUiActionExecutionParams =>
-    ({
-      context: {
+  const params = (): ThreadUiActionExecutionParams => ({
+    context: {
+      organizationId: 'org-1',
+      userId: 'user-1',
+      scope: {
+        brandId: 'brand-1',
+        contextVersion: 2,
+        isLegacyFallback: false,
+        isVersionExplicit: true,
         organizationId: 'org-1',
+        source: 'explicit',
+        threadId: 'thread-1',
         userId: 'user-1',
-        scope: { brandId: 'brand-1', contextVersion: 2 },
       },
-      threadId: 'thread-1',
-      model: 'test',
-      payload: { approvalId: 'apr-1', sourceActionId },
-    }) as ThreadUiActionExecutionParams;
+    },
+    threadId: 'thread-1',
+    model: 'test',
+    payload: { approvalId: 'apr-1', sourceActionId },
+  });
   const approval = () => ({
     id: 'apr-1',
     organizationId: 'org-1',
