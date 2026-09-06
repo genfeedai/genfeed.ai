@@ -183,15 +183,11 @@ export function evaluateMutationPolicy(input: {
     return { kind: 'execute' };
   }
 
-  if (input.hostSupportsApproval === false) {
+  if (input.hostSupportsApproval !== true) {
     return { error: UNSUPPORTED_APPROVAL_ERROR, kind: 'reject' };
   }
 
-  if (input.hostSupportsApproval === true) {
-    return { kind: 'queue' };
-  }
-
-  return { kind: 'execute' };
+  return { kind: 'queue' };
 }
 
 export function buildLogicalWriteKey(input: {

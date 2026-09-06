@@ -97,6 +97,29 @@ describe('evaluateMutationPolicy', () => {
     ).toEqual({ kind: 'execute' });
   });
 
+  it.each(['direct', undefined] as const)(
+    'executes policy %s when host capability is omitted',
+    (policy) => {
+      expect(
+        evaluateMutationPolicy({
+          hasTrustedApproval: false,
+          isAvailableOnSurface: true,
+          policy,
+        }),
+      ).toEqual({ kind: 'execute' });
+    },
+  );
+
+  it('rejects approval-required calls when host capability is omitted', () => {
+    expect(
+      evaluateMutationPolicy({
+        hasTrustedApproval: false,
+        isAvailableOnSurface: true,
+        policy: 'approval-required',
+      }),
+    ).toEqual({ error: UNSUPPORTED_APPROVAL_ERROR, kind: 'reject' });
+  });
+
   it('queues approval-required calls on a host that can approve', () => {
     expect(
       evaluateMutationPolicy({
@@ -119,16 +142,19 @@ describe('evaluateMutationPolicy', () => {
     ).toEqual({ error: UNSUPPORTED_APPROVAL_ERROR, kind: 'reject' });
   });
 
-  it('executes after an explicit trusted approval', () => {
-    expect(
-      evaluateMutationPolicy({
-        hasTrustedApproval: true,
-        hostSupportsApproval: true,
-        isAvailableOnSurface: true,
-        policy: 'approval-required',
-      }),
-    ).toEqual({ kind: 'execute' });
-  });
+  it.each([true, false, undefined])(
+    'executes after a trusted approval with host capability %s',
+    (hostSupportsApproval) => {
+      expect(
+        evaluateMutationPolicy({
+          hasTrustedApproval: true,
+          hostSupportsApproval,
+          isAvailableOnSurface: true,
+          policy: 'approval-required',
+        }),
+      ).toEqual({ kind: 'execute' });
+    },
+  );
 
   it('replays an already-executed approved logical write', () => {
     expect(

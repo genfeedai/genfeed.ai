@@ -371,17 +371,18 @@ export class AgentToolExecutorService implements OnModuleInit {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentMutationAuthorization> {
-    if (
-      context.hostSupportsApproval === undefined &&
-      !context.approvedApprovalId
-    ) {
-      return { kind: 'execute' };
-    }
-
     const definition = getToolByName(toolName);
     const isAvailableOnSurface = Boolean(
       definition?.surfaces.agent || definition?.surfaces.mcp,
     );
+    if (
+      isAvailableOnSurface &&
+      !context.approvedApprovalId &&
+      definition?.mutationPolicy !== 'approval-required'
+    ) {
+      return { kind: 'execute' };
+    }
+
     const idempotencyKey = buildLogicalWriteKey({
       arguments: parameters,
       organizationId: context.organizationId,
