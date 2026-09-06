@@ -56,6 +56,8 @@ export type FinalizeStructuredAssistantTurnParams = {
   metadata?: Record<string, unknown>;
   model: string;
   result: {
+    success?: boolean;
+    error?: string;
     creditsUsed?: number;
     data?: Record<string, unknown>;
     nextActions?: AgentUiAction[];

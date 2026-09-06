@@ -93,7 +93,7 @@ export class AgentOrchestratorUiActionFinalizerService {
       runId: params.context.executionId,
       threadId: params.threadId,
     });
-    if (params.result.success) {
+    if (params.result.success !== false) {
       await this.threadEventRecorder.recordRunCompleted({
         context: params.context,
         detail: params.result.requiresConfirmation
