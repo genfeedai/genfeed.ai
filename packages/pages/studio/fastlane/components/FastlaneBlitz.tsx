@@ -168,6 +168,7 @@ export default function FastlaneBlitz({
               src={currentAsset.ingredientUrl}
               thumbnail={currentAsset.thumbnailUrl}
               config={{
+                preload: 'metadata',
                 controls: true,
                 autoPlay: false,
                 muted: true,

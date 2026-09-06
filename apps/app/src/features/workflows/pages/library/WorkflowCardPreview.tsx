@@ -43,6 +43,7 @@ export default function WorkflowCardPreview({
           className="h-full w-full"
           mediaClassName="object-cover"
           config={{
+            preload: 'metadata',
             autoPlay: true,
             muted: true,
             loop: true,

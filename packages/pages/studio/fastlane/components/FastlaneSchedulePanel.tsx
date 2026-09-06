@@ -259,6 +259,7 @@ export default function FastlaneSchedulePanel({
                   className="size-12 shrink-0 overflow-hidden rounded-md"
                   src={asset.ingredientUrl}
                   config={{
+                    preload: 'metadata',
                     controls: false,
                     autoPlay: false,
                     muted: true,

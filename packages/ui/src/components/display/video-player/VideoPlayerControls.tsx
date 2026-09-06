@@ -76,8 +76,12 @@ export default function VideoPlayerControls({
         variant={ButtonVariant.GHOST}
         withWrapper={false}
         onClick={() => {
-          if (document.fullscreenElement) void document.exitFullscreen?.();
-          else void videoRef.current?.parentElement?.requestFullscreen?.();
+          const container = videoRef.current?.parentElement;
+          const request =
+            document.fullscreenElement === container
+              ? document.exitFullscreen?.()
+              : container?.requestFullscreen?.();
+          request?.catch(() => undefined);
         }}
       >
         <Maximize className="size-4" />

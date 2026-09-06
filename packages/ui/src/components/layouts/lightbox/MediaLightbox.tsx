@@ -209,7 +209,7 @@ export default function MediaLightbox({
         buttonNext: slides.length <= 1 ? () => null : undefined,
         buttonPrev: slides.length <= 1 ? () => null : undefined,
         // Custom slide render to show poster before video loads
-        slide: ({ slide }) => {
+        slide: ({ slide, offset }) => {
           const videoSlide = slide as Slide & VideoSlideProps;
           const isVideo = videoSlide.type === 'video';
           const thumbnailSrc = videoSlide.thumbnailSrc;
@@ -229,6 +229,7 @@ export default function MediaLightbox({
               >
                 <VideoPlayer
                   ariaLabel="Media lightbox video"
+                  isActive={offset === 0 && open}
                   src={videoSlide.sources?.[0]?.src}
                   thumbnail={thumbnailSrc}
                   config={{

@@ -97,6 +97,7 @@ export default function VideoPlayer({
   src = '',
   thumbnail = '',
   priority = false,
+  isActive = true,
   className = '',
   config = {
     autoPlay: false,
@@ -130,6 +131,10 @@ export default function VideoPlayer({
     setIsMetadataLoaded(false);
     setShowLoader(Boolean(src));
   }, [src]);
+
+  useEffect(() => {
+    if (!isActive) resolvedVideoRef.current?.pause();
+  }, [isActive, resolvedVideoRef]);
 
   // Hide loader faster when thumbnail is available
   useEffect(() => {
@@ -184,7 +189,7 @@ export default function VideoPlayer({
   return (
     <div className={`relative size-full ${className}`}>
       {/* Show thumbnail or loading state when video isn't ready */}
-      {((showLoader && !isLoaded) || hasError) && (
+      {((!isLoaded && (showLoader || thumbnail)) || hasError) && (
         <div className="pointer-events-none absolute inset-0 z-10">
           <VideoOverlayContent
             hasError={hasError}
@@ -229,7 +234,7 @@ export default function VideoPlayer({
           mediaProps.onDurationChange?.(event);
         }}
         onTimeUpdate={(event) => {
-          setCurrentTime(event.currentTarget.currentTime);
+          if (hasControls) setCurrentTime(event.currentTarget.currentTime);
           mediaProps.onTimeUpdate?.(event);
         }}
         onPlay={(event) => {

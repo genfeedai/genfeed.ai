@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +6,26 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 afterEach(() => vi.restoreAllMocks());
 
 describe('VideoPlayer', () => {
+  it('keeps the poster visible before playback and pauses inactive slides', () => {
+    vi.useFakeTimers();
+    const pause = vi
+      .spyOn(HTMLMediaElement.prototype, 'pause')
+      .mockImplementation(() => undefined);
+    const props = {
+      src: 'https://cdn.test/video.mp4',
+      thumbnail: 'https://cdn.test/poster.jpg',
+      mediaProps: { preload: 'none' as const },
+    };
+    const { rerender } = render(<VideoPlayer {...props} />);
+    act(() => vi.advanceTimersByTime(250));
+    expect(screen.getByAltText('Video thumbnail')).toBeInTheDocument();
+    rerender(<VideoPlayer {...props} isActive={false} />);
+    expect(pause).toHaveBeenCalledOnce();
+    fireEvent.loadedData(screen.getByLabelText('Video player'));
+    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it('uses shared transport controls and forwards playback events and refs', async () => {
     const play = vi
       .spyOn(HTMLMediaElement.prototype, 'play')

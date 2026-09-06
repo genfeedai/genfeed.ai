@@ -155,6 +155,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
                 src={mediaConfig.resolvedUrl}
                 className="h-28 w-full"
                 config={{
+                  preload: 'metadata',
                   controls: true,
                   autoPlay: false,
                   loop: false,

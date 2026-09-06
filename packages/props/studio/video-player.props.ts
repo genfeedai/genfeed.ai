@@ -2,6 +2,7 @@ import type { RefObject, VideoHTMLAttributes } from 'react';
 
 export interface VideoPlayerProps {
   ariaLabel?: string;
+  isActive?: boolean;
   mediaClassName?: string;
   mediaProps?: Omit<
     VideoHTMLAttributes<HTMLVideoElement>,

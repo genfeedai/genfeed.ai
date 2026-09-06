@@ -39,7 +39,14 @@ export function MediaPreview({
           ariaLabel="Media preview"
           src={src}
           className="h-24 w-full"
-          config={{ controls, autoPlay, muted, loop, playsInline: true }}
+          config={{
+            preload: 'metadata',
+            controls,
+            autoPlay,
+            muted,
+            loop,
+            playsInline: true,
+          }}
         />
       </div>
     );

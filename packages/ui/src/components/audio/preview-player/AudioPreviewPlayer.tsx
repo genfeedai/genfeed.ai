@@ -5,7 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn';
 import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Slider } from '@genfeedai/ui/primitives/slider';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing' | 'error';
 
@@ -27,6 +27,17 @@ let sharedSnapshot: SharedAudioSnapshot = {
   volume: 1,
   status: 'idle',
 };
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  return sharedSnapshot;
+}
 
 function emitSnapshot() {
   listeners.forEach((listener) => {
@@ -98,6 +109,7 @@ export interface AudioPreviewPlayerProps {
   className?: string;
   onError?: () => void;
   isTimelineVisible?: boolean;
+  stopOnUnmount?: boolean;
   label: string;
 }
 
@@ -107,20 +119,23 @@ export default function AudioPreviewPlayer({
   className,
   onError,
   isTimelineVisible = false,
+  stopOnUnmount = false,
 }: AudioPreviewPlayerProps) {
-  const [snapshot, setSnapshot] = useState(sharedSnapshot);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  useEffect(() => {
-    const listener = () => {
-      setSnapshot({ ...sharedSnapshot });
-    };
-
-    listeners.add(listener);
-
-    return () => {
-      listeners.delete(listener);
-    };
-  }, []);
+  useEffect(
+    () => () => {
+      if (
+        stopOnUnmount &&
+        audioUrl &&
+        sharedAudio &&
+        new URL(sharedAudio.src, document.baseURI).href ===
+          new URL(audioUrl, document.baseURI).href
+      )
+        sharedAudio.pause();
+    },
+    [audioUrl, stopOnUnmount],
+  );
 
   const isCurrent = useMemo(() => {
     if (!audioUrl || !snapshot.currentUrl) {
@@ -129,7 +144,8 @@ export default function AudioPreviewPlayer({
 
     try {
       return (
-        new URL(snapshot.currentUrl).toString() === new URL(audioUrl).toString()
+        new URL(snapshot.currentUrl, document.baseURI).toString() ===
+        new URL(audioUrl, document.baseURI).toString()
       );
     } catch {
       return snapshot.currentUrl === audioUrl;
@@ -166,7 +182,7 @@ export default function AudioPreviewPlayer({
       ...(isCurrent ? {} : { currentTime: 0, duration: 0 }),
     });
 
-    if (audio.src !== audioUrl) {
+    if (audio.src !== new URL(audioUrl, document.baseURI).toString()) {
       audio.src = audioUrl;
     }
 
@@ -178,7 +194,11 @@ export default function AudioPreviewPlayer({
   };
 
   return (
-    <div className={cn('nodrag nopan flex items-center gap-2', className)}>
+    <div
+      className={cn('nodrag nopan flex items-center gap-2', className)}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
       <Button
         ariaLabel={
           isPlaying ? `Pause preview for ${label}` : `Play preview for ${label}`
