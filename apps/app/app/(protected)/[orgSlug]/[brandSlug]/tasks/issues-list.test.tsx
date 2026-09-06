@@ -126,9 +126,7 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   const title = await screen.findByRole('button', {
     name: 'Recover the failed publish',
   });
-  expect(
-    screen.getByRole('table', { name: 'Tasks grouped by status' }),
-  ).toBeVisible();
+  expect(screen.getByRole('table')).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Updated' })).toBeVisible();
   expect(screen.getAllByText('Failed')).toHaveLength(1);
