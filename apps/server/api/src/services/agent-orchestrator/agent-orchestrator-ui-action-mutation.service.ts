@@ -163,8 +163,11 @@ export class AgentOrchestratorUiActionMutationService {
       const actions = copy.actions.map((candidate) => {
         const card = record(candidate);
         if (card.id !== sourceActionId) return candidate;
-        const resolved = {
+        const resolved: AgentUiAction = {
           ...card,
+          id: sourceActionId,
+          type: 'mutation_approval_card',
+          title: typeof card.title === 'string' ? card.title : 'Review action',
           ctas: [],
           requiresConfirmation: false,
           data: {
@@ -178,7 +181,7 @@ export class AgentOrchestratorUiActionMutationService {
                   : 'failed',
             ...(result.error ? { error: result.error } : {}),
           },
-        } as AgentUiAction;
+        };
         resolvedCard ??= resolved;
         return resolved;
       });
