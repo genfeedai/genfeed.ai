@@ -36,20 +36,20 @@ export class CreditDeductionProcessor extends WorkerHost {
   async process(job: Job<CreditDeductionJobData>): Promise<void> {
     const scope = job.data.workflowAccounting;
     if (!scope) return this.processScoped(job);
-    if (
-      scope.organizationId !== job.data.organizationId ||
-      !(await this.prisma.workflowExecution.findFirst({
-        where: {
-          id: scope.workflowExecutionId,
-          organizationId: job.data.organizationId,
-          isDeleted: false,
-        },
-        select: { id: true },
-      }))
-    )
+    if (scope.organizationId !== job.data.organizationId) {
       throw new UnrecoverableError(
         'Workflow accounting scope does not match credit job',
       );
+    }
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: {
+        id: scope.workflowExecutionId,
+        organizationId: job.data.organizationId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    if (!execution) return this.processScoped(job);
     return runWithWorkflowAccounting(scope, () => this.processScoped(job));
   }
 

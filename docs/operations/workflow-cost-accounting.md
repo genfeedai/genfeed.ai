@@ -18,7 +18,7 @@ Provider evidence distinguishes pending, unknown, calculated, observed, and BYOK
 
 Workflow media intents are saved with the continuation before submission. Reporting recovers incomplete media entries from durable output metadata and pinned pricing. LLM settlement is queued separately from generation: retries only write the frozen receipt and never call the provider again. Failed jobs remain available for inspection and replay. If Redis is unavailable, the API attempts direct persistence. If both stores are unavailable, the existing pending intent remains visible and the correlated error requires reconciliation. No receipt amount is fabricated.
 
-The direct workflow media path uses platform credentials and adds no customer charge. Its intent records that disposition explicitly. Existing billing paths retain their policy.
+Direct Replicate workflow image, video, lip-sync, reframe, and upscale paths use platform credentials and add no customer charge. Their intents record that disposition explicitly. Avatar workflows retain the HeyGen model and a pending charge disposition; key ownership remains unknown until an authoritative receipt identifies platform or BYOK usage. No-charge totals are never inferred for avatar workflows before the debit receipt arrives. Existing billing paths retain their policy.
 
 ## Reports
 
@@ -33,3 +33,9 @@ Use an empty disposable database with repository schema and migration applied. N
 Set WORKFLOW_ACCOUNTING_TEST_DATABASE_URL to the isolated database. Run the API Vitest spec at src/collections/workflow-executions/services/workflow-accounting.postgres.spec.ts from the API directory. Without the explicit database variable it skips.
 
 The opt-in audit checks exact fractional node/execution totals, estimate variance, provider micro-USD, CSV agreement, and exclusion of a foreign tenant receipt.
+
+## Failure boundaries
+
+Accounting attribution is optional metadata on an otherwise authorized credit job. An organization mismatch is rejected, but a deleted or unavailable execution omits attribution without cancelling the charge. Attribution lookups inside credit transactions use the same database transaction. A refund without sufficient debit evidence remains indeterminate until its debit arrives.
+
+A thrown LLM attempt has no trustworthy provider receipt: its pending intent remains unresolved rather than inventing a zero cost. Each retry gets a separate operation because it may incur another provider charge. Failure to persist the intent prevents provider dispatch. Settlement retries acknowledge an already finalized ledger row, but a missing or unsettled row raises an error so the frozen receipt is retained for retry. These boundaries intentionally prefer incomplete evidence over fabricated accounting.

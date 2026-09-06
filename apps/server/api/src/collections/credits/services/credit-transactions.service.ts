@@ -128,7 +128,7 @@ export class CreditTransactionsService extends BaseService<
 
     const data: Prisma.CreditTransactionUncheckedCreateInput = {
       ...(await validatedWorkflowAccountingAttribution(
-        this.prisma,
+        tx ?? this.prisma,
         organizationId,
       )),
       amount,

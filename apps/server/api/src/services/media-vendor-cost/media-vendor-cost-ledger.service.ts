@@ -42,13 +42,13 @@ export class MediaVendorCostLedgerService {
       }))
     )
       continuation = null;
-    const intent = continuation
+    const intent = input.ingredientId
       ? await this.prisma.mediaVendorCost.findFirst({
           where: {
             organizationId: input.organizationId,
             isDeleted: false,
             ingredientId: input.ingredientId,
-            workflowExecutionId: continuation.executionId,
+            workflowExecutionId: { not: null },
           },
           select: { pricingSnapshot: true, costEvidence: true },
         })
@@ -80,7 +80,8 @@ export class MediaVendorCostLedgerService {
           height: input.realizedHeight ?? undefined,
         })
       : 0;
-    const isByok = intent ? stamp?.isByok === true : input.isByok;
+    const isByok =
+      typeof stamp?.isByok === 'boolean' ? stamp.isByok : input.isByok;
     const scopedCost = isByok
       ? 0
       : input.costEvidence === 'observed'

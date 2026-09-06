@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('LlmVendorCostLedgerService', () => {
   const llmVendorCost = {
+    findFirst: vi.fn().mockResolvedValue(null),
     create: vi.fn(),
     updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     groupBy: vi.fn(),
@@ -21,6 +22,8 @@ describe('LlmVendorCostLedgerService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    llmVendorCost.updateMany.mockResolvedValue({ count: 1 });
+    llmVendorCost.findFirst.mockResolvedValue(null);
     llmVendorCost.create.mockResolvedValue({ id: 'cost-1' });
     llmVendorCost.groupBy.mockResolvedValue([]);
 
@@ -168,5 +171,47 @@ describe('LlmVendorCostLedgerService', () => {
         },
       }),
     );
+  });
+  it.each([null, { costEvidence: 'pending' }])(
+    'rejects a lost settlement instead of acknowledging %j',
+    async (existing) => {
+      llmVendorCost.updateMany.mockResolvedValue({ count: 0 });
+      llmVendorCost.findFirst.mockResolvedValue(existing);
+      await expect(
+        service.record({
+          workflowLedgerId: 'operation',
+          organizationId: 'org-1',
+          provider: 'openrouter',
+          model: 'model',
+          isByok: false,
+          latencyMs: 5,
+          promptTokens: 10,
+          completionTokens: 20,
+          vendorCostMicros: 150,
+          costEvidence: 'observed',
+        }),
+      ).rejects.toThrow('not persisted');
+      expect(llmVendorCost.findFirst).toHaveBeenCalledWith({
+        where: { id: 'operation', organizationId: 'org-1', isDeleted: false },
+        select: { costEvidence: true },
+      });
+    },
+  );
+  it('acknowledges an already observed receipt without overwriting it', async () => {
+    llmVendorCost.updateMany.mockResolvedValue({ count: 0 });
+    llmVendorCost.findFirst.mockResolvedValue({ costEvidence: 'observed' });
+    await service.record({
+      workflowLedgerId: 'operation',
+      organizationId: 'org-1',
+      provider: 'openrouter',
+      model: 'model',
+      isByok: false,
+      latencyMs: 5,
+      promptTokens: 10,
+      completionTokens: 20,
+      vendorCostMicros: 150,
+      costEvidence: 'calculated',
+    });
+    expect(llmVendorCost.create).not.toHaveBeenCalled();
   });
 });

@@ -45,7 +45,8 @@ export async function reconcileWorkflowMediaCosts(
       metadata.isDeleted ||
       !stamp ||
       typeof stamp !== 'object' ||
-      Array.isArray(stamp)
+      Array.isArray(stamp) ||
+      typeof stamp.isByok !== 'boolean'
     )
       continue;
     const price =

@@ -171,4 +171,42 @@ describe('MediaVendorCostLedgerService', () => {
       },
     });
   });
+  it('settles a durable workflow intent even after execution deletion without attributing a new row', async () => {
+    prisma.workflowNodeContinuation.findFirst.mockResolvedValue({
+      id: 'continuation',
+      executionId: 'run',
+      nodeId: 'avatar',
+    });
+    prisma.workflowExecution.findFirst.mockResolvedValue(null);
+    prisma.mediaVendorCost.findFirst.mockResolvedValue({
+      costEvidence: 'pending',
+      pricingSnapshot: { isByok: null, billingDisposition: 'pending_charge' },
+    });
+    await service.record({
+      organizationId: 'org-1',
+      ingredientId: 'avatar',
+      category: 'video',
+      provider: 'heygen',
+      model: 'avatar',
+      isByok: true,
+      units: 1,
+      vendorCostMicros: 300000,
+      costEvidence: 'observed',
+    });
+    expect(prisma.mediaVendorCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          idempotencyKey: 'media:org-1:avatar',
+        }),
+        data: expect.objectContaining({
+          isByok: true,
+          vendorCostMicros: 0,
+          costEvidence: 'byok',
+        }),
+      }),
+    );
+    expect(prisma.mediaVendorCost.upsert).not.toHaveBeenCalled();
+  });
 });

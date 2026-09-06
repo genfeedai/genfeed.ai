@@ -185,6 +185,7 @@ export async function readWorkflowAccountings(
         .reduce((sum, row) => sum.plus(row.amount), new Prisma.Decimal(0))
         .toNumber();
       const knownActualCredits = paid.minus(refundedCredits).toNumber();
+      const hasUnmatchedRefund = paid.lessThan(refundedCredits);
       const hasNoChargeDisposition = media.some(
         (row) =>
           (row.workflowNodeId ?? '__unattributed__') === nodeId &&
@@ -219,6 +220,7 @@ export async function readWorkflowAccountings(
         !reservedCredits &&
         !hasPendingProvider &&
         !hasUnaccountedRetry &&
+        !hasUnmatchedRefund &&
         (hasEvidence || isFreeControl || hasNoChargeDisposition)
           ? knownActualCredits
           : null;
@@ -280,6 +282,7 @@ export async function readWorkflowAccountings(
         ...(!hasEvidence && !isFreeControl && !hasNoChargeDisposition
           ? ['billing_evidence_missing']
           : []),
+        ...(hasUnmatchedRefund ? ['refund_debit_evidence_missing'] : []),
         ...(hasPendingProvider ? ['provider_pending'] : []),
         ...(hasUnaccountedRetry ? ['retry_reconciliation_required'] : []),
         ...(actualProviderCostMicros === null

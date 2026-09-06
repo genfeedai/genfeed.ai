@@ -1,6 +1,7 @@
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
 import {
   runWithWorkflowAccounting,
+  validatedWorkflowAccountingAttribution,
   workflowAccountingAttribution,
 } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
@@ -56,6 +57,70 @@ describe('workflow accounting', () => {
     );
     expect(result).toEqual(['a', 'b']);
     expect(workflowAccountingAttribution('org')).toEqual({});
+  });
+
+  it('omits unavailable execution attribution while keeping tenant/deletion constraints', async () => {
+    const prisma = {
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    await runWithWorkflowAccounting(scope, async () => {
+      expect(
+        await validatedWorkflowAccountingAttribution(
+          prisma as unknown as PrismaService,
+          'org',
+        ),
+      ).toEqual({});
+      expect(
+        await validatedWorkflowAccountingAttribution(
+          prisma as unknown as PrismaService,
+          'foreign',
+        ),
+      ).toEqual({});
+    });
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledExactlyOnceWith({
+      where: { id: 'run', organizationId: 'org', isDeleted: false },
+      select: { id: true },
+    });
+  });
+  it('keeps a refund without its debit indeterminate until debit evidence arrives', async () => {
+    const db = fixture();
+    db.workflowExecution.findMany.mockResolvedValue([
+      {
+        id: 'run',
+        status: 'COMPLETED',
+        costEstimate: null,
+        nodeResults: [{ nodeId: 'node' }],
+      },
+    ]);
+    const refund = {
+      workflowExecutionId: 'run',
+      workflowNodeId: 'node',
+      amount: 2,
+      category: 'refund',
+    };
+    db.creditTransaction.findMany.mockResolvedValue([refund]);
+    const incomplete = await readWorkflowAccounting(
+      db as unknown as PrismaService,
+      'org',
+      'run',
+    );
+    expect(incomplete?.nodes[0]?.actualCredits).toBeNull();
+    expect(incomplete?.nodes[0]?.unresolvedReasons).toContain(
+      'refund_debit_evidence_missing',
+    );
+    db.creditTransaction.findMany.mockResolvedValue([
+      refund,
+      { ...refund, amount: 5, category: 'deduct' },
+    ]);
+    expect(
+      (
+        await readWorkflowAccounting(
+          db as unknown as PrismaService,
+          'org',
+          'run',
+        )
+      )?.nodes[0]?.actualCredits,
+    ).toBe(3);
   });
   it('quotes real action envelopes and retains unresolved runtime duration', async () => {
     const db = fixture();
@@ -185,6 +250,80 @@ describe('workflow accounting', () => {
         )
       )?.actualCredits,
     ).toBe(1.25);
+  });
+
+  it('does not declare avatar credits free before its debit receipt arrives', async () => {
+    const db = fixture();
+    db.workflowExecution.findMany.mockResolvedValue([
+      {
+        id: 'run',
+        status: 'COMPLETED',
+        costEstimate: null,
+        nodeResults: [{ nodeId: 'avatar' }],
+      },
+    ]);
+    db.mediaVendorCost.findMany.mockResolvedValue([
+      {
+        workflowExecutionId: 'run',
+        workflowNodeId: 'avatar',
+        costEvidence: 'observed',
+        vendorCostMicros: 2000,
+        pricingSnapshot: {
+          billingDisposition: 'pending_charge',
+          isByok: false,
+        },
+      },
+    ]);
+    expect(
+      (
+        await readWorkflowAccounting(
+          db as unknown as PrismaService,
+          'org',
+          'run',
+        )
+      )?.nodes[0]?.actualCredits,
+    ).toBeNull();
+    db.creditTransaction.findMany.mockResolvedValue([
+      {
+        workflowExecutionId: 'run',
+        workflowNodeId: 'avatar',
+        category: 'deduct',
+        amount: 5,
+      },
+    ]);
+    expect(
+      (
+        await readWorkflowAccounting(
+          db as unknown as PrismaService,
+          'org',
+          'run',
+        )
+      )?.nodes[0]?.actualCredits,
+    ).toBe(5);
+  });
+  it('does not infer platform spend from an avatar snapshot with unknown key ownership', async () => {
+    const db = fixture();
+    db.mediaVendorCost.findMany.mockResolvedValue([
+      {
+        id: 'intent',
+        ingredientId: 'asset',
+        pricingSnapshot: {
+          providerCostUsd: 0.1,
+          pricingType: 'flat',
+          isByok: null,
+        },
+      },
+    ]);
+    db.ingredient.findMany.mockResolvedValue([
+      {
+        id: 'asset',
+        metadata: { width: 1, height: 1, duration: 1, isDeleted: false },
+      },
+    ]);
+    await reconcileWorkflowMediaCosts(db as unknown as PrismaService, 'org', [
+      'run',
+    ]);
+    expect(db.mediaVendorCost.updateMany).not.toHaveBeenCalled();
   });
   it('does not query ledgers for another tenant execution', async () => {
     const db = fixture();

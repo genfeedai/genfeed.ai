@@ -1,3 +1,4 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 
 type MediaIntentInput = {
@@ -15,10 +16,17 @@ export async function createWorkflowMediaCostIntent(
   input: MediaIntentInput,
   continuationId: string,
 ): Promise<void> {
-  const model = input.model
+  const modelKey =
+    input.actionId === 'aiAvatarVideo' ? MODEL_KEYS.HEYGEN_AVATAR : input.model;
+  const isDirectPlatformMedia =
+    input.provider === 'replicate' &&
+    ['imageGen', 'videoGen', 'lipSync', 'reframe', 'upscale'].includes(
+      input.actionId,
+    );
+  const model = modelKey
     ? await transaction.model.findFirst({
         where: {
-          key: input.model,
+          key: modelKey,
           isDeleted: false,
           OR: [
             { organizationId: input.organizationId },
@@ -36,14 +44,16 @@ export async function createWorkflowMediaCostIntent(
       ingredientId: input.ingredientId,
       idempotencyKey: `media:${input.organizationId}:${input.ingredientId}`,
       provider: input.provider,
-      model: input.model ?? 'unresolved',
+      model: modelKey ?? 'unresolved',
       category: input.actionId,
       units: 0,
       vendorCostMicros: 0,
       costEvidence: 'pending',
       pricingSnapshot: {
-        isByok: false,
-        billingDisposition: 'not_charged',
+        isByok: isDirectPlatformMedia ? false : null,
+        billingDisposition: isDirectPlatformMedia
+          ? 'not_charged'
+          : 'pending_charge',
         providerCostUsd: model?.providerCostUsd ?? null,
         pricingType: model?.pricingType ?? null,
         modelUpdatedAt: model?.updatedAt.toISOString() ?? null,

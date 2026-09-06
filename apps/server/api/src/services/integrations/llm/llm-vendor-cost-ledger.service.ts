@@ -7,7 +7,7 @@ import type {
   ILlmVendorCostRecordInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 @Injectable()
 export class LlmVendorCostLedgerService {
@@ -50,7 +50,7 @@ export class LlmVendorCostLedgerService {
         },
       });
     } else if (input.workflowLedgerId) {
-      await this.prisma.llmVendorCost.updateMany({
+      const { count } = await this.prisma.llmVendorCost.updateMany({
         where: {
           id: input.workflowLedgerId,
           organizationId: input.organizationId,
@@ -74,6 +74,28 @@ export class LlmVendorCostLedgerService {
             : {}),
         },
       });
+      if (count === 0) {
+        const existing = await this.prisma.llmVendorCost.findFirst({
+          where: {
+            id: input.workflowLedgerId,
+            organizationId: input.organizationId,
+            isDeleted: false,
+          },
+          select: { costEvidence: true },
+        });
+        if (
+          !existing ||
+          !['observed', 'calculated', 'byok'].includes(
+            existing.costEvidence ?? '',
+          ) ||
+          (input.costEvidence === 'observed' &&
+            existing.costEvidence === 'calculated')
+        ) {
+          throw new InternalServerErrorException(
+            'LLM cost settlement was not persisted',
+          );
+        }
+      }
     } else {
       await this.prisma.llmVendorCost.create({ data });
     }

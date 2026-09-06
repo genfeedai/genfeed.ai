@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { WorkflowAccountingScope } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 
 const storage = new AsyncLocalStorage<WorkflowAccountingScope>();
 export function runWithWorkflowAccounting<T>(
@@ -28,7 +28,7 @@ export function currentWorkflowAccountingScope():
 }
 
 export async function validatedWorkflowAccountingAttribution(
-  prisma: PrismaService,
+  prisma: Pick<Prisma.TransactionClient, 'workflowExecution'>,
   organizationId: string,
 ): Promise<Partial<Omit<WorkflowAccountingScope, 'organizationId'>>> {
   const attribution = workflowAccountingAttribution(organizationId);
@@ -41,7 +41,8 @@ export async function validatedWorkflowAccountingAttribution(
     },
     select: { id: true },
   });
-  if (!execution)
-    throw new Error('Workflow accounting execution is outside organization');
+  // Attribution is optional; an unavailable run must not cancel a valid charge.
+  // The scoped lookup prevents attaching another organization's execution.
+  if (!execution) return {};
   return attribution;
 }

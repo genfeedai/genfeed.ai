@@ -128,32 +128,34 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const workflowColumns: TableColumn<WorkflowCostReportExecution>[] = [
     {
       header: translate('workflowAccounting.providerCost'),
-      key: 'accounting',
+      key: 'actualProviderCostMicros',
       render: (row) =>
         row.accounting?.actualProviderCostMicros == null
           ? translate('workflowAccounting.unavailable')
-          : formatCurrency(row.accounting.actualProviderCostMicros / 1_000_000),
+          : `$${(row.accounting.actualProviderCostMicros / 1_000_000).toFixed(6)}`,
     },
     { header: translate('workflowAccounting.execution'), key: 'id' },
     {
       header: translate('workflowAccounting.estimatedCredits'),
-      key: 'workflowId',
+      key: 'estimatedCredits',
       render: (row) =>
         row.accounting?.estimatedCredits ??
         translate('workflowAccounting.unavailable'),
     },
     {
       header: translate('workflowAccounting.actualCredits'),
-      key: 'accounting',
+      key: 'actualCredits',
       render: (row) =>
         row.accounting?.actualCredits ??
-        translate('workflowAccounting.known', {
-          value: row.accounting?.knownActualCredits ?? 0,
-        }),
+        (row.accounting
+          ? translate('workflowAccounting.known', {
+              value: row.accounting.knownActualCredits,
+            })
+          : translate('workflowAccounting.unavailable')),
     },
     {
       header: translate('workflowAccounting.variance'),
-      key: 'createdAt',
+      key: 'varianceCredits',
       render: (row) =>
         row.accounting?.varianceCredits ??
         translate('workflowAccounting.unavailable'),

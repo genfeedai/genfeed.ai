@@ -71,7 +71,7 @@ export class CreditReservationService {
         const created = await tx.creditReservation.create({
           data: {
             ...(await validatedWorkflowAccountingAttribution(
-              this.prisma,
+              tx,
               input.organizationId,
             )),
             actorUserId: input.actorUserId,
