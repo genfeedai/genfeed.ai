@@ -268,6 +268,13 @@ async function openMoreActions(inspector: HTMLElement) {
   return user;
 }
 
+// Radix tabs activate on pointer down (and focus), not on click.
+function selectTab(tab: HTMLElement): void {
+  fireEvent.mouseDown(tab, { button: 0 });
+  fireEvent.focus(tab);
+  fireEvent.click(tab);
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -693,9 +700,7 @@ describe('WorkspacePageContent', () => {
     });
 
     const reportInspector = screen.getByTestId('workspace-task-inspector');
-    fireEvent.click(
-      within(reportInspector).getByRole('tab', { name: 'Activity' }),
-    );
+    selectTab(within(reportInspector).getByRole('tab', { name: 'Activity' }));
 
     expect(
       within(reportInspector).getByRole('link', {
@@ -703,9 +708,7 @@ describe('WorkspacePageContent', () => {
       }),
     ).toHaveAttribute('href', '/agent/thread-report-123');
 
-    fireEvent.click(
-      within(reportInspector).getByRole('tab', { name: 'Records' }),
-    );
+    selectTab(within(reportInspector).getByRole('tab', { name: 'Records' }));
 
     await waitFor(() => {
       expect(
@@ -748,7 +751,7 @@ describe('WorkspacePageContent', () => {
     });
 
     const inspector = screen.getByTestId('workspace-task-inspector');
-    fireEvent.click(within(inspector).getByRole('tab', { name: 'Activity' }));
+    selectTab(within(inspector).getByRole('tab', { name: 'Activity' }));
 
     expect(
       within(inspector).getByText('Generated outputs'),
@@ -800,12 +803,12 @@ describe('WorkspacePageContent', () => {
 
     const inspector = screen.getByTestId('workspace-task-inspector');
 
+    selectTab(within(inspector).getByRole('tab', { name: 'Records' }));
+    expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
+
     await openMoreActions(inspector);
     expect(
       await screen.findByRole('menuitem', { name: 'Open Issue' }),
     ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
-
-    fireEvent.click(within(inspector).getByRole('tab', { name: 'Records' }));
-    expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
 });

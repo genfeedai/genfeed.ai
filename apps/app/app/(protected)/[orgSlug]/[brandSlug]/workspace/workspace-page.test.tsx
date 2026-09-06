@@ -311,6 +311,13 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
   });
 }
 
+// Radix tabs activate on pointer down (and focus), not on click.
+function selectTab(tab: HTMLElement): void {
+  fireEvent.mouseDown(tab, { button: 0 });
+  fireEvent.focus(tab);
+  fireEvent.click(tab);
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -437,9 +444,7 @@ describe('WorkspacePageContent', () => {
       { timeout: 5000 },
     );
     expect(taskInspector).toBeVisible();
-    fireEvent.click(
-      within(taskInspector).getByRole('tab', { name: 'Activity' }),
-    );
+    selectTab(within(taskInspector).getByRole('tab', { name: 'Activity' }));
     expect(await screen.findByText('Generated image preview')).toBeVisible();
     expect(await screen.findByText('Visual continuity QA')).toBeVisible();
     expect(
