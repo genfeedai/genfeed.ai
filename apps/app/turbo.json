@@ -15,7 +15,19 @@
         "VERCEL_GIT_COMMIT_SHA",
         "RELEASE_TAG"
       ],
-      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/package.json"]
+      "inputs": [
+        "$TURBO_EXTENDS$",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/packages/contexts/**",
+        "$TURBO_ROOT$/packages/fonts/**",
+        "$TURBO_ROOT$/packages/hooks/**",
+        "$TURBO_ROOT$/packages/models/**",
+        "$TURBO_ROOT$/packages/pages/**",
+        "$TURBO_ROOT$/packages/props/**",
+        "$TURBO_ROOT$/packages/serializers/**",
+        "$TURBO_ROOT$/packages/services/**",
+        "$TURBO_ROOT$/packages/utils/**"
+      ]
     }
   }
 }
