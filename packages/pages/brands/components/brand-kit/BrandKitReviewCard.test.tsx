@@ -477,7 +477,7 @@ describe('BrandKitReviewCard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
 
-    await screen.findByText('Logo');
+    await screen.findAllByText('Logo');
 
     expect(screen.queryByLabelText('Select Logo')).not.toBeInTheDocument();
     expect(
