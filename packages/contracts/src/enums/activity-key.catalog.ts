@@ -17,7 +17,8 @@ export type ActivityLifecycle =
   | 'scheduled'
   | 'published'
   | 'created'
-  | 'disconnected';
+  | 'disconnected'
+  | 'skipped';
 
 /**
  * Verb / transform applied to the subject. `generate` is the default when the
@@ -33,6 +34,7 @@ export type ActivityOperation =
   | 'train'
   | 'credit'
   | 'connect'
+  | 'import'
   | 'relocate';
 
 export interface ActivityKeyParts {
@@ -54,6 +56,7 @@ export type ActivityMessageId =
   | 'activity.lifecycle.published'
   | 'activity.lifecycle.created'
   | 'activity.lifecycle.disconnected'
+  | 'activity.lifecycle.skipped'
   | 'activity.credits.add'
   | 'activity.credits.remove'
   | 'activity.credits.reset'
@@ -120,6 +123,10 @@ export const ACTIVITY_MESSAGE_ID_BY_KEY = {
   [ActivityKey.PROMPT_REMIX_COMPLETED]: 'activity.lifecycle.completed',
   [ActivityKey.PROMPT_REMIX_FAILED]: 'activity.lifecycle.failed',
   [ActivityKey.PROMPT_REMIX_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.SOCIAL_HISTORY_IMPORT_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.SOCIAL_HISTORY_IMPORT_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.SOCIAL_HISTORY_IMPORT_SCHEDULED]: 'activity.lifecycle.scheduled',
+  [ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED]: 'activity.lifecycle.skipped',
   [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]:
     'activity.lifecycle.disconnected',
   [ActivityKey.SOCIAL_INTEGRATION_FAILED]: 'activity.lifecycle.failed',
@@ -153,9 +160,17 @@ const LIFECYCLE_BY_TOKEN: Readonly<Partial<Record<string, ActivityLifecycle>>> =
     processing: 'processing',
     published: 'published',
     scheduled: 'scheduled',
+    skipped: 'skipped',
   };
 
 const OPERATION_TOKENS = new Set(['enhance', 'reframe', 'remix', 'upscale']);
+
+const HISTORY_IMPORT_LIFECYCLES = new Set<ActivityLifecycle>([
+  'completed',
+  'failed',
+  'scheduled',
+  'skipped',
+]);
 
 const MODEL_TRAINING_LIFECYCLES = new Set<ActivityLifecycle>([
   'completed',
@@ -201,6 +216,7 @@ const OPERATION_LABELS: Record<ActivityOperation, string> = {
   credit: 'credit',
   enhance: 'enhance',
   generate: 'generate',
+  import: 'import',
   publish: 'publish',
   reframe: 'reframe',
   relocate: 'relocate',
@@ -264,6 +280,15 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
     return null;
   },
   (key) => {
+    if (key.startsWith('integration-social-history-import-')) {
+      const tail = key.slice('integration-social-history-import-'.length);
+      return {
+        key,
+        lifecycle: pickLifecycle(tail, HISTORY_IMPORT_LIFECYCLES, 'scheduled'),
+        operation: 'import',
+        subject: 'integration',
+      };
+    }
     if (key.startsWith('integration-social-')) {
       const tail = key.slice('integration-social-'.length);
       return {

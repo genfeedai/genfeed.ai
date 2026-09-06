@@ -29,13 +29,14 @@
     },
     "fallback": "{fallbackSubject}",
     "lifecycle": {
-      "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} other {Generated {articleSubject}}}",
+      "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} import {Imported existing posts from {articleSubject}} other {Generated {articleSubject}}}",
       "created": "{operation, select, train {Started {subject}} other {Created {articleSubject}}}",
       "disconnected": "{capitalizedSubject} disconnected",
-      "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} other {Failed to generate {subject}}}",
+      "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} import {Failed to import existing posts from {articleSubject}} other {Failed to generate {subject}}}",
       "processing": "{operation, select, reframe {Reframing {articleSubject}...} upscale {Upscaling {articleSubject}...} enhance {Enhancing {articleSubject}...} remix {Remixing {articleSubject}...} train {Starting {subject}...} publish {Processing {articleSubject}...} other {Generating {articleSubject}...}}",
       "published": "Published {articleSubject}",
-      "scheduled": "Scheduled {articleSubject}"
+      "scheduled": "{operation, select, import {Scheduled import of existing posts from {articleSubject}} other {Scheduled {articleSubject}}}",
+      "skipped": "{operation, select, import {Skipped importing existing posts from {articleSubject}} other {Skipped {articleSubject}}}"
     },
     "post": {
       "ready": "Content is ready for review"
