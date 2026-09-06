@@ -8,6 +8,7 @@ import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
@@ -77,6 +78,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
     private readonly brandSetupService: BrandSetupService,
+    private readonly brandWatermarkLogoService: BrandWatermarkLogoService,
   ) {
     super(
       loggerService,
@@ -148,6 +150,14 @@ export class BrandsController extends BaseCRUDController<
         organizationLabel?: string;
         syncOrganizationName?: boolean;
       };
+
+    if (rest.watermarkLogoId) {
+      await this.brandWatermarkLogoService.validateWatermarkLogo(
+        id,
+        user.organizationId.toString(),
+        rest.watermarkLogoId,
+      );
+    }
 
     if (rest.agentConfig !== undefined && !syncOrganizationName) {
       throw new BadRequestException(

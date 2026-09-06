@@ -23,3 +23,9 @@ export interface QuickActionsMenuProps {
   size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
   onActionClick: (action: IQuickAction) => void;
 }
+
+export interface IngredientDownloadButtonProps {
+  ingredientId: string;
+  disabled?: boolean;
+  onDownloadOriginal: () => unknown;
+}

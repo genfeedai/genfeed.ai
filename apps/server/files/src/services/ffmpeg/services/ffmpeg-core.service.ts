@@ -17,6 +17,8 @@ import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 const createBadRequest = (message: string) => new BadRequestException(message);
 
 const DEFAULT_FFMPEG_MAX_CONCURRENCY = 4;
+const FFMPEG_CAPTURE_TIMEOUT_MS = 5 * 60 * 1000;
+const FFMPEG_CAPTURE_KILL_GRACE_MS = 5000;
 
 /**
  * Small process-wide FIFO semaphore. Bounds how many FFmpeg processes may
@@ -190,6 +192,7 @@ export class FFmpegCoreService implements OnModuleInit {
       const process: ChildProcess = spawn(ffmpegPath, args);
       let stdout = '';
       let stderr = '';
+      let timedOut = false;
 
       process.stdout?.on('data', (data) => {
         stdout += data.toString();
@@ -198,11 +201,28 @@ export class FFmpegCoreService implements OnModuleInit {
         stderr += data.toString();
       });
 
+      // Bound how long a single ffmpeg invocation may run: kill it after
+      // FFMPEG_CAPTURE_TIMEOUT_MS so a stalled or oversized encode can't
+      // hold a semaphore slot indefinitely.
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        process.kill('SIGTERM');
+        setTimeout(() => {
+          if (!process.killed) process.kill('SIGKILL');
+        }, FFMPEG_CAPTURE_KILL_GRACE_MS);
+      }, FFMPEG_CAPTURE_TIMEOUT_MS);
+
       process.on('close', (code) => {
+        clearTimeout(timeout);
+        if (timedOut) {
+          reject(new Error('FFmpeg process timed out'));
+          return;
+        }
         resolve({ code, stderr, stdout });
       });
 
       process.on('error', (error) => {
+        clearTimeout(timeout);
         reject(error);
       });
     });

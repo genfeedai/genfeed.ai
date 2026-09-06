@@ -1,3 +1,6 @@
+import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
+import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 /**
  * Ingredients Module
  * Content building blocks: manage videos, images, voices, music as reusable components.
@@ -16,9 +19,14 @@ import { FailedGenerationModule } from '@api/shared/services/failed-generation/f
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [IngredientsController, IngredientsRelationshipsController],
+  controllers: [
+    IngredientsController,
+    IngredientsRelationshipsController,
+    IngredientExportsController,
+  ],
   exports: [IngredientGenerationCancellationService, IngredientsService],
   imports: [
+    FilesClientModule,
     FoldersModule,
     FailedGenerationModule,
     MetadataModule,
@@ -26,6 +34,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AssetAccessGuard,
+    IngredientExportService,
     IngredientGenerationCancellationService,
     IngredientsService,
   ],

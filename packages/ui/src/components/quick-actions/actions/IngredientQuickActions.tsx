@@ -14,6 +14,7 @@ import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
 import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
 import { useCallback, useMemo, useState } from 'react';
 import IngredientContextActions from './IngredientContextActions';
+import IngredientDownloadButton from './IngredientDownloadButton';
 
 export default function IngredientQuickActions(
   props: StudioQuickActionsProps & { isMasonryCompact?: boolean },
@@ -254,6 +255,25 @@ export default function IngredientQuickActions(
     'text-muted-foreground hover:bg-hover hover:text-foreground',
   );
 
+  const supportsWatermark =
+    selectedIngredient.category === IngredientCategory.IMAGE ||
+    selectedIngredient.category === IngredientCategory.IMAGE_EDIT ||
+    selectedIngredient.category === IngredientCategory.VIDEO ||
+    selectedIngredient.category === IngredientCategory.VIDEO_EDIT;
+  const downloadAction = actions.find((action) => action.id === 'download');
+  const downloadControl =
+    supportsWatermark && onDownload && downloadAction ? (
+      <IngredientDownloadButton
+        ingredientId={selectedIngredient.id}
+        disabled={downloadAction.isDisabled || downloadAction.isLoading}
+        onDownloadOriginal={() => onDownload(selectedIngredient)}
+      />
+    ) : null;
+  const visibleActions = (items: IQuickAction[]) =>
+    downloadControl
+      ? items.filter((action) => action.id !== 'download')
+      : items;
+
   const alignmentClass = align === 'start' ? 'justify-start' : 'justify-end';
   // Shell radius comes from BORDER_WHITE_30 (rounded-lg) — square buttons in a
   // pill shell was exactly the mismatch the quick-action sweep removed.
@@ -274,8 +294,9 @@ export default function IngredientQuickActions(
           data-testid="masonry-compact-actions"
           className={cn(sharedShellClassName, 'flex items-center')}
         >
+          {downloadControl}
           <QuickActionsMenu
-            actions={actions}
+            actions={visibleActions(actions)}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={setIsMenuOpen}
             size={size}
@@ -305,7 +326,8 @@ export default function IngredientQuickActions(
         data-testid="primary-actions-group"
         className={cn(sharedShellClassName, 'flex items-center gap-1')}
       >
-        {primaryActions.map((action) => (
+        {downloadControl}
+        {visibleActions(primaryActions).map((action) => (
           <QuickActionButton
             key={action.id}
             action={action}
@@ -317,7 +339,7 @@ export default function IngredientQuickActions(
 
         {menuActions.length > 0 && (
           <QuickActionsMenu
-            actions={menuActions}
+            actions={visibleActions(menuActions)}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={setIsMenuOpen}
             size={size}

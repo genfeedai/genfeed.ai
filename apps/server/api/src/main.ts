@@ -51,7 +51,7 @@ import {
   RedisWorkload,
 } from '@libs/redis/redis-connection.utils';
 import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Queue } from 'bullmq';
 import compression from 'compression';
@@ -276,7 +276,7 @@ async function main() {
 
     const interceptors = [
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
-      new TimeoutInterceptor(),
+      new TimeoutInterceptor(app.get(Reflector)),
       new PerformanceInterceptor(logger, configService, memoryMonitor),
       new APIMetricsInterceptor(logger, logApiUsage),
     ];

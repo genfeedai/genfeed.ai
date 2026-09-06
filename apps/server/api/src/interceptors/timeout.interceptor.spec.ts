@@ -1,3 +1,4 @@
+import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import {
   CallHandler,
@@ -45,6 +46,27 @@ describe('TimeoutInterceptor', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('honors a bounded route timeout without changing the default', async () => {
+    vi.useFakeTimers();
+    class SlowRoute {
+      @RequestTimeout(600_000)
+      render() {}
+    }
+    vi.mocked(mockExecutionContext.getHandler).mockReturnValue(
+      SlowRoute.prototype.render,
+    );
+    mockCallHandler.handle = vi
+      .fn()
+      .mockReturnValue(of('preview').pipe(delay(31_000)));
+    const promise = firstValueFrom(
+      interceptor.intercept(mockExecutionContext, mockCallHandler),
+    );
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(promise).resolves.toBe('preview');
+    vi.useRealTimers();
   });
 
   it('should be defined', () => {

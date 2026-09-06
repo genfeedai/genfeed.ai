@@ -16,6 +16,8 @@ export interface FFprobeStream {
   codec_type: 'video' | 'audio' | 'subtitle' | 'data';
   width?: number;
   height?: number;
+  tags?: { rotate?: string };
+  side_data_list?: Array<{ rotation?: number }>;
   duration?: string;
   bit_rate?: string;
 }

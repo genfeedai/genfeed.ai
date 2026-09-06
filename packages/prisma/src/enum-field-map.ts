@@ -1176,6 +1176,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'userId',
       'voiceIngredient',
       'voiceIngredientId',
+      'watermarkLogoId',
+      'watermarkOpacity',
+      'watermarkPosition',
+      'watermarkText',
     ],
     listFields: [
       'accountAnalyticsSnapshots',

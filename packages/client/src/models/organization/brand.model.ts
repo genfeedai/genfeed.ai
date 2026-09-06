@@ -18,6 +18,10 @@ export class Brand extends BaseEntity implements IBrand {
   declare public logo?: IAsset;
   declare public banner?: IAsset;
   declare public references?: IAsset[];
+  declare public watermarkText?: string | null;
+  declare public watermarkLogoId?: string | null;
+  declare public watermarkOpacity?: number;
+  declare public watermarkPosition?: IBrand['watermarkPosition'];
   declare public slug: string;
   declare public label: string;
   declare public description: string;

@@ -12,3 +12,5 @@ export * from './organization-category-seed.interface';
 export * from './organization-option.interface';
 export * from './organization-setting.interface';
 export * from './quota-status.interface';
+
+export * from './watermark-export.interface';

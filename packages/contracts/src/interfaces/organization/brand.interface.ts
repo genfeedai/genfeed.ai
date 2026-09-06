@@ -8,6 +8,7 @@ import type {
   IUser,
 } from '../index';
 import type { IBrandAgentPrompting } from './brand-profile.interface';
+import type { WatermarkPosition } from './watermark-export.interface';
 
 export interface IBrand extends IBaseEntity {
   organizationId?: string;
@@ -21,6 +22,11 @@ export interface IBrand extends IBaseEntity {
   description: string;
   text?: string;
   slug: string;
+
+  watermarkText?: string | null;
+  watermarkLogoId?: string | null;
+  watermarkOpacity?: number;
+  watermarkPosition?: WatermarkPosition;
 
   logo?: IAsset;
   banner?: IAsset;

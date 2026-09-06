@@ -14,6 +14,37 @@ describe('UpdateBrandDto', () => {
   });
 
   describe('validation', () => {
+    it.each(['watermarkOpacity', 'watermarkPosition'])(
+      'rejects null for required watermark setting %s',
+      async (field) => {
+        await expect(
+          pipe.transform({ [field]: null }, metadata),
+        ).rejects.toMatchObject({ status: 400 });
+      },
+    );
+
+    it('allows clearing text and logo while preserving omitted watermark settings', async () => {
+      const result = await pipe.transform(
+        { watermarkText: null, watermarkLogoId: null },
+        metadata,
+      );
+      expect(result).toMatchObject({
+        watermarkText: null,
+        watermarkLogoId: null,
+      });
+    });
+
+    it('accepts watermark boundary opacity and position', async () => {
+      const result = await pipe.transform(
+        { watermarkOpacity: 0.05, watermarkPosition: 'bottom-right' },
+        metadata,
+      );
+      expect(result).toMatchObject({
+        watermarkOpacity: 0.05,
+        watermarkPosition: 'bottom-right',
+      });
+    });
+
     it('should create an instance', () => {
       const dto = new UpdateBrandDto();
       expect(dto).toBeInstanceOf(UpdateBrandDto);

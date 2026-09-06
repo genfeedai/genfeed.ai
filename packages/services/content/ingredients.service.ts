@@ -3,6 +3,7 @@ import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
   IIngredient,
+  IIngredientExportResult,
   IPost,
 } from '@genfeedai/contracts/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
@@ -25,6 +26,7 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { deserializeResource } from '@services/core/json-api';
 import axios from 'axios';
 
 // Local type for model constructors (IngredientModelMap expects instances, but we need constructors)
@@ -41,6 +43,15 @@ type IngredientModelConstructorMap = {
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
+  public async exportMedia(id: string, watermark: boolean) {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/export`,
+      { watermark },
+      { timeout: 600_000 },
+    );
+    return deserializeResource<IIngredientExportResult>(response.data);
+  }
+
   private static instances = new Map<string, IngredientsService<Ingredient>>();
 
   constructor(category: IngredientCategory | string, token: string) {
