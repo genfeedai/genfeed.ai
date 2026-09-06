@@ -14,13 +14,17 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
-    FilesWatermarkExportController,
     EditorRenderJobsController,
     FilesController,
     FilesMetadataController,
     FilesAudioOverlayController,
     FilesProcessingController,
     FilesStorageController,
+    // Its only route (`files/watermark-export`) is a static segment that
+    // cannot be shadowed by any wildcard/param route above (e.g.
+    // FilesStorageController's `download/:type/*key`), so it is safe to
+    // register last rather than disturbing the audio-overlay/processing order.
+    FilesWatermarkExportController,
   ],
   imports: [
     ConfigModule,

@@ -1,4 +1,5 @@
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -12,6 +13,29 @@ import ffmpegPath from 'ffmpeg-static';
 import ffprobeStatic from 'ffprobe-static';
 import sharp from 'sharp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// `ffmpeg-static`/`ffprobe-static` publish a binary path from their package
+// even when their postinstall never ran (Bun only runs postinstalls for
+// packages listed in the root `trustedDependencies`, which CI does not grant
+// to these). Resolve a real, on-disk encoder: the vendored static binary
+// when it was actually downloaded, else whatever `ffmpeg`/`ffprobe` the host
+// has on PATH (GitHub's ubuntu runners ship both). When neither exists the
+// real-render assertions below are skipped rather than failing on ENOENT.
+function resolveOnPath(binary: string): string | undefined {
+  try {
+    execFileSync(binary, ['-version'], { stdio: 'ignore' });
+    return binary;
+  } catch {
+    return undefined;
+  }
+}
+
+const resolvedFfmpegBinary =
+  ffmpegPath && existsSync(ffmpegPath) ? ffmpegPath : resolveOnPath('ffmpeg');
+const resolvedFfprobeBinary =
+  ffprobeStatic.path && existsSync(ffprobeStatic.path)
+    ? ffprobeStatic.path
+    : resolveOnPath('ffprobe');
 
 const original = () =>
   sharp({
@@ -156,92 +180,98 @@ describe('WatermarkExportService', () => {
     expect(args).toContain('0:a?');
     expect(args).toContain('libx264');
   });
-  it('renders a real MP4 while retaining duration and audio', async () => {
-    if (!ffmpegPath) throw new Error('FFmpeg binary missing');
-    const binary = ffmpegPath;
-    const execute = promisify(execFile);
-    await mkdir(FILES_TMP_ROOT, { recursive: true });
-    const fixtureRoot = await mkdtemp(
-      path.join(FILES_TMP_ROOT, 'watermark-fixture-'),
-    );
-    try {
-      const input = path.join(fixtureRoot, 'source.mp4');
-      await execute(ffmpegPath, [
-        '-hide_banner',
-        '-loglevel',
-        'error',
-        '-f',
-        'lavfi',
-        '-i',
-        'color=c=black:s=400x300:d=0.5',
-        '-f',
-        'lavfi',
-        '-i',
-        'sine=frequency=440:duration=0.5',
-        '-c:v',
-        'libx264',
-        '-c:a',
-        'aac',
-        '-shortest',
-        '-y',
-        input,
-      ]);
-      const { storage, ffmpeg } = setup();
-      vi.mocked(storage.download).mockImplementation(async (_key, target) => {
-        await writeFile(target, await readFile(input));
-      });
-      const output = path.join(fixtureRoot, 'rendered.mp4');
-      vi.mocked(storage.uploadFromFile).mockImplementation(
-        async (key, target) => {
-          await writeFile(output, await readFile(target));
-          return key;
-        },
+  it.skipIf(!resolvedFfmpegBinary || !resolvedFfprobeBinary)(
+    'renders a real MP4 while retaining duration and audio',
+    async () => {
+      const binary = resolvedFfmpegBinary as string;
+      const probeBinary = resolvedFfprobeBinary as string;
+      const execute = promisify(execFile);
+      await mkdir(FILES_TMP_ROOT, { recursive: true });
+      const fixtureRoot = await mkdtemp(
+        path.join(FILES_TMP_ROOT, 'watermark-fixture-'),
       );
-      ffmpeg.getVideoMetadata.mockResolvedValue({
-        streams: [{ codec_type: 'video', width: 400, height: 300 }],
-      });
-      ffmpeg.executeFFmpegCapture.mockImplementation(async (args: string[]) => {
-        const result = await execute(binary, args);
-        return { ...result, code: 0 };
-      });
-      const service = new WatermarkExportService(
-        storage,
-        ffmpeg as unknown as FFmpegService,
-      );
-      await service.render({ ...request, category: 'videos' });
-      const probe = await execute(ffprobeStatic.path, [
-        '-v',
-        'quiet',
-        '-show_streams',
-        '-show_format',
-        '-of',
-        'json',
-        output,
-      ]);
-      const metadata = JSON.parse(probe.stdout) as FFprobeData;
-      expect(
-        metadata.streams.some((stream) => stream.codec_type === 'audio'),
-      ).toBe(true);
-      expect(Number(metadata.format.duration)).toBeGreaterThanOrEqual(0.5);
-      expect(Number(metadata.format.duration)).toBeLessThan(0.7);
-      const frame = path.join(fixtureRoot, 'frame.png');
-      await execute(ffmpegPath, [
-        '-hide_banner',
-        '-loglevel',
-        'error',
-        '-i',
-        output,
-        '-frames:v',
-        '1',
-        '-y',
-        frame,
-      ]);
-      const pixels = await sharp(frame).removeAlpha().raw().toBuffer();
-      expect(pixels.some((value) => value > 50)).toBe(true);
-    } finally {
-      await rm(fixtureRoot, { recursive: true, force: true });
-    }
-  }, 30_000);
+      try {
+        const input = path.join(fixtureRoot, 'source.mp4');
+        await execute(binary, [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-f',
+          'lavfi',
+          '-i',
+          'color=c=black:s=400x300:d=0.5',
+          '-f',
+          'lavfi',
+          '-i',
+          'sine=frequency=440:duration=0.5',
+          '-c:v',
+          'libx264',
+          '-c:a',
+          'aac',
+          '-shortest',
+          '-y',
+          input,
+        ]);
+        const { storage, ffmpeg } = setup();
+        vi.mocked(storage.download).mockImplementation(async (_key, target) => {
+          await writeFile(target, await readFile(input));
+        });
+        const output = path.join(fixtureRoot, 'rendered.mp4');
+        vi.mocked(storage.uploadFromFile).mockImplementation(
+          async (key, target) => {
+            await writeFile(output, await readFile(target));
+            return key;
+          },
+        );
+        ffmpeg.getVideoMetadata.mockResolvedValue({
+          streams: [{ codec_type: 'video', width: 400, height: 300 }],
+        });
+        ffmpeg.executeFFmpegCapture.mockImplementation(
+          async (args: string[]) => {
+            const result = await execute(binary, args);
+            return { ...result, code: 0 };
+          },
+        );
+        const service = new WatermarkExportService(
+          storage,
+          ffmpeg as unknown as FFmpegService,
+        );
+        await service.render({ ...request, category: 'videos' });
+        const probe = await execute(probeBinary, [
+          '-v',
+          'quiet',
+          '-show_streams',
+          '-show_format',
+          '-of',
+          'json',
+          output,
+        ]);
+        const metadata = JSON.parse(probe.stdout) as FFprobeData;
+        expect(
+          metadata.streams.some((stream) => stream.codec_type === 'audio'),
+        ).toBe(true);
+        expect(Number(metadata.format.duration)).toBeGreaterThanOrEqual(0.5);
+        expect(Number(metadata.format.duration)).toBeLessThan(0.7);
+        const frame = path.join(fixtureRoot, 'frame.png');
+        await execute(binary, [
+          '-hide_banner',
+          '-loglevel',
+          'error',
+          '-i',
+          output,
+          '-frames:v',
+          '1',
+          '-y',
+          frame,
+        ]);
+        const pixels = await sharp(frame).removeAlpha().raw().toBuffer();
+        expect(pixels.some((value) => value > 50)).toBe(true);
+      } finally {
+        await rm(fixtureRoot, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
   it('reuses the rendered content without overwriting an original', async () => {
     const { service, storage } = setup();
     const first = await service.render(request);

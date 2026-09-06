@@ -12,6 +12,7 @@ import { BrandsSetupController } from '@api/collections/brands/controllers/brand
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
+import { BrandWatermarkLogoService } from '@api/collections/brands/services/brand-watermark-logo.service';
 import { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -77,6 +78,7 @@ import { Module } from '@nestjs/common';
     // routes no longer round-trip back through OnboardingService and close an
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
+    BrandWatermarkLogoService,
     BrandWebsitePreviewService,
     BrandPersistenceService,
     MasterPromptGeneratorService,

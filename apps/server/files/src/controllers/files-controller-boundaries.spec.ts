@@ -6,6 +6,7 @@ import { FilesAudioOverlayController } from '@files/controllers/files-audio-over
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
+import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
 import { RequestMethod } from '@nestjs/common';
 import {
   METHOD_METADATA,
@@ -20,6 +21,7 @@ const controllers = [
   [FilesMetadataController, 'files'],
   [FilesProcessingController, 'files'],
   [FilesStorageController, 'files'],
+  [FilesWatermarkExportController, 'files'],
 ] as const;
 
 const routes = [
@@ -110,6 +112,11 @@ const routes = [
     RequestMethod.GET,
     'presigned-download/:type/*key',
   ],
+  [
+    FilesWatermarkExportController.prototype.export,
+    RequestMethod.POST,
+    'watermark-export',
+  ],
 ] as const;
 
 describe('files controller boundaries', () => {
@@ -144,6 +151,12 @@ describe('files controller boundaries', () => {
       FilesAudioOverlayController,
       FilesProcessingController,
       FilesStorageController,
+      // FilesWatermarkExportController registers last: its only route
+      // (`files/watermark-export`) is a static segment no earlier
+      // controller's wildcard/param routes (e.g. `download/:type/*key`)
+      // can shadow, so it cannot disturb the audio-overlay/processing order
+      // above.
+      FilesWatermarkExportController,
     ]);
   });
 
