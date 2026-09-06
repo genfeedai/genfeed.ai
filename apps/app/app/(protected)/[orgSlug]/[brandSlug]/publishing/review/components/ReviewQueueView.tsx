@@ -123,7 +123,9 @@ export default function ReviewQueueView({
   const translate = useTranslations('pages.publishing.review.approvalQueue');
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
-  const postsHref = href(buildPostsHrefFromApprovalQueue(searchParams));
+  const postsHref = href(
+    buildPostsHrefFromApprovalQueue(searchParams.toString()),
+  );
 
   const batchOptions = useMemo(
     () =>
