@@ -44,8 +44,6 @@ export function useModalGallery({
   const [selectedItemsData, setSelectedItemsData] = useState<
     (IVideo | IMusic | IImage)[]
   >([]);
-  const [playingId, setPlayingId] = useState<string>('');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [items, setItems] = useState<(IVideo | IMusic | IImage)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
@@ -432,11 +430,6 @@ export function useModalGallery({
       isLoadingReferencesRef.current = false;
       isLoadingCreationsRef.current = false;
       PagesService.setCurrentPage(1);
-
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setPlayingId('');
-      }
     }
   }, [isOpen]);
 
@@ -483,38 +476,6 @@ export function useModalGallery({
     initialSelectedReferences,
   ]);
 
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleMusicPlayPause = (musicId: string, musicUrl: string) => {
-    if (playingId === musicId) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      setPlayingId('');
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      const audio = new Audio(musicUrl);
-      audio.play().catch(() => {
-        setPlayingId('');
-      });
-      audio.onended = () => setPlayingId('');
-      audioRef.current = audio;
-      setPlayingId(musicId);
-    }
-  };
-
   const handleItemSelect = (item: IVideo | IMusic | IImage | IAsset) => {
     if (category === IngredientCategory.MUSIC) {
       setSelectedItem(item.id);
@@ -558,14 +519,12 @@ export function useModalGallery({
     findAllReferences,
     findAllUploads,
     handleItemSelect,
-    handleMusicPlayPause,
     isLoading,
     isLoadingCreations,
     isLoadingReferences,
     items,
     localFormat,
     notifySelectionLimit,
-    playingId,
     references,
     selectedItem,
     selectedItems,

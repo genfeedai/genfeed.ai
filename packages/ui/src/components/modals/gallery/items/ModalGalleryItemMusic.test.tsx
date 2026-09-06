@@ -1,8 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { AudioPreviewPlayerProps } from '@ui/audio/preview-player/AudioPreviewPlayer';
 import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
 import type { MouseEvent, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@ui/audio/preview-player/AudioPreviewPlayer', () => ({
+  default: ({ audioUrl, label, stopOnUnmount }: AudioPreviewPlayerProps) => (
+    <button
+      type="button"
+      data-testid="shared-audio-player"
+      data-url={audioUrl}
+      data-stop-on-unmount={stopOnUnmount}
+      aria-label={`Preview ${label}`}
+    />
+  ),
+}));
 
 // Mock dependencies
 vi.mock('@ui/primitives/button', () => ({
@@ -44,7 +57,6 @@ vi.mock('@genfeedai/helpers', () => ({
 
 describe('ModalGalleryItemMusic', () => {
   const defaultProps = {
-    isPlaying: false,
     isSelected: false,
     music: {
       id: 'music-1',
@@ -52,7 +64,6 @@ describe('ModalGalleryItemMusic', () => {
       metadata: { label: 'Test Music' },
       metadataDuration: 120,
     },
-    onPlayPause: vi.fn(),
     onSelect: vi.fn(),
   };
 
@@ -80,42 +91,33 @@ describe('ModalGalleryItemMusic', () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     render(<ModalGalleryItemMusic {...defaultProps} onSelect={onSelect} />);
-    await user.click(screen.getByRole('button', { name: /Test Music/i }));
+    await user.click(screen.getByRole('button', { name: /^Test Music/i }));
     expect(onSelect).toHaveBeenCalledWith(defaultProps.music);
   });
 
-  it('calls onPlayPause when play button is clicked', async () => {
+  it('uses shared playback without changing selection and stops playback when removed', async () => {
     const user = userEvent.setup();
-    const onPlayPause = vi.fn();
-    render(
-      <ModalGalleryItemMusic {...defaultProps} onPlayPause={onPlayPause} />,
+    const onSelect = vi.fn();
+    const { container } = render(
+      <ModalGalleryItemMusic {...defaultProps} onSelect={onSelect} />,
     );
-    const playButton = screen.getByTestId('play-button');
-    await user.click(playButton);
-    expect(onPlayPause).toHaveBeenCalledWith(
-      'music-1',
-      'http://example.com/music.mp3',
-    );
+    const player = screen.getByTestId('shared-audio-player');
+    expect(player).toHaveAttribute('data-url', 'http://example.com/music.mp3');
+    expect(player).toHaveAttribute('data-stop-on-unmount', 'true');
+    await user.click(player);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(container.querySelector('button button')).toBeNull();
   });
 
-  it('uses fallback URL when ingredientUrl is not provided', async () => {
-    const user = userEvent.setup();
-    const onPlayPause = vi.fn();
-    const musicWithoutUrl = {
-      ...defaultProps.music,
-      ingredientUrl: undefined,
-    };
+  it('uses fallback URL when ingredientUrl is not provided', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={musicWithoutUrl}
-        onPlayPause={onPlayPause}
+        music={{ ...defaultProps.music, ingredientUrl: undefined }}
       />,
     );
-    const playButton = screen.getByTestId('play-button');
-    await user.click(playButton);
-    expect(onPlayPause).toHaveBeenCalledWith(
-      'music-1',
+    expect(screen.getByTestId('shared-audio-player')).toHaveAttribute(
+      'data-url',
       'http://api.example.com/ingredients/musics/music-1',
     );
   });

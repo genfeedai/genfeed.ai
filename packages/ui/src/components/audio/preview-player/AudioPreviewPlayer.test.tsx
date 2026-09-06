@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 class PreviewAudio extends EventTarget {
   src = '';
@@ -26,14 +26,16 @@ class PreviewAudio extends EventTarget {
   });
 }
 let audio = new PreviewAudio();
-vi.stubGlobal(
-  'Audio',
-  class extends PreviewAudio {
-    constructor() {
-      super();
-      audio = this;
-    }
-  },
+beforeEach(() =>
+  vi.stubGlobal(
+    'Audio',
+    class extends PreviewAudio {
+      constructor() {
+        super();
+        audio = this;
+      }
+    },
+  ),
 );
 afterAll(() => vi.unstubAllGlobals());
 

@@ -1,19 +1,18 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { formatDuration } from '@genfeedai/helpers';
 import type { ModalGalleryItemMusicProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
-import { Music, Pause, Play } from 'lucide-react';
+import { Music } from 'lucide-react';
 
 export default function ModalGalleryItemMusic({
   music,
   isSelected,
-  isPlaying,
   onSelect,
-  onPlayPause,
 }: ModalGalleryItemMusicProps) {
   const metadata =
     typeof music.metadata === 'object' && music.metadata
@@ -62,20 +61,13 @@ export default function ModalGalleryItemMusic({
           </div>
         </Button>
 
-        <Button
-          ariaLabel={isPlaying ? 'Pause' : 'Play'}
-          label={isPlaying ? <Pause /> : <Play />}
-          onClick={(e) => {
-            e.stopPropagation();
-
-            const musicUrl =
-              music.ingredientUrl ||
-              `${EnvironmentService.ingredientsEndpoint}/musics/${music.id}`;
-            onPlayPause(music.id, musicUrl);
-          }}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          className="rounded-full"
+        <AudioPreviewPlayer
+          audioUrl={
+            music.ingredientUrl ||
+            `${EnvironmentService.ingredientsEndpoint}/musics/${music.id}`
+          }
+          label={metadataLabel || 'Untitled'}
+          stopOnUnmount
         />
       </div>
 

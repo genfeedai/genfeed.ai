@@ -7,7 +7,7 @@ import {
   ModalEnum,
 } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
-import type { IMetadata, IMusic } from '@genfeedai/contracts/interfaces';
+import type { IMusic } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ModalMusicProps } from '@genfeedai/props/modals/modal.props';
@@ -15,10 +15,11 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
 import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { Music as MusicIcon, Pause, Play, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Music as MusicIcon, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface MusicSelectionOverride {
   sourceId: string;
@@ -34,8 +35,6 @@ export default function ModalMusic({
     useState<MusicSelectionOverride | null>(null);
   const [availableMusic, setAvailableMusic] = useState<IMusic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [playingId, setPlayingId] = useState<string>('');
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const selectedMusic =
     selectionOverride?.sourceId === selectedMusicId
       ? selectionOverride.value
@@ -69,52 +68,14 @@ export default function ModalMusic({
 
   useEffect(() => {
     findAllMusics();
-
-    return () => {
-      // Clean up audio on unmount
-      if (audioElementRef.current) {
-        audioElementRef.current.pause();
-        audioElementRef.current.src = '';
-      }
-    };
   }, [findAllMusics]);
 
-  const handlePlayPause = (musicId: string, musicUrl: string) => {
-    const audioElement = audioElementRef.current;
-
-    if (playingId === musicId) {
-      // Pause current
-      if (audioElement) {
-        audioElement.pause();
-      }
-      setPlayingId('');
-    } else {
-      // Play new
-      if (audioElement) {
-        audioElement.pause();
-      }
-
-      const audio = new Audio(musicUrl);
-      audio.play();
-      audio.onended = () => setPlayingId('');
-      audioElementRef.current = audio;
-      setPlayingId(musicId);
-    }
-  };
-
   const closeModalMusic = () => {
-    if (audioElementRef.current) {
-      audioElementRef.current.pause();
-    }
     setSelectionOverride(null);
     closeModal(ModalEnum.MUSIC);
   };
 
   const handleConfirm = () => {
-    if (audioElementRef.current) {
-      audioElementRef.current.pause();
-    }
-
     const music = selectedMusic
       ? availableMusic.find((track) => track.id === selectedMusic) || null
       : null;
@@ -156,95 +117,19 @@ export default function ModalMusic({
           <>
             {/* Music Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1">
-              {availableMusic.map((music) => {
-                const metadata =
-                  typeof music.metadata === 'object' && music.metadata
-                    ? (music.metadata as IMetadata)
-                    : null;
-                const metadataLabel = metadata?.label;
-
-                return (
-                  <div
-                    key={music.id}
-                    className={`relative p-4 transition-[box-shadow,background-color] cursor-pointer group ${
-                      selectedMusic === music.id
-                        ? 'shadow-border-strong bg-primary/5'
-                        : 'shadow-border hover:shadow-border-strong bg-background'
-                    }`}
-                  >
-                    {/* Music Icon */}
-                    <div className="flex items-center gap-3">
-                      <Button
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        onClick={() =>
-                          setSelectionOverride({
-                            sourceId: selectedMusicId,
-                            value: music.id,
-                          })
-                        }
-                        type="button"
-                        variant={ButtonVariant.UNSTYLED}
-                        withWrapper={false}
-                      >
-                        <div
-                          className={`size-12 rounded-full flex items-center justify-center ${
-                            selectedMusic === music.id
-                              ? 'bg-primary/20'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          <MusicIcon
-                            className={`text-xl ${
-                              selectedMusic === music.id
-                                ? 'text-primary'
-                                : 'text-foreground/50'
-                            }`}
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">
-                            {metadataLabel || `Track ${music.id.slice(0, 8)}`}
-                          </h4>
-
-                          {music.metadataDuration && (
-                            <p className="text-xs text-foreground/60">
-                              {Math.floor(music.metadataDuration / 60)}:
-                              {String(music.metadataDuration % 60).padStart(
-                                2,
-                                '0',
-                              )}
-                            </p>
-                          )}
-                        </div>
-                      </Button>
-
-                      {/* Play/Pause Button */}
-                      <Button
-                        ariaLabel={playingId === music.id ? 'Pause' : 'Play'}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.ICON}
-                        className="rounded-full"
-                        label={playingId === music.id ? <Pause /> : <Play />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!music.ingredientUrl) {
-                            return;
-                          }
-                          handlePlayPause(music.id, music.ingredientUrl);
-                        }}
-                      />
-                    </div>
-
-                    {/* Selected Badge */}
-                    {selectedMusic === music.id && (
-                      <div className="absolute top-2 right-2">
-                        <div className="size-2 bg-primary rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {availableMusic.map((music) => (
+                <ModalGalleryItemMusic
+                  key={music.id}
+                  music={music}
+                  isSelected={selectedMusic === music.id}
+                  onSelect={(track) =>
+                    setSelectionOverride({
+                      sourceId: selectedMusicId,
+                      value: track.id,
+                    })
+                  }
+                />
+              ))}
             </div>
 
             {/* No Music Option */}

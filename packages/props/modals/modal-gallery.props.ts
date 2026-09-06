@@ -41,7 +41,6 @@ export interface ModalGalleryContentProps {
   items: (IVideo | IMusic | IImage)[];
   selectedItems: string[];
   selectedItem: string;
-  playingId: string;
   localFormat: IngredientFormat;
   references?: IAsset[];
   uploads?: IImage[];
@@ -52,7 +51,6 @@ export interface ModalGalleryContentProps {
   selectionLimit: number;
   getFormatLabel: (formatValue?: IngredientFormat) => string;
   getImageFormat: (image: IImage) => IngredientFormat | null;
-  onMusicPlayPause: (musicId: string, musicUrl: string) => void;
 }
 
 export interface ModalGalleryFooterProps {
@@ -88,9 +86,7 @@ export interface ModalGalleryItemImageProps {
 export interface ModalGalleryItemMusicProps {
   music: IMusic;
   isSelected: boolean;
-  isPlaying: boolean;
   onSelect: (music: IMusic) => void;
-  onPlayPause: (musicId: string, musicUrl: string) => void;
 }
 
 export interface ModalGalleryItemReferenceProps {
@@ -156,7 +152,6 @@ export interface UseModalGalleryReturn {
   selectedItemsData: (IVideo | IMusic | IImage)[];
   activeTab: 'media' | 'references' | 'uploads' | 'creations';
   localFormat: IngredientFormat;
-  playingId: string;
   filterReferenceId: string;
   uploads: IImage[];
   references: IAsset[];
@@ -175,7 +170,6 @@ export interface UseModalGalleryReturn {
   findAllCreations: (pageOverride?: number) => Promise<void>;
   findAllReferences: () => Promise<void>;
   handleItemSelect: (item: IVideo | IMusic | IImage | IAsset) => void;
-  handleMusicPlayPause: (musicId: string, musicUrl: string) => void;
   notifySelectionLimit: () => void;
 
   selectionLimit: number;
