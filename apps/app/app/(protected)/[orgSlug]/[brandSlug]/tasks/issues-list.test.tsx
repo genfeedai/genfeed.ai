@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openIssueOverlay } from './issue-overlay-controls';
 import IssuesList from './issues-list';
@@ -169,6 +170,9 @@ describe('IssuesList inline editing and deep links', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
     mocks.searchParams = new URLSearchParams();
     mocks.list.mockResolvedValue([failedTask]);
     mocks.updateTask.mockResolvedValue(failedTask);
@@ -205,13 +209,13 @@ describe('IssuesList inline editing and deep links', () => {
   });
 
   it('updates status inline and reloads the list', async () => {
+    const user = userEvent.setup();
     render(<IssuesList />);
-    const trigger = await screen.findByRole('combobox', {
-      name: 'Status for QA-9',
-    });
 
-    fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole('option', { name: 'Done' }));
+    await user.click(
+      await screen.findByRole('combobox', { name: 'Status for QA-9' }),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Done' }));
 
     await waitFor(() =>
       expect(mocks.updateTask).toHaveBeenCalledWith('failed-task', {
@@ -224,13 +228,13 @@ describe('IssuesList inline editing and deep links', () => {
 
   it('surfaces a failed inline update', async () => {
     mocks.updateTask.mockRejectedValue(new Error('boom'));
+    const user = userEvent.setup();
     render(<IssuesList />);
-    const trigger = await screen.findByRole('combobox', {
-      name: 'Priority for QA-9',
-    });
 
-    fireEvent.click(trigger);
-    fireEvent.click(await screen.findByRole('option', { name: 'Critical' }));
+    await user.click(
+      await screen.findByRole('combobox', { name: 'Priority for QA-9' }),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Critical' }));
 
     await waitFor(() =>
       expect(mocks.notifyError).toHaveBeenCalledWith(
