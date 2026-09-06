@@ -33,3 +33,26 @@ export interface TabsProps {
 }
 
 export type TabsEnhancedProps = TabsProps;
+
+export interface PanelTabItem {
+  readonly id: string;
+  readonly label: string;
+  readonly icon?: ComponentType<{ className?: string }>;
+  readonly content: ReactNode;
+  readonly isOpen: boolean;
+  readonly keepMounted?: boolean;
+  readonly testId?: string;
+}
+export interface PanelTabsProps {
+  readonly activeTab: string | null;
+  readonly ariaLabel: string;
+  readonly className?: string;
+  readonly closeLabel: (label: string) => string;
+  readonly emptyState?: ReactNode;
+  readonly footer?: ReactNode;
+  readonly items: readonly PanelTabItem[];
+  readonly onClose: (id: string) => void;
+  readonly onTabChange: (id: string) => void;
+  readonly testId?: string;
+  readonly trailing?: ReactNode;
+}

@@ -1,46 +1,28 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@ui/primitives/accordion';
+import { PanelTabs } from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import {
-  ChevronDown,
-  Eye,
-  File,
-  Globe,
-  LayoutGrid,
-  Maximize2,
-  MessageSquare,
-  Zap,
-} from 'lucide-react';
+import { Eye, Maximize2, MessageSquare, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import {
-  type MutableRefObject,
-  type ReactNode,
-  useEffect,
-  useState,
-} from 'react';
+import type { MutableRefObject, ReactNode } from 'react';
 import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 import type { ResearchWorkspaceSurfaceAdapterRegistration } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
-import {
-  OPEN_CONTEXT_TAB_EVENT,
-  OPEN_CONVERSATION_TAB_EVENT,
-} from '@/lib/workspace/agent-composer-events';
-import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
-import type { WorkspaceInspectorAssetKind } from '@/lib/workspace-shell/workspace-inspector-panes.util';
-import type { WorkspaceShellPendingTransition } from '@/lib/workspace-shell/workspace-shell-transition.util';
 
+import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
+import {
+  isWorkspaceInspectorTabKind,
+  type WorkspaceInspectorTabKind,
+} from '@/lib/workspace-shell/workspace-inspector-panes.util';
+import type { WorkspaceShellPendingTransition } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import WorkspaceInspectorBrowserPane from './WorkspaceInspectorBrowserPane';
 import WorkspaceInspectorFilesPane from './WorkspaceInspectorFilesPane';
+import WorkspaceInspectorTabs, {
+  WORKSPACE_INSPECTOR_TAB_ICONS,
+} from './WorkspaceInspectorTabs';
 import type {
   ActiveWorkspaceSurfaceAdapter,
   ProductWorkspaceSurfaceAdapter,
@@ -66,7 +48,8 @@ type WorkspaceInspectorAdapters = {
 };
 
 type WorkspaceInspectorActions = {
-  readonly onExpandedKindsChange: (expandedKinds: readonly string[]) => void;
+  readonly onCloseTab: (kind: WorkspaceInspectorTabKind) => void;
+  readonly onOpenTab: (kind: WorkspaceInspectorTabKind) => void;
   readonly onOpenOverlay: () => void;
   readonly onOpenWorkflowPicker: () => boolean;
   readonly onReturnToConversation: () => void;
@@ -75,7 +58,9 @@ type WorkspaceInspectorActions = {
 };
 
 type WorkspaceInspectorChromeModel = {
-  readonly expandedKinds: readonly WorkspaceInspectorAssetKind[];
+  readonly activeKind: WorkspaceInspectorTabKind | null;
+  readonly availableKinds: readonly WorkspaceInspectorTabKind[];
+  readonly openKinds: readonly WorkspaceInspectorTabKind[];
   readonly hasAgentInspectorPanel: boolean;
   readonly inspectorBreadcrumbLabel: string;
   readonly inspectorScope: ReactNode;
@@ -106,15 +91,6 @@ type WorkspaceInspectorExpandControlProps = {
   readonly fullConversationHref: string;
   readonly isAgentRoute: boolean;
   readonly pendingTransitionRef: MutableRefObject<WorkspaceShellPendingTransition | null>;
-};
-
-const INSPECTOR_PANE_ICONS: Record<
-  WorkspaceInspectorAssetKind,
-  typeof LayoutGrid
-> = {
-  browser: Globe,
-  context: LayoutGrid,
-  files: File,
 };
 
 type WorkspaceInspectorContextPaneProps = {
@@ -454,185 +430,44 @@ function WorkspaceInspectorWorkspaceBody({
   );
 }
 
-function WorkspaceInspectorPaneHeader({
-  kind,
-}: {
-  readonly kind: WorkspaceInspectorAssetKind;
-}) {
-  const translate = useTranslations('common.workspaceInspector.tabs');
-  const Icon = INSPECTOR_PANE_ICONS[kind];
-
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <Icon
-        className="size-3.5 shrink-0 text-muted-foreground"
-        aria-hidden="true"
-      />
-      <span className="truncate">{translate(kind)}</span>
-    </span>
-  );
-}
-
 function WorkspaceInspectorContextPane(
   props: WorkspaceInspectorContextPaneProps,
 ) {
   return (
-    <AccordionItem value="context">
-      <AccordionTrigger
-        className="px-3 py-2.5 text-sm hover:no-underline"
-        data-testid="workspace-inspector-pane-trigger-context"
-      >
-        <WorkspaceInspectorPaneHeader kind="context" />
-      </AccordionTrigger>
-      <AccordionContent
-        className={inspectorContextPaneClassName(
-          Boolean(props.productSurfaceAdapter),
-          props.isAgentOwned,
-        )}
-      >
-        <WorkspaceInspectorAgentSlot
-          agentPanelSlot={props.agentPanelSlot}
-          isAgentOwned={props.isAgentOwned}
-          isAgentRoute={props.isAgentRoute}
-        />
-        <WorkspaceInspectorProductSurface
-          paneKind={props.paneKind}
-          productSurfaceAdapter={props.productSurfaceAdapter}
-        />
-        <WorkspaceInspectorEmptyAgent paneKind={props.paneKind} />
-        <WorkspaceInspectorWorkspaceBody
-          bodyKind={props.bodyKind}
-          effectiveSurfaceAdapter={props.effectiveSurfaceAdapter}
-          effectiveThreadId={props.effectiveThreadId}
-          inspectorBreadcrumbLabel={props.inspectorBreadcrumbLabel}
-          inspectorScope={props.inspectorScope}
-          onOpenOverlay={props.onOpenOverlay}
-          onOpenWorkflowPicker={props.onOpenWorkflowPicker}
-          onReturnToConversation={props.onReturnToConversation}
-          paneKind={props.paneKind}
-          rawPathname={props.rawPathname}
-          researchSurfaceAdapter={props.researchSurfaceAdapter}
-          searchParamsString={props.searchParamsString}
-          showOverlayPreview={props.showOverlayPreview}
-          surfacePresentationAdapter={props.surfacePresentationAdapter}
-          threadContextVersion={props.threadContextVersion}
-          workspaceSurfaceAdapter={props.workspaceSurfaceAdapter}
-        />
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
-
-function WorkspaceInspectorFilesAccordionItem() {
-  return (
-    <AccordionItem value="files">
-      <AccordionTrigger
-        className="px-3 py-2.5 text-sm hover:no-underline"
-        data-testid="workspace-inspector-pane-trigger-files"
-      >
-        <WorkspaceInspectorPaneHeader kind="files" />
-      </AccordionTrigger>
-      <AccordionContent className="mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto px-3">
-        <WorkspaceInspectorFilesPane />
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
-
-function WorkspaceInspectorBrowserAccordionItem() {
-  return (
-    <AccordionItem value="browser">
-      <AccordionTrigger
-        className="px-3 py-2.5 text-sm hover:no-underline"
-        data-testid="workspace-inspector-pane-trigger-browser"
-      >
-        <WorkspaceInspectorPaneHeader kind="browser" />
-      </AccordionTrigger>
-      <AccordionContent className="mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto px-3">
-        <WorkspaceInspectorBrowserPane />
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
-
-function WorkspaceInspectorConversationPane({
-  isCollapsible,
-  isExpanded,
-  onToggleExpanded,
-  conversationSlot,
-  fullConversationHref,
-  isAgentRoute,
-  isComposerOwner,
-  onSetComposerPortalTarget,
-  pendingTransitionRef,
-}: {
-  readonly isCollapsible: boolean;
-  readonly isExpanded: boolean;
-  readonly onToggleExpanded: () => void;
-  readonly conversationSlot?: ReactNode;
-  readonly fullConversationHref: string;
-  readonly isAgentRoute: boolean;
-  readonly isComposerOwner: boolean;
-  readonly onSetComposerPortalTarget: (element: HTMLElement | null) => void;
-  readonly pendingTransitionRef: MutableRefObject<WorkspaceShellPendingTransition | null>;
-}) {
-  const translate = useTranslations('common.workspaceInspector.tabs');
-
-  if (!conversationSlot) {
-    return null;
-  }
-
-  return (
     <div
-      className={cn(
-        'flex min-h-0 flex-col border-t border-border',
-        isExpanded ? 'flex-1' : 'shrink-0',
+      className={inspectorContextPaneClassName(
+        Boolean(props.productSurfaceAdapter),
+        props.isAgentOwned,
       )}
-      data-testid="workspace-inspector-conversation-section"
     >
-      <div className="flex h-9 shrink-0 items-center justify-between gap-1 px-3">
-        {isCollapsible ? (
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground"
-            aria-expanded={isExpanded}
-            onClick={onToggleExpanded}
-          >
-            <ChevronDown
-              aria-hidden="true"
-              className={cn('size-3.5', isExpanded && 'rotate-180')}
-            />
-            {translate('conversation')}
-          </Button>
-        ) : (
-          <span className="gen-label-sm min-w-0 truncate text-muted-foreground">
-            {translate('conversation')}
-          </span>
-        )}
-        <WorkspaceInspectorExpandControl
-          conversationSlot={conversationSlot}
-          fullConversationHref={fullConversationHref}
-          isAgentRoute={isAgentRoute}
-          pendingTransitionRef={pendingTransitionRef}
-        />
-      </div>
-      <div
-        className={cn(
-          'min-h-0 flex-1 flex-col overflow-hidden',
-          isExpanded && 'flex',
-        )}
-        hidden={!isExpanded}
-      >
-        {conversationSlot}
-      </div>
-      {isComposerOwner ? (
-        <div
-          className="shrink-0 p-2"
-          data-testid="workspace-inspector-composer-slot"
-          ref={onSetComposerPortalTarget}
-        />
-      ) : null}
+      <WorkspaceInspectorAgentSlot
+        agentPanelSlot={props.agentPanelSlot}
+        isAgentOwned={props.isAgentOwned}
+        isAgentRoute={props.isAgentRoute}
+      />
+      <WorkspaceInspectorProductSurface
+        paneKind={props.paneKind}
+        productSurfaceAdapter={props.productSurfaceAdapter}
+      />
+      <WorkspaceInspectorEmptyAgent paneKind={props.paneKind} />
+      <WorkspaceInspectorWorkspaceBody
+        bodyKind={props.bodyKind}
+        effectiveSurfaceAdapter={props.effectiveSurfaceAdapter}
+        effectiveThreadId={props.effectiveThreadId}
+        inspectorBreadcrumbLabel={props.inspectorBreadcrumbLabel}
+        inspectorScope={props.inspectorScope}
+        onOpenOverlay={props.onOpenOverlay}
+        onOpenWorkflowPicker={props.onOpenWorkflowPicker}
+        onReturnToConversation={props.onReturnToConversation}
+        paneKind={props.paneKind}
+        rawPathname={props.rawPathname}
+        researchSurfaceAdapter={props.researchSurfaceAdapter}
+        searchParamsString={props.searchParamsString}
+        showOverlayPreview={props.showOverlayPreview}
+        surfacePresentationAdapter={props.surfacePresentationAdapter}
+        threadContextVersion={props.threadContextVersion}
+        workspaceSurfaceAdapter={props.workspaceSurfaceAdapter}
+      />
     </div>
   );
 }
@@ -645,26 +480,6 @@ function WorkspaceInspectorContent({
   conversationSlot = null,
   route,
 }: WorkspaceInspectorContentProps) {
-  const isLibrarySurface =
-    adapters.productSurfaceAdapter?.surfaceKey === 'library' ||
-    adapters.surfacePresentationAdapter?.surfaceKey === 'library';
-  const [isLibraryConversationExpanded, setIsLibraryConversationExpanded] =
-    useState(false);
-  const isConversationExpanded =
-    !isLibrarySurface || isLibraryConversationExpanded;
-
-  useEffect(() => {
-    if (!isLibrarySurface) return;
-    const openConversation = () => setIsLibraryConversationExpanded(true);
-    const openContext = () => setIsLibraryConversationExpanded(false);
-    window.addEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversation);
-    window.addEventListener(OPEN_CONTEXT_TAB_EVENT, openContext);
-    return () => {
-      window.removeEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversation);
-      window.removeEventListener(OPEN_CONTEXT_TAB_EVENT, openContext);
-    };
-  }, [isLibrarySurface]);
-
   const isAgentOwned = isAgentOwnedInspector(
     agentPanelSlot !== null,
     chrome.hasAgentInspectorPanel,
@@ -686,66 +501,109 @@ function WorkspaceInspectorContent({
     hasPresentationAdapter: Boolean(adapters.surfacePresentationAdapter),
   });
 
-  return (
-    <div
-      className="flex h-full min-h-0 flex-col bg-background"
-      data-testid="workspace-inspector-panes"
-    >
-      <div
-        className={cn(
-          'min-h-0 overflow-y-auto',
-          isConversationExpanded ? 'max-h-[50%] shrink-0' : 'flex-1',
-        )}
-      >
-        <Accordion
-          type="multiple"
-          value={[...chrome.expandedKinds]}
-          onValueChange={actions.onExpandedKindsChange}
-        >
-          <WorkspaceInspectorContextPane
-            agentPanelSlot={agentPanelSlot}
-            bodyKind={bodyKind}
-            effectiveSurfaceAdapter={adapters.effectiveSurfaceAdapter}
-            effectiveThreadId={route.effectiveThreadId}
-            inspectorBreadcrumbLabel={chrome.inspectorBreadcrumbLabel}
-            inspectorScope={chrome.inspectorScope}
-            isAgentOwned={isAgentOwned}
+  const isComposerOwner = isInspectorComposerOwner(
+    conversationSlot !== null,
+    route.isOverlayState,
+  );
+  const translate = useTranslations('common.workspaceInspector.tabs');
+  const context = (
+    <WorkspaceInspectorContextPane
+      agentPanelSlot={agentPanelSlot}
+      bodyKind={bodyKind}
+      effectiveSurfaceAdapter={adapters.effectiveSurfaceAdapter}
+      effectiveThreadId={route.effectiveThreadId}
+      inspectorBreadcrumbLabel={chrome.inspectorBreadcrumbLabel}
+      inspectorScope={chrome.inspectorScope}
+      isAgentOwned={isAgentOwned}
+      isAgentRoute={route.isAgentRoute}
+      onOpenOverlay={actions.onOpenOverlay}
+      onOpenWorkflowPicker={actions.onOpenWorkflowPicker}
+      onReturnToConversation={actions.onReturnToConversation}
+      paneKind={paneKind}
+      productSurfaceAdapter={adapters.productSurfaceAdapter}
+      rawPathname={route.rawPathname}
+      researchSurfaceAdapter={adapters.researchSurfaceAdapter}
+      searchParamsString={route.searchParamsString}
+      showOverlayPreview={showOverlayPreview}
+      surfacePresentationAdapter={adapters.surfacePresentationAdapter}
+      threadContextVersion={route.activeThreadContextVersion}
+      workspaceSurfaceAdapter={adapters.workspaceSurfaceAdapter}
+    />
+  );
+  const panels = {
+    context,
+    files: <WorkspaceInspectorFilesPane />,
+    browser: <WorkspaceInspectorBrowserPane />,
+    conversation: (
+      <>
+        <div className="flex h-9 shrink-0 items-center justify-end border-b border-border px-3">
+          <WorkspaceInspectorExpandControl
+            conversationSlot={conversationSlot}
+            fullConversationHref={route.fullConversationHref}
             isAgentRoute={route.isAgentRoute}
-            onOpenOverlay={actions.onOpenOverlay}
-            onOpenWorkflowPicker={actions.onOpenWorkflowPicker}
-            onReturnToConversation={actions.onReturnToConversation}
-            paneKind={paneKind}
-            productSurfaceAdapter={adapters.productSurfaceAdapter}
-            rawPathname={route.rawPathname}
-            researchSurfaceAdapter={adapters.researchSurfaceAdapter}
-            searchParamsString={route.searchParamsString}
-            showOverlayPreview={showOverlayPreview}
-            surfacePresentationAdapter={adapters.surfacePresentationAdapter}
-            threadContextVersion={route.activeThreadContextVersion}
-            workspaceSurfaceAdapter={adapters.workspaceSurfaceAdapter}
+            pendingTransitionRef={actions.pendingTransitionRef}
           />
-          <WorkspaceInspectorFilesAccordionItem />
-          <WorkspaceInspectorBrowserAccordionItem />
-        </Accordion>
-      </div>
-      <WorkspaceInspectorConversationPane
-        isCollapsible={isLibrarySurface}
-        isExpanded={isConversationExpanded}
-        onToggleExpanded={() =>
-          setIsLibraryConversationExpanded((expanded) => !expanded)
-        }
-        conversationSlot={conversationSlot}
-        fullConversationHref={route.fullConversationHref}
-        isAgentRoute={route.isAgentRoute}
-        isComposerOwner={isInspectorComposerOwner(
-          conversationSlot !== null,
-          route.isOverlayState,
-        )}
-        onSetComposerPortalTarget={actions.onSetComposerPortalTarget}
-        pendingTransitionRef={actions.pendingTransitionRef}
-      />
-    </div>
+        </div>
+        {conversationSlot}
+      </>
+    ),
+  };
+  return (
+    <PanelTabs
+      activeTab={chrome.activeKind}
+      ariaLabel={translate('panels')}
+      className="bg-background"
+      closeLabel={(label) => translate('close', { panel: label })}
+      emptyState={
+        <WorkspaceInspectorTabs
+          availableKinds={chrome.availableKinds}
+          openKinds={[]}
+          onOpenTab={actions.onOpenTab}
+          isLauncher
+        />
+      }
+      footer={
+        isComposerOwner ? (
+          <div
+            className="shrink-0 border-t border-border p-2"
+            data-testid="workspace-inspector-composer-slot"
+            ref={actions.onSetComposerPortalTarget}
+          />
+        ) : null
+      }
+      items={[
+        ...chrome.openKinds,
+        ...chrome.availableKinds.filter(
+          (kind) => !chrome.openKinds.includes(kind),
+        ),
+      ].map((kind) => ({
+        id: kind,
+        label: translate(kind === 'conversation' ? 'chat' : kind),
+        icon: WORKSPACE_INSPECTOR_TAB_ICONS[kind],
+        content:
+          kind === 'conversation' && !conversationSlot ? null : panels[kind],
+        isOpen: chrome.openKinds.includes(kind),
+        keepMounted: kind === 'conversation' && conversationSlot !== null,
+        testId:
+          kind === 'conversation'
+            ? 'workspace-inspector-conversation-section'
+            : undefined,
+      }))}
+      onClose={(kind) => {
+        if (isWorkspaceInspectorTabKind(kind)) actions.onCloseTab(kind);
+      }}
+      onTabChange={(kind) => {
+        if (isWorkspaceInspectorTabKind(kind)) actions.onOpenTab(kind);
+      }}
+      testId="workspace-inspector-panes"
+      trailing={
+        <WorkspaceInspectorTabs
+          availableKinds={chrome.availableKinds}
+          openKinds={chrome.openKinds}
+          onOpenTab={actions.onOpenTab}
+        />
+      }
+    />
   );
 }
-
 export default WorkspaceInspectorContent;
