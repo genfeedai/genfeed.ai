@@ -1,3 +1,4 @@
+import '@agent-tests/media-preview-mocks';
 import { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';

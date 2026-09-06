@@ -2,6 +2,8 @@ export type AgentMediaArtifactKind = 'audio' | 'image' | 'video';
 
 export interface AgentMediaArtifact {
   alt?: string;
+  width?: number;
+  height?: number;
   kind: AgentMediaArtifactKind;
   title?: string;
   url: string;
@@ -30,4 +32,9 @@ export interface AgentMediaInlineAssetProps {
   displayMode: 'featured' | 'grid';
   index: number;
   onOpen: (index: number) => void;
+}
+
+export interface AgentMediaDimensions {
+  width: number;
+  height: number;
 }

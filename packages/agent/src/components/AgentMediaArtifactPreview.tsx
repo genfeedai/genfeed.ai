@@ -3,7 +3,10 @@
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
-import type { AgentMediaArtifactPreviewProps } from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
+import type {
+  AgentMediaArtifactPreviewProps,
+  AgentMediaDimensions,
+} from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
@@ -24,6 +27,9 @@ export function AgentMediaArtifactPreview({
   displayMode = 'grid',
   title = 'Generated assets',
 }: AgentMediaArtifactPreviewProps): ReactElement | null {
+  const [videoDimensions, setVideoDimensions] = useState<
+    Record<string, AgentMediaDimensions>
+  >({});
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const visibleAssets = useMemo(
     () => assets.filter((asset) => asset.url.trim()),
@@ -33,12 +39,17 @@ export function AgentMediaArtifactPreview({
     () =>
       visibleAssets.flatMap((asset, index) => {
         if (asset.kind === 'audio') return [];
+        const dimensions = videoDimensions[asset.url];
         const ingredient = {
           cdnUrl: asset.url,
-          prompt:
-            asset.alt?.trim() || asset.title?.trim() || `${title} ${index + 1}`,
           id: asset.url,
           metadata: new Metadata({
+            ...(asset.kind === 'video'
+              ? {
+                  width: dimensions?.width || asset.width || 16,
+                  height: dimensions?.height || asset.height || 9,
+                }
+              : { width: asset.width, height: asset.height }),
             label:
               asset.title?.trim() ||
               asset.alt?.trim() ||
@@ -51,7 +62,7 @@ export function AgentMediaArtifactPreview({
             : new Video(ingredient),
         ];
       }),
-    [visibleAssets, title],
+    [visibleAssets, title, videoDimensions],
   );
 
   if (visibleAssets.length === 0) return null;
@@ -92,6 +103,29 @@ export function AgentMediaArtifactPreview({
             <div
               key={`${asset.kind}-${asset.url}-${index}`}
               className="group relative min-w-0"
+              onLoadedMetadataCapture={(event) => {
+                const video = event.target;
+                if (
+                  !(video instanceof HTMLVideoElement) ||
+                  !video.videoWidth ||
+                  !video.videoHeight
+                )
+                  return;
+                setVideoDimensions((current) => {
+                  if (
+                    current[asset.url]?.width === video.videoWidth &&
+                    current[asset.url]?.height === video.videoHeight
+                  )
+                    return current;
+                  return {
+                    ...current,
+                    [asset.url]: {
+                      width: video.videoWidth,
+                      height: video.videoHeight,
+                    },
+                  };
+                });
+              }}
             >
               {asset.kind === 'image' ? (
                 <LazyMasonryImage {...sharedProps} image={ingredient} />

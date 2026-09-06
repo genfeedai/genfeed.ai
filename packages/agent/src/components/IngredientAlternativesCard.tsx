@@ -1,3 +1,4 @@
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
@@ -215,24 +216,16 @@ export function IngredientAlternativesCard({
         {/* Result state */}
         {status === 'done' && resultUrl && (
           <div className="space-y-2">
-            <div className="overflow-hidden border border-border">
-              {isImage ? (
-                <img
-                  src={resultUrl}
-                  alt="Generated result"
-                  className="w-full object-cover"
-                />
-              ) : (
-                <video
-                  src={resultUrl}
-                  controls
-                  aria-label="Generated result"
-                  className="w-full"
-                >
-                  <track kind="captions" />
-                </video>
-              )}
-            </div>
+            <AgentMediaArtifactPreview
+              assets={[
+                {
+                  kind: isImage ? 'image' : 'video',
+                  url: resultUrl,
+                  title: 'Generated result',
+                },
+              ]}
+              displayMode="featured"
+            />
             <div className="flex gap-2">
               <a
                 href={href(

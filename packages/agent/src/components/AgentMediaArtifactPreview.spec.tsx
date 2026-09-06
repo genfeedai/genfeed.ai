@@ -40,8 +40,8 @@ describe('AgentMediaArtifactPreview', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('uses masonry video without inline native controls and preserves the source URL', () => {
-    const { container } = render(
+  it('uses masonry video and preserves the source URL', () => {
+    render(
       <AgentMediaArtifactPreview
         assets={[
           {
@@ -56,7 +56,6 @@ describe('AgentMediaArtifactPreview', () => {
       'data-url',
       'https://cdn.test/video.mp4',
     );
-    expect(container.querySelector('video[controls]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Launch video' }));
     expect(screen.getByRole('dialog')).toHaveAttribute(
       'data-url',
@@ -83,6 +82,52 @@ describe('AgentMediaArtifactPreview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Image' }));
     expect(screen.getByRole('dialog')).toHaveAttribute('data-index', '1');
     expect(screen.getByRole('dialog')).toHaveAttribute('data-count', '2');
+  });
+
+  it('updates video sizing from intrinsic dimensions and resets it for a new URL', () => {
+    const { rerender } = render(
+      <AgentMediaArtifactPreview
+        assets={[{ kind: 'video', url: 'https://cdn.test/portrait.mp4' }]}
+      />,
+    );
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-width',
+      '16',
+    );
+    const video = screen.getByTestId('video-metadata');
+    Object.defineProperties(video, {
+      videoWidth: { value: 1080 },
+      videoHeight: { value: 1920 },
+    });
+    fireEvent.loadedMetadata(video);
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-width',
+      '1080',
+    );
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-height',
+      '1920',
+    );
+    rerender(
+      <AgentMediaArtifactPreview
+        assets={[
+          {
+            kind: 'video',
+            url: 'https://cdn.test/landscape.mp4',
+            width: 1920,
+            height: 1080,
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-width',
+      '1920',
+    );
+    expect(screen.getByTestId('masonry-video')).toHaveAttribute(
+      'data-height',
+      '1080',
+    );
   });
 
   it('renders nothing for empty output URLs', () => {

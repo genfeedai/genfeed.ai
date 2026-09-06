@@ -34,9 +34,14 @@ vi.mock('@ui/lazy/masonry/LazyMasonry', () => ({
       type="button"
       data-testid="masonry-video"
       data-url={video.ingredientUrl}
+      data-width={video.metadataWidth}
+      data-height={video.metadataHeight}
       onClick={() => onClickIngredient?.(video)}
     >
       {video.metadataLabel}
+      <video data-testid="video-metadata">
+        <track kind="captions" />
+      </video>
     </Button>
   ),
 }));
