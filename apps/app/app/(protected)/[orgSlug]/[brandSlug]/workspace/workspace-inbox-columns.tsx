@@ -1,3 +1,4 @@
+import { STATUS_PILL_CLASS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-pills';
 import { ComponentSize } from '@genfeedai/contracts';
 import type { Task } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
@@ -22,7 +23,11 @@ export const workspaceInboxTableColumns = [
     header: 'Status',
     className: 'w-40',
     render: (task: Task) => (
-      <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
+      <Badge
+        status={getTaskBadgeStatus(task)}
+        size={ComponentSize.SM}
+        className={STATUS_PILL_CLASS}
+      >
         {formatTaskStatus(task)}
       </Badge>
     ),

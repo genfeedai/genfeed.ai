@@ -49,9 +49,17 @@ const PRIORITY_ICONS: Record<TaskPriority, typeof ChevronsUp> = {
 const PILL_TRIGGER_CLASS =
   'h-auto w-auto rounded-full border-0 bg-transparent p-0 shadow-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring';
 
+/** Fixed widths keep pills aligned down a table column. */
+export const STATUS_PILL_CLASS = 'w-28 justify-center';
+export const PRIORITY_PILL_CLASS = 'w-24 justify-center';
+
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
   return (
-    <Badge status={status} size={ComponentSize.SM}>
+    <Badge
+      status={status}
+      size={ComponentSize.SM}
+      className={STATUS_PILL_CLASS}
+    >
       {STATUS_LABELS[status]}
     </Badge>
   );
@@ -63,6 +71,7 @@ export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
     <Badge
       variant={PRIORITY_VARIANTS[priority]}
       size={ComponentSize.SM}
+      className={PRIORITY_PILL_CLASS}
       icon={<Icon aria-hidden="true" className="size-3" />}
     >
       {PRIORITY_LABELS[priority]}
