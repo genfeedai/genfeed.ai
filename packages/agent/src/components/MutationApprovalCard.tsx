@@ -7,6 +7,17 @@ import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useRef, useState } from 'react';
 
+interface MutationApprovalCardProps {
+  action: AgentUiAction;
+  onUiAction?: AgentUiActionHandler;
+}
+
+function isApprovalStatus(
+  value: unknown,
+): value is 'pending' | 'approved' | 'declined' {
+  return value === 'pending' || value === 'approved' || value === 'declined';
+}
+
 function isNonemptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -18,7 +29,7 @@ function readApproval(data: AgentUiAction['data']) {
     !isNonemptyString(data.sourceActionId) ||
     !isNonemptyString(data.summary) ||
     !Array.isArray(data.items) ||
-    !['pending', 'approved', 'declined'].includes(String(data.status))
+    !isApprovalStatus(data.status)
   )
     return null;
   const items: Array<{ label: string; value: string }> = [];
@@ -44,10 +55,7 @@ function readApproval(data: AgentUiAction['data']) {
 export function MutationApprovalCard({
   action,
   onUiAction,
-}: {
-  action: AgentUiAction;
-  onUiAction?: AgentUiActionHandler;
-}): ReactElement {
+}: MutationApprovalCardProps): ReactElement {
   const translate = useTranslations('agent.mutationApproval');
   const approval = readApproval(action.data);
   const [resolved, setResolved] = useState<{
