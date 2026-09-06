@@ -2,6 +2,7 @@
 
 import {
   ActivityKey,
+  ButtonSize,
   ButtonVariant,
   formatActivityMessage,
   IngredientCategory,
@@ -15,10 +16,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { ClipboardList, Mail, MailOpen } from 'lucide-react';
+import { ClipboardList, Mail, MailOpen, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -273,22 +273,40 @@ export default function ActivitiesList({
     [],
   );
 
+  // Selection state and its bulk action live in the subbar, not in a second
+  // bar above the table.
   const headerActions = useMemo(
     () => (
       <div className="flex shrink-0 items-center gap-2">
+        {hasSelectedActivities ? (
+          <div
+            role="status"
+            className="flex items-center gap-1 text-xs text-muted-foreground"
+          >
+            <span>{selectedActivityIds.length} selected</span>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-6"
+              ariaLabel="Clear selection"
+              onClick={() => setSelectedActivityIds([])}
+            >
+              <X aria-hidden="true" className="size-3.5" />
+            </Button>
+          </div>
+        ) : null}
         <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
-        {!hasSelectedActivities && (
-          <Button
-            label={bulkReadLabel}
-            onClick={handleBulkMarkAsRead}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={
-              isRefreshing ||
-              isMarkingRead ||
-              (!hasSelectedActivities && !hasUnreadActivities)
-            }
-          />
-        )}
+        <Button
+          label={bulkReadLabel}
+          onClick={handleBulkMarkAsRead}
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.SM}
+          isDisabled={
+            isRefreshing ||
+            isMarkingRead ||
+            (!hasSelectedActivities && !hasUnreadActivities)
+          }
+        />
       </div>
     ),
     [
@@ -299,6 +317,7 @@ export default function ActivitiesList({
       isRefreshing,
       isMarkingRead,
       refresh,
+      selectedActivityIds.length,
     ],
   );
 
@@ -310,18 +329,6 @@ export default function ActivitiesList({
       titleVisibility="sr-only"
       right={headerActions}
     >
-      <SelectionToolbar
-        count={selectedActivityIds.length}
-        label={`${selectedActivityIds.length} selected`}
-        onClear={() => setSelectedActivityIds([])}
-      >
-        <Button
-          label={bulkReadLabel}
-          onClick={handleBulkMarkAsRead}
-          variant={ButtonVariant.DEFAULT}
-          isDisabled={isRefreshing || isMarkingRead}
-        />
-      </SelectionToolbar>
       <AppTable<IActivity>
         error={
           isError
