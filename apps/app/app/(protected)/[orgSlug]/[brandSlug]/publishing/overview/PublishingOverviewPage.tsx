@@ -20,14 +20,8 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { useQuery } from '@tanstack/react-query';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import OverviewLayout from '@ui/overview/OverviewLayout';
-import {
-  Calendar,
-  ClipboardCheck,
-  LayoutDashboard,
-  List,
-  Send,
-} from 'lucide-react';
+import { OverviewContent } from '@ui/overview/OverviewLayout';
+import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
 import { useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
@@ -393,10 +387,9 @@ export default function PublishingOverviewPage() {
   ];
 
   return (
-    <OverviewLayout
+    <OverviewContent
       actionsTitle="Go to work"
       cards={cards}
-      description="Review queue, drafts, calendar, and published posts."
       header={
         <div className="space-y-6">
           <KPISection
@@ -420,8 +413,6 @@ export default function PublishingOverviewPage() {
           ) : null}
         </div>
       }
-      icon={LayoutDashboard}
-      label="Publishing"
     />
   );
 }
