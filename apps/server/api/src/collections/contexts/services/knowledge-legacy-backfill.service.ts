@@ -12,7 +12,7 @@ import {
   titleForBookmark,
 } from '@api/collections/contexts/utils/knowledge-legacy.util';
 import { parseKnowledgeSources } from '@api/collections/contexts/utils/knowledge-source.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
