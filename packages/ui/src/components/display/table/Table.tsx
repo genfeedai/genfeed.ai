@@ -94,6 +94,7 @@ export default function AppTable<T>({
   getRowKey,
   getRowClassName,
   label,
+  ariaLabel,
   description,
   emptyLabel = EMPTY_STATES.DEFAULT,
   emptyDescription,
@@ -289,7 +290,10 @@ export default function AppTable<T>({
         />
       ) : null}
       <div className="overflow-x-auto">
-        <table className="w-full caption-bottom border-collapse">
+        <table
+          aria-label={ariaLabel}
+          className="w-full caption-bottom border-collapse"
+        >
           <thead
             className={cn(
               'sticky top-0 z-10 border-b border-border bg-background-secondary/60',

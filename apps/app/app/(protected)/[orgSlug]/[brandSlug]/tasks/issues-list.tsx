@@ -66,6 +66,8 @@ const STATUS_ORDER: TaskStatus[] = [
   'cancelled',
 ];
 
+const PRIORITY_ORDER: TaskPriority[] = ['low', 'medium', 'high', 'critical'];
+
 const STATUS_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   blocked: 'Blocked',
@@ -519,6 +521,7 @@ export default function IssuesList() {
         />
       ) : viewMode === ViewType.LIST ? (
         <Table<Task>
+          ariaLabel="Tasks"
           items={issues}
           getRowKey={(issue) => issue.id}
           onRowClick={handleSelectIssue}
@@ -557,7 +560,7 @@ export default function IssuesList() {
               render: (issue) => (
                 <Select
                   value={issue.status}
-                  disabled={savingId !== null}
+                  disabled={savingId === issue.id}
                   onValueChange={(status) =>
                     void updateIssue(issue, { status: status as TaskStatus })
                   }
@@ -585,7 +588,7 @@ export default function IssuesList() {
               render: (issue) => (
                 <Select
                   value={issue.priority}
-                  disabled={savingId !== null}
+                  disabled={savingId === issue.id}
                   onValueChange={(priority) =>
                     void updateIssue(issue, {
                       priority: priority as TaskPriority,
@@ -600,13 +603,11 @@ export default function IssuesList() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(['low', 'medium', 'high', 'critical'] as const).map(
-                      (priority) => (
-                        <SelectItem key={priority} value={priority}>
-                          <TaskPriorityIndicator priority={priority} />
-                        </SelectItem>
-                      ),
-                    )}
+                    {PRIORITY_ORDER.map((priority) => (
+                      <SelectItem key={priority} value={priority}>
+                        <TaskPriorityIndicator priority={priority} />
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ),
@@ -686,10 +687,11 @@ export default function IssuesList() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  {PRIORITY_ORDER.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {PRIORITY_LABELS[priority]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -1,6 +1,5 @@
 import { ActivityKey, formatActivityMessage } from '@genfeedai/contracts';
 import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useActivitiesMock = vi.fn();
@@ -44,9 +43,7 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
 });
 
 import { PageScope } from '@genfeedai/contracts';
-import TopbarActivityMenu, {
-  TOPBAR_ACTIVITY_LIMIT,
-} from './TopbarActivityMenu';
+import ActivityFeed, { TOPBAR_ACTIVITY_LIMIT } from './ActivityFeed';
 
 function activityFixture(
   index: number,
@@ -70,7 +67,7 @@ function activityFixture(
   };
 }
 
-describe('TopbarActivityMenu', () => {
+describe('ActivityFeed', () => {
   beforeEach(() => {
     useActivitiesMock.mockReturnValue({
       filteredActivities: [
@@ -94,19 +91,14 @@ describe('TopbarActivityMenu', () => {
     });
   });
 
-  it('opens a popover of the last five activities and links to workspace activity', async () => {
-    const user = userEvent.setup();
+  it('lists the last five activities and links to workspace activity', () => {
+    render(<ActivityFeed />);
 
-    render(<TopbarActivityMenu />);
-
-    expect(useActivitiesMock).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Open activity' }));
     expect(useActivitiesMock).toHaveBeenCalledWith({
       limit: TOPBAR_ACTIVITY_LIMIT,
       scope: PageScope.ORGANIZATION,
     });
 
-    expect(screen.getByText('Recent activity')).toBeInTheDocument();
     const rows = screen.getAllByTestId('topbar-activity-row');
     expect(rows).toHaveLength(5);
     expect(within(rows[0]).getByText('Prompt creation')).toBeInTheDocument();
@@ -126,16 +118,13 @@ describe('TopbarActivityMenu', () => {
     ).toHaveAttribute('href', '/acme/brand/workspace/activity');
   });
 
-  it('shows an empty state when there is no recent activity', async () => {
+  it('shows an empty state when there is no recent activity', () => {
     useActivitiesMock.mockReturnValue({
       filteredActivities: [],
       isError: false,
       isLoading: false,
     });
-    const user = userEvent.setup();
-
-    render(<TopbarActivityMenu />);
-    await user.click(screen.getByRole('button', { name: 'Open activity' }));
+    render(<ActivityFeed />);
 
     expect(screen.getByText('No activity yet')).toBeInTheDocument();
     expect(

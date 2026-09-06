@@ -6,9 +6,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
-  type IssueComment,
-  IssueCommentsService,
-} from '@services/management/issue-comments.service';
+  type TaskComment,
+  TaskCommentsService,
+} from '@services/management/task-comments.service';
 import type {
   Task,
   TaskLinkedEntityModel,
@@ -69,7 +69,7 @@ interface IssueCommentVisibility {
 }
 
 interface IssueCommentsState {
-  comments: IssueComment[];
+  comments: TaskComment[];
   issueId: string | null;
 }
 
@@ -92,7 +92,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
   const controllerRef = useRef<AbortController | null>(null);
 
   const getCommentsService = useAuthedService((token) =>
-    IssueCommentsService.getInstanceForIssue(token, issue?.id ?? ''),
+    TaskCommentsService.getInstanceForTask(token, issue?.id ?? ''),
   );
 
   const loadComments = useCallback(async () => {

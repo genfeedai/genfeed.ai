@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IssueComment } from '@services/management/issue-comments.service';
+import type { TaskComment } from '@services/management/task-comments.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -11,8 +11,8 @@ import type { RefObject } from 'react';
 import { CommentItem } from './comment-item';
 
 type IssueCommentsCardProps = {
-  comments: IssueComment[];
-  visibleComments: IssueComment[];
+  comments: TaskComment[];
+  visibleComments: TaskComment[];
   hiddenCommentCount: number;
   showAllComments: boolean;
   commentBody: string;

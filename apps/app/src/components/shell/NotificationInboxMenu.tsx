@@ -12,12 +12,13 @@ import { Bell, Check, CircleAlert, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { ActivityFeed } from '@/components/shell/TopbarActivityMenu';
+import ActivityFeed from '@/components/shell/ActivityFeed';
 import { useNotificationInbox } from '@/components/shell/use-notification-inbox';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 export default function NotificationInboxMenu() {
   const translate = useTranslations('common.notificationInbox');
+  const translateActivity = useTranslations('common.activity');
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('notifications');
   const { count, history, read, organizationId } = useNotificationInbox(open);
@@ -74,14 +75,14 @@ export default function NotificationInboxMenu() {
             </Button>
           ) : null}
           <Tabs
-            ariaLabel="Updates"
+            ariaLabel={translate('tabsLabel')}
             fullWidth={false}
             className="mb-0 ml-auto"
             activeTab={activeTab}
             onTabChange={setActiveTab}
             items={[
               { id: 'notifications', label: translate('title') },
-              { id: 'activity', label: 'Activity' },
+              { id: 'activity', label: translateActivity('label') },
             ]}
           />
         </div>

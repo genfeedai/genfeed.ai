@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  ActivityKey,
-  ButtonSize,
-  ButtonVariant,
-  PageScope,
-} from '@genfeedai/contracts';
+import { ActivityKey, ButtonVariant, PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
@@ -19,18 +14,7 @@ import {
   isCreditActivity,
 } from '@pages/activities/activities-list.utils';
 import { Button } from '@ui/primitives/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
-import {
-  CircleAlert,
-  CircleCheck,
-  Clock,
-  Coins,
-  LoaderCircle,
-} from 'lucide-react';
+import { CircleAlert, CircleCheck, Coins, LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -66,7 +50,7 @@ function ActivityStatusIcon({
   );
 }
 
-export function ActivityFeed() {
+export default function ActivityFeed() {
   const translate = useTranslations('common.activity');
   const { href } = useOrgUrl();
   const activityHref = href(APP_ROUTES.WORKSPACE.ACTIVITY);
@@ -174,30 +158,5 @@ export function ActivityFeed() {
         </Button>
       </div>
     </>
-  );
-}
-
-export default function TopbarActivityMenu() {
-  const translate = useTranslations('common.activity');
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          className="size-8"
-          ariaLabel={translate('open')}
-          data-testid="topbar-activity-menu"
-        >
-          <Clock className="size-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
-        <div className="border-b border-border px-3 py-2.5">
-          <h2 className="text-xs font-semibold">{translate('recentLabel')}</h2>
-        </div>
-        <ActivityFeed />
-      </PopoverContent>
-    </Popover>
   );
 }

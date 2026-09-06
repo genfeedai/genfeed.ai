@@ -1,13 +1,21 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openIssueOverlay } from './issue-overlay-controls';
 import IssuesList from './issues-list';
 
 const mocks = vi.hoisted(() => ({
+  findOne: vi.fn(),
   getService: vi.fn(),
   list: vi.fn(),
+  notifyError: vi.fn(),
   replace: vi.fn(),
+  searchParams: new URLSearchParams(),
+  updateTask: vi.fn(),
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  notificationsService: { error: mocks.notifyError },
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -21,7 +29,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 vi.mock('./issue-overlay', () => ({
@@ -128,7 +136,7 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   const title = await screen.findByRole('button', {
     name: /Recover the failed publish/,
   });
-  expect(screen.getByRole('table')).toBeVisible();
+  expect(screen.getByRole('table', { name: 'Tasks' })).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
   expect(
     screen.queryByRole('columnheader', { name: 'Updated' }),
@@ -144,5 +152,88 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   expect(openIssueOverlay).toHaveBeenCalled();
   expect(mocks.replace).toHaveBeenCalledWith('/?taskId=failed-task', {
     scroll: false,
+  });
+});
+
+describe('IssuesList inline editing and deep links', () => {
+  const failedTask = {
+    id: 'failed-task',
+    identifier: 'QA-9',
+    priority: 'high',
+    status: 'failed',
+    title: 'Recover the failed publish',
+    updatedAt: new Date().toISOString(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.searchParams = new URLSearchParams();
+    mocks.list.mockResolvedValue([failedTask]);
+    mocks.updateTask.mockResolvedValue(failedTask);
+    mocks.getService.mockResolvedValue({
+      findOne: mocks.findOne,
+      list: mocks.list,
+      updateTask: mocks.updateTask,
+    });
+  });
+
+  it('opens a task from the taskId query param without a list hit', async () => {
+    mocks.searchParams = new URLSearchParams('taskId=missing-task');
+    mocks.findOne.mockResolvedValue({ ...failedTask, id: 'missing-task' });
+
+    render(<IssuesList />);
+
+    await waitFor(() =>
+      expect(mocks.findOne).toHaveBeenCalledWith('missing-task'),
+    );
+    await waitFor(() => expect(openIssueOverlay).toHaveBeenCalled());
+    expect(mocks.notifyError).not.toHaveBeenCalled();
+  });
+
+  it('reports a task that cannot be opened from the taskId query param', async () => {
+    mocks.searchParams = new URLSearchParams('taskId=gone');
+    mocks.findOne.mockRejectedValue(new Error('not found'));
+
+    render(<IssuesList />);
+
+    await waitFor(() =>
+      expect(mocks.notifyError).toHaveBeenCalledWith('Could not open task.'),
+    );
+    expect(openIssueOverlay).not.toHaveBeenCalled();
+  });
+
+  it('updates status inline and reloads the list', async () => {
+    render(<IssuesList />);
+    const trigger = await screen.findByRole('combobox', {
+      name: 'Status for QA-9',
+    });
+
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'Done' }));
+
+    await waitFor(() =>
+      expect(mocks.updateTask).toHaveBeenCalledWith('failed-task', {
+        status: 'done',
+      }),
+    );
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+    expect(openIssueOverlay).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed inline update', async () => {
+    mocks.updateTask.mockRejectedValue(new Error('boom'));
+    render(<IssuesList />);
+    const trigger = await screen.findByRole('combobox', {
+      name: 'Priority for QA-9',
+    });
+
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'Critical' }));
+
+    await waitFor(() =>
+      expect(mocks.notifyError).toHaveBeenCalledWith(
+        'Could not update task. Please try again.',
+      ),
+    );
   });
 });

@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/components/shell/TopbarActivityMenu', () => ({
-  ActivityFeed: () => <a href="/workspace/activity">View all activity</a>,
+vi.mock('@/components/shell/ActivityFeed', () => ({
+  default: () => <a href="/workspace/activity">View all activity</a>,
 }));
 
 const hook = vi.fn();

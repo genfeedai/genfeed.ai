@@ -101,3 +101,6 @@ apps/server/api/openapi/openapi.json
 # Machine-local scratch for QA/session runs — holds session tokens and
 # throwaway query output. Never committed; this repo is public.
 .tmp/
+
+# Local thumbnail worker scratch output (media); never commit to this public repo
+public/tmp/

@@ -5,9 +5,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
-  type IssueComment,
-  IssueCommentsService,
-} from '@services/management/issue-comments.service';
+  type TaskComment,
+  TaskCommentsService,
+} from '@services/management/task-comments.service';
 import {
   type Task,
   type TaskLinkedEntityModel,
@@ -81,7 +81,7 @@ const VISIBLE_COMMENT_COUNT = 3;
 
 interface IssueDetailState {
   issue: Task | null;
-  comments: IssueComment[];
+  comments: TaskComment[];
   children: Task[];
   isLoading: boolean;
   commentBody: string;
@@ -93,12 +93,12 @@ type IssueDetailAction =
   | { type: 'LOAD_START' }
   | {
       type: 'LOAD_SUCCESS';
-      payload: { issue: Task; comments: IssueComment[]; children: Task[] };
+      payload: { issue: Task; comments: TaskComment[]; children: Task[] };
     }
   | { type: 'LOAD_ERROR' }
   | { type: 'LOAD_DONE' }
   | { type: 'SET_ISSUE'; payload: Task }
-  | { type: 'APPEND_COMMENT'; payload: IssueComment }
+  | { type: 'APPEND_COMMENT'; payload: TaskComment }
   | { type: 'SET_COMMENT_BODY'; payload: string }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_END' }
@@ -183,7 +183,7 @@ export default function IssueDetail({
   );
 
   const getCommentsService = useAuthedService((token) =>
-    IssueCommentsService.getInstanceForIssue(
+    TaskCommentsService.getInstanceForTask(
       token,
       resolvedIdRef.current || issueId,
     ),

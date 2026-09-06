@@ -2,11 +2,11 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import type { IssueComment } from '@services/management/issue-comments.service';
+import type { TaskComment } from '@services/management/task-comments.service';
 import { Cpu, User } from 'lucide-react';
 
 type CommentItemProps = {
-  comment: IssueComment;
+  comment: TaskComment;
 };
 
 export function CommentItem({ comment }: CommentItemProps) {

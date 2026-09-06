@@ -1125,6 +1125,7 @@
   },
   "notificationInbox": {
     "title": "Notifications",
+    "tabsLabel": "Updates",
     "open": "Open notifications",
     "openCount": "Open notifications, {count} unread",
     "readAll": "Mark all read",
