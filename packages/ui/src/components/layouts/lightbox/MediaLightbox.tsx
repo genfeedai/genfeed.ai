@@ -214,7 +214,7 @@ export default function MediaLightbox({
           const isVideo = videoSlide.type === 'video';
           const thumbnailSrc = videoSlide.thumbnailSrc;
 
-          if (isVideo && thumbnailSrc) {
+          if (isVideo) {
             return (
               <div
                 style={{
@@ -254,7 +254,7 @@ export default function MediaLightbox({
           const thumbnailSrc = videoSlide.thumbnailSrc;
           const isVideo = videoSlide.type === 'video';
 
-          if (isVideo && thumbnailSrc) {
+          if (isVideo) {
             return (
               <Image
                 src={thumbnailSrc}

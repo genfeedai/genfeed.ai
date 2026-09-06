@@ -1,8 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
 import type { VideoPlayerControlsProps } from '@genfeedai/props/studio/video-player.props';
-import { formatDuration } from '@helpers/video-duration.helper';
-import { Button } from '@ui/primitives/button';
-import { Slider } from '@ui/primitives/slider';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import { Maximize, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 
 export default function VideoPlayerControls({

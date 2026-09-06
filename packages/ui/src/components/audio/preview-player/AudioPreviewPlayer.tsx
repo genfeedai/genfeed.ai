@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { formatDuration } from '@helpers/video-duration.helper';
-import { Button } from '@ui/primitives/button';
-import { Slider } from '@ui/primitives/slider';
+import { cn } from '@genfeedai/helpers/formatting/cn';
+import { formatDuration } from '@genfeedai/helpers/video-duration.helper';
+import { Button } from '@genfeedai/ui/primitives/button';
+import { Slider } from '@genfeedai/ui/primitives/slider';
 import { useEffect, useMemo, useState } from 'react';
 
 type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing' | 'error';

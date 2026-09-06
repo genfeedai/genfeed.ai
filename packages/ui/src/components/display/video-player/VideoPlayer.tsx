@@ -1,12 +1,12 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import VideoPlayerControls from '@ui/display/video-player/VideoPlayerControls';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import VideoPlayerControls from '@genfeedai/ui/components/display/video-player/VideoPlayerControls';
+import Spinner from '@genfeedai/ui/components/feedback/spinner/Spinner';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
