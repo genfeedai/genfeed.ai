@@ -16,7 +16,19 @@ import type { BudgetPacingState } from '@api/collections/agent-strategies/servic
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
+
+interface OpportunityPlanningContext {
+  day: string;
+  defaultTopic: string;
+  expiresAt: Date;
+  platforms: string[];
+  strategyBrandId: string | undefined;
+  strategyId: string;
+  strategyOrganizationId: string;
+}
 
 @Injectable()
 export class AgentStrategyAutopilotPlanningService {
@@ -24,6 +36,7 @@ export class AgentStrategyAutopilotPlanningService {
     private readonly opportunitiesService: AgentStrategyOpportunitiesService,
     private readonly trendsService: TrendsService,
     private readonly performanceService: AgentStrategyAutopilotPerformanceService,
+    private readonly logger: LoggerService,
   ) {}
 
   computeBudgetPacingState(strategy: AgentStrategyDocument): BudgetPacingState {
@@ -65,146 +78,212 @@ export class AgentStrategyAutopilotPlanningService {
 
   async refreshOpportunities(
     strategy: AgentStrategyDocument,
+    refreshTrends = false,
   ): Promise<AgentStrategyOpportunityDocument[]> {
-    const created: AgentStrategyOpportunityDocument[] = [];
-    const platforms = strategyPlatforms(strategy);
-    const defaultTopic =
-      strategy.topics?.[0] ?? strategy.label ?? 'General update';
-    const strategyBrandId = getStrategyBrandId(strategy);
-    const strategyId = getStrategyId(strategy);
-    const strategyOrganizationId = getStrategyOrganizationId(strategy);
+    await this.performanceService.reconcilePublications(strategy);
+    const context = this.buildOpportunityContext(strategy);
 
-    if (strategy.opportunitySources?.trendWatchersEnabled && strategyBrandId) {
-      for (const platform of platforms.slice(0, 3)) {
-        const trends = await this.trendsService.getTrends(
-          strategyOrganizationId,
-          strategyBrandId,
-          platform,
-          { allowFetchIfMissing: false },
-        );
-
-        for (const trend of trends.slice(0, 3)) {
-          created.push(
-            await this.opportunitiesService.createIfMissing({
-              brandId: strategyBrandId,
-              decisionReason: 'Trend watcher matched a current platform trend.',
-              estimatedCreditCost: estimateOpportunityCost(
-                resolveFormatsForStrategy(strategy),
-              ),
-              expectedTrafficScore: Math.min(
-                100,
-                Math.round(trend.viralityScore ?? 0),
-              ),
-              expiresAt: trend.expiresAt
-                ? new Date(trend.expiresAt)
-                : undefined,
-              formatCandidates: resolveFormatsForStrategy(strategy),
-              metadata: {
-                platform,
-                trendId: String(trend.id),
-                viralityScore: trend.viralityScore ?? 0,
-              },
-              organizationId: strategyOrganizationId,
-              platformCandidates: [platform],
-              priorityScore: computePriorityScore(strategy, {
-                costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
-                expectedTraffic: trend.viralityScore ?? 0,
-                freshness: 90,
-                historicalConfidence: 50,
-                relevance: computeTopicRelevance(strategy, trend.topic),
-              }),
-              relevanceScore: computeTopicRelevance(strategy, trend.topic),
-              sourceRef: String(trend.id),
-              sourceType: 'trend',
-              strategyId,
-              topic: trend.topic,
-            }),
-          );
-        }
-      }
-    }
-
-    if (strategy.opportunitySources?.eventTriggersEnabled && strategyBrandId) {
-      const snapshot = await this.performanceService.getPerformanceSnapshot(
-        strategyId,
-        strategyOrganizationId,
-      );
-      const topHook = snapshot.topHooks[0];
-
-      if (topHook) {
-        created.push(
-          await this.opportunitiesService.createIfMissing({
-            brandId: strategyBrandId,
-            decisionReason: 'Event trigger captured a high-performing hook.',
-            estimatedCreditCost: DEFAULT_EVENT_OPPORTUNITY_COST,
-            expectedTrafficScore: 75,
-            formatCandidates: ['text'],
-            metadata: { hook: topHook, trigger: 'high-performing-hook' },
-            organizationId: strategyOrganizationId,
-            platformCandidates: platforms,
-            priorityScore: computePriorityScore(strategy, {
-              costEfficiency: 100 / DEFAULT_EVENT_OPPORTUNITY_COST,
-              expectedTraffic: 75,
-              freshness: 70,
-              historicalConfidence: 80,
-              relevance: 80,
-            }),
-            relevanceScore: 80,
-            sourceRef: `event:hook:${topHook}`,
-            sourceType: 'event',
-            strategyId,
-            topic: topHook,
-          }),
-        );
-      }
-    }
-
-    if (strategy.opportunitySources?.evergreenCadenceEnabled) {
-      const recentPublishedCount = (strategy.runHistory ?? []).filter(
-        (item) => {
-          if (!item.completedAt) {
-            return false;
-          }
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
-          return item.completedAt >= sevenDaysAgo;
-        },
-      ).length;
-
-      if (recentPublishedCount < (strategy.postsPerWeek ?? 0)) {
-        created.push(
-          await this.opportunitiesService.createIfMissing({
-            brandId: strategyBrandId ?? '',
-            decisionReason: 'Evergreen cadence filled a weekly publishing gap.',
-            estimatedCreditCost: estimateOpportunityCost(
-              resolveFormatsForStrategy(strategy),
-            ),
-            expectedTrafficScore: 55,
-            formatCandidates: resolveFormatsForStrategy(strategy),
-            metadata: { trigger: 'weekly-gap' },
-            organizationId: strategyOrganizationId,
-            platformCandidates: platforms,
-            priorityScore: computePriorityScore(strategy, {
-              costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
-              expectedTraffic: 55,
-              freshness: 50,
-              historicalConfidence: 60,
-              relevance: computeTopicRelevance(strategy, defaultTopic),
-            }),
-            relevanceScore: computeTopicRelevance(strategy, defaultTopic),
-            sourceRef: `evergreen:${defaultTopic}`,
-            sourceType: 'evergreen',
-            strategyId,
-            topic: defaultTopic,
-          }),
-        );
-      }
-    }
+    await this.collectTrendOpportunities(strategy, context, refreshTrends);
+    await this.collectEventOpportunities(strategy, context);
+    await this.collectEvergreenOpportunities(strategy, context);
 
     return this.opportunitiesService.listOpenByStrategy(
+      context.strategyId,
+      context.strategyOrganizationId,
+    );
+  }
+
+  private buildOpportunityContext(
+    strategy: AgentStrategyDocument,
+  ): OpportunityPlanningContext {
+    const platforms = strategyPlatforms(strategy);
+    const localNow = DateTime.fromJSDate(new Date(), {
+      zone: strategy.timezone || 'UTC',
+    });
+    const day = localNow.toFormat('yyyy-MM-dd');
+    const expiresAt = localNow
+      .plus({ days: 1 })
+      .startOf('day')
+      .toUTC()
+      .toJSDate();
+    const topics = strategy.topics?.length
+      ? strategy.topics
+      : [strategy.label || 'General update'];
+    const defaultTopic =
+      topics[Math.floor(Date.parse(day) / 86_400_000) % topics.length];
+
+    return {
+      day,
+      defaultTopic,
+      expiresAt,
+      platforms,
+      strategyBrandId: getStrategyBrandId(strategy),
+      strategyId: getStrategyId(strategy),
+      strategyOrganizationId: getStrategyOrganizationId(strategy),
+    };
+  }
+
+  private async collectTrendOpportunities(
+    strategy: AgentStrategyDocument,
+    context: OpportunityPlanningContext,
+    refreshTrends: boolean,
+  ): Promise<void> {
+    const { platforms, strategyBrandId, strategyId, strategyOrganizationId } =
+      context;
+    if (!strategy.opportunitySources?.trendWatchersEnabled || !strategyBrandId)
+      return;
+
+    for (const platform of platforms.slice(0, 3)) {
+      const trends = refreshTrends
+        ? await this.trendsService
+            .fetchAndCachePlatformTrends(
+              platform,
+              strategyOrganizationId,
+              strategyBrandId,
+            )
+            .catch((error: unknown) => {
+              this.logger.warn(
+                'Autopilot trend refresh failed; continuing with other opportunity sources',
+                {
+                  organizationId: strategyOrganizationId,
+                  strategyId,
+                  platform,
+                  error,
+                },
+              );
+              return [];
+            })
+        : await this.trendsService.getTrends(
+            strategyOrganizationId,
+            strategyBrandId,
+            platform,
+            { allowFetchIfMissing: false },
+          );
+
+      for (const trend of trends.slice(0, 3)) {
+        await this.opportunitiesService.createIfMissing({
+          brandId: strategyBrandId,
+          decisionReason: 'Trend watcher matched a current platform trend.',
+          estimatedCreditCost: estimateOpportunityCost(
+            resolveFormatsForStrategy(strategy),
+          ),
+          expectedTrafficScore: Math.min(
+            100,
+            Math.round(trend.viralityScore ?? 0),
+          ),
+          expiresAt: trend.expiresAt ? new Date(trend.expiresAt) : undefined,
+          formatCandidates: resolveFormatsForStrategy(strategy),
+          metadata: {
+            platform,
+            trendId: String(trend.id),
+            viralityScore: trend.viralityScore ?? 0,
+          },
+          organizationId: strategyOrganizationId,
+          platformCandidates: [platform],
+          priorityScore: computePriorityScore(strategy, {
+            costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
+            expectedTraffic: trend.viralityScore ?? 0,
+            freshness: 90,
+            historicalConfidence: 50,
+            relevance: computeTopicRelevance(strategy, trend.topic),
+          }),
+          relevanceScore: computeTopicRelevance(strategy, trend.topic),
+          sourceRef: String(trend.id),
+          sourceType: 'trend',
+          strategyId,
+          topic: trend.topic,
+        });
+      }
+    }
+  }
+
+  private async collectEventOpportunities(
+    strategy: AgentStrategyDocument,
+    context: OpportunityPlanningContext,
+  ): Promise<void> {
+    const { platforms, strategyBrandId, strategyId, strategyOrganizationId } =
+      context;
+    if (!strategy.opportunitySources?.eventTriggersEnabled || !strategyBrandId)
+      return;
+
+    const snapshot = await this.performanceService.getPerformanceSnapshot(
       strategyId,
       strategyOrganizationId,
     );
+    const topHook = snapshot.topHooks[0];
+    if (!topHook) return;
+
+    await this.opportunitiesService.createIfMissing({
+      brandId: strategyBrandId,
+      decisionReason: 'Event trigger captured a high-performing hook.',
+      estimatedCreditCost: DEFAULT_EVENT_OPPORTUNITY_COST,
+      expectedTrafficScore: 75,
+      formatCandidates: ['text'],
+      metadata: { hook: topHook, trigger: 'high-performing-hook' },
+      organizationId: strategyOrganizationId,
+      platformCandidates: platforms,
+      priorityScore: computePriorityScore(strategy, {
+        costEfficiency: 100 / DEFAULT_EVENT_OPPORTUNITY_COST,
+        expectedTraffic: 75,
+        freshness: 70,
+        historicalConfidence: 80,
+        relevance: 80,
+      }),
+      relevanceScore: 80,
+      sourceRef: `event:hook:${topHook}`,
+      sourceType: 'event',
+      strategyId,
+      topic: topHook,
+    });
+  }
+
+  private async collectEvergreenOpportunities(
+    strategy: AgentStrategyDocument,
+    context: OpportunityPlanningContext,
+  ): Promise<void> {
+    const {
+      day,
+      defaultTopic,
+      expiresAt,
+      platforms,
+      strategyBrandId,
+      strategyId,
+      strategyOrganizationId,
+    } = context;
+    if (!strategy.opportunitySources?.evergreenCadenceEnabled) return;
+
+    const cadence =
+      await this.performanceService.getPublishingCadence(strategy);
+    const isBelowWeeklyTarget =
+      cadence.week < (strategy.postsPerWeek ?? 0) &&
+      cadence.today < Math.ceil((strategy.postsPerWeek ?? 0) / 7);
+    if (!isBelowWeeklyTarget) return;
+
+    await this.opportunitiesService.createIfMissing({
+      brandId: strategyBrandId ?? '',
+      decisionReason: 'Evergreen cadence filled a weekly publishing gap.',
+      expiresAt,
+      estimatedCreditCost: estimateOpportunityCost(
+        resolveFormatsForStrategy(strategy),
+      ),
+      expectedTrafficScore: 55,
+      formatCandidates: resolveFormatsForStrategy(strategy),
+      metadata: { trigger: 'weekly-gap' },
+      organizationId: strategyOrganizationId,
+      platformCandidates: platforms,
+      priorityScore: computePriorityScore(strategy, {
+        costEfficiency: 100 / DEFAULT_TEXT_OPPORTUNITY_COST,
+        expectedTraffic: 55,
+        freshness: 50,
+        historicalConfidence: 60,
+        relevance: computeTopicRelevance(strategy, defaultTopic),
+      }),
+      relevanceScore: computeTopicRelevance(strategy, defaultTopic),
+      sourceRef: `evergreen:${day}:${defaultTopic}`,
+      sourceType: 'evergreen',
+      strategyId,
+      topic: defaultTopic,
+    });
   }
 
   selectOpportunities(
@@ -230,6 +309,11 @@ export class AgentStrategyAutopilotPlanningService {
       }
       return a.estimatedCreditCost - b.estimatedCreditCost;
     })) {
+      if (
+        opportunity.expiresAt &&
+        new Date(opportunity.expiresAt).getTime() <= Date.now()
+      )
+        continue;
       if (opportunity.status !== 'queued') {
         continue;
       }

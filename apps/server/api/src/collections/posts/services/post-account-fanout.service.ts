@@ -7,7 +7,11 @@ import {
   parsePlatform,
 } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 
 /** One post to create: which account publishes it, carrying which body. */
 export interface PostAccountTarget {
@@ -61,13 +65,15 @@ export class PostAccountFanoutService {
   ): Promise<PostAccountTarget[]> {
     const targets: PostAccountTarget[] = [];
 
-    for (const requested of input.platforms) {
-      const platform = parsePlatform(requested);
+    const platforms = [
+      ...new Set(
+        input.platforms
+          .map(parsePlatform)
+          .filter((platform): platform is Platform => Boolean(platform)),
+      ),
+    ];
 
-      if (!platform) {
-        continue;
-      }
-
+    for (const platform of platforms) {
       const accounts = await this.credentialsService.findConnectedAccounts(
         input.organizationId,
         input.brandId,
@@ -82,11 +88,12 @@ export class PostAccountFanoutService {
         input,
         platform,
         accounts.length,
+        platforms.length > 1,
       );
 
       accounts.forEach((account, index) => {
         targets.push({
-          caption: captions[index] ?? input.caption,
+          caption: captions[index],
           credentialId: account.id.toString(),
           platform,
         });
@@ -96,78 +103,74 @@ export class PostAccountFanoutService {
     return targets;
   }
 
-  /**
-   * One account keeps the caption as written. Several accounts each get their
-   * own body: the first stays the original so the requested message always
-   * ships verbatim somewhere, and the rest are distinct variations.
-   *
-   * Variation is best-effort — a content-engine failure degrades to the shared
-   * caption rather than dropping the publish, because a duplicate-suppressed
-   * sibling post is a smaller loss than a silent no-post.
-   */
   private async resolveCaptions(
     input: ResolvePostAccountTargetsInput,
     platform: Platform,
     accountCount: number,
+    adaptPlatform: boolean,
   ): Promise<string[]> {
-    if (accountCount < 2) {
-      return [input.caption];
+    const original = filterSourcePostVariations([input.caption], '', platform)
+      .accepted[0];
+    if (!adaptPlatform && !original) {
+      throw new BadRequestException(
+        `Source caption is empty or exceeds the ${platform} platform limit.`,
+      );
     }
+    const captions = !adaptPlatform && original ? [original] : [];
+    if (captions.length === accountCount) return captions;
 
     const generatorPlatform = VARIATION_CAPABLE_PLATFORMS.get(platform);
-
     if (!generatorPlatform) {
-      this.loggerService.warn(
-        `${PostAccountFanoutService.name} fan-out has no variation support for ${platform}`,
-        { accountCount, brandId: input.brandId },
+      throw new BadRequestException(
+        `Distinct account variations are unavailable for ${platform}.`,
       );
-
-      return [input.caption];
     }
 
-    const needed = accountCount - 1;
-
     try {
-      const generated = await this.contentGeneratorService.generateContent(
-        input.organizationId,
-        {
-          additionalContext: [
-            'Rewrite the source post so sibling accounts on the same platform do not publish duplicate text.',
-            'Keep the offer, claim, and call to action identical. Change only phrasing, structure, and hook.',
-          ],
-          brandId: input.brandId,
-          platform: generatorPlatform,
-          topic: input.caption,
-          variationsCount: Math.min(needed, 10),
-        },
-      );
-
-      const filtered = filterSourcePostVariations(
-        generated.map((item) => item.content),
-        input.caption,
-        platform,
-      );
-
-      if (filtered.accepted.length < needed) {
-        this.loggerService.warn(
-          `${PostAccountFanoutService.name} produced fewer variations than accounts`,
+      while (captions.length < accountCount) {
+        const needed = Math.min(accountCount - captions.length, 10);
+        const generated = await this.contentGeneratorService.generateContent(
+          input.organizationId,
           {
-            accepted: filtered.accepted.length,
+            additionalContext: [
+              `Adapt the source for ${platform}. Each account needs a distinct hook, phrasing, and structure.`,
+              'Preserve supported facts and the intended message. Do not invent claims or copy the source verbatim.',
+              ...captions.map(
+                (caption) => `Already assigned; do not repeat: ${caption}`,
+              ),
+            ],
             brandId: input.brandId,
-            needed,
-            platform,
+            platform: generatorPlatform,
+            topic: input.caption,
+            variationsCount: needed,
           },
         );
+        const existingVariations = captions.filter(
+          (caption) => caption !== original,
+        );
+        const filtered = filterSourcePostVariations(
+          [...existingVariations, ...generated.map((item) => item.content)],
+          input.caption,
+          platform,
+        );
+        const fresh = filtered.accepted.slice(
+          existingVariations.length,
+          existingVariations.length + needed,
+        );
+        if (fresh.length !== needed) {
+          throw new BadGatewayException(
+            `The content engine returned insufficient distinct, platform-valid variations for ${platform}. No account targets were queued.`,
+          );
+        }
+        captions.push(...fresh);
       }
-
-      return [input.caption, ...filtered.accepted];
+      return captions;
     } catch (error: unknown) {
       this.loggerService.error(
         `${PostAccountFanoutService.name} variation generation failed`,
         error,
       );
-
-      return [input.caption];
+      throw error;
     }
   }
 }

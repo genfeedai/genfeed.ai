@@ -13,6 +13,7 @@ import { getClipActionContract } from './clip-action-contracts';
 import { getContentOptimizationActionContract } from './content-optimization-action-contracts';
 import { getContentPipelineActionContract } from './content-pipeline-action-contracts';
 import { getCriticalActionContract } from './critical-action-contracts';
+import { getDailyPublishingActionContract } from './daily-publishing-action-contracts';
 import { getEditorialActionContract } from './editorial-action-contracts';
 import { getEmailDigestActionContract } from './email-digest-action-contracts';
 import { getInsightActionContract } from './insight-action-contracts';
@@ -35,6 +36,7 @@ import { getWorkspaceTaskActionContract } from './workspace-task-action-contract
 import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
 
 const CONTRACT_RESOLVERS = [
+  getDailyPublishingActionContract,
   getCriticalActionContract,
   getAdsActionContract,
   getContentOptimizationActionContract,

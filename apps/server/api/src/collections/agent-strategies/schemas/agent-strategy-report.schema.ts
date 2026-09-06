@@ -7,7 +7,7 @@ export interface AgentStrategyReportDocument
   bestPlatformFormatPairs?: Array<Record<string, unknown>>;
   bestPostingWindows?: string[];
   clicks?: number;
-  costPerVisit?: number;
+  costPerVisit?: number | null;
   creditsSpent?: number;
   ctr?: number;
   data?: unknown;
@@ -21,7 +21,7 @@ export interface AgentStrategyReportDocument
   strategy?: string;
   topHooks?: string[];
   topTopics?: string[];
-  visits?: number;
+  visits?: number | null;
   [key: string]: unknown;
 }
 

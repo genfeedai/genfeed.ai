@@ -72,14 +72,45 @@ export class AgentStrategyAutopilotExecutionService {
     defaultModel?: string,
   ): Promise<{ contentGenerated: number; creditsUsed: number }> {
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
-    const targetPlatform = resolveOpportunityPlatform(strategy, opportunity);
-
-    await this.opportunitiesService.updateStatus(
+    const claimed = await this.opportunitiesService.claimForGeneration(
       getOpportunityId(opportunity),
       strategyOrganizationId,
-      'generating',
     );
+    if (!claimed) return { contentGenerated: 0, creditsUsed: 0 };
 
+    try {
+      return await this.executeClaimedOpportunity(
+        strategy,
+        opportunity,
+        userId,
+        defaultModel,
+      );
+    } catch (error) {
+      await this.opportunitiesService.updateStatus(
+        getOpportunityId(opportunity),
+        strategyOrganizationId,
+        'held',
+        {
+          decisionReason:
+            'Execution failed; inspect the linked draft and account posts before retrying to avoid duplicate sends.',
+        },
+      );
+      this.logger.warn('Autopilot execution held after failure', {
+        opportunityId: getOpportunityId(opportunity),
+        error,
+      });
+      throw error;
+    }
+  }
+
+  private async executeClaimedOpportunity(
+    strategy: AgentStrategyDocument,
+    opportunity: AgentStrategyOpportunityDocument,
+    userId: string,
+    defaultModel?: string,
+  ): Promise<{ contentGenerated: number; creditsUsed: number }> {
+    const strategyOrganizationId = getStrategyOrganizationId(strategy);
+    const targetPlatform = resolveOpportunityPlatform(strategy, opportunity);
     const format = opportunity.formatCandidates[0] ?? 'text';
 
     if (format === 'video') {
@@ -105,15 +136,21 @@ export class AgentStrategyAutopilotExecutionService {
       return { contentGenerated: 0, creditsUsed: 0 };
     }
 
+    await this.opportunitiesService.updateStatus(
+      getOpportunityId(opportunity),
+      strategyOrganizationId,
+      'generating',
+      { metadata: { ...opportunity.metadata, draftId: getDraftId(draft) } },
+    );
     const autopilotMetadata = await this.persistAutopilotMetadata({
       draft,
       format,
       opportunity,
       strategy,
     });
-    const draftContent = getDraftContent(draft);
+    let draftContent = getDraftContent(draft);
 
-    const gate = await this.evaluateDraft(
+    let gate = await this.evaluateDraft(
       strategy,
       strategyOrganizationId,
       format,
@@ -139,6 +176,8 @@ export class AgentStrategyAutopilotExecutionService {
       if (revision.terminal) {
         return revision.result;
       }
+      draftContent = revision.content;
+      gate = revision.gate;
     } else if (gate.decision !== 'approved') {
       return this.handleGateRejection({
         draft,
@@ -257,7 +296,7 @@ export class AgentStrategyAutopilotExecutionService {
         result: { contentGenerated: number; creditsUsed: number };
         terminal: true;
       }
-    | { terminal: false }
+    | { content: string; gate: PublishGateResult; terminal: false }
   > {
     const draftId = getDraftId(input.draft);
     const optimization = await this.optimizersService.optimizeContent(
@@ -315,7 +354,11 @@ export class AgentStrategyAutopilotExecutionService {
       };
     }
 
-    return { terminal: false };
+    return {
+      content: optimization.optimized,
+      gate: revisedGate,
+      terminal: false,
+    };
   }
 
   private async handleGateRejection(input: {
@@ -378,14 +421,15 @@ export class AgentStrategyAutopilotExecutionService {
       userId,
     );
 
-    if (publishResult.published) {
+    if (publishResult.scheduled) {
       await this.opportunitiesService.updateStatus(
         opportunityId,
         organizationId,
-        'published',
+        'approved',
         {
           decisionReason:
-            'Draft passed publish gate and was converted into pending posts.',
+            'Draft passed publish gate; awaiting confirmed publication of scheduled posts.',
+          metadata: { ...opportunity.metadata, postIds: publishResult.postIds },
         },
       );
       return {
@@ -787,7 +831,7 @@ export class AgentStrategyAutopilotExecutionService {
     content: string,
     platforms: string[],
     userId: string,
-  ): Promise<{ postIds: string[]; published: boolean }> {
+  ): Promise<{ postIds: string[]; scheduled: boolean }> {
     const createdPostIds: string[] = [];
     const draftId = getDraftId(draft);
     const brandId = getStrategyBrandId(strategy) ?? '';
@@ -804,6 +848,21 @@ export class AgentStrategyAutopilotExecutionService {
       organizationId,
       platforms,
     });
+    for (const target of targets) {
+      const gate = await this.evaluateDraft(
+        strategy,
+        organizationId,
+        'text',
+        target.caption,
+        undefined,
+        target.platform,
+      );
+      if (gate.decision !== 'approved') {
+        throw new Error(
+          `Account-specific content failed the publish gate for ${target.platform}: ${gate.reasons.join(' ')}`,
+        );
+      }
+    }
     const groupId = randomUUID();
 
     for (const target of targets) {
@@ -827,6 +886,7 @@ export class AgentStrategyAutopilotExecutionService {
             userId,
           } as PostCreateInput)
         : await this.postsService.patch(draftId, {
+            description: target.caption,
             credentialId: target.credentialId,
             groupId,
             platform: target.platform,
@@ -842,13 +902,13 @@ export class AgentStrategyAutopilotExecutionService {
     if (createdPostIds.length > 0) {
       return {
         postIds: createdPostIds,
-        published: true,
+        scheduled: true,
       };
     }
 
     return {
       postIds: [],
-      published: false,
+      scheduled: false,
     };
   }
 }
