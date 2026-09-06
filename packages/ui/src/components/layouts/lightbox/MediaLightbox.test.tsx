@@ -4,6 +4,12 @@ import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { describe, expect, it, vi } from 'vitest';
 
 const { lightbox } = vi.hoisted(() => ({ lightbox: vi.fn() }));
+vi.mock('next/dynamic', () => ({
+  default: () => (props: unknown) => {
+    lightbox(props);
+    return <div data-testid="lightbox" />;
+  },
+}));
 vi.mock('yet-another-react-lightbox', () => ({
   default: (props: unknown) => {
     lightbox(props);
@@ -34,6 +40,7 @@ describe('MediaLightbox', () => {
             ingredientUrl: 'https://cdn.test/video.mp4',
           },
         ]}
+        startIndex={0}
         open
         onClose={vi.fn()}
       />,
