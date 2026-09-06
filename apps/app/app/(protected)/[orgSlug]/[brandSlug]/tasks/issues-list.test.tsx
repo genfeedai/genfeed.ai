@@ -7,6 +7,7 @@ import IssuesList from './issues-list';
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   list: vi.fn(),
+  replace: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -19,7 +20,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -29,6 +30,7 @@ vi.mock('./issue-overlay', () => ({
 
 vi.mock('./issue-overlay-controls', () => ({
   openIssueOverlay: vi.fn(),
+  closeIssueOverlay: vi.fn(),
 }));
 
 describe('IssuesList view controls', () => {
@@ -124,12 +126,23 @@ it('keeps failed tasks visible in the shared table and opens their details', asy
   mocks.getService.mockResolvedValue({ list: mocks.list });
   render(<IssuesList />);
   const title = await screen.findByRole('button', {
-    name: 'Recover the failed publish',
+    name: /Recover the failed publish/,
   });
   expect(screen.getByRole('table')).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Task' })).toBeVisible();
-  expect(screen.getByRole('columnheader', { name: 'Updated' })).toBeVisible();
+  expect(
+    screen.queryByRole('columnheader', { name: 'Updated' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: 'Status for QA-9' }),
+  ).toBeVisible();
+  expect(
+    screen.getByRole('combobox', { name: 'Priority for QA-9' }),
+  ).toBeVisible();
   expect(screen.getAllByText('Failed')).toHaveLength(1);
   fireEvent.click(title);
   expect(openIssueOverlay).toHaveBeenCalled();
+  expect(mocks.replace).toHaveBeenCalledWith('/?taskId=failed-task', {
+    scroll: false,
+  });
 });

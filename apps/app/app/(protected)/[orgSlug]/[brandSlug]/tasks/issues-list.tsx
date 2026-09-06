@@ -8,8 +8,8 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { NotificationsService } from '@services/core/notifications.service';
 import {
   type Task,
   type TaskPriority,
@@ -40,10 +40,18 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { CirclePlus, Columns2, List } from 'lucide-react';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 
 import IssueOverlay from './issue-overlay';
-import { openIssueOverlay } from './issue-overlay-controls';
+import { closeIssueOverlay, openIssueOverlay } from './issue-overlay-controls';
 
 type ViewMode = ViewType.KANBAN | ViewType.LIST;
 
@@ -240,6 +248,15 @@ function issuesListReducer(
 
 export default function IssuesList() {
   const { brandId } = useBrand();
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const taskId = searchParams.get('taskId');
   const [state, dispatch] = useReducer(
     issuesListReducer,
     initialIssuesListState,
@@ -323,14 +340,73 @@ export default function IssuesList() {
     };
   }, [loadIssues]);
 
-  const handleSelectIssue = useCallback((issue: Task) => {
-    dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
-    openIssueOverlay();
-  }, []);
+  const setTaskUrl = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (id) params.set('taskId', id);
+      else params.delete('taskId');
+      router.replace(`${pathname}${params.size ? `?${params}` : ''}`, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const handleSelectIssue = useCallback(
+    (issue: Task) => {
+      dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
+      setTaskUrl(issue.id);
+      openIssueOverlay();
+    },
+    [setTaskUrl],
+  );
+
+  useEffect(() => {
+    if (!taskId) {
+      dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
+      closeIssueOverlay();
+      return;
+    }
+    let cancelled = false;
+    const showTask = (issue: Task) => {
+      if (cancelled) return;
+      dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
+      openIssueOverlay();
+    };
+    const issue = issues.find((item) => item.id === taskId);
+    if (issue) showTask(issue);
+    else if (!isLoading)
+      void getTasksService()
+        .then((service) => service.findOne(taskId))
+        .then(showTask)
+        .catch(() => {
+          if (!cancelled) notificationsService.error('Could not open task.');
+        });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId, issues, isLoading, getTasksService, notificationsService]);
 
   const handleOverlayClose = useCallback(() => {
     dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
-  }, []);
+    setTaskUrl(null);
+  }, [setTaskUrl]);
+
+  const updateIssue = async (
+    issue: Task,
+    input: { status?: TaskStatus; priority?: TaskPriority },
+  ) => {
+    setSavingId(issue.id);
+    try {
+      const service = await getTasksService();
+      await service.updateTask(issue.id, input);
+      await loadIssues();
+    } catch {
+      notificationsService.error('Could not update task. Please try again.');
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const groupedByStatus = STATUS_ORDER.reduce(
     (acc, status) => {
@@ -447,7 +523,6 @@ export default function IssuesList() {
           getRowKey={(issue) => issue.id}
           onRowClick={handleSelectIssue}
           columns={[
-            { key: 'identifier', header: 'ID' },
             {
               key: 'title',
               header: 'Task',
@@ -456,32 +531,85 @@ export default function IssuesList() {
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   textTransform="none"
-                  className="text-left text-sm font-medium"
+                  className="w-full flex-col items-start gap-0 text-left text-sm font-medium"
                   onClick={(event) => {
                     event.stopPropagation();
                     handleSelectIssue(issue);
                   }}
                 >
-                  {issue.title}
+                  <span className="flex items-baseline gap-2">
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                      {issue.identifier}
+                    </span>
+                    <span>{issue.title}</span>
+                  </span>
+                  {issue.description ? (
+                    <span className="mt-1 block line-clamp-2 text-xs font-normal text-muted-foreground">
+                      {issue.description}
+                    </span>
+                  ) : null}
                 </Button>
               ),
             },
             {
               key: 'status',
               header: 'Status',
-              render: (issue) => <TaskStatusBadge status={issue.status} />,
+              render: (issue) => (
+                <Select
+                  value={issue.status}
+                  disabled={savingId !== null}
+                  onValueChange={(status) =>
+                    void updateIssue(issue, { status: status as TaskStatus })
+                  }
+                >
+                  <SelectTrigger
+                    aria-label={`Status for ${issue.identifier}`}
+                    className="w-36"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_ORDER.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        <TaskStatusBadge status={status} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ),
             },
             {
               key: 'priority',
               header: 'Priority',
               render: (issue) => (
-                <TaskPriorityIndicator priority={issue.priority} />
+                <Select
+                  value={issue.priority}
+                  disabled={savingId !== null}
+                  onValueChange={(priority) =>
+                    void updateIssue(issue, {
+                      priority: priority as TaskPriority,
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    aria-label={`Priority for ${issue.identifier}`}
+                    className="w-28"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(['low', 'medium', 'high', 'critical'] as const).map(
+                      (priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          <TaskPriorityIndicator priority={priority} />
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
               ),
-            },
-            {
-              key: 'updatedAt',
-              header: 'Updated',
-              render: (issue) => getRelativeTime(issue.updatedAt),
             },
           ]}
         />
