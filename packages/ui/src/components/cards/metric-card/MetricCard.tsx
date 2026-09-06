@@ -145,7 +145,7 @@ const MetricCard = memo(function MetricCard({
         >
           {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
           {isPositiveTrend ? '+' : ''}
-          {trend}%
+          {Math.round(trend * 10) / 10}%
           {trendLabel ? (
             <span className="font-normal text-foreground/40">{trendLabel}</span>
           ) : null}

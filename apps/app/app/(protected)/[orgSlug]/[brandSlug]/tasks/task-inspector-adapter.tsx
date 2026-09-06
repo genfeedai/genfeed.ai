@@ -213,9 +213,19 @@ export default function TaskInspectorAdapter() {
     [getTasksService, notificationsService, selection],
   );
 
+  // Stable callbacks: the rail adapter re-registers whenever these change.
+  const onPlanningError = useCallback(
+    (message: string) => notificationsService.error(message),
+    [notificationsService],
+  );
+  const commitTask = selection?.commitTask;
+  const onPlanningTaskUpdated = useCallback(
+    (updated: Task) => commitTask?.(updated),
+    [commitTask],
+  );
   const { openPlanningConversation } = usePlanningConversation({
-    onError: (message) => notificationsService.error(message),
-    onTaskUpdated: (updated) => selection?.commitTask(updated),
+    onError: onPlanningError,
+    onTaskUpdated: onPlanningTaskUpdated,
     setBusyTaskId,
   });
 
