@@ -19,6 +19,10 @@ vi.mock('@/lib/analytics', () => ({
   captureBrandOsFunnelStage: mocks.captureBrandOsFunnelStage,
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => path }),
+}));
+
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: { id: 'brand-1', label: 'Acme' },

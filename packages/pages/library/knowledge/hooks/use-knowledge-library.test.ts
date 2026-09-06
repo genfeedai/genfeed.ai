@@ -10,9 +10,20 @@ const mocks = vi.hoisted(() => ({
   findVersions: vi.fn(),
 }));
 
+// The real hook returns a stable getter; a fresh closure per render would
+// recreate `load` and loop the effect.
+const getterByFactory = new Map<string, () => Promise<unknown>>();
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('token'),
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const key = factory.toString();
+    const existing = getterByFactory.get(key);
+    if (existing) {
+      return existing;
+    }
+    const getter = async () => factory('token');
+    getterByFactory.set(key, getter);
+    return getter;
+  },
 }));
 
 vi.mock('@services/content/knowledge-sources.service', () => ({
