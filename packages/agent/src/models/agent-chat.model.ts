@@ -164,6 +164,7 @@ export interface AgentUiAction {
     | 'outreach_sequence_control_card'
     | 'analytics_snapshot_card'
     | 'publish_post_card'
+    | 'mutation_approval_card'
     | 'review_gate_card'
     | 'generation_action_card'
     | 'ingredient_picker_card'
