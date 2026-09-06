@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { ListFilter } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Enum values are lowercase, hyphenated wire identifiers. The dropdown shows a
@@ -65,6 +66,7 @@ export default function ReleaseCalendarFilters({
   onChange,
   platformOptions,
 }: ReleaseCalendarFiltersProps): React.JSX.Element {
+  const translate = useTranslations('pages.publishing.calendar');
   // Each dropdown reports its own facet name, so one handler keeps the mapping
   // between control and filter key in a single place.
   const handleChange = (name: string, values: string[]): void => {
@@ -122,7 +124,9 @@ export default function ReleaseCalendarFilters({
           aria-label="Calendar filters"
         >
           <ListFilter className="size-3.5" />
-          Filters{selectedCount > 0 ? ` (${selectedCount})` : ''}
+          {selectedCount > 0
+            ? translate('filtersWithCount', { count: selectedCount })
+            : translate('filters')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -137,7 +141,7 @@ export default function ReleaseCalendarFilters({
             <DropdownMenuSubContent className="max-h-80 min-w-52 overflow-y-auto">
               {options.length === 0 ? (
                 <DropdownMenuItem disabled>
-                  No options available
+                  {translate('noFilterOptions')}
                 </DropdownMenuItem>
               ) : (
                 options.map((option) => {
@@ -170,7 +174,7 @@ export default function ReleaseCalendarFilters({
             <DropdownMenuItem
               onSelect={() => onChange(EMPTY_RELEASE_CALENDAR_FILTERS)}
             >
-              Clear filters
+              {translate('clearFilters')}
             </DropdownMenuItem>
           </>
         ) : null}

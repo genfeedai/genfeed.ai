@@ -740,7 +740,7 @@ export default function ContentCalendarView<T extends CalendarItem>({
               variant={ButtonVariant.GHOST}
               onClick={() => calendarRef.current?.today()}
             >
-              Today
+              {translate('today')}
             </Button>
           </div>
         }

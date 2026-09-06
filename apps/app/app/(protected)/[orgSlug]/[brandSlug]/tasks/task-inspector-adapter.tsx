@@ -20,6 +20,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Cpu, ExternalLink, User } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -64,6 +65,7 @@ function TaskCommentRow({ comment }: { comment: TaskComment }) {
 }
 
 function TaskInspector({ task }: { task: Task }) {
+  const translate = useTranslations('pages.tasks.inspector');
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -117,13 +119,13 @@ function TaskInspector({ task }: { task: Task }) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <TaskStatusSelect
-            ariaLabel="Status"
+            ariaLabel={translate('status')}
             isDisabled={isSaving}
             value={task.status}
             onChange={(status) => void updateTask({ status })}
           />
           <TaskPrioritySelect
-            ariaLabel="Priority"
+            ariaLabel={translate('priority')}
             isDisabled={isSaving}
             value={task.priority}
             onChange={(priority) => void updateTask({ priority })}
@@ -140,7 +142,7 @@ function TaskInspector({ task }: { task: Task }) {
         >
           <Link href={href(`${APP_ROUTES.WORKSPACE.TASKS}/${task.identifier}`)}>
             <ExternalLink aria-hidden="true" className="size-3.5" />
-            Open full page
+            {translate('openFullPage')}
           </Link>
         </Button>
       </div>
@@ -148,7 +150,7 @@ function TaskInspector({ task }: { task: Task }) {
       {task.description ? (
         <section className="flex flex-col gap-1.5">
           <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-            Description
+            {translate('description')}
           </h4>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">
             {task.description}
@@ -158,7 +160,7 @@ function TaskInspector({ task }: { task: Task }) {
 
       <section className="flex flex-col gap-3">
         <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-          Comments ({comments.length})
+          {translate('comments', { count: comments.length })}
         </h4>
         {comments.length > 0 ? (
           <ol className="flex flex-col gap-4">
@@ -167,7 +169,9 @@ function TaskInspector({ task }: { task: Task }) {
             ))}
           </ol>
         ) : (
-          <p className="text-xs text-foreground/45">No comments yet.</p>
+          <p className="text-xs text-foreground/45">
+            {translate('noComments')}
+          </p>
         )}
       </section>
     </div>
@@ -180,6 +184,7 @@ function TaskInspector({ task }: { task: Task }) {
  * `?taskId=`; this adapter owns everything rendered on the right.
  */
 export default function TaskInspectorAdapter() {
+  const translate = useTranslations('pages.tasks.inspector');
   const { brandId, organizationId } = useBrand();
   const selection = useTaskSelection();
   const selectedTask = selection?.selectedTask ?? null;
@@ -206,10 +211,10 @@ export default function TaskInspectorAdapter() {
           className="px-4 py-6 text-sm text-foreground/55"
           data-testid="task-surface-inspector"
         >
-          Select a task to see its details.
+          {translate('empty')}
         </p>
       ),
-    [selectedTask],
+    [selectedTask, translate],
   );
   const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
   const contextLabel = selectedTask ? `Tasks · ${selectedTask.title}` : 'Tasks';

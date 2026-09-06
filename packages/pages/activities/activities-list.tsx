@@ -20,6 +20,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { Button } from '@ui/primitives/button';
 import { ClipboardList, Mail, MailOpen, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
@@ -39,6 +40,7 @@ export default function ActivitiesList({
   activityMessageFormatter = formatActivityMessage,
   scope,
 }: ActivitiesListProps) {
+  const translate = useTranslations('pages.activities');
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
 
@@ -157,7 +159,9 @@ export default function ActivitiesList({
           const amount = (parsed?.value as string) || a.value;
           if (!amount) return null;
           return (
-            <span className="text-sm text-foreground/70">{amount} credits</span>
+            <span className="text-sm text-foreground/70">
+              {translate('credits', { amount })}
+            </span>
           );
         },
       },
@@ -283,12 +287,14 @@ export default function ActivitiesList({
             role="status"
             className="flex items-center gap-1 text-xs text-muted-foreground"
           >
-            <span>{selectedActivityIds.length} selected</span>
+            <span>
+              {translate('selected', { count: selectedActivityIds.length })}
+            </span>
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               className="size-6"
-              ariaLabel="Clear selection"
+              ariaLabel={translate('clearSelection')}
               onClick={() => setSelectedActivityIds([])}
             >
               <X aria-hidden="true" className="size-3.5" />

@@ -386,7 +386,7 @@ export function PanelTabs({
                   aria-label={item.label}
                   title={item.label}
                   data-active={activeTab === item.id}
-                  className="gen-shell-segmented-button h-7 min-w-0 flex-1 gap-1.5 rounded-[5px] border-0 px-2 text-xs shadow-none"
+                  className="gen-shell-segmented-button h-control-sm min-w-0 flex-1 gap-1.5 rounded-[5px] border-0 px-2 text-xs shadow-none"
                 >
                   {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
                   <span

@@ -618,7 +618,8 @@
         "board": "Board",
         "grid": "Grid",
         "list": "List"
-      }
+      },
+      "actions": "Actions"
     },
     "grid": {
       "emptyDescription": "Connect an account in Settings to see per-account lanes.",
@@ -767,7 +768,12 @@
       "schedule": "Schedule",
       "scheduleAt": "Schedule at {label}",
       "skip": "Skip",
-      "write": "Write"
+      "write": "Write",
+      "today": "Today",
+      "filters": "Filters",
+      "filtersWithCount": "Filters ({count})",
+      "noFilterOptions": "No options available",
+      "clearFilters": "Clear filters"
     },
     "overview": {
       "blockedCount": "{count, plural, one {# blocked release} other {# blocked releases}}",
@@ -1322,6 +1328,22 @@
       "PROVIDER_ACCESS_DENIED": "Provider access denied",
       "PROVIDER_UNAVAILABLE": "Provider unavailable",
       "UNKNOWN": "Unknown"
+    }
+  },
+  "activities": {
+    "credits": "{amount} credits",
+    "selected": "{count} selected",
+    "clearSelection": "Clear selection"
+  },
+  "tasks": {
+    "inspector": {
+      "openFullPage": "Open full page",
+      "description": "Description",
+      "comments": "Comments ({count})",
+      "noComments": "No comments yet.",
+      "empty": "Select a task to see its details.",
+      "status": "Status",
+      "priority": "Priority"
     }
   }
 }

@@ -637,7 +637,7 @@ export default function ReleasePostsList({
             },
             {
               key: 'actions',
-              header: <span className="sr-only">Actions</span>,
+              header: <span className="sr-only">{translate('actions')}</span>,
               render: (release) => <ReleaseRailActions release={release} />,
             },
           ]}
