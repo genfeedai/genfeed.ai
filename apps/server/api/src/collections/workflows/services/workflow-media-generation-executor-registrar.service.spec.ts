@@ -438,9 +438,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       filesClientService as never,
     ).register(engine);
 
-    const executor = engine.getExecutor('lipSync');
     await expect(
-      executor?.(
+      getActionExecutor(engine, 'lipSync')?.(
         {
           config: {},
           id: 'lip-sync-1',
@@ -497,9 +496,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       byokService as never,
     ).register(engine);
 
-    const executor = engine.getExecutor('textToSpeech');
     await expect(
-      executor?.(
+      getActionExecutor(engine, 'textToSpeech')?.(
         {
           config: { brandId: 'brand-1', voiceId: 'voice-1' },
           id: 'tts-1',

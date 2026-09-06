@@ -1,6 +1,11 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import {
+  createExecutableActionNode,
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -10,6 +15,37 @@ vi.mock(
 vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
   FilesClientService: class {},
 }));
+
+const wrapEngineExecutor =
+  (executor: INodeExecutor) =>
+  async (...args: Parameters<NodeExecutor>) =>
+    (
+      await executor.execute({
+        context: args[2],
+        inputs: args[1],
+        node: args[0],
+      })
+    ).data;
+
+function getActionExecutor(
+  engine: WorkflowEngine,
+  actionId: string,
+): NodeExecutor | undefined {
+  const executor = engine.getExecutor('genfeedAction');
+  return executor
+    ? (node, inputs, context) =>
+        executor(
+          createExecutableActionNode({
+            actionId,
+            id: node.id,
+            label: node.label,
+            parameters: node.config,
+          }),
+          inputs,
+          context,
+        )
+    : undefined;
+}
 
 describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
   it('rejects a sound overlay whose soundtrack asset belongs to a different brand than the video', async () => {
@@ -38,6 +74,7 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
       extractMusicIngredientId: () => undefined,
       readConfigString: () => undefined,
       requireMediaAsset,
+      wrapEngineExecutor,
     } as unknown as WorkflowEngineExecutorHelperService;
     const files = { audioOverlay: vi.fn(), getPresignedDownloadUrl: vi.fn() };
     const engine = new WorkflowEngine();
@@ -51,9 +88,8 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
       files as never,
     ).register(engine);
 
-    const executor = engine.getExecutor('soundOverlay');
     await expect(
-      executor?.(
+      getActionExecutor(engine, 'soundOverlay')?.(
         {
           config: {},
           id: 'sound-overlay-1',
