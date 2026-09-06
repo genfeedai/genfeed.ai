@@ -1351,7 +1351,8 @@
       "noComments": "No comments yet.",
       "empty": "Select a task to see its details.",
       "status": "Status",
-      "priority": "Priority"
+      "priority": "Priority",
+      "close": "Close inspector"
     }
   }
 }

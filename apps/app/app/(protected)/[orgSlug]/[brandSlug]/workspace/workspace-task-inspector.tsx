@@ -1,6 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { WorkspaceTaskInspectorProps } from '@props/workspace/workspace-task-inspector.props';
-import { Sheet, SheetContent } from '@ui/primitives/sheet';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { useMemo } from 'react';
 import { getAdvancedToolHref } from './workspace-task.helpers';
 import { WorkspaceTaskInspectorBody } from './workspace-task-inspector-body';
@@ -13,18 +12,24 @@ import {
   useWorkspaceTaskLinkedOutputs,
 } from './workspace-task-inspector-hooks';
 
-export function WorkspaceTaskInspector({
+/**
+ * Renders a task's header, body, and footer in the workspace inspector rail.
+ * Both `/workspace/inbox` and `/workspace/tasks` mount this same detail view
+ * inside their own surface adapters instead of each owning a bespoke panel.
+ */
+export function WorkspaceTaskDetail({
   busyTaskId,
+  leading,
   onApprove,
   onDismiss,
   onKeepOutput,
-  onOpenChange,
   onPlanNextSteps,
   onRequestChanges,
   onTrashOutput,
   onUnkeepOutput,
   task,
-}: WorkspaceTaskInspectorProps) {
+  trailing,
+}: WorkspaceTaskDetailProps) {
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
   const linkedIssueSummary = useWorkspaceTaskLinkedIssue(task);
@@ -44,44 +49,41 @@ export function WorkspaceTaskInspector({
     [linkedOutputSummary.outputs],
   );
 
+  if (!task) {
+    return null;
+  }
+
   return (
-    <Sheet open={Boolean(task)} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto border-0 border-l border-border bg-background p-0 shadow-none! sm:max-w-2xl"
-      >
-        {task ? (
-          <div
-            className="flex min-h-full flex-col"
-            data-testid="workspace-task-inspector"
-          >
-            <WorkspaceTaskInspectorHeader task={task} />
-            <WorkspaceTaskInspectorBody
-              isBusy={isBusy}
-              linkedIssueSummary={linkedIssueSummary}
-              linkedOutputGroups={linkedOutputGroups}
-              linkedOutputSummary={linkedOutputSummary}
-              linkedExecutionSummary={linkedExecutionSummary}
-              onKeepOutput={onKeepOutput}
-              onTrashOutput={onTrashOutput}
-              onUnkeepOutput={onUnkeepOutput}
-              task={task}
-            />
-            <WorkspaceTaskInspectorFooter
-              isBusy={isBusy}
-              linkedIssueSummary={linkedIssueSummary}
-              onApprove={onApprove}
-              onDismiss={onDismiss}
-              onPlanNextSteps={onPlanNextSteps}
-              onRequestChanges={onRequestChanges}
-              showReviewActions={showReviewActions ?? false}
-              task={task}
-              taskToolHref={taskToolHref}
-              taskToolLabel={taskToolLabel}
-            />
-          </div>
-        ) : null}
-      </SheetContent>
-    </Sheet>
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      data-testid="workspace-task-inspector"
+    >
+      {leading}
+      <WorkspaceTaskInspectorHeader task={task} />
+      <WorkspaceTaskInspectorBody
+        isBusy={isBusy}
+        linkedIssueSummary={linkedIssueSummary}
+        linkedOutputGroups={linkedOutputGroups}
+        linkedOutputSummary={linkedOutputSummary}
+        linkedExecutionSummary={linkedExecutionSummary}
+        onKeepOutput={onKeepOutput}
+        onTrashOutput={onTrashOutput}
+        onUnkeepOutput={onUnkeepOutput}
+        task={task}
+      />
+      {trailing}
+      <WorkspaceTaskInspectorFooter
+        isBusy={isBusy}
+        linkedIssueSummary={linkedIssueSummary}
+        onApprove={onApprove}
+        onDismiss={onDismiss}
+        onPlanNextSteps={onPlanNextSteps}
+        onRequestChanges={onRequestChanges}
+        showReviewActions={showReviewActions ?? false}
+        task={task}
+        taskToolHref={taskToolHref}
+        taskToolLabel={taskToolLabel}
+      />
+    </div>
   );
 }

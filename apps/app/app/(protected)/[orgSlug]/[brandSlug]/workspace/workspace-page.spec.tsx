@@ -2,6 +2,7 @@
 'use client';
 
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -20,6 +21,33 @@ import WorkspacePageContent from './workspace-page';
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
+});
+
+// The rail is rendered by the shell, not the page — render the real detail
+// view inline here so assertions against its content and footer actions
+// keep working.
+vi.mock('./workspace-task-rail-adapter', async () => {
+  const { WorkspaceTaskDetail } = await import('./workspace-task-inspector');
+
+  function WorkspaceTaskRailAdapter({
+    onClose,
+    ...detailProps
+  }: WorkspaceTaskDetailProps & { onClose: () => void }) {
+    if (!detailProps.task) {
+      return null;
+    }
+
+    return (
+      <div>
+        <WorkspaceTaskDetail {...detailProps} />
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return { WorkspaceTaskRailAdapter };
 });
 
 const getTokenMock = vi.fn();

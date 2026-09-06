@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import {
   act,
   fireEvent,
@@ -8,7 +9,6 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
@@ -17,33 +17,35 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/primitives/sheet', () => ({
-  Sheet: ({
-    children,
-    onOpenChange,
-    open,
-  }: {
-    children: ReactNode;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-  }) =>
-    open ? (
+// The rail is rendered by the shell, not the page — the page only mounts the
+// adapter that registers it. Render the real detail view inline here so
+// assertions against its content and footer actions keep working, and expose
+// a "Close" button standing in for the shell's own close affordance so the
+// `onClose` wiring (the old Sheet's `onOpenChange(false)` branch) stays
+// covered.
+vi.mock('./workspace-task-rail-adapter', async () => {
+  const { WorkspaceTaskDetail } = await import('./workspace-task-inspector');
+
+  function WorkspaceTaskRailAdapter({
+    onClose,
+    ...detailProps
+  }: WorkspaceTaskDetailProps & { onClose: () => void }) {
+    if (!detailProps.task) {
+      return null;
+    }
+
+    return (
       <div>
-        {children}
-        <button type="button" onClick={() => onOpenChange?.(false)}>
+        <WorkspaceTaskDetail {...detailProps} />
+        <button type="button" onClick={onClose}>
           Close
         </button>
       </div>
-    ) : null,
-  SheetContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SheetDescription: ({ children }: { children: ReactNode }) => (
-    <p>{children}</p>
-  ),
-  SheetHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SheetTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
-}));
+    );
+  }
+
+  return { WorkspaceTaskRailAdapter };
+});
 
 const mocks = vi.hoisted(() => ({
   approve: vi.fn(),

@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   type TaskComment,
@@ -28,6 +29,8 @@ import {
   type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { dispatchOpenContextTab } from '@/lib/workspace/agent-composer-events';
+import { usePlanningConversation } from '../workspace/use-planning-conversation';
+import { WorkspaceTaskDetail } from '../workspace/workspace-task-inspector';
 
 import { TaskPrioritySelect, TaskStatusSelect } from './task-pills';
 import { useTaskSelection } from './task-selection-context';
@@ -62,36 +65,23 @@ function TaskCommentRow({ comment }: { comment: TaskComment }) {
   );
 }
 
-function TaskInspector({ task }: { task: Task }) {
+/**
+ * Editable status/priority pills plus the full-page link, rendered above the
+ * shared task detail header. `WorkspaceTaskInspectorHeader` never links to the
+ * full page, so this keeps that affordance rather than dropping it.
+ */
+function TaskDetailLeading({ task }: { task: Task }) {
   const translate = useTranslations('pages.tasks.inspector');
+  const { href } = useOrgUrl();
+  const selection = useTaskSelection();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
   );
-  const { href } = useOrgUrl();
-  const selection = useTaskSelection();
-  const [comments, setComments] = useState<TaskComment[]>(EMPTY_COMMENTS);
   const [isSaving, setIsSaving] = useState(false);
   const getTasksService = useAuthedService((token) =>
     TasksService.getInstance(token),
   );
-  const getCommentsService = useAuthedService((token) =>
-    TaskCommentsService.getInstanceForTask(token, task.id),
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setComments(EMPTY_COMMENTS);
-    void getCommentsService()
-      .then((service) => service.list())
-      .then((data) => {
-        if (!controller.signal.aborted) setComments(data);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setComments(EMPTY_COMMENTS);
-      });
-    return () => controller.abort();
-  }, [getCommentsService]);
 
   const updateTask = useCallback(
     async (input: { status?: TaskStatus; priority?: TaskPriority }) => {
@@ -110,69 +100,71 @@ function TaskInspector({ task }: { task: Task }) {
   );
 
   return (
-    <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4"
-      data-testid="task-surface-inspector"
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <TaskStatusSelect
-            ariaLabel={translate('status')}
-            isDisabled={isSaving}
-            value={task.status}
-            onChange={(status) => void updateTask({ status })}
-          />
-          <TaskPrioritySelect
-            ariaLabel={translate('priority')}
-            isDisabled={isSaving}
-            value={task.priority}
-            onChange={(priority) => void updateTask({ priority })}
-          />
-        </div>
-        <h3 className="text-sm font-semibold leading-snug text-foreground">
-          {task.title}
-        </h3>
-        <Button
-          asChild
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
-          className="w-fit"
-        >
-          <Link href={href(`${APP_ROUTES.WORKSPACE.TASKS}/${task.identifier}`)}>
-            <ExternalLink aria-hidden="true" className="size-3.5" />
-            {translate('openFullPage')}
-          </Link>
-        </Button>
-      </div>
-
-      {task.description ? (
-        <section className="flex flex-col gap-1.5">
-          <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-            {translate('description')}
-          </h4>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/75">
-            {task.description}
-          </p>
-        </section>
-      ) : null}
-
-      <section className="flex flex-col gap-3">
-        <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-          {translate('comments', { count: comments.length })}
-        </h4>
-        {comments.length > 0 ? (
-          <ol className="flex flex-col gap-4">
-            {comments.map((comment) => (
-              <TaskCommentRow key={comment.id} comment={comment} />
-            ))}
-          </ol>
-        ) : (
-          <p className="text-xs text-foreground/45">
-            {translate('noComments')}
-          </p>
-        )}
-      </section>
+    <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
+      <TaskStatusSelect
+        ariaLabel={translate('status')}
+        isDisabled={isSaving}
+        value={task.status}
+        onChange={(status) => void updateTask({ status })}
+      />
+      <TaskPrioritySelect
+        ariaLabel={translate('priority')}
+        isDisabled={isSaving}
+        value={task.priority}
+        onChange={(priority) => void updateTask({ priority })}
+      />
+      <Button
+        asChild
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.SM}
+        className="ml-auto w-fit"
+      >
+        <Link href={href(`${APP_ROUTES.WORKSPACE.TASKS}/${task.identifier}`)}>
+          <ExternalLink aria-hidden="true" className="size-3.5" />
+          {translate('openFullPage')}
+        </Link>
+      </Button>
     </div>
+  );
+}
+
+/** The task's comment thread, rendered below the shared detail body. */
+function TaskDetailComments({ task }: { task: Task }) {
+  const translate = useTranslations('pages.tasks.inspector');
+  const [comments, setComments] = useState<TaskComment[]>(EMPTY_COMMENTS);
+  const getCommentsService = useAuthedService((token) =>
+    TaskCommentsService.getInstanceForTask(token, task.id),
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setComments(EMPTY_COMMENTS);
+    void getCommentsService()
+      .then((service) => service.list())
+      .then((data) => {
+        if (!controller.signal.aborted) setComments(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setComments(EMPTY_COMMENTS);
+      });
+    return () => controller.abort();
+  }, [getCommentsService]);
+
+  return (
+    <section className="flex flex-col gap-3 px-6 py-4">
+      <h4 className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+        {translate('comments', { count: comments.length })}
+      </h4>
+      {comments.length > 0 ? (
+        <ol className="flex flex-col gap-4">
+          {comments.map((comment) => (
+            <TaskCommentRow key={comment.id} comment={comment} />
+          ))}
+        </ol>
+      ) : (
+        <p className="text-xs text-foreground/45">{translate('noComments')}</p>
+      )}
+    </section>
   );
 }
 
@@ -189,6 +181,79 @@ export default function TaskInspectorAdapter() {
   const inspector = useWorkspaceInspector();
   const setInspectorOpen = inspector?.setIsOpen;
   const previousTaskIdRef = useRef<string | null>(null);
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+  const getTasksService = useAuthedService((token) =>
+    TasksService.getInstance(token),
+  );
+
+  const mutateTask = useCallback(
+    async (
+      taskId: string,
+      operation: (service: TasksService) => Promise<Task>,
+    ) => {
+      setBusyTaskId(taskId);
+      try {
+        const service = await getTasksService();
+        const updated = await operation(service);
+        selection?.commitTask(updated);
+      } catch (error) {
+        notificationsService.error(
+          error instanceof Error
+            ? error.message
+            : 'Could not update task. Please try again.',
+        );
+      } finally {
+        setBusyTaskId(null);
+      }
+    },
+    [getTasksService, notificationsService, selection],
+  );
+
+  const { openPlanningConversation } = usePlanningConversation({
+    onError: (message) => notificationsService.error(message),
+    onTaskUpdated: (updated) => selection?.commitTask(updated),
+    setBusyTaskId,
+  });
+
+  const onApprove = useCallback(
+    (taskId: string) =>
+      mutateTask(taskId, (service) => service.approve(taskId)),
+    [mutateTask],
+  );
+  const onDismiss = useCallback(
+    (taskId: string) =>
+      mutateTask(taskId, (service) => service.dismiss(taskId)),
+    [mutateTask],
+  );
+  const onRequestChanges = useCallback(
+    (taskId: string) =>
+      mutateTask(taskId, (service) =>
+        service.requestChanges(
+          taskId,
+          'Please revise this task from the tasks list.',
+        ),
+      ),
+    [mutateTask],
+  );
+  const onKeepOutput = useCallback(
+    (taskId: string, outputId: string) =>
+      mutateTask(taskId, (service) => service.keepOutput(taskId, outputId)),
+    [mutateTask],
+  );
+  const onTrashOutput = useCallback(
+    (taskId: string, outputId: string) =>
+      mutateTask(taskId, (service) => service.trashOutput(taskId, outputId)),
+    [mutateTask],
+  );
+  const onUnkeepOutput = useCallback(
+    (taskId: string, outputId: string) =>
+      mutateTask(taskId, (service) => service.unkeepOutput(taskId, outputId)),
+    [mutateTask],
+  );
 
   // Open the rail when a *different* task is selected; never fight a collapse.
   useEffect(() => {
@@ -200,19 +265,49 @@ export default function TaskInspectorAdapter() {
     dispatchOpenContextTab();
   }, [selectedTask?.id, setInspectorOpen]);
 
+  const detailProps = useMemo<WorkspaceTaskDetailProps | null>(
+    () =>
+      selectedTask
+        ? {
+            busyTaskId,
+            leading: <TaskDetailLeading task={selectedTask} />,
+            onApprove,
+            onDismiss,
+            onKeepOutput,
+            onPlanNextSteps: openPlanningConversation,
+            onRequestChanges,
+            onTrashOutput,
+            onUnkeepOutput,
+            task: selectedTask,
+            trailing: <TaskDetailComments task={selectedTask} />,
+          }
+        : null,
+    [
+      busyTaskId,
+      onApprove,
+      onDismiss,
+      onKeepOutput,
+      onRequestChanges,
+      onTrashOutput,
+      onUnkeepOutput,
+      openPlanningConversation,
+      selectedTask,
+    ],
+  );
+
   const inspectorNode = useMemo(
     () =>
-      selectedTask ? (
-        <TaskInspector key={selectedTask.id} task={selectedTask} />
+      detailProps && selectedTask ? (
+        <WorkspaceTaskDetail key={selectedTask.id} {...detailProps} />
       ) : (
         <p
           className="px-4 py-6 text-sm text-foreground/55"
-          data-testid="task-surface-inspector"
+          data-testid="workspace-task-inspector"
         >
           {translate('empty')}
         </p>
       ),
-    [selectedTask, translate],
+    [detailProps, selectedTask, translate],
   );
   const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
   const contextLabel = selectedTask ? `Tasks · ${selectedTask.title}` : 'Tasks';

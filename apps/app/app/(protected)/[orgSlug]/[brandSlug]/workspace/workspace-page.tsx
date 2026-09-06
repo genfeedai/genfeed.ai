@@ -34,8 +34,8 @@ import {
   INBOX_VIEW_OPTIONS,
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
-import { WorkspaceTaskInspector } from './workspace-task-inspector';
 import { WorkspaceTaskQueueCard } from './workspace-task-queue-card';
+import { WorkspaceTaskRailAdapter } from './workspace-task-rail-adapter';
 
 const WorkspaceTaskComposer = dynamic(
   () =>
@@ -373,17 +373,15 @@ function WorkspacePageContentContent({
         ) : null}
       </div>
 
-      <WorkspaceTaskInspector
+      <WorkspaceTaskRailAdapter
         task={selectedTask}
         busyTaskId={busyTaskId}
         onKeepOutput={(taskId, outputId) =>
           mutateTask(taskId, (service) => service.keepOutput(taskId, outputId))
         }
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTaskId(null);
-            replaceTaskSearchParam(null);
-          }
+        onClose={() => {
+          setSelectedTaskId(null);
+          replaceTaskSearchParam(null);
         }}
         onApprove={(taskId) =>
           mutateTask(taskId, (service) => service.approve(taskId))
