@@ -81,6 +81,7 @@ describe('AgentStrategyAutopilotService', () => {
     };
     const opportunitiesService = {
       createIfMissing: vi.fn(),
+      claimForGeneration: vi.fn().mockResolvedValue(true),
       expireStaleOpportunities: vi.fn().mockResolvedValue(0),
       listByStrategy: vi.fn().mockResolvedValue([]),
       listOpenByStrategy: vi.fn(),
@@ -140,13 +141,7 @@ describe('AgentStrategyAutopilotService', () => {
       }),
     };
     const contentPerformanceService = {
-      queryPerformance: vi.fn().mockResolvedValue([]),
-    };
-    const performanceSummaryService = {
-      getWeeklySummary: vi.fn().mockResolvedValue({
-        bestPostingTimes: [],
-        topHooks: [],
-      }),
+      find: vi.fn().mockResolvedValue([]),
     };
     const logger = {
       debug: vi.fn(),
@@ -161,7 +156,6 @@ describe('AgentStrategyAutopilotService', () => {
       postsService as never,
       opportunitiesService as never,
       contentPerformanceService as never,
-      performanceSummaryService as never,
     );
     const planningService = new AgentStrategyAutopilotPlanningService(
       opportunitiesService as never,
@@ -190,6 +184,9 @@ describe('AgentStrategyAutopilotService', () => {
 
     return {
       activitiesService,
+      contentPerformanceService,
+      planningService,
+      performanceService,
       agentStrategiesService,
       batchGenerationService,
       contentGatewayService,
@@ -719,7 +716,168 @@ describe('AgentStrategyAutopilotService', () => {
     expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
       opportunityId,
       organizationId,
-      'published',
+      'approved',
+      expect.objectContaining({ decisionReason: expect.any(String) }),
+    );
+    expect(
+      deps.batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('holds rejected account variations before scheduling any target', async () => {
+    const deps = createService();
+
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      posts: [
+        {
+          description: 'Strong post draft',
+          id: draftId,
+          targetAttachments: [],
+          targetSettings: { generation: { metadata: {} } },
+        },
+      ],
+      runs: ['run-1'],
+    });
+
+    deps.optimizersService.analyzeContent.mockResolvedValue({
+      breakdown: {
+        clarity: 85,
+        engagement: 84,
+        platformOptimization: 82,
+        readability: 86,
+      },
+      metadata: { hasCallToAction: true },
+      overallScore: 88,
+    });
+
+    deps.optimizersService.analyzeContent
+      .mockResolvedValueOnce({
+        overallScore: 88,
+        metadata: { hasCallToAction: true },
+      })
+      .mockResolvedValueOnce({
+        overallScore: 20,
+        metadata: { hasCallToAction: false },
+      });
+    await expect(
+      deps.service.executeQueuedRun({
+        organizationId,
+        runId: 'run-1',
+        strategyId,
+        userId,
+      }),
+    ).rejects.toThrow('Account-specific content failed');
+
+    expect(deps.postsService.create).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).not.toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ targetExecutionState: 'scheduled' }),
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'held',
+      expect.any(Object),
+    );
+  });
+
+  it('publishes the revised content after a successful second quality gate', async () => {
+    const deps = createService();
+
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      posts: [
+        {
+          description: 'Strong post draft',
+          id: draftId,
+          targetAttachments: [],
+          targetSettings: { generation: { metadata: {} } },
+        },
+      ],
+      runs: ['run-1'],
+    });
+
+    deps.optimizersService.optimizeContent.mockResolvedValue({
+      optimized: 'Revised winning content',
+    });
+    deps.optimizersService.analyzeContent
+      .mockResolvedValueOnce({
+        overallScore: 65,
+        metadata: { hasCallToAction: true },
+      })
+      .mockResolvedValue({
+        breakdown: {
+          clarity: 85,
+          engagement: 84,
+          platformOptimization: 82,
+          readability: 86,
+        },
+        metadata: { hasCallToAction: true },
+        overallScore: 88,
+      });
+
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(result.contentGenerated).toBe(1);
+    expect(deps.postAccountFanoutService.resolveTargets).toHaveBeenCalledWith(
+      expect.objectContaining({ caption: 'Revised winning content' }),
+    );
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        description: 'Revised winning content',
+        targetExecutionState: 'scheduled',
+      }),
+    );
+    expect(deps.postAccountFanoutService.resolveTargets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        organizationId,
+        platforms: [Platform.TWITTER],
+      }),
+    );
+    expect(deps.postsService.create).not.toHaveBeenCalled();
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        credentialId,
+        platform: Platform.TWITTER,
+      }),
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'approved',
       expect.objectContaining({ decisionReason: expect.any(String) }),
     );
     expect(
@@ -817,5 +975,127 @@ describe('AgentStrategyAutopilotService', () => {
 
     expect(publishPatch?.groupId).toEqual(expect.any(String));
     expect(createdPost?.groupId).toBe(publishPatch?.groupId);
+  });
+  it('renews evergreen opportunities on the next day and rotates topics', async () => {
+    vi.useFakeTimers();
+    try {
+      const deps = createService();
+      const strategy = {
+        ...baseStrategy,
+        topics: ['First', 'Second'],
+        opportunitySources: {
+          ...baseStrategy.opportunitySources,
+          evergreenCadenceEnabled: true,
+        },
+      };
+      deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([]);
+      vi.setSystemTime(new Date('2026-09-06T12:00:00Z'));
+      await deps.planningService.refreshOpportunities(strategy as never);
+      const first = deps.opportunitiesService.createIfMissing.mock.calls[0][0];
+      await deps.planningService.refreshOpportunities(strategy as never);
+      expect(
+        deps.opportunitiesService.createIfMissing.mock.calls[1][0].sourceRef,
+      ).toBe(first.sourceRef);
+      vi.setSystemTime(new Date('2026-09-07T12:00:00Z'));
+      await deps.planningService.refreshOpportunities(strategy as never);
+      const next = deps.opportunitiesService.createIfMissing.mock.calls[2][0];
+      expect(next.sourceRef).not.toBe(first.sourceRef);
+      expect(next.topic).not.toBe(first.topic);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not call scheduled posts published or count completed runs as posts', async () => {
+    const deps = createService();
+    deps.postsService.find.mockResolvedValue([
+      {
+        id: postId,
+        groupId: 'group',
+        scheduledDate: new Date(),
+        targetExecutionState: 'scheduled',
+      },
+    ]);
+    expect(
+      await deps.performanceService.getPublishingCadence(baseStrategy as never),
+    ).toEqual({ today: 1, week: 1 });
+    deps.postsService.find.mockResolvedValue([]);
+    expect(
+      await deps.performanceService.getPublishingCadence({
+        ...baseStrategy,
+        runHistory: [{ completedAt: new Date() }],
+      } as never),
+    ).toEqual({ today: 0, week: 0 });
+  });
+
+  it('uses the requested reporting period and deduplicates cumulative post snapshots', async () => {
+    const deps = createService();
+    deps.contentPerformanceService.find.mockResolvedValue([
+      {
+        postId,
+        measuredAt: new Date(),
+        views: 100,
+        clicks: 10,
+        performanceScore: 80,
+        platform: 'twitter',
+        contentType: 'text',
+        hookUsed: 'Winner',
+      },
+      {
+        postId,
+        measuredAt: new Date(Date.now() - 1000),
+        views: 50,
+        clicks: 5,
+        performanceScore: 70,
+        platform: 'twitter',
+        contentType: 'text',
+      },
+    ]);
+    await deps.performanceService.generateStrategyReport(
+      strategyId,
+      organizationId,
+      'daily',
+    );
+    expect(deps.reportsService.createReport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        impressions: 100,
+        clicks: 10,
+        visits: null,
+        reportType: 'daily',
+        topHooks: ['Winner'],
+      }),
+    );
+    expect(deps.contentPerformanceService.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        post: expect.objectContaining({
+          agentStrategyId: strategyId,
+          organizationId,
+          isDeleted: false,
+        }),
+      }),
+    );
+  });
+  it('marks an opportunity published only after every account confirms', async () => {
+    const deps = createService();
+    deps.opportunitiesService.listByStrategy.mockResolvedValue([
+      { id: opportunityId, metadata: { postIds: ['a', 'b'] } },
+    ]);
+    deps.postsService.find.mockResolvedValue([
+      { id: 'a', targetExecutionState: 'published' },
+      { id: 'b', targetExecutionState: 'scheduled' },
+    ]);
+    await deps.performanceService.reconcilePublications(baseStrategy as never);
+    expect(deps.opportunitiesService.updateStatus).not.toHaveBeenCalled();
+    deps.postsService.find.mockResolvedValue([
+      { id: 'a', targetExecutionState: 'published' },
+      { id: 'b', targetExecutionState: 'published' },
+    ]);
+    await deps.performanceService.reconcilePublications(baseStrategy as never);
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'published',
+      expect.any(Object),
+    );
   });
 });

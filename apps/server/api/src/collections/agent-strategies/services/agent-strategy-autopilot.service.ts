@@ -122,13 +122,23 @@ export class AgentStrategyAutopilotService {
     const pacing = this.planningService.computeBudgetPacingState(strategy);
 
     await this.opportunitiesService.expireStaleOpportunities(strategy);
-    const opportunities =
-      await this.planningService.refreshOpportunities(strategy);
-    const selected = this.planningService.selectOpportunities(
+    const opportunities = await this.planningService.refreshOpportunities(
       strategy,
-      opportunities,
-      pacing,
+      true,
     );
+    const cadence =
+      await this.performanceService.getPublishingCadence(strategy);
+    const weeklyTarget = strategy.postsPerWeek ?? 0;
+    const remainingSlots = Math.max(
+      0,
+      Math.min(
+        weeklyTarget - cadence.week,
+        Math.ceil(weeklyTarget / 7) - cadence.today,
+      ),
+    );
+    const selected = this.planningService
+      .selectOpportunities(strategy, opportunities, pacing)
+      .slice(0, remainingSlots);
 
     if (selected.length === 0) {
       return {

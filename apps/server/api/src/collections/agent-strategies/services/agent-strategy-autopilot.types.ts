@@ -28,7 +28,7 @@ export interface AgentStrategyPerformanceSnapshot {
   }>;
   bestPostingWindows: string[];
   clicks: number;
-  costPerVisit: number;
+  costPerVisit: number | null;
   creditsSpent: number;
   ctr: number;
   generatedCount: number;
@@ -36,7 +36,7 @@ export interface AgentStrategyPerformanceSnapshot {
   publishedCount: number;
   topHooks: string[];
   topTopics: string[];
-  visits: number;
+  visits: number | null;
 }
 
 export interface ExecuteRunResult {

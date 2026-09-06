@@ -124,48 +124,84 @@ export class AgentStrategyOpportunitiesService {
   async createIfMissing(
     input: CreateOpportunityInput,
   ): Promise<AgentStrategyOpportunityDocument> {
-    const existing = await this.prisma.agentStrategyOpportunity.findFirst({
-      where: scopedWhere(input.organizationId, {
-        AND: [
-          { data: { equals: input.sourceType, path: ['sourceType'] } },
-          { data: { equals: input.topic, path: ['topic'] } },
-          ...(input.sourceRef
-            ? [{ data: { equals: input.sourceRef, path: ['sourceRef'] } }]
-            : []),
-        ],
-        strategyId: input.strategyId,
-      }),
-    });
-    if (existing) {
-      return this.normalizeOpportunity(
-        existing as unknown as Record<string, unknown>,
-      );
-    }
-
-    const { brandId, organizationId, strategyId, ...data } = input;
-    const created = await this.prisma.agentStrategyOpportunity.create({
-      data: {
-        brandId: typeof brandId === 'string' ? brandId : null,
-        data: this.toJsonValue({
-          ...data,
-          metadata: input.metadata ?? {},
+    return this.prisma.$transaction(async (transaction) => {
+      const key = JSON.stringify([
+        'agent-strategy-opportunity',
+        input.organizationId,
+        input.strategyId,
+        input.sourceType,
+        input.topic,
+      ]);
+      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      const existing = await transaction.agentStrategyOpportunity.findFirst({
+        where: scopedWhere(input.organizationId, {
+          AND: [
+            { data: { equals: input.sourceType, path: ['sourceType'] } },
+            { data: { equals: input.topic, path: ['topic'] } },
+            ...(input.sourceRef
+              ? [{ data: { equals: input.sourceRef, path: ['sourceRef'] } }]
+              : []),
+          ],
+          strategyId: input.strategyId,
         }),
-        isDeleted: false,
-        organizationId,
-        strategyId,
+      });
+      if (existing) {
+        return this.normalizeOpportunity(
+          existing as unknown as Record<string, unknown>,
+        );
+      }
+
+      const { brandId, organizationId, strategyId, ...data } = input;
+      const created = await transaction.agentStrategyOpportunity.create({
+        data: {
+          brandId: typeof brandId === 'string' ? brandId : null,
+          data: this.toJsonValue({
+            ...data,
+            status: 'queued',
+            metadata: input.metadata ?? {},
+          }),
+          isDeleted: false,
+          organizationId,
+          strategyId,
+        },
+      });
+
+      this.logger.log('Created agent strategy opportunity', {
+        opportunityId: created.id,
+        sourceType: input.sourceType,
+        strategyId: input.strategyId,
+        topic: input.topic,
+      });
+
+      return this.normalizeOpportunity(
+        created as unknown as Record<string, unknown>,
+      );
+    });
+  }
+
+  async claimForGeneration(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const existing = await this.prisma.agentStrategyOpportunity.findFirst({
+      where: scopedWhere(organizationId, { id }),
+    });
+    if (
+      !existing ||
+      !this.isPlainObject(existing.data) ||
+      existing.data.status !== 'queued'
+    )
+      return false;
+    const result = await this.prisma.agentStrategyOpportunity.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        data: { equals: 'queued', path: ['status'] },
+      }),
+      data: {
+        data: this.toJsonValue({ ...existing.data, status: 'generating' }),
       },
     });
-
-    this.logger.log('Created agent strategy opportunity', {
-      opportunityId: created.id,
-      sourceType: input.sourceType,
-      strategyId: input.strategyId,
-      topic: input.topic,
-    });
-
-    return this.normalizeOpportunity(
-      created as unknown as Record<string, unknown>,
-    );
+    return result.count === 1;
   }
 
   async updateStatus(
@@ -207,6 +243,11 @@ export class AgentStrategyOpportunitiesService {
       strategy.organizationId,
     );
     const stale = openOpportunities.filter((opportunity) => {
+      if (
+        Array.isArray(opportunity.metadata?.postIds) &&
+        opportunity.metadata.postIds.length > 0
+      )
+        return false;
       const expiresAt = this.getExpiresAtTimestamp(opportunity);
       return expiresAt !== null && expiresAt <= Date.now();
     });

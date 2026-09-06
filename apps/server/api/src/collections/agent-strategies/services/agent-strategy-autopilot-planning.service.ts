@@ -65,23 +65,40 @@ export class AgentStrategyAutopilotPlanningService {
 
   async refreshOpportunities(
     strategy: AgentStrategyDocument,
+    refreshTrends = false,
   ): Promise<AgentStrategyOpportunityDocument[]> {
+    await this.performanceService.reconcilePublications(strategy);
     const created: AgentStrategyOpportunityDocument[] = [];
     const platforms = strategyPlatforms(strategy);
+    const day = new Intl.DateTimeFormat('en-CA', {
+      timeZone: strategy.timezone || 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const topics = strategy.topics?.length
+      ? strategy.topics
+      : [strategy.label || 'General update'];
     const defaultTopic =
-      strategy.topics?.[0] ?? strategy.label ?? 'General update';
+      topics[Math.floor(Date.parse(day) / 86_400_000) % topics.length];
     const strategyBrandId = getStrategyBrandId(strategy);
     const strategyId = getStrategyId(strategy);
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
 
     if (strategy.opportunitySources?.trendWatchersEnabled && strategyBrandId) {
       for (const platform of platforms.slice(0, 3)) {
-        const trends = await this.trendsService.getTrends(
-          strategyOrganizationId,
-          strategyBrandId,
-          platform,
-          { allowFetchIfMissing: false },
-        );
+        const trends = refreshTrends
+          ? await this.trendsService.fetchAndCachePlatformTrends(
+              platform,
+              strategyOrganizationId,
+              strategyBrandId,
+            )
+          : await this.trendsService.getTrends(
+              strategyOrganizationId,
+              strategyBrandId,
+              platform,
+              { allowFetchIfMissing: false },
+            );
 
         for (const trend of trends.slice(0, 3)) {
           created.push(
@@ -160,18 +177,12 @@ export class AgentStrategyAutopilotPlanningService {
     }
 
     if (strategy.opportunitySources?.evergreenCadenceEnabled) {
-      const recentPublishedCount = (strategy.runHistory ?? []).filter(
-        (item) => {
-          if (!item.completedAt) {
-            return false;
-          }
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
-          return item.completedAt >= sevenDaysAgo;
-        },
-      ).length;
-
-      if (recentPublishedCount < (strategy.postsPerWeek ?? 0)) {
+      const cadence =
+        await this.performanceService.getPublishingCadence(strategy);
+      if (
+        cadence.week < (strategy.postsPerWeek ?? 0) &&
+        cadence.today < Math.ceil((strategy.postsPerWeek ?? 0) / 7)
+      ) {
         created.push(
           await this.opportunitiesService.createIfMissing({
             brandId: strategyBrandId ?? '',
@@ -192,7 +203,7 @@ export class AgentStrategyAutopilotPlanningService {
               relevance: computeTopicRelevance(strategy, defaultTopic),
             }),
             relevanceScore: computeTopicRelevance(strategy, defaultTopic),
-            sourceRef: `evergreen:${defaultTopic}`,
+            sourceRef: `evergreen:${day}:${defaultTopic}`,
             sourceType: 'evergreen',
             strategyId,
             topic: defaultTopic,
