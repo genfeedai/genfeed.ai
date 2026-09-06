@@ -11,8 +11,9 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer } from 'react';
 import { LoadingSpinner } from '~components/ui';
+import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
+import { useBrandStore } from '~store/use-brand-store';
 import type { SocialPlatform } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
@@ -152,27 +153,12 @@ export function IdeaDraftPage({
         return;
       }
 
-      const response = await fetch(`${apiEndpoint}/posts`, {
-        body: JSON.stringify({
-          content,
-          platform,
-          sourceUrl: url || undefined,
-          status: 'draft',
-          title: title || generateTitle(content),
-        }),
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(
-          (err as { message?: string }).message ?? 'Failed to save draft',
-        );
-      }
+      await new AgentToolsService(token).saveDraft(
+        content,
+        platform,
+        title || generateTitle(content),
+        useBrandStore.getState().activeBrandId,
+      );
 
       dispatch({ type: 'SAVE_SUCCESS' });
     } catch (err) {

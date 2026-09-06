@@ -1,11 +1,8 @@
 'use client';
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type {
-  TrendCorpusFreshnessHealth,
-  TrendCorpusFreshnessStatus,
-} from '@props/trends/trends-page.props';
-import Badge from '@ui/display/badge/Badge';
+import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
+import type { TrendCorpusFreshnessHealth } from '@props/trends/trends-page.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
@@ -19,83 +16,6 @@ type Props = {
   totalTrackedTopics: number;
 };
 
-type CorpusStatusView = {
-  detail: string;
-  label: string;
-  variant: 'default' | 'error' | 'success' | 'warning';
-};
-
-const STATUS_VIEW: Record<TrendCorpusFreshnessStatus, CorpusStatusView> = {
-  degraded: {
-    detail: '',
-    label: 'Trend corpus degraded',
-    variant: 'warning',
-  },
-  empty: {
-    detail: 'Scheduled ingestion has not produced trend data yet.',
-    label: 'Trend corpus empty',
-    variant: 'error',
-  },
-  healthy: {
-    detail: '',
-    label: 'Trend corpus healthy',
-    variant: 'success',
-  },
-  stale: {
-    detail: 'Cached trends are available, but their sources are stale.',
-    label: 'Trend corpus stale',
-    variant: 'warning',
-  },
-};
-
-function getCorpusStatusView(
-  corpusHealth: TrendCorpusFreshnessHealth | null,
-  formattedLastSyncedAt: string,
-  isCorpusHealthUnavailable: boolean,
-): CorpusStatusView {
-  if (isCorpusHealthUnavailable) {
-    return {
-      detail: 'Scheduled ingestion status could not be loaded.',
-      label: 'Trend corpus unavailable',
-      variant: 'error',
-    };
-  }
-
-  if (!corpusHealth) {
-    return {
-      detail: 'Checking scheduled ingestion status.',
-      label: 'Checking trend corpus',
-      variant: 'default',
-    };
-  }
-
-  const view = STATUS_VIEW[corpusHealth.status];
-  if (corpusHealth.status === 'degraded') {
-    const affected = corpusHealth.providerFailures
-      .map(
-        ({ platform, provider, reason }) =>
-          `${platform} (${provider}: ${reason.replaceAll('_', ' ')})`,
-      )
-      .join(', ');
-    const lastSuccess = formattedLastSyncedAt
-      ? ` Last successful refresh ${formattedLastSyncedAt}.`
-      : ' No successful refresh has been recorded.';
-    return {
-      ...view,
-      detail: `Affected: ${affected || 'provider status unavailable'}. Cached trends remain available.${lastSuccess}`,
-    };
-  }
-  if (corpusHealth.status === 'healthy') {
-    const { activeTrends, platforms } = corpusHealth.summary;
-    return {
-      ...view,
-      detail: `${activeTrends} active trend${activeTrends === 1 ? '' : 's'} across ${platforms.length} platform${platforms.length === 1 ? '' : 's'}.`,
-    };
-  }
-
-  return view;
-}
-
 export default function TrendsPageHeader({
   corpusHealth,
   formattedLastSyncedAt,
@@ -105,30 +25,17 @@ export default function TrendsPageHeader({
   leadingPlatform,
   totalTrackedTopics,
 }: Props) {
-  const corpusStatus = getCorpusStatusView(
-    corpusHealth,
-    formattedLastSyncedAt,
-    isCorpusHealthUnavailable,
-  );
-
   return (
     <header>
+      <CorpusHealthPanel
+        health={corpusHealth}
+        isUnavailable={isCorpusHealthUnavailable}
+      />
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge
-            variant={corpusStatus.variant}
-            className="text-xs uppercase tracking-wide"
-          >
-            {corpusStatus.label}
-          </Badge>
-
-          <Text size="sm" color="subtle-60">
-            {corpusStatus.detail}
-          </Text>
-
           {formattedLastSyncedAt && (
             <Text size="sm" color="subtle-60">
-              Last updated {formattedLastSyncedAt}
+              Latest observed source {formattedLastSyncedAt}
             </Text>
           )}
 

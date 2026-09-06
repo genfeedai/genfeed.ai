@@ -1,4 +1,33 @@
 {
+  "about": {
+    "apiReference": "API Reference",
+    "available": "{tag} available",
+    "changelog": "Changelog",
+    "channel": "Channel",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking…",
+    "client": "Client",
+    "commit": "Commit",
+    "copied": "Build details copied.",
+    "copyBuild": "Copy build details",
+    "copyChannel": "channel {channel}",
+    "copyDesktop": "desktop {version}",
+    "copyError": "Could not copy build details.",
+    "copyVersion": "version {version}",
+    "current": "Up to date.",
+    "deployment": "Deployment",
+    "description": "Build details for support and updates.",
+    "desktopVersion": "Desktop version",
+    "documentation": "Documentation",
+    "helpCommunity": "Community",
+    "helpResources": "Resources",
+    "release": "Release",
+    "title": "About Genfeed",
+    "unavailable": "Unavailable",
+    "unreleased": "unreleased build",
+    "updateError": "Could not check for updates. Try again later.",
+    "version": "Version"
+  },
   "analytics": {
     "accounts": {
       "errorTitle": "Account analytics error",
@@ -17,6 +46,39 @@
       "detail": {
         "loadingTitle": "Loading trend…",
         "notFound": "Trend not found"
+      },
+      "corpusHealth": {
+        "title": "Source health",
+        "checkingCorpus": "Checking trend corpus",
+        "unavailableDescription": "Source health could not be loaded. Previously loaded health may be outdated. Saved items remain available.",
+        "description": "Health describes saved source coverage. It does not confirm that a provider refresh succeeded.",
+        "checkingHealth": "Checking health",
+        "unavailableHealth": "Health unavailable",
+        "missingHealth": "No saved health is available for this platform. Reload to check again.",
+        "notRecorded": "Not recorded",
+        "sourceTimestamp": "Last observed source timestamp: {timestamp}",
+        "previewTimestamp": "Last preview observation: {timestamp}",
+        "lastRefresh": "Last successful refresh: Not recorded",
+        "lastAttempt": "Last attempt: Not recorded",
+        "status": {
+          "healthy": "healthy",
+          "stale": "stale",
+          "degraded": "degraded",
+          "empty": "empty",
+          "unavailable": "unavailable"
+        },
+        "corpusStatus": {
+          "healthy": "Trend corpus healthy",
+          "stale": "Trend corpus stale",
+          "degraded": "Trend corpus degraded",
+          "empty": "Trend corpus empty",
+          "unavailable": "Trend corpus unavailable"
+        },
+        "failure": {
+          "empty_source_preview": "No source previews were observed.",
+          "fallback_source_preview": "Saved fallback previews are being used.",
+          "stale_source_preview": "Saved source previews are stale."
+        }
       }
     }
   },
@@ -1001,7 +1063,20 @@
       }
     },
     "title": "Cost & Usage",
-    "yes": "Yes"
+    "yes": "Yes",
+    "workflowAccounting": {
+      "providerCost": "Provider cost (USD)",
+      "execution": "Execution",
+      "estimatedCredits": "Estimated credits",
+      "actualCredits": "Actual credits",
+      "variance": "Variance",
+      "unavailable": "Unavailable",
+      "title": "Workflow accounting",
+      "empty": "No executions",
+      "export": "Export workflow costs",
+      "limit": "Latest 100 executions in this period. Workflow totals are a separate view of the ledger.",
+      "known": "Unavailable (known {value})"
+    }
   },
   "organizationRouting": {
     "failure": {

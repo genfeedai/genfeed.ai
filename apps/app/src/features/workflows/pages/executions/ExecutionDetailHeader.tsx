@@ -9,7 +9,7 @@ type Props = {
   workflowLabel: string;
   status: WorkflowExecutionStatus;
   executionsHref: string;
-  workflowHref: string;
+  workflowHref: string | null;
 };
 
 export default function ExecutionDetailHeader({
@@ -30,13 +30,15 @@ export default function ExecutionDetailHeader({
       >
         All executions
       </Link>
-      <Link
-        href={workflowHref}
-        className="border border-border px-4 py-2 hover:bg-accent"
-      >
-        View Workflow
-      </Link>
-      {status === WorkflowExecutionStatus.FAILED && (
+      {workflowHref ? (
+        <Link
+          href={workflowHref}
+          className="border border-border px-4 py-2 hover:bg-accent"
+        >
+          View Workflow
+        </Link>
+      ) : null}
+      {workflowHref && status === WorkflowExecutionStatus.FAILED && (
         <Button variant={ButtonVariant.DEFAULT}>Resume Execution</Button>
       )}
     </div>

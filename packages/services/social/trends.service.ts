@@ -151,14 +151,10 @@ export class TrendsService extends BaseService<Trend> {
    */
   async getTrendsDiscovery(options?: {
     platform?: string;
-    refresh?: boolean;
   }): Promise<TrendsResponse> {
     const params: Record<string, string> = {};
     if (options?.platform) {
       params.platform = options.platform;
-    }
-    if (options?.refresh) {
-      params.refresh = 'true';
     }
 
     const response = await this.instance.get<TrendsResponse>('/discovery', {
@@ -194,7 +190,6 @@ export class TrendsService extends BaseService<Trend> {
   async getTrendContent(options?: {
     platform?: string;
     limit?: number;
-    refresh?: boolean;
   }): Promise<TrendContentResponse> {
     const params: Record<string, string | number> = {};
     if (options?.platform) {
@@ -202,9 +197,6 @@ export class TrendsService extends BaseService<Trend> {
     }
     if (options?.limit) {
       params.limit = options.limit;
-    }
-    if (options?.refresh) {
-      params.refresh = 'true';
     }
 
     const response = await this.instance.get<TrendContentResponse>('/content', {

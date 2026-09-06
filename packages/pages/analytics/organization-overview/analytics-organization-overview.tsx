@@ -247,7 +247,7 @@ export default function AnalyticsOrganizationOverview({
       try {
         const service = await getAnalyticsService();
         const response = (await service.getPlatformComparison({
-          brandId,
+          brandId: brandId || undefined,
           endDate,
           startDate,
         })) as Record<string, { posts?: number; views?: number }>;

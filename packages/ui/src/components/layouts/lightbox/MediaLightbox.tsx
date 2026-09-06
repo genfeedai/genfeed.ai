@@ -60,7 +60,7 @@ export default function MediaLightbox({
 
   const backdropStyles = useMemo(() => {
     if (!dominant) {
-      return undefined;
+      return {};
     }
     const darken = (channel: number) => Math.round(channel * 0.16);
     return {
@@ -159,9 +159,6 @@ export default function MediaLightbox({
     }, []);
   }, [items]);
 
-  // Mount only when open AND ready. Mounting a closed Lightbox with empty
-  // plugins has crashed production Studio image clicks with
-  // `Cannot read properties of undefined (reading 'root')` (APP-GENFEED-AI-7).
   const isReady = plugins.length > 0 && slides.length > 0;
   if (!open || !isReady) {
     return null;

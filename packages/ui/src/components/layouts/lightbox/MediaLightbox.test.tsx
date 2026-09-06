@@ -1,33 +1,24 @@
 import { IngredientCategory } from '@genfeedai/contracts';
-import { render, waitFor } from '@testing-library/react';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { render, screen } from '@testing-library/react';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { describe, expect, it, vi } from 'vitest';
 
-const { lightbox } = vi.hoisted(() => ({ lightbox: vi.fn() }));
-vi.mock('next/dynamic', () => ({
-  default: () => (props: unknown) => {
-    lightbox(props);
-    return <div data-testid="lightbox" />;
-  },
-}));
-vi.mock('yet-another-react-lightbox', () => ({
-  default: (props: unknown) => {
-    lightbox(props);
-    return <div data-testid="lightbox" />;
-  },
+vi.mock('next/dynamic', async () => {
+  const { default: Lightbox } = await import('yet-another-react-lightbox');
+  return { default: () => Lightbox };
+});
+
+vi.mock('@genfeedai/hooks/ui/use-dominant-color/use-dominant-color', () => ({
+  useDominantColor: () => null,
 }));
 
-vi.mock('yet-another-react-lightbox/plugins/video', () => ({
-  default: vi.fn(),
-}));
-
-vi.mock('yet-another-react-lightbox/plugins/captions', () => ({
-  default: vi.fn(),
-}));
-
-vi.mock('yet-another-react-lightbox/plugins/thumbnails', () => ({
-  default: vi.fn(),
-}));
+const image = {
+  id: 'apple',
+  ingredientUrl: 'https://example.com/apple.jpg',
+  thumbnailUrl: 'https://example.com/apple.jpg',
+  metadataLabel: 'Apple',
+} as IIngredient;
 
 describe('MediaLightbox', () => {
   it('does not use video files as image posters when thumbnails are missing', async () => {
@@ -35,9 +26,10 @@ describe('MediaLightbox', () => {
       <MediaLightbox
         items={[
           {
-            id: 'video',
+            ...image,
             category: IngredientCategory.VIDEO,
             ingredientUrl: 'https://cdn.test/video.mp4',
+            thumbnailUrl: undefined,
           },
         ]}
         startIndex={0}
@@ -45,51 +37,35 @@ describe('MediaLightbox', () => {
         onClose={vi.fn()}
       />,
     );
-    await waitFor(() =>
-      expect(lightbox).toHaveBeenCalledWith(
-        expect.objectContaining({
-          slides: [
-            expect.objectContaining({
-              type: 'video',
-              poster: undefined,
-              thumbnailSrc: undefined,
-            }),
-          ],
-        }),
-      ),
-    );
+    const video = await screen.findByLabelText('Media lightbox video');
+    expect(video).toHaveAttribute('src', 'https://cdn.test/video.mp4');
+    expect(video).not.toHaveAttribute('poster');
+    expect(screen.queryByAltText('Video thumbnail')).not.toBeInTheDocument();
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(
-      <MediaLightbox items={[]} open={false} onClose={vi.fn()} />,
+  it('opens the real viewer while the dominant colour is unavailable', async () => {
+    render(
+      <MediaLightbox items={[image]} open startIndex={0} onClose={vi.fn()} />,
     );
-    expect(container).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: 'Lightbox' }),
+    ).toBeInTheDocument();
   });
 
-  it('should render with items', () => {
-    const items = [
-      {
-        id: '1',
-        ingredientUrl: 'https://example.com/image.jpg',
-        thumbnailUrl: 'https://example.com/thumb.jpg',
-      },
-    ];
-    const { container } = render(
+  it('does not mount a closed viewer', () => {
+    render(
       <MediaLightbox
-        items={items}
-        open={true}
-        onClose={vi.fn()}
+        items={[image]}
+        open={false}
         startIndex={0}
+        onClose={vi.fn()}
       />,
     );
-    expect(container).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('should handle empty items array', () => {
-    const { container } = render(
-      <MediaLightbox items={[]} open={true} onClose={vi.fn()} />,
-    );
-    expect(container).toBeInTheDocument();
+  it('does not mount a viewer without slides', () => {
+    render(<MediaLightbox items={[]} open startIndex={0} onClose={vi.fn()} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

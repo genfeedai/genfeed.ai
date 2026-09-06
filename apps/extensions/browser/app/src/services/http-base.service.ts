@@ -149,7 +149,18 @@ export abstract class HTTPBaseService {
       throw authError;
     }
 
-    throw response?.data || error;
+    const data = response.data;
+    const message =
+      typeof data === 'object' && data !== null && 'message' in data
+        ? data.message
+        : undefined;
+    throw new Error(
+      Array.isArray(message)
+        ? message.join(', ')
+        : typeof message === 'string'
+          ? message
+          : error.message,
+    );
   };
 
   public setToken(newToken: string) {

@@ -87,6 +87,27 @@ describe('ExecutionDetailPage', () => {
     });
   });
 
+  it('keeps system run details visible without links to hidden definitions', async () => {
+    mocks.getExecution.mockResolvedValue({
+      id: 'system-run',
+      workflowId: 'hidden',
+      nodeResults: [],
+      createdAt: '2026-08-19T09:00:00.000Z',
+      status: 'failed',
+      metadata: { isSystemAction: true },
+    });
+    render(<ExecutionDetailPage executionId="system-run" />);
+    expect(
+      await screen.findByText('hidden execution system-run'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'View Workflow' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Resume Execution' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the execution header once the run has loaded', async () => {
     render(<ExecutionDetailPage executionId="exec-1" />);
 

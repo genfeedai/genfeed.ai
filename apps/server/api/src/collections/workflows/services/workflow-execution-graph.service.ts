@@ -4,11 +4,17 @@ import {
   type ExecutableNode,
   type ExecutionRunResult,
   getExecutableNodeOperationId,
+  type NodeExecutionResult,
   topologicalSort,
 } from '@genfeedai/workflows/engine';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
 
 export const WORKFLOW_FAILURE_EDGE_HANDLE = 'failure';
+
+type NodeExecutionStates = ReadonlyMap<
+  string,
+  Pick<NodeExecutionResult, 'status'>
+>;
 
 export class WorkflowExecutionGraphService {
   collectDownstreamNodeIds(
@@ -42,11 +48,12 @@ export class WorkflowExecutionGraphService {
     node: ExecutableNode,
     edges: ExecutableEdge[],
     cache: Map<string, unknown>,
+    results: NodeExecutionStates,
   ): Map<string, unknown> {
     const inputs = new Map<string, unknown>();
 
     for (const edge of edges) {
-      if (edge.target !== node.id) {
+      if (edge.target !== node.id || !this.isEdgeActive(edge, results)) {
         continue;
       }
 
@@ -109,15 +116,19 @@ export class WorkflowExecutionGraphService {
     edges: ExecutableEdge[],
     completedNodes: Set<string>,
     skippedNodes: Set<string>,
+    results: NodeExecutionStates,
   ): boolean {
-    const deps = this.getNodeDependencies(nodeId, edges);
-    if (deps.length === 0) {
+    const incoming = edges.filter((edge) => edge.target === nodeId);
+    if (incoming.length === 0) {
       return true;
     }
 
-    return deps.some(
-      (depId) => completedNodes.has(depId) && !skippedNodes.has(depId),
-    );
+    return incoming.some((edge) => {
+      if (!completedNodes.has(edge.source) || skippedNodes.has(edge.source)) {
+        return false;
+      }
+      return this.isEdgeActive(edge, results);
+    });
   }
 
   extractBranch(output: unknown): string {
@@ -144,13 +155,7 @@ export class WorkflowExecutionGraphService {
         e.sourceHandle !== branch,
     );
 
-    this.pruneEdges(
-      conditionNodeId,
-      prunedEdges,
-      edges,
-      skippedNodes,
-      completedNodes,
-    );
+    this.pruneEdges(prunedEdges, edges, skippedNodes, completedNodes);
   }
 
   hasFailureEdge(nodeId: string, edges: ExecutableEdge[]): boolean {
@@ -168,7 +173,6 @@ export class WorkflowExecutionGraphService {
     completedNodes: Set<string>,
   ): void {
     this.pruneEdges(
-      nodeId,
       edges.filter(
         (edge) =>
           edge.source === nodeId &&
@@ -187,7 +191,6 @@ export class WorkflowExecutionGraphService {
     completedNodes: Set<string>,
   ): void {
     this.pruneEdges(
-      nodeId,
       edges.filter(
         (edge) =>
           edge.source === nodeId &&
@@ -276,6 +279,16 @@ export class WorkflowExecutionGraphService {
     return undefined;
   }
 
+  private isEdgeActive(
+    edge: ExecutableEdge,
+    results: NodeExecutionStates,
+  ): boolean {
+    const failed = results.get(edge.source)?.status === 'failed';
+    return edge.sourceHandle === WORKFLOW_FAILURE_EDGE_HANDLE
+      ? failed
+      : !failed;
+  }
+
   private addInput(
     inputs: Map<string, unknown>,
     handle: string,
@@ -293,7 +306,6 @@ export class WorkflowExecutionGraphService {
   }
 
   private pruneEdges(
-    originNodeId: string,
     prunedEdges: ExecutableEdge[],
     allEdges: ExecutableEdge[],
     skippedNodes: Set<string>,
@@ -315,7 +327,8 @@ export class WorkflowExecutionGraphService {
         allEdges,
         nodesToSkip,
         completedNodes,
-        originNodeId,
+        prunedEdges,
+        skippedNodes,
       );
     }
     for (const nodeId of nodesToSkip) {
@@ -328,21 +341,19 @@ export class WorkflowExecutionGraphService {
     edges: ExecutableEdge[],
     collected: Set<string>,
     completedNodes: Set<string>,
-    originConditionNodeId: string,
+    prunedEdges: ExecutableEdge[],
+    skippedNodes: Set<string>,
   ): void {
     if (collected.has(nodeId) || completedNodes.has(nodeId)) {
       return;
     }
 
-    const sources = edges
-      .filter((e) => e.target === nodeId)
-      .map((e) => e.source);
-
-    const hasNonPrunedSource = sources.some(
-      (src) =>
-        src !== originConditionNodeId &&
-        !collected.has(src) &&
-        (completedNodes.has(src) || !collected.has(src)),
+    const hasNonPrunedSource = edges.some(
+      (edge) =>
+        edge.target === nodeId &&
+        !prunedEdges.includes(edge) &&
+        !collected.has(edge.source) &&
+        !skippedNodes.has(edge.source),
     );
 
     if (hasNonPrunedSource) {
@@ -358,7 +369,8 @@ export class WorkflowExecutionGraphService {
         edges,
         collected,
         completedNodes,
-        originConditionNodeId,
+        prunedEdges,
+        skippedNodes,
       );
     }
   }

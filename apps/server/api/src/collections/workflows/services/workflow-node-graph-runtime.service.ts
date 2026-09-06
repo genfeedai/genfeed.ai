@@ -67,10 +67,11 @@ export class WorkflowNodeGraphRuntimeService {
         if (!isCompleted && !isFailed) continue;
         const output = row.output;
         if (isCompleted) completedNodes.add(nodeId);
+        if (isFailed) completedNodes.delete(nodeId);
         if (isCompleted && output !== undefined && !nodeCache.has(nodeId)) {
           nodeCache.set(nodeId, output);
         }
-        if (!nodeResults.has(nodeId)) {
+        if (isFailed || !nodeResults.has(nodeId)) {
           const creditsUsed =
             typeof row.creditsUsed === 'number' ? row.creditsUsed : 0;
           hydratedCredits += creditsUsed;
@@ -123,7 +124,11 @@ export class WorkflowNodeGraphRuntimeService {
       .filter(
         (id) => !input.completedNodes.has(id) && !input.skippedNodes.has(id),
       );
-    const nodeOutputCache = Object.fromEntries(input.nodeCache);
+    const nodeOutputCache = Object.fromEntries(
+      [...input.nodeCache].filter(
+        ([nodeId]) => input.nodeResults.get(nodeId)?.status !== 'failed',
+      ),
+    );
     const delayJobData: DelayResumeJobData = {
       delayNodeId: input.nodeId,
       executionId: input.executionId,

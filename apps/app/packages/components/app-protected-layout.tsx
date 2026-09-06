@@ -170,7 +170,6 @@ function AppLayoutWithDynamicMenu({
     messagesMenuItems,
     isPublishingRoute,
     handleNavigate,
-    handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
     isDesktopShell,
     isUniversalWorkspaceShell,
@@ -344,7 +343,6 @@ function AppLayoutWithDynamicMenu({
         automationMenuItems={automationMenuItems}
         messagesMenuItems={messagesMenuItems}
         navPanel={activeNavPanel}
-        onOpenCommandPalette={handleOpenCommandPalette}
       />
     );
   }, [
@@ -352,7 +350,6 @@ function AppLayoutWithDynamicMenu({
     analyticsMenuItems,
     currentApp,
     activeNavPanel,
-    handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
     isConversationRoute,

@@ -1,6 +1,9 @@
+import { readWorkflowAccountings } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/contracts';
+import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   CostReportEntryType,
   ICostReportBrandTotals,
@@ -58,6 +61,37 @@ interface CostEntryRow {
 @Injectable()
 export class CostReportingService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getWorkflowExecutions(
+    organizationId: string,
+    query: ICostReportQuery,
+  ): Promise<WorkflowCostReportExecution[]> {
+    await this.validateBrandScope(organizationId, query.brandId);
+    const range = resolveCostReportRange(query);
+    const rows = await this.prisma.workflowExecution.findMany({
+      where: scopedWhere(organizationId, {
+        createdAt: { gte: range.from, lte: range.to },
+        ...(query.brandId
+          ? {
+              costEstimate: { path: ['brandId'], equals: query.brandId },
+            }
+          : {}),
+      }),
+      select: { id: true, workflowId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    const accounting = await readWorkflowAccountings(
+      this.prisma,
+      organizationId,
+      rows.map((row) => row.id),
+    );
+    return rows.map((row) => ({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      accounting: accounting.get(row.id) ?? null,
+    }));
+  }
 
   async getSummary(
     organizationId: string,
@@ -238,6 +272,7 @@ export class CostReportingService {
       FROM "llm_vendor_costs"
       WHERE "organizationId" = ${options.organizationId}
         AND "isDeleted" = false
+        AND ("workflowExecutionId" IS NULL OR "costEvidence" IN ('observed', 'calculated', 'byok'))
         AND "createdAt" >= ${options.from}
         AND "createdAt" <= ${options.to}
         ${ledgerBrandFilter}
@@ -263,6 +298,7 @@ export class CostReportingService {
       FROM "media_vendor_costs"
       WHERE "organizationId" = ${options.organizationId}
         AND "isDeleted" = false
+        AND ("workflowExecutionId" IS NULL OR "costEvidence" IN ('observed', 'calculated', 'byok'))
         AND "createdAt" >= ${options.from}
         AND "createdAt" <= ${options.to}
         ${ledgerBrandFilter}

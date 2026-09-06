@@ -11,8 +11,9 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useReducer } from 'react';
 import { LoadingSpinner } from '~components/ui';
+import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
+import { useBrandStore } from '~store/use-brand-store';
 import type { SocialPlatform } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
@@ -33,6 +34,7 @@ interface RemixResult {
 }
 
 interface RemixResultViewProps {
+  error: string | null;
   copiedIndex: number | null;
   result: RemixResult;
   onBack: () => void;
@@ -77,6 +79,7 @@ function getRemixItems(result: RemixResult): string[] {
 }
 
 function RemixResultView({
+  error,
   copiedIndex,
   result,
   onBack,
@@ -101,6 +104,11 @@ function RemixResultView({
         </Button>
       </div>
 
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
       {remixItems.length > 0 ? (
         <div className="flex flex-col gap-2">
           {remixItems.map((item, i) => (
@@ -315,76 +323,12 @@ export function RemixPage({
         return;
       }
 
-      const response = await fetch(`${apiEndpoint}/ingredients`, {
-        body: JSON.stringify({
-          platform,
-          sourceContent: content,
-          sourceUrl: url || undefined,
-          type: 'remix',
-        }),
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        // Fallback: try /clip-projects/analyze
-        const fallback = await fetch(`${apiEndpoint}/clip-projects/analyze`, {
-          body: JSON.stringify({
-            platform,
-            sourceContent: content,
-            sourceUrl: url || undefined,
-          }),
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          method: 'POST',
-        });
-
-        if (!fallback.ok) {
-          const err = await fallback.json().catch(() => ({}));
-          throw new Error(
-            (err as { message?: string }).message || 'Failed to remix content',
-          );
-        }
-
-        const data = (await fallback.json()) as {
-          angles?: string[];
-          hooks?: string[];
-          script?: string;
-          title?: string;
-        };
-        dispatch({
-          payload: {
-            angles: data.angles,
-            hooks: data.hooks,
-            rawContent: content,
-            script: data.script,
-            title: data.title,
-          },
-          type: 'SET_RESULT',
-        });
-      } else {
-        const data = (await response.json()) as {
-          angles?: string[];
-          hooks?: string[];
-          script?: string;
-          title?: string;
-        };
-        dispatch({
-          payload: {
-            angles: data.angles,
-            hooks: data.hooks,
-            rawContent: content,
-            script: data.script,
-            title: data.title,
-          },
-          type: 'SET_RESULT',
-        });
-      }
+      const script = await new AgentToolsService(token).generateText(
+        `Remix the following source into a fresh ${platform} script with an opening hook and a distinct angle. Return only the remixed script.\nSource URL: ${url}\nSource content: ${content}`,
+        platform,
+        'script',
+      );
+      dispatch({ payload: { script }, type: 'SET_RESULT' });
     } catch (err) {
       logger.error('Remix error', err);
       dispatch({
@@ -413,24 +357,20 @@ export function RemixPage({
     try {
       const token = await authService.getToken();
       if (!token) {
-        return;
+        throw new Error('Sign in first to save drafts.');
       }
-
-      await fetch(`${apiEndpoint}/posts`, {
-        body: JSON.stringify({
-          content: text,
-          platform,
-          sourceUrl: url || undefined,
-          status: 'draft',
-        }),
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        method: 'POST',
-      });
+      await new AgentToolsService(token).saveDraft(
+        text,
+        platform,
+        text.slice(0, 100),
+        useBrandStore.getState().activeBrandId,
+      );
     } catch (err) {
       logger.error('Save draft error', err);
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : 'Failed to save draft',
+      });
     }
   }
 
@@ -441,6 +381,7 @@ export function RemixPage({
   if (step === 'result' && result) {
     return (
       <RemixResultView
+        error={error}
         copiedIndex={copiedIndex}
         result={result}
         onBack={() => {

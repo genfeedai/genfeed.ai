@@ -473,6 +473,7 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
     [
       '/settings',
       '/settings/personal',
+      '/settings/about',
       '/settings/help',
       '/settings/notifications',
       '/settings/progress',

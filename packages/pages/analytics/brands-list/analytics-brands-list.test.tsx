@@ -93,6 +93,12 @@ describe('AnalyticsBrandsList', () => {
       expect(screen.getByText('Acme')).toBeInTheDocument();
     });
     expect(screen.getByText('Zenith')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'Open Acme analytics' }),
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: 'View Brand Details' }),
+    ).not.toBeInTheDocument();
   });
 
   it('summarises the brand count in the container description', async () => {

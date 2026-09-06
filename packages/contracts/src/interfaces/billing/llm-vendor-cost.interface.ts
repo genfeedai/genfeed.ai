@@ -11,6 +11,7 @@ export interface ILlmCompletionCallContext {
 }
 
 export interface ILlmCompletionTelemetryEvent {
+  workflowLedgerId?: string;
   brandId?: string;
   completionTokens: number;
   isByok: boolean;
@@ -27,6 +28,14 @@ export interface ILlmCompletionTelemetryEvent {
 }
 
 export interface ILlmVendorCostRecordInput {
+  pricingSnapshot?: {
+    source: string;
+    fingerprint: string;
+    promptPerMillion: number | null;
+    completionPerMillion: number | null;
+  };
+  workflowLedgerId?: string;
+  costEvidence?: 'observed' | 'calculated' | 'byok' | 'unknown' | 'pending';
   brandId?: string;
   completionTokens: number;
   isByok: boolean;

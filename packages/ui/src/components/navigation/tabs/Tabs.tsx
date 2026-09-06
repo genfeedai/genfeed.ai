@@ -1,14 +1,17 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
+  PanelTabsProps,
   RouteTabItem,
   TabItem,
   TabsEnhancedProps,
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Button } from '@ui/primitives/button';
 import {
   TabsList,
   TabsContent as TabsPanel,
@@ -19,10 +22,11 @@ import {
   getTabsListClassName,
   getTabsTriggerClassName,
 } from '@ui/primitives/tabs.styles';
+import { X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 
 function isNavigationTab(
   tab: NavigationTab | RouteTabItem | TabItem,
@@ -340,5 +344,118 @@ export default function Tabs(props: TabsEnhancedProps) {
     <Suspense fallback={null}>
       <TabsContent {...props} />
     </Suspense>
+  );
+}
+
+export function PanelTabs({
+  activeTab,
+  ariaLabel,
+  className,
+  closeLabel,
+  emptyState,
+  footer,
+  items,
+  onClose,
+  onTabChange,
+  testId,
+  trailing,
+}: PanelTabsProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const shouldRestoreFocus = useRef(false);
+  useEffect(() => {
+    if (!shouldRestoreFocus.current) return;
+    shouldRestoreFocus.current = false;
+    const target =
+      rootRef.current?.querySelector<HTMLButtonElement>(
+        '[role="tab"][data-state="active"]',
+      ) ??
+      rootRef.current?.querySelector<HTMLButtonElement>(
+        '[data-panel-tabs-actions] button',
+      );
+    target?.focus();
+  });
+  const close = (id: string) => {
+    shouldRestoreFocus.current = true;
+    onClose(id);
+  };
+  return (
+    <TabsRoot
+      ref={rootRef}
+      value={activeTab ?? ''}
+      onValueChange={onTabChange}
+      className={cn('flex h-full min-h-0 min-w-0 flex-col', className)}
+      data-testid={testId}
+    >
+      <div className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2">
+        <TabsList
+          aria-label={ariaLabel}
+          className="min-w-0 flex-1 justify-start gap-1"
+        >
+          {items
+            .filter((item) => item.isOpen)
+            .map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  className={cn(
+                    'relative flex shrink-0 items-center rounded-lg',
+                    activeTab === item.id && 'bg-secondary',
+                  )}
+                >
+                  <TabsTrigger
+                    value={item.id}
+                    className="h-8 min-w-0 max-w-40 gap-2 rounded-lg border-0 pl-2 pr-7 text-xs shadow-none data-[state=active]:bg-secondary"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Delete') {
+                        event.preventDefault();
+                        close(item.id);
+                      }
+                    }}
+                  >
+                    {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
+                    <span className="truncate">{item.label}</span>
+                  </TabsTrigger>
+                  <Button
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                    className="absolute right-1 flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+                    aria-label={closeLabel(item.label)}
+                    onClick={() => close(item.id)}
+                  >
+                    <X aria-hidden="true" className="size-3" />
+                  </Button>
+                </div>
+              );
+            })}
+        </TabsList>
+        <div className="shrink-0" data-panel-tabs-actions>
+          {trailing}
+        </div>
+      </div>
+      {activeTab === null ? (
+        <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+          {emptyState}
+        </div>
+      ) : null}
+      {items
+        .filter((item) => item.isOpen || item.keepMounted)
+        .map((item) => (
+          <TabsPanel
+            key={item.id}
+            value={item.id}
+            forceMount={item.keepMounted || undefined}
+            hidden={activeTab !== item.id}
+            className={cn(
+              'mt-0 min-h-0 flex-1 flex-col overflow-y-auto',
+              activeTab === item.id && 'flex',
+            )}
+            data-testid={item.testId}
+          >
+            {item.content}
+          </TabsPanel>
+        ))}
+      {footer}
+    </TabsRoot>
   );
 }

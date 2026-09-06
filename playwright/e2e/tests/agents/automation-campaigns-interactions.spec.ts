@@ -1,3 +1,5 @@
+import { brandPath } from '@e2e/utils/app-chrome';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import {
   assertRouteRenders,
@@ -94,26 +96,45 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH),
     );
 
-    await tryClick(authenticatedPage, 'button:has-text("New sequence")');
+    const newSequence = authenticatedPage.getByRole('button', {
+      name: 'New sequence',
+    });
+    await expect(newSequence).toBeVisible();
+    await newSequence.click();
+    await expect(authenticatedPage).toHaveURL(
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
+    );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('outreach wizard selects platform and campaign type on step one', async ({
+  test('outreach wizard advances an X discovery sequence to configuration', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/new`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
-    await tryClick(authenticatedPage, 'button:has-text("Reddit")');
-    await tryClick(authenticatedPage, 'button:has-text("Discovery")');
-    await tryClick(authenticatedPage, 'button:has-text("Next")');
+    const platform = authenticatedPage.getByRole('button', {
+      name: 'Twitter / X',
+      exact: true,
+    });
+    await platform.click();
+    await expect(platform).toHaveAttribute('aria-pressed', 'true');
+    const sequenceType = authenticatedPage.getByRole('button', {
+      name: /Discovery/,
+    });
+    await sequenceType.click();
+    await expect(sequenceType).toHaveAttribute('aria-pressed', 'true');
+    await authenticatedPage.getByRole('button', { name: 'Next' }).click();
+    await expect(
+      authenticatedPage.locator('#campaign-wizard-name'),
+    ).toBeVisible();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -124,17 +145,21 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/new`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
-    // Advance from step 1 (Platform & Type) to step 2 (Configuration).
-    await tryClick(authenticatedPage, 'button:has-text("Twitter")');
-    await tryClick(authenticatedPage, 'button:has-text("Next")');
-
     await authenticatedPage
-      .locator('#campaign-wizard-name')
-      .fill('Product Launch Outreach')
-      .catch(() => {});
+      .getByRole('button', { name: 'Twitter / X', exact: true })
+      .click();
+    await authenticatedPage.getByRole('button', { name: 'Next' }).click();
+    const name = authenticatedPage.locator('#campaign-wizard-name');
+    const description = authenticatedPage.locator(
+      '#campaign-wizard-description',
+    );
+    await name.fill('Product Launch Outreach');
+    await description.fill('Introduce our latest release');
+    await expect(name).toHaveValue('Product Launch Outreach');
+    await expect(description).toHaveValue('Introduce our latest release');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -145,7 +170,7 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/new`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
     await tryClick(authenticatedPage, 'button:has-text("Twitter")');
@@ -171,7 +196,7 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/new`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
     await tryClick(authenticatedPage, 'button:has-text("Twitter")');
@@ -201,7 +226,7 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/mock-id`,
+      `${brandPath(APP_ROUTES.MESSAGES.OUTREACH)}/mock-id`,
     );
 
     await tryClick(authenticatedPage, 'button[role="tab"]');
@@ -215,7 +240,7 @@ test.describe('Automation — Program Interactions', () => {
   }) => {
     await assertRouteRenders(
       authenticatedPage,
-      `${BRAND_BASE}/outreach-campaigns/new`,
+      brandPath(APP_ROUTES.MESSAGES.OUTREACH_NEW),
     );
 
     await tryClick(authenticatedPage, 'button:has-text("Back")');

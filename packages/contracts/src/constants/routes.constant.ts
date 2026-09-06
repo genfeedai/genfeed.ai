@@ -265,6 +265,7 @@ export const APP_ROUTES = {
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     CHARACTERS: '/settings/characters',
+    ABOUT: '/settings/about',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
     /** Personal email and future in-app notification preferences. */
@@ -372,6 +373,7 @@ export const PERSONAL_SETTINGS_CHILD_SEGMENTS = [
   'notifications',
   'progress',
   'help',
+  'about',
 ] as const;
 
 export function isPersonalSettingsPath(pathname: string): boolean {

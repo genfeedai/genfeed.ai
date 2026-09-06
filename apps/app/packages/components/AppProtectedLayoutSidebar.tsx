@@ -71,7 +71,6 @@ type Props = {
    * Messages keeps primary destinations visible above the inbox panel body.
    */
   navPanel?: SidebarNavPanel | null;
-  onOpenCommandPalette: () => void;
 };
 
 export default function AppProtectedLayoutSidebar({
@@ -105,7 +104,6 @@ export default function AppProtectedLayoutSidebar({
   automationMenuItems,
   messagesMenuItems,
   navPanel,
-  onOpenCommandPalette,
 }: Props) {
   const { settings } = useBrand();
   // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher is ALWAYS
@@ -265,7 +263,7 @@ export default function AppProtectedLayoutSidebar({
             shortcut="⌘⇧N"
             testId="sidebar-primary-action"
           />
-          <SidebarSearchTrigger onClick={onOpenCommandPalette} />
+          <SidebarSearchTrigger />
         </>
       )}
       secondaryItems={secondaryMenuItems}

@@ -24,9 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 export interface AnalyticsBrandsListProps {
@@ -39,7 +38,6 @@ export default function AnalyticsBrandsList({
   basePath = '/analytics',
 }: AnalyticsBrandsListProps) {
   const { isSignedIn } = useAuthIdentity();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const {
     dateRange,
@@ -280,13 +278,7 @@ export default function AnalyticsBrandsList({
           ),
         },
       ]}
-      actions={[
-        {
-          icon: <ArrowRight className="size-4" />,
-          onClick: (brand) => router.push(buildDetailHref(brand.id)),
-          tooltip: 'View Brand Details',
-        },
-      ]}
+      actions={[]}
     />
   );
 }

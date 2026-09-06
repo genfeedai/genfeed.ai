@@ -301,7 +301,7 @@ function AnalyticsWorkSurfaceBridge({
       ),
     [pathname, restoredState.canonicalSearchParams],
   );
-  const scopeLabel = `${orgSlug || 'organization'} / ${brandSlug || 'brand'}`;
+  const scopeLabel = `${orgSlug || 'organization'} / ${brandSlug || 'all brands'}`;
 
   useEffect(() => {
     if (!queryReference) {

@@ -117,6 +117,14 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       outline: CircleQuestionMark,
       solid: CircleQuestionMark,
     },
+    {
+      group: 'Account',
+      href: APP_ROUTES.SETTINGS.ABOUT,
+      hrefScope: 'personal',
+      label: 'About',
+      outline: CircleQuestionMark,
+      solid: CircleQuestionMark,
+    },
   ];
 }
 

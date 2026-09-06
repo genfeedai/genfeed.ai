@@ -160,6 +160,43 @@ describe('ReleaseBoard', () => {
     });
   });
 
+  it.each([
+    ['Schedule at next slot', 'credentials'],
+    ['Schedule at next slot', 'releases'],
+    ['Delete', 'releases'],
+  ])(
+    're-enables bulk controls when %s service acquisition rejects (%s)',
+    async (action, service) => {
+      let rejectService: (error: Error) => void = () => {};
+      const pending = new Promise<never>((_resolve, reject) => {
+        rejectService = reject;
+      });
+      if (service === 'credentials') {
+        getCredentialsServiceMock.mockReturnValueOnce(pending);
+      } else {
+        getReleaseGroupsServiceMock.mockReturnValueOnce(pending);
+      }
+      renderBoard([buildRelease()]);
+      fireEvent.click(screen.getByRole('checkbox'));
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      expect(
+        screen.getByRole('button', { name: 'Schedule at next slot' }),
+      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+      await act(async () => rejectService(new Error('Token unavailable')));
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: 'Schedule at next slot' }),
+        ).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+      });
+      expect(notifyErrorMock).toHaveBeenCalled();
+      expect(screen.getByRole('checkbox')).toBeChecked();
+      expect(cancelReleaseMock).not.toHaveBeenCalled();
+      expect(updateReleaseMock).not.toHaveBeenCalled();
+    },
+  );
+
   it('schedules a draggable release when dropped on the Scheduled column', async () => {
     updateReleaseMock.mockResolvedValue(
       buildRelease({ scheduledAt: '2026-12-13T10:00:00.000Z' }),
