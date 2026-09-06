@@ -1,3 +1,5 @@
+'use client';
+
 import { ComponentSize } from '@genfeedai/contracts';
 import type { TaskPillSelectProps } from '@props/tasks/task-pills.props';
 import type {
@@ -15,17 +17,17 @@ import {
 import { ChevronDown, ChevronsUp, ChevronUp, Minus } from 'lucide-react';
 
 export {
-  PRIORITY_LABELS,
   PRIORITY_ORDER,
-  STATUS_LABELS,
   STATUS_ORDER,
+  useTaskPriorityLabels,
+  useTaskStatusLabels,
 } from './task-status.constants';
 
 import {
-  PRIORITY_LABELS,
   PRIORITY_ORDER,
-  STATUS_LABELS,
   STATUS_ORDER,
+  useTaskPriorityLabels,
+  useTaskStatusLabels,
 } from './task-status.constants';
 
 const PRIORITY_VARIANTS: Record<
@@ -54,18 +56,20 @@ export const STATUS_PILL_CLASS = 'w-28 justify-center';
 export const PRIORITY_PILL_CLASS = 'w-24 justify-center';
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
+  const statusLabels = useTaskStatusLabels();
   return (
     <Badge
       status={status}
       size={ComponentSize.SM}
       className={STATUS_PILL_CLASS}
     >
-      {STATUS_LABELS[status]}
+      {statusLabels[status]}
     </Badge>
   );
 }
 
 export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
+  const priorityLabels = useTaskPriorityLabels();
   const Icon = PRIORITY_ICONS[priority];
   return (
     <Badge
@@ -74,7 +78,7 @@ export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
       className={PRIORITY_PILL_CLASS}
       icon={<Icon aria-hidden="true" className="size-3" />}
     >
-      {PRIORITY_LABELS[priority]}
+      {priorityLabels[priority]}
     </Badge>
   );
 }

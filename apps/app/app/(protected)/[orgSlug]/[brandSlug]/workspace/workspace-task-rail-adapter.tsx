@@ -99,7 +99,9 @@ export function WorkspaceTaskRailAdapter({
     ],
   );
   const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
-  const contextLabel = task ? `Tasks · ${task.title}` : 'Tasks';
+  const contextLabel = task
+    ? translate('contextLabel', { title: task.title })
+    : translate('contextLabelFallback');
 
   const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
     () => ({

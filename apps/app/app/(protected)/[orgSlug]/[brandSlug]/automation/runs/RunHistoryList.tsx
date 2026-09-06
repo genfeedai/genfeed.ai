@@ -11,10 +11,10 @@ import AppTable from '@ui/display/table/Table';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import {
-  EXECUTION_STATUS_LABELS,
   formatExecutionDuration,
   formatExecutionRelativeTime,
   getExecutionLabel,
+  getExecutionStatusLabel,
 } from './workflow-execution.helpers';
 
 export default function RunHistoryList({
@@ -40,7 +40,7 @@ export default function RunHistoryList({
             size={ComponentSize.SM}
             className="w-28 justify-center"
           >
-            {EXECUTION_STATUS_LABELS[execution.status]}
+            {getExecutionStatusLabel(execution.status, translate)}
           </Badge>
         ),
       },
@@ -86,6 +86,7 @@ export default function RunHistoryList({
         render: (execution) =>
           formatExecutionRelativeTime(
             execution.completedAt ?? execution.startedAt ?? execution.createdAt,
+            translate,
           ),
       },
     ],

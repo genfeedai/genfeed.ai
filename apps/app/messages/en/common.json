@@ -579,7 +579,21 @@
       "unavailableWorkflow": "Workflow unavailable",
       "recentRuns": "Recent runs",
       "emptyFiltered": "No workflow executions match your search.",
-      "columnRun": "Run"
+      "columnRun": "Run",
+      "statusCancelled": "Cancelled",
+      "statusCompleted": "Completed",
+      "statusFailed": "Failed",
+      "statusPending": "Pending",
+      "statusRunning": "Running",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago",
+      "statsTotal": "Total",
+      "statsActive": "Active",
+      "statsCompleted": "Completed",
+      "statsFailed": "Failed",
+      "statsCredits": "Credits"
     },
     "workflowRun": {
       "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",

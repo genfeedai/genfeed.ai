@@ -1,17 +1,23 @@
+'use client';
+
 import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
 import Badge from '@ui/display/badge/Badge';
-import { formatTaskStatus, getTaskBadgeStatus } from './workspace-task.helpers';
+import {
+  getTaskBadgeStatus,
+  useTaskStatusLabel,
+} from './workspace-task.helpers';
 
 export function WorkspaceTaskInspectorHeader({
   task,
 }: WorkspaceTaskInspectorHeaderProps) {
+  const statusLabel = useTaskStatusLabel(task);
   return (
     <div className="border-b border-border px-6 py-5">
       <div className="flex flex-col space-y-3 text-left">
         <div className="flex flex-wrap items-center gap-2">
           <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
-            {formatTaskStatus(task)}
+            {statusLabel}
           </Badge>
           <Badge variant="secondary" size={ComponentSize.SM}>
             {task.outputType}

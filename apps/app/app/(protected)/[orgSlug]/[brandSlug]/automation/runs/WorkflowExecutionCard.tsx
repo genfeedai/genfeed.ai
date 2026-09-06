@@ -12,10 +12,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import {
-  EXECUTION_STATUS_LABELS,
   formatExecutionDuration,
   formatExecutionRelativeTime,
   getExecutionLabel,
+  getExecutionStatusLabel,
 } from './workflow-execution.helpers';
 
 export default function WorkflowExecutionCard({
@@ -43,7 +43,7 @@ export default function WorkflowExecutionCard({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Badge status={execution.status.toLowerCase()}>
-            {EXECUTION_STATUS_LABELS[execution.status]}
+            {getExecutionStatusLabel(execution.status, translate)}
           </Badge>
           <span className="truncate text-sm font-medium">
             {getExecutionLabel(execution, translate('unavailableWorkflow'))}
@@ -63,6 +63,7 @@ export default function WorkflowExecutionCard({
               execution.completedAt ??
                 execution.startedAt ??
                 execution.createdAt,
+              translate,
             )}
           </span>
           <Button asChild size={ButtonSize.XS} variant={ButtonVariant.GHOST}>

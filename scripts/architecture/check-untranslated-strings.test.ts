@@ -48,15 +48,35 @@ describe('findUntranslatedStrings', () => {
     expect(occurrences).toEqual([]);
   });
 
-  it('pins the documented floor by ignoring props, helpers, and runtime templates', () => {
+  it('counts copy-bearing props and option labels but not code-shaped props', () => {
+    const occurrences = findUntranslatedStrings(`
+      const columns = [{ key: 'status', header: 'Status', className: 'w-28' }];
+      export function Example() {
+        return (
+          <Card
+            className="gen-card"
+            data-testid="example-card"
+            description="Passed through a prop"
+            href="/publishing/posts"
+            title={'Also passed through a prop'}
+          />
+        );
+      }
+    `);
+
+    expect(occurrences.map((occurrence) => occurrence.text)).toEqual([
+      'Status',
+      'Passed through a prop',
+      'Also passed through a prop',
+    ]);
+  });
+
+  it('pins the documented floor by ignoring helpers and runtime templates', () => {
     const occurrences = findUntranslatedStrings(`
       const helperCopy = 'Built in a helper';
       export function Example({name}: {name: string}) {
         return (
-          <Card
-            description="Passed through a prop"
-            title={'Also passed through a prop'}
-          >
+          <Card>
             {helperCopy}
             {\`Welcome \${name}\`}
           </Card>

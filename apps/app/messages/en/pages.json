@@ -1168,14 +1168,118 @@
       "routing": "Routing",
       "runs": "Runs: {count}",
       "thread": "Thread: {value}",
-      "updated": "Updated"
+      "updated": "Updated",
+      "labels": {
+        "resultPreview": "Result preview",
+        "visualContinuityQa": "Visual continuity QA",
+        "reportLocation": "Report location",
+        "failure": "Failure",
+        "requestedChanges": "Requested changes",
+        "taskMetadata": "Task metadata",
+        "linkedRecords": "Linked records"
+      },
+      "autoRouted": "Auto-routed by workspace orchestration.",
+      "queued": "queued",
+      "reviewStateNone": "none",
+      "loading": "Loading…",
+      "unavailable": "Unavailable",
+      "notAssessed": "not assessed",
+      "confidencePercent": "{percent}% confidence"
     },
     "liveRuns": "Live runs",
     "noActiveTasks": "No active workspace tasks right now.",
     "openInbox": "Open Inbox",
     "openReview": "Open Review",
     "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
-    "requestChangesPrompt": "Please revise this task from the workspace inbox."
+    "requestChangesPrompt": "Please revise this task from the workspace inbox.",
+    "inbox": {
+      "viewsAriaLabel": "Inbox views",
+      "views": {
+        "unread": {
+          "label": "Unread",
+          "description": "Items that still need operator attention."
+        },
+        "recent": {
+          "label": "Recent",
+          "description": "Latest queue movement, regardless of status."
+        },
+        "all": {
+          "label": "All",
+          "description": "Everything in the workspace queue, including done items."
+        }
+      },
+      "columns": {
+        "task": "Task",
+        "status": "Status",
+        "path": "Path",
+        "updated": "Updated"
+      }
+    },
+    "sections": {
+      "inbox": {
+        "title": "Inbox",
+        "description": "Unread work, recent movement, and the full queue."
+      },
+      "overview": {
+        "title": "Overview",
+        "description": "Tasks, approvals, live work, and operator handoffs in one control surface."
+      }
+    },
+    "tools": {
+      "agent": {
+        "label": "Agent",
+        "description": "All conversations and threads live here."
+      },
+      "studio": {
+        "label": "Studio",
+        "description": "Storyboard, clips, and batch production surfaces."
+      },
+      "workflows": {
+        "label": "Workflows",
+        "description": "Workflow builder for repeatable automation."
+      },
+      "runs": {
+        "label": "Runs",
+        "description": "Operator view for live runs and execution state."
+      }
+    },
+    "library": {
+      "overview": {
+        "label": "Overview",
+        "description": "Browse every reusable source and generated asset."
+      },
+      "media": {
+        "label": "Media",
+        "description": "Generated images, videos, and motion assets."
+      },
+      "audioCaptions": {
+        "label": "Audio + captions",
+        "description": "Voice, music, and caption assets ready for reuse."
+      }
+    },
+    "relativeTime": {
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
+    },
+    "actions": {
+      "approve": "Approve",
+      "requestChanges": "Request Changes",
+      "dismiss": "Dismiss",
+      "planNextSteps": "Plan Next Steps",
+      "moreActions": "More actions",
+      "openInWrite": "Open in Write",
+      "openInGenerate": "Open in Generate",
+      "openInEdit": "Open in Edit",
+      "openInAutomation": "Open in Automation",
+      "openIssue": "Open Issue",
+      "openTool": "Open Tool",
+      "openReport": "Open Report",
+      "requestedChangesReason": "Requested changes: {reason}"
+    },
+    "openDetailsFor": "Open details for {title}",
+    "needsAttention": "Needs attention"
   },
   "workflows": {
     "actionNode": {
@@ -1352,7 +1456,53 @@
       "empty": "Select a task to see its details.",
       "status": "Status",
       "priority": "Priority",
-      "close": "Close inspector"
+      "close": "Close inspector",
+      "contextLabel": "Tasks · {title}",
+      "contextLabelFallback": "Tasks"
+    },
+    "status": {
+      "backlog": "Backlog",
+      "blocked": "Blocked",
+      "cancelled": "Cancelled",
+      "done": "Done",
+      "failed": "Failed",
+      "inProgress": "In Progress",
+      "inReview": "In Review",
+      "todo": "To Do",
+      "dismissed": "Dismissed",
+      "changesRequested": "Changes Requested"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "list": {
+      "assigned": "Assigned",
+      "noTasksKanban": "No tasks",
+      "openTaskError": "Could not open task.",
+      "updateTaskError": "Could not update task. Please try again.",
+      "allStatuses": "All Statuses",
+      "listView": "List view",
+      "kanbanView": "Kanban view",
+      "title": "Tasks",
+      "noMatchingTasks": "No matching tasks",
+      "noTasksYet": "No tasks yet",
+      "noMatchingTasksDescription": "Try a different status, or clear the filter to see every task.",
+      "noTasksYetDescription": "Create a task to start tracking work in this workspace.",
+      "newTask": "New Task",
+      "taskColumn": "Task",
+      "statusColumn": "Status",
+      "priorityColumn": "Priority",
+      "statusForTask": "Status for {title}",
+      "priorityForTask": "Priority for {title}",
+      "createTaskTitle": "Create Task",
+      "creating": "Creating...",
+      "titleLabel": "Title",
+      "descriptionLabel": "Description",
+      "taskTitlePlaceholder": "Task title",
+      "descriptionPlaceholder": "Optional description"
     }
   }
 }

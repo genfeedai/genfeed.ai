@@ -27,7 +27,7 @@ import {
   isTaskInInboxQueue,
   isUnreadInboxTask,
   type ReviewInboxSummary,
-  SECTION_COPY,
+  useWorkspaceSectionCopy,
   type WorkspaceSection,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
@@ -453,7 +453,7 @@ export function useWorkspacePageContent({
 
   const isOverviewSection = section === 'overview';
   const isInboxSection = section === 'inbox';
-  const sectionCopy = SECTION_COPY[section];
+  const sectionCopy = useWorkspaceSectionCopy()[section];
   const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
   const shouldShowSectionSnapshot = section === 'inbox';

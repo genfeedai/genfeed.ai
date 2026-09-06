@@ -1,13 +1,17 @@
+'use client';
+
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskCardProps } from '@props/workspace/workspace-task-card.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+
 import {
-  formatTaskStatus,
-  formatTaskTimestamp,
   getAdvancedToolHref,
   getTaskBadgeStatus,
+  useTaskStatusLabel,
+  useTaskTimestamp,
 } from './workspace-task.helpers';
 
 export function WorkspaceTaskCard({
@@ -18,8 +22,11 @@ export function WorkspaceTaskCard({
   onRequestChanges,
   task,
 }: WorkspaceTaskCardProps) {
+  const translate = useTranslations('pages.workspaceOverview.actions');
   const isBusy = busyTaskId === task.id;
   const showReviewActions = task.reviewState === 'pending_approval';
+  const statusLabel = useTaskStatusLabel(task);
+  const timestamp = useTaskTimestamp(task);
 
   return (
     <article className="grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
@@ -27,14 +34,14 @@ export function WorkspaceTaskCard({
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{task.title}</p>
           <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
-            {formatTaskStatus(task)}
+            {statusLabel}
           </Badge>
         </div>
         <p className="text-sm text-foreground/55">{task.request}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/45">
           {task.routingSummary ? <span>{task.routingSummary}</span> : null}
           {task.progress?.message ? <span>{task.progress.message}</span> : null}
-          <span>{formatTaskTimestamp(task)}</span>
+          <span>{timestamp}</span>
           {task.executionPathUsed ? (
             <span className="uppercase tracking-[0.14em]">
               {task.executionPathUsed.replaceAll('_', ' ')}
@@ -48,7 +55,9 @@ export function WorkspaceTaskCard({
         ) : null}
         {task.requestedChangesReason ? (
           <div className="border-l border-amber-400/40 pl-3 text-sm text-amber-200">
-            Requested changes: {task.requestedChangesReason}
+            {translate('requestedChangesReason', {
+              reason: task.requestedChangesReason,
+            })}
           </div>
         ) : null}
       </div>
@@ -62,7 +71,7 @@ export function WorkspaceTaskCard({
               disabled={isBusy}
               onClick={() => void onApprove(task.id)}
             >
-              Approve
+              {translate('approve')}
             </Button>
             <Button
               size={ButtonSize.SM}
@@ -70,7 +79,7 @@ export function WorkspaceTaskCard({
               disabled={isBusy}
               onClick={() => void onRequestChanges(task.id)}
             >
-              Request Changes
+              {translate('requestChanges')}
             </Button>
           </>
         ) : null}
@@ -80,7 +89,7 @@ export function WorkspaceTaskCard({
           disabled={isBusy}
           onClick={() => void onDismiss(task.id)}
         >
-          Dismiss
+          {translate('dismiss')}
         </Button>
         <Button
           size={ButtonSize.SM}
@@ -88,7 +97,7 @@ export function WorkspaceTaskCard({
           disabled={isBusy}
           onClick={() => void onPlanNextSteps(task)}
         >
-          Plan Next Steps
+          {translate('planNextSteps')}
         </Button>
         <Button
           asChild
@@ -96,7 +105,7 @@ export function WorkspaceTaskCard({
           size={ButtonSize.SM}
           className="font-semibold"
         >
-          <Link href={getAdvancedToolHref(task)}>Open Tool</Link>
+          <Link href={getAdvancedToolHref(task)}>{translate('openTool')}</Link>
         </Button>
       </div>
     </article>

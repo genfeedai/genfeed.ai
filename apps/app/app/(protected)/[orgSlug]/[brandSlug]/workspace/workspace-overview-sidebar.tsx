@@ -23,8 +23,8 @@ import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
-  ADVANCED_TOOLS,
-  LIBRARY_SNAPSHOT_LINKS,
+  useAdvancedTools,
+  useLibrarySnapshotLinks,
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
 import { WorkspaceTaskCard } from './workspace-task-card';
@@ -46,7 +46,9 @@ export function WorkspaceOverviewSidebar({
   const translate = useTranslations('pages.workspaceOverview');
   const isStudioEnabled = useFeatureFlag('studio');
   const { href, orgHref } = useOrgUrl();
-  const availableAdvancedTools = ADVANCED_TOOLS.filter(
+  const advancedTools = useAdvancedTools();
+  const librarySnapshotLinks = useLibrarySnapshotLinks();
+  const availableAdvancedTools = advancedTools.filter(
     (tool) => isStudioEnabled || !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT),
   );
   const taskStreamContent =
@@ -267,7 +269,7 @@ export function WorkspaceOverviewSidebar({
           bodyClassName="p-4"
         >
           <div className="divide-y divide-border/60">
-            {LIBRARY_SNAPSHOT_LINKS.map((item) => (
+            {librarySnapshotLinks.map((item) => (
               <Link
                 key={item.href}
                 href={href(item.href)}

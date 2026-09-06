@@ -41,6 +41,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { CirclePlus, Columns2, List } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   useCallback,
   useEffect,
@@ -51,14 +52,14 @@ import {
 } from 'react';
 
 import {
-  PRIORITY_LABELS,
   PRIORITY_ORDER,
-  STATUS_LABELS,
   STATUS_ORDER,
   TaskPriorityBadge,
   TaskPrioritySelect,
   TaskStatusBadge,
   TaskStatusSelect,
+  useTaskPriorityLabels,
+  useTaskStatusLabels,
 } from './task-pills';
 import { useTaskSelection } from './task-selection-context';
 
@@ -69,6 +70,7 @@ function IssueCard({
   issue: Task;
   onSelect: (issue: Task) => void;
 }) {
+  const translate = useTranslations('pages.tasks.list');
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
@@ -80,7 +82,7 @@ function IssueCard({
         <TaskPriorityBadge priority={issue.priority} />
       </div>
       {issue.assigneeUserId ? (
-        <span className="text-2xs text-gray-800">Assigned</span>
+        <span className="text-2xs text-gray-800">{translate('assigned')}</span>
       ) : null}
     </Button>
   );
@@ -95,9 +97,11 @@ function KanbanColumn({
   issues: Task[];
   onSelect: (issue: Task) => void;
 }) {
+  const translate = useTranslations('pages.tasks.list');
+  const statusLabels = useTaskStatusLabels();
   return (
     <section
-      aria-label={STATUS_LABELS[status]}
+      aria-label={statusLabels[status]}
       className="flex h-full w-72 shrink-0 flex-col rounded-lg bg-background-secondary"
     >
       <div className="flex shrink-0 items-center gap-2 px-3 py-2.5">
@@ -110,7 +114,7 @@ function KanbanColumn({
         ))}
         {issues.length === 0 ? (
           <p className="py-6 text-center text-xs text-muted-foreground">
-            No tasks
+            {translate('noTasksKanban')}
           </p>
         ) : null}
       </div>
@@ -162,6 +166,10 @@ function issuesListReducer(
 }
 
 export default function IssuesList() {
+  const translate = useTranslations('pages.tasks.list');
+  const tCommon = useTranslations('common.actions');
+  const statusLabels = useTaskStatusLabels();
+  const priorityLabels = useTaskPriorityLabels();
   const { brandId } = useBrand();
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -308,7 +316,8 @@ export default function IssuesList() {
           if (!cancelled) selectTask?.(task);
         })
         .catch(() => {
-          if (!cancelled) notificationsService.error('Could not open task.');
+          if (!cancelled)
+            notificationsService.error(translate('openTaskError'));
         });
     }
     return () => {
@@ -321,6 +330,7 @@ export default function IssuesList() {
     getTasksService,
     notificationsService,
     selectTask,
+    translate,
   ]);
 
   // The inspector saves through the shared selection; refetch so rows match.
@@ -339,7 +349,7 @@ export default function IssuesList() {
       if (selection?.selectedTask?.id === issue.id) commitTask?.(updated);
       else await loadIssues();
     } catch {
-      notificationsService.error('Could not update task. Please try again.');
+      notificationsService.error(translate('updateTaskError'));
     } finally {
       setSavingId(null);
     }
@@ -377,7 +387,7 @@ export default function IssuesList() {
           onClick={openCreateDialog}
         >
           <CirclePlus className="size-4" aria-hidden="true" />
-          New Task
+          {translate('newTask')}
         </Button>
       ) : null}
       <Select
@@ -387,13 +397,13 @@ export default function IssuesList() {
         }
       >
         <SelectTrigger className={ghostSelectTriggerClassName}>
-          <SelectValue placeholder="All Statuses" />
+          <SelectValue placeholder={translate('allStatuses')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="all">{translate('allStatuses')}</SelectItem>
           {STATUS_ORDER.map((s) => (
             <SelectItem key={s} value={s}>
-              {STATUS_LABELS[s]}
+              {statusLabels[s]}
             </SelectItem>
           ))}
         </SelectContent>
@@ -409,15 +419,15 @@ export default function IssuesList() {
           }
           options={[
             {
-              ariaLabel: 'List view',
+              ariaLabel: translate('listView'),
               icon: <List aria-hidden="true" className="size-4" />,
-              label: 'List view',
+              label: translate('listView'),
               type: ViewType.LIST,
             },
             {
-              ariaLabel: 'Kanban view',
+              ariaLabel: translate('kanbanView'),
               icon: <Columns2 aria-hidden="true" className="size-4" />,
-              label: 'Kanban view',
+              label: translate('kanbanView'),
               type: ViewType.KANBAN,
             },
           ]}
@@ -429,7 +439,7 @@ export default function IssuesList() {
   return (
     <Container
       fullWidth
-      label="Tasks"
+      label={translate('title')}
       titleVisibility="sr-only"
       right={toolbar}
     >
@@ -437,16 +447,18 @@ export default function IssuesList() {
         <SkeletonTable rows={6} columns={4} />
       ) : isEmpty ? (
         <CardEmpty
-          label={isFiltered ? 'No matching tasks' : 'No tasks yet'}
+          label={
+            isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
+          }
           description={
             isFiltered
-              ? 'Try a different status, or clear the filter to see every task.'
-              : 'Create a task to start tracking work in this workspace.'
+              ? translate('noMatchingTasksDescription')
+              : translate('noTasksYetDescription')
           }
           action={
             isStartEmpty
               ? {
-                  label: 'New Task',
+                  label: translate('newTask'),
                   onClick: openCreateDialog,
                   variant: ButtonVariant.DEFAULT,
                 }
@@ -455,14 +467,14 @@ export default function IssuesList() {
         />
       ) : viewMode === ViewType.LIST ? (
         <Table<Task>
-          ariaLabel="Tasks"
+          ariaLabel={translate('title')}
           items={issues}
           getRowKey={(issue) => issue.id}
           onRowClick={handleSelectIssue}
           columns={[
             {
               key: 'title',
-              header: 'Task',
+              header: translate('taskColumn'),
               render: (issue) => (
                 <Button
                   variant={ButtonVariant.UNSTYLED}
@@ -485,10 +497,12 @@ export default function IssuesList() {
             },
             {
               key: 'status',
-              header: 'Status',
+              header: translate('statusColumn'),
               render: (issue) => (
                 <TaskStatusSelect
-                  ariaLabel={`Status for ${issue.title}`}
+                  ariaLabel={translate('statusForTask', {
+                    title: issue.title,
+                  })}
                   isDisabled={savingId === issue.id}
                   value={issue.status}
                   onChange={(status) => void updateIssue(issue, { status })}
@@ -497,10 +511,12 @@ export default function IssuesList() {
             },
             {
               key: 'priority',
-              header: 'Priority',
+              header: translate('priorityColumn'),
               render: (issue) => (
                 <TaskPrioritySelect
-                  ariaLabel={`Priority for ${issue.title}`}
+                  ariaLabel={translate('priorityForTask', {
+                    title: issue.title,
+                  })}
                   isDisabled={savingId === issue.id}
                   value={issue.priority}
                   onChange={(priority) => void updateIssue(issue, { priority })}
@@ -532,16 +548,16 @@ export default function IssuesList() {
       >
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Create Task</DialogTitle>
+            <DialogTitle>{translate('createTaskTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Title
+                {translate('titleLabel')}
               </span>
               <Input
                 type="text"
-                placeholder="Task title"
+                placeholder={translate('taskTitlePlaceholder')}
                 value={createTitle}
                 onChange={(e) =>
                   dispatch({
@@ -553,11 +569,11 @@ export default function IssuesList() {
             </div>
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Description
+                {translate('descriptionLabel')}
               </span>
               <Textarea
                 className="w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
-                placeholder="Optional description"
+                placeholder={translate('descriptionPlaceholder')}
                 rows={4}
                 value={createDescription}
                 onChange={(e) =>
@@ -570,7 +586,7 @@ export default function IssuesList() {
             </div>
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Priority
+                {translate('priorityColumn')}
               </span>
               <Select
                 value={createPriority}
@@ -587,7 +603,7 @@ export default function IssuesList() {
                 <SelectContent>
                   {PRIORITY_ORDER.map((priority) => (
                     <SelectItem key={priority} value={priority}>
-                      {PRIORITY_LABELS[priority]}
+                      {priorityLabels[priority]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -602,7 +618,7 @@ export default function IssuesList() {
                 dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: false })
               }
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               variant={ButtonVariant.DEFAULT}
@@ -611,7 +627,9 @@ export default function IssuesList() {
               disabled={isCreating || !createTitle.trim()}
               onClick={handleCreateIssue}
             >
-              {isCreating ? 'Creating...' : 'Create Task'}
+              {isCreating
+                ? translate('creating')
+                : translate('createTaskTitle')}
             </Button>
           </DialogFooter>
         </DialogContent>

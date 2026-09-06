@@ -1,5 +1,6 @@
 'use client';
 
+import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
@@ -18,8 +19,8 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
-
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
@@ -27,11 +28,11 @@ import {
   hasWorkspaceOverviewSignal,
   WorkspaceDashboard,
 } from './workspace-dashboard';
-import { workspaceInboxTableColumns } from './workspace-inbox-columns';
+import { getWorkspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
   DEFAULT_REVIEW_INBOX,
-  INBOX_VIEW_OPTIONS,
+  useInboxViewOptions,
   WORKSPACE_SECTION_STACK_CLASS,
 } from './workspace-task.helpers';
 import { WorkspaceTaskQueueCard } from './workspace-task-queue-card';
@@ -52,6 +53,10 @@ function WorkspacePageContentContent({
   initialTimeSeriesData,
   section = 'overview',
 }: WorkspacePageContentProps) {
+  const translate = useTranslations('pages.workspaceOverview');
+  const statusTranslate = useTranslations('pages.tasks.status');
+  const statusLabels = useTaskStatusLabels();
+  const inboxViewOptions = useInboxViewOptions();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
   const surfaceSelection = useWorkspaceSurfaceSelection();
@@ -152,9 +157,9 @@ function WorkspacePageContentContent({
 
     return {
       activeTab: defaultInboxView,
-      ariaLabel: 'Inbox views',
+      ariaLabel: translate('inbox.viewsAriaLabel'),
       fullWidth: false,
-      items: INBOX_VIEW_OPTIONS.map((option) => {
+      items: inboxViewOptions.map((option) => {
         const count =
           option.id === 'unread'
             ? unreadInboxTasks.length
@@ -182,10 +187,12 @@ function WorkspacePageContentContent({
   }, [
     defaultInboxView,
     href,
+    inboxViewOptions,
     isInboxSection,
     isWorkspaceTasksLoading,
     queueTasks.length,
     recentInboxTasks.length,
+    translate,
     unreadInboxTasks.length,
   ]);
 
@@ -244,6 +251,11 @@ function WorkspacePageContentContent({
   // so seeded or manual queues never show an empty column.
   const hasInboxPaths = inboxTableItems.some((task) =>
     Boolean(task.executionPathUsed),
+  );
+  const workspaceInboxTableColumns = useMemo(
+    () =>
+      getWorkspaceInboxTableColumns(translate, statusTranslate, statusLabels),
+    [translate, statusTranslate, statusLabels],
   );
   const inboxTableColumns = hasInboxPaths
     ? workspaceInboxTableColumns

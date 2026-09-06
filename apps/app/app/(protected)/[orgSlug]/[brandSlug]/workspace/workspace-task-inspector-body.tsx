@@ -1,5 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { WorkspaceTranslate } from '@props/workspace/workspace-task.props';
 import type { WorkspaceTaskInspectorBodyProps } from '@props/workspace/workspace-task-inspector-body.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -9,8 +10,8 @@ import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
-  formatTaskTimestamp,
   getTaskContinuityQa,
+  useTaskTimestamp,
 } from './workspace-task.helpers';
 import { WorkspaceTaskOutputsCard } from './workspace-task-outputs-card';
 import { WorkspaceTaskThreadCard } from './workspace-task-thread-card';
@@ -28,6 +29,7 @@ export function WorkspaceTaskInspectorBody({
 }: WorkspaceTaskInspectorBodyProps) {
   const translate = useTranslations('pages.workspaceOverview');
   const continuityQa = getTaskContinuityQa(task);
+  const taskTimestamp = useTaskTimestamp(task);
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -36,7 +38,7 @@ export function WorkspaceTaskInspectorBody({
             {translate('inspector.routing')}
           </p>
           <p className="text-sm text-foreground">
-            {task.routingSummary ?? 'Auto-routed by workspace orchestration.'}
+            {task.routingSummary ?? translate('inspector.autoRouted')}
           </p>
         </Card>
         <Card bodyClassName="space-y-2 p-4">
@@ -44,7 +46,7 @@ export function WorkspaceTaskInspectorBody({
             {translate('inspector.progress')}
           </p>
           <div className="space-y-1 text-sm text-foreground/60">
-            <p>{task.progress?.stage ?? 'queued'}</p>
+            <p>{task.progress?.stage ?? translate('inspector.queued')}</p>
             <p>
               {translate('inspector.percentComplete', {
                 percent: task.progress?.percent ?? 0,
@@ -58,7 +60,7 @@ export function WorkspaceTaskInspectorBody({
             {task.progress?.message ? <p>{task.progress.message}</p> : null}
             <p className="flex items-center gap-2">
               <Clock className="size-4" />
-              {translate('inspector.updated')} {formatTaskTimestamp(task)}
+              {translate('inspector.updated')} {taskTimestamp}
             </p>
             {task.createdAt ? (
               <p>
@@ -78,7 +80,7 @@ export function WorkspaceTaskInspectorBody({
 
       {task.resultPreview ? (
         <Card
-          label="Result preview"
+          label={translate('inspector.labels.resultPreview')}
           bodyClassName="border-l border-emerald-400/30 p-4 text-sm text-foreground/75"
         >
           {task.resultPreview}
@@ -87,7 +89,7 @@ export function WorkspaceTaskInspectorBody({
 
       {continuityQa ? (
         <Card
-          label="Visual continuity QA"
+          label={translate('inspector.labels.visualContinuityQa')}
           bodyClassName="space-y-3 border-l border-amber-400/30 p-4 text-sm text-foreground/75"
         >
           <p className="flex items-center gap-2 font-semibold">
@@ -118,19 +120,28 @@ export function WorkspaceTaskInspectorBody({
               </p>
               <p>
                 {translate('inspector.characterConfidence', {
-                  confidence: formatConfidence(clip.character.confidence),
+                  confidence: formatConfidence(
+                    clip.character.confidence,
+                    translate,
+                  ),
                   verdict: clip.character.verdict,
                 })}
               </p>
               <p>
                 {translate('inspector.outfitConfidence', {
-                  confidence: formatConfidence(clip.outfit.confidence),
+                  confidence: formatConfidence(
+                    clip.outfit.confidence,
+                    translate,
+                  ),
                   verdict: clip.outfit.verdict,
                 })}
               </p>
               <p>
                 {translate('inspector.productConfidence', {
-                  confidence: formatConfidence(clip.product.confidence),
+                  confidence: formatConfidence(
+                    clip.product.confidence,
+                    translate,
+                  ),
                   verdict: clip.product.verdict,
                 })}
               </p>
@@ -180,7 +191,7 @@ export function WorkspaceTaskInspectorBody({
 
       {linkedExecutionSummary.reportThreadId ? (
         <Card
-          label="Report location"
+          label={translate('inspector.labels.reportLocation')}
           bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
         >
           <p>{translate('inspector.reportLocationDescription')}</p>
@@ -201,7 +212,7 @@ export function WorkspaceTaskInspectorBody({
 
       {task.failureReason ? (
         <Card
-          label="Failure"
+          label={translate('inspector.labels.failure')}
           bodyClassName="border-l border-rose-400/35 p-4 text-sm text-rose-200"
         >
           {task.failureReason}
@@ -210,7 +221,7 @@ export function WorkspaceTaskInspectorBody({
 
       {task.requestedChangesReason ? (
         <Card
-          label="Requested changes"
+          label={translate('inspector.labels.requestedChanges')}
           bodyClassName="border-l border-amber-400/35 p-4 text-sm text-amber-200"
         >
           {task.requestedChangesReason}
@@ -219,13 +230,15 @@ export function WorkspaceTaskInspectorBody({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card
-          label="Task metadata"
+          label={translate('inspector.labels.taskMetadata')}
           bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
         >
           <p>{translate('inspector.priority', { value: task.priority })}</p>
           <p>
             {translate('inspector.reviewState', {
-              value: task.reviewState?.replaceAll('_', ' ') ?? 'none',
+              value:
+                task.reviewState?.replaceAll('_', ' ') ??
+                translate('inspector.reviewStateNone'),
             })}
           </p>
           <p>
@@ -239,7 +252,7 @@ export function WorkspaceTaskInspectorBody({
         </Card>
 
         <Card
-          label="Linked records"
+          label={translate('inspector.labels.linkedRecords')}
           bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
         >
           <p>
@@ -251,8 +264,9 @@ export function WorkspaceTaskInspectorBody({
             <p>
               {translate('inspector.issue', {
                 value: linkedIssueSummary.isLoading
-                  ? 'Loading…'
-                  : (linkedIssueSummary.identifier ?? 'Unavailable'),
+                  ? translate('inspector.loading')
+                  : (linkedIssueSummary.identifier ??
+                    translate('inspector.unavailable')),
               })}
             </p>
           ) : null}
@@ -264,14 +278,14 @@ export function WorkspaceTaskInspectorBody({
           <p>
             {translate('inspector.reportThreads', {
               count: linkedExecutionSummary.isLoading
-                ? 'Loading…'
+                ? translate('inspector.loading')
                 : linkedExecutionSummary.reportThreadCount,
             })}
           </p>
           <p>
             {translate('inspector.generatedContent', {
               count: linkedExecutionSummary.isLoading
-                ? 'Loading…'
+                ? translate('inspector.loading')
                 : linkedExecutionSummary.generatedContentCount,
             })}
           </p>
@@ -293,8 +307,13 @@ export function WorkspaceTaskInspectorBody({
   );
 }
 
-function formatConfidence(confidence: number | null): string {
+function formatConfidence(
+  confidence: number | null,
+  translate: WorkspaceTranslate,
+): string {
   return confidence === null
-    ? 'not assessed'
-    : `${Math.round(confidence * 100)}% confidence`;
+    ? translate('inspector.notAssessed')
+    : translate('inspector.confidencePercent', {
+        percent: Math.round(confidence * 100),
+      });
 }

@@ -1,7 +1,10 @@
+'use client';
+
 import type {
   TaskPriority,
   TaskStatus,
 } from '@services/management/tasks.service';
+import { useTranslations } from 'next-intl';
 
 /** One vocabulary for task status everywhere: list, board, inbox, inspector. */
 export const STATUS_ORDER: TaskStatus[] = [
@@ -22,20 +25,26 @@ export const PRIORITY_ORDER: TaskPriority[] = [
   'critical',
 ];
 
-export const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: 'Backlog',
-  blocked: 'Blocked',
-  cancelled: 'Cancelled',
-  done: 'Done',
-  failed: 'Failed',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  todo: 'To Do',
-};
+export function useTaskStatusLabels(): Record<TaskStatus, string> {
+  const translate = useTranslations('pages.tasks.status');
+  return {
+    backlog: translate('backlog'),
+    blocked: translate('blocked'),
+    cancelled: translate('cancelled'),
+    done: translate('done'),
+    failed: translate('failed'),
+    in_progress: translate('inProgress'),
+    in_review: translate('inReview'),
+    todo: translate('todo'),
+  };
+}
 
-export const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  low: 'Low',
-  medium: 'Medium',
-};
+export function useTaskPriorityLabels(): Record<TaskPriority, string> {
+  const translate = useTranslations('pages.tasks.priority');
+  return {
+    critical: translate('critical'),
+    high: translate('high'),
+    low: translate('low'),
+    medium: translate('medium'),
+  };
+}

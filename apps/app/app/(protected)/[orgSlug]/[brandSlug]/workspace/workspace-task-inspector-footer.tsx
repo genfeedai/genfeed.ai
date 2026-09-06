@@ -10,6 +10,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
 export function WorkspaceTaskInspectorFooter({
@@ -24,6 +25,7 @@ export function WorkspaceTaskInspectorFooter({
   taskToolHref,
   taskToolLabel,
 }: WorkspaceTaskInspectorFooterProps) {
+  const translate = useTranslations('pages.workspaceOverview.actions');
   return (
     <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
       <Button
@@ -34,7 +36,7 @@ export function WorkspaceTaskInspectorFooter({
           void (showReviewActions ? onApprove(task.id) : onPlanNextSteps(task))
         }
       >
-        {showReviewActions ? 'Approve' : 'Plan Next Steps'}
+        {showReviewActions ? translate('approve') : translate('planNextSteps')}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -44,7 +46,7 @@ export function WorkspaceTaskInspectorFooter({
             disabled={isBusy}
             withWrapper={false}
           >
-            More actions
+            {translate('moreActions')}
             <ChevronDown aria-hidden="true" className="size-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -55,13 +57,13 @@ export function WorkspaceTaskInspectorFooter({
                 disabled={isBusy}
                 onSelect={() => void onRequestChanges(task.id)}
               >
-                Request Changes
+                {translate('requestChanges')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={isBusy}
                 onSelect={() => void onPlanNextSteps(task)}
               >
-                Plan Next Steps
+                {translate('planNextSteps')}
               </DropdownMenuItem>
             </>
           ) : null}
@@ -69,28 +71,34 @@ export function WorkspaceTaskInspectorFooter({
             disabled={isBusy}
             onSelect={() => void onDismiss(task.id)}
           >
-            Dismiss
+            {translate('dismiss')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href={buildTaskLaunchHref(task, 'write')}>Open in Write</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={buildTaskLaunchHref(task, 'generate')}>
-              Open in Generate
+            <Link href={buildTaskLaunchHref(task, 'write')}>
+              {translate('openInWrite')}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={buildTaskLaunchHref(task, 'edit')}>Open in Edit</Link>
+            <Link href={buildTaskLaunchHref(task, 'generate')}>
+              {translate('openInGenerate')}
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={buildTaskLaunchHref(task, 'edit')}>
+              {translate('openInEdit')}
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={buildTaskLaunchHref(task, 'automation')}>
-              Open in Automation
+              {translate('openInAutomation')}
             </Link>
           </DropdownMenuItem>
           {linkedIssueSummary.href ? (
             <DropdownMenuItem asChild>
-              <Link href={linkedIssueSummary.href}>Open Issue</Link>
+              <Link href={linkedIssueSummary.href}>
+                {translate('openIssue')}
+              </Link>
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem asChild>

@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { getAdvancedToolHref } from './workspace-task.helpers';
 import { WorkspaceTaskInspectorBody } from './workspace-task-inspector-body';
@@ -30,6 +31,7 @@ export function WorkspaceTaskDetail({
   task,
   trailing,
 }: WorkspaceTaskDetailProps) {
+  const translate = useTranslations('pages.workspaceOverview.actions');
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
   const linkedIssueSummary = useWorkspaceTaskLinkedIssue(task);
@@ -42,8 +44,8 @@ export function WorkspaceTaskDetail({
         ? getAdvancedToolHref(task)
         : '/automation/runs';
   const taskToolLabel = linkedExecutionSummary.reportThreadId
-    ? 'Open Report'
-    : 'Open Tool';
+    ? translate('openReport')
+    : translate('openTool');
   const linkedOutputGroups = useMemo(
     () => groupWorkspaceLinkedOutputs(linkedOutputSummary.outputs),
     [linkedOutputSummary.outputs],
