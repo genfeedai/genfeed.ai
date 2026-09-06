@@ -7,7 +7,7 @@
   },
   "description": "Shared product domain models for Genfeed applications",
   "devDependencies": {
-    "vitest": "5.0.0"
+    "vitest": "4.1.11"
   },
   "exports": {
     "./*": "./*"

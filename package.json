@@ -214,7 +214,7 @@
     "turbo": "2.10.12",
     "typescript": "6.0.3",
     "unplugin-swc": "1.5.11",
-    "vitest": "5.0.0",
+    "vitest": "4.1.11",
     "webpack": "5.110.3",
     "webpack-node-externals": "3.0.0",
     "@genfeedai/contracts": "workspace:*"

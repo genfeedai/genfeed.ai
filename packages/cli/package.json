@@ -28,7 +28,7 @@
     "@types/react": "19.2.18",
     "@typescript/native": "npm:typescript@7.0.2",
     "@vitest/coverage-v8": "5.0.0",
-    "vitest": "5.0.0"
+    "vitest": "4.1.11"
   },
   "engines": {
     "node": ">=22.12.0"
