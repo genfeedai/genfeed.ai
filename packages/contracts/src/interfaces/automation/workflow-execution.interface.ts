@@ -1,4 +1,9 @@
-import type { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '../..';
+import type {
+  AgentFailureReason,
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '../..';
+import type { IAgentFailure } from '../ai/agent-failure.interface';
 
 export interface IWorkflowExecutionNodeResult {
   actionId?: string;
@@ -13,6 +18,8 @@ export interface IWorkflowExecutionNodeResult {
 }
 
 export interface IWorkflowExecution {
+  failureReason?: AgentFailureReason | null;
+  failure?: IAgentFailure | null;
   completedAt?: string;
   createdAt: string;
   creditsUsed: number;

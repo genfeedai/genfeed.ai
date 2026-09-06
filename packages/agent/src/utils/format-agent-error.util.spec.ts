@@ -1,5 +1,9 @@
+import { AgentFailureReason } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import { formatAgentError } from './format-agent-error.util';
+import {
+  formatAgentError,
+  formatAgentFailureMessage,
+} from './format-agent-error.util';
 
 describe('formatAgentError', () => {
   it.each([
@@ -294,5 +298,60 @@ describe('formatAgentError', () => {
     expect(formatAgentError('status code 5120').title).not.toBe(
       'Provider temporarily unavailable',
     );
+  });
+});
+
+describe('shared failure classification', () => {
+  it.each([
+    [
+      'OPENROUTER_API_KEY not configured',
+      AgentFailureReason.PROVIDER_CONFIGURATION,
+    ],
+    ['insufficient credits', AgentFailureReason.INSUFFICIENT_CREDITS],
+    ['HTTP 429', AgentFailureReason.RATE_LIMITED],
+    ['stream recovery timeout', AgentFailureReason.TIMEOUT],
+    ['Invalid prisma.post.create', AgentFailureReason.DATA_SAVE_FAILED],
+    ['session expired', AgentFailureReason.SESSION_EXPIRED],
+    ['ECONNRESET', AgentFailureReason.CONNECTION_INTERRUPTED],
+    ['Cancelled by user', AgentFailureReason.CANCELLED],
+    ['invalid api key', AgentFailureReason.PROVIDER_AUTHENTICATION],
+    ['Organization context is required', AgentFailureReason.WORKSPACE_MISSING],
+    [
+      'No models enabled for this workspace',
+      AgentFailureReason.ACTION_NOT_ALLOWED,
+    ],
+    ['HTTP 404', AgentFailureReason.MODEL_UNAVAILABLE],
+    ['forbidden', AgentFailureReason.PROVIDER_ACCESS_DENIED],
+    ['HTTP 503', AgentFailureReason.PROVIDER_UNAVAILABLE],
+    ['an unexpected error', AgentFailureReason.UNKNOWN],
+  ])('classifies %s with a stable queryable reason', (raw, reason) => {
+    expect(formatAgentError(raw).reason).toBe(reason);
+  });
+
+  it('distinguishes structured provider rate limits and timeouts', () => {
+    expect(formatAgentError({ source: 'provider', status: 429 }).reason).toBe(
+      AgentFailureReason.RATE_LIMITED,
+    );
+    expect(formatAgentError({ source: 'provider', status: 408 }).reason).toBe(
+      AgentFailureReason.TIMEOUT,
+    );
+  });
+
+  it('excludes arbitrary raw details from externally delivered messages', () => {
+    const message = formatAgentFailureMessage(
+      'Internal failure password=private-value',
+    );
+    expect(message).toContain('Run failed');
+    expect(message).toContain('inspect the failing step');
+    expect(message).not.toMatch(/private-value|secret|password|example/);
+  });
+
+  it('includes actionable provider recovery without exposing credentials', () => {
+    const message = formatAgentFailureMessage(
+      'invalid api key: sk-secret-private-value',
+    );
+    expect(message).toContain('Provider authentication failed');
+    expect(message).toContain('Verify the provider API key');
+    expect(message).not.toContain('sk-secret');
   });
 });

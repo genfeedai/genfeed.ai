@@ -1,4 +1,7 @@
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  type AgentFailureReason,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionListQueryParams } from '@genfeedai/contracts/types';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -48,6 +51,20 @@ class WorkflowExecutionsServiceClass {
     }
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
     const document = await this.request(`/workflow-executions${suffix}`);
+    return deserializeCollection<IWorkflowExecution>(document);
+  }
+
+  async listAdminFailures(
+    failureReason: AgentFailureReason | undefined,
+    offset = 0,
+    signal?: AbortSignal,
+  ): Promise<IWorkflowExecution[]> {
+    const query = new URLSearchParams({ limit: '20', offset: String(offset) });
+    if (failureReason) query.set('failureReason', failureReason);
+    const document = await this.request(
+      `/workflow-executions/admin/failures?${query}`,
+      { signal },
+    );
     return deserializeCollection<IWorkflowExecution>(document);
   }
 

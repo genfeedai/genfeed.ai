@@ -1,4 +1,5 @@
 import { ConfigService } from '@discord/config/config.service';
+import { formatAgentFailureMessage } from '@genfeedai/agent/server';
 import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
   BaseBotManager,
@@ -860,11 +861,8 @@ export class DiscordBotManager
         this.sanitizeErrorForLog(error),
       );
       const send = interaction.channel?.send;
-      if (send) {
-        await send(
-          'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-        );
-      }
+      const message = error instanceof Error ? error.message : undefined;
+      await send?.(formatAgentFailureMessage(message));
       this.deleteSession(sessionKey);
     }
   }

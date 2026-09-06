@@ -9,9 +9,12 @@ import { WorkflowExecutionAuthorizationService } from '@api/collections/workflow
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import {
+  AgentFailureReason,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -326,6 +329,94 @@ describe('WorkflowExecutionsController', () => {
           status: WorkflowExecutionStatus.CANCELLED,
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+  describe('admin failure feed', () => {
+    it('rejects organization admins before querying other tenants', async () => {
+      await expect(
+        controller.findAdminFailures(mockRequest, mockUser, {
+          limit: 20,
+          offset: 0,
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(mockService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('rejects offsets that do not start a complete page', async () => {
+      await expect(
+        controller.findAdminFailures(
+          mockRequest,
+          { isSuperAdmin: true } as never,
+          {
+            limit: 20,
+            offset: 10,
+          },
+        ),
+      ).rejects.toThrow('Offset must be a multiple of limit');
+      expect(mockService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('includes unclassified historical failures in the unknown filter', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [] });
+      await controller.findAdminFailures(
+        mockRequest,
+        { isSuperAdmin: true } as never,
+        {
+          failureReason: AgentFailureReason.UNKNOWN,
+          limit: 20,
+          offset: 0,
+        },
+      );
+      const where = mockService.findAll.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { failureReason: AgentFailureReason.UNKNOWN },
+        { failureReason: null },
+      ]);
+      expect(where.isDeleted).toBe(false);
+      expect(JSON.stringify(where.workflow)).toContain('agent.turn.execute');
+    });
+
+    it('queries only non-deleted agent failures with stable pagination and reason filtering', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [] });
+      await controller.findAdminFailures(
+        mockRequest,
+        { isSuperAdmin: true } as never,
+        {
+          failureReason: AgentFailureReason.RATE_LIMITED,
+          limit: 20,
+          offset: 40,
+        },
+      );
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
+          where: expect.objectContaining({
+            isDeleted: false,
+            status: WorkflowExecutionStatus.FAILED,
+            failureReason: AgentFailureReason.RATE_LIMITED,
+            workflow: {
+              is: expect.objectContaining({
+                isDeleted: false,
+                AND: expect.any(Array),
+              }),
+            },
+          }),
+        }),
+        expect.objectContaining({ limit: 20, page: 3 }),
+      );
+      const where = mockService.findAll.mock.calls[0][0].where;
+      expect(where).not.toHaveProperty('organizationId');
+      expect(JSON.stringify(where.workflow)).toContain('agent.turn.execute');
+      expect(JSON.stringify(where.workflow)).not.toContain('voice.generate');
+    });
+
+    it('declares platform-admin authorization on the cross-tenant route', () => {
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          WorkflowExecutionsController.prototype.findAdminFailures,
+        ),
+      ).toEqual(['superadmin']);
     });
   });
 });

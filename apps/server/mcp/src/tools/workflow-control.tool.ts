@@ -1,4 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
+import { executionFailureResult } from '@mcp/tools/execution-failure-result';
 
 type WorkflowControlToolResult = Promise<{
   content: Array<{ text: string; type: 'text' }>;
@@ -45,6 +46,7 @@ function requiredBooleanArg(
 
 function jsonText(label: string, payload: unknown) {
   return {
+    ...executionFailureResult(payload),
     content: [
       {
         text: `${label}:\n\n${JSON.stringify(payload, null, 2)}`,

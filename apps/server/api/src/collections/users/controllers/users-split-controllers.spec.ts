@@ -1,4 +1,5 @@
 import { UsersController } from '@api/collections/users/controllers/users.controller';
+import { UsersNotificationInboxController } from '@api/collections/users/controllers/users-notification-inbox.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
 import { UsersModule } from '@api/collections/users/users.module';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -61,6 +62,7 @@ describe('Users split controllers', () => {
     );
 
     expect(controllers).toEqual([
+      UsersNotificationInboxController,
       UsersRelationshipsController,
       UsersController,
     ]);

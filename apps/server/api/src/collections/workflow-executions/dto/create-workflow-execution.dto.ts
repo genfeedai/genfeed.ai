@@ -2,11 +2,21 @@ import { WorkflowActionContextDto } from '@api/collections/workflows/dto/workflo
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  AgentFailureReason,
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {
   @IsEntityId()
@@ -93,4 +103,24 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
     required: false,
   })
   readonly trigger?: WorkflowExecutionTrigger;
+}
+
+export class AgentFailureQueryDto {
+  @IsOptional()
+  @IsEnum(AgentFailureReason)
+  @ApiProperty({ enum: AgentFailureReason, required: false })
+  failureReason?: AgentFailureReason;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @ApiProperty({ default: 20, minimum: 1, maximum: 100, required: false })
+  limit: number = 20;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @ApiProperty({ default: 0, minimum: 0, required: false })
+  offset: number = 0;
 }

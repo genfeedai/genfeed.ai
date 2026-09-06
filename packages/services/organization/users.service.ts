@@ -1,6 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBrand,
+  INotificationInboxCount,
+  INotificationInboxItem,
+  INotificationInboxPage,
   INotificationPreference,
   IOrganization,
   IQueryParams,
@@ -103,6 +106,44 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
   }
 
+  public async findNotificationInbox(
+    organizationId: string,
+    cursor?: string,
+    signal?: AbortSignal,
+  ): Promise<INotificationInboxPage> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'me/notification-inbox',
+      { params: { organizationId, cursor }, signal },
+    );
+    return {
+      items: this.extractCollection<INotificationInboxItem>(response.data),
+      nextCursor: response.data.links?.cursor?.nextCursor ?? null,
+    };
+  }
+
+  public async notificationInboxCount(
+    organizationId: string,
+    signal?: AbortSignal,
+  ): Promise<INotificationInboxCount> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      'me/notification-inbox/unread-count',
+      { params: { organizationId }, signal },
+    );
+    return this.extractResource<INotificationInboxCount>(response.data);
+  }
+
+  public async readNotificationInbox(
+    organizationId: string,
+    ids: string[] | null,
+  ): Promise<INotificationInboxCount> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `me/notification-inbox/${ids ? 'read' : 'read-all'}`,
+      ids ?? [],
+      { params: { organizationId } },
+    );
+    return this.extractResource<INotificationInboxCount>(response.data);
+  }
+
   public async findWorkflowEmailNotificationPreference(
     signal?: AbortSignal,
   ): Promise<INotificationPreference> {
@@ -121,6 +162,29 @@ export class UsersService extends BaseService<User> {
     return await this.instance
       .patch<JsonApiResponseDocument>(
         'me/notification-preferences/workflow-status/email',
+        data,
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
+  public async findAgentEmailNotificationPreference(
+    signal?: AbortSignal,
+  ): Promise<INotificationPreference> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(
+        'me/notification-preferences/agent-status/email',
+        { signal },
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
+  public async patchAgentEmailNotificationPreference(
+    isEnabled: boolean,
+  ): Promise<INotificationPreference> {
+    const data = NotificationPreferenceSerializer.serialize({ isEnabled });
+    return await this.instance
+      .patch<JsonApiResponseDocument>(
+        'me/notification-preferences/agent-status/email',
         data,
       )
       .then((res) => this.extractResource<INotificationPreference>(res.data));

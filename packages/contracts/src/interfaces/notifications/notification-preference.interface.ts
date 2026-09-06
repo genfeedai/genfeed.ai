@@ -1,6 +1,6 @@
 import type { IBaseEntity } from '../core/base.interface';
 
-export const NOTIFICATION_TOPICS = ['workflow.status'] as const;
+export const NOTIFICATION_TOPICS = ['workflow.status', 'agent.status'] as const;
 export type NotificationTopic = (typeof NOTIFICATION_TOPICS)[number];
 
 export const NOTIFICATION_CHANNELS = ['email'] as const;
