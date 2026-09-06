@@ -202,9 +202,13 @@ export class CreditReservationService {
           actorUserId: input.actorUserId,
           billingAccountId: reservation.billingAccountId,
           reservationId: reservation.id,
-          workflowExecutionId: reservation.workflowExecutionId,
-          workflowNodeId: reservation.workflowNodeId,
-          workflowOperationId: reservation.workflowOperationId,
+          ...(reservation.workflowExecutionId
+            ? {
+                workflowExecutionId: reservation.workflowExecutionId,
+                workflowNodeId: reservation.workflowNodeId,
+                workflowOperationId: reservation.workflowOperationId,
+              }
+            : {}),
         },
         where: {
           organizationId: reservation.organizationId,

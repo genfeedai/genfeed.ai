@@ -160,14 +160,24 @@ describe('LlmCompletionTelemetryService', () => {
           'model',
           'openrouter',
           false,
+          { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
         ),
         await scopedService.beginWorkflowOperation(
           'org-1',
           'model',
           'openrouter',
           false,
+          { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
         ),
       ],
+    );
+    expect(ledger.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        costEvidence: 'pending',
+        brandId: 'brand-1',
+        runId: 'run-1',
+        threadId: 'thread-1',
+      }),
     );
     expect(ids[0]).not.toBe(ids[1]);
     expect(ledger.record).toHaveBeenCalledTimes(2);

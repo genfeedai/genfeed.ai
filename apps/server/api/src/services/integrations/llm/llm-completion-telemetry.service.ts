@@ -11,6 +11,7 @@ import {
   LLM_GENERATION_TELEMETRY_EVENT,
 } from '@genfeedai/contracts/constants';
 import type {
+  ILlmCompletionCallContext,
   ILlmCompletionTelemetryEvent,
   ILlmGenerationTelemetryCosts,
   ILlmVendorCostRecordInput,
@@ -55,6 +56,7 @@ export class LlmCompletionTelemetryService {
     model: string,
     provider: string,
     isByok: boolean,
+    callContext?: ILlmCompletionCallContext,
   ): Promise<string | undefined> {
     if (
       !organizationId ||
@@ -64,6 +66,9 @@ export class LlmCompletionTelemetryService {
     const workflowLedgerId = randomUUID();
     await this.ledger.record({
       workflowLedgerId,
+      brandId: callContext?.brandId,
+      runId: callContext?.runId,
+      threadId: callContext?.threadId,
       organizationId,
       model,
       provider,

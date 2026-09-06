@@ -148,6 +148,9 @@ describe('LlmVendorCostLedgerService', () => {
   it('replays settlement without inserting or downgrading observed evidence', async () => {
     const input = {
       workflowLedgerId: 'operation',
+      brandId: 'brand-1',
+      runId: 'run-1',
+      threadId: 'thread-1',
       organizationId: 'org-1',
       provider: 'openrouter',
       model: 'model',
@@ -163,6 +166,11 @@ describe('LlmVendorCostLedgerService', () => {
     expect(llmVendorCost.create).not.toHaveBeenCalled();
     expect(llmVendorCost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        data: expect.objectContaining({
+          brandId: 'brand-1',
+          runId: 'run-1',
+          threadId: 'thread-1',
+        }),
         where: {
           id: 'operation',
           organizationId: 'org-1',

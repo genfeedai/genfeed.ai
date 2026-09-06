@@ -370,6 +370,7 @@ export class LlmDispatcherService {
         params.model,
         provider,
         isByok,
+        callContext,
       );
     const response = await run();
     const carriesExactCost =

@@ -63,6 +63,9 @@ export class LlmVendorCostLedgerService {
           },
         },
         data: {
+          brandId: data.brandId,
+          runId: data.runId,
+          threadId: data.threadId,
           completionTokens: data.completionTokens,
           promptTokens: data.promptTokens,
           latencyMs: data.latencyMs,
