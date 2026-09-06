@@ -120,8 +120,8 @@ describe('IngredientAlternativesCard', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByAltText('Generated result')).toHaveAttribute(
-        'src',
+      expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+        'data-url',
         'https://cdn.test/gen-1.png',
       ),
     );
@@ -202,8 +202,8 @@ describe('IngredientAlternativesCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
     await waitFor(() =>
-      expect(screen.getByAltText('Generated result')).toHaveAttribute(
-        'src',
+      expect(screen.getByTestId('masonry-image')).toHaveAttribute(
+        'data-url',
         'https://cdn.test/gen-retried.png',
       ),
     );
