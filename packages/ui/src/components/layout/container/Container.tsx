@@ -109,7 +109,7 @@ export default function Container({
   const moduleTabsNode = resolvedHeaderTabs ? (
     <Tabs
       {...resolvedHeaderTabs}
-      className={cn(resolvedHeaderTabs.className, 'mb-0 w-full justify-start')}
+      className={cn(resolvedHeaderTabs.className, 'mb-0 w-full justify-end')}
     />
   ) : null;
 

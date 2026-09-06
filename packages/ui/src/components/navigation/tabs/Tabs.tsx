@@ -208,9 +208,13 @@ function TabsContent({
     return (
       <nav
         aria-label={ariaLabel}
-        className={cn('inline-flex', fullWidth && 'w-full', className)}
+        className={cn(
+          'ml-auto flex min-w-0 justify-end',
+          fullWidth && 'w-full',
+          className,
+        )}
       >
-        <div className={cn(getTabsListClassName(cn(fullWidth && 'w-full')))}>
+        <div className={cn(getTabsListClassName())}>
           {normalizedTabs.map((tab) => {
             const key = getTabId(tab);
             const value = getTabId(tab);
@@ -289,12 +293,14 @@ function TabsContent({
       value={activeValue}
       onValueChange={handleValueChange}
       className={cn(
-        children == null ? 'inline-flex' : 'flex min-w-0 flex-col',
+        children == null
+          ? 'ml-auto flex min-w-0 justify-end'
+          : 'flex min-w-0 flex-col',
         (fullWidth || children != null) && 'w-full',
         className,
       )}
     >
-      <TabsList aria-label={ariaLabel} className={cn(fullWidth && 'w-full')}>
+      <TabsList aria-label={ariaLabel} className="ml-auto">
         {normalizedTabs.map((tab) => {
           const tabItem =
             typeof tab === 'string'
@@ -392,7 +398,7 @@ export function PanelTabs({
       <div className="flex h-12 shrink-0 items-center gap-1 border-b border-border px-2">
         <TabsList
           aria-label={ariaLabel}
-          className="min-w-0 flex-1 justify-start gap-1"
+          className="min-w-0 flex-1 justify-end gap-1"
         >
           {items
             .filter((item) => item.isOpen)
@@ -403,14 +409,14 @@ export function PanelTabs({
                   key={item.id}
                   className={cn(
                     'relative flex min-w-0 flex-1 items-center rounded-lg',
-                    activeTab === item.id && 'bg-secondary',
+                    activeTab === item.id && 'bg-background',
                   )}
                 >
                   <TabsTrigger
                     value={item.id}
                     aria-label={item.label}
                     title={item.label}
-                    className="h-8 w-full min-w-0 gap-1 rounded-lg border-0 pl-1 pr-6 text-xs shadow-none data-[state=active]:bg-secondary @[360px]/panel-tabs:gap-2 @[360px]/panel-tabs:pl-2 @[360px]/panel-tabs:pr-7"
+                    className="h-8 w-full min-w-0 gap-1 rounded-lg border-0 pl-1 pr-6 text-xs shadow-none data-[state=active]:bg-background @[360px]/panel-tabs:gap-2 @[360px]/panel-tabs:pl-2 @[360px]/panel-tabs:pr-7"
                     onKeyDown={(event) => {
                       if (event.key === 'Delete') {
                         event.preventDefault();
