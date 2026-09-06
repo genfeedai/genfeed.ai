@@ -15,6 +15,11 @@ name: Deploy hosted SaaS core (reusable)
 on:
   workflow_call:
     inputs:
+      release_tag:
+        description: "Product release tag; empty for unreleased deployments"
+        required: false
+        default: ""
+        type: string
       source_sha:
         description: "exact public genfeed.ai source commit to deploy"
         required: true
@@ -538,6 +543,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/_deploy-hosted-saas-vercel.yml
     with:
+      release_tag: ${{ inputs.release_tag }}
       source_sha: ${{ inputs.source_sha }}
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

@@ -6,6 +6,11 @@ run-name: Deploy hosted SaaS | ${{ inputs.source_sha }} | ${{ inputs.correlation
 on:
   workflow_dispatch:
     inputs:
+      release_tag:
+        description: "Product release tag; empty for unreleased deployments"
+        required: false
+        default: ""
+        type: string
       source_sha:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
@@ -32,6 +37,11 @@ on:
         type: string
   workflow_call:
     inputs:
+      release_tag:
+        description: "Product release tag; empty for unreleased deployments"
+        required: false
+        default: ""
+        type: string
       source_sha:
         description: "exact public genfeed.ai source SHA to deploy (must be on master)"
         required: true
@@ -132,6 +142,7 @@ jobs:
       issues: write
     uses: ./.github/workflows/_deploy-hosted-saas-core.yml
     with:
+      release_tag: ${{ inputs.release_tag }}
       source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
       image_tag: ${{ inputs.image_tag }}
       allow_rollback: ${{ inputs.allow_rollback }}

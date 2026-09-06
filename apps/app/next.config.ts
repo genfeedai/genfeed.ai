@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { envFlag, getDeployment } from '@genfeedai/config/deployment';
@@ -40,6 +42,28 @@ const buildId =
   ) ?? 'dev';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
+const packageVersion: unknown = JSON.parse(
+  readFileSync(path.resolve(appDir, '../../package.json'), 'utf8'),
+).version;
+if (typeof packageVersion !== 'string' || !packageVersion.trim())
+  throw new Error('Root package version is required');
+
+function resolveCommitSha(): string {
+  const supplied = firstNonBlank(
+    process.env.BUILD_ID,
+    process.env.VERCEL_GIT_COMMIT_SHA,
+  );
+  if (supplied && /^[a-f0-9]{7,40}$/i.test(supplied)) return supplied;
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: appDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return 'unknown';
+  }
+}
 
 const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
   process.env.GENFEED_CLOUD ?? process.env.NEXT_PUBLIC_GENFEED_CLOUD,
@@ -329,6 +353,9 @@ if (IS_DESKTOP_BUNDLE) {
 
 config.env = {
   ...(config.env ?? {}),
+  NEXT_PUBLIC_APP_VERSION: packageVersion,
+  NEXT_PUBLIC_COMMIT_SHA: resolveCommitSha(),
+  NEXT_PUBLIC_RELEASE_TAG: process.env.RELEASE_TAG?.trim() ?? '',
   NEXT_PUBLIC_BUILD_ID: buildId,
   NEXT_PUBLIC_GENFEED_CLOUD,
 };

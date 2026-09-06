@@ -533,6 +533,7 @@ jobs:
       issues: write
     uses: ./.github/workflows/deploy-hosted-saas.yml
     with:
+      release_tag: ${{ needs.validate-release.outputs.release_tag }}
       source_sha: ${{ needs.validate-release.outputs.release_sha }}
       correlation_id: release-${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.validate-release.outputs.release_sha }}
     secrets:

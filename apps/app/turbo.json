@@ -8,7 +8,14 @@
         "@genfeedai/auth-client#build",
         "@genfeedai/config#build",
         "@genfeedai/pricing#build"
-      ]
+      ],
+      "env": [
+        "$TURBO_EXTENDS$",
+        "BUILD_ID",
+        "VERCEL_GIT_COMMIT_SHA",
+        "RELEASE_TAG"
+      ],
+      "inputs": ["$TURBO_EXTENDS$", "$TURBO_ROOT$/package.json"]
     }
   }
 }

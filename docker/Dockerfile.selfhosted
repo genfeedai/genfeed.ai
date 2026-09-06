@@ -199,6 +199,10 @@ COPY apps/app/ apps/app/
 # build ARGs (overridable with --build-arg) — not just runtime ENV — for a
 # self-hoster behind a reverse proxy to point the web app at their own
 # API/WS/CDN origins. The defaults keep the zero-config localhost run working.
+ARG RELEASE_TAG=
+ARG BUILD_ID=dev
+ENV RELEASE_TAG=$RELEASE_TAG
+ENV BUILD_ID=$BUILD_ID
 ARG NEXT_PUBLIC_API_URL=/v1
 ARG NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
 ARG NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
