@@ -11,22 +11,19 @@ import {
   CredentialPlatform,
   ModalEnum,
   PostFormat,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import {
-  applyRailSegment,
-  RELEASE_RAIL_SEGMENTS,
-  railSegmentFromSearchParams,
-} from '@pages/posts/rail/release-rail-segments.helpers';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
+import { normalizeReleaseExecutionStates } from '@pages/posts/list/release-posts-list-query';
+import { railSegmentFromSearchParams } from '@pages/posts/rail/release-rail-segments.helpers';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
@@ -113,11 +110,10 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 };
 
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
-  const { refresh } = useRouter();
+  const { refresh, replace } = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
-  const translateRail = useTranslations('pages.posts.list.rail');
   const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
 
@@ -147,33 +143,37 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     routeSuffix[0] === 'calendar';
   const isPostsListRoute =
     routeSuffix[0] === 'posts' && routeSuffix.length === 1;
-  const publishingHeaderTabs = useMemo<TabsProps | undefined>(() => {
-    if (!isPostsListRoute || !pathname) {
-      return undefined;
-    }
-
-    const activeSegment = railSegmentFromSearchParams(
-      new URLSearchParams(searchParamsString),
+  const statusValues = useMemo(() => {
+    const params = new URLSearchParams(searchParamsString);
+    const states = normalizeReleaseExecutionStates(
+      params.getAll('executionState'),
     );
-
-    return {
-      activeTab: activeSegment,
-      ariaLabel: 'Publishing status',
-      fullWidth: false,
-      items: RELEASE_RAIL_SEGMENTS.map((segment) => {
-        const params = new URLSearchParams(searchParamsString);
-        params.delete('page');
-        const queryString = applyRailSegment(params, segment).toString();
-
-        return {
-          href: queryString ? `${pathname}?${queryString}` : pathname,
-          id: segment,
-          label: translateRail(`segments.${segment}`),
-          matchMode: 'exact' as const,
-        };
-      }),
-    };
-  }, [isPostsListRoute, pathname, searchParamsString, translateRail]);
+    if (states) return states;
+    const legacy = railSegmentFromSearchParams(params);
+    return Object.values(TargetExecutionState).filter(
+      (state) => state === legacy,
+    );
+  }, [searchParamsString]);
+  const statusOptions = Object.values(TargetExecutionState).map((value) => ({
+    value,
+    label: value.charAt(0).toUpperCase() + value.slice(1),
+  }));
+  const handleStatusesChange = (_name: string, values: string[]) => {
+    const params = new URLSearchParams(searchParamsString);
+    for (const key of [
+      'page',
+      'status',
+      'publicationState',
+      'executionState',
+    ]) {
+      params.delete(key);
+    }
+    for (const value of normalizeReleaseExecutionStates(values) ?? []) {
+      params.append('executionState', value);
+    }
+    const query = params.toString();
+    replace(query ? `${pathname}?${query}` : pathname);
+  };
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
@@ -266,9 +266,17 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         description="Manage and publish across platforms."
         icon={Newspaper}
         titleVisibility="sr-only"
-        headerTabs={publishingHeaderTabs}
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {isPostsListRoute ? (
+              <DropdownMultiSelect
+                name="executionState"
+                options={statusOptions}
+                values={statusValues}
+                onChange={handleStatusesChange}
+                placeholder="All statuses"
+              />
+            ) : null}
             {filtersNode}
             {viewToggleNode}
             {exportNode}

@@ -17,6 +17,7 @@ import {
 import ReleasePostsList from '@pages/posts/list/release-posts-list';
 import {
   buildReleasePostsListQueryKey,
+  normalizeReleaseExecutionStates,
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from '@pages/posts/list/release-posts-list-query';
@@ -24,6 +25,7 @@ import {
 export type PostsListSearchParams = Promise<{
   account?: string | string[];
   contentType?: string | string[];
+  executionState?: string | string[];
   page?: string;
   platform?: string;
   publicationState?: string;
@@ -50,6 +52,7 @@ export async function renderPostsListPage({
     {
       account,
       contentType,
+      executionState,
       page,
       platform,
       publicationState: publicationStateParam,
@@ -76,11 +79,15 @@ export async function renderPostsListPage({
   const brandId = bootstrap?.brandId ?? null;
   const organizationId = bootstrap?.organizationId ?? null;
 
-  const canonicalPublicationState =
-    requestedPublicationState ??
-    (normalizedStatus === PostStatus.PUBLIC ? 'posted' : undefined);
+  const selectedExecutionStates =
+    normalizeReleaseExecutionStates(executionState);
+  const canonicalPublicationState = selectedExecutionStates
+    ? undefined
+    : (requestedPublicationState ??
+      (normalizedStatus === PostStatus.PUBLIC ? 'posted' : undefined));
   const executionStates =
-    normalizedStatus === PostStatus.FAILED
+    selectedExecutionStates ??
+    (normalizedStatus === PostStatus.FAILED
       ? [TargetExecutionState.FAILED]
       : normalizedStatus === PostStatus.SCHEDULED && !canonicalPublicationState
         ? [TargetExecutionState.SCHEDULED]
@@ -89,7 +96,7 @@ export async function renderPostsListPage({
           : normalizedStatus === PostStatus.PENDING ||
               normalizedStatus === PostStatus.PROCESSING
             ? [TargetExecutionState.PUBLISHING]
-            : undefined;
+            : undefined);
   const canonicalSort = normalizeReleasePostsSort(sort);
   const contentTypes = normalizeReleasePostContentTypes(contentType);
   // Start the query without awaiting it so the Publishing shell paints while

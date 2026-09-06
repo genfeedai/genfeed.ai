@@ -100,7 +100,7 @@ describe('PublishingLayoutContent', () => {
     expect(screen.queryByTestId('container')).not.toBeInTheDocument();
   });
 
-  it('renders list actions with shared route-level status tabs', () => {
+  it('renders list actions with a status dropdown', () => {
     render(
       <PublishingLayoutContent>
         <div>child content</div>
@@ -114,32 +114,44 @@ describe('PublishingLayoutContent', () => {
     expect(
       screen.queryByRole('link', { name: /new content/i }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^draft$/i })).toHaveAttribute(
-      'href',
-      '/publishing/posts?platform=youtube&status=draft',
-    );
     expect(
-      screen.getByRole('link', { name: /scheduled/i }),
+      screen.getByRole('button', { name: 'All statuses' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /published/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole('navigation', { name: 'Publishing status' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('normalizes the active tab from legacy query state', () => {
+  it('shows legacy published deep links in the status dropdown', () => {
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams('status=public&platform=youtube'),
     );
-
     render(
       <PublishingLayoutContent>
         <div>child content</div>
       </PublishingLayoutContent>,
     );
+    expect(
+      screen.getByRole('button', { name: 'Published' }),
+    ).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
-      'aria-current',
-      'page',
+  it('combines statuses while preserving other filters and resetting pagination', async () => {
+    const replace = vi.fn();
+    useRouterMock.mockReturnValue({ refresh: vi.fn(), replace });
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('platform=youtube&page=3&executionState=scheduled'),
+    );
+    const user = userEvent.setup();
+    render(
+      <PublishingLayoutContent>
+        <div>child content</div>
+      </PublishingLayoutContent>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Scheduled' }));
+    await user.click(screen.getByText('Failed', { exact: true }));
+    expect(replace).toHaveBeenCalledWith(
+      '/publishing/posts?platform=youtube&executionState=scheduled&executionState=failed',
     );
   });
 

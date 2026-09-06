@@ -224,9 +224,12 @@ export default function ReleasePostsList({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const publishingView: PublishingPostsView | undefined =
-    executionStates?.includes(TargetState.FAILED)
+    executionStates?.length === 1 && executionStates[0] === TargetState.FAILED
       ? PostStatus.FAILED
-      : publicationState;
+      : executionStates?.length === 1 &&
+          executionStates[0] === TargetState.PUBLISHED
+        ? 'posted'
+        : publicationState;
   const viewKey = viewMessageKey(publishingView);
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
