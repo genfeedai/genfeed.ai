@@ -15,6 +15,8 @@ import type {
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Skeleton } from '@ui/primitives/skeleton';
 import type {
@@ -27,6 +29,7 @@ import type {
   Calendar as FullCalendarInstance,
 } from 'fullcalendar';
 import { Calendar as FullCalendar } from 'fullcalendar/all';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import 'fullcalendar/skeleton.css';
 import classicThemePlugin from 'fullcalendar/themes/classic';
 import 'fullcalendar/themes/classic/palette.css';
@@ -34,6 +37,7 @@ import 'fullcalendar/themes/classic/theme.css';
 import { useTranslations } from 'next-intl';
 import {
   type CSSProperties,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -44,6 +48,7 @@ import { createRoot, type Root } from 'react-dom/client';
 
 interface FullCalendarHostProps {
   options: CalendarOptions;
+  calendarRef: RefObject<FullCalendarInstance | null>;
 }
 
 interface CalendarDateRange {
@@ -52,6 +57,16 @@ interface CalendarDateRange {
 }
 
 const calendarThemeStyle = {
+  '--fc-classic-background': 'hsl(var(--background))',
+  '--fc-classic-foreground': 'hsl(var(--foreground))',
+  '--fc-classic-faint': 'hsl(var(--muted))',
+  '--fc-classic-muted': 'hsl(var(--muted))',
+  '--fc-classic-strong': 'hsl(var(--accent))',
+  '--fc-classic-muted-foreground': 'hsl(var(--muted-foreground))',
+  '--fc-classic-faint-foreground': 'hsl(var(--muted-foreground))',
+  '--fc-classic-today': 'hsl(var(--primary) / 0.05)',
+  '--fc-classic-highlight': 'hsl(var(--primary) / 0.1)',
+  '--fc-classic-now': 'hsl(var(--destructive))',
   '--fc-classic-border': 'hsl(var(--border))',
   '--fc-classic-strong-border': 'hsl(var(--border-strong))',
 } as CSSProperties;
@@ -239,6 +254,7 @@ function isSameDateRange(
 function FullCalendarMount({
   onError,
   options,
+  calendarRef,
 }: FullCalendarHostProps & { onError: (error: Error) => void }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
 
@@ -259,6 +275,7 @@ function FullCalendarMount({
         ...options,
         plugins: [classicThemePlugin],
       }) as FullCalendarInstance;
+      calendarRef.current = calendar;
       calendar.render();
     } catch (error) {
       onError(
@@ -269,14 +286,15 @@ function FullCalendarMount({
     }
 
     return () => {
+      calendarRef.current = null;
       calendar?.destroy();
     };
-  }, [onError, options]);
+  }, [onError, options, calendarRef]);
 
   return <div ref={elementRef} />;
 }
 
-function FullCalendarHost({ options }: FullCalendarHostProps) {
+function FullCalendarHost({ options, calendarRef }: FullCalendarHostProps) {
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -296,6 +314,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
 
   return (
     <FullCalendarMount
+      calendarRef={calendarRef}
       key={retryCount}
       onError={setLoadError}
       options={options}
@@ -325,6 +344,10 @@ export default function ContentCalendarView<T extends CalendarItem>({
   preferredTimes = [],
   timezone = 'UTC',
 }: ContentCalendarProps<T>) {
+  const calendarRef = useRef<FullCalendarInstance | null>(null);
+  const visibleDateRef = useRef<Date | undefined>(undefined);
+  const [dateTitle, setDateTitle] = useState('Calendar');
+  const [activeView, setActiveView] = useState(initialView);
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
   const [isDayView, setIsDayView] = useState(initialView === 'day');
@@ -582,10 +605,13 @@ export default function ContentCalendarView<T extends CalendarItem>({
       // the identical range, and losing that switch would reset the layout on
       // the next data refresh.
       viewIdRef.current = arg.view.type;
+      visibleDateRef.current = calendarRef.current?.getDate() ?? arg.start;
+      setDateTitle(arg.view.title ?? 'Calendar');
       setIsDayView(arg.view.type === DAY_VIEW_ID);
       setVisibleDay(new Date(arg.start));
       const viewKey = fromViewId(arg.view.type);
       if (viewKey) {
+        setActiveView(viewKey);
         onViewChange?.(viewKey);
       }
 
@@ -620,18 +646,13 @@ export default function ContentCalendarView<T extends CalendarItem>({
     });
   }, [isDayView, items, preferredTimes, timezone, visibleDay]);
 
-  const viewSwitcher = useMemo(
-    () => (views.length > 1 ? views.map(toViewId).join(',') : ''),
-    [views],
-  );
-
   const calendarOptions = useMemo(
     (): CalendarOptions & {
       eventDidMount: typeof handleEventDidMount;
       eventWillUnmount: typeof handleEventWillUnmount;
     } => ({
       allDaySlot: false,
-      contentHeight: 'auto',
+
       dateClick: onDateClick ? handleDateClick : undefined,
       datesSet: handleDatesSet,
       defaultTimedEventDuration: '00:15:00',
@@ -648,12 +669,9 @@ export default function ContentCalendarView<T extends CalendarItem>({
       },
       events,
       firstDay: 1,
-      headerToolbar: {
-        center: 'title',
-        left: 'prev,next',
-        right: viewSwitcher,
-      },
-      height: 'auto',
+      headerToolbar: false,
+      height: '100%',
+      initialDate: visibleDateRef.current,
       initialView: viewIdRef.current,
       nowIndicator: true,
       slotDuration: '00:15:00',
@@ -672,7 +690,6 @@ export default function ContentCalendarView<T extends CalendarItem>({
       handleDatesSet,
       onDateClick,
       isDragEnabled,
-      viewSwitcher,
     ],
   );
 
@@ -688,44 +705,97 @@ export default function ContentCalendarView<T extends CalendarItem>({
         </div>
       )}
 
-      {filterControls && (
-        <div className="flex justify-end mb-4">{filterControls}</div>
-      )}
-
-      <Card className="w-full border border-border" bodyClassName="p-0">
-        {isLoading ? (
-          <div
-            className="fullcalendar-container p-6"
-            data-testid="calendar-loading"
-          >
-            <Skeleton className="h-[32rem] w-full" />
+      <SectionTopbar
+        title="Calendar"
+        titleVisibility="sr-only"
+        actions={filterControls}
+      />
+      <div className="px-5 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              aria-label="Previous period"
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              onClick={() => calendarRef.current?.prev()}
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              aria-label="Next period"
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              onClick={() => calendarRef.current?.next()}
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+            <h2 className="text-sm font-medium">{dateTitle}</h2>
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              onClick={() => calendarRef.current?.today()}
+            >
+              Today
+            </Button>
           </div>
-        ) : events.length === 0 && emptyState && preferredTimes.length === 0 ? (
-          emptyState
-        ) : (
-          <div
-            className={
-              isDayView && dayViewRows.length > 0
-                ? 'fullcalendar-container gen-calendar-custom-day'
-                : 'fullcalendar-container'
-            }
-            style={calendarThemeStyle}
-          >
-            <FullCalendarHost options={calendarOptions} />
-            {isDayView && dayViewRows.length > 0 && visibleDay ? (
-              <DayViewRows
-                getEventColor={getEventColor}
-                items={items}
-                onDateClick={onDateClick}
-                onEventClick={onEventClick}
-                rows={dayViewRows}
-                timezone={timezone}
-                visibleDay={visibleDay}
+          {views.length > 1 && (
+            <Tabs
+              ariaLabel="Calendar view"
+              className="mb-0"
+              fullWidth={false}
+              activeTab={activeView}
+              onTabChange={(value) =>
+                calendarRef.current?.changeView(
+                  toViewId(value as CalendarViewKey),
+                )
+              }
+              items={views.map((view) => ({
+                id: view,
+                label: view.charAt(0).toUpperCase() + view.slice(1),
+              }))}
+            />
+          )}
+        </div>
+        <Card className="w-full border border-border" bodyClassName="p-0">
+          {isLoading ? (
+            <div
+              className="fullcalendar-container p-6"
+              data-testid="calendar-loading"
+            >
+              <Skeleton className="h-[32rem] w-full" />
+            </div>
+          ) : events.length === 0 &&
+            emptyState &&
+            preferredTimes.length === 0 ? (
+            emptyState
+          ) : (
+            <div
+              className={
+                isDayView && dayViewRows.length > 0
+                  ? 'fullcalendar-container gen-calendar-custom-day'
+                  : 'fullcalendar-container'
+              }
+              style={calendarThemeStyle}
+            >
+              <FullCalendarHost
+                calendarRef={calendarRef}
+                options={calendarOptions}
               />
-            ) : null}
-          </div>
-        )}
-      </Card>
+              {isDayView && dayViewRows.length > 0 && visibleDay ? (
+                <DayViewRows
+                  getEventColor={getEventColor}
+                  items={items}
+                  onDateClick={onDateClick}
+                  onEventClick={onEventClick}
+                  rows={dayViewRows}
+                  timezone={timezone}
+                  visibleDay={visibleDay}
+                />
+              ) : null}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {modal}
     </>

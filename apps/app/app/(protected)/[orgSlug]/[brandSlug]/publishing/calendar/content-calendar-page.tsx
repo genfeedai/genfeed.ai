@@ -1101,7 +1101,7 @@ export default function ContentCalendarPage({
   );
 
   const filterControls = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center justify-end gap-2">
       <Button
         aria-label="New cadence"
         isDisabled={!defaultCredentialId}
@@ -1146,16 +1146,16 @@ export default function ContentCalendarPage({
       <Link
         href={href(getPublishingPostsHref())}
         aria-label="Open the list view"
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
+        className="inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground size-8 transition-colors"
       >
-        <List />
+        <List className="size-3.5" />
       </Link>
       <Link
         href={href(WRITE_ARTICLE_AGENT_HREF)}
         aria-label="Write an article"
-        className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
+        className="inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground size-8 transition-colors"
       >
-        <FileText />
+        <FileText className="size-3.5" />
       </Link>
     </div>
   );
