@@ -203,6 +203,10 @@ function harness() {
         : accountDefinition.definition;
     const document = {
       ...definition,
+      inputVariables: definition.inputVariables?.map((variable) => ({
+        ...variable,
+        required: variable.required ?? false,
+      })),
       id:
         kind === 'parent'
           ? DAILY_PUBLISHING_TEMPLATE.id
