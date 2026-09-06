@@ -188,6 +188,13 @@ export class NotificationInboxService {
       member.role.key === MemberRole.OWNER ||
       member.role.key === MemberRole.ADMIN;
     const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
+    const brandAccessFilter: Prisma.BrandWhereInput = {
+      organizationId,
+      isDeleted: false,
+      ...(restrictToAssignedBrands
+        ? { id: { in: member.brands.map((brand) => brand.id) } }
+        : {}),
+    };
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
@@ -205,13 +212,7 @@ export class NotificationInboxService {
             OR: [
               { brandId: null },
               {
-                brand: {
-                  organizationId,
-                  isDeleted: false,
-                  ...(restrictToAssignedBrands
-                    ? { id: { in: member.brands.map((brand) => brand.id) } }
-                    : {}),
-                },
+                brand: brandAccessFilter,
               },
             ],
           },
@@ -255,17 +256,7 @@ export class NotificationInboxService {
                   OR: [
                     { brandId: null },
                     {
-                      brand: {
-                        organizationId,
-                        isDeleted: false,
-                        ...(restrictToAssignedBrands
-                          ? {
-                              id: {
-                                in: member.brands.map((brand) => brand.id),
-                              },
-                            }
-                          : {}),
-                      },
+                      brand: brandAccessFilter,
                     },
                   ],
                 },
