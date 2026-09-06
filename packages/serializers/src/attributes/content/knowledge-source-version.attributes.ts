@@ -8,6 +8,7 @@ export const knowledgeSourceVersionAttributes = createEntityAttributes([
   'provenance',
   'payload',
   'processingState',
+  'processingError',
   'retrievalState',
   'retentionState',
   'retentionPolicy',

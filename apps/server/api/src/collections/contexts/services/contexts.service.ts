@@ -7,6 +7,7 @@ import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.d
 import type { ContextBase } from '@api/collections/contexts/schemas/context-base.schema';
 import type {
   ContextEntry,
+  ContextEntryKnowledgeLink,
   ContextEntryPendingEmbeddingRow,
   ContextEntrySimilarityResult,
   ContextEntrySimilarityRow,
@@ -18,8 +19,14 @@ import {
 } from '@api/collections/contexts/utils/context-embedding-claim-query.util';
 import {
   buildContextSimilarityQuery,
+  type ContextSimilarityQueryOptions,
   serializeContextEmbedding,
 } from '@api/collections/contexts/utils/context-similarity-query.util';
+import {
+  isKnowledgeSourceKind,
+  isKnowledgeSourcePurpose,
+  KNOWLEDGE_BASE_PURPOSE,
+} from '@api/collections/contexts/utils/knowledge-source.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
@@ -28,6 +35,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  KnowledgeMemoryScope,
   ModelCategory,
   PostVisibility,
   parsePlatform,
@@ -37,6 +45,11 @@ import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type {
+  BrandContentMemoryHit,
+  BrandContentMemoryRetrievalParams,
+  KnowledgeRetrievalCitation,
+} from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -293,6 +306,7 @@ export class ContextsService {
     contextBaseId: string,
     dto: AddEntryDto,
     organizationId: string,
+    knowledgeLink?: ContextEntryKnowledgeLink,
   ): Promise<ContextEntry> {
     try {
       this.logger.debug('Adding entry to context base', {
@@ -313,6 +327,7 @@ export class ContextsService {
       const entry = await this.prisma.contextEntry.create({
         data: {
           contextBaseId,
+          ...(knowledgeLink ?? {}),
           data: toPrismaJson({
             content: dto.content,
             ...(kind ? { kind } : {}),
@@ -365,38 +380,6 @@ export class ContextsService {
       'entryCount',
       -1,
     );
-  }
-
-  /**
-   * Soft-delete every live chunk for a knowledge source and keep the
-   * context-base entryCount in sync. Used on re-ingest and source delete.
-   */
-  async removeEntriesBySource(
-    contextBaseId: string,
-    sourceId: string,
-    organizationId: string,
-  ): Promise<number> {
-    const result = await this.prisma.contextEntry.updateMany({
-      data: { isDeleted: true },
-      where: scopedWhere(organizationId, {
-        contextBaseId,
-        data: {
-          equals: sourceId,
-          path: ['metadata', 'sourceId'],
-        },
-      }),
-    });
-
-    if (result.count > 0) {
-      await this.adjustContextBaseMetric(
-        contextBaseId,
-        organizationId,
-        'entryCount',
-        -result.count,
-      );
-    }
-
-    return result.count;
   }
 
   async enhancePrompt(
@@ -508,32 +491,34 @@ export class ContextsService {
    * This is the day-one vector store for generation context (not a separate
    * vector product). Prefer harness-performance-winners + brand libraries.
    */
-  async retrieveBrandContentMemory(params: {
-    brandId: string;
-    limit?: number;
-    minRelevance?: number;
-    organizationId: string;
-    query: string;
-  }): Promise<
-    Array<{
-      content: string;
-      kind?: string;
-      metadata?: Record<string, unknown>;
-      relevance: number;
-      source?: string;
-    }>
-  > {
+  async retrieveBrandContentMemory(
+    params: BrandContentMemoryRetrievalParams,
+  ): Promise<BrandContentMemoryHit[]> {
     const query = params.query.trim();
     if (!query) {
       return [];
     }
 
+    // Brand memory plus organization-wide Knowledge. Personal Knowledge is
+    // never folded into brand generation.
     const bases = await this.prisma.contextBase.findMany({
       select: { data: true, id: true, sourceBrandId: true },
       where: scopedWhere(params.organizationId, {
         OR: [
           { sourceBrandId: params.brandId },
           { data: { equals: params.brandId, path: ['brandId'] } },
+          {
+            AND: [
+              { sourceBrandId: null },
+              { data: { equals: KNOWLEDGE_BASE_PURPOSE, path: ['purpose'] } },
+              {
+                data: {
+                  equals: KnowledgeMemoryScope.ORG,
+                  path: ['knowledgeScope'],
+                },
+              },
+            ],
+          },
         ],
       }),
     });
@@ -549,6 +534,14 @@ export class ContextsService {
       queryEmbedding,
       params.limit ?? 5,
       params.minRelevance ?? 0.65,
+      {
+        ...(params.knowledgeSourceIds?.length
+          ? { knowledgeSourceIds: params.knowledgeSourceIds }
+          : {}),
+        ...(params.knowledgePurposes?.length
+          ? { knowledgePurposes: params.knowledgePurposes }
+          : {}),
+      },
     );
 
     const labelByBase = new Map(
@@ -573,11 +566,12 @@ export class ContextsService {
         entry.kind ||
         (typeof metadata.kind === 'string' ? metadata.kind : undefined);
       return {
+        ...(entry.citation ? { citation: entry.citation } : {}),
         content: entry.content,
         kind,
         metadata,
         relevance: entry.similarity,
-        source: labelByBase.get(entry.contextBaseId),
+        source: entry.citation?.title ?? labelByBase.get(entry.contextBaseId),
       };
     });
   }
@@ -775,6 +769,7 @@ export class ContextsService {
     queryEmbedding: number[],
     limit: number,
     minSimilarity: number,
+    options: ContextSimilarityQueryOptions = {},
   ): Promise<ContextEntrySimilarityResult[]> {
     await this.rebuildMissingEntryEmbeddings(organizationId, contextBaseIds);
 
@@ -784,23 +779,51 @@ export class ContextsService {
       queryEmbedding,
       limit,
       minSimilarity,
+      options,
     );
 
-    return rows.flatMap((row) =>
-      row.content
-        ? [
-            {
-              content: row.content,
-              contextBaseId: row.contextBaseId,
-              ...(row.kind ? { kind: row.kind } : {}),
-              ...(this.isPlainObject(row.metadata)
-                ? { metadata: row.metadata }
-                : {}),
-              similarity: Number(row.similarity),
-            },
-          ]
-        : [],
-    );
+    return rows.flatMap((row) => {
+      if (!row.content) {
+        return [];
+      }
+      const citation = this.toCitation(row);
+      return [
+        {
+          ...(citation ? { citation } : {}),
+          content: row.content,
+          contextBaseId: row.contextBaseId,
+          ...(row.kind ? { kind: row.kind } : {}),
+          ...(this.isPlainObject(row.metadata)
+            ? { metadata: row.metadata }
+            : {}),
+          similarity: Number(row.similarity),
+        },
+      ];
+    });
+  }
+
+  /** Citation identity travels with every Knowledge-linked passage. */
+  private toCitation(
+    row: ContextEntrySimilarityRow,
+  ): KnowledgeRetrievalCitation | undefined {
+    if (
+      !row.knowledgeSourceId ||
+      !row.knowledgeSourceVersionId ||
+      !row.knowledgeSourceTitle ||
+      !isKnowledgeSourceKind(row.knowledgeSourceKind) ||
+      !isKnowledgeSourcePurpose(row.knowledgeSourcePurpose)
+    ) {
+      return undefined;
+    }
+    return {
+      kind: row.knowledgeSourceKind,
+      purpose: row.knowledgeSourcePurpose,
+      sourceId: row.knowledgeSourceId,
+      title: row.knowledgeSourceTitle,
+      ...(row.knowledgeSourceUrl ? { url: row.knowledgeSourceUrl } : {}),
+      version: Number(row.knowledgeSourceVersion ?? 0),
+      versionId: row.knowledgeSourceVersionId,
+    };
   }
 
   /**
@@ -881,6 +904,7 @@ export class ContextsService {
     queryEmbedding: number[],
     limit: number,
     minSimilarity: number,
+    options: ContextSimilarityQueryOptions = {},
   ): Promise<ContextEntrySimilarityRow[]> {
     return this.prisma.$transaction(async (tx) => {
       try {
@@ -898,6 +922,7 @@ export class ContextsService {
           queryEmbedding,
           limit,
           minSimilarity,
+          options,
         ),
       );
     });

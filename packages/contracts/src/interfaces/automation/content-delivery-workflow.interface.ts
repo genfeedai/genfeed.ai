@@ -15,10 +15,11 @@ export interface InsightGenerationWorkflowInput {
   organizationId: string;
 }
 
+/** One canonical Knowledge source version to extract, chunk and embed. */
 export interface KnowledgeSourceIngestWorkflowInput {
-  contextBaseId: string;
   organizationId: string;
   sourceId: string;
+  versionId: string;
 }
 
 export interface KnowledgeSourceBackfillWorkflowInput {

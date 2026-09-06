@@ -1,9 +1,7 @@
 import {
-  findKnowledgeSource,
+  KNOWLEDGE_BASE_PURPOSE,
+  KNOWLEDGE_SOURCE_CHUNK_KIND,
   parseKnowledgeSources,
-  sourceNeedsIngest,
-  upsertKnowledgeSource,
-  writeKnowledgeSources,
 } from '@api/collections/contexts/utils/knowledge-source.util';
 import {
   KnowledgeBaseCategory,
@@ -19,45 +17,17 @@ describe('knowledge-source.util', () => {
     status: KnowledgeBaseStatus.DRAFT,
   };
 
-  it('parses valid sources and drops malformed rows', () => {
+  it('parses legacy sources and drops malformed rows', () => {
     expect(
       parseKnowledgeSources({
         sources: [source, { id: 'bad' }, 'nope'],
       }),
     ).toEqual([source]);
+    expect(parseKnowledgeSources(null)).toEqual([]);
   });
 
-  it('writes sources onto the context payload with the knowledge-base purpose', () => {
-    expect(writeKnowledgeSources({ label: 'Voice' }, [source])).toEqual({
-      label: 'Voice',
-      purpose: 'knowledge-base',
-      sources: [source],
-    });
-  });
-
-  it('upserts by id and finds a source', () => {
-    const updated = upsertKnowledgeSource([source], {
-      ...source,
-      status: KnowledgeBaseStatus.COMPLETED,
-    });
-
-    expect(findKnowledgeSource(updated, 'src_1')?.status).toBe(
-      KnowledgeBaseStatus.COMPLETED,
-    );
-    expect(upsertKnowledgeSource([], source)).toEqual([source]);
-  });
-
-  it('flags draft, failed, and processing sources for ingest', () => {
-    expect(sourceNeedsIngest(source)).toBe(true);
-    expect(
-      sourceNeedsIngest({ ...source, status: KnowledgeBaseStatus.FAILED }),
-    ).toBe(true);
-    expect(sourceNeedsIngest({ ...source, isDeleted: true })).toBe(false);
-    expect(
-      sourceNeedsIngest({
-        ...source,
-        status: KnowledgeBaseStatus.COMPLETED,
-      }),
-    ).toBe(false);
+  it('keeps the chunk vocabulary stable for retrieval consumers', () => {
+    expect(KNOWLEDGE_BASE_PURPOSE).toBe('knowledge-base');
+    expect(KNOWLEDGE_SOURCE_CHUNK_KIND).toBe('knowledge-source-chunk');
   });
 });

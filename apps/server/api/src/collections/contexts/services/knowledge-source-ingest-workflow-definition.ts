@@ -116,7 +116,8 @@ export function buildKnowledgeSourceIngestWorkflowDefinition(): SystemWorkflowGr
         }),
       ],
     },
-    description: 'Ingests one knowledge source into its context base.',
+    description:
+      'Extracts, chunks and embeds one knowledge source version into retrievable chunks.',
     label: 'Knowledge Source Ingest',
     resultNodeId: 'finalize-source',
     version: 1,

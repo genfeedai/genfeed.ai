@@ -26,12 +26,17 @@ vi.unmock('@prisma/adapter-pg');
 const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
   ? describe
   : describe.skip;
-const migration = readFileSync(
-  new URL(
-    '../../../../../../../packages/prisma/prisma/migrations/20260904230000_knowledge_source_space_contracts/migration.sql',
-    import.meta.url,
+const migrations = [
+  '20260904230000_knowledge_source_space_contracts',
+  '20260906210000_knowledge_chunks_link_versions',
+].map((name) =>
+  readFileSync(
+    new URL(
+      `../../../../../../../packages/prisma/prisma/migrations/${name}/migration.sql`,
+      import.meta.url,
+    ),
+    'utf8',
   ),
-  'utf8',
 );
 const actor = {
   id: 'legacyBase62User',
@@ -96,8 +101,12 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         INSERT INTO organizations(id) VALUES ('org-a'), ('org-b');
         INSERT INTO users(id) VALUES ('legacyBase62User'), ('otherUser');
         INSERT INTO brands(id, "organizationId") VALUES ('brand-a', 'org-a'), ('brand-b', 'org-a'), ('brand-c', 'org-b');
+        CREATE TABLE context_bases (id text PRIMARY KEY, "organizationId" text NOT NULL REFERENCES organizations(id), "createdById" text, "sourceBrandId" text, data jsonb NOT NULL DEFAULT '{}', "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
+        CREATE TABLE context_entries (id text PRIMARY KEY, "contextBaseId" text NOT NULL REFERENCES context_bases(id), "organizationId" text NOT NULL REFERENCES organizations(id), data jsonb NOT NULL DEFAULT '{}', "embeddingClaimedAt" timestamptz, "embeddingFailedAt" timestamptz, "isDeleted" boolean NOT NULL DEFAULT false, "createdAt" timestamptz NOT NULL DEFAULT now(), "updatedAt" timestamptz NOT NULL DEFAULT now());
       `);
-      await client.query(migration);
+      for (const migration of migrations) {
+        await client.query(migration);
+      }
     } finally {
       await client.query('SET search_path TO public');
       client.release();
@@ -285,6 +294,94 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
         KnowledgeRetrievalState.ACTIVE,
       ),
     ).rejects.toThrow('Supersession');
+  });
+
+  it('retires derived chunks on source deletion and payload purge and keeps failure reasons only while failed', async () => {
+    const source = await createSource();
+    const version = await records.createVersion(actor, source.id, capture);
+    const base = await prisma.contextBase.create({
+      data: {
+        organizationId: 'org-a',
+        sourceBrandId: 'brand-a',
+        data: { entryCount: 2, purpose: 'knowledge-base' },
+      },
+    });
+    const link = {
+      contextBaseId: base.id,
+      organizationId: 'org-a',
+      knowledgeSourceId: source.id,
+      knowledgeSourceVersionId: version.id,
+    };
+    await prisma.contextEntry.createMany({
+      data: [
+        { ...link, data: { content: 'one' } },
+        { ...link, data: { content: 'two' } },
+      ],
+    });
+    await expect(
+      prisma.contextEntry.create({
+        data: { ...link, organizationId: 'org-b', contextBaseId: base.id },
+      }),
+    ).rejects.toThrow();
+
+    await records.setProcessing(
+      actor,
+      source.id,
+      version.id,
+      KnowledgeProcessingState.PROCESSING,
+    );
+    const failed = await records.setProcessing(
+      actor,
+      source.id,
+      version.id,
+      KnowledgeProcessingState.FAILED,
+      'Source did not contain extractable text',
+    );
+    expect(failed.processingError).toBe(
+      'Source did not contain extractable text',
+    );
+    const requeued = await records.setProcessing(
+      actor,
+      source.id,
+      version.id,
+      KnowledgeProcessingState.QUEUED,
+    );
+    expect(requeued.processingError).toBeNull();
+    expect((await records.getCurrentVersion(actor, source.id)).id).toBe(
+      version.id,
+    );
+    await expect(
+      records.getCurrentVersion(otherBrand, source.id),
+    ).rejects.toMatchObject({ status: 404 });
+
+    await records.purgeVersion(actor, source.id, version.id);
+    expect(
+      await prisma.contextEntry.count({
+        where: { knowledgeSourceVersionId: version.id, isDeleted: false },
+      }),
+    ).toBe(0);
+    expect(
+      (await prisma.contextBase.findUniqueOrThrow({ where: { id: base.id } }))
+        .data,
+    ).toMatchObject({ entryCount: 0 });
+
+    const next = await records.createVersion(actor, source.id, {
+      ...capture,
+      contentHash: `sha256:${'b'.repeat(64)}`,
+    });
+    await prisma.contextEntry.create({
+      data: {
+        ...link,
+        knowledgeSourceVersionId: next.id,
+        data: { content: 'three' },
+      },
+    });
+    await records.deleteSource(actor, source.id);
+    expect(
+      await prisma.contextEntry.count({
+        where: { knowledgeSourceId: source.id, isDeleted: false },
+      }),
+    ).toBe(0);
   });
 
   it('excludes every non-active, unready, hidden, expired, purge-scheduled and purged version by default', async () => {

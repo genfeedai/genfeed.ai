@@ -4,6 +4,7 @@ import type { CreateKnowledgeSpaceDto } from '@api/collections/contexts/dto/crea
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
+import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -293,6 +294,9 @@ export class KnowledgeRecordsService {
         },
         data: { isDeleted: true },
       });
+      await softDeleteKnowledgeChunks(tx, actor.organizationId, {
+        sourceId: id,
+      });
       return tx.knowledgeSource.update({
         where: {
           ...this.ownership(actor),
@@ -530,6 +534,7 @@ export class KnowledgeRecordsService {
     mutation: (
       version: Awaited<ReturnType<KnowledgeRecordsService['getVersion']>>,
     ) => Prisma.KnowledgeSourceVersionUpdateInput,
+    afterUpdate?: (tx: Prisma.TransactionClient) => Promise<void>,
   ) {
     return this.prisma.$transaction(async (tx) => {
       await this.lockSource(tx, actor, sourceId);
@@ -542,11 +547,29 @@ export class KnowledgeRecordsService {
       };
       const version = await tx.knowledgeSourceVersion.findFirst({ where });
       if (!version) ErrorResponse.notFound('Knowledge source version', id);
-      return tx.knowledgeSourceVersion.update({
+      const updated = await tx.knowledgeSourceVersion.update({
         where,
         data: mutation(version),
       });
+      await afterUpdate?.(tx);
+      return updated;
     });
+  }
+
+  async getCurrentVersion(actor: KnowledgeActor, sourceId: string) {
+    await this.getSource(actor, sourceId);
+    const version = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: {
+        sourceId,
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        isCurrent: true,
+        source: { is: this.ownership(actor) },
+      },
+    });
+    if (!version)
+      throw new BadRequestException('Source has no captured version yet');
+    return version;
   }
 
   setProcessing(
@@ -554,6 +577,7 @@ export class KnowledgeRecordsService {
     sourceId: string,
     id: string,
     state: KnowledgeProcessingState,
+    processingError?: string,
   ) {
     return this.mutateVersion(actor, sourceId, id, (version) => {
       if (
@@ -580,7 +604,15 @@ export class KnowledgeRecordsService {
         !allowed[version.processingState].includes(state)
       )
         throw new BadRequestException('Invalid processing transition');
-      return { processingState: state };
+      // The database rejects a reason outside FAILED; clear it on every other
+      // transition so a requeued version starts clean.
+      return {
+        processingState: state,
+        processingError:
+          state === KnowledgeProcessingState.FAILED
+            ? (processingError ?? version.processingError ?? null)
+            : null,
+      };
     });
   }
 
@@ -655,17 +687,27 @@ export class KnowledgeRecordsService {
     });
   }
 
+  /** Purge clears payload, provenance and every derived chunk; receipt identity stays. */
   purgeVersion(actor: KnowledgeActor, sourceId: string, id: string) {
-    return this.mutateVersion(actor, sourceId, id, (version) => {
-      if (version.retentionState === KnowledgeRetentionState.POLICY_ERASED)
-        ErrorResponse.notFound('Knowledge source version', id);
-      return {
-        payload: Prisma.DbNull,
-        provenance: Prisma.DbNull,
-        retentionState: KnowledgeRetentionState.PAYLOAD_PURGED,
-        purgedAt: version.purgedAt ?? new Date(),
-      };
-    });
+    return this.mutateVersion(
+      actor,
+      sourceId,
+      id,
+      (version) => {
+        if (version.retentionState === KnowledgeRetentionState.POLICY_ERASED)
+          ErrorResponse.notFound('Knowledge source version', id);
+        return {
+          payload: Prisma.DbNull,
+          provenance: Prisma.DbNull,
+          retentionState: KnowledgeRetentionState.PAYLOAD_PURGED,
+          purgedAt: version.purgedAt ?? new Date(),
+        };
+      },
+      (tx) =>
+        softDeleteKnowledgeChunks(tx, actor.organizationId, {
+          versionId: id,
+        }).then(() => undefined),
+    );
   }
 
   async listEligibleVersions(actor: KnowledgeActor, page = 1, limit = 25) {
