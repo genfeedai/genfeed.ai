@@ -68,6 +68,7 @@ type LocalizationProviderData = { localization: Record<string, unknown> };
 type LocalizedSegment = SpeechSegment & {
   sourceText: string;
   duration: number;
+  audioUrl: string;
 };
 type LocalizationMetadataData = Awaited<
   ReturnType<SharedService['createMediaDocumentsInternal']>
