@@ -7,7 +7,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import { Button } from '@ui/primitives/button';
-import { useTranslations } from 'next-intl';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -35,7 +34,6 @@ export default function SectionTopbar({
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
-  const translate = useTranslations('ui.sectionTopbar');
   const hasVisibleTitle =
     titleVisibility === 'visible'
       ? true
