@@ -1,12 +1,13 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
 import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { formatTaskStatus } from './workspace-task.helpers';
+import { formatTaskStatus, getTaskBadgeStatus } from './workspace-task.helpers';
 
 export function WorkspaceTaskInspectorHeader({
   task,
@@ -15,16 +16,16 @@ export function WorkspaceTaskInspectorHeader({
     <div className="border-b border-border px-6 py-5 pr-14">
       <SheetHeader className="space-y-3 text-left">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
+          <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
             {formatTaskStatus(task)}
-          </span>
-          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
+          </Badge>
+          <Badge variant="secondary" size={ComponentSize.SM}>
             {task.outputType}
-          </span>
+          </Badge>
           {task.executionPathUsed ? (
-            <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
+            <Badge variant="secondary" size={ComponentSize.SM}>
               {task.executionPathUsed.replaceAll('_', ' ')}
-            </span>
+            </Badge>
           ) : null}
         </div>
 

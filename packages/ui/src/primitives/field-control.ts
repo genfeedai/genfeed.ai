@@ -17,6 +17,13 @@ export const fieldControlClassName =
 export const fieldControlInputClassName =
   'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground';
 
+/**
+ * Subbar filter trigger: reads as a ghost button (no border, hover fill) so
+ * filters sit at the same weight as the other toolbar controls.
+ */
+export const ghostSelectTriggerClassName =
+  'h-8 w-auto gap-1.5 rounded-md border-0 bg-transparent px-2.5 text-xs font-medium text-foreground/70 shadow-none hover:bg-hover hover:text-foreground data-[state=open]:bg-hover data-[state=open]:text-foreground';
+
 export const fieldControlTriggerClassName =
   'items-center justify-between gap-2 whitespace-nowrap [&>span]:line-clamp-1';
 

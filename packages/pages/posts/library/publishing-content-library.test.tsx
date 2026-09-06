@@ -143,7 +143,7 @@ describe('PublishingContentLibrary', () => {
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
     const [toolbar] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
-    render(<>{toolbar}</>);
+    render(toolbar);
 
     expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
       'href',

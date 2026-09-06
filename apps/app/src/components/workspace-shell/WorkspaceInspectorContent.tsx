@@ -558,8 +558,10 @@ function WorkspaceInspectorContent({
           onOpenTab={actions.onOpenTab}
         />
       }
+      // The agent composer belongs to the Chat pane; Context and Files end at
+      // their own content.
       footer={
-        isComposerOwner ? (
+        isComposerOwner && chrome.activeKind === 'conversation' ? (
           <div
             className="shrink-0 border-t border-border p-2"
             data-testid="workspace-inspector-composer-slot"

@@ -6,15 +6,6 @@ import {
   formatTaskTimestamp,
 } from './workspace-task.helpers';
 
-/** Canonical status token for the inbox pill; review states get their own tone. */
-function getInboxBadgeStatus(task: Task): string {
-  if (task.dismissedAt != null) return 'cancelled';
-  if (task.status === 'in_review' && task.reviewState === 'changes_requested') {
-    return 'revision_requested';
-  }
-  return task.status;
-}
-
 export const workspaceInboxTableColumns = [
   {
     key: 'title',
@@ -30,7 +21,7 @@ export const workspaceInboxTableColumns = [
     header: 'Status',
     className: 'w-40',
     render: (task: Task) => (
-      <Badge status={getInboxBadgeStatus(task)} size={ComponentSize.SM}>
+      <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
         {formatTaskStatus(task)}
       </Badge>
     ),

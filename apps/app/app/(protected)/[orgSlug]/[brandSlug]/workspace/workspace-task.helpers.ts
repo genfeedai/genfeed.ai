@@ -160,6 +160,15 @@ export function formatTaskTimestamp(task: Task): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+/** Canonical status token for the task pill; review states get their own tone. */
+export function getTaskBadgeStatus(task: Task): string {
+  if (task.dismissedAt != null) return 'cancelled';
+  if (task.status === 'in_review' && task.reviewState === 'changes_requested') {
+    return 'revision_requested';
+  }
+  return task.status;
+}
+
 export function formatTaskStatus(task: Task): string {
   if (task.dismissedAt != null) {
     return 'Dismissed';

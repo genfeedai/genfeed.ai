@@ -5,6 +5,7 @@ import type { PublishingContentTypeFilter } from '@pages/posts/library/publishin
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
+import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -76,7 +77,7 @@ export default function PublishingContentLibraryToolbar({
       >
         <SelectTrigger
           aria-label="Content type"
-          className="h-8 w-32 rounded-md border-border bg-card text-foreground"
+          className={ghostSelectTriggerClassName}
         >
           <SelectValue />
         </SelectTrigger>
@@ -97,7 +98,7 @@ export default function PublishingContentLibraryToolbar({
       <Select value={channelValue} onValueChange={onChannelChange}>
         <SelectTrigger
           aria-label="Channel"
-          className="h-8 w-36 rounded-md border-border bg-card text-foreground"
+          className={ghostSelectTriggerClassName}
         >
           <SelectValue />
         </SelectTrigger>
@@ -112,6 +113,7 @@ export default function PublishingContentLibraryToolbar({
       </Select>
 
       <DropdownMultiSelect
+        variant={ButtonVariant.GHOST}
         name="status"
         options={statusOptions}
         values={statusValue}

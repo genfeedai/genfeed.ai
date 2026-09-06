@@ -1,13 +1,16 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { WorkspaceTaskRowProps } from '@props/workspace/workspace-task-row.props';
+import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ExternalLink } from 'lucide-react';
 
 import {
   formatTaskStatus,
   formatTaskTimestamp,
+  getTaskBadgeStatus,
   getTaskStateDotClass,
   isUnreadInboxTask,
 } from './workspace-task.helpers';
@@ -32,13 +35,13 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
       title={
         <span className="flex flex-wrap items-center gap-2">
           <span className="min-w-0 flex-1 truncate">{task.title}</span>
-          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
+          <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
             {formatTaskStatus(task)}
-          </span>
+          </Badge>
           {needsAttention ? (
-            <span className="rounded-full bg-muted px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
+            <Badge variant="warning" size={ComponentSize.SM}>
               Needs attention
-            </span>
+            </Badge>
           ) : null}
         </span>
       }

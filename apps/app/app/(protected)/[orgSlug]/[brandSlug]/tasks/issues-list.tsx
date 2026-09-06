@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -74,13 +75,10 @@ function IssueCard({
       className="block w-full rounded border border-border bg-card/60 p-3 text-left transition-colors hover:bg-muted/60"
       onClick={() => onSelect(issue)}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-2xs font-mono text-gray-800">
-          {issue.identifier}
-        </span>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <p className="text-sm leading-snug text-foreground">{issue.title}</p>
         <TaskPriorityBadge priority={issue.priority} />
       </div>
-      <p className="mb-2 text-sm leading-snug text-foreground">{issue.title}</p>
       {issue.assigneeUserId ? (
         <span className="text-2xs text-gray-800">Assigned</span>
       ) : null}
@@ -388,7 +386,7 @@ export default function IssuesList() {
           setUrlParam('status', value === 'all' ? null : value)
         }
       >
-        <SelectTrigger className="w-auto text-xs">
+        <SelectTrigger className={ghostSelectTriggerClassName}>
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>

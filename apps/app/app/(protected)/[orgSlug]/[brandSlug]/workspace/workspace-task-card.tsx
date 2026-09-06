@@ -1,13 +1,15 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskCardProps } from '@props/workspace/workspace-task-card.props';
+import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import {
   formatTaskStatus,
   formatTaskTimestamp,
   getAdvancedToolHref,
+  getTaskBadgeStatus,
 } from './workspace-task.helpers';
 
 export function WorkspaceTaskCard({
@@ -26,9 +28,9 @@ export function WorkspaceTaskCard({
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{task.title}</p>
-          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
+          <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
             {formatTaskStatus(task)}
-          </span>
+          </Badge>
         </div>
         <p className="text-sm text-foreground/55">{task.request}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/45">
