@@ -611,9 +611,16 @@ describe('OperationalHomeContent', () => {
       within(needsYou).getAllByTestId('operational-home-needs-you-row'),
     ).toHaveLength(5);
     expect(
-      within(needsYou).getByTestId('operational-home-needs-you-overflow'),
+      within(needsYou).getByRole('link', {
+        name: 'catalog:home.approvals.viewAll',
+      }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
-    expect(needsYou).toHaveTextContent('catalog:home.approvals.overflow');
+    expect(needsYou).not.toHaveTextContent('catalog:home.approvals.overflow');
+    expect(
+      within(needsYou).queryByRole('link', {
+        name: 'catalog:home.approvals.open',
+      }),
+    ).not.toBeInTheDocument();
     expect(needsYou).toHaveTextContent('catalog:home.approvals.viewAll');
   });
 
