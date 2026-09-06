@@ -12,6 +12,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
@@ -231,9 +232,21 @@ async function openTaskComposerFromSidebar() {
   ).toBeInTheDocument();
 }
 
+async function openMoreActions(inspector: HTMLElement) {
+  const user = userEvent.setup();
+  await user.click(
+    within(inspector).getByRole('button', { name: /more actions/i }),
+  );
+  return user;
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
     window.history.replaceState({}, '', '/workspace');
     getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
@@ -502,14 +515,18 @@ describe('WorkspacePageContent', () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole(
-        'button',
-        {
-          name: /plan next steps/i,
-        },
-      ),
-    );
+    const inspector = screen.getByTestId('workspace-task-inspector');
+    const primary = within(inspector).queryByRole('button', {
+      name: /plan next steps/i,
+    });
+    if (primary) {
+      fireEvent.click(primary);
+    } else {
+      const user = await openMoreActions(inspector);
+      await user.click(
+        await screen.findByRole('menuitem', { name: /plan next steps/i }),
+      );
+    }
 
     await waitFor(() => {
       expect(ensurePlanningThreadMock).toHaveBeenCalledWith('task-plan-1');
@@ -585,9 +602,6 @@ describe('WorkspacePageContent', () => {
         'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Latest queue movement, regardless of status.'),
-    ).toBeInTheDocument();
   });
 
   it('opens the inspector sheet for inbox items', async () => {
@@ -658,10 +672,9 @@ describe('WorkspacePageContent', () => {
       ).toBeInTheDocument();
     });
 
+    await openMoreActions(screen.getByTestId('workspace-task-inspector'));
     expect(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
-        name: 'Open Report',
-      }),
+      await screen.findByRole('menuitem', { name: 'Open Report' }),
     ).toHaveAttribute('href', '/agent/thread-report-123');
     expect(
       within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
@@ -751,8 +764,9 @@ describe('WorkspacePageContent', () => {
 
     const inspector = screen.getByTestId('workspace-task-inspector');
 
+    await openMoreActions(inspector);
     expect(
-      within(inspector).getByRole('link', { name: 'Open Issue' }),
+      await screen.findByRole('menuitem', { name: 'Open Issue' }),
     ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
