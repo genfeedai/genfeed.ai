@@ -364,11 +364,11 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'calendar') {
-      return (
-        <PublishingLayoutContent>
-          <PostsCalendarPage />
-        </PublishingLayoutContent>
-      );
+      // The calendar route redirects to the posts list in calendar view.
+      return PostsCalendarPage({
+        params: Promise.resolve({ brandSlug: '~', orgSlug }),
+        searchParams: searchParams ?? Promise.resolve({}),
+      });
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {
