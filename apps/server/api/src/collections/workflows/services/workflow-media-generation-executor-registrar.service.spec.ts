@@ -1,3 +1,17 @@
+import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
+import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  createExecutableActionNode,
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
+
 vi.mock(
   '@api/collections/workflows/services/workflow-engine-executor-helper.service',
   () => ({ WorkflowEngineExecutorHelperService: class {} }),
@@ -24,20 +38,6 @@ vi.mock('@api/services/media-localization/media-localization.service', () => ({
   MediaLocalizationService: class {},
 }));
 vi.mock('@api/services/byok/byok.service', () => ({ ByokService: class {} }));
-
-import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
-import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
-import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import {
-  createExecutableActionNode,
-  type INodeExecutor,
-  type NodeExecutor,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
-import { ServiceUnavailableException } from '@nestjs/common';
-import { describe, expect, it, vi } from 'vitest';
 
 const wrapEngineExecutor =
   (executor: INodeExecutor) =>

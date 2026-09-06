@@ -1,3 +1,12 @@
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type {
+  INodeExecutor,
+  NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
+import { describe, expect, it, vi } from 'vitest';
+
 vi.mock('@api/services/generation-brief', () => ({
   runImageGenerationBrief: vi.fn(),
   runVideoGenerationBrief: vi.fn(),
@@ -5,9 +14,6 @@ vi.mock('@api/services/generation-brief', () => ({
   toRedactedVideoGenerationBriefProviderData: vi.fn(),
 }));
 vi.mock('@libs/logger/logger.service', () => ({ LoggerService: class {} }));
-
-import { describe, expect, it, vi } from 'vitest';
-
 vi.mock('@api/services/media-localization/media-localization.service', () => ({
   MediaLocalizationService: class {},
 }));
@@ -33,14 +39,6 @@ vi.mock(
 vi.mock('@api/services/prompt-builder/prompt-builder.service', () => ({
   PromptBuilderService: class {},
 }));
-
-import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
-import { IngredientCategory } from '@genfeedai/contracts';
-import type {
-  INodeExecutor,
-  NodeExecutor,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 
 type Arguments = ConstructorParameters<
   typeof WorkflowMediaGenerationExecutorRegistrarService
