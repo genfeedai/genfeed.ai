@@ -360,6 +360,18 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             IngredientCategory.AUDIO,
           ],
         );
+        const configuredBrandId = this.helper.readConfigString(
+          node.config,
+          'brandId',
+        );
+        if (configuredBrandId && configuredBrandId !== media.brandId) {
+          throw new Error('Lip-sync brand must match the source asset brand');
+        }
+        if (audio.brandId !== media.brandId) {
+          throw new Error(
+            'Lip-sync source media and audio must belong to the same brand',
+          );
+        }
         const isVideo = media.category === IngredientCategory.VIDEO;
         const mode = isVideo ? 'video' : 'image';
         if (options.mode && options.mode !== mode) {
@@ -381,18 +393,6 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         }
         if (isVideo ? !this.replicateService : !this.heyGenService) {
           throw new Error('Selected lip-sync provider is unavailable');
-        }
-        const configuredBrandId = this.helper.readConfigString(
-          node.config,
-          'brandId',
-        );
-        if (configuredBrandId && configuredBrandId !== media.brandId) {
-          throw new Error('Lip-sync brand must match the source asset brand');
-        }
-        if (audio.brandId !== media.brandId) {
-          throw new Error(
-            'Lip-sync source media and audio must belong to the same brand',
-          );
         }
         const [mediaUrl, audioUrl] = await Promise.all([
           this.filesClientService.getPresignedDownloadUrl(
