@@ -25,13 +25,16 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   }),
 }));
 
+const getHarnessService = async () => ({
+  createForBrand: mocks.createForBrand,
+  findForBrand: mocks.findForBrand,
+  promoteWinners: mocks.promoteWinners,
+  updateProfile: mocks.updateProfile,
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    createForBrand: mocks.createForBrand,
-    findForBrand: mocks.findForBrand,
-    promoteWinners: mocks.promoteWinners,
-    updateProfile: mocks.updateProfile,
-  }),
+  // Stable identity: the page's load effect depends on this getter.
+  useAuthedService: () => getHarnessService,
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({

@@ -134,7 +134,8 @@ export default function BrandSettingsHarnessPage() {
 
   const brandLabel = brand?.label;
   useEffect(() => {
-    if (!brandId || brandLabel === undefined) {
+    const resolvedLabel = brandLabel;
+    if (!brandId || resolvedLabel === undefined) {
       setIsFetching(false);
       return;
     }
@@ -156,7 +157,7 @@ export default function BrandSettingsHarnessPage() {
           null;
 
         profileRef.current = activeProfile as IHarnessProfile | null;
-        setDraft(createDraft(brandId, brandLabel, activeProfile));
+        setDraft(createDraft(brandId, resolvedLabel, activeProfile));
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('GET /harness-profiles failed', error);
