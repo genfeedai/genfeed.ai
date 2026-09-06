@@ -1,3 +1,5 @@
+import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
+import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -172,6 +174,8 @@ function harness() {
       },
     ),
   };
+  const twitterAnalytics = { collect: vi.fn(async () => undefined) };
+  const socialAnalytics = { collect: vi.fn(async () => undefined) };
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const runner = {
     registerWorkflow: vi.fn(),
@@ -184,6 +188,8 @@ function harness() {
     [TrendsService, trends],
     [ContentQualityScorerService, scorer],
     [PostsService, posts],
+    [AnalyticsTwitterCollectionService, twitterAnalytics],
+    [AnalyticsSocialCollectionService, socialAnalytics],
   ]);
   new DailyPublishingService(
     prisma as unknown as PrismaService,
@@ -280,6 +286,8 @@ function harness() {
     generator,
     trends,
     scorer,
+    twitterAnalytics,
+    socialAnalytics,
     run: (executionId: string, inputs: Record<string, unknown> = {}) =>
       runGraph(
         'parent',
@@ -331,6 +339,44 @@ describe('daily publishing executable graph', () => {
     expect(
       fixture.rows.every((row) => row.sourceActionId && row.promptUsed),
     ).toBe(true);
+  });
+
+  it('refreshes multiple published posts individually before generating each account', async () => {
+    const fixture = harness();
+    for (const credentialId of ['account-x', 'account-linkedin']) {
+      for (let index = 0; index < 2; index++) {
+        fixture.rows.push({
+          id: `${credentialId}-published-${index}`,
+          organizationId: 'org',
+          brandId: 'brand',
+          credentialId,
+          platform: credentialId === 'account-x' ? 'twitter' : 'linkedin',
+          isDeleted: false,
+          isAnalyticsEnabled: true,
+          targetExecutionState: 'published',
+          externalId: `external-${index}`,
+          publishedAt: new Date(),
+          createdAt: new Date(),
+          description: `Historical account evidence ${credentialId} ${index}`,
+        });
+      }
+    }
+    expectCompleted(await fixture.run('with-history'));
+    expect(fixture.twitterAnalytics.collect).toHaveBeenCalledTimes(2);
+    expect(fixture.socialAnalytics.collect).toHaveBeenCalledTimes(2);
+    for (const collector of [
+      fixture.twitterAnalytics,
+      fixture.socialAnalytics,
+    ]) {
+      for (const call of collector.collect.mock.calls) {
+        expect(call).toEqual([
+          expect.objectContaining({
+            posts: [expect.objectContaining({ organizationId: 'org' })],
+          }),
+        ]);
+      }
+    }
+    expect(fixture.posts.batchSchedule).toHaveBeenCalledTimes(2);
   });
 
   it('holds low quality output for review without scheduling it', async () => {
