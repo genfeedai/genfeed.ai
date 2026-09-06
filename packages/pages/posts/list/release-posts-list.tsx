@@ -584,9 +584,10 @@ export default function ReleasePostsList({
                   data-release-id={release.id}
                 >
                   <PublishingContentIdentity
-                    channels={(release.targets ?? []).map(
-                      (target) => target.platform,
-                    )}
+                    channels={(Array.isArray(release.targets)
+                      ? release.targets
+                      : []
+                    ).map((target) => target.platform)}
                     title={release.title || translateRail('open')}
                     summary={release.baseContent?.split('\n')[0]}
                   />

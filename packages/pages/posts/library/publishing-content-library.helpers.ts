@@ -107,14 +107,18 @@ export function createPublishingContentLibraryItems({
 }): PublishingContentLibraryItem[] {
   const releasePostIds = new Set(
     releases.flatMap((release) =>
-      (release.targets ?? []).map((target) => target.id),
+      (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.id,
+      ),
     ),
   );
   const releaseIds = new Set(releases.map((release) => release.id));
   const releaseItems: PublishingContentLibraryItem[] = releases.map(
     (release) => ({
       channel: release.targets?.[0]?.platform ?? 'social',
-      channels: (release.targets ?? []).map((target) => target.platform),
+      channels: (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.platform,
+      ),
       createdAt: release.createdAt,
       id: release.id,
       release,
