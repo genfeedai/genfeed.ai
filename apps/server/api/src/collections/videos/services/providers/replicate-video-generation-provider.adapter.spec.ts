@@ -110,6 +110,15 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       replicateService as unknown as ReplicateService,
     );
 
-    await expect(adapter.generate(buildParams())).rejects.toBe(providerError);
+    await expect(
+      adapter.generate(
+        buildParams({
+          promptParams: {
+            first_frame_image: 'https://cdn.example.com/first-frame.jpg',
+            prompt: 'A cinematic product reveal',
+          },
+        }),
+      ),
+    ).rejects.toBe(providerError);
   });
 });

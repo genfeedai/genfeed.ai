@@ -361,7 +361,7 @@ export class InstagramController {
         );
       }
 
-      return await this.credentialsService.updateExternalProfile(
+      const updated = await this.credentialsService.updateExternalProfile(
         credential.id.toString(),
         organizationId,
         {
@@ -371,6 +371,7 @@ export class InstagramController {
           name: handle,
         },
       );
+      return updated ?? credential;
     } catch (profileError: unknown) {
       this.loggerService.warn(
         `${url} instagram profile lookup failed after connection`,
