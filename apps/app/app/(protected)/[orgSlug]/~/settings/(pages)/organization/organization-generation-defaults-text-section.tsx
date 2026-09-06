@@ -1,5 +1,6 @@
 'use client';
 
+import type { TextSectionProps } from '@props/settings/organization-generation-defaults-text-section.props';
 import {
   Select,
   SelectContent,
@@ -7,16 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-
-type TextSectionProps = {
-  enabledModelIds: string[];
-  defaultModel: string;
-  defaultModelReview: string;
-  defaultModelUpdate: string;
-  onDefaultModelChange: (value: string) => void;
-  onDefaultModelReviewChange: (value: string) => void;
-  onDefaultModelUpdateChange: (value: string) => void;
-};
 
 export default function OrganizationGenerationDefaultsTextSection({
   enabledModelIds,

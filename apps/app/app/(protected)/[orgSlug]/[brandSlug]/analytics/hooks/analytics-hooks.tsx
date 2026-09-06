@@ -11,6 +11,7 @@ import { formatDuration } from '@genfeedai/helpers';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { AnalyticsHooksProps } from '@props/analytics/analytics-hooks.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -46,10 +47,6 @@ const createDefaultAnalysis = (): IViralHookAnalysis => ({
   totalTime: 0,
   totalVideos: 0,
 });
-
-export interface AnalyticsHooksProps {
-  brandId?: string;
-}
 
 export default function AnalyticsHooks({
   brandId: propBrandId,

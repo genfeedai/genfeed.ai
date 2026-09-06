@@ -13,6 +13,11 @@ import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type {
+  ProductApiKeyForm,
+  ProductApiKeyScope,
+  ProductPlainKey,
+} from '@props/settings/api-keys-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
@@ -24,23 +29,6 @@ import { Input } from '@ui/primitives/input';
 import { Clipboard, Lock, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-type ProductApiKeyForm = {
-  allowedIps: string;
-  description: string;
-  expiresAt: string;
-  label: string;
-  rateLimit: string;
-  selectedScopes: string[];
-};
-
-type ProductPlainKey = {
-  key: string;
-  label: string;
-};
-
-type ProductApiKeyScope =
-  (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
 
 const PRODUCT_API_KEY_PRESETS = [
   { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },

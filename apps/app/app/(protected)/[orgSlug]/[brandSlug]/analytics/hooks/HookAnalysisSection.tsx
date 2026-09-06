@@ -1,12 +1,8 @@
 'use client';
 
-import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
+import type { Props } from '@props/analytics/hook-analysis-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-
-type Props = {
-  analysisData: IViralHookAnalysis;
-};
 
 export default function HookAnalysisSection({ analysisData }: Props) {
   return (

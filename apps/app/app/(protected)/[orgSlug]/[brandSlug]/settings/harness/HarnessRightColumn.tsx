@@ -1,27 +1,9 @@
 'use client';
 
-import type {
-  ICreateHarnessProfilePayload,
-  IHarnessProfile,
-} from '@genfeedai/contracts/interfaces';
+import type { HarnessRightColumnProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
-
-type HarnessRightColumnProps = {
-  draft: ICreateHarnessProfilePayload;
-  onListChange: (
-    section: 'examples' | 'structure' | 'thesis',
-    key: string,
-    value: string,
-  ) => void;
-  onDraftChange: <Key extends keyof IHarnessProfile>(
-    key: Key,
-    value: IHarnessProfile[Key],
-  ) => void;
-  joinLines: (value: string[] | undefined) => string;
-  splitLines: (value: string) => string[];
-};
 
 export default function HarnessRightColumn({
   draft,

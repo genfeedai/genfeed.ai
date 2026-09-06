@@ -1,18 +1,9 @@
 'use client';
 
 import { formatEnumLabel } from '@genfeedai/contracts';
-import type { Article } from '@genfeedai/models/content/article.model';
-import type { ArticleFormState } from '@props/content/article-editor.props';
+import type { ArticleSidebarProps } from '@props/edit/article-sidebar.props';
 import Card from '@ui/card/Card';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
-
-type ArticleSidebarProps = {
-  form: Pick<ArticleFormState, 'status' | 'category'>;
-  article: Article | null;
-  isDirty?: boolean;
-  isScoringSeo?: boolean;
-  onScoreSeo?: () => void | Promise<void>;
-};
 
 export default function ArticleSidebar({
   form,

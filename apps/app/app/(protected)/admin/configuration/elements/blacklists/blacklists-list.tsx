@@ -10,6 +10,10 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
+import type {
+  BlacklistsAction,
+  BlacklistsState,
+} from '@props/admin/blacklists.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -31,25 +35,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type BlacklistsState = {
-  blacklists: ElementBlacklist[];
-  isLoading: boolean;
-  updatingIds: Set<string>;
-  selectedBlacklist: ElementBlacklist | null;
-  adminOrg: string;
-  adminBrand: string;
-};
-
-type BlacklistsAction =
-  | { type: 'FETCH_START'; isRefresh: boolean }
-  | { type: 'FETCH_SUCCESS'; blacklists: ElementBlacklist[] }
-  | { type: 'FETCH_DONE' }
-  | { type: 'SET_SELECTED'; blacklist: ElementBlacklist | null }
-  | { type: 'UPDATING_ADD'; id: string }
-  | { type: 'UPDATING_REMOVE'; id: string }
-  | { type: 'SET_ADMIN_ORG'; org: string }
-  | { type: 'SET_ADMIN_BRAND'; brand: string };
 
 function blacklistsReducer(
   state: BlacklistsState,

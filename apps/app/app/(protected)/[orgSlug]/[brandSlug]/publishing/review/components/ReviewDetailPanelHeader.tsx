@@ -1,15 +1,10 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
+import type { ReviewDetailPanelHeaderProps } from '@props/publishing/review-detail-panel-header.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
-import type { ReviewPanelItem } from './review-panel.types';
-
-interface ReviewDetailPanelHeaderProps {
-  item: ReviewPanelItem;
-  statusLabel: string;
-}
 
 export default function ReviewDetailPanelHeader({
   item,

@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
+import type { Props } from '@props/settings/settings-progress-overview-card.props';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
@@ -13,23 +13,6 @@ import Link from 'next/link';
 const CREATE_SOMETHING_AGENT_HREF = buildAgentPromptHref(
   'Help me create something new for my brand.',
 );
-
-type NextMilestone = {
-  days: number;
-  remaining: number;
-  rewardCredits: number;
-} | null;
-
-type Props = {
-  completedCount: number;
-  totalCount: number;
-  isLoading: boolean;
-  currentStreak: number;
-  longestStreak: number;
-  nextMilestone: NextMilestone;
-  nextSetupStep: SetupCardStep | null;
-  orgHref: (href: string) => string;
-};
 
 export default function SettingsProgressOverviewCard({
   completedCount,

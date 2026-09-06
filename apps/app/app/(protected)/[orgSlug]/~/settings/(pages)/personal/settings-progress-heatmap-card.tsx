@@ -1,13 +1,8 @@
 'use client';
 
-import type { IStreakCalendarDay } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { Props } from '@props/settings/settings-progress-heatmap-card.props';
 import Card from '@ui/card/Card';
-
-type Props = {
-  heatmapDays: string[];
-  calendar: Record<string, IStreakCalendarDay>;
-};
 
 export default function SettingsProgressHeatmapCard({
   heatmapDays,

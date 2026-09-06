@@ -3,6 +3,11 @@
 import { ModalEnum } from '@genfeedai/contracts';
 import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import type {
+  OrganizationSettingsTableProps,
+  SelectedSetting,
+  SettingGroup,
+} from '@props/admin/organization-settings.props';
 import { EditSettingModal } from '@protected/organization/components/edit-setting-modal';
 import { SettingRow } from '@protected/organization/components/setting-row';
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
@@ -18,22 +23,6 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import { Fragment, useCallback, useEffect, useState } from 'react';
-
-interface OrganizationSettingsTableProps {
-  settings: IOrganizationSetting | null;
-  isLoading: boolean;
-  organizationId: string;
-  onUpdate: () => void;
-}
-
-interface SettingGroup {
-  label: string;
-  settings: Array<{
-    key: keyof IOrganizationSetting;
-    label: string;
-    type: 'boolean' | 'number' | 'string' | 'array';
-  }>;
-}
 
 const SETTING_GROUPS: SettingGroup[] = [
   {
@@ -142,13 +131,6 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
 ];
-
-interface SelectedSetting {
-  key: string;
-  label: string;
-  value: unknown;
-  type: 'boolean' | 'number' | 'string' | 'array';
-}
 
 export function OrganizationSettingsTable({
   settings,

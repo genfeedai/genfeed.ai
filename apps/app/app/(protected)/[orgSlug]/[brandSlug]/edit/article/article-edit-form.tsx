@@ -1,7 +1,7 @@
 'use client';
 
 import { ArticleCategory } from '@genfeedai/contracts';
-import type { ArticleFormState } from '@props/content/article-editor.props';
+import type { ArticleEditFormProps } from '@props/edit/article-edit-form.props';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormDropdown from '@ui/primitives/dropdown-field';
@@ -18,14 +18,6 @@ const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(' '),
   }));
-
-type ArticleEditFormProps = {
-  form: ArticleFormState;
-  setFormField: <K extends keyof ArticleFormState>(
-    key: K,
-    value: ArticleFormState[K],
-  ) => void;
-};
 
 export default function ArticleEditForm({
   form,

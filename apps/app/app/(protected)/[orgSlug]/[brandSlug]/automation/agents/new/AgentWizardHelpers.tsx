@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { SelectCardButtonProps } from '@props/automation/agent-wizard-helpers.props';
 import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
 
@@ -39,12 +40,6 @@ export function StepIndicator({ current }: { current: number }) {
     </div>
   );
 }
-
-type SelectCardButtonProps = {
-  isSelected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-};
 
 export function SelectCardButton({
   isSelected,

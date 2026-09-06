@@ -1,15 +1,9 @@
 'use client';
 
-import type { AgentApiService } from '@genfeedai/agent';
+import type { AgentWorkspaceContextValue } from '@props/agent/agent-workspace-context.props';
 import { createContext, use } from 'react';
 
-export interface AgentWorkspaceContextValue {
-  agentApiService: AgentApiService;
-  isLoaded: boolean;
-  isOnboarding: boolean;
-  handleOAuthConnect: (platform: string) => Promise<void>;
-  completeOnboardingFlow: () => Promise<void>;
-}
+export type { AgentWorkspaceContextValue };
 
 export const AgentWorkspaceContext =
   createContext<AgentWorkspaceContextValue | null>(null);

@@ -1,14 +1,9 @@
 'use client';
 
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { ActiveRunsPanelProps } from '@props/automation/active-runs-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
 import WorkflowExecutionCard from './WorkflowExecutionCard';
-
-interface ActiveRunsPanelProps {
-  executions: IWorkflowExecution[];
-  onCancel?: (id: string) => void;
-}
 
 export default function ActiveRunsPanel({
   executions,

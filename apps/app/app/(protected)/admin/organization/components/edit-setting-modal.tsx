@@ -4,31 +4,18 @@ import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
+import type {
+  EditSettingModalProps,
+  SettingInputProps,
+} from '@props/admin/organization-settings.props';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import { useCallback, useState } from 'react';
 
-interface EditSettingModalProps {
-  label: string;
-  value: unknown;
-  type: 'boolean' | 'number' | 'string' | 'array';
-  onSave: (value: unknown) => Promise<void>;
-  onCancel: () => void;
-}
-
 const inputClassName =
   'flex h-10 w-full border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
-
-interface SettingInputProps {
-  label: string;
-  type: 'boolean' | 'number' | 'string' | 'array';
-  editedValue: unknown;
-  isSaving: boolean;
-  onBooleanToggle: () => void;
-  onScalarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
 
 function SettingInput({
   label,

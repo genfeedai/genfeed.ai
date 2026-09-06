@@ -2,6 +2,7 @@
 
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { Props } from '@props/settings/settings-progress-rewards-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Flame, Gift, ShieldCheck } from 'lucide-react';
@@ -17,11 +18,6 @@ function rewardLabel(milestone: IStreakMilestoneState): string {
 
   return 'Milestone reached';
 }
-
-type Props = {
-  badgeMilestones: number[];
-  milestoneStates: IStreakMilestoneState[];
-};
 
 export default function SettingsProgressRewardsCard({
   badgeMilestones,

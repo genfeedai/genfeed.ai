@@ -31,3 +31,40 @@ export interface WarmupAccountDetailProps {
   onRevoke: () => void;
   onSend: () => void;
 }
+
+export interface WarmupAccountsPageState {
+  accounts: IWarmupAccount[];
+  activeTab: 'accounts' | 'create';
+  form: WarmupAccountFormState;
+  invitationAction: WarmupPendingInvitationAction | null;
+  isLoading: boolean;
+  isSubmitting: boolean;
+  loadTrigger: number;
+  selectedAccountId?: string;
+}
+
+export interface WarmupPendingInvitationAction {
+  accountId: string;
+  action: WarmupInvitationAction;
+  requestId: number;
+}
+
+export type WarmupActiveInvitationRequest = WarmupPendingInvitationAction & {
+  controller: AbortController;
+};
+
+export type WarmupAccountsPageAction =
+  | { type: 'SET_TAB'; tab: 'accounts' | 'create' }
+  | { type: 'SET_LOADING'; isLoading: boolean }
+  | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
+  | { type: 'SET_ACCOUNTS'; accounts: IWarmupAccount[] }
+  | {
+      type: 'SET_FIELD';
+      field: keyof WarmupAccountFormState;
+      value: string;
+    }
+  | { type: 'SET_SELECTED'; accountId: string }
+  | { type: 'SET_INVITATION_ACTION'; request: WarmupPendingInvitationAction }
+  | { type: 'CLEAR_INVITATION_ACTION'; requestId: number }
+  | { type: 'UPSERT_ACCOUNT'; account: IWarmupAccount }
+  | { type: 'CREATE_SUCCESS'; account: IWarmupAccount };

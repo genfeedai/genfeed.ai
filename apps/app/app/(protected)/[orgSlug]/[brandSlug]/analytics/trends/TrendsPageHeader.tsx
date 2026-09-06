@@ -2,19 +2,9 @@
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
-import type { TrendCorpusFreshnessHealth } from '@props/trends/trends-page.props';
+import type { Props } from '@props/analytics/trends-page-header.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-
-type Props = {
-  corpusHealth: TrendCorpusFreshnessHealth | null;
-  formattedLastSyncedAt: string;
-  isCorpusHealthUnavailable: boolean;
-  videoCount: number;
-  platformCount: number;
-  leadingPlatform: { label: string; totalMentions: number } | null;
-  totalTrackedTopics: number;
-};
 
 export default function TrendsPageHeader({
   corpusHealth,

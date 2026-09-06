@@ -7,6 +7,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import type {
+  ConsentState,
+  OAuthDecisionResponse,
+} from '@props/auth/oauth-consent-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
@@ -17,17 +21,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { redirectToOAuthClient } from './redirect';
-
-type OAuthDecisionResponse = {
-  error?: string;
-  error_description?: string;
-  redirectUrl?: string;
-};
-
-type ConsentState = {
-  error: string | null;
-  isSubmitting: boolean;
-};
 
 function getRequestedScopeLabels(scope: string | null): string[] {
   const requested = new Set(

@@ -1,20 +1,13 @@
 'use client';
 
-import type { ContentScope } from '@genfeedai/contracts/interfaces';
 import type { Sound } from '@models/ingredients/sound.model';
+import type { BuildSoundsColumnsParams } from '@props/admin/sounds.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {
   SoundActiveCell,
   SoundCategoryCell,
   SoundDefaultCell,
 } from './sounds-list-columns';
-
-type BuildSoundsColumnsParams = {
-  updatingIds: Set<string>;
-  scope: ContentScope;
-  onToggleActive: (sound: Sound) => void;
-  onToggleDefault: (sound: Sound) => void;
-};
 
 export function buildSoundsColumns({
   updatingIds,

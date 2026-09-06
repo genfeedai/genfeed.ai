@@ -1,15 +1,8 @@
 'use client';
 
 import { PageScope, TagCategory } from '@genfeedai/contracts';
-import type { ContentScope, ITag } from '@genfeedai/contracts/interfaces';
+import type { TagsListModalsProps } from '@props/admin/tags.props';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
-
-type TagsListModalsProps = {
-  scope: ContentScope;
-  selectedTag: ITag | null;
-  organizationId: string | undefined;
-  onConfirm: () => void;
-};
 
 export default function TagsListModals({
   scope,

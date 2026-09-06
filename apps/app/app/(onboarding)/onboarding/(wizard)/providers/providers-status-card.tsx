@@ -1,13 +1,12 @@
 'use client';
 
+import type { ProvidersStatusCardProps } from '@props/onboarding/providers-status-card.props';
 import Card from '@ui/card/Card';
 import { Sparkles } from 'lucide-react';
 
-type Props = {
-  accessStatusLabel: string;
-};
-
-export default function ProvidersStatusCard({ accessStatusLabel }: Props) {
+export default function ProvidersStatusCard({
+  accessStatusLabel,
+}: ProvidersStatusCardProps) {
   return (
     <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">

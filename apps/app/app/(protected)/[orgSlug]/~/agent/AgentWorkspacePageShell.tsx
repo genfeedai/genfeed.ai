@@ -5,14 +5,11 @@ import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-crea
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentWorkspacePageShellProps } from '@props/agent/agent-workspace-page-shell.props';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { useAgentWorkspace } from './agent-workspace-context';
-
-interface AgentWorkspacePageShellProps {
-  threadId?: string;
-}
 
 export function AgentWorkspacePageShell({
   threadId,

@@ -1,5 +1,6 @@
 'use client';
 
+import type { TaskSelectionContextValue } from '@props/tasks/task-selection-context.props';
 import type { Task } from '@services/management/tasks.service';
 import {
   createContext,
@@ -9,14 +10,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-interface TaskSelectionContextValue {
-  /** Bumped whenever the inspector saves, so the list refetches. */
-  readonly revision: number;
-  readonly selectedTask: Task | null;
-  readonly selectTask: (task: Task | null) => void;
-  readonly commitTask: (task: Task) => void;
-}
 
 const TaskSelectionContext = createContext<TaskSelectionContextValue | null>(
   null,

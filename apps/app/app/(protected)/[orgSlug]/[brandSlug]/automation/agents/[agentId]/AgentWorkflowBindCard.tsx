@@ -2,6 +2,11 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  OverrideRow,
+  Props,
+  WorkflowOption,
+} from '@props/automation/agent-workflow-bind-card.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { WorkflowsService } from '@services/automation/workflows.service';
@@ -21,23 +26,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 const CLEAR_BINDING = '__clear__';
-
-type WorkflowOption = {
-  id: string;
-  label: string;
-};
-
-type OverrideRow = {
-  id: string;
-  key: string;
-  value: string;
-};
-
-type Props = {
-  agentId: string;
-  onBound: () => Promise<void> | void;
-  strategy: AgentStrategy;
-};
 
 function newOverrideRow(key = '', value = ''): OverrideRow {
   return {

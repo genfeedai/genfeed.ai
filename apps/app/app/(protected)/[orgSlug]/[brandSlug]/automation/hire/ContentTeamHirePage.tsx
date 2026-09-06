@@ -11,6 +11,8 @@ import {
   buildRoleStrategyInput,
   CONTENT_TEAM_ROLE_PRESETS,
 } from '@pages/agents/content-team/content-team-presets';
+import type { ContentTeamHirePageProps } from '@props/automation/content-team-hire-page.props';
+import type { HireFormState } from '@props/automation/hire-form.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -21,22 +23,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import { HireForm } from './HireForm';
-
-interface HireFormState {
-  budget: string;
-  label: string;
-  persona: string;
-  reportsToLabel: string;
-  rolePresetId: string;
-  sharedTopic: string;
-  teamGroup: string;
-}
-
-interface ContentTeamHirePageProps {
-  isEmbedded?: boolean;
-  onCancel?: () => void;
-  onCreated?: () => Promise<void> | void;
-}
 
 export default function ContentTeamHirePage({
   isEmbedded = false,

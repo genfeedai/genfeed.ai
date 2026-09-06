@@ -1,14 +1,8 @@
 'use client';
 
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { RunHistoryListProps } from '@props/automation/run-history-list.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import WorkflowExecutionCard from './WorkflowExecutionCard';
-
-interface RunHistoryListProps {
-  executions: IWorkflowExecution[];
-  isLoading: boolean;
-  onClearFilter?: () => void;
-}
 
 export default function RunHistoryList({
   executions,

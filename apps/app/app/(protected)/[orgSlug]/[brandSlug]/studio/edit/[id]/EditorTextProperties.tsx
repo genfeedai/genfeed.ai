@@ -1,10 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type {
-  IEditorClip,
-  IEditorTextOverlay,
-} from '@genfeedai/contracts/interfaces';
+import type { EditorTextPropertiesProps } from '@props/studio/editor-text-properties.props';
 import { Button } from '@ui/primitives/button';
 import { ColorInput } from '@ui/primitives/color-input';
 import {
@@ -40,11 +37,6 @@ const PRESET_COLORS = [
   '#ff6600',
   '#9933ff',
 ];
-
-interface EditorTextPropertiesProps {
-  selectedTextClip: IEditorClip;
-  onUpdateTextOverlay: (updates: Partial<IEditorTextOverlay>) => void;
-}
 
 function EditorTextProperties({
   selectedTextClip,

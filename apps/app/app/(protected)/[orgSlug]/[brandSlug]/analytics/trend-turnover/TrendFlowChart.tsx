@@ -1,6 +1,6 @@
 'use client';
 
-import type { TrendTimelineEntry } from '@services/social/trends.service';
+import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
 import dynamic from 'next/dynamic';
 
 const Area = dynamic(() => import('recharts').then((module) => module.Area), {
@@ -28,11 +28,6 @@ const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
 const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
   ssr: false,
 });
-
-interface TrendFlowChartProps {
-  data: TrendTimelineEntry[];
-  isLoading?: boolean;
-}
 
 export default function TrendFlowChart({
   data,

@@ -54,7 +54,6 @@ import type {
   CalendarEventBadge,
   CalendarEventChannel,
   CalendarEventDrop,
-  CalendarItem,
   CalendarViewKey,
 } from '@props/components/calendar.props';
 import type {
@@ -62,6 +61,14 @@ import type {
   ReleaseCalendarFilterOption,
   ReleaseCalendarFilters as ReleaseFilters,
 } from '@props/publisher/release-calendar.props';
+import type {
+  ArticleContentCalendarItem,
+  ContentCalendarItem,
+  DayAggregateContentCalendarItem,
+  NewsletterContentCalendarItem,
+  ReleaseContentCalendarItem,
+  SlotContentCalendarItem,
+} from '@props/publishing/content-calendar-page.props';
 import {
   useConfirmModal,
   usePostRepurposeModal,
@@ -98,40 +105,6 @@ import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
-
-interface NewsletterContentCalendarItem extends CalendarItem {
-  itemType: 'newsletter';
-  newsletter: Newsletter;
-}
-
-interface ArticleContentCalendarItem extends CalendarItem {
-  article: IArticle;
-  itemType: 'article';
-}
-
-interface ReleaseContentCalendarItem extends CalendarItem {
-  itemType: 'release';
-  release: IReleaseGroup;
-}
-
-interface SlotContentCalendarItem extends CalendarItem {
-  itemType: 'slot';
-  slot: ICalendarSlot;
-}
-
-interface DayAggregateContentCalendarItem extends CalendarItem {
-  filledCount: number;
-  itemType: 'day-aggregate';
-  missingCount: number;
-  missingIdentityKeys: string[];
-}
-
-type ContentCalendarItem =
-  | NewsletterContentCalendarItem
-  | ArticleContentCalendarItem
-  | DayAggregateContentCalendarItem
-  | ReleaseContentCalendarItem
-  | SlotContentCalendarItem;
 
 function mutationErrorMessage(error: unknown): string {
   return error instanceof Error

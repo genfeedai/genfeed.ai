@@ -1,15 +1,11 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
-import type { TemplateVariable } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { Code } from '@genfeedai/ui';
+import type { TemplateVariablesCardProps as Props } from '@props/admin/templates.props';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';
 import { DetailCard } from './template-detail-helpers';
-
-type Props = {
-  variables: TemplateVariable[];
-};
 
 export default function TemplateVariablesCard({ variables }: Props) {
   if (variables.length === 0) {

@@ -6,6 +6,8 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
+import type { ReviewDetailPanelProps } from '@props/publishing/review-detail-panel.props';
+import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { ImageIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -17,20 +19,7 @@ import {
   buildReviewItemTargetPreview,
   formatReviewItemStatus,
 } from './review-item.helpers';
-import type { ReviewPanelItem } from './review-panel.types';
 import { isReadyToReview } from './review-state';
-
-interface ReviewDetailPanelProps {
-  isActioning: boolean;
-  isSelected: boolean;
-  item: ReviewPanelItem | null;
-  onApprove: (itemId: string) => void;
-  onAssign: (itemId: string, assigneeId: string) => void;
-  onReject: (itemId: string, feedback?: string) => void;
-  onRequestChanges: (itemId: string, feedback?: string) => void;
-  onToggleSelect: (itemId: string) => void;
-  onUnassign: (itemId: string) => void;
-}
 
 function buildStatusLabel(item: ReviewPanelItem): string {
   // Single source of truth with the table badge label.

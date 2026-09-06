@@ -2,14 +2,15 @@
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  IssueDetailAction,
+  IssueDetailProps,
+  IssueDetailState,
+} from '@props/tasks/issue-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { TaskCommentsService } from '@services/management/task-comments.service';
 import {
-  type TaskComment,
-  TaskCommentsService,
-} from '@services/management/task-comments.service';
-import {
-  type Task,
   type TaskLinkedEntityModel,
   type TaskPriority,
   type TaskStatus,
@@ -79,31 +80,6 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
 
 const VISIBLE_COMMENT_COUNT = 3;
 
-interface IssueDetailState {
-  issue: Task | null;
-  comments: TaskComment[];
-  children: Task[];
-  isLoading: boolean;
-  commentBody: string;
-  isSubmitting: boolean;
-  showAllComments: boolean;
-}
-
-type IssueDetailAction =
-  | { type: 'LOAD_START' }
-  | {
-      type: 'LOAD_SUCCESS';
-      payload: { issue: Task; comments: TaskComment[]; children: Task[] };
-    }
-  | { type: 'LOAD_ERROR' }
-  | { type: 'LOAD_DONE' }
-  | { type: 'SET_ISSUE'; payload: Task }
-  | { type: 'APPEND_COMMENT'; payload: TaskComment }
-  | { type: 'SET_COMMENT_BODY'; payload: string }
-  | { type: 'SUBMIT_START' }
-  | { type: 'SUBMIT_END' }
-  | { type: 'SHOW_ALL_COMMENTS' };
-
 const initialIssueDetailState: IssueDetailState = {
   issue: null,
   comments: [],
@@ -147,12 +123,6 @@ function issueDetailReducer(
     default:
       return state;
   }
-}
-
-interface IssueDetailProps {
-  issueId: string;
-  /** If true, treat issueId as a human-readable identifier (e.g., GEN-42) */
-  useIdentifier?: boolean;
 }
 
 export default function IssueDetail({

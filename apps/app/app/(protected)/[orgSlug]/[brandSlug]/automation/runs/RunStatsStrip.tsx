@@ -1,11 +1,6 @@
 'use client';
 
-import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
-
-interface RunStatsStripProps {
-  isLoading: boolean;
-  stats: WorkflowExecutionStats;
-}
+import type { RunStatsStripProps } from '@props/automation/run-stats-strip.props';
 
 export default function RunStatsStrip({
   isLoading,

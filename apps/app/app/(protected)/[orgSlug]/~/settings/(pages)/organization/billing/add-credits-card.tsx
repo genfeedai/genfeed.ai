@@ -1,18 +1,13 @@
 'use client';
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { AddCreditsCardProps } from '@props/settings/add-credits-card.props';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import type { ReactNode } from 'react';
 import { useState } from 'react';
 import CreditTopUpPanel from '../credits/credit-top-up-panel';
-
-type AddCreditsCardProps = {
-  /** Optional secondary control next to Add credit (e.g. billing portal). */
-  secondaryAction?: ReactNode;
-};
 
 export default function AddCreditsCard({
   secondaryAction,

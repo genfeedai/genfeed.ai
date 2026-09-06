@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ReferralRewardStatus } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { ReferralStatProps } from '@props/settings/referral-hub-card.props';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -163,11 +164,6 @@ export default function ReferralHubCard() {
     </Card>
   );
 }
-
-type ReferralStatProps = {
-  label: string;
-  value: number;
-};
 
 function ReferralStat({ label, value }: ReferralStatProps) {
   return (

@@ -1,25 +1,11 @@
 'use client';
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import type { Props } from '@props/analytics/platform-performance-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import MetricItem from '@ui/display/metric-item/MetricItem';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
-
-type AggregatedPlatform = {
-  platform: string;
-  totalViews: number;
-  totalLikes: number;
-  totalShares: number;
-  totalComments: number;
-  avgEngagement: number;
-  avgViralScore: number;
-  videoCount: number;
-};
-
-type Props = {
-  aggregatedPlatformData: AggregatedPlatform[];
-};
 
 export default function PlatformPerformanceSection({
   aggregatedPlatformData,

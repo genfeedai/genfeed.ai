@@ -4,6 +4,11 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  IssuesListAction,
+  IssuesListState,
+  ViewMode,
+} from '@props/tasks/issues-list.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   type Task,
@@ -55,8 +60,6 @@ import {
   TaskStatusSelect,
 } from './task-pills';
 import { useTaskSelection } from './task-selection-context';
-
-type ViewMode = ViewType.KANBAN | ViewType.LIST;
 
 function IssueCard({
   issue,
@@ -116,26 +119,6 @@ function KanbanColumn({
     </section>
   );
 }
-
-type IssuesListState = {
-  issues: Task[];
-  isLoading: boolean;
-  showCreateDialog: boolean;
-  createTitle: string;
-  createDescription: string;
-  createPriority: TaskPriority;
-  isCreating: boolean;
-};
-
-type IssuesListAction =
-  | { type: 'SET_ISSUES'; payload: Task[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_SHOW_CREATE_DIALOG'; payload: boolean }
-  | { type: 'SET_CREATE_TITLE'; payload: string }
-  | { type: 'SET_CREATE_DESCRIPTION'; payload: string }
-  | { type: 'SET_CREATE_PRIORITY'; payload: TaskPriority }
-  | { type: 'SET_CREATING'; payload: boolean }
-  | { type: 'RESET_CREATE_FORM' };
 
 const initialIssuesListState: IssuesListState = {
   createDescription: '',

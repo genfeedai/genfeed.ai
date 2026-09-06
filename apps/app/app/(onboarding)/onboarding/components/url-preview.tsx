@@ -1,12 +1,9 @@
 'use client';
 
+import type { UrlPreviewProps } from '@props/onboarding/url-preview.props';
 import { Globe } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
-
-interface UrlPreviewProps {
-  url: string;
-}
 
 function parseDomain(url: string): string | null {
   if (!url || url.length < 4) {

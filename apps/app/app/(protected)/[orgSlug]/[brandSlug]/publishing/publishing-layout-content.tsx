@@ -13,6 +13,10 @@ import {
   PostFormat,
 } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import type {
+  PublishingLayoutAction,
+  PublishingLayoutState,
+} from '@props/publishing/publishing-layout-content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
@@ -34,26 +38,6 @@ function buildNewPostAgentPrompt(brandLabel?: string | null): string {
 
   return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;
 }
-
-type PublishingLayoutState = {
-  refreshFn: RefreshFunction | (() => RefreshFunction) | null;
-  isRefreshing: boolean;
-  filtersNode: ReactNode;
-  exportNode: ReactNode;
-  viewToggleNode: ReactNode;
-  scheduleActionsNode: ReactNode;
-};
-
-type PublishingLayoutAction =
-  | {
-      type: 'SET_REFRESH_FN';
-      payload: RefreshFunction | (() => RefreshFunction) | null;
-    }
-  | { type: 'SET_IS_REFRESHING'; payload: boolean }
-  | { type: 'SET_FILTERS_NODE'; payload: ReactNode }
-  | { type: 'SET_EXPORT_NODE'; payload: ReactNode }
-  | { type: 'SET_VIEW_TOGGLE_NODE'; payload: ReactNode }
-  | { type: 'SET_SCHEDULE_ACTIONS_NODE'; payload: ReactNode };
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,

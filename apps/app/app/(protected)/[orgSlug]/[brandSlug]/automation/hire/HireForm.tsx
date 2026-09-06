@@ -1,10 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  CONTENT_TEAM_ROLE_PRESETS,
-  type ContentTeamRolePreset,
-} from '@pages/agents/content-team/content-team-presets';
+import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
+import type { HireFormProps } from '@props/automation/hire-form.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -16,25 +14,6 @@ const ROLE_OPTIONS = CONTENT_TEAM_ROLE_PRESETS.map((preset) => ({
   meta: `${preset.defaultBudget} credits / day`,
   value: preset.id,
 }));
-
-interface HireFormState {
-  budget: string;
-  label: string;
-  persona: string;
-  reportsToLabel: string;
-  rolePresetId: string;
-  sharedTopic: string;
-  teamGroup: string;
-}
-
-interface HireFormProps {
-  form: HireFormState;
-  isSubmitting: boolean;
-  onCancel: () => void;
-  onChange: (field: keyof HireFormState, value: string) => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  selectedPreset: ContentTeamRolePreset | undefined;
-}
 
 export function HireForm({
   form,

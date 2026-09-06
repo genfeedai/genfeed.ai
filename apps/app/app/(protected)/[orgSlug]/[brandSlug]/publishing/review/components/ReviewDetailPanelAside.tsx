@@ -6,6 +6,7 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
+import type { ReviewDetailPanelAsideProps } from '@props/publishing/review-detail-panel-aside.props';
 import { useState } from 'react';
 
 import ReviewAssignmentPanel from './ReviewAssignmentPanel';
@@ -13,27 +14,6 @@ import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewHistoryPanel from './ReviewHistoryPanel';
 import ReviewLineagePanel from './ReviewLineagePanel';
 import ReviewPublishOutcomePanel from './ReviewPublishOutcomePanel';
-import type { ReviewPanelItem } from './review-panel.types';
-
-type ReviewEvent = NonNullable<ReviewPanelItem['reviewEvents']>[number];
-
-interface ReviewDetailPanelAsideProps {
-  browserTimezone: string;
-  formattedCreatedDate: string;
-  formattedScheduledDate: string | null;
-  isActioning: boolean;
-  isReady: boolean;
-  isSelected: boolean;
-  item: ReviewPanelItem;
-  onApprove: (itemId: string) => void;
-  onAssign: (itemId: string, assigneeId: string) => void;
-  onReject: (itemId: string, feedback?: string) => void;
-  onRequestChanges: (itemId: string, feedback?: string) => void;
-  onToggleSelect: (itemId: string) => void;
-  onUnassign: (itemId: string) => void;
-  reviewEvents: ReviewEvent[];
-  statusLabel: string;
-}
 
 function Section({
   children,

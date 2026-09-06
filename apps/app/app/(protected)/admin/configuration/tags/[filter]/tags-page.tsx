@@ -3,7 +3,7 @@
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
 import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import type { ContentProps } from '@props/layout/content.props';
+import type { ITagsPageProps } from '@props/admin/tags.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button } from '@ui/primitives/button';
@@ -12,11 +12,6 @@ import { useState } from 'react';
 
 import TagsLayout from './tags-layout';
 import TagsList from './tags-list';
-
-export interface ITagsPageProps {
-  scope: ContentProps['scope'];
-  filter: 'all' | 'default' | 'organization' | 'account';
-}
 
 function handleAddTag() {
   openModal(ModalEnum.TAG);

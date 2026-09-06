@@ -27,6 +27,11 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
+import type {
+  NeedsYouItem,
+  OperationalHomeSectionsProps,
+  ReviewInboxItem,
+} from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -56,14 +61,6 @@ import {
   summarizeUpcomingSchedule,
   type UpcomingScheduleDay,
 } from './operational-home.helpers';
-
-interface OperationalHomeSectionsProps {
-  brandSlug?: string;
-  orgSlug: string;
-}
-
-type ReviewInboxItem =
-  OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
 
 const EXECUTION_STATUS_VARIANTS: Record<
   WorkflowExecutionStatus,
@@ -151,11 +148,6 @@ function reviewItemHref(baseHref: string, item: ReviewInboxItem): string {
 function isAwaitingReview(item: ReviewInboxItem): boolean {
   return normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET;
 }
-
-type NeedsYouItem =
-  | { credential: ICredential; key: string; type: 'credential' }
-  | { execution: IWorkflowExecution; key: string; type: 'failed' }
-  | { item: ReviewInboxItem; key: string; type: 'review' };
 
 function buildNeedsYouItems({
   credentials,

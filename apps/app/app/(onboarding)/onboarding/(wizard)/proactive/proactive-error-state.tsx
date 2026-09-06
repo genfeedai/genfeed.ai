@@ -1,19 +1,15 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ProactiveErrorStateProps } from '@props/onboarding/proactive-error-state.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 
-type Props = {
-  error: string | null;
-  onContinueSelfServe: () => void;
-};
-
 export default function ProactiveErrorState({
   error,
   onContinueSelfServe,
-}: Props) {
+}: ProactiveErrorStateProps) {
   return (
     <div className="max-w-3xl">
       <Card bodyClassName="gap-0 p-8" className="border-border bg-card">

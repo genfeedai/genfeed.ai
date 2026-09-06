@@ -1,6 +1,6 @@
 'use client';
 
-import type { ProactiveWorkspaceResponse } from '@services/onboarding/onboarding.service';
+import type { ProactiveWorkspaceSidebarProps } from '@props/onboarding/proactive-workspace-sidebar.props';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Briefcase, CircleCheck } from 'lucide-react';
@@ -20,11 +20,9 @@ const LIVE_UPDATES = [
   },
 ];
 
-type Props = {
-  workspace: ProactiveWorkspaceResponse;
-};
-
-export default function ProactiveWorkspaceSidebar({ workspace }: Props) {
+export default function ProactiveWorkspaceSidebar({
+  workspace,
+}: ProactiveWorkspaceSidebarProps) {
   return (
     <div className="space-y-6">
       <Card bodyClassName="gap-0 p-6" className="border-border bg-card">

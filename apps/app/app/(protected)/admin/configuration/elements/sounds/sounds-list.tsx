@@ -7,6 +7,11 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';
+import type {
+  SoundFetchStatus as FetchStatus,
+  SoundsListAction,
+  SoundsListState,
+} from '@props/admin/sounds.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -27,27 +32,6 @@ import {
 
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
-
-type FetchStatus = 'loading' | 'refreshing' | 'idle';
-
-type SoundsListState = {
-  sounds: Sound[];
-  fetchStatus: FetchStatus;
-  updatingIds: Set<string>;
-  selectedSound: Sound | null;
-  adminOrg: string;
-  adminBrand: string;
-};
-
-type SoundsListAction =
-  | { type: 'FETCH_START'; isRefresh: boolean }
-  | { type: 'FETCH_SUCCESS'; sounds: Sound[]; isRefresh: boolean }
-  | { type: 'FETCH_FINALLY' }
-  | { type: 'ADD_UPDATING_ID'; id: string }
-  | { type: 'REMOVE_UPDATING_ID'; id: string }
-  | { type: 'SET_SELECTED_SOUND'; sound: Sound | null }
-  | { type: 'SET_ADMIN_ORG'; orgId: string }
-  | { type: 'SET_ADMIN_BRAND'; brandId: string };
 
 function soundsListReducer(
   state: SoundsListState,

@@ -1,18 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ICreateHarnessProfilePayload } from '@genfeedai/contracts/interfaces';
+import type { HarnessHeaderProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-
-type HarnessHeaderProps = {
-  draft: ICreateHarnessProfilePayload;
-  isPromoting?: boolean;
-  isSaving: boolean;
-  onPromoteWinners?: () => void;
-  onSave: () => void;
-};
 
 export default function HarnessHeader({
   draft,

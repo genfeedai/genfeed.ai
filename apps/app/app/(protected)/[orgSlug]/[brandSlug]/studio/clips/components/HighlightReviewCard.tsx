@@ -1,7 +1,11 @@
 'use client';
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { IHighlight } from '@props/studio/clips.props';
+import type {
+  IHighlight,
+  RewriteAction,
+  RewriteState,
+} from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
@@ -60,22 +64,6 @@ function getViralityColor(score: number): string {
   if (score >= 60) return 'bg-warning/10 text-warning border-transparent';
   return 'bg-destructive/10 text-destructive border-transparent';
 }
-
-type RewriteState = {
-  isRewriting: boolean;
-  hasBeenRewritten: boolean;
-  platform: string;
-  tone: string;
-  rewriteError: string | null;
-};
-
-type RewriteAction =
-  | { type: 'START_REWRITE' }
-  | { type: 'REWRITE_SUCCESS' }
-  | { type: 'REWRITE_ERROR'; error: string }
-  | { type: 'RESTORE' }
-  | { type: 'SET_PLATFORM'; platform: string }
-  | { type: 'SET_TONE'; tone: string };
 
 const initialRewriteState: RewriteState = {
   isRewriting: false,

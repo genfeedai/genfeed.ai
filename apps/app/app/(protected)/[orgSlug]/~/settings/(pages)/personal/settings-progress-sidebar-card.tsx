@@ -1,19 +1,10 @@
 'use client';
 
+import type { Props } from '@props/settings/settings-progress-sidebar-card.props';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Switch } from '@ui/primitives/switch';
-
-type Props = {
-  isSaving: boolean;
-  isVisible: boolean;
-  isLoading: boolean;
-  streakFreezes: number;
-  completedCount: number;
-  totalCount: number;
-  setVisibility: (visible: boolean) => Promise<void>;
-};
 
 export default function SettingsProgressSidebarCard({
   isSaving,

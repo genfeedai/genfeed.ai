@@ -1,16 +1,13 @@
 'use client';
 
+import type { AgentConversationRouteHostProps } from '@props/agent/agent-conversation-route-host.props';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   normalizeProtectedPathname,
   resolveAgentConversationRoute,
 } from '@/lib/navigation/operator-shell';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
-
-interface AgentConversationRouteHostProps {
-  children: ReactNode;
-}
 
 /**
  * Persistent host for the agent conversation.

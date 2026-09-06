@@ -1,15 +1,9 @@
 'use client';
 
-import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
+import type { Props } from '@props/analytics/hook-stat-cards.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Clock, Eye, Heart, TrendingUp } from 'lucide-react';
-
-type Props = {
-  analysisData: IViralHookAnalysis;
-  formatTimeSpent: (seconds: number) => string;
-  isLoading?: boolean;
-};
 
 export default function HookStatCards({
   analysisData,

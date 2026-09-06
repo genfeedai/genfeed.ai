@@ -3,7 +3,12 @@
 import { AlertCategory } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { IBusinessAnalytics } from '@services/analytics/analytics.service';
+import type {
+  ComparisonCardProps,
+  DailySeriesChartProps,
+  LeaderTableProps,
+  ProjectionCardProps,
+} from '@props/admin/analytics.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
@@ -33,18 +38,6 @@ function formatCurrency(value: number): string {
 function _formatPercent(value: number): string {
   if (!Number.isFinite(value)) return 'N/A';
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
-}
-
-interface LeaderTableProps {
-  title: string;
-  leaders: Array<{
-    organizationId: string;
-    organizationName: string;
-    amount?: number;
-    count?: number;
-  }>;
-  valueFormatter: (item: { amount?: number; count?: number }) => string;
-  valueLabel: string;
 }
 
 function LeaderTable({
@@ -97,15 +90,6 @@ function LeaderTable({
   );
 }
 
-interface ComparisonCardProps {
-  title: string;
-  leftLabel: string;
-  leftValue: string;
-  rightLabel: string;
-  rightValue: string;
-  difference?: string;
-}
-
 function ComparisonCard({
   title,
   leftLabel,
@@ -137,13 +121,6 @@ function ComparisonCard({
       )}
     </Card>
   );
-}
-
-interface DailySeriesChartProps {
-  title: string;
-  data: Array<{ date: string; amount?: number; count?: number }>;
-  valueKey: 'amount' | 'count';
-  formatter: (value: number) => string;
 }
 
 function DailySeriesChart({
@@ -191,10 +168,6 @@ function DailySeriesChart({
       </div>
     </Card>
   );
-}
-
-interface ProjectionCardProps {
-  projections: IBusinessAnalytics['projections'];
 }
 
 function ProjectionCard({ projections }: ProjectionCardProps) {

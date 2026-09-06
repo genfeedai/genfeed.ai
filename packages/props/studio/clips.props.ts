@@ -149,3 +149,19 @@ export interface ClipsProjectCardProps {
 export interface ClipsWorkspaceProps {
   projectId?: string;
 }
+
+export interface RewriteState {
+  isRewriting: boolean;
+  hasBeenRewritten: boolean;
+  platform: string;
+  tone: string;
+  rewriteError: string | null;
+}
+
+export type RewriteAction =
+  | { type: 'START_REWRITE' }
+  | { type: 'REWRITE_SUCCESS' }
+  | { type: 'REWRITE_ERROR'; error: string }
+  | { type: 'RESTORE' }
+  | { type: 'SET_PLATFORM'; platform: string }
+  | { type: 'SET_TONE'; tone: string };

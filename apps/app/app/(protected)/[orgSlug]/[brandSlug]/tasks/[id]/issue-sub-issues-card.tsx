@@ -1,13 +1,8 @@
 'use client';
 
-import type { Task, TaskStatus } from '@services/management/tasks.service';
+import type { IssueSubIssuesCardProps } from '@props/tasks/issue-sub-issues-card.props';
 import Card from '@ui/card/Card';
 import { SubIssueRow } from './sub-issue-row';
-
-type IssueSubIssuesCardProps = {
-  subIssues: Task[];
-  statusLabels: Record<TaskStatus, string>;
-};
 
 export default function IssueSubIssuesCard({
   subIssues,

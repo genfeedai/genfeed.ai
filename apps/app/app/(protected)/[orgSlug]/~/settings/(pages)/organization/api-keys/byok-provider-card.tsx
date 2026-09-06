@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
+import type { Props } from '@props/settings/byok-provider-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -17,25 +17,6 @@ import { Input } from '@ui/primitives/input';
 import { Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
-
-type ByokProviderCardState = {
-  isExpanded: boolean;
-  isRemoving: boolean;
-  isValidating: boolean;
-  isSaving: boolean;
-};
-
-type Props = {
-  providerStatus: IByokProviderStatus;
-  cardState: ByokProviderCardState;
-  apiKeyValue: string;
-  apiSecretValue: string;
-  onToggleExpand: () => void;
-  onApiKeyChange: (value: string) => void;
-  onApiSecretChange: (value: string) => void;
-  onValidateAndSave: () => void;
-  onRemoveKey: () => void;
-};
 
 function providerFaviconDomain(docsUrl: string): string | null {
   try {

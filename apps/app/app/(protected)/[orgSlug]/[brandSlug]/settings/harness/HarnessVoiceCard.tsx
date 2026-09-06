@@ -1,20 +1,10 @@
 'use client';
 
-import type { IHarnessProfile } from '@genfeedai/contracts/interfaces';
+import type { HarnessVoiceCardProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
-
-type HarnessVoiceCardProps = {
-  voice: IHarnessProfile['voice'] | undefined;
-  onVoiceChange: (
-    key: keyof NonNullable<IHarnessProfile['voice']>,
-    value: string | string[],
-  ) => void;
-  joinLines: (value: string[] | undefined) => string;
-  splitLines: (value: string) => string[];
-};
 
 export default function HarnessVoiceCard({
   voice,

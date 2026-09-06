@@ -2,16 +2,9 @@
 
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { ContentProps } from '@props/layout/content.props';
+import type { ITagsLayoutProps } from '@props/admin/tags.props';
 import Container from '@ui/layout/container/Container';
 import { Tag } from 'lucide-react';
-import type { ReactNode } from 'react';
-
-export interface ITagsLayoutProps {
-  children: ReactNode;
-  scope: ContentProps['scope'];
-  rightActions?: ReactNode;
-}
 
 export default function TagsLayout({
   children,

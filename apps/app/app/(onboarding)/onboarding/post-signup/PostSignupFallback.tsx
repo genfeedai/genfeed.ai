@@ -1,12 +1,8 @@
 'use client';
 
+import type { PostSignupFallbackProps } from '@props/onboarding/post-signup-fallback.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-
-type PostSignupFallbackProps = {
-  resolveOnboardingHref: () => Promise<string>;
-  retryBrandOsHandoff?: (() => void) | undefined;
-};
 
 export default function PostSignupFallback({
   resolveOnboardingHref,

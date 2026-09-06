@@ -1,10 +1,6 @@
 'use client';
 
-import type {
-  HarnessProfileScope,
-  ICreateHarnessProfilePayload,
-  IHarnessProfile,
-} from '@genfeedai/contracts/interfaces';
+import type { HarnessIdentityCardProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
@@ -16,18 +12,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-
-type HarnessIdentityCardProps = {
-  draft: ICreateHarnessProfilePayload;
-  scopes: readonly HarnessProfileScope[];
-  onDraftChange: <Key extends keyof IHarnessProfile>(
-    key: Key,
-    value: IHarnessProfile[Key],
-  ) => void;
-  onScopeChange: (value: string) => void;
-  joinLines: (value: string[] | undefined) => string;
-  splitLines: (value: string) => string[];
-};
 
 export default function HarnessIdentityCard({
   draft,

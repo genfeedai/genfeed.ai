@@ -14,15 +14,12 @@ import {
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { EvergreenSeriesControlsProps } from '@props/publishing/evergreen-series-controls.props';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-type EvergreenSeriesControlsProps = {
-  groupId: string;
-};
 
 function scheduledDateToISOString(value: string, timezone: string): string {
   const isoString = fromDateTimeLocalInput(value, timezone);

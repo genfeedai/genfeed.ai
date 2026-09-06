@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   CalendarSlotState,
 } from '@genfeedai/contracts';
-import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
+import type { CalendarSlotDrawerProps } from '@props/publishing/calendar-slot-drawer.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -17,17 +17,6 @@ import {
 } from '@ui/primitives/sheet';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-
-type CalendarSlotDrawerProps = {
-  isPending: boolean;
-  onCancel: () => void;
-  onClose: () => void;
-  onEditCadence?: () => void;
-  onGenerate: (brief?: string) => void;
-  onSkip: () => void;
-  onWrite: () => void;
-  slot: ICalendarSlot | null;
-};
 
 export default function CalendarSlotDrawer({
   isPending,

@@ -1,12 +1,8 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
-import type { ITag } from '@genfeedai/contracts/interfaces';
+import type { TagCellProps } from '@props/admin/tags.props';
 import Badge from '@ui/display/badge/Badge';
-
-type TagCellProps = {
-  tag: ITag;
-};
 
 export function TagLabelCell({ tag }: TagCellProps) {
   return (

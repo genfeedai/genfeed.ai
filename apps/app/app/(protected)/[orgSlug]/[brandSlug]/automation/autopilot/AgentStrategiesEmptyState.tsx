@@ -1,15 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { AgentStrategiesEmptyStateProps } from '@props/automation/agent-strategies-empty-state.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-
-type AgentStrategiesEmptyStateProps = {
-  agentsHref: string;
-};
 
 export default function AgentStrategiesEmptyState({
   agentsHref,

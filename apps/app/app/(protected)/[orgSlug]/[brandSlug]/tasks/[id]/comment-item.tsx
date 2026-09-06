@@ -2,12 +2,8 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import type { TaskComment } from '@services/management/task-comments.service';
+import type { CommentItemProps } from '@props/tasks/comment-item.props';
 import { Cpu, User } from 'lucide-react';
-
-type CommentItemProps = {
-  comment: TaskComment;
-};
 
 export function CommentItem({ comment }: CommentItemProps) {
   const isAgent = comment.isAgentComment;

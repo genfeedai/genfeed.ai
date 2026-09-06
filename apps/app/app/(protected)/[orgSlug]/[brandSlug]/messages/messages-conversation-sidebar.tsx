@@ -18,6 +18,13 @@ import {
   conversationSidebarRowClassName,
 } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type {
+  MessagesBrandFilterOption,
+  MessagesConversationSidebarProps,
+  MessagesInboxView,
+  MessagesSurface,
+  PaginationState,
+} from '@props/messages/messages-conversation-sidebar.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -42,32 +49,8 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 
-export type MessagesInboxView =
-  | 'all'
-  | 'archived'
-  | 'inbox'
-  | 'resolved'
-  | 'review'
-  | 'unread';
-
-/**
- * One mailbox stream with optional conversation-type filters. Mentions and
- * replies remain valid wire types but have no dedicated filter yet.
- */
-export type MessagesSurface =
-  | 'all'
-  | SocialConversationType.COMMENT
-  | SocialConversationType.DM;
-
-interface PaginationState {
-  hasNext: boolean;
-  hasPrevious: boolean;
-  page: number;
-  total: number;
-  totalPages: number;
-}
+export type { MessagesInboxView, MessagesSurface };
 
 const VIEW_FILTERS: readonly ConversationSidebarFilter<MessagesInboxView>[] = [
   { label: 'Inbox', value: 'inbox' },
@@ -283,39 +266,7 @@ function ConversationRow({
   );
 }
 
-export type MessagesBrandFilterOption = {
-  id: string;
-  label: string;
-};
-
-interface MessagesConversationSidebarProps {
-  advancedFilters: ReactNode;
-  brandFilter: string;
-  brandOptions: readonly MessagesBrandFilterOption[];
-  busyAction: string | null;
-  connectionState: string;
-  conversations: SocialConversationModel[];
-  conversationType: MessagesSurface;
-  hasConnectedAccounts: boolean;
-  hasSyncableAccounts: boolean;
-  isAccountsLoading: boolean;
-  isLoading: boolean;
-  onBrandFilterChange: (brandId: string) => void;
-  onConversationTypeChange: (conversationType: MessagesSurface) => void;
-  onNextPage: () => void;
-  onOAuthConnect?: (platform: string) => void | Promise<void>;
-  onPlatformChange: (platform: SocialPlatform | 'all') => void;
-  onPreviousPage: () => void;
-  onSearchChange: (search: string) => void;
-  onSelect: (conversationId: string) => void;
-  onSync: () => void;
-  onViewChange: (view: MessagesInboxView) => void;
-  pagination: PaginationState;
-  platform: SocialPlatform | 'all';
-  search: string;
-  selectedId: string | null;
-  view: MessagesInboxView;
-}
+export type { MessagesBrandFilterOption, PaginationState };
 
 export function MessagesConversationSidebar({
   advancedFilters,

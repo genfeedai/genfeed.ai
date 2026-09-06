@@ -1,6 +1,7 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
+import type { TaskPillSelectProps } from '@props/tasks/task-pills.props';
 import type {
   TaskPriority,
   TaskStatus,
@@ -91,13 +92,6 @@ export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
       {PRIORITY_LABELS[priority]}
     </Badge>
   );
-}
-
-interface TaskPillSelectProps<TValue extends string> {
-  ariaLabel: string;
-  isDisabled?: boolean;
-  onChange: (value: TValue) => void;
-  value: TValue;
 }
 
 export function TaskStatusSelect({

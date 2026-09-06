@@ -9,6 +9,7 @@ import {
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { ReviewItemsTableProps } from '@props/publishing/review-items-table.props';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -29,14 +30,6 @@ import {
   getReviewPerformanceLabel,
   getReviewPerformanceSignal,
 } from './review-performance';
-
-interface ReviewItemsTableProps {
-  activeItemId: string | null;
-  items: IBatchItem[];
-  selectedIds: Set<string>;
-  onSelectItem: (itemId: string) => void;
-  onToggleSelect: (itemId: string) => void;
-}
 
 export default function ReviewItemsTable({
   activeItemId,

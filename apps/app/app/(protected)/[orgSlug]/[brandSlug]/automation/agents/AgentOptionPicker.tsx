@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { AgentOptionPickerProps } from '@props/automation/agent-option-picker.props';
 import { Button } from '@ui/primitives/button';
 import {
   Command,
@@ -16,23 +17,9 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Check, ChevronDown } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 
-export interface AgentOptionPickerItem<Value extends string = string> {
-  description: string;
-  icon?: ReactNode;
-  label: string;
-  meta: string;
-  value: Value;
-}
-
-interface AgentOptionPickerProps<Value extends string = string> {
-  label: string;
-  onValueChange: (value: Value) => void;
-  options: AgentOptionPickerItem<Value>[];
-  value: Value;
-}
+export type { AgentOptionPickerItem } from '@props/automation/agent-option-picker.props';
 
 export default function AgentOptionPicker<Value extends string = string>({
   label,

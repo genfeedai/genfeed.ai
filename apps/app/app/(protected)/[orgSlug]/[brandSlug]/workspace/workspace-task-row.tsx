@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskRowProps } from '@props/workspace/workspace-task-row.props';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ExternalLink } from 'lucide-react';
 
@@ -11,11 +11,6 @@ import {
   getTaskStateDotClass,
   isUnreadInboxTask,
 } from './workspace-task.helpers';
-
-type WorkspaceTaskRowProps = {
-  onOpen: (task: Task) => void;
-  task: Task;
-};
 
 export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
   const needsAttention = isUnreadInboxTask(task);

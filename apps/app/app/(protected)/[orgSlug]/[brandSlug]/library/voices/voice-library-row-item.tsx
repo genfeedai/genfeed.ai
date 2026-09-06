@@ -1,32 +1,9 @@
 'use client';
 
-import type { DefaultVoiceRef } from '@helpers/voice/default-voice-ref.helper';
 import { matchesDefaultVoice } from '@helpers/voice/default-voice-ref.helper';
-import type { Voice } from '@models/ingredients/voice.model';
+import type { VoiceLibraryRowItemProps } from '@props/library/voice-library-row-item.props';
 import { logger } from '@services/core/logger.service';
 import VoiceCatalogRow from './voice-catalog-row';
-
-type OrgDefaultContext = {
-  defaultVoiceId?: string | null;
-  defaultVoiceRef?: DefaultVoiceRef | null;
-};
-
-type BrandDefaultContext = {
-  defaultVoiceId?: string | null;
-  defaultVoiceRef?: DefaultVoiceRef | null;
-};
-
-export type VoiceLibraryRowItemProps = {
-  brandDefaultContext: BrandDefaultContext;
-  isVoiceRemovable: (voice: Voice) => boolean;
-  onDeleteVoice: (voice: Voice) => Promise<void>;
-  onSaveBrandDefault?: ((voice: Voice) => Promise<void>) | null;
-  onSaveOrganizationDefault: (voice: Voice) => Promise<void>;
-  orgDefaultContext: OrgDefaultContext;
-  savingDefault: 'brand' | 'org' | null;
-  selectedBrandLabel?: string;
-  voice: Voice;
-};
 
 export default function VoiceLibraryRowItem({
   brandDefaultContext,

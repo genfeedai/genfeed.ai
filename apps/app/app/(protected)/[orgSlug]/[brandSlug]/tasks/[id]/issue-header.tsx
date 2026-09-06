@@ -2,21 +2,8 @@
 
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type {
-  TaskPriority,
-  TaskStatus,
-} from '@services/management/tasks.service';
+import type { IssueHeaderProps } from '@props/tasks/issue-header.props';
 import Badge from '@ui/display/badge/Badge';
-
-type IssueHeaderProps = {
-  identifier: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  title: string;
-  statusLabels: Record<TaskStatus, string>;
-  priorityColors: Record<TaskPriority, string>;
-  priorityLabels: Record<TaskPriority, string>;
-};
 
 export default function IssueHeader({
   identifier,

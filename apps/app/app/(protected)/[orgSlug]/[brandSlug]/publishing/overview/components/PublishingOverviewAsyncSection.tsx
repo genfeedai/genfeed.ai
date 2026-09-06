@@ -1,17 +1,8 @@
 'use client';
 
-import type { AsyncState } from '@props/shared';
+import type { PublishingOverviewAsyncSectionProps } from '@props/publishing/publishing-overview-async-section.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-
-interface PublishingOverviewAsyncSectionProps<TData> {
-  children: (data: TData) => ReactNode;
-  errorMessage: string;
-  loadingLabel: string;
-  onRetry: () => void;
-  state: AsyncState<TData>;
-}
 
 export default function PublishingOverviewAsyncSection<TData>({
   children,

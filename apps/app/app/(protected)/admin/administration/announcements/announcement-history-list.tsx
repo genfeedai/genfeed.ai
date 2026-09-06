@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { IAnnouncement } from '@genfeedai/contracts/interfaces';
+import type { AnnouncementHistoryListProps as Props } from '@props/admin/announcements.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
@@ -30,11 +30,6 @@ function truncate(text: string, maxLength: number): string {
   }
   return `${text.slice(0, maxLength)}…`;
 }
-
-type Props = {
-  isLoadingHistory: boolean;
-  announcements: IAnnouncement[];
-};
 
 export default function AnnouncementHistoryList({
   isLoadingHistory,

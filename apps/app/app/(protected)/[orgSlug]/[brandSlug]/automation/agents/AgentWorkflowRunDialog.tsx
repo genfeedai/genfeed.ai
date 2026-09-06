@@ -2,11 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type {
-  AgentStrategy,
-  AgentStrategyWorkflowBinding,
-  RunAgentStrategyWorkflowInput,
-} from '@services/automation/agent-strategies.service';
+import type { AgentWorkflowRunDialogProps } from '@props/automation/agent-workflow-run-dialog.props';
 import { ImagesService } from '@services/ingredients/images.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -36,16 +32,6 @@ import {
   seedExtraInputsFromBinding,
   type WorkflowIngredientSelection,
 } from './agent-workflow-run-input.util';
-
-export interface AgentWorkflowRunDialogProps {
-  binding: AgentStrategyWorkflowBinding | null;
-  isLoadingBinding: boolean;
-  isOpen: boolean;
-  isSubmitting: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (input: RunAgentStrategyWorkflowInput) => Promise<void>;
-  strategy: AgentStrategy | null;
-}
 
 const NONE_INGREDIENT = '__none__';
 

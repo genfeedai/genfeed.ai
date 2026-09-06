@@ -19,6 +19,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
+import type { AgentWizardPageProps } from '@props/automation/agent-wizard-page.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -122,11 +123,6 @@ function buildInitialForm(
       : {}),
     ...(voiceSegments.length > 0 ? { voice: voiceSegments.join(' | ') } : {}),
   };
-}
-
-interface AgentWizardPageProps {
-  isEmbedded?: boolean;
-  onCreated?: () => Promise<void> | void;
 }
 
 export default function AgentWizardPage({

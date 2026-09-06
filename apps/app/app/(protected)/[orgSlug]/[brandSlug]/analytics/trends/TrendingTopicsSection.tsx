@@ -1,27 +1,10 @@
 'use client';
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { TrendItem } from '@props/trends/trends-page.props';
-import type { TableRowLink } from '@props/ui/display/table.props';
+import type { Props } from '@props/analytics/trending-topics-section.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Flame } from 'lucide-react';
-
-type PlatformConfigEntry = {
-  icon?: React.ComponentType<{
-    className?: string;
-    style?: React.CSSProperties;
-  }>;
-  label?: string;
-  color?: string;
-};
-
-type Props = {
-  isLoadingTrends: boolean;
-  trendingTopics: TrendItem[];
-  platformConfigLookup: Record<string, PlatformConfigEntry>;
-  getRowLink: (item: TrendItem) => TableRowLink;
-};
 
 function getGrowthRateClass(rate: number): string {
   if (rate > 0) {

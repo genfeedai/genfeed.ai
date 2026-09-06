@@ -1,17 +1,10 @@
 'use client';
 
 import { ReviewDecision } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import type { ReviewHistoryPanelProps } from '@props/publishing/review-history-panel.props';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
-
-type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
-
-interface ReviewHistoryPanelProps {
-  browserTimezone: string;
-  reviewEvents: ReviewEvent[];
-}
 
 function getReviewerInitials(displayName: string): string {
   const initials = displayName

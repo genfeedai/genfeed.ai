@@ -2,9 +2,12 @@
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
+import type {
+  CopyTarget,
+  SuccessState,
+} from '@props/auth/managed-credits-success-content.props';
 import {
   isManagedCreditsTransientError,
-  type ManagedCreditsProvisioningResult,
   ManagedCreditsService,
 } from '@services/billing/managed-credits.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
@@ -24,16 +27,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
-type CopyTarget = 'api-key' | 'env';
-
 const CHECKOUT_RESULT_POLL_DELAYS_MS = [1000, 2000, 3000, 5000, 8000];
-
-interface SuccessState {
-  copyError: string | null;
-  error: string | null;
-  isLoading: boolean;
-  result: ManagedCreditsProvisioningResult | null;
-}
 
 function buildEnvSnippet(apiKey: string): string {
   return [

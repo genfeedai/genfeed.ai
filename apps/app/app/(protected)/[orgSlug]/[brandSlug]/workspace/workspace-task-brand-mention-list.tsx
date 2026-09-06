@@ -2,19 +2,14 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type {
+  WorkspaceBrandMentionItem,
+  WorkspaceBrandMentionListProps,
+} from '@props/workspace/workspace-task-brand-mention-list.props';
 import { Button } from '@ui/primitives/button';
-import { type Ref, useImperativeHandle, useState } from 'react';
+import { useImperativeHandle, useState } from 'react';
 
-export interface WorkspaceBrandMentionItem {
-  id: string;
-  label: string;
-}
-
-interface WorkspaceBrandMentionListProps {
-  command: (item: WorkspaceBrandMentionItem) => void;
-  items: WorkspaceBrandMentionItem[];
-  ref?: Ref<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }>;
-}
+export type { WorkspaceBrandMentionItem };
 
 export function WorkspaceBrandMentionList({
   command,

@@ -8,15 +8,11 @@ import {
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { WorkflowExecutionCardProps } from '@props/automation/workflow-execution-card.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-
-interface WorkflowExecutionCardProps {
-  execution: IWorkflowExecution;
-  onCancel?: (id: string) => void;
-}
 
 const STATUS_LABELS: Record<WorkflowExecutionStatus, string> = {
   [WorkflowExecutionStatus.CANCELLED]: 'Cancelled',

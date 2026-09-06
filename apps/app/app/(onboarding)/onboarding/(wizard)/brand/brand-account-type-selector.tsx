@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/contracts';
+import type { BrandAccountTypeSelectorProps } from '@props/onboarding/brand-account-type-selector.props';
 import { Button } from '@ui/primitives/button';
 import { Briefcase, CircleUser, Users } from 'lucide-react';
 
@@ -25,15 +26,10 @@ const ACCOUNT_TYPES = [
   },
 ];
 
-type Props = {
-  accountType: OrganizationCategory | null;
-  onSelect: (category: OrganizationCategory) => void;
-};
-
 export default function BrandAccountTypeSelector({
   accountType,
   onSelect,
-}: Props) {
+}: BrandAccountTypeSelectorProps) {
   return (
     <div className="step-form max-w-md mb-8">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">

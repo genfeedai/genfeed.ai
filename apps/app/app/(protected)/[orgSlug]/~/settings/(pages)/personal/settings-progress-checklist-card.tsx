@@ -2,17 +2,11 @@
 
 import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
+import type { Props } from '@props/settings/settings-progress-checklist-card.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-
-type Props = {
-  completedCount: number;
-  totalCount: number;
-  steps: SetupCardStep[];
-};
 
 export default function SettingsProgressChecklistCard({
   completedCount,

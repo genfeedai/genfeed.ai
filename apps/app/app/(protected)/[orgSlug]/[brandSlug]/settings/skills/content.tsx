@@ -7,6 +7,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { SkillDraft } from '@props/settings/skills.props';
 import { type Skill, SkillsService } from '@services/content/skills.service';
 import Loading from '@ui/loading/default/Loading';
 import { useParams, useRouter } from 'next/navigation';
@@ -27,13 +28,6 @@ import type {
   SourceFilterValue,
   StageFilterValue,
 } from './skill-filter-options';
-
-type SkillDraft = {
-  defaultInstructions: string;
-  description: string;
-  name: string;
-  systemPromptTemplate: string;
-};
 
 function emptyDraft(): SkillDraft {
   return {

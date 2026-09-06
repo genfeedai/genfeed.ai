@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskCardProps } from '@props/workspace/workspace-task-card.props';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import {
@@ -9,15 +9,6 @@ import {
   formatTaskTimestamp,
   getAdvancedToolHref,
 } from './workspace-task.helpers';
-
-type WorkspaceTaskCardProps = {
-  busyTaskId: string | null;
-  onApprove: (taskId: string) => Promise<void>;
-  onDismiss: (taskId: string) => Promise<void>;
-  onPlanNextSteps: (task: Task) => Promise<void>;
-  onRequestChanges: (taskId: string) => Promise<void>;
-  task: Task;
-};
 
 export function WorkspaceTaskCard({
   busyTaskId,
