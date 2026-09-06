@@ -1,13 +1,13 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
-import BrandSettingsSocialPage from './content';
+import BrandSettingsIntegrationsPage from './content';
 
-export const generateMetadata = createPageMetadata('Social accounts');
+export const generateMetadata = createPageMetadata('Integrations');
 
-export default function BrandSettingsSocialRoute() {
+export default function BrandSettingsIntegrationsRoute() {
   return (
     <Suspense fallback={null}>
-      <BrandSettingsSocialPage />
+      <BrandSettingsIntegrationsPage />
     </Suspense>
   );
 }

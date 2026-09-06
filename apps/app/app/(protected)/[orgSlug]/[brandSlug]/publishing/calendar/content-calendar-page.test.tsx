@@ -521,7 +521,7 @@ describe('ContentCalendarPage', () => {
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
-      '/acme-org/acme-creator/settings/social',
+      '/acme-org/acme-creator/settings/integrations',
     );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',

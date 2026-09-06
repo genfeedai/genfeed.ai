@@ -1052,7 +1052,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/characters',
-      '/:orgSlug/:brandSlug/settings/social',
+      '/:orgSlug/:brandSlug/settings/integrations',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',
@@ -1071,7 +1071,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(['/:orgSlug/:brandSlug/platforms/:platform'], {
-    fallback: '/:orgSlug/:brandSlug/settings/social',
+    fallback: '/:orgSlug/:brandSlug/settings/integrations',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'brand',

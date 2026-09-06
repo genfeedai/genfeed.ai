@@ -5,12 +5,14 @@ import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDe
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { useTranslations } from 'next-intl';
 
 /**
- * Brand Social settings — OAuth / connected platform accounts only.
+ * Brand Integrations settings — OAuth / connected platform accounts only.
  * External website links live on Brand Profile via ModalBrandLink.
  */
-export default function BrandSettingsSocialPage() {
+export default function BrandSettingsIntegrationsPage() {
+  const translate = useTranslations('pages.brandSocialMedia');
   const {
     brand,
     brandId,
@@ -29,7 +31,9 @@ export default function BrandSettingsSocialPage() {
     return (
       <Container>
         <Card>
-          <p className="text-sm text-muted-foreground">Brand not found.</p>
+          <p className="text-sm text-muted-foreground">
+            {translate('brandNotFound')}
+          </p>
         </Card>
       </Container>
     );

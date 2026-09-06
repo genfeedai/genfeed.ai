@@ -113,7 +113,7 @@ describe('AgentThreadContextPanel', () => {
     expect(screen.getByText(/No channels connected/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Connect' })).toHaveAttribute(
       'href',
-      '/test-org/~/settings/social',
+      '/test-org/~/settings/integrations',
     );
   });
 
@@ -134,7 +134,10 @@ describe('AgentThreadContextPanel', () => {
       screen
         .getAllByRole('link', { name: 'Manage' })
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/test-org/~/settings/brands', '/test-org/~/settings/social']);
+    ).toEqual([
+      '/test-org/~/settings/brands',
+      '/test-org/~/settings/integrations',
+    ]);
   });
 
   it('describes the thread itself from the store', () => {

@@ -295,8 +295,11 @@ export const APP_ROUTES = {
     /**
      * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
      * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
+     * Page renamed Social → Integrations; the key stays `SOCIAL` since every
+     * caller resolves the page through this constant. `/settings/social`
+     * still redirects here for old links.
      */
-    SOCIAL: '/settings/social',
+    SOCIAL: '/settings/integrations',
     /** Brand-enabled agent skills and organization-owned skill variants. */
     SKILLS: '/settings/skills',
     USAGE: '/settings/usage',
