@@ -172,11 +172,13 @@ describe('NotificationInboxService', () => {
           organizationId: 'org',
           isDeleted: false,
           runId: 'run-1',
-          thread: expect.objectContaining({
-            userId: 'recipient',
-            organizationId: 'org',
-            isDeleted: false,
-          }),
+          thread: {
+            is: expect.objectContaining({
+              userId: 'recipient',
+              organizationId: 'org',
+              isDeleted: false,
+            }),
+          },
         }),
       }),
     );
