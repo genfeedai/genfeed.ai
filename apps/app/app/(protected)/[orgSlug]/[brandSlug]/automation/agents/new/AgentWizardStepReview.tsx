@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentAutonomyMode, ButtonVariant } from '@genfeedai/contracts';
 import type { Props } from '@props/automation/agent-wizard-step-review.props';
 import { Button } from '@ui/primitives/button';

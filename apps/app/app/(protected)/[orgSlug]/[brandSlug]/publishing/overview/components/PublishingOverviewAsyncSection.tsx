@@ -1,5 +1,3 @@
-'use client';
-
 import type { PublishingOverviewAsyncSectionProps } from '@props/publishing/publishing-overview-async-section.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';

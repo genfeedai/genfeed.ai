@@ -1,5 +1,3 @@
-'use client';
-
 import { BatchItemStatus } from '@genfeedai/contracts';
 import {
   DefinitionDetail,

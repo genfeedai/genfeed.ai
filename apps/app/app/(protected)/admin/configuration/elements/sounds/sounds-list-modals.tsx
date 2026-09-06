@@ -1,5 +1,3 @@
-'use client';
-
 import { PageScope } from '@genfeedai/contracts';
 import type { SoundsListModalsProps } from '@props/admin/sounds.props';
 import { LazyModalSound } from '@ui/lazy/modal/LazyModal';

@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { IssueHeaderProps } from '@props/tasks/issue-header.props';

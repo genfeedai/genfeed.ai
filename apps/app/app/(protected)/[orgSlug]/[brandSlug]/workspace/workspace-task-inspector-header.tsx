@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskInspectorHeaderProps } from '@props/workspace/workspace-task-inspector-header.props';
 import {

@@ -1,5 +1,3 @@
-'use client';
-
 import type { TextSectionProps } from '@props/settings/organization-generation-defaults-text-section.props';
 import {
   Select,

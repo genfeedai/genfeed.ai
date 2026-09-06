@@ -1,5 +1,3 @@
-'use client';
-
 import { MessageSquare, MousePointerClick } from 'lucide-react';
 
 export default function ReviewDetailPanelEmpty() {

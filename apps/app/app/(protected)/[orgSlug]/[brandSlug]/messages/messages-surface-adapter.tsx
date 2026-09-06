@@ -1,5 +1,3 @@
-'use client';
-
 import { useAgentChatStore } from '@genfeedai/agent';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {

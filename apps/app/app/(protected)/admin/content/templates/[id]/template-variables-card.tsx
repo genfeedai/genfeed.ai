@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
 import type { TemplateVariablesCardProps as Props } from '@props/admin/templates.props';

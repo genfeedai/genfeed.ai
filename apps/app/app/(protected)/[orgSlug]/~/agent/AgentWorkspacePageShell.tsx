@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentFullPage } from '@genfeedai/agent';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';

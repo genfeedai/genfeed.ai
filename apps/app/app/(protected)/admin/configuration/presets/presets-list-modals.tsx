@@ -1,5 +1,3 @@
-'use client';
-
 import { PageScope } from '@genfeedai/contracts';
 import type { PresetsListModalsProps } from '@props/admin/presets.props';
 import { LazyModalPreset } from '@ui/lazy/modal/LazyModal';

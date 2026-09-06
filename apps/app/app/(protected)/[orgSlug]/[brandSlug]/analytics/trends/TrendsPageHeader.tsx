@@ -1,5 +1,3 @@
-'use client';
-
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
 import type { Props } from '@props/analytics/trends-page-header.props';

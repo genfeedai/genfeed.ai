@@ -1,5 +1,3 @@
-'use client';
-
 import type { AnnouncementComposeFormProps as Props } from '@props/admin/announcements.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';

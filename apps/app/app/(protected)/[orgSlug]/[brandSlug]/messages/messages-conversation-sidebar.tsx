@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import {
   ButtonSize,

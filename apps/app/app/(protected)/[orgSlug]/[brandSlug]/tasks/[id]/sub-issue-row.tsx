@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { SubIssueRowProps } from '@props/tasks/sub-issue-row.props';

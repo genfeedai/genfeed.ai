@@ -1,5 +1,3 @@
-'use client';
-
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { ITagsLayoutProps } from '@props/admin/tags.props';

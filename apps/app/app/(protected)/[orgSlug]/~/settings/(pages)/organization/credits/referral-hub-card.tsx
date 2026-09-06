@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ReferralRewardStatus } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';

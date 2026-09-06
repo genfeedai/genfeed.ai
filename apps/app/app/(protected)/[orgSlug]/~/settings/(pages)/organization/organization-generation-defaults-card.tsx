@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';

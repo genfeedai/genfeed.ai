@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IssueCommentsCardProps } from '@props/tasks/issue-comments-card.props';
 import Card from '@ui/card/Card';

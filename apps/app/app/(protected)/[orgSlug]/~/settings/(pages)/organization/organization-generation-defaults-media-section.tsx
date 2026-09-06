@@ -1,5 +1,3 @@
-'use client';
-
 import type { MediaSectionProps } from '@props/settings/organization-generation-defaults-media-section.props';
 import {
   Select,

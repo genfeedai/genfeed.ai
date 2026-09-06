@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProvidersStatusCardProps } from '@props/onboarding/providers-status-card.props';
 import Card from '@ui/card/Card';
 import { Sparkles } from 'lucide-react';

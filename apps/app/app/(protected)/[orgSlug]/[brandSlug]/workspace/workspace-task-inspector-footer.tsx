@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskInspectorFooterProps } from '@props/workspace/workspace-task-inspector-footer.props';
 import { Button } from '@ui/primitives/button';

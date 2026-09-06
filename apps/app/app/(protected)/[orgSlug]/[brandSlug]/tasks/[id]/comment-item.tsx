@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import type { CommentItemProps } from '@props/tasks/comment-item.props';

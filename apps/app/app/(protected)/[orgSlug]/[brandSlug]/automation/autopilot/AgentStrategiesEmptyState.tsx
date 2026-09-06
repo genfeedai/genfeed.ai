@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentStrategiesEmptyStateProps } from '@props/automation/agent-strategies-empty-state.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';

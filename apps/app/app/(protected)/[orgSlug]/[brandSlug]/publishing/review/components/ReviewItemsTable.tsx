@@ -1,5 +1,3 @@
-'use client';
-
 import { BatchItemStatus, ComponentSize } from '@genfeedai/contracts';
 import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';

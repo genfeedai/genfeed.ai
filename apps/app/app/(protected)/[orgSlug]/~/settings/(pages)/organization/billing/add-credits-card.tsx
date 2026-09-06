@@ -1,5 +1,3 @@
-'use client';
-
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AddCreditsCardProps } from '@props/settings/add-credits-card.props';
 import { StripeService } from '@services/billing/stripe.service';

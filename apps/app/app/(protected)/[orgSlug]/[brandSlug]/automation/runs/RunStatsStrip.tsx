@@ -1,5 +1,3 @@
-'use client';
-
 import type { RunStatsStripProps } from '@props/automation/run-stats-strip.props';
 
 export default function RunStatsStrip({

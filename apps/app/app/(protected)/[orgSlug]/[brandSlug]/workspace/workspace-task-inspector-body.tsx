@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTaskInspectorBodyProps } from '@props/workspace/workspace-task-inspector-body.props';

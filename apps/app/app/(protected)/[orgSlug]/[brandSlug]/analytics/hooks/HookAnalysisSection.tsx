@@ -1,5 +1,3 @@
-'use client';
-
 import type { Props } from '@props/analytics/hook-analysis-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';

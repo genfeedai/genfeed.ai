@@ -1,5 +1,3 @@
-'use client';
-
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionRowProps } from '@props/automation/workflow-execution-row.props';
 import Badge from '@ui/display/badge/Badge';

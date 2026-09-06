@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { SettingRowProps } from '@props/admin/organization-settings.props';
 import { Button } from '@ui/primitives/button';

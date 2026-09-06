@@ -1,5 +1,3 @@
-'use client';
-
 import type { AdvancedRoutingCardProps } from '@props/settings/model-routing.props';
 import Card from '@ui/card/Card';
 import {

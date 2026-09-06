@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { ReviewDetailPanelHeaderProps } from '@props/publishing/review-detail-panel-header.props';
 import Badge from '@ui/display/badge/Badge';

@@ -1,5 +1,3 @@
-'use client';
-
 import { ReviewDecision } from '@genfeedai/contracts';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';

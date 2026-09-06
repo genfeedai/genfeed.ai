@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { Props } from '@props/settings/settings-progress-overview-card.props';

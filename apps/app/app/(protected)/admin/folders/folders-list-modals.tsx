@@ -1,5 +1,3 @@
-'use client';
-
 import type { FoldersListModalsProps } from '@props/admin/folders.props';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';

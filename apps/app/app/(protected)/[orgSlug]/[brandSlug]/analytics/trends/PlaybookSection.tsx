@@ -1,5 +1,3 @@
-'use client';
-
 import type { ITrendPlaybook } from '@genfeedai/contracts/interfaces';
 import type { Props } from '@props/analytics/playbook-section.props';
 import Card from '@ui/card/Card';

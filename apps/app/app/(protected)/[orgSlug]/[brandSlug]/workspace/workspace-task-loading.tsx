@@ -1,5 +1,3 @@
-'use client';
-
 import type { WorkspaceTaskRowsSkeletonProps } from '@props/workspace/workspace-task-loading.props';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 

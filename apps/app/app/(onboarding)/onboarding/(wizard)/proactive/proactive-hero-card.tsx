@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ProactiveHeroCardProps } from '@props/onboarding/proactive-hero-card.props';
 import { EnvironmentService } from '@services/core/environment.service';

@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentType, ButtonVariant } from '@genfeedai/contracts';
 import {
   LinkedinIcon,

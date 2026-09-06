@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { Props } from '@props/settings/byok-provider-card.props';

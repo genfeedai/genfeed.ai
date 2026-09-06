@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AnnouncementHistoryListProps as Props } from '@props/admin/announcements.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';

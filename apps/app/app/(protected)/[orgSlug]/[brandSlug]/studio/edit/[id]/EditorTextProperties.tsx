@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { EditorTextPropertiesProps } from '@props/studio/editor-text-properties.props';
 import { Button } from '@ui/primitives/button';

@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProactiveWorkspaceSidebarProps } from '@props/onboarding/proactive-workspace-sidebar.props';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';

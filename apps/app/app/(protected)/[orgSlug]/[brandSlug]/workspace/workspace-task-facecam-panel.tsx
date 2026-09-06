@@ -1,5 +1,3 @@
-'use client';
-
 import { CardVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskFacecamPanelProps } from '@props/workspace/workspace-task-facecam-panel.props';
 import Card from '@ui/card/Card';

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ArticleDetailHeaderProps } from '@props/edit/article-detail-header.props';
 import { Button } from '@ui/primitives/button';

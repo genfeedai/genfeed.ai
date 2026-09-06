@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/contracts';
 import type { BrandAccountTypeSelectorProps } from '@props/onboarding/brand-account-type-selector.props';
 import { Button } from '@ui/primitives/button';

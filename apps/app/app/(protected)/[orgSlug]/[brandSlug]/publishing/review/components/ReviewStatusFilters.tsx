@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReviewStatusFiltersProps } from '@props/publishing/review-status-filters.props';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { useMemo } from 'react';

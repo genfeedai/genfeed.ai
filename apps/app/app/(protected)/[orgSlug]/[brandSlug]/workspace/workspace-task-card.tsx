@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { WorkspaceTaskCardProps } from '@props/workspace/workspace-task-card.props';
 import Badge from '@ui/display/badge/Badge';

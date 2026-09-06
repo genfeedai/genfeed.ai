@@ -1,5 +1,3 @@
-'use client';
-
 import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Props } from '@props/settings/settings-progress-rewards-card.props';

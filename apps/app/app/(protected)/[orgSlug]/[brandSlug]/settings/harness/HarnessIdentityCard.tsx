@@ -1,5 +1,3 @@
-'use client';
-
 import type { HarnessIdentityCardProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';

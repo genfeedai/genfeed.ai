@@ -1,5 +1,3 @@
-'use client';
-
 import type { AgentStrategyPublishTogglesProps } from '@props/automation/agent-strategy-publish-toggles.props';
 import { Checkbox } from '@ui/primitives/checkbox';
 

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskBrandFieldProps } from '@props/workspace/workspace-task-brand-field.props';
 import { EditorContent } from '@tiptap/react';

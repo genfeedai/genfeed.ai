@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProvidersRowItemProps } from '@props/onboarding/providers-row-item.props';
 import { CircleCheck, Key } from 'lucide-react';
 

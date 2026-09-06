@@ -1,5 +1,3 @@
-'use client';
-
 import type { IssueSubIssuesCardProps } from '@props/tasks/issue-sub-issues-card.props';
 import Card from '@ui/card/Card';
 import { SubIssueRow } from './sub-issue-row';

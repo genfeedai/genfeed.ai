@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import type {
   VoicesCatalogControlsProps as Props,

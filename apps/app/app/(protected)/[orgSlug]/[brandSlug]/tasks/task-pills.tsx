@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { TaskPillSelectProps } from '@props/tasks/task-pills.props';
 import type {

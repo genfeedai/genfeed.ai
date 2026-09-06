@@ -1,5 +1,3 @@
-'use client';
-
 import { ReleaseStatus } from '@genfeedai/contracts';
 import type {
   RecurrenceInput,

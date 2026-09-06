@@ -1,5 +1,3 @@
-'use client';
-
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkspaceTaskInspectorProps } from '@props/workspace/workspace-task-inspector.props';
 import { Sheet, SheetContent } from '@ui/primitives/sheet';

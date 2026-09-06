@@ -1,5 +1,3 @@
-'use client';
-
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   ButtonSize,

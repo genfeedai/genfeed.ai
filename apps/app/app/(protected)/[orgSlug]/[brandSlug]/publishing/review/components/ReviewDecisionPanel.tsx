@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ReviewDecisionPanelProps } from '@props/publishing/review-decision-panel.props';
 import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';

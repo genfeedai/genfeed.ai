@@ -1,5 +1,3 @@
-'use client';
-
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/contracts/constants';

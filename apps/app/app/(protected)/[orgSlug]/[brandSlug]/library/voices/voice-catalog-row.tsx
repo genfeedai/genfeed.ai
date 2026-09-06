@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
 import type { VoiceCatalogRowProps } from '@props/library/voice-catalog-row.props';

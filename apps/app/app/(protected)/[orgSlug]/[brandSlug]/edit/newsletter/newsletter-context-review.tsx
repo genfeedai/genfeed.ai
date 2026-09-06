@@ -1,5 +1,3 @@
-'use client';
-
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type { Props } from '@props/edit/newsletter-context-review.props';

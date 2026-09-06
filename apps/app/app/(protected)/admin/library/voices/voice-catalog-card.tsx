@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import type { VoiceCatalogCardProps as Props } from '@props/admin/voices.props';

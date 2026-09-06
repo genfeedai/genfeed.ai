@@ -1,5 +1,3 @@
-'use client';
-
 import type { AgentStrategyBudgetFieldsProps } from '@props/automation/agent-strategy-budget-fields.props';
 import { Input } from '@ui/primitives/input';
 

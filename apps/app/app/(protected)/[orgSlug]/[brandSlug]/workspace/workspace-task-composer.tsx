@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskComposerProps } from '@props/workspace/workspace-task-composer.props';
 import { Modal } from '@ui/modals/compound/modal.compound';

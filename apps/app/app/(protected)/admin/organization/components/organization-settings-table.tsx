@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum } from '@genfeedai/contracts';
 import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';

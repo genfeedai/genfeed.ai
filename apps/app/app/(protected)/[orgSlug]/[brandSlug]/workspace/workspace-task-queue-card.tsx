@@ -1,5 +1,3 @@
-'use client';
-
 import type { WorkspaceTaskQueueCardProps } from '@props/workspace/workspace-task-queue-card.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { WorkspaceTaskCard } from './workspace-task-card';

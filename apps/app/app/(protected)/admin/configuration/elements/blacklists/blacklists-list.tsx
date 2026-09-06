@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize, ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {

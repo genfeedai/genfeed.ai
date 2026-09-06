@@ -1,5 +1,3 @@
-'use client';
-
 import type { HarnessRightColumnProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';
 import { Label } from '@ui/primitives/label';

@@ -1,5 +1,3 @@
-'use client';
-
 import { matchesDefaultVoice } from '@helpers/voice/default-voice-ref.helper';
 import type { VoiceLibraryRowItemProps } from '@props/library/voice-library-row-item.props';
 import { logger } from '@services/core/logger.service';

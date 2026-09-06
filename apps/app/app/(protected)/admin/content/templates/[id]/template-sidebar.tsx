@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { TemplateSidebarProps as Props } from '@props/admin/templates.props';
 import Badge from '@ui/display/badge/Badge';

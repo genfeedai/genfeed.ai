@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { SelectCardButtonProps } from '@props/automation/agent-wizard-helpers.props';
 import { Button } from '@ui/primitives/button';

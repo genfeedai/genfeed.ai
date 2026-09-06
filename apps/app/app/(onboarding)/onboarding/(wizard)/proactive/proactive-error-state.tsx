@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ProactiveErrorStateProps } from '@props/onboarding/proactive-error-state.props';
 import { EnvironmentService } from '@services/core/environment.service';

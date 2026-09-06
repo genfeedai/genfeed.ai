@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';

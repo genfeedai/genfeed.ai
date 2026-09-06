@@ -1,5 +1,3 @@
-'use client';
-
 import type { ArtifactEditorShellProps } from '@props/content/artifact-editor.props';
 import Badge from '@ui/display/badge/Badge';
 

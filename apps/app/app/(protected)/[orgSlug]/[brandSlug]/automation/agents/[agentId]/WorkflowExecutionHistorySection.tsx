@@ -1,5 +1,3 @@
-'use client';
-
 import type { WorkflowExecutionHistorySectionProps } from '@props/automation/workflow-execution-history-section.props';
 import {
   Table,

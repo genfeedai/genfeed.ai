@@ -1,5 +1,3 @@
-'use client';
-
 import { ArticleCategory } from '@genfeedai/contracts';
 import type { ArticleEditFormProps } from '@props/edit/article-edit-form.props';
 import Card from '@ui/card/Card';

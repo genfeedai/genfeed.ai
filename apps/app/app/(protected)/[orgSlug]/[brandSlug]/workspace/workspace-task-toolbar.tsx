@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { WorkspaceTaskToolbarProps } from '@props/workspace/workspace-task-toolbar.props';
 import { Button } from '@ui/primitives/button';

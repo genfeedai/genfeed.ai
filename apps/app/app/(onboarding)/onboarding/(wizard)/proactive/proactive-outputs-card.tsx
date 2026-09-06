@@ -1,5 +1,3 @@
-'use client';
-
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { ProactiveOutputsCardProps } from '@props/onboarding/proactive-outputs-card.props';
 import Card from '@ui/card/Card';

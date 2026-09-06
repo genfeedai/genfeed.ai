@@ -1,5 +1,3 @@
-'use client';
-
 import { formatEnumLabel } from '@genfeedai/contracts';
 import type { ArticleSidebarProps } from '@props/edit/article-sidebar.props';
 import Card from '@ui/card/Card';

@@ -1,5 +1,3 @@
-'use client';
-
 import type { Sound } from '@models/ingredients/sound.model';
 import type { BuildSoundsColumnsParams } from '@props/admin/sounds.props';
 import type { TableColumn } from '@props/ui/display/table.props';

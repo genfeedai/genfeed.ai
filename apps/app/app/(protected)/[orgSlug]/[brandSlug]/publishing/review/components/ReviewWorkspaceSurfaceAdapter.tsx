@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentChatStore } from '@genfeedai/agent';
 import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';

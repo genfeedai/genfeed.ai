@@ -1,5 +1,3 @@
-'use client';
-
 import type { RunHistoryListProps } from '@props/automation/run-history-list.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import WorkflowExecutionCard from './WorkflowExecutionCard';

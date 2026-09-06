@@ -1,5 +1,3 @@
-'use client';
-
 import type { AgentStrategiesInfoBannerProps } from '@props/automation/agent-strategies-info-banner.props';
 import Link from 'next/link';
 

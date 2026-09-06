@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';

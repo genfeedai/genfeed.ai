@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type { ReviewGridProps } from '@props/publishing/review-grid.props';
 import Card from '@ui/card/Card';

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { HarnessHeaderProps } from '@props/settings/harness.props';
 import Card from '@ui/card/Card';

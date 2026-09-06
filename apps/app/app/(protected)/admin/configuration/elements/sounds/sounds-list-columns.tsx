@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize, PageScope } from '@genfeedai/contracts';
 import type { ISound } from '@genfeedai/contracts/interfaces';
 import type {

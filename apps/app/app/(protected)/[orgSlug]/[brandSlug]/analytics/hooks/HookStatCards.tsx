@@ -1,5 +1,3 @@
-'use client';
-
 import type { Props } from '@props/analytics/hook-stat-cards.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';

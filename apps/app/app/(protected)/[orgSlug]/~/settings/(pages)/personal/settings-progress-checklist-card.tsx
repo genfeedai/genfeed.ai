@@ -1,5 +1,3 @@
-'use client';
-
 import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Props } from '@props/settings/settings-progress-checklist-card.props';

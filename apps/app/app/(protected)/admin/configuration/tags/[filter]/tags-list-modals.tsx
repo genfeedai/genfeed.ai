@@ -1,5 +1,3 @@
-'use client';
-
 import { PageScope, TagCategory } from '@genfeedai/contracts';
 import type { TagsListModalsProps } from '@props/admin/tags.props';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';

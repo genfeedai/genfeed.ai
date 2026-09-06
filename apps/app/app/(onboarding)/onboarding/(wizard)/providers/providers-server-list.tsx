@@ -1,5 +1,3 @@
-'use client';
-
 import type { ProvidersServerListProps } from '@props/onboarding/providers-server-list.props';
 import Card from '@ui/card/Card';
 

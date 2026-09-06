@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Props } from '@props/settings/settings-progress-heatmap-card.props';
 import Card from '@ui/card/Card';

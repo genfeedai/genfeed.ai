@@ -1,5 +1,3 @@
-'use client';
-
 import type { AgentStrategyScoreFieldsProps } from '@props/automation/agent-strategy-score-fields.props';
 import { Input } from '@ui/primitives/input';
 

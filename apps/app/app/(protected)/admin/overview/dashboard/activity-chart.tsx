@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ActivityChartProps } from '@props/admin/dashboard.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';

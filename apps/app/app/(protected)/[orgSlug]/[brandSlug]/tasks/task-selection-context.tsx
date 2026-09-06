@@ -1,5 +1,3 @@
-'use client';
-
 import type { TaskSelectionContextValue } from '@props/tasks/task-selection-context.props';
 import type { Task } from '@services/management/tasks.service';
 import {

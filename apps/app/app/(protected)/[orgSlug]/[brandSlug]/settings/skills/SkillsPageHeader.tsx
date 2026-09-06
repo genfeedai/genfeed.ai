@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { SkillsPageHeaderProps } from '@props/settings/skills.props';
 import Card from '@ui/card/Card';

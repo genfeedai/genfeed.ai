@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import type { TagCellProps } from '@props/admin/tags.props';
 import Badge from '@ui/display/badge/Badge';

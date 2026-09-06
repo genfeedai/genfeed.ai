@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { VoiceCatalogListProps } from '@props/library/voice-catalog-list.props';
 import Card from '@ui/card/Card';

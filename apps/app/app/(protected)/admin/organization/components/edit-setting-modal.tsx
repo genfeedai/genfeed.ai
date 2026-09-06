@@ -1,5 +1,3 @@
-'use client';
-
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';

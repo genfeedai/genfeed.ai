@@ -1,5 +1,3 @@
-'use client';
-
 import type { PostSignupFallbackProps } from '@props/onboarding/post-signup-fallback.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

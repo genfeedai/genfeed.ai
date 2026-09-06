@@ -1,5 +1,3 @@
-'use client';
-
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandFormFieldsProps,

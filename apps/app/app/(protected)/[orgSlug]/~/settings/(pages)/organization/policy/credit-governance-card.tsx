@@ -1,5 +1,3 @@
-'use client';
-
 import type { CreditGovernanceCardProps } from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';

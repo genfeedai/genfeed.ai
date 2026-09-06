@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   HookClipApprovalAction,

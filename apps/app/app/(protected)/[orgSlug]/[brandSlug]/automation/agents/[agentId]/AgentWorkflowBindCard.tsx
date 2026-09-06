@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {

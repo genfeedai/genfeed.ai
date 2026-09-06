@@ -1,5 +1,3 @@
-'use client';
-
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/platform-performance-section.props';
 import Card from '@ui/card/Card';

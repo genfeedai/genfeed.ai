@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   HighlightReviewCardProps,

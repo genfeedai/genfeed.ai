@@ -1,5 +1,3 @@
-'use client';
-
 import type { ActiveRunsPanelProps } from '@props/automation/active-runs-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';

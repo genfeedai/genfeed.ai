@@ -1,5 +1,3 @@
-'use client';
-
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/trending-topics-section.props';
 import type { TrendItem } from '@props/trends/trends-page.props';

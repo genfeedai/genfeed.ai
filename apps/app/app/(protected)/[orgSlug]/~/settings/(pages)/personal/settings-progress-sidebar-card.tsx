@@ -1,5 +1,3 @@
-'use client';
-
 import type { Props } from '@props/settings/settings-progress-sidebar-card.props';
 import Card from '@ui/card/Card';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';

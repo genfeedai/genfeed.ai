@@ -1,5 +1,3 @@
-'use client';
-
 import type { TrendFlowChartProps } from '@props/analytics/trend-flow-chart.props';
 import dynamic from 'next/dynamic';
 

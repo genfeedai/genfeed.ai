@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentAutonomyMode } from '@genfeedai/contracts';
 import type {
   AgentPolicyCardProps,

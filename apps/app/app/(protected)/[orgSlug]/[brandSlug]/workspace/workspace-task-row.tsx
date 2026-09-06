@@ -1,5 +1,3 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { WorkspaceTaskRowProps } from '@props/workspace/workspace-task-row.props';
