@@ -383,7 +383,10 @@ export function PanelTabs({
       ref={rootRef}
       value={activeTab ?? ''}
       onValueChange={onTabChange}
-      className={cn('flex h-full min-h-0 min-w-0 flex-col', className)}
+      className={cn(
+        '@container/panel-tabs flex h-full min-h-0 min-w-0 flex-col',
+        className,
+      )}
       data-testid={testId}
     >
       <div className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2">
@@ -399,13 +402,15 @@ export function PanelTabs({
                 <div
                   key={item.id}
                   className={cn(
-                    'relative flex shrink-0 items-center rounded-lg',
+                    'relative flex min-w-0 flex-1 items-center rounded-lg',
                     activeTab === item.id && 'bg-secondary',
                   )}
                 >
                   <TabsTrigger
                     value={item.id}
-                    className="h-8 min-w-0 max-w-40 gap-2 rounded-lg border-0 pl-2 pr-7 text-xs shadow-none data-[state=active]:bg-secondary"
+                    aria-label={item.label}
+                    title={item.label}
+                    className="h-8 w-full min-w-0 gap-1 rounded-lg border-0 pl-1 pr-6 text-xs shadow-none data-[state=active]:bg-secondary @[360px]/panel-tabs:gap-2 @[360px]/panel-tabs:pl-2 @[360px]/panel-tabs:pr-7"
                     onKeyDown={(event) => {
                       if (event.key === 'Delete') {
                         event.preventDefault();
@@ -414,7 +419,14 @@ export function PanelTabs({
                     }}
                   >
                     {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
-                    <span className="truncate">{item.label}</span>
+                    <span
+                      className={cn(
+                        'truncate',
+                        Icon && 'hidden @[360px]/panel-tabs:inline',
+                      )}
+                    >
+                      {item.label}
+                    </span>
                   </TabsTrigger>
                   <Button
                     variant={ButtonVariant.UNSTYLED}
