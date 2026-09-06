@@ -1,6 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -19,6 +19,11 @@ export class SocialSourcesQueryDto extends BaseQueryDto {
   @IsOptional()
   @ApiProperty({ enum: SocialSourcePlatform, required: false })
   platform?: SocialSourcePlatform;
+
+  @IsEnum(SocialSourceType)
+  @IsOptional()
+  @ApiProperty({ enum: SocialSourceType, required: false })
+  sourceType?: SocialSourceType;
 
   @IsBoolean()
   @IsOptional()

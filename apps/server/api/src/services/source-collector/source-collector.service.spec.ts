@@ -36,16 +36,59 @@ describe('SourceCollectorService', () => {
     collectTimeline: vi.fn(),
   };
 
+  const instagramOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.INSTAGRAM],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
+  const tiktokOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.TIKTOK],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
   let service: SourceCollectorService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    instagramOfficial.canCollect.mockResolvedValue(false);
+    tiktokOfficial.canCollect.mockResolvedValue(false);
     service = new SourceCollectorService(
       logger as never,
       brandOAuth as never,
       appBearer as never,
+      instagramOfficial as never,
+      tiktokOfficial as never,
       apify as never,
     );
+  });
+
+  it('prefers the official own-account provider over Apify for Instagram', async () => {
+    instagramOfficial.canCollect.mockResolvedValue(true);
+    instagramOfficial.collectTimeline.mockResolvedValue({
+      handle: 'brand',
+      platform: SocialSourcePlatform.INSTAGRAM,
+      posts: [
+        {
+          id: 'm1',
+          text: 'own post',
+          platform: SocialSourcePlatform.INSTAGRAM,
+        },
+      ],
+      provider: 'brand-oauth',
+    });
+
+    const result = await service.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'brand',
+      { brandId: 'b1', credentialId: 'c1', organizationId: 'o1' },
+    );
+
+    expect(result.provider).toBe('brand-oauth');
+    expect(apify.collectTimeline).not.toHaveBeenCalled();
   });
 
   it('uses brand OAuth when available', async () => {

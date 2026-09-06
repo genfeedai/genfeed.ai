@@ -156,6 +156,15 @@ describe('toDeskItemFromSourcePost', () => {
     expect(result.matchedTrends).toEqual([]);
   });
 
+  it('sources own-account posts under "owned" so they read as imported, not generated', () => {
+    const result = toDeskItemFromSourcePost(makeSourcePost(), {
+      isOwnAccount: true,
+    });
+
+    expect(result.source).toBe('owned');
+    expect(result.kind).toBe('source_post');
+  });
+
   it('opens the prefilled remix on a prefilled platform', () => {
     const result = toDeskItemFromSourcePost(
       makeSourcePost({

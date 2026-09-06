@@ -2394,6 +2394,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Persists one bounded set of generated tenant insights.',
   ),
   internalAction(
+    'social-source.history-import.run',
+    'Import Social Account History',
+    "Imports a connected social account's existing posts into its own-account source.",
+  ),
+  internalAction(
     'knowledge.source.discover-backfill',
     'Discover Knowledge Source Backfill',
     'Discovers bounded knowledge sources that require ingestion.',

@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -84,6 +85,7 @@ export class InstagramController {
     private readonly httpService: HttpService,
     private readonly instagramService: InstagramService,
     private readonly instagramAuthorizedSignalsService: InstagramAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
     private readonly loggerService: LoggerService,
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
@@ -306,6 +308,11 @@ export class InstagramController {
         organizationId: existingCredential.organizationId,
         url,
       });
+      await this.scheduleHistoryImportAfterConnection(
+        credential.id.toString(),
+        existingCredential.organizationId,
+        url,
+      );
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -414,6 +421,28 @@ export class InstagramController {
         getSafeInstagramOAuthErrorLog(signalError),
       );
       return credential;
+    }
+  }
+
+  /**
+   * Queue the import of the account's existing posts. Best-effort: a failed
+   * schedule is logged and never fails the connection.
+   */
+  private async scheduleHistoryImportAfterConnection(
+    credentialId: string,
+    organizationId: string,
+    url: string,
+  ): Promise<void> {
+    try {
+      await this.historyImportService.scheduleForCredential({
+        credentialId,
+        organizationId,
+      });
+    } catch (scheduleError: unknown) {
+      this.loggerService.warn(
+        `${url} history import scheduling failed after connection`,
+        getSafeInstagramOAuthErrorLog(scheduleError),
+      );
     }
   }
 

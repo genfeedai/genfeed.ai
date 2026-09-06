@@ -504,6 +504,18 @@ export class BrandsService extends BaseService<Brand> {
       .then((res) => this.mapOne(res.data));
   }
 
+  /** Whether connecting a social account imports its existing posts. */
+  public async updateSocialHistoryImport(
+    id: string,
+    isSocialHistoryImportEnabled: boolean,
+  ): Promise<Brand> {
+    return this.instance
+      .patch<JsonApiResponseDocument>(`/${id}`, {
+        isSocialHistoryImportEnabled,
+      })
+      .then((res) => this.mapOne(res.data));
+  }
+
   /**
    * Rename a brand and, during the first-login onboarding window, cascade the
    * new name to the owning organization's label + slug. Backs the

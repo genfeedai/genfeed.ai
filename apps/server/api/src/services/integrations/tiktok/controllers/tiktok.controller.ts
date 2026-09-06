@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -55,6 +56,7 @@ export class TiktokController {
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly tiktokAuthorizedSignalsService: TiktokAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
     private readonly tiktokService: TiktokService,
     private readonly httpService: HttpService,
   ) {
@@ -244,6 +246,20 @@ export class TiktokController {
         this.loggerService.warn(
           `${url} authorized signal refresh failed after connection`,
           signalError,
+        );
+      }
+
+      // Best-effort: importing the account's existing posts must never fail
+      // the connection itself.
+      try {
+        await this.historyImportService.scheduleForCredential({
+          credentialId: credential.id.toString(),
+          organizationId,
+        });
+      } catch (scheduleError: unknown) {
+        this.loggerService.warn(
+          `${url} history import scheduling failed after connection`,
+          scheduleError,
         );
       }
 

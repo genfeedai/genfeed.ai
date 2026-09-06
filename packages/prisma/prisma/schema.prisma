@@ -912,6 +912,8 @@ model Brand {
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
   watermarkPosition        String       @default("bottom-right")
+  /// Import the account's existing posts when a social credential is connected.
+  isSocialHistoryImportEnabled Boolean  @default(true)
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String       @id @default(cuid())

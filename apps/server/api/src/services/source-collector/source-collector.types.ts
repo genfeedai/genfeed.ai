@@ -25,6 +25,10 @@ export type CollectedSourcePost = {
     comments?: number;
     shares?: number;
     views?: number;
+    /** Official own-account insights; absent for public/scraped timelines. */
+    impressions?: number;
+    reach?: number;
+    saves?: number;
   };
   hashtags?: string[];
 };
@@ -39,6 +43,8 @@ export type SourceCollectContext = {
   credentialId?: string;
   limit?: number;
   sinceId?: string;
+  /** Oldest publish date to collect; providers stop paginating past it. */
+  since?: Date;
   includeReplies?: boolean;
   includeReposts?: boolean;
 };

@@ -8,6 +8,20 @@ export enum SocialSourceType {
   ACCOUNT = 'account',
   /** Container for single posts imported by URL — no sync cadence. */
   POST = 'post',
+  /**
+   * The brand's own connected account, auto-created when a credential is
+   * connected. Its posts were published outside Genfeed and are imported to
+   * seed the brand's performance dataset.
+   */
+  OWN_ACCOUNT = 'own-account',
+}
+
+export enum SocialSourceHistoryImportStatus {
+  SCHEDULED = 'scheduled',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
 }
 
 export enum ListeningSourcePlatform {

@@ -3,7 +3,10 @@ import type {
   SocialSourcePlatform,
   SocialSourceType,
 } from '@genfeedai/contracts';
-import type { ISocialSource } from '@genfeedai/contracts/interfaces';
+import type {
+  ISocialSource,
+  SocialSourceMetadata,
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialSource extends BaseEntity implements ISocialSource {
   declare public organizationId: string;
@@ -24,7 +27,7 @@ export class SocialSource extends BaseEntity implements ISocialSource {
   declare public lastSyncStatus?: string | null;
   declare public lastSyncError?: string | null;
   declare public lastPostExternalId?: string | null;
-  declare public metadata?: Record<string, unknown>;
+  declare public metadata?: SocialSourceMetadata;
 
   constructor(data: Partial<ISocialSource> = {}) {
     super(data);

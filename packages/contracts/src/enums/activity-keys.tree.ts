@@ -49,6 +49,12 @@ export const ActivityKeys = {
     social: {
       disconnected: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
       failed: ActivityKey.SOCIAL_INTEGRATION_FAILED,
+      historyImport: {
+        completed: ActivityKey.SOCIAL_HISTORY_IMPORT_COMPLETED,
+        failed: ActivityKey.SOCIAL_HISTORY_IMPORT_FAILED,
+        scheduled: ActivityKey.SOCIAL_HISTORY_IMPORT_SCHEDULED,
+        skipped: ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED,
+      },
     },
   },
   model: {

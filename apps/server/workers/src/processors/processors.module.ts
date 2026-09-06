@@ -26,6 +26,7 @@ import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/out
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
+import { SocialSourcesModule } from '@api/collections/social-sources/social-sources.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -89,6 +90,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => ClipProjectsCoreModule),
     forwardRef(() => ContentPerformanceModule),
     forwardRef(() => ContextsModule),
+    forwardRef(() => SocialSourcesModule),
     forwardRef(() => CreativePatternsModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => CreditsModule),

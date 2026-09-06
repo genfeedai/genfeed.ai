@@ -8,6 +8,11 @@ import type {
   SocialSourceDocument,
   SocialSourceSyncDocumentResult,
 } from '@api/collections/social-sources/schemas/social-source.schema';
+import {
+  buildProfileUrl,
+  normalizeHandle,
+  normalizePlatform,
+} from '@api/collections/social-sources/utils/social-source-handle.util';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -296,6 +301,34 @@ export class SocialSourcesService {
   }
 
   /**
+   * Backfill a connected account's existing posts into its own-account source.
+   *
+   * Unlike a routine sync this ignores `lastPostExternalId` so it walks the
+   * whole `since` window, and it collects as the owning credential so the
+   * official provider (not a scraper) serves the timeline.
+   */
+  async importHistory(
+    source: SocialSourceDocument,
+    options: { limit: number; since: Date },
+  ): Promise<SocialSourceSyncDocumentResult> {
+    if (source.sourceType !== SocialSourceType.OWN_ACCOUNT) {
+      throw new BadRequestException(
+        'History import is only available for the brand’s own connected accounts',
+      );
+    }
+    if (!source.credentialId) {
+      throw new BadRequestException(
+        'History import requires the source to be linked to a connected account',
+      );
+    }
+    return this.syncResolvedSource(source, {
+      isHistoryImport: true,
+      limit: options.limit,
+      since: options.since,
+    });
+  }
+
+  /**
    * Import exactly one post by URL as a source item (issue #2660).
    *
    * The URL is parsed into `{ platform, postId }` — never fetched raw — then
@@ -476,21 +509,31 @@ export class SocialSourcesService {
 
   private async syncResolvedSource(
     source: SocialSourceDocument,
-    options: { limit?: number },
+    options: { isHistoryImport?: boolean; limit?: number; since?: Date },
   ): Promise<SocialSourceSyncDocumentResult> {
     try {
       // Following wants originals + replies; pure RTs stay out by default.
       // SourceCollector: brand OAuth → app bearer → Apify (per platform).
+      // Own-account sources collect as their credential so the official
+      // provider serves them; a history import walks the whole window
+      // instead of stopping at the last seen post.
       const collected = await this.sourceCollector.collectTimeline(
         normalizePlatform(source.platform),
         source.handle,
         {
           brandId: source.brandId,
+          credentialId: source.credentialId ?? undefined,
           includeReplies: true,
           includeReposts: false,
-          limit: Math.min(100, Math.max(1, options.limit ?? 25)),
+          limit: Math.min(
+            options.isHistoryImport ? 500 : 100,
+            Math.max(1, options.limit ?? 25),
+          ),
           organizationId: source.organizationId,
-          sinceId: source.lastPostExternalId ?? undefined,
+          since: options.since,
+          sinceId: options.isHistoryImport
+            ? undefined
+            : (source.lastPostExternalId ?? undefined),
         },
       );
       this.logger.log('Social source collected', {
@@ -544,6 +587,7 @@ export class SocialSourcesService {
       return {
         count: posts.length,
         posts,
+        provider: collected.provider,
         rejectedCount,
         source: updatedSource,
       };
@@ -614,7 +658,10 @@ export class SocialSourcesService {
 
   private buildScopedWhere(
     context: { organizationId: string; brandId: string },
-    query: Pick<SocialSourcesQueryDto, 'isActive' | 'platform' | 'search'>,
+    query: Pick<
+      SocialSourcesQueryDto,
+      'isActive' | 'platform' | 'search' | 'sourceType'
+    >,
   ) {
     const where: Record<string, unknown> = scopedWhere(context.organizationId, {
       brandId: context.brandId,
@@ -622,6 +669,10 @@ export class SocialSourcesService {
 
     if (query.platform) {
       where.platform = normalizePlatform(query.platform);
+    }
+
+    if (query.sourceType) {
+      where.sourceType = query.sourceType;
     }
 
     if (query.isActive !== undefined) {
@@ -637,85 +688,6 @@ export class SocialSourcesService {
     }
 
     return where;
-  }
-}
-
-function normalizePlatform(platform: string): SocialSourcePlatform {
-  if (
-    platform === SocialSourcePlatform.TWITTER ||
-    platform === SocialSourcePlatform.INSTAGRAM ||
-    platform === SocialSourcePlatform.TIKTOK
-  ) {
-    return platform;
-  }
-  throw new BadRequestException(`Unsupported source platform: ${platform}`);
-}
-
-function normalizeHandle(platform: string, input: string): string {
-  const trimmed = input.trim();
-  try {
-    if (/^https?:\/\//i.test(trimmed)) {
-      // Regression guard (#2660): a URL with a post identifier must never
-      // silently degrade into following the whole account.
-      if (parseSocialPostUrl(trimmed)) {
-        throw new BadRequestException(
-          'This link points to a specific post — use "Import post" instead, or enter the account handle to follow the account',
-        );
-      }
-      const url = new URL(trimmed);
-      const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
-      const allowedHosts = getPlatformHosts(platform);
-      if (!allowedHosts.includes(hostname)) {
-        throw new BadRequestException(
-          `Profile URL must use ${allowedHosts.join(' or ')}`,
-        );
-      }
-      const path = url.pathname.split('/').find(Boolean);
-      if (!path || path === '@') {
-        throw new BadRequestException('Profile URL must include a handle');
-      }
-      return normalizeHandle(platform, path);
-    }
-  } catch (error: unknown) {
-    if (error instanceof BadRequestException) {
-      throw error;
-    }
-    throw new BadRequestException('Profile URL is invalid');
-  }
-
-  const handle = trimmed
-    .replace(/^@/, '')
-    .replace(/^\/+/, '')
-    .trim()
-    .toLowerCase();
-  if (!handle) {
-    throw new BadRequestException('Social source handle is required');
-  }
-  return handle;
-}
-
-function getPlatformHosts(platform: string): string[] {
-  switch (platform) {
-    case SocialSourcePlatform.INSTAGRAM:
-      return ['instagram.com'];
-    case SocialSourcePlatform.TIKTOK:
-      return ['tiktok.com'];
-    case SocialSourcePlatform.TWITTER:
-      return ['x.com', 'twitter.com'];
-    default:
-      throw new BadRequestException(`Unsupported source platform: ${platform}`);
-  }
-}
-
-function buildProfileUrl(platform: string, handle: string): string {
-  const cleanHandle = normalizeHandle(platform, handle);
-  switch (platform) {
-    case SocialSourcePlatform.INSTAGRAM:
-      return `https://www.instagram.com/${cleanHandle}`;
-    case SocialSourcePlatform.TIKTOK:
-      return `https://www.tiktok.com/@${cleanHandle}`;
-    default:
-      return `https://x.com/${cleanHandle}`;
   }
 }
 

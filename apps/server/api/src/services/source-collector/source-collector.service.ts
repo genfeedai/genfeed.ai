@@ -1,4 +1,6 @@
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
+import { InstagramOfficialProvider } from '@api/services/source-collector/providers/instagram-official.provider';
+import { TiktokOfficialProvider } from '@api/services/source-collector/providers/tiktok-official.provider';
 import {
   TwitterAppBearerProvider,
   TwitterBrandOAuthProvider,
@@ -24,7 +26,7 @@ function hasExternalPostId(
  * SourceCollector — ordered provider chain for Following / social-source sync.
  *
  * X: brand OAuth → app bearer → Apify
- * IG / TikTok: Apify
+ * IG / TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
  *
  * Throws when every provider fails (no silent empty success).
  */
@@ -36,12 +38,16 @@ export class SourceCollectorService {
     private readonly logger: LoggerService,
     private readonly twitterBrandOAuth: TwitterBrandOAuthProvider,
     private readonly twitterAppBearer: TwitterAppBearerProvider,
+    private readonly instagramOfficial: InstagramOfficialProvider,
+    private readonly tiktokOfficial: TiktokOfficialProvider,
     private readonly apifySocial: ApifySocialProvider,
   ) {
     // Priority order matters.
     this.providers = [
       this.twitterBrandOAuth,
       this.twitterAppBearer,
+      this.instagramOfficial,
+      this.tiktokOfficial,
       this.apifySocial,
     ];
   }
