@@ -1,6 +1,8 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+const require = createRequire(import.meta.url);
 const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
@@ -140,6 +142,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/constants\/(.*)$/,
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
+      },
+      {
+        // jsdom tests run the browser SDK; the package root is the server entry.
+        find: /^@sentry\/nextjs$/,
+        replacement: path.join(
+          path.dirname(require.resolve('@sentry/nextjs/package.json')),
+          'build/esm/index.client.js',
+        ),
       },
       {
         find: /^@genfeedai\/contracts\/interfaces$/,

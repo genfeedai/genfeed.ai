@@ -1,5 +1,6 @@
 import { STATUS_LABELS } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
 import type {
   InboxView,
   ReviewInboxSummary,
@@ -10,6 +11,7 @@ import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,
   Task,
+  type TaskStatus,
 } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 

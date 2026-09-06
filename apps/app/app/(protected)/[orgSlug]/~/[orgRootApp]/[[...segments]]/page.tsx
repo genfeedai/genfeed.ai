@@ -19,6 +19,7 @@ import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
 import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
+import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { notFound, redirect } from 'next/navigation';
