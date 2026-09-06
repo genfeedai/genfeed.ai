@@ -3,6 +3,7 @@ import type { WorkflowInputVariable } from '@api/collections/workflows/schemas/w
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
@@ -292,6 +293,48 @@ export class AgentWorkflowToolExecuteService {
       (params.variables as Record<string, unknown> | undefined) ??
       {};
 
+    const paramsError = this.validateExecuteWorkflowParams(params);
+    if (paramsError) return paramsError;
+
+    const nodeIds = params.nodeIds as string[] | undefined;
+    const respectLocks = params.respectLocks !== false;
+    const tenantScope = {
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+    };
+
+    const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
+    if (systemWorkflow && nodeIds) {
+      return {
+        creditsUsed: 0,
+        error:
+          'Partial execution requires a saved workflow. Install the system workflow before selecting nodes.',
+        success: false,
+      };
+    }
+    if (systemWorkflow) {
+      return this.executeSystemWorkflow(
+        systemWorkflow,
+        workflowId,
+        inputValues,
+        ctx,
+        tenantScope,
+      );
+    }
+
+    return this.executeSavedWorkflow(
+      workflowId,
+      inputValues,
+      nodeIds,
+      respectLocks,
+      ctx,
+      tenantScope,
+    );
+  }
+
+  private validateExecuteWorkflowParams(
+    params: Record<string, unknown>,
+  ): AgentToolResult | null {
     const nodeIds = params.nodeIds;
     if (
       nodeIds !== undefined &&
@@ -318,61 +361,62 @@ export class AgentWorkflowToolExecuteService {
         success: false,
       };
     }
-    const respectLocks = params.respectLocks !== false;
-    const tenantScope = {
-      isDeleted: false,
-      organizationId: ctx.organizationId,
-    };
+    return null;
+  }
 
-    const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
-    if (systemWorkflow && nodeIds) {
+  private async executeSystemWorkflow(
+    systemWorkflow: SystemWorkflowGraphDefinition,
+    workflowId: string,
+    inputValues: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+    tenantScope: { isDeleted: boolean; organizationId: string },
+  ): Promise<AgentToolResult> {
+    const mergedInputValues = this.mergeSystemWorkflowInputs(
+      systemWorkflow.definition.inputVariables ?? [],
+      inputValues,
+      ctx.brandId,
+    );
+    const missingKeys = this.missingRequiredInputKeys(
+      systemWorkflow.definition.inputVariables ?? [],
+      mergedInputValues,
+    );
+    if (missingKeys.length > 0) {
       return {
         creditsUsed: 0,
-        error:
-          'Partial execution requires a saved workflow. Install the system workflow before selecting nodes.',
+        error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
         success: false,
       };
     }
-    if (systemWorkflow) {
-      const mergedInputValues = this.mergeSystemWorkflowInputs(
-        systemWorkflow.definition.inputVariables ?? [],
-        inputValues,
-        ctx.brandId,
-      );
-      const missingKeys = this.missingRequiredInputKeys(
-        systemWorkflow.definition.inputVariables ?? [],
-        mergedInputValues,
-      );
-      if (missingKeys.length > 0) {
-        return {
-          creditsUsed: 0,
-          error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
-          success: false,
-        };
-      }
 
-      const { provenance, result } =
-        await this.systemWorkflowRunner.runWorkflow({
-          actionType: workflowId,
-          canonicalId: workflowId,
-          inputValues: mergedInputValues,
-          metadata: { origin: 'agent' },
-          organizationId: tenantScope.organizationId,
-          source: 'AgentWorkflowToolExecuteService.executeWorkflow',
-          userId: ctx.userId,
-        });
+    const { provenance, result } = await this.systemWorkflowRunner.runWorkflow({
+      actionType: workflowId,
+      canonicalId: workflowId,
+      inputValues: mergedInputValues,
+      metadata: { origin: 'agent' },
+      organizationId: tenantScope.organizationId,
+      source: 'AgentWorkflowToolExecuteService.executeWorkflow',
+      userId: ctx.userId,
+    });
 
-      return {
-        creditsUsed: 0,
-        data: {
-          id: provenance.executionId,
-          result,
-          status: WorkflowExecutionStatus.COMPLETED,
-        },
-        success: true,
-      };
-    }
+    return {
+      creditsUsed: 0,
+      data: {
+        id: provenance.executionId,
+        result,
+        status: WorkflowExecutionStatus.COMPLETED,
+      },
+      success: true,
+    };
+  }
 
+  private async executeSavedWorkflow(
+    workflowId: string,
+    inputValues: Record<string, unknown>,
+    nodeIds: string[] | undefined,
+    respectLocks: boolean,
+    ctx: ToolExecutionContext,
+    tenantScope: { isDeleted: boolean; organizationId: string },
+  ): Promise<AgentToolResult> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
       ...tenantScope,

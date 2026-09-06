@@ -45,6 +45,34 @@ export type LocalizeSpeechRequest = {
   timingToleranceSeconds?: number;
 };
 
+type LocalizationSourceMetadata = Awaited<
+  ReturnType<FilesClientService['extractMetadataFromUrl']>
+>;
+type LocalizationTranscript =
+  | Awaited<ReturnType<ReplicateService['transcribeAudio']>>
+  | { text: string; segments: SpeechSegment[]; language: string };
+type LocalizationUsage = {
+  transcription: { modelId: string; calls: number };
+  translation: { modelId: string; calls: number };
+  synthesis: {
+    modelId: string;
+    calls: number;
+    characters: number;
+    generatedSeconds: number;
+  };
+  sourceSeconds: number;
+  outputSeconds: number;
+  vendorCost: null;
+};
+type LocalizationProviderData = { localization: Record<string, unknown> };
+type LocalizedSegment = SpeechSegment & {
+  sourceText: string;
+  duration: number;
+};
+type LocalizationMetadataData = Awaited<
+  ReturnType<SharedService['createMediaDocumentsInternal']>
+>['metadataData'];
+
 @Injectable()
 export class MediaLocalizationService {
   constructor(
@@ -194,6 +222,105 @@ export class MediaLocalizationService {
   }
 
   async localize(request: LocalizeSpeechRequest) {
+    const tolerance = this.validateLocalizationRequest(request);
+    const { brandId, videoUrl, sourceMetadata, duration } =
+      await this.loadLocalizationSource(request);
+    const { ingredientData, metadataData } =
+      await this.shared.createMediaDocumentsInternal({
+        brandId,
+        category: IngredientCategory.AUDIO,
+        extension: MetadataExtension.WAV,
+        organizationId: request.organizationId,
+        userId: request.userId,
+        parentId: request.videoId,
+        sourceIds: [request.videoId],
+        status: IngredientStatus.PROCESSING,
+      });
+    const id = String(ingredientData.id);
+    const temporaryStorageKeys = new Set<string>();
+    const usage: LocalizationUsage = {
+      transcription: { modelId: 'openai/whisper', calls: 0 },
+      translation: { modelId: DEFAULT_TEXT_MODEL, calls: 0 },
+      synthesis: {
+        modelId: this.elevenlabs.getSpeechModelId(),
+        calls: 0,
+        characters: 0,
+        generatedSeconds: 0,
+      },
+      sourceSeconds: duration,
+      outputSeconds: 0,
+      vendorCost: null,
+    };
+    const providerData: LocalizationProviderData = {
+      localization: {
+        sourceVideoId: request.videoId,
+        targetLanguage: request.targetLanguage,
+        voiceId: request.voiceId,
+        usage,
+      },
+    };
+    try {
+      const replicateKey = await this.byok.resolveApiKey(
+        request.organizationId,
+        ByokProvider.REPLICATE,
+      );
+      const voiceKey = await this.byok.resolveApiKey(
+        request.organizationId,
+        ByokProvider.ELEVENLABS,
+      );
+      const { transcript, sourceSegments, segments, overridden } =
+        await this.buildLocalizationTranscript(
+          request,
+          duration,
+          videoUrl,
+          sourceMetadata,
+          replicateKey?.apiKey,
+          usage,
+          providerData,
+        );
+      await this.ingredients.patch(id, { providerData });
+      const localized = await this.synthesizeLocalizedSegments(request, {
+        segments,
+        sourceSegments,
+        overridden,
+        tolerance,
+        replicateApiKey: replicateKey?.apiKey,
+        voiceApiKey: voiceKey?.apiKey,
+        usage,
+        providerData,
+        id,
+        temporaryStorageKeys,
+      });
+      return await this.finalizeLocalization(request, {
+        id,
+        duration,
+        localized,
+        transcript,
+        sourceSegments,
+        usage,
+        providerData,
+        metadataData,
+      });
+    } catch (error: unknown) {
+      try {
+        await this.ingredients.patch(id, {
+          status: IngredientStatus.FAILED,
+          providerData,
+        });
+      } catch {
+        /* Preserve the original generation failure. */
+      }
+      throw error;
+    } finally {
+      await this.cleanupLocalizationStorage(
+        id,
+        temporaryStorageKeys,
+        providerData,
+      );
+    }
+  }
+
+  private validateLocalizationRequest(request: LocalizeSpeechRequest) {
     if (!/^[a-z]{2}$/.test(request.targetLanguage) || !request.voiceId.trim()) {
       throw new BadRequestException(
         'A two-letter target language and voice id are required',
@@ -205,6 +332,10 @@ export class MediaLocalizationService {
         'Timing tolerance must be between 0 and 2 seconds',
       );
     }
+    return tolerance;
+  }
+
+  private async loadLocalizationSource(request: LocalizeSpeechRequest) {
     const source = await this.ingredients.findOne(
       {
         id: request.videoId,
@@ -248,283 +379,297 @@ export class MediaLocalizationService {
         'Source video has no dialogue; provide a script or timed segments',
       );
     }
-    const { ingredientData, metadataData } =
-      await this.shared.createMediaDocumentsInternal({
-        brandId,
-        category: IngredientCategory.AUDIO,
-        extension: MetadataExtension.WAV,
-        organizationId: request.organizationId,
-        userId: request.userId,
-        parentId: request.videoId,
-        sourceIds: [request.videoId],
-        status: IngredientStatus.PROCESSING,
-      });
-    const id = String(ingredientData.id);
-    const temporaryStorageKeys = new Set<string>();
-    const usage = {
-      transcription: { modelId: 'openai/whisper', calls: 0 },
-      translation: { modelId: DEFAULT_TEXT_MODEL, calls: 0 },
-      synthesis: {
-        modelId: this.elevenlabs.getSpeechModelId(),
-        calls: 0,
-        characters: 0,
-        generatedSeconds: 0,
-      },
-      sourceSeconds: duration,
-      outputSeconds: 0,
-      vendorCost: null,
-    };
-    const providerData: { localization: Record<string, unknown> } = {
-      localization: {
-        sourceVideoId: request.videoId,
-        targetLanguage: request.targetLanguage,
-        voiceId: request.voiceId,
-        usage,
-      },
-    };
-    try {
-      const replicateKey = await this.byok.resolveApiKey(
-        request.organizationId,
-        ByokProvider.REPLICATE,
-      );
-      const voiceKey = await this.byok.resolveApiKey(
-        request.organizationId,
-        ByokProvider.ELEVENLABS,
-      );
-      const suppliedSegments: SpeechSegment[] = request.segments?.length
-        ? request.segments
-        : request.script?.trim()
-          ? [{ start: 0, end: duration, text: request.script.trim() }]
-          : [];
-      if (suppliedSegments.length)
-        this.validateSegments(suppliedSegments, duration);
-      usage.transcription.calls = sourceMetadata.hasAudio === false ? 0 : 1;
-      const transcript =
-        sourceMetadata.hasAudio === false
-          ? {
-              text: suppliedSegments.map((segment) => segment.text).join(' '),
-              segments: suppliedSegments,
-              language: request.targetLanguage,
-            }
-          : await this.replicate.transcribeAudio(
-              {
-                audio: { type: FileInputType.URL, url: videoUrl },
-                ...(request.sourceLanguage
-                  ? { language: request.sourceLanguage }
-                  : {}),
-              },
-              replicateKey?.apiKey,
-            );
-      providerData.localization.originalProviderSegments =
-        transcript.segments ?? [];
-      providerData.localization.transcript = {
-        text: transcript.text,
-        segments: [],
-      };
-      let sourceSegments: SpeechSegment[] = suppliedSegments;
-      if (sourceMetadata.hasAudio !== false) {
-        try {
-          sourceSegments = this.normalizeProviderSegments(
-            transcript.segments,
-            duration,
-          );
-        } catch (error: unknown) {
-          if (!suppliedSegments.length) throw error;
-          sourceSegments = [];
-        }
-      }
-      const overridden = Boolean(
-        request.segments?.length || request.script?.trim(),
-      );
-      const segments: SpeechSegment[] = request.segments?.length
-        ? request.segments
-        : request.script?.trim()
-          ? [{ start: 0, end: duration, text: request.script.trim() }]
-          : sourceSegments;
-      this.validateSegments(segments, duration);
-      providerData.localization = {
-        ...providerData.localization,
-        sourceLanguage: transcript.language,
-        transcript: { text: transcript.text, segments: sourceSegments },
-        transcriptSource:
-          sourceMetadata.hasAudio === false
-            ? 'provided-script'
-            : 'source-audio',
-        suppliedScript: request.script ?? null,
-        originalProviderSegments:
-          sourceMetadata.hasAudio === false ? [] : (transcript.segments ?? []),
-        segments,
-      };
-      await this.ingredients.patch(id, { providerData });
-      const localized = [];
-      for (const [index, segment] of segments.entries()) {
-        const voiceId = segment.voiceId ?? request.voiceId;
-        const language = segment.language ?? request.targetLanguage;
-        if (!overridden) usage.translation.calls++;
-        let text = overridden
-          ? segment.text
-          : await this.translate(
-              segment.text,
-              language,
-              segment.end - segment.start,
-              replicateKey?.apiKey,
-            );
-        let generated:
-          | Awaited<ReturnType<ElevenLabsService['generateAndUploadAudio']>>
-          | undefined;
-        const window = segment.end - segment.start;
-        for (let attempt = 0; attempt < 2; attempt++) {
-          usage.synthesis.calls++;
-          usage.synthesis.characters += text.length;
-          const segmentId = randomUUID();
-          temporaryStorageKeys.add(`ingredients/musics/${segmentId}`);
-          generated = await this.elevenlabs.generateAndUploadAudio(
-            voiceId,
-            text,
-            segmentId,
-            request.organizationId,
-            request.userId,
-            voiceKey?.apiKey,
-            { languageCode: language },
-          );
-          const measured = await this.files.extractMetadataFromUrl(
-            generated.audioUrl,
-          );
-          const speechDuration = measured.duration;
-          if (!speechDuration || !Number.isFinite(speechDuration))
-            throw new BadRequestException(
-              'Generated speech duration could not be verified',
-            );
-          generated.duration = speechDuration;
-          usage.synthesis.generatedSeconds += speechDuration;
-          if (speechDuration <= window) break;
-          if (attempt === 1 || overridden) {
-            providerData.localization.unfitSegment = {
-              index,
-              ...segment,
-              text,
-              generatedDuration: speechDuration,
-            };
-            throw new BadRequestException({
-              message: `Speech segment ${index + 1} exceeds its ${window.toFixed(2)} second window. Shorten the translated text and retry.`,
-              segment: { ...segment, text, generatedDuration: speechDuration },
-            });
+    return { source, brandId, videoUrl, sourceMetadata, duration };
+  }
+
+  private async buildLocalizationTranscript(
+    request: LocalizeSpeechRequest,
+    duration: number,
+    videoUrl: string,
+    sourceMetadata: LocalizationSourceMetadata,
+    replicateApiKey: string | undefined,
+    usage: LocalizationUsage,
+    providerData: LocalizationProviderData,
+  ) {
+    const suppliedSegments: SpeechSegment[] = request.segments?.length
+      ? request.segments
+      : request.script?.trim()
+        ? [{ start: 0, end: duration, text: request.script.trim() }]
+        : [];
+    if (suppliedSegments.length)
+      this.validateSegments(suppliedSegments, duration);
+    usage.transcription.calls = sourceMetadata.hasAudio === false ? 0 : 1;
+    const transcript: LocalizationTranscript =
+      sourceMetadata.hasAudio === false
+        ? {
+            text: suppliedSegments.map((segment) => segment.text).join(' '),
+            segments: suppliedSegments,
+            language: request.targetLanguage,
           }
-          usage.translation.calls++;
-          text = await this.translate(
+        : await this.replicate.transcribeAudio(
+            {
+              audio: { type: FileInputType.URL, url: videoUrl },
+              ...(request.sourceLanguage
+                ? { language: request.sourceLanguage }
+                : {}),
+            },
+            replicateApiKey,
+          );
+    providerData.localization.originalProviderSegments =
+      transcript.segments ?? [];
+    providerData.localization.transcript = {
+      text: transcript.text,
+      segments: [],
+    };
+    let sourceSegments: SpeechSegment[] = suppliedSegments;
+    if (sourceMetadata.hasAudio !== false) {
+      try {
+        sourceSegments = this.normalizeProviderSegments(
+          transcript.segments,
+          duration,
+        );
+      } catch (error: unknown) {
+        if (!suppliedSegments.length) throw error;
+        sourceSegments = [];
+      }
+    }
+    const overridden = Boolean(
+      request.segments?.length || request.script?.trim(),
+    );
+    const segments: SpeechSegment[] = request.segments?.length
+      ? request.segments
+      : request.script?.trim()
+        ? [{ start: 0, end: duration, text: request.script.trim() }]
+        : sourceSegments;
+    this.validateSegments(segments, duration);
+    providerData.localization = {
+      ...providerData.localization,
+      sourceLanguage: transcript.language,
+      transcript: { text: transcript.text, segments: sourceSegments },
+      transcriptSource:
+        sourceMetadata.hasAudio === false ? 'provided-script' : 'source-audio',
+      suppliedScript: request.script ?? null,
+      originalProviderSegments:
+        sourceMetadata.hasAudio === false ? [] : (transcript.segments ?? []),
+      segments,
+    };
+    return { transcript, sourceSegments, segments, overridden };
+  }
+
+  private async synthesizeLocalizedSegments(
+    request: LocalizeSpeechRequest,
+    context: {
+      segments: SpeechSegment[];
+      sourceSegments: SpeechSegment[];
+      overridden: boolean;
+      tolerance: number;
+      replicateApiKey: string | undefined;
+      voiceApiKey: string | undefined;
+      usage: LocalizationUsage;
+      providerData: LocalizationProviderData;
+      id: string;
+      temporaryStorageKeys: Set<string>;
+    },
+  ): Promise<LocalizedSegment[]> {
+    const {
+      segments,
+      sourceSegments,
+      overridden,
+      tolerance,
+      replicateApiKey,
+      voiceApiKey,
+      usage,
+      providerData,
+      id,
+      temporaryStorageKeys,
+    } = context;
+    const localized: LocalizedSegment[] = [];
+    for (const [index, segment] of segments.entries()) {
+      const voiceId = segment.voiceId ?? request.voiceId;
+      const language = segment.language ?? request.targetLanguage;
+      if (!overridden) usage.translation.calls++;
+      let text = overridden
+        ? segment.text
+        : await this.translate(
             segment.text,
             language,
-            Math.max(0.1, (window * window) / speechDuration - tolerance),
-            replicateKey?.apiKey,
+            segment.end - segment.start,
+            replicateApiKey,
           );
-        }
-        if (!generated) throw new Error('Speech generation returned no audio');
-        localized.push({
-          ...segment,
+      let generated:
+        | Awaited<ReturnType<ElevenLabsService['generateAndUploadAudio']>>
+        | undefined;
+      const window = segment.end - segment.start;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        usage.synthesis.calls++;
+        usage.synthesis.characters += text.length;
+        const segmentId = randomUUID();
+        temporaryStorageKeys.add(`ingredients/musics/${segmentId}`);
+        generated = await this.elevenlabs.generateAndUploadAudio(
           voiceId,
-          language,
           text,
-          sourceText: overridden
-            ? sourceSegments
-                .filter(
-                  (item) =>
-                    item.start < segment.end && item.end > segment.start,
-                )
-                .map((item) => item.text)
-                .join(' ')
-            : segment.text,
-          audioUrl: generated.audioUrl,
-          duration: generated.duration,
-        });
-        providerData.localization.completedSegments = localized.map((segment) =>
-          this.editableSegment(segment),
+          segmentId,
+          request.organizationId,
+          request.userId,
+          voiceApiKey,
+          { languageCode: language },
         );
-        await this.ingredients.patch(id, { providerData });
-      }
-      const assembled = await this.files.assembleSpeech({
-        durationSeconds: duration,
-        outputKey: `${id}.wav`,
-        segments: localized.map((segment) => ({
-          audioUrl: segment.audioUrl,
-          startSeconds: segment.start,
-          endSeconds: segment.end,
-        })),
-      });
-      if (
-        !assembled.publicUrl ||
-        !Number.isFinite(assembled.duration) ||
-        Math.abs(assembled.duration - duration) > 0.1
-      ) {
-        throw new Error(
-          'Assembled speech does not preserve the source video duration',
+        const measured = await this.files.extractMetadataFromUrl(
+          generated.audioUrl,
         );
-      }
-      const translatedScript = localized
-        .map((segment) => segment.text)
-        .join(' ');
-      usage.outputSeconds = assembled.duration;
-      providerData.localization = {
-        ...providerData.localization,
-        sourceVideoId: request.videoId,
-        targetLanguage: request.targetLanguage,
-        sourceLanguage: transcript.language,
-        voiceId: request.voiceId,
-        transcript: { text: transcript.text, segments: sourceSegments },
-        segments: localized.map((segment) => this.editableSegment(segment)),
-        translatedScript,
-      };
-      await this.metadata.patch(
-        metadataData.id,
-        new MetadataEntity({ ...assembled, duration, hasAudio: true }),
-      );
-      await this.ingredients.patch(id, {
-        status: IngredientStatus.GENERATED,
-        s3Key: assembled.s3Key,
-        providerData,
-      });
-      return {
-        audio: {
-          id,
-          audioUrl: assembled.publicUrl,
-          duration,
-          status: IngredientStatus.GENERATED,
-        },
-        transcript: { text: transcript.text, segments: sourceSegments },
-        translatedScript,
-        segments: localized.map((segment) => this.editableSegment(segment)),
-        duration,
-      };
-    } catch (error: unknown) {
-      try {
-        await this.ingredients.patch(id, {
-          status: IngredientStatus.FAILED,
-          providerData,
-        });
-      } catch {
-        /* Preserve the original generation failure. */
-      }
-      throw error;
-    } finally {
-      const keys = [...temporaryStorageKeys];
-      const cleaned = await Promise.allSettled(
-        keys.map(async (key) => {
-          try {
-            await this.files.deleteStoredObject(key);
-          } catch {
-            await this.files.deleteStoredObject(key);
-          }
-        }),
-      );
-      const pending = keys.filter(
-        (_, index) => cleaned[index]?.status === 'rejected',
-      );
-      if (pending.length) {
-        providerData.localization.cleanupPendingStorageKeys = pending;
-        try {
-          await this.ingredients.patch(id, { providerData });
-        } catch {
-          /* Retain the primary operation result if recording cleanup also fails. */
+        const speechDuration = measured.duration;
+        if (!speechDuration || !Number.isFinite(speechDuration))
+          throw new BadRequestException(
+            'Generated speech duration could not be verified',
+          );
+        generated.duration = speechDuration;
+        usage.synthesis.generatedSeconds += speechDuration;
+        if (speechDuration <= window) break;
+        if (attempt === 1 || overridden) {
+          providerData.localization.unfitSegment = {
+            index,
+            ...segment,
+            text,
+            generatedDuration: speechDuration,
+          };
+          throw new BadRequestException({
+            message: `Speech segment ${index + 1} exceeds its ${window.toFixed(2)} second window. Shorten the translated text and retry.`,
+            segment: { ...segment, text, generatedDuration: speechDuration },
+          });
         }
+        usage.translation.calls++;
+        text = await this.translate(
+          segment.text,
+          language,
+          Math.max(0.1, (window * window) / speechDuration - tolerance),
+          replicateApiKey,
+        );
+      }
+      if (!generated) throw new Error('Speech generation returned no audio');
+      localized.push({
+        ...segment,
+        voiceId,
+        language,
+        text,
+        sourceText: overridden
+          ? sourceSegments
+              .filter(
+                (item) => item.start < segment.end && item.end > segment.start,
+              )
+              .map((item) => item.text)
+              .join(' ')
+          : segment.text,
+        audioUrl: generated.audioUrl,
+        duration: generated.duration,
+      });
+      providerData.localization.completedSegments = localized.map((segment) =>
+        this.editableSegment(segment),
+      );
+      await this.ingredients.patch(id, { providerData });
+    }
+    return localized;
+  }
+
+  private async finalizeLocalization(
+    request: LocalizeSpeechRequest,
+    context: {
+      id: string;
+      duration: number;
+      localized: LocalizedSegment[];
+      transcript: LocalizationTranscript;
+      sourceSegments: SpeechSegment[];
+      usage: LocalizationUsage;
+      providerData: LocalizationProviderData;
+      metadataData: LocalizationMetadataData;
+    },
+  ) {
+    const {
+      id,
+      duration,
+      localized,
+      transcript,
+      sourceSegments,
+      usage,
+      providerData,
+      metadataData,
+    } = context;
+    const assembled = await this.files.assembleSpeech({
+      durationSeconds: duration,
+      outputKey: `${id}.wav`,
+      segments: localized.map((segment) => ({
+        audioUrl: segment.audioUrl,
+        startSeconds: segment.start,
+        endSeconds: segment.end,
+      })),
+    });
+    if (
+      !assembled.publicUrl ||
+      !Number.isFinite(assembled.duration) ||
+      Math.abs(assembled.duration - duration) > 0.1
+    ) {
+      throw new Error(
+        'Assembled speech does not preserve the source video duration',
+      );
+    }
+    const translatedScript = localized.map((segment) => segment.text).join(' ');
+    usage.outputSeconds = assembled.duration;
+    providerData.localization = {
+      ...providerData.localization,
+      sourceVideoId: request.videoId,
+      targetLanguage: request.targetLanguage,
+      sourceLanguage: transcript.language,
+      voiceId: request.voiceId,
+      transcript: { text: transcript.text, segments: sourceSegments },
+      segments: localized.map((segment) => this.editableSegment(segment)),
+      translatedScript,
+    };
+    await this.metadata.patch(
+      metadataData.id,
+      new MetadataEntity({ ...assembled, duration, hasAudio: true }),
+    );
+    await this.ingredients.patch(id, {
+      status: IngredientStatus.GENERATED,
+      s3Key: assembled.s3Key,
+      providerData,
+    });
+    return {
+      audio: {
+        id,
+        audioUrl: assembled.publicUrl,
+        duration,
+        status: IngredientStatus.GENERATED,
+      },
+      transcript: { text: transcript.text, segments: sourceSegments },
+      translatedScript,
+      segments: localized.map((segment) => this.editableSegment(segment)),
+      duration,
+    };
+  }
+
+  private async cleanupLocalizationStorage(
+    id: string,
+    temporaryStorageKeys: Set<string>,
+    providerData: LocalizationProviderData,
+  ) {
+    const keys = [...temporaryStorageKeys];
+    const cleaned = await Promise.allSettled(
+      keys.map(async (key) => {
+        try {
+          await this.files.deleteStoredObject(key);
+        } catch {
+          await this.files.deleteStoredObject(key);
+        }
+      }),
+    );
+    const pending = keys.filter(
+      (_, index) => cleaned[index]?.status === 'rejected',
+    );
+    if (pending.length) {
+      providerData.localization.cleanupPendingStorageKeys = pending;
+      try {
+        await this.ingredients.patch(id, { providerData });
+      } catch {
+        /* Retain the primary operation result if recording cleanup also fails. */
       }
     }
   }

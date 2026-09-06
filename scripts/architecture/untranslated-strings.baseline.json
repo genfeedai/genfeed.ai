@@ -602,7 +602,7 @@
     "packages/workflows/src/ui/hooks/useAIGenNodeHeader.tsx": 2,
     "packages/workflows/src/ui/lib/CubicBezierEditor.tsx": 2,
     "packages/workflows/src/ui/nodes/ai/ImageGenNode.tsx": 6,
-    "packages/workflows/src/ui/nodes/ai/LipSyncNode.tsx": 4,
+    "packages/workflows/src/ui/nodes/ai/LipSyncNode.tsx": 2,
     "packages/workflows/src/ui/nodes/ai/LLMNode.tsx": 8,
     "packages/workflows/src/ui/nodes/ai/MotionControlNode.tsx": 12,
     "packages/workflows/src/ui/nodes/ai/TextToSpeechNode.tsx": 17,
