@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   DiscordIcon,
   InstagramIcon,
@@ -9,7 +10,9 @@ import {
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@services/core/environment.service';
+import { Button } from '@ui/primitives/button';
 import { Code, ExternalLink, FileText } from 'lucide-react';
+import Link from 'next/link';
 import type { ComponentType } from 'react';
 
 import { LinkCard } from '@/components/ui/link-card';
@@ -21,7 +24,6 @@ interface LinkItem {
 }
 
 const RESOURCES: LinkItem[] = [
-  { icon: FileText, label: 'About Genfeed', url: '/settings/about' },
   { icon: FileText, label: 'Changelog', url: 'https://genfeed.ai/changelog' },
   {
     icon: FileText,
@@ -85,6 +87,9 @@ function HelpLinkCard({ item }: { item: LinkItem }) {
 export default function SettingsHelpPage() {
   return (
     <div className="space-y-4">
+      <Button asChild>
+        <Link href={APP_ROUTES.SETTINGS.ABOUT}>About Genfeed</Link>
+      </Button>
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Resources</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
