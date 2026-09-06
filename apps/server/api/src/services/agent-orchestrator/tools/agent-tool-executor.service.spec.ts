@@ -1,4 +1,7 @@
-import type { CuratedActionName } from '@genfeedai/actions';
+import {
+  buildLogicalWriteKey,
+  type CuratedActionName,
+} from '@genfeedai/actions';
 
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',
@@ -1113,6 +1116,14 @@ describe('AgentToolExecutorService', () => {
     ) => {
       approvals.findOwned.mockResolvedValue({
         id: 'approved-test-intent',
+        idempotencyKey: buildLogicalWriteKey({
+          arguments: parameters,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          threadId: context.threadId,
+          scope: context.validatedScope,
+          toolName,
+        }),
         arguments: parameters,
         isDeleted: false,
         status: 'APPROVED',

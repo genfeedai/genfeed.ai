@@ -262,7 +262,13 @@ describe('AgentToolExecutorService mutation policy', () => {
       expect.any(String),
       'create_post',
       { content: 'hello' },
-      { threadId: expect.any(String) },
+      {
+        threadId: expect.any(String),
+        scope: expect.objectContaining({
+          brandId: 'brand-1',
+          contextVersion: 1,
+        }),
+      },
     );
     expect(publishHandler.createPost).not.toHaveBeenCalled();
   });
@@ -362,10 +368,41 @@ describe('AgentToolExecutorService mutation policy', () => {
     },
   );
 
-  it.each([undefined, 'requester-thread'])(
-    'allows a reviewer to resume an approved write from thread %s',
-    async (threadId) => {
-      const approval = {
+  it.each([
+    {
+      userId: testId('requester'),
+      storedThread: undefined,
+      requestedThread: undefined,
+      allowed: true,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: 'requester-thread',
+      allowed: true,
+    },
+    {
+      userId: testId('reviewer'),
+      storedThread: undefined,
+      requestedThread: undefined,
+      allowed: false,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: undefined,
+      allowed: false,
+    },
+    {
+      userId: testId('requester'),
+      storedThread: 'requester-thread',
+      requestedThread: 'other-thread',
+      allowed: false,
+    },
+  ])(
+    'binds explicit redemption to stored user and thread: %j',
+    async ({ userId, storedThread, requestedThread, allowed }) => {
+      mcpApprovals.findOwned.mockResolvedValue({
         id: 'apr-1',
         arguments: { content: 'hello' },
         isDeleted: false,
@@ -373,14 +410,16 @@ describe('AgentToolExecutorService mutation policy', () => {
         userId: testId('requester'),
         toolName: 'create_post',
         idempotencyKey: buildLogicalWriteKey({
-          threadId,
           arguments: { content: 'hello' },
           organizationId: testId('org'),
           userId: testId('requester'),
+          threadId: storedThread,
+          ...(storedThread
+            ? { scope: { brandId: 'brand-1', contextVersion: 1 } }
+            : {}),
           toolName: 'create_post',
         }),
-      };
-      mcpApprovals.findOwned.mockResolvedValue(approval);
+      });
       publishHandler.createPost.mockResolvedValue({
         success: true,
         creditsUsed: 0,
@@ -392,19 +431,19 @@ describe('AgentToolExecutorService mutation policy', () => {
         context({
           approvedApprovalId: 'apr-1',
           hostSupportsApproval: true,
-          userId: testId('reviewer'),
+          userId,
+          threadId: requestedThread,
         }),
       );
-      expect(result.success).toBe(true);
-      expect(mcpApprovals.claimExecution).toHaveBeenCalledWith(
-        'apr-1',
-        testId('org'),
-      );
-      expect(mcpApprovals.attachResult).toHaveBeenCalledWith(
-        'apr-1',
-        testId('org'),
-        { success: true, creditsUsed: 0, data: { id: 'post-1' } },
-      );
+      expect(result.success).toBe(allowed);
+      if (allowed) {
+        expect(mcpApprovals.claimExecution).toHaveBeenCalledTimes(1);
+        expect(publishHandler.createPost).toHaveBeenCalledTimes(1);
+      } else {
+        expect(result.error).toContain('does not authorize');
+        expect(mcpApprovals.claimExecution).not.toHaveBeenCalled();
+        expect(publishHandler.createPost).not.toHaveBeenCalled();
+      }
     },
   );
 

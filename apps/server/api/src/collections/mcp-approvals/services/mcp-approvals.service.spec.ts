@@ -95,6 +95,37 @@ describe('McpApprovalsService', () => {
       expect(result).toEqual(fakeApproval);
     });
 
+    it('creates fresh approval identities for the same arguments after a context switch', async () => {
+      mcpApproval.findFirst.mockResolvedValue(null);
+      mcpApproval.create.mockImplementation(async ({ data }) => ({
+        ...data,
+        id: data.idempotencyKey,
+      }));
+      const first = await service.createPending(
+        'org-1',
+        'user-1',
+        'generate_content_batch',
+        { count: 3 },
+        {
+          threadId: 'thread-1',
+          scope: { brandId: 'brand-1', contextVersion: 1 },
+        },
+      );
+      const second = await service.createPending(
+        'org-1',
+        'user-1',
+        'generate_content_batch',
+        { count: 3 },
+        {
+          threadId: 'thread-1',
+          scope: { brandId: 'brand-2', contextVersion: 2 },
+        },
+      );
+      expect(second.idempotencyKey).not.toBe(first.idempotencyKey);
+      expect(mcpApproval.create).toHaveBeenCalledTimes(2);
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
     it('returns an existing PENDING or APPROVED row for the same logical write', async () => {
       const existing = {
         id: 'approval-existing',

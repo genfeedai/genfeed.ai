@@ -19,7 +19,9 @@ function describeValue(value: unknown): string {
         .join('; ') || 'None'
     );
   }
-  return value == null || value === '' ? 'None' : String(value);
+  return value == null || (typeof value === 'string' && !value.trim())
+    ? 'None'
+    : String(value);
 }
 
 function humanize(value: string): string {

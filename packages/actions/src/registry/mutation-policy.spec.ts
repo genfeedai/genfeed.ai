@@ -192,6 +192,35 @@ describe('evaluateMutationPolicy', () => {
 });
 
 describe('buildLogicalWriteKey', () => {
+  it('distinguishes scoped intents while preserving absent-scope keys', () => {
+    const input = {
+      arguments: { count: 3 },
+      organizationId: 'org-1',
+      userId: 'user-1',
+      threadId: 'thread-1',
+      toolName: 'generate_content_batch',
+    };
+    const original = buildLogicalWriteKey(input);
+    expect(buildLogicalWriteKey({ ...input, scope: undefined })).toBe(original);
+    const scoped = buildLogicalWriteKey({
+      ...input,
+      scope: { brandId: 'brand-1', contextVersion: 1 },
+    });
+    expect(scoped).not.toBe(original);
+    expect(
+      buildLogicalWriteKey({
+        ...input,
+        scope: { brandId: 'brand-1', contextVersion: 2 },
+      }),
+    ).not.toBe(scoped);
+    expect(
+      buildLogicalWriteKey({
+        ...input,
+        scope: { brandId: 'brand-2', contextVersion: 1 },
+      }),
+    ).not.toBe(scoped);
+  });
+
   it('is stable across key order and distinct across arguments', () => {
     const base = {
       organizationId: 'org-1',

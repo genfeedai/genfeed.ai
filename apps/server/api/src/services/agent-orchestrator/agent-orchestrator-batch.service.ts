@@ -131,7 +131,7 @@ export class AgentOrchestratorBatchService {
         runId: params.context.executionId,
         strategyId: params.context.strategyId,
         streamBatchToUser: true,
-        hostSupportsApproval: params.context.executionMode !== 'background',
+        hostSupportsApproval: params.context.hostSupportsApproval ?? true,
         thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,

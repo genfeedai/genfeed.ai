@@ -420,6 +420,7 @@ export class AgentToolExecutorService implements OnModuleInit {
       arguments: parameters,
       organizationId: context.organizationId,
       threadId: context.threadId,
+      scope: context.validatedScope,
       toolName,
       userId: context.userId,
     });
@@ -508,7 +509,7 @@ export class AgentToolExecutorService implements OnModuleInit {
       context.userId,
       toolName,
       parameters,
-      { threadId: context.threadId },
+      { threadId: context.threadId, scope: context.validatedScope },
     );
 
     return {
@@ -571,7 +572,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         context.userId,
         toolName,
         parameters,
-        { threadId: context.threadId },
+        { threadId: context.threadId, scope: context.validatedScope },
       ));
     if (approval.status === McpApprovalStatus.PENDING) {
       await this.mcpApprovalsService.resolve(
@@ -606,6 +607,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         !claimed ||
         claimed.status !== McpApprovalStatus.APPROVED ||
         claimed.toolName !== toolName ||
+        claimed.userId !== context.userId ||
         claimed.isDeleted ||
         !claimed.arguments ||
         typeof claimed.arguments !== 'object' ||
@@ -618,13 +620,17 @@ export class AgentToolExecutorService implements OnModuleInit {
       const invocation = {
         organizationId: context.organizationId,
         toolName,
-        userId: claimed.userId,
+        userId: context.userId,
+        threadId: context.threadId,
+        scope: context.validatedScope,
       };
       if (
         buildLogicalWriteKey({
           ...invocation,
           arguments: claimed.arguments,
-        }) !== buildLogicalWriteKey({ ...invocation, arguments: parameters })
+        }) !== buildLogicalWriteKey({ ...invocation, arguments: parameters }) ||
+        claimed.idempotencyKey !==
+          buildLogicalWriteKey({ ...invocation, arguments: parameters })
       ) {
         throw new Error(
           'Approval does not authorize this exact tool invocation',

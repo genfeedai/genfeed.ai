@@ -25,6 +25,7 @@ describe('structured action finalization', () => {
         recorder as never,
       );
       await service.finalizeStructuredAssistantTurn({
+        messageId: 'result-message-1',
         content:
           success === false ? 'Approved action failed.' : 'Action completed.',
         context: { organizationId: 'org-1', userId: 'user-1' },
@@ -37,6 +38,9 @@ describe('structured action finalization', () => {
         },
       });
       expect(messages.addMessage).toHaveBeenCalledTimes(1);
+      expect(messages.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'result-message-1' }),
+      );
       if (success === false) {
         expect(recorder.recordRunFailed).toHaveBeenCalledWith(
           expect.objectContaining({ error: 'Provider unavailable' }),

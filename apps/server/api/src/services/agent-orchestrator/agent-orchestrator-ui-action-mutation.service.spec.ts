@@ -30,6 +30,7 @@ describe('persisted mutation approvals', () => {
       organizationId: 'org-1',
       userId: 'user-1',
       threadId: 'thread-1',
+      scope: { brandId: 'brand-1', contextVersion: 2 },
       toolName: 'generate_content_batch',
     }),
   });
@@ -168,6 +169,84 @@ describe('persisted mutation approvals', () => {
     );
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
+  it('accepts a fresh scoped intent after a brand context switch while rejecting the old card', async () => {
+    const request = params();
+    request.context.scope = {
+      ...request.context.scope,
+      brandId: 'brand-2',
+      contextVersion: 3,
+    } as NonNullable<typeof request.context.scope>;
+    await expect(service.execute('confirm_mutation', request)).rejects.toThrow(
+      'stale',
+    );
+    const next = card();
+    next.id = 'mutation-approval:apr-2';
+    next.data = {
+      ...next.data,
+      approvalId: 'apr-2',
+      sourceActionId: next.id,
+      brandId: 'brand-2',
+      scopeVersion: 3,
+    };
+    request.payload = { approvalId: 'apr-2', sourceActionId: next.id };
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      id: 'apr-2',
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: args,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        scope: { brandId: 'brand-2', contextVersion: 3 },
+        toolName: 'generate_content_batch',
+      }),
+    });
+    messages.getMessagesByRoom.mockResolvedValue([
+      { id: 'message-2', role: 'assistant', metadata: { uiActions: [next] } },
+    ]);
+    await service.execute('confirm_mutation', request);
+    expect(executor.executeTool).toHaveBeenCalledTimes(1);
+    expect(executor.executeTool).toHaveBeenCalledWith(
+      'generate_content_batch',
+      args,
+      expect.objectContaining({
+        brandId: 'brand-2',
+        approvedApprovalId: 'apr-2',
+      }),
+    );
+  });
+
+  it('consumes every persisted copy of the same pending card', async () => {
+    messages.getMessagesByRoom.mockResolvedValue(
+      ['message-1', 'message-2'].map((id) => ({
+        id,
+        role: 'assistant',
+        metadata: { uiActions: [card()] },
+      })),
+    );
+    await service.execute('confirm_mutation', params());
+    expect(messages.patchAll).toHaveBeenCalledTimes(2);
+    expect(messages.patchAll.mock.calls.map((call) => call[0].id)).toEqual([
+      'message-1',
+      'message-2',
+    ]);
+    expect(executor.executeTool).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses one stable terminal message identity on approved retries', async () => {
+    await service.execute('confirm_mutation', params());
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      status: 'APPROVED',
+    });
+    await service.execute('confirm_mutation', params());
+    const ids = finalizer.finalizeStructuredAssistantTurn.mock.calls.map(
+      (call) => call[0].messageId,
+    );
+    expect(ids[0]).toEqual(expect.any(String));
+    expect(ids[1]).toBe(ids[0]);
+  });
+
   it('declines without invoking the tool', async () => {
     await service.execute('decline_mutation', params());
     expect(approvals.resolve).toHaveBeenCalledWith(

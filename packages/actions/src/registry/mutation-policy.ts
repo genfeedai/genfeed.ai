@@ -190,10 +190,16 @@ export function evaluateMutationPolicy(input: {
   return { kind: 'queue' };
 }
 
+export interface MutationApprovalScope {
+  brandId?: string;
+  contextVersion: number;
+}
+
 export function buildLogicalWriteKey(input: {
   arguments: Record<string, unknown>;
   organizationId: string;
   threadId?: string;
+  scope?: MutationApprovalScope;
   toolName: string;
   userId: string;
 }): string {
@@ -203,6 +209,14 @@ export function buildLogicalWriteKey(input: {
         arguments: input.arguments,
         organizationId: input.organizationId,
         threadId: input.threadId ?? '',
+        ...(input.scope
+          ? {
+              scope: {
+                brandId: input.scope.brandId ?? null,
+                contextVersion: input.scope.contextVersion,
+              },
+            }
+          : {}),
         toolName: input.toolName,
         userId: input.userId,
       }),

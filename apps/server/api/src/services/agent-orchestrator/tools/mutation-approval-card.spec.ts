@@ -35,7 +35,7 @@ describe('mutation approval summary', () => {
     const card = buildMutationApprovalCard(
       'apr-1',
       'create_post',
-      { content: '', targets: [], settings: {}, option: undefined },
+      { content: ' \n\t ', targets: [], settings: {}, option: undefined },
       context,
     );
     expect(card.data?.items).toEqual([

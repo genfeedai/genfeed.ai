@@ -66,6 +66,7 @@ export class AgentOrchestratorUiActionFinalizerService {
     };
 
     await this.agentMessagesService.addMessage({
+      ...(params.messageId ? { id: params.messageId } : {}),
       brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
       metadata: { creditsRemaining, ...assistantMetadata },
