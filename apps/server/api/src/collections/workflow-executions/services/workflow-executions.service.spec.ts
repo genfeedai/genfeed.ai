@@ -3,6 +3,10 @@ import {
   ActionOrigin,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import {
+  buildHiddenSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+} from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
@@ -850,4 +854,80 @@ describe('WorkflowExecutionsService', () => {
       }),
     );
   });
+  it('persists failure classification and outbox payload in the same terminal transition', async () => {
+    const { prisma, service, workflowNotificationOutboxService } =
+      makeService();
+    await service.completeExecution(
+      'execution-1',
+      'HTTP 429 too many requests',
+    );
+    const data = prisma.workflowExecution.updateMany.mock.calls[0][0].data;
+    expect(data.failureReason).toBe('RATE_LIMITED');
+    expect(data.failure).toEqual(
+      expect.objectContaining({
+        reason: 'RATE_LIMITED',
+        title: 'Provider rate limited',
+        recovery: expect.any(String),
+      }),
+    );
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({ failure: data.failure, isAgentRun: false }),
+    );
+  });
+
+  it('does not create another failure notification after a terminal race', async () => {
+    const { prisma, service, workflowNotificationOutboxService } =
+      makeService();
+    prisma.workflowExecution.updateMany.mockResolvedValueOnce({ count: 0 });
+    expect(
+      await service.completeExecution('execution-1', 'HTTP 429'),
+    ).toBeNull();
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).not.toHaveBeenCalled();
+    expect(
+      workflowNotificationOutboxService.enqueueAfterCommit,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'agent.turn.execute',
+    'agent.thread.ui-action',
+    'agent.thread.input-response',
+  ])(
+    'routes the terminal failure of %s to the agent topic',
+    async (canonicalId) => {
+      const { service, prisma, workflowNotificationOutboxService } =
+        makeService();
+      prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+        organizationId: 'org-1',
+        startedAt: null,
+        estimatedDurationMs: null,
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'Agent',
+          userId: 'genfeed-public-tools',
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            systemWorkflow: buildHiddenSystemWorkflowMetadata({ canonicalId }),
+          },
+        },
+      });
+      await service.completeExecution('execution-1', 'HTTP 429');
+      expect(
+        workflowNotificationOutboxService.recordWorkflowOutcome,
+      ).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({
+          isAgentRun: true,
+          workflowOwnerUserId: 'actor-user-1',
+        }),
+      );
+    },
+  );
 });

@@ -7,6 +7,10 @@ import type {
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import {
+  buildWorkflowOutcomeInput,
+  type WorkflowExecutionCompletionRow,
+} from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
+import {
   composeEtaMetadata,
   readNodeResults,
   readOptionalNumber,
@@ -17,7 +21,6 @@ import {
   type WorkflowExecutionProgressSnapshot,
   type WorkflowExecutionScalarRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
-import { isHiddenSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import {
@@ -33,6 +36,7 @@ import {
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { formatAgentError } from '@genfeedai/agent/server';
 import {
   type ActionOriginContext,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
@@ -59,20 +63,6 @@ type WorkflowExecutionRuntimeStateRow = {
   remainingDurationMs: number | null;
   result: unknown;
   startedAt: Date | null;
-};
-
-type WorkflowExecutionCompletionRow = {
-  estimatedDurationMs: number | null;
-  organizationId: string;
-  startedAt: Date | null;
-  trigger: string | null;
-  workflowId: string;
-  userId: string;
-  workflow: {
-    label: string | null;
-    metadata: unknown;
-    userId: string;
-  };
 };
 
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
@@ -417,6 +407,8 @@ export class WorkflowExecutionsService extends BaseService<
         completedAt: null,
         durationMs: null,
         error: null,
+        failure: Prisma.DbNull,
+        failureReason: null,
         failedNodeId: null,
         startedAt: new Date(),
         status: PrismaWorkflowExecutionStatus.RUNNING,
@@ -434,6 +426,7 @@ export class WorkflowExecutionsService extends BaseService<
     completion?: WorkflowExecutionCompletionFields,
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
+    const failure = error ? { ...formatAgentError(error), detail: null } : null;
     // tenant-scope-ignore: internal completion callers carry the opaque globally unique execution id; this lookup resolves its tenant and the mutation below is scoped to it
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: {
@@ -472,6 +465,8 @@ export class WorkflowExecutionsService extends BaseService<
               : {}),
             durationMs,
             error,
+            failure: failure ?? Prisma.DbNull,
+            failureReason: failure?.reason ?? null,
             etaCurrentPhase: error ? 'Failed' : 'Completed',
             etaUpdatedAt: completedAt,
             ...(completion?.failedNodeId !== undefined
@@ -514,22 +509,13 @@ export class WorkflowExecutionsService extends BaseService<
         const durableDeliveryId =
           await this.workflowNotificationOutboxService.recordWorkflowOutcome(
             transaction,
-            {
-              actorUserId: execution.userId,
-              error: error ?? null,
+            buildWorkflowOutcomeInput(
+              execution,
               executionId,
-              occurredAt: completedAt,
-              organizationId: execution.organizationId,
-              status: error ? 'failed' : 'completed',
-              trigger: execution.trigger,
-              workflowId: execution.workflowId,
-              workflowLabel: execution.workflow.label ?? 'Untitled workflow',
-              workflowOwnerUserId: isHiddenSystemWorkflowMetadata(
-                execution.workflow.metadata,
-              )
-                ? execution.userId
-                : execution.workflow.userId,
-            },
+              completedAt,
+              failure,
+              error,
+            ),
           );
 
         return { deliveryId: durableDeliveryId, result: updatedExecution };

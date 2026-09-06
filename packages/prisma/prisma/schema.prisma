@@ -4354,6 +4354,24 @@ model WorkflowVersion {
   @@map("workflow_versions")
 }
 
+enum AgentFailureReason {
+  PROVIDER_CONFIGURATION
+  INSUFFICIENT_CREDITS
+  RATE_LIMITED
+  TIMEOUT
+  DATA_SAVE_FAILED
+  SESSION_EXPIRED
+  CONNECTION_INTERRUPTED
+  CANCELLED
+  PROVIDER_AUTHENTICATION
+  WORKSPACE_MISSING
+  ACTION_NOT_ALLOWED
+  MODEL_UNAVAILABLE
+  PROVIDER_ACCESS_DENIED
+  PROVIDER_UNAVAILABLE
+  UNKNOWN
+}
+
 model WorkflowExecution {
   id                String                  @id @default(cuid())
   idempotencyKey    String?
@@ -4367,6 +4385,8 @@ model WorkflowExecution {
   organization      Organization            @relation(fields: [organizationId], references: [id])
   status            WorkflowExecutionStatus @default(PENDING)
   result            Json?
+  failureReason     AgentFailureReason?
+  failure           Json?
   error             String?
   startedAt         DateTime?
   completedAt       DateTime?
@@ -4410,6 +4430,7 @@ model WorkflowExecution {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
+  @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
 }
 

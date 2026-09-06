@@ -1,7 +1,7 @@
 'use client';
 
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
@@ -18,7 +18,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 
-type WorkflowPreferenceLoadState = 'error' | 'loading' | 'ready';
+type PreferenceLoadState = 'error' | 'loading' | 'ready';
 
 export default function SettingsNotificationsPage() {
   const translate = useTranslations('common');
@@ -33,7 +33,7 @@ export default function SettingsNotificationsPage() {
   const [isWorkflowNotificationsEmail, setIsWorkflowNotificationsEmail] =
     useState(false);
   const [workflowPreferenceLoadState, setWorkflowPreferenceLoadState] =
-    useState<WorkflowPreferenceLoadState>('loading');
+    useState<PreferenceLoadState>('loading');
   const [workflowPreferenceLoadRequest, setWorkflowPreferenceLoadRequest] =
     useState(0);
 
@@ -65,6 +65,46 @@ export default function SettingsNotificationsPage() {
     void loadWorkflowPreference(controller.signal);
     return () => controller.abort();
   }, [loadWorkflowPreference, workflowPreferenceLoadRequest]);
+
+  const [isAgentNotificationsEmail, setIsAgentNotificationsEmail] =
+    useState(false);
+  const [agentPreferenceLoadState, setAgentPreferenceLoadState] =
+    useState<PreferenceLoadState>('loading');
+  const agentPreferenceController = useRef<AbortController | null>(null);
+
+  const loadAgentPreference = useCallback(
+    async (signal: AbortSignal) => {
+      setAgentPreferenceLoadState('loading');
+
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.findAgentEmailNotificationPreference(signal);
+        signal.throwIfAborted();
+        setIsAgentNotificationsEmail(preference.isEnabled);
+        setAgentPreferenceLoadState('ready');
+      } catch (error) {
+        if (signal.aborted) {
+          return;
+        }
+        logger.error('Failed to load agent email preference', error);
+        setAgentPreferenceLoadState('error');
+      }
+    },
+    [getUsersService],
+  );
+
+  const refreshAgentPreference = useCallback(() => {
+    agentPreferenceController.current?.abort();
+    const controller = new AbortController();
+    agentPreferenceController.current = controller;
+    void loadAgentPreference(controller.signal);
+  }, [loadAgentPreference]);
+
+  useEffect(() => {
+    refreshAgentPreference();
+    return () => agentPreferenceController.current?.abort();
+  }, [refreshAgentPreference]);
 
   const patchSettings = useCallback(
     async (patch: Partial<ISetting>) => {
@@ -116,6 +156,27 @@ export default function SettingsNotificationsPage() {
     [getUsersService, isWorkflowNotificationsEmail, notifications, translate],
   );
 
+  const handleAgentEmailPreferenceChange = useCallback(
+    async (isEnabled: boolean) => {
+      const previousValue = isAgentNotificationsEmail;
+      setIsAgentNotificationsEmail(isEnabled);
+      setIsSaving(true);
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.patchAgentEmailNotificationPreference(isEnabled);
+        setIsAgentNotificationsEmail(preference.isEnabled);
+      } catch (error: unknown) {
+        logger.error('Failed to update agent email preference', error);
+        setIsAgentNotificationsEmail(previousValue);
+        notifications.error(translate('settings.profile.agentEmail.saveError'));
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [getUsersService, isAgentNotificationsEmail, notifications, translate],
+  );
+
   if (!isLoaded) {
     return (
       <div className="flex min-h-form items-center justify-center">
@@ -158,6 +219,29 @@ export default function SettingsNotificationsPage() {
                   onClick={() => {
                     setWorkflowPreferenceLoadRequest((request) => request + 1);
                   }}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </div>
+            </Alert>
+          ) : null}
+          <Switch
+            aria-label={translate('settings.profile.agentEmail.label')}
+            label={translate('settings.profile.agentEmail.label')}
+            description={translate('settings.profile.agentEmail.description')}
+            isChecked={isAgentNotificationsEmail}
+            isDisabled={isSaving || agentPreferenceLoadState !== 'ready'}
+            onChange={(e) => handleAgentEmailPreferenceChange(e.target.checked)}
+          />
+          {agentPreferenceLoadState === 'error' ? (
+            <Alert type={AlertCategory.WARNING}>
+              <div className="flex items-center justify-between gap-3">
+                <span>
+                  {translate('settings.profile.agentEmail.loadError')}
+                </span>
+                <Button
+                  label={translate('actions.retry')}
+                  onClick={refreshAgentPreference}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                 />

@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   mutateUser: vi.fn(),
   patchSettings: vi.fn(),
   findWorkflowEmailPreference: vi.fn(),
+  findAgentEmailPreference: vi.fn(),
+  patchAgentEmailPreference: vi.fn(),
   getUsersService: vi.fn(),
   patchWorkflowEmailPreference: vi.fn(),
 }));
@@ -59,19 +61,33 @@ describe('SettingsNotificationsPage', () => {
     mocks.getUsersService.mockResolvedValue({
       findWorkflowEmailNotificationPreference:
         mocks.findWorkflowEmailPreference,
+      findAgentEmailNotificationPreference: mocks.findAgentEmailPreference,
+      patchAgentEmailNotificationPreference: mocks.patchAgentEmailPreference,
       patchMeSettings: mocks.patchSettings,
       patchWorkflowEmailNotificationPreference:
         mocks.patchWorkflowEmailPreference,
     });
+    mocks.findAgentEmailPreference.mockResolvedValue({ isEnabled: false });
+    mocks.patchAgentEmailPreference.mockImplementation(
+      async (isEnabled: boolean) => ({ isEnabled }),
+    );
     mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: false });
     mocks.patchWorkflowEmailPreference.mockImplementation(
       async (isEnabled: boolean) => ({ isEnabled }),
     );
   });
 
-  it('renders email notification preferences from the catalog', () => {
+  it('renders email notification preferences from the catalog', async () => {
     render(<SettingsNotificationsPage />);
 
+    await waitFor(() =>
+      expect(
+        screen.getByRole('switch', { name: 'Agent Emails' }),
+      ).toBeEnabled(),
+    );
+    expect(
+      screen.getByText('Send an email when an agent run fails.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Email Notifications')).toBeInTheDocument();
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
     expect(screen.getByText('Video Emails')).toBeInTheDocument();
@@ -153,5 +169,37 @@ describe('SettingsNotificationsPage', () => {
 
     await waitFor(() => expect(toggle).toBeEnabled());
     expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledTimes(2);
+  });
+  it('persists agent emails independently from workflow emails', async () => {
+    const user = userEvent.setup();
+    render(<SettingsNotificationsPage />);
+    const toggle = screen.getByRole('switch', { name: 'Agent Emails' });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    await user.click(toggle);
+    await waitFor(() =>
+      expect(mocks.patchAgentEmailPreference).toHaveBeenCalledWith(true),
+    );
+    expect(mocks.patchWorkflowEmailPreference).not.toHaveBeenCalled();
+  });
+
+  it('rolls back agent preference when saving fails', async () => {
+    mocks.patchAgentEmailPreference.mockRejectedValue(new Error('save failed'));
+    const user = userEvent.setup();
+    render(<SettingsNotificationsPage />);
+    const toggle = screen.getByRole('switch', { name: 'Agent Emails' });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    await user.click(toggle);
+    await waitFor(() => expect(mocks.errorNotification).toHaveBeenCalled());
+    expect(toggle).not.toBeChecked();
+  });
+
+  it('aborts the agent preference request on unmount', async () => {
+    const { unmount } = render(<SettingsNotificationsPage />);
+    await waitFor(() =>
+      expect(mocks.findAgentEmailPreference).toHaveBeenCalled(),
+    );
+    const signal = mocks.findAgentEmailPreference.mock.calls[0]?.[0];
+    unmount();
+    expect(signal.aborted).toBe(true);
   });
 });

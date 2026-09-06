@@ -4,7 +4,8 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@slack/bolt": "5.1.0",
-    "tsconfig-paths": "4.2.0"
+    "tsconfig-paths": "4.2.0",
+    "@genfeedai/agent": "workspace:*"
   },
   "description": "Genfeed Slack Service",
   "devDependencies": {
