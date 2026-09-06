@@ -13,6 +13,7 @@ import type {
   SkillDraft,
 } from '@props/settings/skills.props';
 import { type Skill, SkillsService } from '@services/content/skills.service';
+import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -24,9 +25,9 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import SkillCatalogCard from './SkillCatalogCard';
-import SkillDetailCard from './SkillDetailCard';
-import SkillsPageHeader from './SkillsPageHeader';
+import SkillDetailSheet from './skill-detail-sheet';
+import SkillFilters from './skill-filters';
+import SkillsTable from './skills-table';
 
 function emptyDraft(): SkillDraft {
   return {
@@ -47,16 +48,18 @@ function draftFromSkill(skill: Skill | null): SkillDraft {
 }
 
 const initialState: PageState = {
-  skills: [],
-  selectedSkillId: '',
-  sourceFilter: 'all',
-  modalityFilter: 'all',
-  stageFilter: 'all',
+  error: null,
+  isCustomizing: false,
+  isDetailSheetOpen: false,
   isLoading: true,
   isSavingSkill: false,
-  isCustomizing: false,
-  error: null,
+  modalityFilter: 'all',
+  searchQuery: '',
+  selectedSkillId: '',
   skillDraft: emptyDraft(),
+  skills: [],
+  sourceFilter: 'all',
+  stageFilter: 'all',
 };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
@@ -65,6 +68,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         error: null,
+        isDetailSheetOpen: false,
         isLoading: true,
         selectedSkillId: '',
         skillDraft: emptyDraft(),
@@ -76,27 +80,37 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         error: action.message,
+        isDetailSheetOpen: false,
         isLoading: false,
         selectedSkillId: '',
         skillDraft: emptyDraft(),
         skills: [],
       };
     case 'SELECT_SKILL':
-      return { ...state, selectedSkillId: action.id, skillDraft: action.draft };
+      return {
+        ...state,
+        isDetailSheetOpen: true,
+        selectedSkillId: action.id,
+        skillDraft: action.draft,
+      };
+    case 'CLOSE_DETAIL_SHEET':
+      return { ...state, isDetailSheetOpen: false };
     case 'SET_SOURCE_FILTER':
       return { ...state, sourceFilter: action.value };
     case 'SET_MODALITY_FILTER':
       return { ...state, modalityFilter: action.value };
     case 'SET_STAGE_FILTER':
       return { ...state, stageFilter: action.value };
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.value };
     case 'SAVE_START':
-      return { ...state, isSavingSkill: true, error: null };
+      return { ...state, error: null, isSavingSkill: true };
     case 'SAVE_SUCCESS':
       return { ...state, isSavingSkill: false };
     case 'SAVE_ERROR':
-      return { ...state, isSavingSkill: false, error: action.message };
+      return { ...state, error: action.message, isSavingSkill: false };
     case 'CUSTOMIZE_START':
-      return { ...state, isCustomizing: true, error: null };
+      return { ...state, error: null, isCustomizing: true };
     case 'CUSTOMIZE_SUCCESS':
       return {
         ...state,
@@ -104,7 +118,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         selectedSkillId: action.newSkillId,
       };
     case 'CUSTOMIZE_ERROR':
-      return { ...state, isCustomizing: false, error: action.message };
+      return { ...state, error: action.message, isCustomizing: false };
     case 'SET_SKILL_DRAFT':
       return { ...state, skillDraft: action.draft };
     default:
@@ -129,16 +143,18 @@ export default function BrandSettingsSkillsPage() {
 
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
-    skills,
-    selectedSkillId,
-    sourceFilter,
-    modalityFilter,
-    stageFilter,
+    error,
+    isCustomizing,
+    isDetailSheetOpen,
     isLoading,
     isSavingSkill,
-    isCustomizing,
-    error,
+    modalityFilter,
+    searchQuery,
+    selectedSkillId,
     skillDraft,
+    skills,
+    sourceFilter,
+    stageFilter,
   } = state;
 
   const isScopeMatch = Boolean(
@@ -197,6 +213,8 @@ export default function BrandSettingsSkillsPage() {
   }, [refreshCatalog]);
 
   const filteredSkills = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
     return skills
       .filter((skill) => {
         const sourceMatches =
@@ -207,33 +225,32 @@ export default function BrandSettingsSkillsPage() {
           skill.modalities.includes('multi');
         const stageMatches =
           stageFilter === 'all' || skill.workflowStage === stageFilter;
+        const searchMatches =
+          normalizedQuery.length === 0 ||
+          skill.name.toLowerCase().includes(normalizedQuery) ||
+          skill.description.toLowerCase().includes(normalizedQuery);
 
-        return sourceMatches && modalityMatches && stageMatches;
+        return (
+          sourceMatches && modalityMatches && stageMatches && searchMatches
+        );
       })
       .sort((left, right) => left.name.localeCompare(right.name));
-  }, [modalityFilter, skills, sourceFilter, stageFilter]);
+  }, [modalityFilter, searchQuery, skills, sourceFilter, stageFilter]);
 
-  // Derive selectedSkill — falls back to the first filtered skill when the
-  // stored id is not in the current filtered list (e.g. after a filter change).
+  // Derive selectedSkill from the full catalog (not the filtered list) so the
+  // open detail sheet keeps showing its skill even if a filter change would
+  // otherwise exclude it from the table.
   const selectedSkill = useMemo(
-    () =>
-      filteredSkills.find((skill) => skill.id === selectedSkillId) ??
-      filteredSkills[0] ??
-      null,
-    [filteredSkills, selectedSkillId],
+    () => skills.find((skill) => skill.id === selectedSkillId) ?? null,
+    [selectedSkillId, skills],
   );
 
   // Derive skillDraft from selectedSkill when the user has not yet edited it.
-  // This replaces the previous useEffect that synced selectedSkill → skillDraft,
-  // and the useEffect that synced selectedSkill.id back to selectedSkillId.
-  // Both effects are removed; the draft is computed inline during render.
   const derivedDraft = useMemo(
     () => draftFromSkill(selectedSkill),
     [selectedSkill],
   );
 
-  // When selectedSkill changes (e.g. filters shift the selection), reset the
-  // draft to reflect the newly active skill — done inline without an effect.
   const effectiveSkillDraft =
     selectedSkillId === selectedSkill?.id ? skillDraft : derivedDraft;
 
@@ -316,10 +333,10 @@ export default function BrandSettingsSkillsPage() {
 
   const handleSkillSelect = useCallback(
     (id: string) => {
-      const skill = filteredSkills.find((s) => s.id === id) ?? null;
+      const skill = skills.find((s) => s.id === id) ?? null;
       dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
     },
-    [filteredSkills],
+    [skills],
   );
 
   if (!isReady || !brandId) {
@@ -340,61 +357,72 @@ export default function BrandSettingsSkillsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <SkillsPageHeader
-        agentHref={href(APP_ROUTES.AGENT.ROOT)}
-        brandLabel={selectedBrand?.label}
-        onRefresh={() => void refreshCatalog()}
-        onSourceFilterChange={(value) =>
-          dispatch({ type: 'SET_SOURCE_FILTER', value })
-        }
-        sourceFilter={sourceFilter}
-      />
-
+    <Container
+      fullWidth
+      label={translate('heading')}
+      right={
+        <SkillFilters
+          agentHref={href(APP_ROUTES.AGENT.ROOT)}
+          modalityFilter={modalityFilter}
+          onModalityFilterChange={(value) =>
+            dispatch({ type: 'SET_MODALITY_FILTER', value })
+          }
+          onRefresh={() => void refreshCatalog()}
+          onSearchQueryChange={(value) =>
+            dispatch({ type: 'SET_SEARCH_QUERY', value })
+          }
+          onSourceFilterChange={(value) =>
+            dispatch({ type: 'SET_SOURCE_FILTER', value })
+          }
+          onStageFilterChange={(value) =>
+            dispatch({ type: 'SET_STAGE_FILTER', value })
+          }
+          searchQuery={searchQuery}
+          sourceFilter={sourceFilter}
+          stageFilter={stageFilter}
+        />
+      }
+      titleVisibility="sr-only"
+    >
       {error ? (
         <div
-          className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
           role="alert"
         >
           {error}
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <SkillCatalogCard
-          enabledSlugs={enabledSlugs}
-          filteredSkills={filteredSkills}
-          isLoading={isLoading}
-          isTogglingSkill={isTogglingSkill}
-          modalityFilter={modalityFilter}
-          onModalityFilterChange={(value) =>
-            dispatch({ type: 'SET_MODALITY_FILTER', value })
-          }
-          onSkillSelect={handleSkillSelect}
-          onStageFilterChange={(value) =>
-            dispatch({ type: 'SET_STAGE_FILTER', value })
-          }
-          onToggleSkill={(slug) => void toggleSkill(slug)}
-          selectedSkillId={selectedSkill?.id}
-          stageFilter={stageFilter}
-        />
+      <SkillsTable
+        enabledSlugs={enabledSlugs}
+        isLoading={isLoading}
+        isTogglingSkill={isTogglingSkill}
+        onSkillSelect={handleSkillSelect}
+        onToggleSkill={(slug) => void toggleSkill(slug)}
+        skills={filteredSkills}
+      />
 
-        <SkillDetailCard
-          customizing={isCustomizing}
-          onCustomize={() => void handleCustomize()}
-          onOpenTestInChat={handleOpenTestInChat}
-          onSaveSkill={() => void handleSaveSkill()}
-          onSkillDraftChange={(updater) =>
-            dispatch({
-              type: 'SET_SKILL_DRAFT',
-              draft: updater(effectiveSkillDraft),
-            })
+      <SkillDetailSheet
+        customizing={isCustomizing}
+        isOpen={isDetailSheetOpen}
+        onCustomize={() => void handleCustomize()}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            dispatch({ type: 'CLOSE_DETAIL_SHEET' });
           }
-          savingSkill={isSavingSkill}
-          selectedSkill={selectedSkill}
-          skillDraft={effectiveSkillDraft}
-        />
-      </div>
-    </div>
+        }}
+        onOpenTestInChat={handleOpenTestInChat}
+        onSaveSkill={() => void handleSaveSkill()}
+        onSkillDraftChange={(updater) =>
+          dispatch({
+            type: 'SET_SKILL_DRAFT',
+            draft: updater(effectiveSkillDraft),
+          })
+        }
+        savingSkill={isSavingSkill}
+        selectedSkill={selectedSkill}
+        skillDraft={effectiveSkillDraft}
+      />
+    </Container>
   );
 }

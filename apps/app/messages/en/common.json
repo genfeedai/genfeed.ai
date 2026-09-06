@@ -294,13 +294,24 @@
           "publishing": "Publishing",
           "research": "Research",
           "review": "Review"
+        },
+        "search": {
+          "label": "Search skills",
+          "placeholder": "Search skills…"
         }
       },
       "heading": "Skills",
       "testPrompt": "Use my {name} setup to create a small sample for {channel}. Explain how the skill affects the output.",
       "thisBrand": "this brand",
       "thisChannel": "this channel",
-      "title": "Brand content behavior for {brand}"
+      "title": "Brand content behavior for {brand}",
+      "table": {
+        "enabled": "Enabled",
+        "modality": "Modality",
+        "name": "Name",
+        "source": "Source",
+        "stage": "Stage"
+      }
     }
   },
   "workspaceInspector": {

@@ -141,6 +141,123 @@
       "watchCompetitor": "Watch competitor"
     }
   },
+  "brandHarnessSettings": {
+    "badges": {
+      "scopePrefix": "scope: {scope}"
+    },
+    "brandMissing": "Brand not found.",
+    "description": "This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide).",
+    "fields": {
+      "aggression": {
+        "helper": "How sharp or soft the delivery reads.",
+        "label": "Aggression"
+      },
+      "audience": {
+        "helper": "One audience segment per line.",
+        "label": "ICP / Audience"
+      },
+      "avoid": {
+        "helper": "One example to avoid per line.",
+        "label": "Anti Examples"
+      },
+      "bannedPhrases": {
+        "helper": "One disallowed phrase per line.",
+        "label": "Banned Phrases"
+      },
+      "beliefs": {
+        "helper": "One core belief per line.",
+        "label": "Beliefs"
+      },
+      "description": {
+        "helper": "What this profile is for.",
+        "label": "Description"
+      },
+      "endings": {
+        "helper": "One closing line per line.",
+        "label": "Endings"
+      },
+      "enemies": {
+        "helper": "One thing this account argues against per line.",
+        "label": "Enemies"
+      },
+      "good": {
+        "helper": "One reference example per line.",
+        "label": "Good Examples"
+      },
+      "guardrails": {
+        "helper": "One guardrail per line.",
+        "label": "Guardrails"
+      },
+      "label": {
+        "helper": "Internal name for this harness profile.",
+        "label": "Label"
+      },
+      "lineRules": {
+        "helper": "One formatting rule per line.",
+        "label": "Line Rules"
+      },
+      "longFormSkeleton": {
+        "helper": "One beat per line for threads and articles.",
+        "label": "Long Form Skeleton"
+      },
+      "offers": {
+        "helper": "One thing this account sells or offers per line.",
+        "label": "Offers"
+      },
+      "platforms": {
+        "helper": "One platform per line (x, linkedin, instagram, tiktok).",
+        "label": "Platforms"
+      },
+      "proofPoints": {
+        "helper": "One proof point per line.",
+        "label": "Proof Points"
+      },
+      "sarcasm": {
+        "helper": "How much dry humor to allow.",
+        "label": "Sarcasm"
+      },
+      "scope": {
+        "helper": "Locked to brand on this settings page.",
+        "label": "Scope"
+      },
+      "shortFormSkeleton": {
+        "helper": "One beat per line for one-liners and short posts.",
+        "label": "Short Form Skeleton"
+      },
+      "stance": {
+        "helper": "The account's point of view.",
+        "label": "Stance"
+      },
+      "style": {
+        "helper": "Sentence and paragraph style.",
+        "label": "Style"
+      },
+      "tone": {
+        "helper": "Overall delivery tone.",
+        "label": "Tone"
+      },
+      "transitions": {
+        "helper": "One transition phrase per line.",
+        "label": "Transitions"
+      },
+      "vocabulary": {
+        "helper": "One preferred word or phrase per line.",
+        "label": "Vocabulary"
+      }
+    },
+    "promote": "Promote winners to memory",
+    "promoting": "Promoting…",
+    "save": "Save harness",
+    "saving": "Saving...",
+    "tabs": {
+      "delivery": "Delivery",
+      "examples": "Examples",
+      "identity": "Identity",
+      "structure": "Structure",
+      "thesis": "Thesis"
+    },
+    "title": "Brand harness"
+  },
   "brandKitReview": {
     "candidateTokenNotice": "Candidate only · not a Genfeed product token",
     "sourceEvidence": "Source evidence"
@@ -1494,7 +1611,12 @@
       "priority": "Priority",
       "close": "Close inspector",
       "contextLabel": "Tasks · {title}",
-      "contextLabelFallback": "Tasks"
+      "contextLabelFallback": "Tasks",
+      "tabs": {
+        "details": "Details",
+        "activity": "Activity",
+        "records": "Records"
+      }
     },
     "status": {
       "backlog": "Backlog",

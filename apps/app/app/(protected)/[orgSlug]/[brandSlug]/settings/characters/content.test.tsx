@@ -133,7 +133,7 @@ describe('BrandSettingsCharactersPage', () => {
     });
   });
 
-  it('renders section chrome and the create wizard while the character list loads', async () => {
+  it('renders section chrome and the characters table while the list loads', async () => {
     let resolveListCharacters!: (rows: Array<unknown>) => void;
     mocks.listCharacters.mockReturnValue(
       new Promise((resolve) => {
@@ -143,27 +143,22 @@ describe('BrandSettingsCharactersPage', () => {
 
     render(<BrandSettingsCharactersPage />);
 
-    // Chrome renders immediately: title card and create-wizard fields don't
-    // wait on the character list.
     expect(
       screen.getByRole('heading', { level: 1, name: 'Characters' }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('character-description')).toBeInTheDocument();
-    expect(screen.getByTestId('characters-list-loading')).toBeInTheDocument();
 
     resolveListCharacters([]);
     await waitFor(() => {
-      expect(
-        screen.queryByTestId('characters-list-loading'),
-      ).not.toBeInTheDocument();
+      expect(screen.getByText('Characters')).toBeInTheDocument();
     });
   });
 
-  it('generates a sheet from the description using the server preset', async () => {
+  it('opens the create dialog and generates a sheet from the description', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await screen.findByTestId('character-description');
+    fireEvent.click(screen.getByText('New character'));
 
+    await screen.findByTestId('character-description');
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
     });
@@ -187,6 +182,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('does not create a persona when the candidate is discarded', async () => {
     render(<BrandSettingsCharactersPage />);
 
+    fireEvent.click(screen.getByText('New character'));
     await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
@@ -205,6 +201,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('creates a persona from the approved sheet', async () => {
     render(<BrandSettingsCharactersPage />);
 
+    fireEvent.click(screen.getByText('New character'));
     await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {

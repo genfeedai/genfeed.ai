@@ -1,7 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
-  HarnessProfileScope,
   ICreateHarnessProfilePayload,
   IHarnessProfile,
 } from '@genfeedai/contracts/interfaces';
@@ -10,22 +10,20 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
+import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
-import { Label } from '@ui/primitives/label';
-import { Textarea } from '@ui/primitives/textarea';
+import { Badge } from '@ui/primitives/badge';
+import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import HarnessHeader from './HarnessHeader';
-import HarnessIdentityCard from './HarnessIdentityCard';
-import HarnessRightColumn from './HarnessRightColumn';
-import HarnessVoiceCard from './HarnessVoiceCard';
+import HarnessDeliveryTab from './harness-delivery-tab';
+import HarnessExamplesTab from './harness-examples-tab';
+import HarnessIdentityTab from './harness-identity-tab';
+import HarnessStructureTab from './harness-structure-tab';
+import HarnessThesisTab from './harness-thesis-tab';
 
-const HARNESS_PROFILE_SCOPES = [
-  'brand',
-  'channel',
-  'company',
-  'founder',
-] as const satisfies readonly HarnessProfileScope[];
 const DEFAULT_PLATFORMS = ['x', 'linkedin', 'instagram', 'tiktok'];
 const DEFAULT_SHORT_FORM = [
   'Hook',
@@ -46,19 +44,21 @@ const DEFAULT_LINE_RULES = [
   'Make transitions obvious',
 ];
 
+const HARNESS_TABS = [
+  'identity',
+  'structure',
+  'delivery',
+  'thesis',
+  'examples',
+] as const;
+
+type HarnessTabId = (typeof HARNESS_TABS)[number];
+
 function splitLines(value: string): string[] {
   return value.split('\n').flatMap((line) => {
     const trimmedLine = line.trim();
     return trimmedLine ? [trimmedLine] : [];
   });
-}
-
-function joinLines(value: string[] | undefined): string {
-  return (value ?? []).join('\n');
-}
-
-function isHarnessProfileScope(value: string): value is HarnessProfileScope {
-  return HARNESS_PROFILE_SCOPES.includes(value as HarnessProfileScope);
 }
 
 function createDraft(
@@ -117,12 +117,14 @@ function createDraft(
 }
 
 export default function BrandSettingsHarnessPage() {
+  const translate = useTranslations('pages.brandHarnessSettings');
   const { brand, brandId, hasBrandId, isLoading } = useBrandDetail();
   const getHarnessProfilesService = useAuthedService((token: string) =>
     HarnessProfilesService.getInstance(token),
   );
 
   const profileRef = useRef<IHarnessProfile | null>(null);
+  const [activeTab, setActiveTab] = useState<HarnessTabId>('identity');
   const [draft, setDraft] = useState<ICreateHarnessProfilePayload>(() =>
     createDraft('', 'Brand'),
   );
@@ -180,15 +182,6 @@ export default function BrandSettingsHarnessPage() {
       setDraft((current) => ({ ...current, [key]: value }));
     },
     [],
-  );
-
-  const updateScope = useCallback(
-    (value: string) => {
-      if (isHarnessProfileScope(value)) {
-        updateDraft('scope', value);
-      }
-    },
-    [updateDraft],
   );
 
   const updateVoice = useCallback(
@@ -287,72 +280,89 @@ export default function BrandSettingsHarnessPage() {
   if (!brand) {
     return (
       <Card bodyClassName="gap-3 p-4">
-        <p className="text-sm text-muted-foreground">Brand not found.</p>
+        <p className="text-sm text-muted-foreground">
+          {translate('brandMissing')}
+        </p>
       </Card>
     );
   }
 
+  const tabs = HARNESS_TABS.map((id) => ({
+    id,
+    label: translate(`tabs.${id}`),
+  }));
+
   return (
-    <div className="space-y-4">
-      <HarnessHeader
-        draft={draft}
-        isPromoting={isPromoting}
-        isSaving={isSaving}
-        onPromoteWinners={handlePromoteWinners}
-        onSave={handleSave}
-      />
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="space-y-4">
-          <HarnessIdentityCard
-            draft={draft}
-            joinLines={joinLines}
-            onDraftChange={updateDraft}
-            onScopeChange={updateScope}
-            scopes={HARNESS_PROFILE_SCOPES}
-            splitLines={splitLines}
-          />
-
-          <HarnessVoiceCard
-            joinLines={joinLines}
-            onVoiceChange={updateVoice}
-            splitLines={splitLines}
-            voice={draft.voice}
-          />
-
-          <Card
-            label="Thesis"
-            description="The opinion engine. Beliefs, enemies, proof, and what the account sells."
-            bodyClassName="gap-3 p-4"
+    <Container
+      description={translate('description')}
+      fullWidth
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        onTabChange: (tab) => setActiveTab(tab as HarnessTabId),
+        tabs,
+      }}
+      icon={Sparkles}
+      label={translate('title')}
+      right={
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">
+            {translate('badges.scopePrefix', { scope: draft.scope ?? 'brand' })}
+          </Badge>
+          <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
+            {draft.status ?? 'active'}
+          </Badge>
+          <Button
+            disabled={isPromoting || isSaving}
+            onClick={handlePromoteWinners}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
           >
-            <div className="grid gap-3 md:grid-cols-2">
-              {(['beliefs', 'enemies', 'offers', 'proofPoints'] as const).map(
-                (key) => (
-                  <div className="space-y-2" key={key}>
-                    <Label htmlFor={`harness-thesis-${key}`}>{key}</Label>
-                    <Textarea
-                      id={`harness-thesis-${key}`}
-                      maxHeight={220}
-                      onChange={(event) =>
-                        updateList('thesis', key, event.target.value)
-                      }
-                      value={joinLines(draft.thesis?.[key])}
-                    />
-                  </div>
-                ),
-              )}
-            </div>
-          </Card>
+            {isPromoting ? translate('promoting') : translate('promote')}
+          </Button>
+          <Button
+            disabled={isSaving}
+            onClick={handleSave}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+          >
+            {isSaving ? translate('saving') : translate('save')}
+          </Button>
         </div>
-
-        <HarnessRightColumn
+      }
+    >
+      {activeTab === 'identity' ? (
+        <HarnessIdentityTab
           draft={draft}
-          joinLines={joinLines}
+          onDraftChange={updateDraft}
+          splitLines={splitLines}
+        />
+      ) : null}
+
+      {activeTab === 'structure' ? (
+        <HarnessStructureTab draft={draft} onListChange={updateList} />
+      ) : null}
+
+      {activeTab === 'delivery' ? (
+        <HarnessDeliveryTab
+          onVoiceChange={updateVoice}
+          splitLines={splitLines}
+          voice={draft.voice}
+        />
+      ) : null}
+
+      {activeTab === 'thesis' ? (
+        <HarnessThesisTab draft={draft} onListChange={updateList} />
+      ) : null}
+
+      {activeTab === 'examples' ? (
+        <HarnessExamplesTab
+          draft={draft}
           onDraftChange={updateDraft}
           onListChange={updateList}
           splitLines={splitLines}
         />
-      </div>
-    </div>
+      ) : null}
+    </Container>
   );
 }
