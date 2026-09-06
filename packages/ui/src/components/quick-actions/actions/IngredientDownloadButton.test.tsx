@@ -75,7 +75,9 @@ describe('IngredientDownloadButton', () => {
       button: 0,
     });
     fireEvent.click(await screen.findByRole('menuitem', { name: 'branded' }));
-    await waitFor(() => expect(notifyError).toHaveBeenCalledWith('error'));
+    await waitFor(() =>
+      expect(notifyError).toHaveBeenCalledWith('watermarkError'),
+    );
     expect(original).not.toHaveBeenCalled();
     expect(downloadUrl).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'original' })).toBeEnabled();
