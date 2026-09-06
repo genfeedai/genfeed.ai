@@ -292,6 +292,13 @@ export class InstagramController {
         },
       );
 
+      credential = await this.updateProfileAfterConnection({
+        accessToken: access_token,
+        credential,
+        organizationId: existingCredential.organizationId,
+        url,
+      });
+
       credential = await this.refreshSignalsAfterConnection({
         accessToken: access_token,
         credential,
@@ -310,6 +317,66 @@ export class InstagramController {
         error,
         'Failed to verify Instagram OAuth',
       );
+    }
+  }
+
+  /**
+   * Fetch and persist the connected account's public identity (avatar,
+   * handle, name) so the settings page can show the real account instead of
+   * a platform-initial placeholder. OAuth remains successful when this
+   * fails: the previous/placeholder profile is preserved.
+   */
+  private async updateProfileAfterConnection(params: {
+    accessToken: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, credential, organizationId, url } = params;
+
+    try {
+      const accountDetails =
+        await this.instagramService.getAccountDetails(accessToken);
+
+      let avatarUrl: string | null | undefined;
+      let handle: string | null | undefined = accountDetails.username;
+
+      try {
+        const pages = await this.instagramService.getInstagramPages(
+          organizationId,
+          credential.brandId,
+          credential.id.toString(),
+        );
+        const matchingPage =
+          pages.find((page) => page.id === accountDetails.id) ?? pages[0];
+
+        if (matchingPage) {
+          avatarUrl = matchingPage.image;
+          handle = matchingPage.username || handle;
+        }
+      } catch (pagesError: unknown) {
+        this.loggerService.warn(
+          `${url} instagram pages lookup failed after connection`,
+          getSafeInstagramOAuthErrorLog(pagesError),
+        );
+      }
+
+      return await this.credentialsService.updateExternalProfile(
+        credential.id.toString(),
+        organizationId,
+        {
+          avatarUrl,
+          handle,
+          id: accountDetails.id,
+          name: handle,
+        },
+      );
+    } catch (profileError: unknown) {
+      this.loggerService.warn(
+        `${url} instagram profile lookup failed after connection`,
+        getSafeInstagramOAuthErrorLog(profileError),
+      );
+      return credential;
     }
   }
 

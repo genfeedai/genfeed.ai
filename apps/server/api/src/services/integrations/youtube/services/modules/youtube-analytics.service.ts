@@ -62,12 +62,27 @@ export class YoutubeAnalyticsService {
 
       const response = await this.youtubeAPI.channels.list({
         auth,
+        maxResults: 50,
         mine: true,
         part: ['snippet', 'statistics', 'brandingSettings'],
       });
 
       if (!response.data.items || response.data.items.length === 0) {
         throw new Error('No channel found for the authenticated user');
+      }
+
+      if (response.data.items.length > 1) {
+        // The Credential model has no JSON metadata/settings column to persist
+        // the full channel list against, so we log the ambiguity and fall back
+        // to the first channel returned by the API.
+        this.loggerService.warn(`${url} multiple channels found for account`, {
+          channelCount: response.data.items.length,
+          channels: response.data.items.map((item) => ({
+            id: item.id,
+            title: item.snippet?.title,
+          })),
+          organizationId,
+        });
       }
 
       const channel = response.data.items[0];
