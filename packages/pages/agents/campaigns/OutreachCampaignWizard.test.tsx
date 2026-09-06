@@ -25,6 +25,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   })),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => path }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: vi.fn(() => ({

@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowRight, Check, Rocket } from 'lucide-react';
@@ -37,6 +38,7 @@ export default function OutreachCampaignWizard() {
     isSubmitting,
     router,
   } = useOutreachCampaignWizard();
+  const { href } = useOrgUrl();
 
   const renderStep = () => {
     switch (currentStep) {
@@ -209,7 +211,7 @@ export default function OutreachCampaignWizard() {
             variant={ButtonVariant.SECONDARY}
             onClick={
               currentStep === 1
-                ? () => router.push(APP_ROUTES.MESSAGES.OUTREACH)
+                ? () => router.push(href(APP_ROUTES.MESSAGES.OUTREACH))
                 : handleBack
             }
           />
