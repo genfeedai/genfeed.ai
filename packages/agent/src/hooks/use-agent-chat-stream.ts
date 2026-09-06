@@ -573,6 +573,7 @@ export function useAgentChatStream(
               expectedContextVersion: currentThread?.contextVersion,
               generationMode: sendOptions?.generationMode,
               generationSettings: sendOptions?.generationSettings,
+              knowledgeSelection: sendOptions?.knowledgeSelection,
               model: resolvedModel,
               pageContext: requestPageContext,
               planModeEnabled: sendOptions?.planModeEnabled,

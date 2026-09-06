@@ -1,3 +1,4 @@
+import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
 import type {
   AgentChatAttachment,
   AgentPageContext,
@@ -152,6 +153,17 @@ export class AgentChatBodyDto {
   @Type(() => AgentGenerationSettingsDto)
   @ApiProperty({ required: false, type: AgentGenerationSettingsDto })
   generationSettings?: AgentGenerationSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => KnowledgeSelectionDto)
+  @ApiProperty({
+    description:
+      'Explicit Knowledge sources, spaces or purposes that ground content generated in this turn',
+    required: false,
+    type: KnowledgeSelectionDto,
+  })
+  knowledgeSelection?: KnowledgeSelectionDto;
 
   @IsBoolean()
   @IsOptional()

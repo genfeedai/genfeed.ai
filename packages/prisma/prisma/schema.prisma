@@ -2461,6 +2461,8 @@ model Post {
   publishIntent                  String?
   generationId                   String?
   promptUsed                     String?
+  // Knowledge source versions whose passages shaped this post's generation.
+  knowledgeReceipts              Json               @default("[]")
   reviewBatchId                  String?
   reviewItemId                   String?
   reviewDecision                 ReviewDecision?

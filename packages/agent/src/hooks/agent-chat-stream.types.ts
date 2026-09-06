@@ -3,7 +3,10 @@ import type {
   ConversationComposerGenerationSettings,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentArtifactReference,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { MutableRefObject } from 'react';
 
@@ -24,6 +27,7 @@ export interface SendStreamMessageOptions {
   clientRequestId?: string;
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
+  knowledgeSelection?: KnowledgeSelection;
   planModeEnabled?: boolean;
 }
 

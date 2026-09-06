@@ -1,10 +1,12 @@
+import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
   TemplateCategory,
 } from '@genfeedai/contracts';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
@@ -14,6 +16,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 export class GenerateContentDto {
@@ -109,4 +112,14 @@ export class GenerateContentDto {
     type: [String],
   })
   hashtags?: string[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => KnowledgeSelectionDto)
+  @ApiPropertyOptional({
+    description:
+      'Explicit Knowledge sources, spaces or purposes to ground this generation on',
+    type: KnowledgeSelectionDto,
+  })
+  knowledge?: KnowledgeSelectionDto;
 }

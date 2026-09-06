@@ -543,6 +543,7 @@ export class AgentTurnRoundRunnerService {
           generationMode: context.generationMode,
           generationPriority,
           generationSettings: context.generationSettings,
+          knowledgeSelection: context.knowledgeSelection,
           organizationId: context.organizationId,
           platform: policy.platform,
           qualityTier: policy.qualityTier,

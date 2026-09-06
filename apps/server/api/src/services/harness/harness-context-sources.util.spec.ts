@@ -1,4 +1,7 @@
-import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
+import {
+  brandMemoryHitsToHarnessSources,
+  collectKnowledgeReceipts,
+} from '@api/services/harness/harness-context-sources.util';
 import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
@@ -72,5 +75,26 @@ describe('brandMemoryHitsToHarnessSources', () => {
     expect(inspiration?.kind).toBe('brand_example');
     expect(inspiration?.source).toBe('Pricing page · Inspiration');
     expect(research?.kind).toBe('audience_signal');
+  });
+
+  it('collects one receipt per cited passage with its excerpt and relevance', () => {
+    const citation = {
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.BRAND_TRUTH,
+      sourceId: 'source-1',
+      title: 'Pricing',
+      version: 1,
+      versionId: 'version-1',
+    };
+    const sources = brandMemoryHitsToHarnessSources([
+      { citation, content: 'Plans start at $29', relevance: 0.9 },
+      { citation, content: 'Plans start at $29', relevance: 0.9 },
+      { content: 'Uncited memory', kind: 'performance_winner', relevance: 0.8 },
+    ]);
+
+    expect(collectKnowledgeReceipts(sources)).toEqual([
+      { ...citation, excerpt: 'Plans start at $29', relevance: 0.9 },
+    ]);
+    expect(collectKnowledgeReceipts(undefined)).toEqual([]);
   });
 });

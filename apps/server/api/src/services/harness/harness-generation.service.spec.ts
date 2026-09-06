@@ -1,3 +1,4 @@
+import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
 import { describe, expect, it, vi } from 'vitest';
@@ -232,5 +233,55 @@ describe('HarnessGenerationService#resolveBrief', () => {
       expect.stringContaining('failed to resolve harness brief'),
       expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
     );
+  });
+
+  describe('knowledge selection', () => {
+    it('resolves the selection, constrains retrieval and raises the passage budget', async () => {
+      const resolve = vi.fn().mockResolvedValue({
+        knowledgePurposes: ['BRAND_TRUTH'],
+        knowledgeSourceIds: ['source-1'],
+      });
+      const contextsService = {
+        retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
+      };
+      const contentHarnessService = {
+        composeBrief: vi.fn().mockResolvedValue(EMPTY_BRIEF),
+      };
+      const service = new HarnessGenerationService(
+        contentHarnessService as never,
+        { warn: vi.fn() } as never,
+        { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
+        {
+          buildContributionForBrand: vi.fn().mockResolvedValue(undefined),
+        } as never,
+        contextsService as never,
+        {
+          get: vi.fn((token: unknown) =>
+            token === KnowledgeSelectionService ? { resolve } : undefined,
+          ),
+        } as never,
+      );
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        knowledgeSelection: { sourceIds: ['source-1'], spaceIds: ['space-1'] },
+        organizationId: 'org-1',
+        topic: 'pricing',
+      });
+
+      expect(resolve).toHaveBeenCalledWith('org-1', 'brand-1', {
+        sourceIds: ['source-1'],
+        spaceIds: ['space-1'],
+      });
+      expect(contextsService.retrieveBrandContentMemory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          knowledgePurposes: ['BRAND_TRUTH'],
+          knowledgeSourceIds: ['source-1'],
+          limit: 8,
+          query: 'pricing',
+        }),
+      );
+    });
   });
 });

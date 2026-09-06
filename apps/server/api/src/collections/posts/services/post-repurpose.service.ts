@@ -150,6 +150,7 @@ export class PostRepurposeService {
       description: outcome.caption,
       groupId: source.groupId ?? undefined,
       ingredients: media.map((item) => item.id),
+      knowledgeReceipts: generated[0]?.knowledgeReceipts ?? [],
       label: source.label || 'Untitled',
       order,
       organizationId: params.organizationId,

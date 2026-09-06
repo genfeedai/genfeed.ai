@@ -1,12 +1,15 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAgentBrandCreate } from '@hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useCallback, useMemo } from 'react';
+import KnowledgeContextPicker from '@pages/library/knowledge/components/KnowledgeContextPicker';
+import { useCallback, useMemo, useState } from 'react';
 
 export interface AgentPageContentProps {
   authReady?: boolean;
@@ -23,6 +26,9 @@ export default function AgentPageContent({
   onOAuthConnect,
   threadId,
 }: AgentPageContentProps) {
+  const { brandId: activeBrandId } = useBrand();
+  const [knowledgeSelection, setKnowledgeSelection] =
+    useState<KnowledgeSelection>({});
   const { getToken } = useAuthIdentity();
   const userRole = useUserRole();
   const { orgHref } = useOrgUrl();
@@ -56,6 +62,14 @@ export default function AgentPageContent({
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <AgentFullPage
         apiService={agentApiService}
+        knowledgePicker={
+          <KnowledgeContextPicker
+            brandId={activeBrandId || undefined}
+            onChange={setKnowledgeSelection}
+            value={knowledgeSelection}
+          />
+        }
+        knowledgeSelection={knowledgeSelection}
         authReady={authReady}
         onboardingMode={onboardingMode}
         onOnboardingCompleted={onOnboardingCompleted}

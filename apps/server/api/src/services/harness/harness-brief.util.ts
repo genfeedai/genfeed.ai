@@ -253,6 +253,70 @@ export const buildPromptBuilderBrandContext = (params: {
   };
 };
 
+const MAX_PROMPT_KNOWLEDGE_SOURCES = 8;
+
+type GroupedBriefSources = {
+  brandTruth: HarnessSourceRecord[];
+  inspiration: HarnessSourceRecord[];
+  research: HarnessSourceRecord[];
+  signals: HarnessSourceRecord[];
+};
+
+function readCitationPurpose(source: HarnessSourceRecord): string | undefined {
+  const citation = source.metadata?.citation;
+  if (typeof citation !== 'object' || citation === null) {
+    return undefined;
+  }
+  const purpose = (citation as { purpose?: unknown }).purpose;
+  return typeof purpose === 'string' ? purpose : undefined;
+}
+
+/**
+ * Cited Knowledge passages are separated by purpose so the model treats Brand
+ * Truth as constraints and Inspiration as style, instead of one flat list of
+ * equally weighted signals. Uncited memory keeps the legacy section.
+ */
+function groupBriefSources(
+  sources: readonly HarnessSourceRecord[],
+): GroupedBriefSources {
+  const grouped: GroupedBriefSources = {
+    brandTruth: [],
+    inspiration: [],
+    research: [],
+    signals: [],
+  };
+  for (const source of sources) {
+    switch (readCitationPurpose(source)) {
+      case 'BRAND_TRUTH':
+        grouped.brandTruth.push(source);
+        break;
+      case 'INSPIRATION':
+        grouped.inspiration.push(source);
+        break;
+      case 'RESEARCH':
+        grouped.research.push(source);
+        break;
+      default:
+        grouped.signals.push(source);
+    }
+  }
+  return {
+    brandTruth: grouped.brandTruth.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
+    inspiration: grouped.inspiration.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
+    research: grouped.research.slice(0, MAX_PROMPT_KNOWLEDGE_SOURCES),
+    signals: grouped.signals.slice(0, MAX_PROMPT_SOURCES),
+  };
+}
+
+function formatSourceLines(sources: readonly HarnessSourceRecord[]): string {
+  return sources
+    .map(
+      (source) =>
+        `- [${source.kind}] ${trimLine(source.content)}${source.source ? ` (source: ${source.source})` : ''}`,
+    )
+    .join('\n');
+}
+
 export const formatHarnessBrief = (
   brief: ContentHarnessBrief | null | undefined,
 ): string => {
@@ -286,16 +350,24 @@ export const formatHarnessBrief = (
     );
   }
 
-  if (brief.sources.length > 0) {
+  const grouped = groupBriefSources(brief.sources);
+  if (grouped.brandTruth.length > 0) {
     sections.push(
-      `REFERENCE SIGNALS:\n${brief.sources
-        .slice(0, MAX_PROMPT_SOURCES)
-        .map(
-          (source) =>
-            `- [${source.kind}] ${trimLine(source.content)}${source.source ? ` (source: ${source.source})` : ''}`,
-        )
-        .join('\n')}`,
+      `BRAND FACTS (from saved Brand Truth sources; treat as authoritative and never contradict):\n${formatSourceLines(grouped.brandTruth)}`,
     );
+  }
+  if (grouped.inspiration.length > 0) {
+    sections.push(
+      `STYLE REFERENCES (saved Inspiration; borrow tone and structure, never present as fact):\n${formatSourceLines(grouped.inspiration)}`,
+    );
+  }
+  if (grouped.research.length > 0) {
+    sections.push(
+      `RESEARCH NOTES (saved Research; use for context, attribute claims to the source):\n${formatSourceLines(grouped.research)}`,
+    );
+  }
+  if (grouped.signals.length > 0) {
+    sections.push(`REFERENCE SIGNALS:\n${formatSourceLines(grouped.signals)}`);
   }
 
   return sections.join('\n\n');

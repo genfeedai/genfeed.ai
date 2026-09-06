@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
@@ -8,6 +9,10 @@ import {
   type PersonaSource,
 } from '@api/services/harness/harness-brief.util';
 import { brandMemoryHitsToHarnessSources } from '@api/services/harness/harness-context-sources.util';
+import type {
+  KnowledgeRetrievalFilters,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import {
   buildMediaPromptFromHarness,
   type ContentHarnessBrief,
@@ -18,6 +23,9 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+
+export const HARNESS_MEMORY_LIMIT = 5;
+export const HARNESS_SELECTED_KNOWLEDGE_LIMIT = 8;
 
 export type ResolveHarnessBriefParams = {
   /**
@@ -33,6 +41,12 @@ export type ResolveHarnessBriefParams = {
    * Postgres pgvector and fold hits into the brief as sources.
    */
   includeContentMemory?: boolean;
+  /**
+   * Explicit Knowledge sources, spaces or purposes for this execution. When
+   * set, retrieval is constrained to the selection and the passage budget
+   * grows so chosen material is not crowded out by generic memory.
+   */
+  knowledgeSelection?: KnowledgeSelection;
   objective?: ContentObjective;
   organizationId: string;
   persona?: PersonaSource | null;
@@ -96,12 +110,15 @@ export class HarnessGenerationService {
           params.brandId,
         );
 
+      const knowledgeFilters = await this.resolveKnowledgeFilters(params);
       const includeMemory =
-        params.includeContentMemory ?? Boolean(params.topic?.trim());
+        params.includeContentMemory ??
+        (Boolean(knowledgeFilters) || Boolean(params.topic?.trim()));
       const memorySources =
         includeMemory && params.topic?.trim()
           ? await this.loadBrandMemorySources({
               brandId: params.brandId,
+              filters: knowledgeFilters,
               organizationId: params.organizationId,
               topic: params.topic.trim(),
             })
@@ -161,8 +178,29 @@ export class HarnessGenerationService {
     return formatHarnessBrief(brief);
   }
 
+  private async resolveKnowledgeFilters(
+    params: ResolveHarnessBriefParams,
+  ): Promise<KnowledgeRetrievalFilters | undefined> {
+    if (!params.knowledgeSelection) {
+      return undefined;
+    }
+    const selectionService = this.resolveProvider(
+      undefined,
+      KnowledgeSelectionService,
+    );
+    if (!selectionService) {
+      return undefined;
+    }
+    return selectionService.resolve(
+      params.organizationId,
+      params.brandId,
+      params.knowledgeSelection,
+    );
+  }
+
   private async loadBrandMemorySources(params: {
     brandId: string;
+    filters?: KnowledgeRetrievalFilters;
     organizationId: string;
     topic: string;
   }): Promise<HarnessSourceRecord[]> {
@@ -174,16 +212,20 @@ export class HarnessGenerationService {
       return [];
     }
 
+    const limit = params.filters
+      ? HARNESS_SELECTED_KNOWLEDGE_LIMIT
+      : HARNESS_MEMORY_LIMIT;
     try {
       const hits = await contextsService.retrieveBrandContentMemory({
         brandId: params.brandId,
-        limit: 5,
+        limit,
         minRelevance: 0.65,
         organizationId: params.organizationId,
         query: params.topic,
+        ...(params.filters ?? {}),
       });
       return brandMemoryHitsToHarnessSources(hits, {
-        limit: 5,
+        limit,
         minRelevance: 0.65,
       });
     } catch (error: unknown) {

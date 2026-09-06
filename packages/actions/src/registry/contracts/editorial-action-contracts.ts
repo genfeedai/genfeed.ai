@@ -135,6 +135,29 @@ const HEADER_PROMPT_STATE = closedObjectSchema(
   ['article', 'articleId', 'organizationId', 'prompt'],
 );
 
+const KNOWLEDGE_RECEIPT = closedObjectSchema(
+  {
+    excerpt: STRING_SCHEMA,
+    kind: STRING_SCHEMA,
+    purpose: STRING_SCHEMA,
+    relevance: NUMBER_SCHEMA,
+    sourceId: STRING_SCHEMA,
+    title: STRING_SCHEMA,
+    url: STRING_SCHEMA,
+    version: NUMBER_SCHEMA,
+    versionId: STRING_SCHEMA,
+  },
+  [
+    'excerpt',
+    'kind',
+    'purpose',
+    'relevance',
+    'sourceId',
+    'title',
+    'version',
+    'versionId',
+  ],
+);
 const GENERATED_CONTENT = closedObjectSchema(
   {
     body: STRING_SCHEMA,
@@ -142,6 +165,7 @@ const GENERATED_CONTENT = closedObjectSchema(
     cta: STRING_SCHEMA,
     hashtags: arraySchema(STRING_SCHEMA),
     hook: STRING_SCHEMA,
+    knowledgeReceipts: arraySchema(KNOWLEDGE_RECEIPT),
     patternId: STRING_SCHEMA,
     patternUsed: STRING_SCHEMA,
   },
@@ -149,6 +173,7 @@ const GENERATED_CONTENT = closedObjectSchema(
 );
 const CONTENT_CONTEXT_PROPERTIES = {
   dto: JSON_DOCUMENT_SCHEMA,
+  knowledgeReceipts: arraySchema(KNOWLEDGE_RECEIPT),
   organizationId: STRING_SCHEMA,
   playbookInsights: JSON_DOCUMENT_SCHEMA,
   systemPrompt: STRING_SCHEMA,

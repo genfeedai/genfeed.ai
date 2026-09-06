@@ -1,9 +1,15 @@
 import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
+import type { ReactNode } from 'react';
 
 export interface AgentChatContainerProps {
   apiService: AgentApiService;
+  /** Knowledge selection sent with every turn from the composer. */
+  knowledgeSelection?: KnowledgeSelection;
+  /** Host-provided Knowledge picker rendered inside the composer. */
+  knowledgePicker?: ReactNode;
   /**
    * When set (archived thread), the prompt bar is replaced by an alert +
    * Unarchive control. Cleared after a successful unarchive.

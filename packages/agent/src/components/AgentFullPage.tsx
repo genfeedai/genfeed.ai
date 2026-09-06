@@ -11,8 +11,9 @@ import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -20,6 +21,10 @@ const showOnboardingChecklistChrome = false;
 
 interface AgentFullPageProps {
   apiService: AgentApiService;
+  /** Knowledge selection sent with every turn from the composer. */
+  knowledgeSelection?: KnowledgeSelection;
+  /** Host-provided Knowledge picker rendered inside the composer. */
+  knowledgePicker?: ReactNode;
   authReady?: boolean;
   threadId?: string;
   showThreadSidebar?: boolean;
@@ -41,6 +46,8 @@ interface AgentFullPageProps {
 }
 
 export function AgentFullPage({
+  knowledgeSelection,
+  knowledgePicker,
   apiService,
   authReady = true,
   threadId,
@@ -170,6 +177,8 @@ export function AgentFullPage({
                   : null
               }
               apiService={apiService}
+              knowledgeSelection={knowledgeSelection}
+              knowledgePicker={knowledgePicker}
               isLoadingThread={isLoadingThread}
               isStreaming
               isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}

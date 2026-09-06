@@ -7,6 +7,7 @@ import type {
 import type {
   AgentArtifactReference,
   AnalyticsQueryReference,
+  KnowledgeSelection,
   ScopedResearchFindingReference,
   SocialInboxAgentContextRecord,
   SocialInboxReference,
@@ -60,6 +61,8 @@ export interface AgentChatRequest {
   expectedContextVersion?: number;
   generationMode?: AgentGenerationMode;
   generationSettings?: AgentGenerationSettings;
+  /** Explicit Knowledge selection for content generated in this turn. */
+  knowledgeSelection?: KnowledgeSelection;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -99,6 +102,8 @@ export interface AgentChatContext {
   generationMode?: AgentGenerationMode;
   /** Validated media settings selected in the conversation composer. */
   generationSettings?: AgentGenerationSettings;
+  /** Explicit Knowledge selection chosen in the conversation composer. */
+  knowledgeSelection?: KnowledgeSelection;
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];

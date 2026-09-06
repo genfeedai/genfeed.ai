@@ -437,6 +437,7 @@ export function useAgentChatContainer({
           ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
           generationMode: item.options?.generationMode,
           generationSettings: item.options?.generationSettings,
+          knowledgeSelection: item.options?.knowledgeSelection,
           planModeEnabled: item.options?.planModeEnabled ?? false,
         });
         return true;
@@ -521,6 +522,7 @@ export function useAgentChatContainer({
             ...(options?.brandId ? { brandId: options.brandId } : {}),
             generationMode: options?.generationMode,
             generationSettings: options?.generationSettings,
+            knowledgeSelection: options?.knowledgeSelection,
             planModeEnabled: options?.planModeEnabled ?? false,
           },
         });
@@ -536,6 +538,7 @@ export function useAgentChatContainer({
         ...(options?.brandId ? { brandId: options.brandId } : {}),
         generationMode: options?.generationMode,
         generationSettings: options?.generationSettings,
+        knowledgeSelection: options?.knowledgeSelection,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
       return true;

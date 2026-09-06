@@ -43,7 +43,10 @@ import {
   isExplicitAgentMediaGenerationMode,
   resolveAgentTurnGenerationMode,
 } from '@genfeedai/contracts';
-import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentArtifactReference,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -160,9 +163,21 @@ export {
   mapMentionsToReferences,
 };
 
+export function hasKnowledgeSelection(
+  selection: KnowledgeSelection | undefined,
+): selection is KnowledgeSelection {
+  return Boolean(
+    selection &&
+      (selection.sourceIds?.length ||
+        selection.spaceIds?.length ||
+        selection.purposes?.length),
+  );
+}
+
 interface UseAgentChatInputParams {
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
+  knowledgeSelection?: KnowledgeSelection;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -189,6 +204,7 @@ interface UseAgentChatInputParams {
 export function useAgentChatInput({
   generationMode = AgentGenerationMode.AUTO,
   generationSettings,
+  knowledgeSelection,
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -663,6 +679,9 @@ export function useAgentChatInput({
         ...(isExplicitAgentMediaGenerationMode(sendMode) && generationSettings
           ? { generationSettings }
           : {}),
+        ...(hasKnowledgeSelection(knowledgeSelection)
+          ? { knowledgeSelection }
+          : {}),
         planModeEnabled: false,
       },
     );
@@ -691,6 +710,7 @@ export function useAgentChatInput({
     getCompletedAttachments,
     generationMode,
     generationSettings,
+    knowledgeSelection,
     clearAllAttachments,
     surfaceArtifactReferences,
     translate,

@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
+  KnowledgeSelection,
   ResearchFindingReferenceKind,
 } from '@genfeedai/contracts/interfaces';
 import type { JSONContent } from '@tiptap/core';
@@ -76,6 +77,8 @@ export interface ConversationComposerSendOptions {
   brandId?: string;
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
+  /** Knowledge sources, spaces or purposes chosen in the composer. */
+  knowledgeSelection?: KnowledgeSelection;
   planModeEnabled?: boolean;
 }
 

@@ -14,6 +14,7 @@ import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
   fitBrandContextToBudget,
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { collectKnowledgeReceipts } from '@api/services/harness/harness-context-sources.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
@@ -22,6 +23,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
@@ -223,6 +225,8 @@ export interface GeneratedContent {
   body?: string;
   cta?: string;
   hashtags: string[];
+  /** Source versions whose passages reached the brief for this output. */
+  knowledgeReceipts?: KnowledgeReceipt[];
 }
 
 type PlaybookInsightsView = {
@@ -237,6 +241,7 @@ type PlaybookInsightsView = {
 
 type ContentGenerationContext = {
   dto: GenerateContentDto;
+  knowledgeReceipts?: KnowledgeReceipt[];
   organizationId: string;
   playbookInsights?: PlaybookInsightsView;
   systemPrompt?: string;
@@ -250,6 +255,16 @@ type ContentGenerationItem = ContentGenerationContext & {
 type GeneratedPatternState = ContentGenerationItem & {
   generated: GeneratedContent;
 };
+
+/** Receipts describe the brief, so every variation of one run shares them. */
+function withKnowledgeReceipts(
+  generated: GeneratedContent,
+  context: Pick<ContentGenerationContext, 'knowledgeReceipts'>,
+): GeneratedContent {
+  return context.knowledgeReceipts?.length
+    ? { ...generated, knowledgeReceipts: context.knowledgeReceipts }
+    : generated;
+}
 
 @Injectable()
 export class ContentGeneratorService implements OnModuleInit {
@@ -410,10 +425,8 @@ export class ContentGeneratorService implements OnModuleInit {
           maxBrandContextLength: Number.POSITIVE_INFINITY,
         })
       : undefined;
-    const harnessSystemPrompt = await this.buildHarnessSystemPrompt(
-      organizationId,
-      dto,
-    );
+    const harness = await this.buildHarnessSystemPrompt(organizationId, dto);
+    const harnessSystemPrompt = harness.prompt;
     const topPerformerSystemPrompt = await this.buildTopPerformerSystemPrompt(
       organizationId,
       dto,
@@ -433,7 +446,15 @@ export class ContentGeneratorService implements OnModuleInit {
         playbookInsights = playbook.insights as unknown as PlaybookInsightsView;
       }
     }
-    return { dto, organizationId, playbookInsights, systemPrompt };
+    return {
+      dto,
+      ...(harness.knowledgeReceipts.length > 0
+        ? { knowledgeReceipts: harness.knowledgeReceipts }
+        : {}),
+      organizationId,
+      playbookInsights,
+      systemPrompt,
+    };
   }
 
   private planGeneration(
@@ -468,7 +489,7 @@ export class ContentGeneratorService implements OnModuleInit {
       item.playbookInsights,
       item.systemPrompt,
     );
-    return { ...item, generated };
+    return { ...item, generated: withKnowledgeReceipts(generated, item) };
   }
 
   private async trackPatternUsage(
@@ -480,14 +501,15 @@ export class ContentGeneratorService implements OnModuleInit {
     return state.generated;
   }
 
-  private generateFreeformState(
+  private async generateFreeformState(
     state: ContentGenerationContext,
   ): Promise<GeneratedContent[]> {
-    return this.generateWithoutPatterns(
+    const results = await this.generateWithoutPatterns(
       state.dto,
       state.dto.variationsCount ?? 3,
       state.systemPrompt,
     );
+    return results.map((generated) => withKnowledgeReceipts(generated, state));
   }
 
   private finalizeGeneration(
@@ -528,13 +550,13 @@ export class ContentGeneratorService implements OnModuleInit {
   private async buildHarnessSystemPrompt(
     organizationId: string,
     dto: GenerateContentDto,
-  ): Promise<string | undefined> {
+  ): Promise<{ knowledgeReceipts: KnowledgeReceipt[]; prompt?: string }> {
     if (
       !dto.brandId ||
       !this.personasService ||
       !this.harnessGenerationService
     ) {
-      return undefined;
+      return { knowledgeReceipts: [] };
     }
 
     try {
@@ -557,6 +579,7 @@ export class ContentGeneratorService implements OnModuleInit {
           })) ?? [],
         brandId: dto.brandId,
         contentType: 'post',
+        ...(dto.knowledge ? { knowledgeSelection: dto.knowledge } : {}),
         objective: 'engagement',
         organizationId,
         persona,
@@ -565,9 +588,12 @@ export class ContentGeneratorService implements OnModuleInit {
       });
 
       const formattedBrief = this.harnessGenerationService.formatBrief(brief);
-      return formattedBrief || undefined;
+      return {
+        knowledgeReceipts: collectKnowledgeReceipts(brief?.sources),
+        prompt: formattedBrief || undefined,
+      };
     } catch {
-      return undefined;
+      return { knowledgeReceipts: [] };
     }
   }
 
