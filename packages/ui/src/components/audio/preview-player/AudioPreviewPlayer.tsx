@@ -13,6 +13,7 @@ type SharedAudioSnapshot = {
   currentUrl: string | null;
   currentTime: number;
   duration: number;
+  volume: number;
   status: SharedAudioStatus;
 };
 
@@ -23,6 +24,7 @@ let sharedSnapshot: SharedAudioSnapshot = {
   currentUrl: null,
   currentTime: 0,
   duration: 0,
+  volume: 1,
   status: 'idle',
 };
 
@@ -83,6 +85,9 @@ function ensureSharedAudio(): HTMLAudioElement | null {
     sharedAudio.addEventListener('loadedmetadata', updateProgress);
     sharedAudio.addEventListener('timeupdate', updateProgress);
     sharedAudio.addEventListener('durationchange', updateProgress);
+    sharedAudio.addEventListener('volumechange', () =>
+      setSharedSnapshot({ volume: sharedAudio?.volume ?? 1 }),
+    );
   }
 
   return sharedAudio;
@@ -213,10 +218,27 @@ export default function AudioPreviewPlayer({
                 sharedAudio.currentTime = time;
             }}
           />
-          <span className="block text-2xs tabular-nums text-muted-foreground">
-            {formatDuration(isCurrent ? snapshot.currentTime : 0)} /{' '}
-            {formatDuration(isCurrent ? snapshot.duration : 0)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-2xs tabular-nums text-muted-foreground">
+              {formatDuration(isCurrent ? snapshot.currentTime : 0)} /{' '}
+              {formatDuration(isCurrent ? snapshot.duration : 0)}
+            </span>
+            <Slider
+              aria-label={`Volume for ${label}`}
+              min={0}
+              max={1}
+              step={0.1}
+              value={[snapshot.volume]}
+              className="max-w-16"
+              disabled={!isCurrent}
+              onValueChange={([volume]) => {
+                if (sharedAudio && isCurrent && volume !== undefined) {
+                  sharedAudio.volume = volume;
+                  setSharedSnapshot({ volume });
+                }
+              }}
+            />
+          </div>
         </div>
       )}
       {isErrored ? (

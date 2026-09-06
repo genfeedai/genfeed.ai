@@ -13,6 +13,7 @@ class PreviewAudio extends EventTarget {
   preload = '';
   currentTime = 0;
   duration = 30;
+  volume = 1;
   paused = true;
   ended = false;
   play = vi.fn(async () => {
@@ -56,6 +57,11 @@ describe('AudioPreviewPlayer', () => {
     expect(slider).toHaveAttribute('aria-valuemax', '30');
     fireEvent.keyDown(slider, { key: 'ArrowRight' });
     expect(audio.currentTime).toBeGreaterThan(0);
+    fireEvent.keyDown(
+      screen.getByRole('slider', { name: 'Volume for Voice' }),
+      { key: 'ArrowLeft' },
+    );
+    expect(audio.volume).toBeLessThan(1);
     fireEvent.click(
       screen.getByRole('button', { name: 'Pause preview for Voice' }),
     );
