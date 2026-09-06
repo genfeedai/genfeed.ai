@@ -132,14 +132,14 @@ export default function BrandSettingsHarnessPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPromoting, setIsPromoting] = useState(false);
 
+  const brandLabel = brand?.label;
   useEffect(() => {
-    if (!brandId || !brand) {
+    if (!brandId || brandLabel === undefined) {
       setIsFetching(false);
       return;
     }
 
     const controller = new AbortController();
-    const brandLabel = brand.label;
 
     async function loadProfile() {
       setIsFetching(true);
@@ -172,7 +172,7 @@ export default function BrandSettingsHarnessPage() {
     void loadProfile();
 
     return () => controller.abort();
-  }, [brand, brandId, getHarnessProfilesService]);
+  }, [brandLabel, brandId, getHarnessProfilesService]);
 
   const updateDraft = useCallback(
     <Key extends keyof IHarnessProfile>(
