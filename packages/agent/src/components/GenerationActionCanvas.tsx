@@ -1,4 +1,6 @@
-('use client');
+'use client';
+
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
