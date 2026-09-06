@@ -723,6 +723,7 @@ function CredentialHealthSurface({
             onClick={() => {
               void onRetry();
             }}
+            size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
