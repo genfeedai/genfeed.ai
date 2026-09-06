@@ -36,7 +36,7 @@ export class IssueCommentsService extends BaseService<
 > {
   constructor(token: string, issueId: string) {
     super(
-      `/issues/${issueId}/comments`,
+      `/tasks/${issueId}/comments`,
       token,
       IssueComment,
       issueCommentSerializer,
