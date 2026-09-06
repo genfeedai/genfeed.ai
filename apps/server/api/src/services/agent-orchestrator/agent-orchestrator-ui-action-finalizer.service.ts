@@ -93,13 +93,24 @@ export class AgentOrchestratorUiActionFinalizerService {
       runId: params.context.executionId,
       threadId: params.threadId,
     });
-    await this.threadEventRecorder.recordRunCompleted({
-      context: params.context,
-      detail: 'Agent completed',
-      idempotencyKey: params.eventIdempotencyKey,
-      runId: params.context.executionId,
-      threadId: params.threadId,
-    });
+    if (params.result.success) {
+      await this.threadEventRecorder.recordRunCompleted({
+        context: params.context,
+        detail: params.result.requiresConfirmation
+          ? 'Waiting for your approval'
+          : 'Agent completed',
+        idempotencyKey: params.eventIdempotencyKey,
+        runId: params.context.executionId,
+        threadId: params.threadId,
+      });
+    } else {
+      await this.threadEventRecorder.recordRunFailed({
+        context: params.context,
+        error: params.result.error ?? 'Approved action failed.',
+        runId: params.context.executionId,
+        threadId: params.threadId,
+      });
+    }
 
     return {
       creditsRemaining,

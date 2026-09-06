@@ -137,7 +137,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       unused,
       unused,
       unused,
-      undefined,
+      { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,
       mcpApprovals as never,
@@ -150,6 +150,15 @@ describe('AgentToolExecutorService mutation policy', () => {
   ): ToolExecutionContext => ({
     organizationId: testId('org'),
     userId: testId('user'),
+    ...(overrides.threadId
+      ? {
+          validatedScope: {
+            threadId: overrides.threadId,
+            brandId: 'brand-1',
+            contextVersion: 1,
+          } as ToolExecutionContext['validatedScope'],
+        }
+      : {}),
     ...overrides,
   });
 

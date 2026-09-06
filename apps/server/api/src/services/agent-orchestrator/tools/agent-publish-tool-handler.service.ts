@@ -872,6 +872,48 @@ export class AgentPublishToolHandler {
       resourceLabel,
     );
   }
+  async preparePost(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const visibility = z
+      .nativeEnum(PostVisibility)
+      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
+    const contentId =
+      readOptionalString(params.contentId) ??
+      readOptionalString(params.ingredientId);
+    if (!visibility.success || !contentId) {
+      return {
+        creditsUsed: 0,
+        success: false,
+        error:
+          'Valid content and visibility are required to prepare publishing.',
+      };
+    }
+    const { caption, platforms, requestedScheduledAt } =
+      this.readPublishRequest(params);
+    if (
+      requestedScheduledAt &&
+      Number.isNaN(new Date(requestedScheduledAt).getTime())
+    ) {
+      return {
+        creditsUsed: 0,
+        success: false,
+        error: 'scheduledAt must be a valid date and time.',
+      };
+    }
+    return this.buildPublishCardResult(
+      {
+        caption,
+        contentId,
+        platforms,
+        scheduledAt: requestedScheduledAt,
+        visibility: visibility.data,
+      },
+      ctx,
+    );
+  }
+
   async createPost(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

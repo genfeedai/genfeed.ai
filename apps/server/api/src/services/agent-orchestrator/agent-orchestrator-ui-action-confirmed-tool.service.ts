@@ -2,6 +2,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { throwFailedUiActionResult } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-error';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type {
   AgentChatResult,
@@ -15,6 +16,8 @@ import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
+  | 'confirm_mutation'
+  | 'decline_mutation'
   | 'confirm_agent_transfer'
   | 'confirm_generate_media'
   | 'confirm_install_official_workflow'
@@ -36,6 +39,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly finalizer: AgentOrchestratorUiActionFinalizerService,
     private readonly cacheService: CacheService,
+    private readonly mutationActions: AgentOrchestratorUiActionMutationService,
   ) {}
 
   async execute(
@@ -43,6 +47,9 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
     switch (action) {
+      case 'confirm_mutation':
+      case 'decline_mutation':
+        return this.mutationActions.execute(action, params);
       case 'confirm_agent_transfer':
         return this.executeAgentTransfer(params);
       case 'confirm_install_official_workflow':

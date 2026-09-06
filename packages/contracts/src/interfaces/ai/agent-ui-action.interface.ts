@@ -1,4 +1,5 @@
 export type AgentUiActionType =
+  | 'mutation_approval_card'
   | 'oauth_connect_card'
   | 'content_preview_card'
   | 'completion_summary_card'
@@ -40,6 +41,19 @@ export type AgentUiActionType =
   | 'brand_interview_offer_card'
   | 'brand_interview_complete_card'
   | 'agent_transfer_card';
+
+export interface AgentMutationApprovalData {
+  approvalId: string;
+  sourceActionId: string;
+  summary: string;
+  items: Array<{ label: string; value: string }>;
+  status: 'pending' | 'approved' | 'declined';
+  scopeVersion?: number;
+  brandId: string | null;
+  expiresAt: string;
+  executionStatus?: 'completed' | 'failed' | 'cancelled';
+  error?: string;
+}
 
 export interface AgentUiActionBase {
   id: string;

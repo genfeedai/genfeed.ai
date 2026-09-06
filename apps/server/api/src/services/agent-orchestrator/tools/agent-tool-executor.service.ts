@@ -45,6 +45,7 @@ import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
 import type { CuratedActionName } from '@genfeedai/actions';
 import {
   buildLogicalWriteKey,
@@ -105,7 +106,7 @@ export interface ToolExecutionContext {
   /**
    * Whether this invoking host can persist and resume an approval.
    * Web agent turns are true; CLI and bare HTTP execute are false.
-   * Unspecified leaves current handler behavior for unit tests.
+   * An unspecified host cannot authorize mutations.
    */
   hostSupportsApproval?: boolean;
   /** Already-claimed MCP/tool approval that authorizes this exact logical write. */
@@ -298,16 +299,6 @@ export class AgentToolExecutorService implements OnModuleInit {
     let executionResult: AgentToolResult;
     let executionFailed = false;
     try {
-      const policyResult = await this.applyMutationPolicy(
-        toolName,
-        parameters,
-        context,
-      );
-      if (policyResult.kind === 'return') {
-        return policyResult.result;
-      }
-      executionApprovalId = policyResult.approvalId;
-
       if (context.threadId) {
         if (!context.validatedScope || !this.agentScopeContextService) {
           throw new Error(
@@ -321,6 +312,16 @@ export class AgentToolExecutorService implements OnModuleInit {
         );
         this.assertToolBrandScope(toolName, parameters, context);
       }
+
+      const policyResult = await this.applyMutationPolicy(
+        toolName,
+        parameters,
+        context,
+      );
+      if (policyResult.kind === 'return') {
+        return policyResult.result;
+      }
+      executionApprovalId = policyResult.approvalId;
 
       const result = this.instagramInspirationHandler.handles(toolName)
         ? await this.instagramInspirationHandler.execute(
@@ -381,6 +382,38 @@ export class AgentToolExecutorService implements OnModuleInit {
       definition?.mutationPolicy !== 'approval-required'
     ) {
       return { kind: 'execute' };
+    }
+
+    if (isAvailableOnSurface && !context.approvedApprovalId) {
+      const specialized = this.specializedConfirmationTool(
+        toolName,
+        parameters,
+      );
+      if (specialized && context.confirmationOrigin === 'thread-ui-action') {
+        return { kind: 'execute' };
+      }
+      if (specialized) {
+        const previewContext = {
+          ...context,
+          confirmationOrigin: undefined,
+          approvedApprovalId: undefined,
+        };
+        const result =
+          toolName === 'create_post'
+            ? await this.publishHandler.preparePost(parameters, previewContext)
+            : await this.dispatch(
+                toolName,
+                { ...parameters, confirmed: false },
+                previewContext,
+              );
+        return {
+          kind: 'return',
+          result: await this.routeRewriteService.scopeToolResultHrefs(
+            result,
+            context,
+          ),
+        };
+      }
     }
 
     const idempotencyKey = buildLogicalWriteKey({
@@ -465,15 +498,18 @@ export class AgentToolExecutorService implements OnModuleInit {
       };
     }
 
-    const approval = this.mcpApprovalsService
-      ? await this.mcpApprovalsService.createPending(
-          context.organizationId,
-          context.userId,
-          toolName,
-          parameters,
-          { threadId: context.threadId },
-        )
-      : null;
+    if (!this.mcpApprovalsService) {
+      throw new Error(
+        'Approval service unavailable. Please retry when approval storage is available.',
+      );
+    }
+    const approval = await this.mcpApprovalsService.createPending(
+      context.organizationId,
+      context.userId,
+      toolName,
+      parameters,
+      { threadId: context.threadId },
+    );
 
     return {
       kind: 'return',
@@ -489,9 +525,35 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
         mutationPolicy: 'approval-required',
         requiresConfirmation: true,
+        nextActions: [
+          buildMutationApprovalCard(approval.id, toolName, parameters, context),
+        ],
         success: true,
       },
     };
+  }
+
+  private specializedConfirmationTool(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+  ): boolean {
+    switch (toolName) {
+      case 'create_brand':
+      case 'rename_brand':
+      case 'install_official_workflow':
+      case 'start_outreach_sequence':
+      case 'pause_outreach_sequence':
+        return true;
+      case 'create_post':
+        return Boolean(
+          readOptionalString(parameters.contentId) ??
+            readOptionalString(parameters.ingredientId),
+        );
+      case 'transfer_agent_conversation':
+        return parameters.deliveryMode === 'SEND_AND_RUN';
+      default:
+        return false;
+    }
   }
 
   private async claimApprovedMutation(
