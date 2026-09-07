@@ -8,7 +8,6 @@ import type {
 } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import {
   Select,
   SelectContent,
@@ -16,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
-import { Slider } from '@genfeedai/ui/primitives/slider';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, LoaderCircle, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
@@ -48,22 +46,6 @@ function LipSyncNodeComponent(props: NodeProps) {
   const handleSyncModeChange = useCallback(
     (value: string) => {
       updateNodeData<LipSyncNodeData>(id, { syncMode: value as LipSyncMode });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleTemperatureChange = useCallback(
-    ([value]: number[]) => {
-      updateNodeData<LipSyncNodeData>(id, { temperature: value });
-    },
-    [id, updateNodeData],
-  );
-
-  const handleActiveSpeakerChange = useCallback(
-    (checked: boolean | 'indeterminate') => {
-      if (typeof checked === 'boolean') {
-        updateNodeData<LipSyncNodeData>(id, { activeSpeaker: checked });
-      }
     },
     [id, updateNodeData],
   );
@@ -147,42 +129,6 @@ function LipSyncNodeComponent(props: NodeProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        )}
-
-        {/* Temperature Slider */}
-        <div>
-          <div
-            id={`lipsync-temperature-${id}`}
-            className="text-xs text-muted-foreground"
-          >
-            Temperature: {nodeData.temperature.toFixed(2)}
-          </div>
-          <Slider
-            aria-labelledby={`lipsync-temperature-${id}`}
-            value={[nodeData.temperature]}
-            min={0}
-            max={1}
-            step={0.05}
-            onValueChange={handleTemperatureChange}
-            className="nodrag w-full"
-          />
-        </div>
-
-        {/* Active Speaker Toggle (only for Sync Labs models) */}
-        {isSyncModel && (
-          <div className="flex items-center gap-2 nodrag">
-            <Checkbox
-              id={`active-speaker-${id}`}
-              checked={nodeData.activeSpeaker}
-              onCheckedChange={handleActiveSpeakerChange}
-            />
-            <label
-              htmlFor={`active-speaker-${id}`}
-              className="text-xs text-muted-foreground cursor-pointer"
-            >
-              Active speaker detection
-            </label>
           </div>
         )}
 

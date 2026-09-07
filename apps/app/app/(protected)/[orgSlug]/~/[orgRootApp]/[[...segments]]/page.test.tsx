@@ -175,7 +175,15 @@ vi.mock('../../../[brandSlug]/publishing/overview/page', () => ({
 }));
 
 vi.mock('../../../[brandSlug]/publishing/content/page', () => ({
-  default: () => <div data-testid="publishing-content-page" />,
+  // Mirrors the real page: a redirect into the posts list.
+  default: async ({
+    params,
+  }: {
+    params: Promise<{ brandSlug: string; orgSlug: string }>;
+  }) => {
+    const { brandSlug, orgSlug } = await params;
+    redirectMock(`/${orgSlug}/${brandSlug}/publishing/posts?`);
+  },
 }));
 
 vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
@@ -183,7 +191,15 @@ vi.mock('../../../[brandSlug]/publishing/review/page', () => ({
 }));
 
 vi.mock('../../../[brandSlug]/publishing/calendar/page', () => ({
-  default: () => <div data-testid="publishing-calendar-page" />,
+  // Mirrors the real page: a redirect into the posts list in calendar view.
+  default: async ({
+    params,
+  }: {
+    params: Promise<{ brandSlug: string; orgSlug: string }>;
+  }) => {
+    const { brandSlug, orgSlug } = await params;
+    redirectMock(`/${orgSlug}/${brandSlug}/publishing/posts?view=calendar`);
+  },
 }));
 
 vi.mock('../../../[brandSlug]/publishing/posts/[id]/page', () => ({
@@ -437,10 +453,25 @@ describe('OrgRootAppPage', () => {
   });
 
   it.each([
-    ['content', 'publishing-content-page'],
-    ['review', 'publishing-review-page'],
-    ['calendar', 'publishing-calendar-page'],
+    ['content', '/acme/~/publishing/posts?'],
+    ['calendar', '/acme/~/publishing/posts?view=calendar'],
   ])(
+    'redirects the org publishing %s route into the posts list',
+    async (segment, destination) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
+        }),
+      ).rejects.toThrow();
+      expect(redirectMock).toHaveBeenCalledWith(destination);
+    },
+  );
+
+  it.each([['review', 'publishing-review-page']])(
     'renders the canonical org publishing %s page',
     async (segment, testId) => {
       const element = await OrgRootAppPage({

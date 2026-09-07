@@ -19,6 +19,7 @@ import path from 'node:path';
 import * as swc from '@swc/core';
 import * as dotenv from 'dotenv';
 import * as esbuild from 'esbuild';
+import { prepareLocalDatabase } from './prepare-local-database';
 
 const WORKSPACE_ROOT = path.resolve(import.meta.dir, '../..');
 const SERVER_ROOT = path.join(WORKSPACE_ROOT, 'apps/server');
@@ -207,6 +208,10 @@ async function runApp(appName: string, once: boolean): Promise<void> {
     fail(
       `Unknown app "${appName}". Supported: ${Object.keys(APPS).join(', ')}`,
     );
+  }
+
+  if (app.name === 'api') {
+    prepareLocalDatabase(WORKSPACE_ROOT, buildRuntimeEnv(app));
   }
 
   const entry = path.join(app.appDir, app.entry ?? 'src/main.ts');

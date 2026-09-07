@@ -2,6 +2,7 @@
 
 import {
   ActivityKey,
+  ButtonSize,
   ButtonVariant,
   formatActivityMessage,
   IngredientCategory,
@@ -15,11 +16,11 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import SelectionToolbar from '@ui/lists/selection-toolbar/SelectionToolbar';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { ClipboardList, Mail, MailOpen } from 'lucide-react';
+import { ClipboardList, Mail, MailOpen, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
@@ -39,6 +40,7 @@ export default function ActivitiesList({
   activityMessageFormatter = formatActivityMessage,
   scope,
 }: ActivitiesListProps) {
+  const translate = useTranslations('pages.activities');
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
 
@@ -95,20 +97,6 @@ export default function ActivitiesList({
     [openIngredientOverlay],
   );
 
-  // Status variant mapping
-  const statusVariants: Record<
-    string,
-    'success' | 'error' | 'warning' | 'info'
-  > = useMemo(
-    () => ({
-      completed: 'success',
-      failed: 'error',
-      pending: 'warning',
-      processing: 'info',
-    }),
-    [],
-  );
-
   const columns = useMemo(
     () => [
       {
@@ -158,12 +146,7 @@ export default function ActivitiesList({
           } else {
             status = a.status || 'pending';
           }
-          return (
-            <ActivityStatusCell
-              status={status}
-              statusVariants={statusVariants}
-            />
-          );
+          return <ActivityStatusCell status={status} />;
         },
       },
       {
@@ -176,7 +159,9 @@ export default function ActivitiesList({
           const amount = (parsed?.value as string) || a.value;
           if (!amount) return null;
           return (
-            <span className="text-sm text-foreground/70">{amount} credits</span>
+            <span className="text-sm text-foreground/70">
+              {translate('credits', { amount })}
+            </span>
           );
         },
       },
@@ -222,12 +207,7 @@ export default function ActivitiesList({
         },
       },
     ],
-    [
-      activityMessageFormatter,
-      getPreviewUrl,
-      handleViewIngredient,
-      statusVariants,
-    ],
+    [activityMessageFormatter, getPreviewUrl, handleViewIngredient],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -297,22 +277,42 @@ export default function ActivitiesList({
     [],
   );
 
+  // Selection state and its bulk action live in the subbar, not in a second
+  // bar above the table.
   const headerActions = useMemo(
     () => (
       <div className="flex shrink-0 items-center gap-2">
+        {hasSelectedActivities ? (
+          <div
+            role="status"
+            className="flex items-center gap-1 text-xs text-muted-foreground"
+          >
+            <span>
+              {translate('selected', { count: selectedActivityIds.length })}
+            </span>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-6"
+              ariaLabel={translate('clearSelection')}
+              onClick={() => setSelectedActivityIds([])}
+            >
+              <X aria-hidden="true" className="size-3.5" />
+            </Button>
+          </div>
+        ) : null}
         <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
-        {!hasSelectedActivities && (
-          <Button
-            label={bulkReadLabel}
-            onClick={handleBulkMarkAsRead}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={
-              isRefreshing ||
-              isMarkingRead ||
-              (!hasSelectedActivities && !hasUnreadActivities)
-            }
-          />
-        )}
+        <Button
+          label={bulkReadLabel}
+          onClick={handleBulkMarkAsRead}
+          variant={ButtonVariant.SECONDARY}
+          size={ButtonSize.SM}
+          isDisabled={
+            isRefreshing ||
+            isMarkingRead ||
+            (!hasSelectedActivities && !hasUnreadActivities)
+          }
+        />
       </div>
     ),
     [
@@ -323,6 +323,8 @@ export default function ActivitiesList({
       isRefreshing,
       isMarkingRead,
       refresh,
+      selectedActivityIds.length,
+      translate,
     ],
   );
 
@@ -334,18 +336,6 @@ export default function ActivitiesList({
       titleVisibility="sr-only"
       right={headerActions}
     >
-      <SelectionToolbar
-        count={selectedActivityIds.length}
-        label={`${selectedActivityIds.length} selected`}
-        onClear={() => setSelectedActivityIds([])}
-      >
-        <Button
-          label={bulkReadLabel}
-          onClick={handleBulkMarkAsRead}
-          variant={ButtonVariant.DEFAULT}
-          isDisabled={isRefreshing || isMarkingRead}
-        />
-      </SelectionToolbar>
       <AppTable<IActivity>
         error={
           isError

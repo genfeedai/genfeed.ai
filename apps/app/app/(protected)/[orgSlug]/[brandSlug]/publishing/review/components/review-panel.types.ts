@@ -1,8 +1,1 @@
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
-
-export type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
+export type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';

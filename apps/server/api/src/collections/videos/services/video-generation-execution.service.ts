@@ -19,6 +19,7 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
+import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -91,8 +92,30 @@ export class VideoGenerationExecutionService {
       }
     } catch (error: unknown) {
       await this.failPendingOutputs(context, error);
-      throw error;
+      throw this.toDispatchException(error);
     }
+  }
+
+  /**
+   * Maps a typed, non-retryable provider failure to a client-facing
+   * NestJS exception so it never leaves this service as an unhandled 500.
+   * Any other error is rethrown unchanged.
+   */
+  private toDispatchException(error: unknown): unknown {
+    if (
+      error instanceof ReplicateProviderError &&
+      error.statusCode === 402 &&
+      !error.isRetryable
+    ) {
+      return new HttpException(
+        {
+          detail: 'Replicate reported insufficient credit for this request.',
+          title: 'Provider out of credit',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+    return error;
   }
 
   async failPlaceholderBeforeDispatch(

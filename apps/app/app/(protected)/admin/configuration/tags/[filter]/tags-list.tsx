@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ITag } from '@genfeedai/contracts/interfaces';

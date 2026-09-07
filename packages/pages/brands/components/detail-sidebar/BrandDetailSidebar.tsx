@@ -11,7 +11,7 @@ import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
 /**
  * Public-profile column: visibility + social accounts + external links.
  *
- * - Social: `manageSocialHref` → summary linking to /settings/social (OAuth page).
+ * - Social: `manageSocialHref` → summary linking to /settings/integrations (OAuth page).
  *   Otherwise full connect card + modal.
  * - Links: always the inline list + ModalBrandLink. No dedicated settings page —
  *   external URLs are simple CRUD, not an OAuth surface.

@@ -1,4 +1,6 @@
-export type WorkspaceTaskMode = 'standard' | 'research' | 'trends';
+import type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
+
+export type { WorkspaceTaskMode } from '@props/workspace/workspace-task-composer.props';
 
 export const TASK_PRESETS = [
   {

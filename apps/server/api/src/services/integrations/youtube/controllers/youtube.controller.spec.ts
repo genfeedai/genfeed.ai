@@ -22,7 +22,7 @@ import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/yout
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -297,13 +297,33 @@ describe('YoutubeController', () => {
       });
     });
 
-    it('should still return credential even if channel details fail', async () => {
+    it('marks the credential disconnected and rejects when channel lookup fails', async () => {
       youtubeService.getChannelDetails.mockRejectedValueOnce(
         new Error('API Error'),
       );
-      const result = await controller.verify(mockRequest, dto);
-      // Should not throw; channel details failure is non-fatal
-      expect(result).toBeDefined();
+
+      await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
+        HttpException,
+      );
+      expect(credentialsService.patch).toHaveBeenCalledWith(credentialId, {
+        isConnected: false,
+      });
+    });
+
+    it('marks the credential disconnected and rejects when no channel is returned', async () => {
+      youtubeService.getChannelDetails.mockResolvedValueOnce(undefined);
+
+      const failure = await controller
+        .verify(mockRequest, dto)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(
+        HttpStatus.BAD_REQUEST,
+      );
+      expect(credentialsService.patch).toHaveBeenCalledWith(credentialId, {
+        isConnected: false,
+      });
     });
 
     it('should reactivate previously deleted credential', async () => {

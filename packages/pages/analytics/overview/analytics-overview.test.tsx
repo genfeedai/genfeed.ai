@@ -227,6 +227,10 @@ vi.mock('@services/organization/users.service', () => ({
   UsersService: class UsersService {},
 }));
 
+vi.mock('@pages/analytics/accounts/analytics-top-accounts', () => ({
+  default: () => <div data-testid="top-accounts-section" />,
+}));
+
 vi.mock('@ui/analytics/top-posts/TopPostsSection', () => ({
   default: () => <div data-testid="top-posts-section" />,
 }));

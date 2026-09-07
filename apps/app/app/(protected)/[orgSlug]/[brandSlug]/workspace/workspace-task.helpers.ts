@@ -1,42 +1,36 @@
-import type { ReviewDecision } from '@genfeedai/contracts';
+'use client';
+
+import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
+import type {
+  InboxView,
+  ReviewInboxSummary,
+  WorkspaceAdvancedTool,
+  WorkspaceInboxViewOption,
+  WorkspaceLibrarySnapshotLink,
+  WorkspaceSection,
+  WorkspaceSectionCopyEntry,
+  WorkspaceTaskRealtimePayload,
+  WorkspaceTranslate,
+} from '@props/workspace/workspace-task.props';
 import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,
   Task,
-  type TaskEvent,
+  type TaskStatus,
 } from '@services/management/tasks.service';
+import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
-export type WorkspaceSection = 'inbox' | 'overview';
-export type InboxView = 'all' | 'recent' | 'unread';
-
-export interface ReviewInboxItem {
-  createdAt: string;
-  format?: string;
-  id: string;
-  platform?: string;
-  reviewDecision: ReviewDecision;
-  summary: string;
-  continuityQa?: VideoContinuityQaReport;
-}
-
-export interface ReviewInboxSummary {
-  approvedCount: number;
-  changesRequestedCount: number;
-  pendingCount: number;
-  readyCount: number;
-  recentItems: ReviewInboxItem[];
-  rejectedCount: number;
-}
-
-export interface WorkspaceTaskRealtimePayload {
-  event: TaskEvent;
-  organizationId: string;
-  task: Task;
-  taskId: string;
-}
+export type {
+  InboxView,
+  ReviewInboxItem,
+  ReviewInboxSummary,
+  WorkspaceSection,
+  WorkspaceTaskRealtimePayload,
+} from '@props/workspace/workspace-task.props';
 
 export const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
   approvedCount: 0,
@@ -47,83 +41,146 @@ export const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
   rejectedCount: 0,
 };
 
-export const INBOX_VIEW_OPTIONS: Array<{
+const INBOX_VIEW_OPTION_KEYS: WorkspaceInboxViewOption[] = [
+  {
+    descriptionKey: 'inbox.views.unread.description',
+    id: 'unread',
+    labelKey: 'inbox.views.unread.label',
+  },
+  {
+    descriptionKey: 'inbox.views.recent.description',
+    id: 'recent',
+    labelKey: 'inbox.views.recent.label',
+  },
+  {
+    descriptionKey: 'inbox.views.all.description',
+    id: 'all',
+    labelKey: 'inbox.views.all.label',
+  },
+];
+
+export function useInboxViewOptions(): Array<{
   description: string;
   id: InboxView;
   label: string;
-}> = [
-  {
-    description: 'Items that still need operator attention.',
-    id: 'unread',
-    label: 'Unread',
-  },
-  {
-    description: 'Latest queue movement, regardless of status.',
-    id: 'recent',
-    label: 'Recent',
-  },
-  {
-    description: 'Everything in the workspace queue, including done items.',
-    id: 'all',
-    label: 'All',
-  },
-];
+}> {
+  const translate = useTranslations('pages.workspaceOverview');
+  return useMemo(
+    () =>
+      INBOX_VIEW_OPTION_KEYS.map((option) => ({
+        description: translate(option.descriptionKey),
+        id: option.id,
+        label: translate(option.labelKey),
+      })),
+    [translate],
+  );
+}
 
-export const SECTION_COPY: Record<
-  WorkspaceSection,
-  { description: string; title: string }
-> = {
+const SECTION_COPY_KEYS: Record<WorkspaceSection, WorkspaceSectionCopyEntry> = {
   inbox: {
-    description: 'Unread work, recent movement, and the full queue.',
-    title: 'Inbox',
+    descriptionKey: 'sections.inbox.description',
+    titleKey: 'sections.inbox.title',
   },
   overview: {
-    description:
-      'Tasks, approvals, live work, and operator handoffs in one control surface.',
-    title: 'Overview',
+    descriptionKey: 'sections.overview.description',
+    titleKey: 'sections.overview.title',
   },
 };
 
-export const ADVANCED_TOOLS = [
+export function useWorkspaceSectionCopy(): Record<
+  WorkspaceSection,
+  { description: string; title: string }
+> {
+  const translate = useTranslations('pages.workspaceOverview');
+  return useMemo(
+    () => ({
+      inbox: {
+        description: translate(SECTION_COPY_KEYS.inbox.descriptionKey),
+        title: translate(SECTION_COPY_KEYS.inbox.titleKey),
+      },
+      overview: {
+        description: translate(SECTION_COPY_KEYS.overview.descriptionKey),
+        title: translate(SECTION_COPY_KEYS.overview.titleKey),
+      },
+    }),
+    [translate],
+  );
+}
+
+const ADVANCED_TOOL_KEYS: WorkspaceAdvancedTool[] = [
   {
-    description: 'All conversations and threads live here.',
+    descriptionKey: 'tools.agent.description',
     href: APP_ROUTES.AGENT.ROOT,
-    label: 'Agent',
+    labelKey: 'tools.agent.label',
   },
   {
-    description: 'Storyboard, clips, and batch production surfaces.',
+    descriptionKey: 'tools.studio.description',
     href: APP_ROUTES.STUDIO.STORYBOARD,
-    label: 'Studio',
+    labelKey: 'tools.studio.label',
   },
   {
-    description: 'Workflow builder for repeatable automation.',
+    descriptionKey: 'tools.workflows.description',
     href: APP_ROUTES.AUTOMATION.WORKFLOWS,
-    label: 'Workflows',
+    labelKey: 'tools.workflows.label',
   },
   {
-    description: 'Operator view for live runs and execution state.',
+    descriptionKey: 'tools.runs.description',
     href: APP_ROUTES.AUTOMATION.RUNS,
-    label: 'Runs',
+    labelKey: 'tools.runs.label',
   },
 ];
 
-export const LIBRARY_SNAPSHOT_LINKS = [
+export function useAdvancedTools(): Array<{
+  description: string;
+  href: string;
+  label: string;
+}> {
+  const translate = useTranslations('pages.workspaceOverview');
+  return useMemo(
+    () =>
+      ADVANCED_TOOL_KEYS.map((tool) => ({
+        description: translate(tool.descriptionKey),
+        href: tool.href,
+        label: translate(tool.labelKey),
+      })),
+    [translate],
+  );
+}
+
+const LIBRARY_SNAPSHOT_LINK_KEYS: WorkspaceLibrarySnapshotLink[] = [
   {
-    description: 'Browse every reusable source and generated asset.',
+    descriptionKey: 'library.overview.description',
     href: APP_ROUTES.LIBRARY.ASSETS,
-    label: 'Overview',
+    labelKey: 'library.overview.label',
   },
   {
-    description: 'Generated images, videos, and motion assets.',
+    descriptionKey: 'library.media.description',
     href: APP_ROUTES.LIBRARY.IMAGES,
-    label: 'Media',
+    labelKey: 'library.media.label',
   },
   {
-    description: 'Voice, music, and caption assets ready for reuse.',
+    descriptionKey: 'library.audioCaptions.description',
     href: APP_ROUTES.LIBRARY.VOICES,
-    label: 'Audio + captions',
+    labelKey: 'library.audioCaptions.label',
   },
 ];
+
+export function useLibrarySnapshotLinks(): Array<{
+  description: string;
+  href: string;
+  label: string;
+}> {
+  const translate = useTranslations('pages.workspaceOverview');
+  return useMemo(
+    () =>
+      LIBRARY_SNAPSHOT_LINK_KEYS.map((link) => ({
+        description: translate(link.descriptionKey),
+        href: link.href,
+        label: translate(link.labelKey),
+      })),
+    [translate],
+  );
+}
 
 export const WORKSPACE_CARD_GRID_GAP_CLASS =
   'grid gap-3 md:grid-cols-2 xl:grid-cols-4';
@@ -152,52 +209,71 @@ export function isVideoContinuityQaReport(
 
 export const isUnreadInboxTask = isUnreadWorkspaceInboxTask;
 
-export function formatTaskTimestamp(task: Task): string {
+/** Plain function (not a hook) so table `render` callbacks can call it too;
+ * pass a `pages.workspaceOverview.relativeTime`-scoped translate. */
+export function formatTaskTimestamp(
+  task: Task,
+  translate: WorkspaceTranslate,
+): string {
   const source = task.updatedAt ?? task.createdAt;
   if (!source) {
-    return 'just now';
+    return translate('justNow');
   }
 
   const delta = Date.now() - new Date(source).getTime();
   const minutes = Math.floor(delta / 60_000);
 
   if (minutes < 1) {
-    return 'just now';
+    return translate('justNow');
   }
 
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return translate('minutesAgo', { minutes });
   }
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${hours}h ago`;
+    return translate('hoursAgo', { hours });
   }
 
-  return `${Math.floor(hours / 24)}d ago`;
+  return translate('daysAgo', { days: Math.floor(hours / 24) });
 }
 
-export function formatTaskStatus(task: Task): string {
-  if (task.dismissedAt != null) {
-    return 'Dismissed';
-  }
+export function useTaskTimestamp(task: Task): string {
+  const translate = useTranslations('pages.workspaceOverview.relativeTime');
+  return formatTaskTimestamp(task, translate);
+}
 
-  switch (task.status) {
-    case 'done':
-      return 'Completed';
-    case 'failed':
-      return 'Failed';
-    case 'in_review':
-      return task.reviewState === 'changes_requested'
-        ? 'Changes Requested'
-        : 'Needs Review';
-    case 'in_progress':
-      return 'In Progress';
-    case 'backlog':
-      return 'Triaged';
-    default:
-      return task.status;
+/** Canonical status token for the task pill; review states get their own tone. */
+export function getTaskBadgeStatus(task: Task): string {
+  if (task.dismissedAt != null) return 'cancelled';
+  if (task.status === 'in_review' && task.reviewState === 'changes_requested') {
+    return 'revision_requested';
   }
+  return task.status;
+}
+
+/** Plain function (not a hook) so table `render` callbacks can call it too;
+ * pass `useTaskStatusLabels()` and a `pages.tasks.status`-scoped translate. */
+export function formatTaskStatus(
+  task: Task,
+  statusLabels: Record<TaskStatus, string>,
+  translate: WorkspaceTranslate,
+): string {
+  if (task.dismissedAt != null) {
+    return translate('dismissed');
+  }
+  if (task.status === 'in_review' && task.reviewState === 'changes_requested') {
+    return translate('changesRequested');
+  }
+  // Same vocabulary as the tasks list and board.
+  return statusLabels[task.status as TaskStatus] ?? task.status;
+}
+
+export function useTaskStatusLabel(task: Task): string {
+  const statusLabels = useTaskStatusLabels();
+  const translate = useTranslations('pages.tasks.status');
+  return formatTaskStatus(task, statusLabels, translate);
 }
 
 export function getAdvancedToolHref(task: Task): string {

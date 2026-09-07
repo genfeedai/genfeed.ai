@@ -1,5 +1,3 @@
-'use client';
-
 import {
   DefinitionDetail,
   DefinitionList,
@@ -7,13 +5,7 @@ import {
 } from '@genfeedai/ui';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-
-import type { ReviewPanelItem } from './review-panel.types';
-
-interface ReviewPublishOutcomePanelProps {
-  browserTimezone: string;
-  item: ReviewPanelItem;
-}
+import type { ReviewPublishOutcomePanelProps } from '@props/publishing/review-publish-outcome-panel.props';
 
 export default function ReviewPublishOutcomePanel({
   browserTimezone,

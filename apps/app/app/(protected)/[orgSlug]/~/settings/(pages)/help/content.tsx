@@ -9,20 +9,14 @@ import {
   TiktokIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import type { LinkItem } from '@props/settings/help-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Code, ExternalLink, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ComponentType } from 'react';
 
 import { LinkCard } from '@/components/ui/link-card';
-
-interface LinkItem {
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  url: string;
-}
 
 const COMMUNITY: LinkItem[] = [
   {

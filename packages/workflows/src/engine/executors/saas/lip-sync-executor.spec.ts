@@ -8,7 +8,7 @@ function makeNode(
   configOverrides: Record<string, unknown> = {},
 ): ExecutableNode {
   return {
-    config: { mode: 'image', ...configOverrides },
+    config: { ...configOverrides },
     id: 'lip-sync-1',
     inputs: [],
     label: 'Lip Sync',
@@ -130,7 +130,7 @@ describe('LipSyncExecutor', () => {
       expect(mockResolver).toHaveBeenCalledWith(
         'https://cdn.example.com/video.mp4',
         'https://cdn.example.com/audio.mp3',
-        { mode: 'video' },
+        { mode: 'video', model: 'sync/lipsync-2', syncMode: 'loop' },
         input.context,
         input.node,
       );
@@ -151,13 +151,13 @@ describe('LipSyncExecutor', () => {
       expect(mockResolver).toHaveBeenCalledWith(
         'https://cdn.example.com/face.png',
         'https://cdn.example.com/audio.mp3',
-        { mode: 'image' },
+        { mode: 'image', model: 'heygen/avatar', syncMode: 'loop' },
         input.context,
         input.node,
       );
     });
 
-    it('should default mode to image when not specified', async () => {
+    it('infers video mode when no mode is specified', async () => {
       const input = makeInput({}, [
         ['video', 'https://cdn.example.com/video.mp4'],
         ['audio', 'https://cdn.example.com/audio.mp3'],
@@ -170,11 +170,56 @@ describe('LipSyncExecutor', () => {
       expect(mockResolver).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        { mode: 'image' },
+        { mode: 'video', model: 'sync/lipsync-2', syncMode: 'loop' },
         expect.anything(),
         expect.anything(),
       );
-      expect(result.metadata?.mode).toBe('image');
+      expect(result.metadata?.mode).toBe('video');
     });
+  });
+  it('consumes media artifacts and forwards provider timing settings', async () => {
+    const input = makeInput(
+      { model: 'sync/lipsync-2-pro', syncMode: 'cut_off' },
+      [
+        ['video', { id: 'v1', videoUrl: 'https://cdn.example.com/source.mp4' }],
+        [
+          'audio',
+          { audio: { id: 'a1', audioUrl: 'https://cdn.example.com/es.mp3' } },
+        ],
+      ],
+    );
+    await executor.execute(input);
+    expect(mockResolver).toHaveBeenCalledWith(
+      { id: 'v1', videoUrl: 'https://cdn.example.com/source.mp4' },
+      { audio: { id: 'a1', audioUrl: 'https://cdn.example.com/es.mp3' } },
+      { mode: 'video', model: 'sync/lipsync-2-pro', syncMode: 'cut_off' },
+      input.context,
+      input.node,
+    );
+  });
+  it('rejects an image-only model for an existing video', async () => {
+    await expect(
+      executor.execute(
+        makeInput({ model: 'heygen/avatar' }, [
+          ['video', { videoUrl: 'https://cdn.example.com/source.mp4' }],
+          ['audio', 'https://cdn.example.com/es.mp3'],
+        ]),
+      ),
+    ).rejects.toThrow('does not support video');
+    expect(mockResolver).not.toHaveBeenCalled();
+  });
+  it('rejects an explicit image mode on a video source before any provider dispatch', async () => {
+    await expect(
+      executor.execute(
+        makeInput({ mode: 'image' }, [
+          [
+            'video',
+            { id: 'source', videoUrl: 'https://cdn.example.com/source.mp4' },
+          ],
+          ['audio', 'https://cdn.example.com/es.mp3'],
+        ]),
+      ),
+    ).rejects.toThrow('does not match the connected video source');
+    expect(mockResolver).not.toHaveBeenCalled();
   });
 });

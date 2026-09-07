@@ -59,7 +59,20 @@ export class TextToSpeechExecutor extends BaseExecutor {
   }
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
-    const { node, inputs } = input;
+    const { inputs } = input;
+    const config = { ...input.node.config };
+    for (const field of [
+      'text',
+      'voiceId',
+      'brandId',
+      'language',
+      'model',
+      'settings',
+      'speed',
+    ]) {
+      if (inputs.has(field)) config[field] = inputs.get(field);
+    }
+    const node = { ...input.node, config };
 
     if (!this.resolver) {
       throw new Error('TextToSpeech resolver not configured');

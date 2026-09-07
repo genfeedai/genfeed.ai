@@ -168,10 +168,10 @@ describe('buildSettingsMenuItems', () => {
   describe('brand scope', () => {
     const items = buildSettingsMenuItems({ scope: SettingsSurface.BRAND });
 
-    it('shows brand profile + automation pages including Social and Brand Kit', () => {
+    it('shows brand profile + automation pages including Integrations and Brand Kit', () => {
       expect(items.map((item) => item.label)).toEqual([
         'Profile',
-        'Social',
+        'Integrations',
         'Brand Kit',
         'Characters',
         'Brand voice',
@@ -190,8 +190,8 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Profile')?.href).toBe(
         APP_ROUTES.SETTINGS.ROOT,
       );
-      expect(items.find((i) => i.label === 'Social')?.href).toBe(
-        '/settings/social',
+      expect(items.find((i) => i.label === 'Integrations')?.href).toBe(
+        '/settings/integrations',
       );
       expect(items.find((i) => i.label === 'Links')).toBeUndefined();
       expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
@@ -214,7 +214,7 @@ describe('buildSettingsMenuItems', () => {
     it('uses meaningful Brand, Automation, and Billing groups', () => {
       expect(items.map((item) => [item.label, item.group])).toEqual([
         ['Profile', 'Brand'],
-        ['Social', 'Brand'],
+        ['Integrations', 'Brand'],
         ['Brand Kit', 'Brand'],
         ['Characters', 'Brand'],
         ['Brand voice', 'Brand'],

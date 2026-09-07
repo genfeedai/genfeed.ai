@@ -1,13 +1,5 @@
-'use client';
-
-import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
+import type { AgentStrategyBudgetFieldsProps } from '@props/automation/agent-strategy-budget-fields.props';
 import { Input } from '@ui/primitives/input';
-import type { Dispatch, SetStateAction } from 'react';
-
-interface AgentStrategyBudgetFieldsProps {
-  form: AgentStrategyFormState;
-  setForm: Dispatch<SetStateAction<AgentStrategyFormState>>;
-}
 
 export default function AgentStrategyBudgetFields({
   form,

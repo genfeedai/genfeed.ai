@@ -140,3 +140,40 @@ describe('engine-native vs generated inventories', () => {
     expect(NODE_DEFINITIONS.genfeedAction).toBeDefined();
   });
 });
+
+describe('video localization composition ports', () => {
+  it('exposes localized speech as audio and keeps transcript editing output available', () => {
+    const node = ACTION_NODE_DEFINITIONS.localizeSpeech;
+    expect(node).toBeDefined();
+    expect(node.inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'video', type: 'video' }),
+        expect.objectContaining({ id: 'script', type: 'text' }),
+      ]),
+    );
+    expect(node.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'audio', type: 'audio' }),
+        expect.objectContaining({ id: 'translatedScript', type: 'text' }),
+      ]),
+    );
+  });
+});
+
+describe('dialogue separation workflow ports', () => {
+  it('accepts existing media and exposes a background audio stem plus review flag', () => {
+    const node = ACTION_NODE_DEFINITIONS.separateDialogue;
+    expect(node.inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'video', type: 'video' }),
+        expect.objectContaining({ id: 'audio', type: 'audio' }),
+      ]),
+    );
+    expect(node.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'audio', type: 'audio' }),
+        expect.objectContaining({ id: 'reviewRequired' }),
+      ]),
+    );
+  });
+});

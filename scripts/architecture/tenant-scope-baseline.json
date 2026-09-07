@@ -923,7 +923,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "1432909980c3bd3cc8a0",
+      "fingerprint": "451deff299bcd2166377",
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"

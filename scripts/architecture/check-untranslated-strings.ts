@@ -120,9 +120,55 @@ function lineOf(sourceFile: ts.SourceFile, node: ts.Node): number {
 }
 
 /**
- * Find the deliberately narrow set of direct JSX strings this ratchet owns.
- * String-valued attributes and arbitrary expressions are props/code, not JSX
- * text, and stay outside the floor documented in the file header.
+ * Copy-bearing props. A string literal passed to one of these is user-visible
+ * copy exactly like JSX text and is counted by the ratchet. Identifiers,
+ * class names, hrefs, keys, test ids, and other code-shaped props are not.
+ */
+export const COPY_PROP_NAMES = new Set([
+  'alt',
+  'aria-label',
+  'ariaLabel',
+  'description',
+  'emptyDescription',
+  'emptyLabel',
+  'header',
+  'helperText',
+  'hint',
+  'label',
+  'placeholder',
+  'subtitle',
+  'title',
+  'tooltip',
+]);
+
+function isCopyPropLiteral(node: ts.StringLiteralLike): boolean {
+  const parent = node.parent;
+  // <Foo label="…" /> and <Foo label={'…'} />
+  if (ts.isJsxAttribute(parent)) {
+    return COPY_PROP_NAMES.has(parent.name.getText());
+  }
+  if (
+    ts.isJsxExpression(parent) &&
+    parent.parent &&
+    ts.isJsxAttribute(parent.parent)
+  ) {
+    return COPY_PROP_NAMES.has(parent.parent.name.getText());
+  }
+  // { label: '…' } inside a props/columns/options object literal
+  if (
+    ts.isPropertyAssignment(parent) &&
+    parent.initializer === node &&
+    (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name))
+  ) {
+    return COPY_PROP_NAMES.has(parent.name.text);
+  }
+  return false;
+}
+
+/**
+ * Find the direct JSX strings and copy-prop literals this ratchet owns.
+ * Arbitrary expressions and code-shaped props stay outside the floor
+ * documented in the file header.
  */
 export function findUntranslatedStrings(
   sourceText: string,
@@ -160,6 +206,8 @@ export function findUntranslatedStrings(
       ts.isStringLiteralLike(node.expression)
     ) {
       record(node, node.expression.text);
+    } else if (ts.isStringLiteralLike(node) && isCopyPropLiteral(node)) {
+      record(node, node.text);
     }
 
     ts.forEachChild(node, visit);

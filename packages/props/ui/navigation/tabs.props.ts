@@ -47,12 +47,9 @@ export interface PanelTabsProps {
   readonly activeTab: string | null;
   readonly ariaLabel: string;
   readonly className?: string;
-  readonly closeLabel: (label: string) => string;
   readonly emptyState?: ReactNode;
   readonly footer?: ReactNode;
   readonly items: readonly PanelTabItem[];
-  readonly onClose: (id: string) => void;
   readonly onTabChange: (id: string) => void;
   readonly testId?: string;
-  readonly trailing?: ReactNode;
 }

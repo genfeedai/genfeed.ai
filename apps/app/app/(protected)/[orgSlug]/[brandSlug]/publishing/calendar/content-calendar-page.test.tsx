@@ -68,6 +68,10 @@ const calendarDateRange = {
   start: new Date('2026-03-10T00:00:00.000Z'),
 };
 
+const findNewslettersMock = vi.fn(async () => []);
+const getNewslettersServiceMock = vi.fn(async () => ({
+  findAllPages: findNewslettersMock,
+}));
 const getArticlesServiceMock = vi.fn(async () => ({
   findAll: findArticlesMock,
 }));
@@ -184,6 +188,7 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
@@ -427,9 +432,10 @@ describe('ContentCalendarPage', () => {
     vi.clearAllMocks();
     calendarRenderProps.length = 0;
     useAuthedServiceCallCount = 0;
-    // The page resolves four services per render, in declaration order:
-    // articles, release groups, posting cadences, then posts.
+    // The page resolves five services per render, in declaration order:
+    // newsletters, articles, release groups, posting cadences, then posts.
     const servicesInCallOrder = [
+      getNewslettersServiceMock,
       getArticlesServiceMock,
       getReleaseGroupsServiceMock,
       getPostingCadencesServiceMock,
@@ -515,7 +521,7 @@ describe('ContentCalendarPage', () => {
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
     expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
-      '/acme-org/acme-creator/settings/social',
+      '/acme-org/acme-creator/settings/integrations',
     );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',

@@ -197,7 +197,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/publishing/posts': 'Posts',
   '/:orgSlug/~/publishing/posts/:id': 'Content',
   '/:orgSlug/~/publishing/content': 'Content',
-  '/:orgSlug/~/publishing/review': 'Review',
+  '/:orgSlug/~/publishing/review': 'Approval queue',
+  '/:orgSlug/:brandSlug/publishing/review': 'Approval queue',
   '/:orgSlug/~/publishing/calendar': 'Calendar',
   '/:orgSlug/:brandSlug/automation/campaigns': 'Programs',
   '/:orgSlug/:brandSlug/automation/campaigns/new': 'New Program',
@@ -1051,6 +1052,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/characters',
+      '/:orgSlug/:brandSlug/settings/integrations',
+      // Redirect-only alias kept for saved links.
       '/:orgSlug/:brandSlug/settings/social',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
@@ -1070,7 +1073,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(['/:orgSlug/:brandSlug/platforms/:platform'], {
-    fallback: '/:orgSlug/:brandSlug/settings/social',
+    fallback: '/:orgSlug/:brandSlug/settings/integrations',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'brand',

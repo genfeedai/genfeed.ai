@@ -1,15 +1,20 @@
 'use client';
 
+import {
+  useTaskPriorityLabels,
+  useTaskStatusLabels,
+} from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  IssueDetailAction,
+  IssueDetailProps,
+  IssueDetailState,
+} from '@props/tasks/issue-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { TaskCommentsService } from '@services/management/task-comments.service';
 import {
-  type IssueComment,
-  IssueCommentsService,
-} from '@services/management/issue-comments.service';
-import {
-  type Task,
   type TaskLinkedEntityModel,
   type TaskPriority,
   type TaskStatus,
@@ -21,7 +26,6 @@ import Container from '@ui/layout/container/Container';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
 import IssueSidebar from './issue-sidebar';
@@ -36,24 +40,6 @@ const STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   in_progress: ['blocked', 'in_review', 'done', 'cancelled'],
   in_review: ['in_progress', 'done', 'cancelled'],
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
-};
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: 'Backlog',
-  blocked: 'Blocked',
-  cancelled: 'Cancelled',
-  done: 'Done',
-  failed: 'Failed',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  todo: 'To Do',
-};
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  low: 'Low',
-  medium: 'Medium',
 };
 
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
@@ -78,31 +64,6 @@ const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
 };
 
 const VISIBLE_COMMENT_COUNT = 3;
-
-interface IssueDetailState {
-  issue: Task | null;
-  comments: IssueComment[];
-  children: Task[];
-  isLoading: boolean;
-  commentBody: string;
-  isSubmitting: boolean;
-  showAllComments: boolean;
-}
-
-type IssueDetailAction =
-  | { type: 'LOAD_START' }
-  | {
-      type: 'LOAD_SUCCESS';
-      payload: { issue: Task; comments: IssueComment[]; children: Task[] };
-    }
-  | { type: 'LOAD_ERROR' }
-  | { type: 'LOAD_DONE' }
-  | { type: 'SET_ISSUE'; payload: Task }
-  | { type: 'APPEND_COMMENT'; payload: IssueComment }
-  | { type: 'SET_COMMENT_BODY'; payload: string }
-  | { type: 'SUBMIT_START' }
-  | { type: 'SUBMIT_END' }
-  | { type: 'SHOW_ALL_COMMENTS' };
 
 const initialIssueDetailState: IssueDetailState = {
   issue: null,
@@ -149,16 +110,12 @@ function issueDetailReducer(
   }
 }
 
-interface IssueDetailProps {
-  issueId: string;
-  /** If true, treat issueId as a human-readable identifier (e.g., GEN-42) */
-  useIdentifier?: boolean;
-}
-
 export default function IssueDetail({
   issueId,
   useIdentifier,
 }: IssueDetailProps) {
+  const statusLabels = useTaskStatusLabels();
+  const priorityLabels = useTaskPriorityLabels();
   const notificationsService = NotificationsService.getInstance();
   const [state, dispatch] = useReducer(
     issueDetailReducer,
@@ -183,7 +140,7 @@ export default function IssueDetail({
   );
 
   const getCommentsService = useAuthedService((token) =>
-    IssueCommentsService.getInstanceForIssue(
+    TaskCommentsService.getInstanceForTask(
       token,
       resolvedIdRef.current || issueId,
     ),
@@ -347,9 +304,9 @@ export default function IssueDetail({
               status={issue.status}
               priority={issue.priority}
               title={issue.title}
-              statusLabels={STATUS_LABELS}
+              statusLabels={statusLabels}
               priorityColors={PRIORITY_COLORS}
-              priorityLabels={PRIORITY_LABELS}
+              priorityLabels={priorityLabels}
             />
 
             {/* Description */}
@@ -368,7 +325,7 @@ export default function IssueDetail({
 
             <IssueSubIssuesCard
               subIssues={children}
-              statusLabels={STATUS_LABELS}
+              statusLabels={statusLabels}
             />
 
             <IssueCommentsCard
@@ -392,10 +349,10 @@ export default function IssueDetail({
           {/* Sidebar */}
           <IssueSidebar
             issue={issue}
-            statusLabels={STATUS_LABELS}
+            statusLabels={statusLabels}
             statusTransitions={STATUS_TRANSITIONS}
             priorityColors={PRIORITY_COLORS}
-            priorityLabels={PRIORITY_LABELS}
+            priorityLabels={priorityLabels}
             entityModelColors={ENTITY_MODEL_COLORS}
             entityModelLabels={ENTITY_MODEL_LABELS}
             onStatusUpdate={handleStatusUpdate}

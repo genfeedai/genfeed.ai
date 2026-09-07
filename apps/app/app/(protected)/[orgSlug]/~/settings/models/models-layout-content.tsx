@@ -1,5 +1,3 @@
-'use client';
-
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';

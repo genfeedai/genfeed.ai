@@ -1,28 +1,30 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskRowProps } from '@props/workspace/workspace-task-row.props';
+import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { ExternalLink } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import {
-  formatTaskStatus,
-  formatTaskTimestamp,
+  getTaskBadgeStatus,
   getTaskStateDotClass,
   isUnreadInboxTask,
+  useTaskStatusLabel,
+  useTaskTimestamp,
 } from './workspace-task.helpers';
 
-type WorkspaceTaskRowProps = {
-  onOpen: (task: Task) => void;
-  task: Task;
-};
-
 export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
+  const translate = useTranslations('pages.workspaceOverview');
   const needsAttention = isUnreadInboxTask(task);
+  const statusLabel = useTaskStatusLabel(task);
+  const timestamp = useTaskTimestamp(task);
 
   return (
     <ListRow
-      ariaLabel={`Open details for ${task.title}`}
+      ariaLabel={translate('openDetailsFor', { title: task.title })}
       data-testid="workspace-task-row"
       onClick={() => onOpen(task)}
       leading={
@@ -37,13 +39,13 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
       title={
         <span className="flex flex-wrap items-center gap-2">
           <span className="min-w-0 flex-1 truncate">{task.title}</span>
-          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
-            {formatTaskStatus(task)}
-          </span>
+          <Badge status={getTaskBadgeStatus(task)} size={ComponentSize.SM}>
+            {statusLabel}
+          </Badge>
           {needsAttention ? (
-            <span className="rounded-full bg-muted px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
-              Needs attention
-            </span>
+            <Badge variant="warning" size={ComponentSize.SM}>
+              {translate('needsAttention')}
+            </Badge>
           ) : null}
         </span>
       }
@@ -59,7 +61,7 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
           {task.executionPathUsed ? (
             <span>{task.executionPathUsed.replaceAll('_', ' ')}</span>
           ) : null}
-          <span>{formatTaskTimestamp(task)}</span>
+          <span>{timestamp}</span>
         </span>
       }
       trailing={

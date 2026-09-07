@@ -32,7 +32,7 @@ import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 /**
  * Brand public profile surface — banner, logo, name/description, visibility,
  * external links (inline + modal), and latest public content.
- * OAuth accounts live on /settings/social.
+ * OAuth accounts live on /settings/integrations.
  */
 export default function BrandDetail() {
   const {
@@ -67,8 +67,8 @@ export default function BrandDetail() {
     typeof params?.brandSlug === 'string' ? params.brandSlug : '';
   const manageSocialHref =
     orgSlug && brandSlug
-      ? `/${orgSlug}/${brandSlug}/settings/social`
-      : '/settings/social';
+      ? `/${orgSlug}/${brandSlug}/settings/integrations`
+      : '/settings/integrations';
 
   const handleOpenLinkModal = useCallback(
     (link?: ILink) => {

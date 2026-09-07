@@ -1,6 +1,7 @@
 import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/content-loop.template';
 import { DAILY_PUBLISHING_TEMPLATE } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
+import { DYNAMIC_VIDEO_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/dynamic-video-workflows.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
@@ -95,6 +96,7 @@ export interface WorkflowTemplate {
 
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
+  ...DYNAMIC_VIDEO_WORKFLOW_TEMPLATES,
   ...Object.fromEntries(
     PRODUCTIZED_DAILY_ROUTINE_TEMPLATES.map((template) => [
       template.id,

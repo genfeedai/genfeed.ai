@@ -353,7 +353,7 @@ describe('TwitterController', () => {
       });
     });
 
-    it('keeps invalid X client credentials as a server failure', async () => {
+    it('surfaces invalid X client credentials as a Service Unavailable deployment error', async () => {
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: 'encrypted-code-verifier',
@@ -370,12 +370,42 @@ describe('TwitterController', () => {
       };
       mockLoginWithOAuth2.mockRejectedValue(providerFailure);
 
+      const failure = await controller
+        .verify({} as Request, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        })
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(ServiceUnavailableException);
+      expect(
+        (failure as ServiceUnavailableException).getResponse(),
+      ).toMatchObject({
+        detail:
+          "X rejected this deployment's app credentials (client id/secret or app type). Check the X developer portal and TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET.",
+      });
+    });
+
+    it('surfaces an unauthorized_client body as the same Service Unavailable deployment error', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'cred',
+        oauthTokenSecret: 'encrypted-code-verifier',
+        organizationId: testId('org'),
+      });
+      mockLoginWithOAuth2.mockRejectedValue({
+        data: { error: 'unauthorized_client' },
+        status: 401,
+      });
+
       await expect(
         controller.verify({} as Request, {
           code: 'auth-code',
           state: 'opaque-oauth-state',
         }),
-      ).rejects.toBe(providerFailure);
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
   });
 

@@ -73,8 +73,12 @@ function SelectTrigger({
   ref,
   className,
   children,
+  hideIndicator = false,
   ...props
-}: ComponentPropsWithRef<typeof SelectPrimitive.Trigger>) {
+}: ComponentPropsWithRef<typeof SelectPrimitive.Trigger> & {
+  /** Drop the chevron when the trigger is itself a pill or badge. */
+  hideIndicator?: boolean;
+}) {
   return (
     <SelectPrimitive.Trigger
       ref={ref}
@@ -86,12 +90,14 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon asChild>
-        <ChevronsUpDown
-          className="size-4 text-muted-foreground"
-          aria-hidden="true"
-        />
-      </SelectPrimitive.Icon>
+      {hideIndicator ? null : (
+        <SelectPrimitive.Icon asChild>
+          <ChevronsUpDown
+            className="size-4 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </SelectPrimitive.Icon>
+      )}
     </SelectPrimitive.Trigger>
   );
 }

@@ -62,8 +62,11 @@ describe('InstagramController', () => {
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
   let credentialsFindOneMock: ReturnType<typeof vi.fn>;
+  let credentialsUpdateExternalProfileMock: ReturnType<typeof vi.fn>;
   let instagramServiceMock: {
+    getAccountDetails: ReturnType<typeof vi.fn>;
     getAvailableHandles: ReturnType<typeof vi.fn>;
+    getInstagramPages: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
   };
   let instagramAuthorizedSignalsServiceMock: {
@@ -107,10 +110,17 @@ describe('InstagramController', () => {
     });
     credentialsFindOneMock = vi.fn();
     credentialsPatchMock = vi.fn();
+    credentialsUpdateExternalProfileMock = vi.fn();
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
     instagramServiceMock = {
+      getAccountDetails: vi.fn().mockResolvedValue({
+        account_type: 'BUSINESS',
+        id: 'ig-account-id',
+        username: 'ig_handle',
+      }),
       getAvailableHandles: vi.fn(),
+      getInstagramPages: vi.fn().mockResolvedValue([]),
       getTrends: vi.fn(),
     };
     instagramAuthorizedSignalsServiceMock = {
@@ -126,6 +136,7 @@ describe('InstagramController', () => {
       findOne: credentialsFindOneMock,
       findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
+      updateExternalProfile: credentialsUpdateExternalProfileMock,
     } as unknown as CredentialsService;
 
     const httpServiceMock = {
@@ -304,6 +315,72 @@ describe('InstagramController', () => {
         grantedScopes: undefined,
         organizationId: orgId,
       });
+    });
+
+    it('persists the connected account avatar and handle after token exchange', async () => {
+      const credId = 'test-object-id';
+      httpPostMock.mockReturnValue(
+        of({ data: { access_token: 'short-lived-token' } }),
+      );
+      httpGetMock.mockReturnValue(
+        of({
+          data: { access_token: 'long-lived-token', expires_in: 5184000 },
+        }),
+      );
+      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+        brandId,
+        id: credId,
+        organizationId: orgId,
+        userId: instagramUserId,
+      });
+      credentialsPatchMock.mockResolvedValue({
+        brandId,
+        id: credId,
+        isConnected: true,
+      });
+      instagramServiceMock.getAccountDetails.mockResolvedValue({
+        account_type: 'BUSINESS',
+        id: 'ig-account-id',
+        username: 'ig_handle',
+      });
+      instagramServiceMock.getInstagramPages.mockResolvedValue([
+        {
+          id: 'ig-account-id',
+          image: 'https://cdn.example.com/avatar.jpg',
+          label: 'Genfeed AI',
+          username: 'genfeedai',
+        },
+      ]);
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        avatarUrl: 'https://cdn.example.com/avatar.jpg',
+        brandId,
+        handle: 'genfeedai',
+        id: credId,
+        isConnected: true,
+      });
+
+      await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state,
+      });
+
+      expect(instagramServiceMock.getAccountDetails).toHaveBeenCalledWith(
+        'long-lived-token',
+      );
+      expect(instagramServiceMock.getInstagramPages).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        credId,
+      );
+      expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        expect.objectContaining({
+          avatarUrl: 'https://cdn.example.com/avatar.jpg',
+          handle: 'genfeedai',
+          id: 'ig-account-id',
+        }),
+      );
     });
 
     it('should return bad request when code or state is missing', async () => {

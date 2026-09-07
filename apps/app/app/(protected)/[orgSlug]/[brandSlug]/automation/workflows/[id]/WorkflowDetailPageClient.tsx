@@ -9,6 +9,7 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { WorkflowDetailPageClientProps } from '@props/automation/workflow-detail-page-client.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -56,11 +57,6 @@ import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
 import { postWorkflowExecution } from '@/lib/api/execution-http-client';
 import { createSettingsSyncService } from '@/lib/api/settings-sync';
 import { applyEditOperations } from '@/lib/chat/editOperations';
-
-interface WorkflowDetailPageClientProps {
-  workflowId: string;
-  initialExecutionId?: string;
-}
 
 /**
  * Workflow detail page - inlines the editor composition directly.

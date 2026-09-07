@@ -1,5 +1,3 @@
-'use client';
-
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { logger } from '@services/core/logger.service';

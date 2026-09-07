@@ -68,8 +68,8 @@
     --background: 0 0% 98%;
     --background-secondary: 0 0% 100%;
     --background-tertiary: 0 0% 93%;
-    --border: 0 0% 85%;
-    --border-strong: 0 0% 76%;
+    --border: 0 0% 90%;
+    --border-strong: 0 0% 82%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
     --destructive: 0 72% 51%;
@@ -125,6 +125,7 @@
     --shadow-menu: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px -4px rgba(0, 0, 0, 0.04), 0 16px 24px -8px rgba(0, 0, 0, 0.06);
     --shadow-modal: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 8px 16px -4px rgba(0, 0, 0, 0.04), 0 24px 32px -8px rgba(0, 0, 0, 0.06);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.08);
     --shadow-tooltip: 0 0 0 1px rgba(0, 0, 0, 0.09), 0 1px 1px rgba(0, 0, 0, 0.02), 0 4px 8px rgba(0, 0, 0, 0.04);
   }
 
@@ -135,8 +136,8 @@
       --background: 0 0% 4%;
       --background-secondary: 0 0% 9%;
       --background-tertiary: 0 0% 12%;
-      --border: 0 0% 20%;
-      --border-strong: 0 0% 29%;
+      --border: 0 0% 15%;
+      --border-strong: 0 0% 24%;
       --card: 0 0% 5%;
       --card-foreground: 0 0% 93%;
       --destructive: 358 100% 69%;
@@ -192,6 +193,8 @@
       --shadow-menu: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px -4px rgba(0, 0, 0, 0.36), 0 16px 24px -8px rgba(0, 0, 0, 0.44);
       --shadow-modal: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 8px 16px -4px rgba(0, 0, 0, 0.36), 0 24px 32px -8px rgba(0, 0, 0, 0.52);
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.36);
+    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
+      --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
       --shadow-tooltip: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px rgba(0, 0, 0, 0.36);
     }
   }
@@ -202,8 +205,8 @@
     --background: 0 0% 4%;
     --background-secondary: 0 0% 9%;
     --background-tertiary: 0 0% 12%;
-    --border: 0 0% 20%;
-    --border-strong: 0 0% 29%;
+    --border: 0 0% 15%;
+    --border-strong: 0 0% 24%;
     --card: 0 0% 5%;
     --card-foreground: 0 0% 93%;
     --destructive: 358 100% 69%;
@@ -259,6 +262,7 @@
     --shadow-menu: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px -4px rgba(0, 0, 0, 0.36), 0 16px 24px -8px rgba(0, 0, 0, 0.44);
     --shadow-modal: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 8px 16px -4px rgba(0, 0, 0, 0.36), 0 24px 32px -8px rgba(0, 0, 0, 0.52);
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.36);
+    --shadow-sidebar-footer: 0 -8px 16px -8px rgba(0, 0, 0, 0.6);
     --shadow-tooltip: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 1px 1px rgba(0, 0, 0, 0.28), 0 4px 8px rgba(0, 0, 0, 0.36);
   }
 }

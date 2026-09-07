@@ -1,7 +1,5 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { Task } from '@services/management/tasks.service';
+import type { WorkspaceTaskComposerProps } from '@props/workspace/workspace-task-composer.props';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -14,12 +12,6 @@ import {
 } from './workspace-task-composer.constants';
 import { WorkspaceTaskFacecamPanel } from './workspace-task-facecam-panel';
 import { WorkspaceTaskToolbar } from './workspace-task-toolbar';
-
-interface WorkspaceTaskComposerProps {
-  onOpenChange: (open: boolean) => void;
-  onTaskCreated: (task: Task) => void;
-  open: boolean;
-}
 
 export function WorkspaceTaskComposer({
   onOpenChange,

@@ -12,6 +12,7 @@ import type {
   IWebhookDeliveryStatus,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { WebhookFormState } from '@props/settings/webhooks-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -26,13 +27,6 @@ import { Switch } from '@ui/primitives/switch';
 import { Text } from '@ui/typography/text';
 import { RefreshCw, Send } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-type WebhookFormState = {
-  isWebhookEnabled: boolean;
-  webhookEndpoint: string;
-  webhookEventTypes: string[];
-  webhookSecret: string;
-};
 
 const SECONDARY_BUTTON_VARIANT = 'secondary' as ButtonVariant;
 
