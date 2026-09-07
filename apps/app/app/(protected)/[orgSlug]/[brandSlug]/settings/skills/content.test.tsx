@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 'use client';
 
+import { ModalEnum } from '@genfeedai/contracts';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsSkillsPage from './content';
 
 const pushMock = vi.fn();
@@ -12,6 +14,7 @@ const listSkillsMock = vi.fn();
 const customizeSkillMock = vi.fn();
 const updateSkillMock = vi.fn();
 const toggleSkillMock = vi.fn();
+const setUseDefaultsMock = vi.fn();
 const selectedBrandMock = {
   agentConfig: {
     enabledSkills: [],
@@ -51,6 +54,8 @@ vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
   useBrandEnabledSkills: () => ({
     enabledSlugs: [],
     isLoading: false,
+    isUsingDefaults: false,
+    setUseDefaults: setUseDefaultsMock,
     toggleSkill: toggleSkillMock,
   }),
 }));
@@ -94,8 +99,20 @@ vi.mock('@services/content/skills.service', async () => {
 });
 
 describe('BrandSettingsSkillsPage', () => {
+  afterEach(() => {
+    closeModal(ModalEnum.SKILL);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: true,
+        removeEventListener: vi.fn(),
+      }),
+    });
     Object.assign(routeParamsMock, {
       brandSlug: 'acme-creator',
       orgSlug: 'acme-org',
@@ -160,6 +177,9 @@ describe('BrandSettingsSkillsPage', () => {
     expect(
       screen.getByRole('switch', { name: 'Enable YouTube Script Setup' }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Use default skills' }));
+    expect(setUseDefaultsMock).toHaveBeenCalledWith(true);
 
     fireEvent.click(screen.getByText('YouTube Script Setup'));
 

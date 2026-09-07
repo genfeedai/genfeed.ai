@@ -47,6 +47,35 @@ function addUnique(target: string[], slugs: readonly string[]): void {
   }
 }
 
+function collectDefaultSlugs(): string[] {
+  const slugs: string[] = [];
+  addUnique(slugs, GENERIC_DEFAULTS);
+  for (const group of [
+    AGENT_TYPE_DEFAULTS,
+    MODALITY_DEFAULTS,
+    CHANNEL_DEFAULTS,
+  ]) {
+    for (const values of Object.values(group)) {
+      addUnique(slugs, values);
+    }
+  }
+  return slugs;
+}
+
+/**
+ * Every first-party slug that can be injected while a brand has no explicit
+ * `enabledSkills`. This is what the settings catalog reports as enabled by
+ * default; a turn still packs the context-relevant subset from it.
+ */
+export const DEFAULT_FIRST_PARTY_SKILL_SLUGS: readonly string[] =
+  collectDefaultSlugs();
+
+export function isDefaultFirstPartySkillSlug(slug: unknown): boolean {
+  return (
+    typeof slug === 'string' && DEFAULT_FIRST_PARTY_SKILL_SLUGS.includes(slug)
+  );
+}
+
 /**
  * Small first-party default set for a turn whose brand has empty `enabledSkills`.
  * Packs by agent type, then modality, then channel — never the full catalog.

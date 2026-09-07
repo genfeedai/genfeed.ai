@@ -130,6 +130,18 @@ export interface IBrandAgentSchedule {
   timezone?: string;
 }
 
+/** Persisted skill selection written by the enabled-skills endpoint. */
+export interface IBrandSkillSelection {
+  enabledSkills: string[];
+  useDefaultSkills: boolean;
+}
+
+/** Effective skill selection after defaults and access rules are applied. */
+export interface IBrandEffectiveSkillSelection {
+  enabledSlugs: string[];
+  isUsingDefaults: boolean;
+}
+
 export interface IBrandAgentConfig {
   defaultModel?: string;
   defaultVoiceId?: string | null;
@@ -148,6 +160,8 @@ export interface IBrandAgentConfig {
   heygenVoiceId?: string | null;
   persona?: string;
   enabledSkills?: string[];
+  /** Defaults apply instead of `enabledSkills`; undefined means defaults while the list is empty. */
+  useDefaultSkills?: boolean;
   voice?: IBrandAgentVoice;
   strategy?: IBrandAgentStrategy;
   prompting?: IBrandAgentPrompting;

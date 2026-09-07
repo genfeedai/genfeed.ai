@@ -47,6 +47,7 @@ export enum ModalEnum {
   ROLE = 'modal-role',
   SCENE = 'modal-scene',
   SCRIPT = 'modal-script',
+  SKILL = 'modal-skill',
   SOUND = 'modal-sound',
   STYLE = 'modal-style',
   SUBSCRIPTION = 'modal-subscription',

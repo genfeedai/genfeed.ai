@@ -1,4 +1,8 @@
-import { resolveDefaultFirstPartySkillSlugs } from '@api/collections/skills/catalog/default-first-party-skills';
+import {
+  DEFAULT_FIRST_PARTY_SKILL_SLUGS,
+  isDefaultFirstPartySkillSlug,
+  resolveDefaultFirstPartySkillSlugs,
+} from '@api/collections/skills/catalog/default-first-party-skills';
 import {
   BUILT_IN_SKILL_CATALOG,
   isBuiltInSkillIdentity,
@@ -23,6 +27,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ByokProvider } from '@genfeedai/contracts';
+import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -507,11 +512,16 @@ export class SkillsService {
     }
   }
 
-  async getEnabledSkillSlugs(
+  /**
+   * The brand's effective skill selection. Defaults apply when
+   * `useDefaultSkills` is true, or while it is unset and the explicit list is
+   * empty (the legacy rule). An explicit `false` with an empty list means
+   * no skills at all.
+   */
+  async getBrandSkillSelection(
     organizationId: string,
     brandId: string,
-    requestedSlugs?: string[],
-  ): Promise<string[]> {
+  ): Promise<IBrandEffectiveSkillSelection> {
     this.requireOrganizationId(organizationId);
 
     const brand = await findOrThrow(
@@ -525,24 +535,46 @@ export class SkillsService {
     const storedEnabledSkills = [
       ...new Set(this.readStringArray(agentConfig?.enabledSkills)),
     ];
+    const useDefaultSkills = agentConfig?.useDefaultSkills;
+    const isUsingDefaults =
+      useDefaultSkills === true ||
+      (useDefaultSkills === undefined && storedEnabledSkills.length === 0);
+    const candidateSlugs = isUsingDefaults
+      ? [...DEFAULT_FIRST_PARTY_SKILL_SLUGS]
+      : storedEnabledSkills;
 
-    if (storedEnabledSkills.length === 0) {
-      return [];
+    if (candidateSlugs.length === 0) {
+      return { enabledSlugs: [], isUsingDefaults };
     }
 
     const accessibleSkillSlugs = await this.getAccessibleSkillSlugSet(
       organizationId,
       true,
     );
-    const enabledSkills = storedEnabledSkills.filter((slug) =>
-      accessibleSkillSlugs.has(slug),
+
+    return {
+      enabledSlugs: candidateSlugs.filter((slug) =>
+        accessibleSkillSlugs.has(slug),
+      ),
+      isUsingDefaults,
+    };
+  }
+
+  async getEnabledSkillSlugs(
+    organizationId: string,
+    brandId: string,
+    requestedSlugs?: string[],
+  ): Promise<string[]> {
+    const { enabledSlugs } = await this.getBrandSkillSelection(
+      organizationId,
+      brandId,
     );
 
     if (!requestedSlugs || requestedSlugs.length === 0) {
-      return enabledSkills;
+      return enabledSlugs;
     }
 
-    return requestedSlugs.filter((slug) => enabledSkills.includes(slug));
+    return requestedSlugs.filter((slug) => enabledSlugs.includes(slug));
   }
 
   async resolveBrandSkills(
@@ -552,22 +584,28 @@ export class SkillsService {
   ): Promise<ResolvedBrandSkill[]> {
     this.requireOrganizationId(organizationId);
 
-    let enabledSlugs = await this.getEnabledSkillSlugs(organizationId, brandId);
+    const selection = await this.getBrandSkillSelection(
+      organizationId,
+      brandId,
+    );
+    let enabledSlugs = selection.enabledSlugs;
 
-    if (enabledSlugs.length === 0) {
+    if (selection.isUsingDefaults) {
       if (!options.fallbackToDefaultCatalog) {
         return [];
       }
 
+      // A turn packs the context-relevant subset of the defaults, never the
+      // whole default set.
       enabledSlugs = resolveDefaultFirstPartySkillSlugs({
         agentType: options.agentType,
         channel: options.channel,
         modality: options.modality,
-      });
+      }).filter((slug) => selection.enabledSlugs.includes(slug));
+    }
 
-      if (enabledSlugs.length === 0) {
-        return [];
-      }
+    if (enabledSlugs.length === 0) {
+      return [];
     }
 
     const all = await this.prisma.skill.findMany({
@@ -626,6 +664,11 @@ export class SkillsService {
       ...config,
       id: row.id,
       createdAt: row.createdAt,
+      // Built-in slugs the runtime injects while the brand has no explicit
+      // `enabledSkills`. The settings catalog shows these as enabled by default.
+      isDefault:
+        row.organizationId === null &&
+        isDefaultFirstPartySkillSlug(config.slug),
       isDeleted: row.isDeleted,
       label: row.label,
       organizationId: row.organizationId,

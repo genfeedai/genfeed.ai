@@ -1,4 +1,4 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { SkillFiltersProps } from '@props/settings/skills.props';
 import { Button } from '@ui/primitives/button';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
@@ -95,17 +95,17 @@ export default function SkillFilters({
       </Select>
 
       <Button
-        className="rounded-full"
+        icon={<RefreshCw className="size-4" />}
+        label={translate('actions.refresh')}
         onClick={onRefresh}
+        size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
-      >
-        <RefreshCw className="size-4" />
-        {translate('actions.refresh')}
-      </Button>
+      />
       <Button
         asChild
-        className="rounded-full"
-        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
       >
         <Link href={agentHref}>
           <Sparkles className="size-4" />

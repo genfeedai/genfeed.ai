@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 'use client';
 
+import { ModalEnum } from '@genfeedai/contracts';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { Skill } from '@services/content/skills.service';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillDetailSheet from './skill-detail-sheet';
 
 const selectedSkillFixture: Skill = {
@@ -33,13 +38,28 @@ vi.mock('next-intl', async () => {
 });
 
 describe('SkillDetailSheet', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: true,
+        removeEventListener: vi.fn(),
+      }),
+    });
+    openModal(ModalEnum.SKILL);
+  });
+
+  afterEach(() => {
+    closeModal(ModalEnum.SKILL);
+  });
+
   it('renders the selected skill detail content when open', () => {
     render(
       <SkillDetailSheet
         customizing={false}
-        isOpen
+        onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenChange={vi.fn()}
         onOpenTestInChat={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
@@ -64,9 +84,8 @@ describe('SkillDetailSheet', () => {
     render(
       <SkillDetailSheet
         customizing={false}
-        isOpen
+        onClose={vi.fn()}
         onCustomize={vi.fn()}
-        onOpenChange={vi.fn()}
         onOpenTestInChat={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
@@ -86,14 +105,13 @@ describe('SkillDetailSheet', () => {
     ).toBeInTheDocument();
   });
 
-  it('calls onOpenChange when the sheet is closed', () => {
-    const onOpenChange = vi.fn();
+  it('calls onClose when the overlay is closed', () => {
+    const onClose = vi.fn();
     render(
       <SkillDetailSheet
         customizing={false}
-        isOpen
+        onClose={onClose}
         onCustomize={vi.fn()}
-        onOpenChange={onOpenChange}
         onOpenTestInChat={vi.fn()}
         onSaveSkill={vi.fn()}
         onSkillDraftChange={vi.fn()}
@@ -108,8 +126,8 @@ describe('SkillDetailSheet', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
 
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

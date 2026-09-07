@@ -18,6 +18,7 @@ import type {
   IBrandOsPreviewClaimRequest,
   IBrandSetupRequest,
   IBrandSetupResponse,
+  IBrandSkillSelection,
   IGeneratedBrandProfile,
   IImage,
   IPaginatedResponse,
@@ -313,6 +314,13 @@ export class BrandsService extends BaseService<Brand> {
     },
   ): Promise<void> {
     await this.instance.patch(`/${id}/agent-config`, data);
+  }
+
+  public async updateEnabledSkills(
+    id: string,
+    selection: IBrandSkillSelection,
+  ): Promise<void> {
+    await this.instance.patch(`/${id}/agent-config/enabled-skills`, selection);
   }
 
   /**

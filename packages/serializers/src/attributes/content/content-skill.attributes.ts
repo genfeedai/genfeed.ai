@@ -21,6 +21,7 @@ export const skillAttributes = createEntityAttributes([
   'systemPromptTemplate',
   'toolOverrides',
   'isBuiltIn',
+  'isDefault',
   'isEnabled',
   'version',
   'sourceListingId',

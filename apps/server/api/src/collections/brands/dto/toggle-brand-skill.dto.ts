@@ -7,9 +7,11 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class ToggleBrandSkillDto {
@@ -28,4 +30,13 @@ export class ToggleBrandSkillDto {
     type: [String],
   })
   enabledSkills!: string[];
+
+  @IsBoolean()
+  @ValidateIf((_object, value) => value !== undefined)
+  @ApiProperty({
+    description:
+      'Use the first-party default skill set instead of the explicit list',
+    required: false,
+  })
+  useDefaultSkills?: boolean;
 }
