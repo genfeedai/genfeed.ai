@@ -106,6 +106,7 @@ export function SocialsNavigation({
       ariaLabel="Social platforms"
       className="max-w-full"
       fullWidth={false}
+      testId="socials-platform-filter"
       items={items.map((item) => ({
         ...item,
         icon: item.id === 'overview' ? LayoutGrid : PLATFORM_ICONS[item.id],

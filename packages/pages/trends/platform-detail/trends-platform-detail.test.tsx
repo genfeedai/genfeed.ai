@@ -8,6 +8,18 @@ const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
 const mockUsePathname = vi.fn(() => '/discovery/tiktok');
 
+// TrendContentCard (rendered for every feed item) calls `useTranslations`.
+// Without this mock it throws for lack of a `NextIntlClientProvider`, and
+// since nothing here catches that error, React discards the render and
+// retries once from the root — silently doubling every `useQuery` call and
+// masking the real failure behind an unrelated "Cannot read properties of
+// undefined" error. See trend-detail.test.tsx / discovery-desk.test.tsx for
+// the same pattern.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
