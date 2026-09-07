@@ -36,6 +36,8 @@ describe('getExecutionCredits', () => {
   });
 
   it('treats a missing creditsUsed as zero instead of crashing the row', () => {
+    // `creditsUsed` is optional on IWorkflowExecution, so this is a shape the
+    // API can really return, not a cast-only branch.
     const credits = getExecutionCredits(
       makeExecution({ creditsUsed: undefined }),
     );

@@ -59,7 +59,7 @@ export default function WorkflowExecutionRow({
           </Badge>
         </TableCell>
         <TableCell className="p-4 align-middle text-sm">
-          {execution.creditsUsed}
+          {execution.creditsUsed ?? 0}
         </TableCell>
         <TableCell className="p-4 align-middle text-sm text-foreground/60">
           {execution.nodeResults.length}
