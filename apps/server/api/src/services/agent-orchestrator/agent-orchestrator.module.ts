@@ -14,6 +14,7 @@ import { BrandInterviewModule } from '@api/collections/brands/brand-interview/br
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
+import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
@@ -76,6 +77,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
+import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
@@ -120,6 +122,7 @@ import { Module } from '@nestjs/common';
   controllers: [AgentOrchestratorController, AgentToolsController],
   exports: [AgentOrchestratorService, AgentTurnAcceptanceService],
   imports: [
+    ContextsModule,
     AgentCampaignsModule,
     AgentGoalsModule,
     AgentStrategiesModule,
@@ -190,6 +193,7 @@ import { Module } from '@nestjs/common';
     AgentWorkflowToolHandler,
     AgentWorkflowToolInstallService,
     AgentBrandContentToolHandler,
+    AgentKnowledgeToolHandler,
     AgentBrandInterviewToolHandler,
     AgentPrepareToolHandler,
     AgentSpawnToolHandler,
