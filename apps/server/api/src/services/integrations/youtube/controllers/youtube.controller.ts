@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -56,6 +57,7 @@ export class YoutubeController {
     private readonly brandsService: BrandsService,
     private readonly youtubeService: YoutubeService,
     private readonly youtubeAuthorizedSignalsService: YoutubeAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
   ) {}
 
   @Post('connect')
@@ -222,26 +224,13 @@ export class YoutubeController {
         tokens,
       });
 
-      try {
-        await this.youtubeAuthorizedSignalsService.refresh({
-          accessToken: tokens.access_token,
-          credentialId: credential.id.toString(),
-          force: true,
-          grantedScopes: tokens.scope,
-          organizationId,
-        });
-        credential =
-          (await this.credentialsService.findOne({
-            id: credential.id.toString(),
-            organizationId,
-            platform: CredentialPlatform.YOUTUBE,
-          })) ?? credential;
-      } catch (signalError: unknown) {
-        this.loggerService.warn(
-          `${url} authorized signal refresh failed after connection`,
-          signalError,
-        );
-      }
+      credential = await this.finalizeConnection({
+        accessToken: tokens.access_token,
+        credential,
+        grantedScopes: tokens.scope,
+        organizationId,
+        url,
+      });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -355,6 +344,54 @@ export class YoutubeController {
       );
       return credential;
     }
+  }
+
+  /**
+   * Post-connection work that must never fail the connection itself: refresh
+   * the authorized signals snapshot, then queue the import of the channel's
+   * existing uploads. Both are best-effort and logged on failure.
+   */
+  private async finalizeConnection(params: {
+    accessToken: string | null | undefined;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    grantedScopes: string | undefined;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, grantedScopes, organizationId, url } = params;
+    let credential = params.credential;
+    try {
+      await this.youtubeAuthorizedSignalsService.refresh({
+        accessToken: accessToken ?? undefined,
+        credentialId: credential.id.toString(),
+        force: true,
+        grantedScopes,
+        organizationId,
+      });
+      credential =
+        (await this.credentialsService.findOne({
+          id: credential.id.toString(),
+          organizationId,
+          platform: CredentialPlatform.YOUTUBE,
+        })) ?? credential;
+    } catch (signalError: unknown) {
+      this.loggerService.warn(
+        `${url} authorized signal refresh failed after connection`,
+        signalError,
+      );
+    }
+    try {
+      await this.historyImportService.scheduleForCredential({
+        credentialId: credential.id.toString(),
+        organizationId,
+      });
+    } catch (scheduleError: unknown) {
+      this.loggerService.warn(
+        `${url} history import scheduling failed after connection`,
+        scheduleError,
+      );
+    }
+    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

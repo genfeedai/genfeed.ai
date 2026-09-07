@@ -196,7 +196,7 @@ describe('FollowSourceModal', () => {
     const results = screen.getByRole('list', {
       name: 'Source search results',
     });
-    expect(within(results).getAllByText('Not found')).toHaveLength(2);
+    expect(within(results).getAllByText('Not found')).toHaveLength(4);
     expect(
       screen.queryByRole('checkbox', {
         name: /Select Instagram @vincentshipsit/i,
@@ -207,6 +207,65 @@ describe('FollowSourceModal', () => {
         name: /Select TikTok @vincentshipsit/i,
       }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: /Select YouTube @vincentshipsit/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: /Select LinkedIn @vincentshipsit/i,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('surfaces a valid YouTube or LinkedIn match as a selectable candidate', async () => {
+    validateSourceMock.mockImplementation(async (platform: string) => {
+      if (
+        platform === SocialSourcePlatform.YOUTUBE ||
+        platform === SocialSourcePlatform.LINKEDIN
+      ) {
+        return {
+          displayName: 'Vincent e/acc',
+          handle: 'vincentshipsit',
+          platform,
+          valid: true,
+        };
+      }
+
+      return {
+        error: `All source collectors failed for ${platform}/@vincentshipsit`,
+        valid: false,
+      };
+    });
+
+    render(
+      <FollowSourceModal
+        brandId="brand-1"
+        existingSources={[]}
+        open
+        onFollowed={vi.fn()}
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Search'), {
+      target: { value: 'https://x.com/VincentShipsIt' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('checkbox', {
+          name: 'Select YouTube @vincentshipsit',
+        }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Select LinkedIn @vincentshipsit',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('follows only the selected valid account', async () => {

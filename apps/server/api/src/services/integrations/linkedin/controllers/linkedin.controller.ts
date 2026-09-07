@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -51,6 +52,7 @@ export class LinkedInController {
     private readonly credentialsService: CredentialsService,
     private readonly linkedInService: LinkedInService,
     private readonly linkedInAuthorizedSignalsService: LinkedInAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
   ) {}
 
   @Post('connect')
@@ -180,26 +182,13 @@ export class LinkedInController {
         },
       );
 
-      try {
-        await this.linkedInAuthorizedSignalsService.refresh({
-          accessToken,
-          credentialId: credential.id.toString(),
-          force: true,
-          grantedScopes: parseGrantedOAuthScopes(scope),
-          organizationId,
-        });
-        credential =
-          (await this.credentialsService.findOne({
-            id: credential.id.toString(),
-            organizationId,
-            platform: CredentialPlatform.LINKEDIN,
-          })) ?? credential;
-      } catch (signalError: unknown) {
-        this.loggerService.warn(
-          `${url} authorized signal refresh failed after connection`,
-          signalError,
-        );
-      }
+      credential = await this.finalizeConnection({
+        accessToken,
+        credential,
+        grantedScopes: parseGrantedOAuthScopes(scope),
+        organizationId,
+        url,
+      });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -212,6 +201,54 @@ export class LinkedInController {
         'Failed to verify LinkedIn OAuth',
       );
     }
+  }
+
+  /**
+   * Post-connection work that must never fail the connection itself: refresh
+   * the authorized signals snapshot, then queue the import of the member's
+   * existing posts. Both are best-effort and logged on failure.
+   */
+  private async finalizeConnection(params: {
+    accessToken: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    grantedScopes: ReturnType<typeof parseGrantedOAuthScopes>;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, grantedScopes, organizationId, url } = params;
+    let credential = params.credential;
+    try {
+      await this.linkedInAuthorizedSignalsService.refresh({
+        accessToken,
+        credentialId: credential.id.toString(),
+        force: true,
+        grantedScopes,
+        organizationId,
+      });
+      credential =
+        (await this.credentialsService.findOne({
+          id: credential.id.toString(),
+          organizationId,
+          platform: CredentialPlatform.LINKEDIN,
+        })) ?? credential;
+    } catch (signalError: unknown) {
+      this.loggerService.warn(
+        `${url} authorized signal refresh failed after connection`,
+        signalError,
+      );
+    }
+    try {
+      await this.historyImportService.scheduleForCredential({
+        credentialId: credential.id.toString(),
+        organizationId,
+      });
+    } catch (scheduleError: unknown) {
+      this.loggerService.warn(
+        `${url} history import scheduling failed after connection`,
+        scheduleError,
+      );
+    }
+    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

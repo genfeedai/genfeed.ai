@@ -153,7 +153,7 @@ describe('SocialSourceHistoryImportService', () => {
   it('skips platforms without a source collector', async () => {
     credential.findFirst.mockResolvedValue({
       ...connectedCredential,
-      platform: 'YOUTUBE',
+      platform: 'FACEBOOK',
     });
 
     const result = await service.scheduleForCredential({

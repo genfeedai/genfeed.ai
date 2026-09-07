@@ -143,6 +143,45 @@ export class ApifyYouTubeService {
   }
 
   /**
+   * Get recent uploads from a public YouTube channel for Following/social
+   * source collection. Hard-fails when Apify is not configured so sync
+   * cannot look "successful" with zero posts after a silent skip — unlike
+   * {@link getYouTubeChannelVideos}, which stays lenient for account
+   * monitoring callers that already tolerate an empty result.
+   */
+  async getYouTubeChannelUploads(
+    channelUrl: string,
+    options?: { limit?: number },
+  ): Promise<ApifyYouTubeVideo[]> {
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape YouTube channels',
+      );
+    }
+
+    try {
+      const input = {
+        maxResults: options?.limit || 20,
+        startUrls: [{ url: channelUrl }],
+      };
+
+      const rawVideos = await this.baseService.runActor<ApifyYouTubeVideo>(
+        this.baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
+        input,
+      );
+
+      return rawVideos;
+    } catch (error: unknown) {
+      this.baseService.loggerService.error(
+        `${this.constructorName}.getYouTubeChannelUploads failed for ${channelUrl}`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Search YouTube videos
    */
   async searchYouTubeVideos(

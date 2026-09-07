@@ -305,6 +305,37 @@ export interface ApifyYouTubeVideo {
 }
 
 /**
+ * LinkedIn profile post from Apify's `curious_coder/linkedin-profile-scraper`.
+ *
+ * The actor's exact output schema has not been confirmed against a live run
+ * from this repo, so every field is optional and the caller (ApifySocialProvider)
+ * reads through defensive helpers rather than trusting any single field name.
+ */
+export interface ApifyLinkedInPost {
+  id?: string;
+  urn?: string;
+  url?: string;
+  postUrl?: string;
+  text?: string;
+  commentary?: string;
+  postedAt?: string;
+  date?: string;
+  publishedAt?: string;
+  likesCount?: number;
+  numLikes?: number;
+  commentsCount?: number;
+  numComments?: number;
+  sharesCount?: number;
+  numShares?: number;
+  authorName?: string;
+  authorFullName?: string;
+  authorUrl?: string;
+  imageUrl?: string;
+  images?: string[];
+  videoUrl?: string;
+}
+
+/**
  * Reddit trend data from Apify
  */
 export interface ApifyRedditPost {

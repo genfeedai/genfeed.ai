@@ -14,6 +14,7 @@ vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
@@ -159,6 +160,14 @@ describe('YoutubeController', () => {
         {
           provide: YoutubeAuthorizedSignalsService,
           useValue: youtubeAuthorizedSignalsService,
+        },
+        {
+          provide: SocialSourceHistoryImportService,
+          useValue: {
+            scheduleForCredential: vi
+              .fn()
+              .mockResolvedValue({ sourceId: 'source-1', status: 'scheduled' }),
+          },
         },
       ],
     })

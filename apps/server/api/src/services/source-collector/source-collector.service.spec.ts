@@ -43,6 +43,27 @@ describe('SourceCollectorService', () => {
     collectTimeline: vi.fn(),
   };
 
+  const instagramBusinessDiscovery = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.INSTAGRAM],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
+  const youtubeOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.YOUTUBE],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
+  const linkedinOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.LINKEDIN],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
   const tiktokOfficial = {
     name: 'brand-oauth',
     platforms: [SocialSourcePlatform.TIKTOK],
@@ -55,13 +76,17 @@ describe('SourceCollectorService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     instagramOfficial.canCollect.mockResolvedValue(false);
+    instagramBusinessDiscovery.canCollect.mockResolvedValue(false);
     tiktokOfficial.canCollect.mockResolvedValue(false);
     service = new SourceCollectorService(
       logger as never,
       brandOAuth as never,
       appBearer as never,
       instagramOfficial as never,
+      instagramBusinessDiscovery as never,
       tiktokOfficial as never,
+      youtubeOfficial as never,
+      linkedinOfficial as never,
       apify as never,
     );
   });
@@ -88,6 +113,33 @@ describe('SourceCollectorService', () => {
     );
 
     expect(result.provider).toBe('brand-oauth');
+    expect(apify.collectTimeline).not.toHaveBeenCalled();
+  });
+
+  it('tries Business Discovery before Apify for a non-own Instagram handle', async () => {
+    instagramOfficial.canCollect.mockResolvedValue(false);
+    instagramBusinessDiscovery.canCollect.mockResolvedValue(true);
+    instagramBusinessDiscovery.collectTimeline.mockResolvedValue({
+      handle: 'competitor',
+      platform: SocialSourcePlatform.INSTAGRAM,
+      posts: [
+        {
+          id: 'd1',
+          text: 'competitor post',
+          platform: SocialSourcePlatform.INSTAGRAM,
+        },
+      ],
+      provider: 'brand-oauth',
+    });
+
+    const result = await service.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'competitor',
+      { brandId: 'b1', organizationId: 'o1' },
+    );
+
+    expect(result.provider).toBe('brand-oauth');
+    expect(result.posts[0].id).toBe('d1');
     expect(apify.collectTimeline).not.toHaveBeenCalled();
   });
 

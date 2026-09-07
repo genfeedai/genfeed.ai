@@ -619,6 +619,10 @@ function normalizeCredentialPlatform(platform: string): CredentialPlatform {
       return CredentialPlatform.INSTAGRAM;
     case SocialSourcePlatform.TIKTOK:
       return CredentialPlatform.TIKTOK;
+    case SocialSourcePlatform.YOUTUBE:
+      return CredentialPlatform.YOUTUBE;
+    case SocialSourcePlatform.LINKEDIN:
+      return CredentialPlatform.LINKEDIN;
     default:
       return CredentialPlatform.TWITTER;
   }
