@@ -34,6 +34,14 @@ export default function HomeHeroVideo({
   webmSrc,
 }: HeroVideoProps): React.ReactElement {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
+  /**
+   * Whether the clip has ever painted a frame. This, not `isPlaying`, drives
+   * the fade: browsers pause background tabs on their own, and tying opacity to
+   * playback would flash the poster back in every time the visitor switches
+   * away and returns. Once the clip has rendered, it stays visible — a paused
+   * video already shows its last frame.
+   */
+  const [hasPainted, setHasPainted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -76,8 +84,17 @@ export default function HomeHeroVideo({
   }, []);
 
   return (
+    /*
+      Height is capped rather than stretched to the section. The section runs
+      past the fold to hold the output carousel, and `object-cover` on a
+      container that tall scales a 16:9 clip until only a face fills the screen.
+      Capping the layer at roughly one viewport keeps the band close to the
+      clip's own aspect ratio, so what plays is the shot as framed. Narrow
+      screens cap it harder still: a phone-width band tall enough to reach the
+      buttons would crop a 16:9 frame down to a pair of eyes.
+    */
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none absolute inset-x-0 top-0 h-[min(62svh,26rem)] overflow-hidden md:h-[min(100svh,52rem)]"
       data-testid="home-hero-video"
     >
       <Image
@@ -93,13 +110,16 @@ export default function HomeHeroVideo({
         <video
           autoPlay
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            isPlaying ? 'opacity-100' : 'opacity-0'
+            hasPainted ? 'opacity-100' : 'opacity-0'
           }`}
           data-testid="home-hero-video-player"
           loop
           muted
           onPause={() => setIsPlaying(false)}
-          onPlaying={() => setIsPlaying(true)}
+          onPlaying={() => {
+            setHasPainted(true);
+            setIsPlaying(true);
+          }}
           playsInline
           poster={posterSrc}
           preload="auto"
@@ -117,8 +137,8 @@ export default function HomeHeroVideo({
         scrim floors the whole frame so the CTA row at the bottom never lands on
         a blown highlight.
       */}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,6,7,0.88)_0%,rgba(5,6,7,0.62)_45%,rgba(5,6,7,0.94)_100%)]" />
-      <div className="absolute inset-0 bg-background/35" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,6,7,0.88)_0%,rgba(5,6,7,0.55)_40%,rgba(5,6,7,0.92)_82%,rgb(5,6,7)_100%)]" />
+      <div className="absolute inset-0 bg-background/30" />
 
       {/*
         WCAG 2.2.2: moving content that starts on its own and runs past five

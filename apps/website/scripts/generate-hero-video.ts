@@ -10,12 +10,12 @@
  *
  * The pipeline, in order:
  *
- *   1. generate  — Replicate text-to-video → one raw MP4
+ *   1. generate   — Replicate text-to-video → one raw MP4
  *   2. encode    — H.264 MP4 (Safari/iOS, `+faststart`) and VP9 WebM (Chrome/FF)
  *   3. poster    — frame 0 of the *encoded MP4*, as WebP + JPEG
  *   4. upload    — s3://cdn.genfeed.ai/assets/branding/website/home/hero/**
  *
- * Step 3 is why the poster is extracted from the encoded output rather than from
+ * Step 4 is why the poster is extracted from the encoded output rather than from
  * the raw download: the browser paints `poster` until the first decoded frame is
  * ready, so the poster has to be the byte-identical first frame of the file the
  * browser actually plays. Extracting it from a different encode leaves a visible
@@ -54,8 +54,21 @@ const logger = {
  */
 const MODEL = 'bytedance/seedance-2.5';
 
-/** Native output height. The encode never upscales past it. */
+/** Native output width. The encode never upscales past it. */
 const SOURCE_WIDTH = 1280;
+
+/**
+ * Long enough that a visitor scrolling the homepage never sees the seam. Ten
+ * seconds reads as a loop to anyone who lingers on the hero; thirty is the
+ * model ceiling and buys little beyond twenty for the bytes it costs.
+ */
+const HERO_DURATION_SECONDS = 20;
+
+/**
+ * Length of the crossfade that closes the loop. Long enough to hide a change in
+ * framing, short enough that the blended second does not read as a dissolve.
+ */
+const LOOP_BLEND_SECONDS = 1;
 
 /**
  * UGC, not stock. The shot has to read as a creator's own phone footage — the
@@ -77,6 +90,7 @@ const CDN_BUCKET = 'cdn.genfeed.ai';
 const OUTPUT_DIR = path.resolve(import.meta.dirname, '../.hero-video');
 
 const OUTPUTS = {
+  looped: 'hero-loop.looped.mp4',
   mp4: 'hero-loop.mp4',
   posterJpg: 'hero-loop-poster.jpg',
   posterWebp: 'hero-loop-poster.webp',
@@ -138,7 +152,7 @@ async function generate(token: string, destination: string): Promise<void> {
   const output = await replicate.run(MODEL, {
     input: {
       aspect_ratio: '16:9',
-      duration: 10,
+      duration: HERO_DURATION_SECONDS,
       // The hero plays muted by policy, so a generated soundtrack would be
       // bytes nobody hears — and `-an` strips it in the encode regardless.
       generate_audio: false,
@@ -165,7 +179,78 @@ async function generate(token: string, destination: string): Promise<void> {
   writeFileSync(destination, Buffer.from(await response.arrayBuffer()));
 }
 
-// ─── 2. Encode ──────────────────────────────────────────────────────────────
+// ─── 2. Close the loop ──────────────────────────────────────────────────────
+
+/**
+ * Make the clip loop without a cut.
+ *
+ * A generated shot does not end where it started — this one drifts a good deal
+ * tighter over twenty seconds — so `<video loop>` snaps back to the wide frame
+ * once per pass and reads as a jump cut. Rather than pay for a ping-pong (twice
+ * the bytes for the same footage), the tail is crossfaded over the head and the
+ * head is then dropped: the output's last frame *is* its first frame, so the
+ * loop point has nothing to see.
+ *
+ * Costs one second of runtime, nothing in file size.
+ */
+function closeLoop(source: string, directory: string): string {
+  const destination = path.join(directory, OUTPUTS.looped);
+  const total = probeDuration(source);
+  const bodyStart = LOOP_BLEND_SECONDS;
+  const tailStart = total - LOOP_BLEND_SECONDS;
+
+  logger.log(`closing the loop with a ${LOOP_BLEND_SECONDS}s crossfade`);
+
+  run('ffmpeg', [
+    '-y',
+    '-i',
+    source,
+    '-filter_complex',
+    [
+      `[0:v]trim=0:${bodyStart},setpts=PTS-STARTPTS[head]`,
+      `[0:v]trim=${bodyStart}:${tailStart},setpts=PTS-STARTPTS[body]`,
+      `[0:v]trim=${tailStart}:${total},setpts=PTS-STARTPTS[tail]`,
+      `[tail][head]xfade=transition=fade:duration=${LOOP_BLEND_SECONDS}:offset=0[blend]`,
+      '[body][blend]concat=n=2:v=1:a=0[out]',
+    ].join(';'),
+    '-map',
+    '[out]',
+    '-an',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'veryfast',
+    '-crf',
+    '16',
+    destination,
+  ]);
+
+  return destination;
+}
+
+function probeDuration(file: string): number {
+  const raw = run('ffprobe', [
+    '-v',
+    'error',
+    '-select_streams',
+    'v:0',
+    '-show_entries',
+    'format=duration',
+    '-of',
+    'csv=p=0',
+    file,
+  ]).trim();
+
+  const duration = Number.parseFloat(raw);
+
+  if (!Number.isFinite(duration)) {
+    throw new Error(`could not read a duration from ${file}`);
+  }
+
+  return duration;
+}
+
+// ─── 3. Encode ──────────────────────────────────────────────────────────────
 
 /**
  * Two encodes of the same source. WebM/VP9 is roughly a third smaller at the
@@ -187,7 +272,7 @@ function encode(source: string, directory: string): void {
     source,
     '-an',
     '-vf',
-    'scale=1920:-2:flags=lanczos',
+    `scale=${SOURCE_WIDTH}:-2:flags=lanczos`,
     '-c:v',
     'libx264',
     '-profile:v',
@@ -210,7 +295,7 @@ function encode(source: string, directory: string): void {
     source,
     '-an',
     '-vf',
-    'scale=1920:-2:flags=lanczos',
+    `scale=${SOURCE_WIDTH}:-2:flags=lanczos`,
     '-c:v',
     'libvpx-vp9',
     '-crf',
@@ -223,45 +308,47 @@ function encode(source: string, directory: string): void {
   ]);
 }
 
-// ─── 3. Poster ──────────────────────────────────────────────────────────────
+// ─── 4. Poster ──────────────────────────────────────────────────────────────
 
 /**
- * Frame 0 of the encoded MP4, in both WebP (small, universally supported now)
- * and JPEG (the `<video poster>` fallback). `-frames:v 1` on an unseeked input
- * is deliberate: seeking would land on the nearest keyframe, which is frame 0
- * here but would silently drift the day the encode settings change.
+ * Frame 0 of the encoded MP4, in both WebP (what the page asks for) and JPEG
+ * (the fallback for anything that cannot decode it).
+ *
+ * `-frames:v 1` on an unseeked input is deliberate: seeking would land on the
+ * nearest keyframe, which is frame 0 here but would silently drift the day the
+ * encode settings change — and a poster that is not frame 0 reintroduces
+ * exactly the flash this whole pipeline exists to remove.
+ *
+ * The WebP goes through `cwebp` rather than ffmpeg because Homebrew's ffmpeg
+ * is built without libwebp; a lossless PNG is the intermediate so the encode
+ * is the only lossy step.
  */
 function extractPoster(directory: string): void {
   const mp4 = path.join(directory, OUTPUTS.mp4);
+  const frame = path.join(directory, 'frame-0.png');
 
   logger.log('extracting frame 0 as the poster');
 
-  run('ffmpeg', [
-    '-y',
-    '-i',
-    mp4,
-    '-frames:v',
-    '1',
-    '-c:v',
-    'libwebp',
-    '-quality',
+  run('ffmpeg', ['-y', '-i', mp4, '-frames:v', '1', frame]);
+  run('cwebp', [
+    '-quiet',
+    '-q',
     '82',
+    frame,
+    '-o',
     path.join(directory, OUTPUTS.posterWebp),
   ]);
-
   run('ffmpeg', [
     '-y',
     '-i',
-    mp4,
-    '-frames:v',
-    '1',
+    frame,
     '-q:v',
     '4',
     path.join(directory, OUTPUTS.posterJpg),
   ]);
 }
 
-// ─── 4. Upload ──────────────────────────────────────────────────────────────
+// ─── 5. Upload ──────────────────────────────────────────────────────────────
 
 const CONTENT_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -315,6 +402,7 @@ async function main(): Promise<void> {
   }
 
   requireBinary('ffmpeg');
+  requireBinary('cwebp');
   mkdirSync(OUTPUT_DIR, { recursive: true });
 
   const raw = from ? path.resolve(from) : path.join(OUTPUT_DIR, OUTPUTS.raw);
@@ -326,7 +414,7 @@ async function main(): Promise<void> {
     await generate(token, raw);
   }
 
-  encode(raw, OUTPUT_DIR);
+  encode(closeLoop(raw, OUTPUT_DIR), OUTPUT_DIR);
   extractPoster(OUTPUT_DIR);
 
   if (shouldUpload) {
