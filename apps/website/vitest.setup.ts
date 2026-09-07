@@ -46,3 +46,25 @@ if (typeof window !== 'undefined') {
     },
   })) as unknown as typeof window.matchMedia;
 }
+
+// jsdom does not implement IntersectionObserver, and components that defer work
+// until an element scrolls into view construct one during a layout effect.
+// Nothing ever intersects here: a test that cares captures the callback through
+// its own stub, and every other test renders the not-yet-visible branch.
+globalThis.IntersectionObserver = class IntersectionObserver {
+  disconnect() {
+    /* noop mock */
+  }
+  observe() {
+    /* noop mock */
+  }
+  takeRecords() {
+    return [];
+  }
+  unobserve() {
+    /* noop mock */
+  }
+} as unknown as typeof globalThis.IntersectionObserver;
+if (typeof window !== 'undefined') {
+  window.IntersectionObserver = globalThis.IntersectionObserver;
+}

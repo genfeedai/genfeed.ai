@@ -67,7 +67,7 @@ export default function HomeProduct(): React.ReactElement {
                           ? '(max-width: 640px) 100vw, 40vw'
                           : '(max-width: 640px) 50vw, 160px'
                       }
-                      src={item.src}
+                      src={item.poster}
                     />
                   </figure>
                 ))}

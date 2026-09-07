@@ -126,7 +126,7 @@ export default function StudioInterfacePreview({
                     className="object-cover"
                     fill
                     sizes={index === 0 ? '480px' : '240px'}
-                    src={output.src}
+                    src={output.poster}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
                   <figcaption className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">

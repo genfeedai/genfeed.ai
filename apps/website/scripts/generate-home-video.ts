@@ -65,11 +65,22 @@ const logger = {
  */
 const MODEL = 'bytedance/seedance-2.5';
 
-/** Shared tail of every prompt. The overlay and the card chrome do the talking. */
+/**
+ * Shared tail of every prompt. The overlay and the card chrome do the talking,
+ * so the footage only has to be dark, continuous, and unbranded.
+ *
+ * The unbranded clause is not decoration. ByteDance runs a filter over its own
+ * *output* and refuses anything that reads as a recognisable product or mark —
+ * "the output video may be related to copyright restrictions" — which is a hard
+ * failure, not a warning. Naming plain unlabelled packaging up front is what
+ * keeps a scene from being refused after it has already been paid for.
+ */
 const SHARED_STYLE = [
-  'One continuous shot, no cuts, no on-screen text, no captions, no logos,',
-  'no watermark. Cinematic 35mm look, shallow depth of field, subtle film grain,',
-  'dark background with warm practical lighting, slow deliberate camera motion.',
+  'Generic unbranded props with plain unlabelled packaging: no brand marks, no',
+  'logos, no product names, no recognisable trademarks, no on-screen text, no',
+  'captions, no watermark. One continuous shot, no cuts. Cinematic 35mm look,',
+  'shallow depth of field, subtle film grain, dark background with warm',
+  'practical lighting, slow deliberate camera motion.',
 ].join(' ');
 
 // ─── Scenes ─────────────────────────────────────────────────────────────────
@@ -97,13 +108,13 @@ const HERO_SCENES: Scene[] = [
     aspectRatio: '16:9',
     durationSeconds: 10,
     key: 'hero-02-kitchen',
-    prompt: `Handheld UGC footage: a man in his late twenties in a dark kitchen at night, lit by one warm lamp, talking to camera while he pours a drink and gestures at it. Steam and condensation catch the light against a black background, slow natural handheld drift. ${SHARED_STYLE}`,
+    prompt: `Handheld UGC footage: a man in his late twenties in a dark kitchen at night, lit by one warm lamp, talking to camera and gesturing with a plain white ceramic mug. Steam catches the light against a black background, slow natural handheld drift. ${SHARED_STYLE}`,
   },
   {
     aspectRatio: '16:9',
     durationSeconds: 10,
     key: 'hero-03-desk',
-    prompt: `Handheld UGC footage: a woman at a dark desk at night, face lit by a monitor and one warm lamp, turning to camera mid-sentence and holding up a pair of headphones. Deep black room behind her, slow natural handheld drift. ${SHARED_STYLE}`,
+    prompt: `Handheld UGC footage: a woman at a dark desk at night, face lit by a monitor and one warm lamp, turning to camera mid-sentence and holding up a pair of plain matte black over-ear headphones. Deep black room behind her, slow natural handheld drift. ${SHARED_STYLE}`,
   },
 ];
 
@@ -129,13 +140,13 @@ const FORMAT_SCENES: Scene[] = [
     aspectRatio: '9:16',
     durationSeconds: 5,
     key: 'ads',
-    prompt: `A pair of running shoes rotating slowly on a dark reflective platform, hard rim light raking across the material, fine dust drifting through the beam, commercial product set. ${SHARED_STYLE}`,
+    prompt: `A pair of plain unbranded knit running shoes rotating slowly on a dark reflective platform, hard rim light raking across the material, fine dust drifting through the beam, commercial product set. ${SHARED_STYLE}`,
   },
   {
     aspectRatio: '9:16',
     durationSeconds: 5,
     key: 'articles',
-    prompt: `Overhead shot of hands turning the pages of an open magazine on a dark wooden desk beside a coffee cup, one warm lamp raking across the paper, slow push in. ${SHARED_STYLE}`,
+    prompt: `Overhead shot of hands turning the pages of an open blank magazine on a dark wooden desk beside a plain coffee cup, one warm lamp raking across the empty paper, slow push in. ${SHARED_STYLE}`,
   },
   {
     aspectRatio: '9:16',
@@ -511,17 +522,52 @@ function upload(artefacts: Artefacts, prefix: string): void {
 
 // ─── Entrypoint ─────────────────────────────────────────────────────────────
 
+/**
+ * Every scene at once, and one refusal does not take the batch down with it.
+ *
+ * Replicate runs predictions concurrently and a 720p clip takes the better part
+ * of twenty minutes, so generating nine in sequence costs an afternoon for no
+ * reason. But `Promise.all` rejects on the first failure, and ByteDance's output
+ * filter refuses a scene often enough that losing eight good clips to one
+ * refusal is a real outcome — so failures are collected and reported, and the
+ * scenes that succeeded still get built.
+ *
+ * Cached scenes resolve immediately and cost nothing, so this is safe to re-run:
+ * a second pass regenerates only what is still missing.
+ */
+async function generateAll(
+  scenes: readonly Scene[],
+  token: string,
+  shouldRegenerate: boolean,
+): Promise<{ key: string; source: string }[]> {
+  const settled = await Promise.allSettled(
+    scenes.map((scene) => generateScene(scene, token, shouldRegenerate)),
+  );
+
+  return settled.flatMap((result, index) => {
+    const scene = scenes[index] as Scene;
+
+    if (result.status === 'rejected') {
+      logger.error(`${scene.key}: SKIPPED — ${String(result.reason)}`);
+      return [];
+    }
+
+    return [{ key: scene.key, source: result.value }];
+  });
+}
+
 async function buildHero(
   token: string,
   shouldRegenerate: boolean,
   shouldUpload: boolean,
 ): Promise<void> {
-  const sources: string[] = [];
+  const generated = await generateAll(HERO_SCENES, token, shouldRegenerate);
 
-  for (const scene of HERO_SCENES) {
-    sources.push(await generateScene(scene, token, shouldRegenerate));
+  if (generated.length === 0) {
+    throw new Error('every hero scene failed — nothing to stitch');
   }
 
+  const sources = generated.map(({ source }) => source);
   const montage = stitch(sources, path.join(BUILD_DIR, 'hero-montage.mp4'));
   const looped = closeLoop(montage, path.join(BUILD_DIR, 'hero-looped.mp4'));
   const artefacts = encode(looped, 'hero-loop', OUTPUT_WIDTH['16:9']);
@@ -534,17 +580,14 @@ async function buildFormats(
   shouldRegenerate: boolean,
   shouldUpload: boolean,
 ): Promise<void> {
-  for (const scene of FORMAT_SCENES) {
-    const raw = await generateScene(scene, token, shouldRegenerate);
-    const looped = closeLoop(
-      raw,
-      path.join(BUILD_DIR, `${scene.key}-looped.mp4`),
-    );
-    const artefacts = encode(
-      looped,
-      scene.key,
-      OUTPUT_WIDTH[scene.aspectRatio],
-    );
+  const generated = await generateAll(FORMAT_SCENES, token, shouldRegenerate);
+
+  // Encoding stays sequential on purpose: ffmpeg already saturates the cores,
+  // so running six of them at once makes each one slower without finishing the
+  // set any sooner.
+  for (const { key, source } of generated) {
+    const looped = closeLoop(source, path.join(BUILD_DIR, `${key}-looped.mp4`));
+    const artefacts = encode(looped, key, OUTPUT_WIDTH['9:16']);
 
     if (shouldUpload) upload(artefacts, 'formats');
   }
