@@ -8,8 +8,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const EMPTY_ENABLED_SKILL_SLUGS: string[] = [];
 
+export interface UseBrandEnabledSkillsOptions {
+  /**
+   * Slugs the runtime injects while the brand has no explicit selection.
+   * They are reported as enabled and used as the base of the first toggle.
+   */
+  defaultSlugs?: string[];
+}
+
 export interface UseBrandEnabledSkillsReturn {
   enabledSlugs: string[];
+  /** True while the brand has no explicit selection and defaults apply. */
+  isUsingDefaults: boolean;
   isLoading: boolean;
   toggleSkill: (slug: string) => Promise<void>;
 }
@@ -21,7 +31,9 @@ function areStringArraysEqual(left: string[], right: string[]): boolean {
   );
 }
 
-export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
+export function useBrandEnabledSkills({
+  defaultSlugs = EMPTY_ENABLED_SKILL_SLUGS,
+}: UseBrandEnabledSkillsOptions = {}): UseBrandEnabledSkillsReturn {
   const { getToken } = useAuthIdentity();
   const { isReady, refreshBrands, selectedBrand } = useBrand();
   const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
@@ -39,6 +51,8 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
   );
   const persistedEnabledSlugsRef = useRef(persistedEnabledSlugs);
   persistedEnabledSlugsRef.current = persistedEnabledSlugs;
+  const defaultSlugsRef = useRef(defaultSlugs);
+  defaultSlugsRef.current = defaultSlugs;
 
   useEffect(() => {
     mutationIdRef.current += 1;
@@ -77,9 +91,13 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
       const mutationId = ++mutationIdRef.current;
       const targetBrandId = selectedBrandId;
       const previousSlugs = enabledSlugsRef.current;
-      const nextSlugs = previousSlugs.includes(slug)
-        ? previousSlugs.filter((s) => s !== slug)
-        : [...previousSlugs, slug];
+      // An empty selection means the runtime defaults apply, so the first
+      // toggle starts from that effective set instead of from nothing.
+      const baseSlugs =
+        previousSlugs.length === 0 ? defaultSlugsRef.current : previousSlugs;
+      const nextSlugs = baseSlugs.includes(slug)
+        ? baseSlugs.filter((s) => s !== slug)
+        : [...baseSlugs, slug];
       enabledSlugsRef.current = nextSlugs;
       setEnabledSlugs(nextSlugs);
       isLoadingRef.current = true;
@@ -130,5 +148,16 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
     [getToken, isReady, refreshBrands, selectedBrandId],
   );
 
-  return { enabledSlugs, isLoading, toggleSkill };
+  const isUsingDefaults = enabledSlugs.length === 0;
+  const effectiveEnabledSlugs = useMemo(
+    () => (isUsingDefaults ? defaultSlugs : enabledSlugs),
+    [defaultSlugs, enabledSlugs, isUsingDefaults],
+  );
+
+  return {
+    enabledSlugs: effectiveEnabledSlugs,
+    isLoading,
+    isUsingDefaults,
+    toggleSkill,
+  };
 }

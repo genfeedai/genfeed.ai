@@ -53,6 +53,7 @@ vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
   useBrandEnabledSkills: () => ({
     enabledSlugs: [],
     isLoading: false,
+    isUsingDefaults: false,
     toggleSkill: toggleSkillMock,
   }),
 }));

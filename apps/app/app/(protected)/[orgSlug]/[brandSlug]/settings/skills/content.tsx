@@ -133,11 +133,6 @@ export default function BrandSettingsSkillsPage() {
   const { getToken } = useAuthIdentity();
   const { brandId, isReady, selectedBrand } = useBrand();
 
-  const {
-    enabledSlugs,
-    isLoading: isTogglingSkill,
-    toggleSkill,
-  } = useBrandEnabledSkills();
   const catalogRequestIdRef = useRef(0);
 
   const [state, dispatch] = useReducer(pageReducer, initialState);
@@ -154,6 +149,17 @@ export default function BrandSettingsSkillsPage() {
     sourceFilter,
     stageFilter,
   } = state;
+
+  const defaultSkillSlugs = useMemo(
+    () => skills.filter((skill) => skill.isDefault).map((skill) => skill.slug),
+    [skills],
+  );
+  const {
+    enabledSlugs,
+    isLoading: isTogglingSkill,
+    isUsingDefaults,
+    toggleSkill,
+  } = useBrandEnabledSkills({ defaultSlugs: defaultSkillSlugs });
 
   const isScopeMatch = Boolean(
     brandId &&
@@ -395,6 +401,12 @@ export default function BrandSettingsSkillsPage() {
         >
           {error}
         </div>
+      ) : null}
+
+      {isUsingDefaults && !isLoading ? (
+        <p className="mb-3 text-xs text-muted-foreground">
+          {translate('catalog.defaultsApplied')}
+        </p>
       ) : null}
 
       <SkillsTable

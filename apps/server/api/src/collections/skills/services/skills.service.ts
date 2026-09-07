@@ -1,4 +1,7 @@
-import { resolveDefaultFirstPartySkillSlugs } from '@api/collections/skills/catalog/default-first-party-skills';
+import {
+  isDefaultFirstPartySkillSlug,
+  resolveDefaultFirstPartySkillSlugs,
+} from '@api/collections/skills/catalog/default-first-party-skills';
 import {
   BUILT_IN_SKILL_CATALOG,
   isBuiltInSkillIdentity,
@@ -626,6 +629,11 @@ export class SkillsService {
       ...config,
       id: row.id,
       createdAt: row.createdAt,
+      // Built-in slugs the runtime injects while the brand has no explicit
+      // `enabledSkills`. The settings catalog shows these as enabled by default.
+      isDefault:
+        row.organizationId === null &&
+        isDefaultFirstPartySkillSlug(config.slug),
       isDeleted: row.isDeleted,
       label: row.label,
       organizationId: row.organizationId,

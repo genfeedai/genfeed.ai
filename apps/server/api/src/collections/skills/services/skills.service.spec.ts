@@ -146,6 +146,31 @@ describe('SkillsService', () => {
     },
   );
 
+  it('flags built-in default skills in the organization catalog', async () => {
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: {
+          isBuiltIn: true,
+          isEnabled: true,
+          name: 'Content Writing',
+          slug: 'content-writing',
+          source: 'built_in',
+          status: 'published',
+        },
+        id: 'cskillbuiltincontentwriting',
+        organizationId: null,
+      }),
+      makeSkillRow(),
+    ]);
+
+    const docs = await service.listAllForOrg('org-1');
+
+    expect(docs.map((doc) => [doc.slug, doc.isDefault])).toEqual([
+      ['content-writing', true],
+      ['hook-writer', false],
+    ]);
+  });
+
   it('creates an enabled organization-owned custom skill', async () => {
     await service.createSkill('org-1', skillPayload);
 

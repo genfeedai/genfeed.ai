@@ -239,4 +239,37 @@ describe('useBrandEnabledSkills', () => {
 
     expect(result.current.enabledSlugs).toEqual(['skill-c']);
   });
+
+  it('reports the default set as enabled while the brand has no selection', async () => {
+    setBrand([]);
+
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({ defaultSlugs: ['content-writing'] }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.enabledSlugs).toEqual(['content-writing']);
+    });
+    expect(result.current.isUsingDefaults).toBe(true);
+  });
+
+  it('starts the first toggle from the default set', async () => {
+    setBrand(undefined);
+
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({
+        defaultSlugs: ['content-writing', 'model-selector'],
+      }),
+    );
+
+    await act(async () => {
+      await result.current.toggleSkill('content-writing');
+    });
+
+    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', [
+      'model-selector',
+    ]);
+    expect(result.current.enabledSlugs).toEqual(['model-selector']);
+    expect(result.current.isUsingDefaults).toBe(false);
+  });
 });

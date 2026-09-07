@@ -54,6 +54,8 @@ export class Skill {
   description!: string;
   inputSchema?: Record<string, unknown>;
   isBuiltIn!: boolean;
+  /** Injected by the runtime while the brand has no explicit enabled skills. */
+  isDefault?: boolean;
   isEnabled!: boolean;
   modalities!: SkillModality[];
   name!: string;
