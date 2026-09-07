@@ -263,7 +263,7 @@ function FollowingDeckPost({
           />
           {item.contentType === 'video' ? (
             <Badge className="absolute right-2 top-2" variant="video">
-              Video
+              {translate('video')}
             </Badge>
           ) : null}
         </div>
