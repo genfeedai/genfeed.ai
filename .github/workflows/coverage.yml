@@ -138,7 +138,7 @@ jobs:
 
       - name: Run coverage
         id: coverage
-        run: cd apps/app && bun run test:cov:shard -- --reporter=blob --shard=${{ matrix.shard }}/4
+        run: cd apps/app && bun run test:cov:shard -- --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
 
@@ -250,7 +250,7 @@ jobs:
 
       - name: Run coverage
         id: coverage
-        run: cd apps/server/api && bunx vitest run --reporter=blob --coverage --shard=${{ matrix.shard }}/4
+        run: cd apps/server/api && bunx vitest run --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json --coverage --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
