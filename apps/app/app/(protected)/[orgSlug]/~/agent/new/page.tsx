@@ -1,18 +1,8 @@
-'use client';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import AgentConversationReset from '../agent-conversation-reset';
 
-import { useAgentChatStore } from '@genfeedai/agent';
-import { useLayoutEffect } from 'react';
+export const generateMetadata = createPageMetadata('New Conversation');
 
-// The conversation shell is hosted by the agent layout
-// (AgentConversationRouteHost); this page only clears the active thread.
 export default function ChatNewPage() {
-  useLayoutEffect(() => {
-    const { resetActiveConversationState, setActiveThread } =
-      useAgentChatStore.getState();
-
-    setActiveThread(null);
-    resetActiveConversationState();
-  }, []);
-
-  return null;
+  return <AgentConversationReset />;
 }

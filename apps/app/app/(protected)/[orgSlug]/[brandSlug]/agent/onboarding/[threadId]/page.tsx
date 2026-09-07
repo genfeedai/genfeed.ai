@@ -1,1 +1,4 @@
-export { default } from '../../../../~/agent/onboarding/[threadId]/page';
+export {
+  default,
+  generateMetadata,
+} from '../../../../~/agent/onboarding/[threadId]/page';
