@@ -3,6 +3,10 @@ import type {
   ContentPlanItemType,
   ContentPlanStatus,
 } from '../..';
+import type {
+  IContentPlanSeedSelection,
+  IContentPlanSeeds,
+} from './content-plan-seed.interface';
 
 /**
  * A generated content plan for a brand, produced by `ContentPlannerService`.
@@ -19,6 +23,8 @@ export interface IContentPlan {
   periodEnd: string;
   itemCount: number;
   executedCount: number;
+  /** Effective seeds this plan was generated from (#4511 Lane F). */
+  seeds?: IContentPlanSeeds;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -53,4 +59,6 @@ export interface IGenerateContentPlanInput {
   topics?: string[];
   platforms?: string[];
   additionalInstructions?: string;
+  /** Caller-chosen subset of cold-start seeds to ground the plan in. */
+  seeds?: IContentPlanSeedSelection;
 }

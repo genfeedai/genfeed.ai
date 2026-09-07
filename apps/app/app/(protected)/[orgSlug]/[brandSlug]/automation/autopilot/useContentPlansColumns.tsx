@@ -17,6 +17,46 @@ function formatPeriod(plan: IContentPlan): string {
   }
 }
 
+/**
+ * Prefers the plan's structured `seeds` (#4511 Lane G) over the
+ * description-parsed summary, which stays as a fallback for plans generated
+ * before that field existed.
+ */
+function resolveSeedSummary(
+  plan: IContentPlan,
+  translate: ReturnType<typeof useTranslations>,
+): { kind: 'cold-start' | 'grounded' | 'unknown'; seedSummary?: string } {
+  const { seeds } = plan;
+  if (!seeds) {
+    return parsePlanSeedSummary(plan.description);
+  }
+
+  const parts: string[] = [];
+  if (seeds.advertiserIds.length > 0) {
+    parts.push(
+      translate('seedSummaryAdvertisers', {
+        count: seeds.advertiserIds.length,
+      }),
+    );
+  }
+  if (seeds.sourceIds.length > 0) {
+    parts.push(
+      translate('seedSummaryCreators', { count: seeds.sourceIds.length }),
+    );
+  }
+  if (seeds.isPatternsIncluded) {
+    parts.push(translate('seedSummaryPatterns'));
+  }
+  if (seeds.isImportedHistoryIncluded) {
+    parts.push(translate('seedSummaryOwnHistory'));
+  }
+
+  return {
+    kind: seeds.isColdStart ? 'cold-start' : 'grounded',
+    seedSummary: parts.length > 0 ? parts.join(' · ') : undefined,
+  };
+}
+
 export function useContentPlansColumns() {
   const translate = useTranslations('common.automation.contentPlans');
 
@@ -26,7 +66,7 @@ export function useContentPlansColumns() {
         header: translate('columnName'),
         key: 'name',
         render: (plan) => {
-          const { kind, seedSummary } = parsePlanSeedSummary(plan.description);
+          const { kind, seedSummary } = resolveSeedSummary(plan, translate);
 
           return (
             <div className="flex flex-col gap-1">

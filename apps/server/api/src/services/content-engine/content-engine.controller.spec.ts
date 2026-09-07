@@ -78,9 +78,10 @@ describe('ContentEngineController', () => {
         {
           provide: ContentPlannerService,
           useValue: {
-            generatePlan: vi
-              .fn()
-              .mockResolvedValue({ id: 'plan-1', status: 'draft' }),
+            generatePlan: vi.fn().mockResolvedValue({
+              items: [{ id: 'item-1' }, { id: 'item-2' }],
+              plan: { id: 'plan-1', status: 'draft' },
+            }),
           },
         },
         {
@@ -161,7 +162,10 @@ describe('ContentEngineController', () => {
         userId,
         dto,
       );
-      expect(result).toEqual({ data: { id: 'plan-1', status: 'draft' } });
+      expect(result).toEqual({
+        items: { data: [{ id: 'item-1' }, { id: 'item-2' }] },
+        plan: { data: { id: 'plan-1', status: 'draft' } },
+      });
     });
   });
 

@@ -8,12 +8,27 @@ import ContentPlansSection from './ContentPlansSection';
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   generate: vi.fn(),
+  getSeeds: vi.fn(),
   getWeeklySummary: vi.fn(),
   loggerError: vi.fn(),
   refresh: vi.fn(),
   success: vi.fn(),
   useContentPlans: vi.fn(),
 }));
+
+const EMPTY_SEED_PREVIEW = {
+  advertisers: [],
+  dataset: {
+    confidence: 'none',
+    genfeedPosts: 0,
+    importedPosts: 0,
+    totalPosts: 0,
+  },
+  importedPostCount: 0,
+  isColdStart: true,
+  patternCount: 0,
+  sources: [],
+};
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -26,12 +41,17 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     generate: mocks.generate,
+    getSeeds: mocks.getSeeds,
     getWeeklySummary: mocks.getWeeklySummary,
   }),
 }));
 
 vi.mock('@hooks/data/content-plans/use-content-plans', () => ({
   useContentPlans: () => mocks.useContentPlans(),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => path }),
 }));
 
 vi.mock('@services/analytics/content-performance.service', () => ({
@@ -137,6 +157,61 @@ vi.mock(
   }),
 );
 
+vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    isChecked,
+    label,
+    name,
+    onCheckedChange,
+  }: {
+    isChecked?: boolean;
+    label?: ReactNode;
+    name?: string;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <label>
+      <input
+        type="checkbox"
+        aria-label={name}
+        checked={isChecked ?? false}
+        onChange={(event) => onCheckedChange?.(event.target.checked)}
+      />
+      {label}
+    </label>
+  ),
+}));
+
+vi.mock('@ui/primitives/collapsible', () => ({
+  Collapsible: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CollapsibleContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  CollapsibleTrigger: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
+
+vi.mock('@ui/primitives/switch', () => ({
+  Switch: ({
+    isChecked,
+    label,
+    onCheckedChange,
+  }: {
+    isChecked?: boolean;
+    label?: ReactNode;
+    onCheckedChange?: (checked: boolean) => void;
+  }) => (
+    <label>
+      <input
+        type="checkbox"
+        checked={isChecked ?? false}
+        onChange={(event) => onCheckedChange?.(event.target.checked)}
+      />
+      {label}
+    </label>
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -201,6 +276,12 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/org/acme/brand/demo/automation/autopilot',
 }));
@@ -241,6 +322,7 @@ describe('ContentPlansSection', () => {
         totalPosts: 3,
       },
     });
+    mocks.getSeeds.mockResolvedValue(EMPTY_SEED_PREVIEW);
     mocks.useContentPlans.mockReturnValue({
       isLoading: false,
       plans: [makePlan()],
@@ -317,6 +399,116 @@ describe('ContentPlansSection', () => {
         { error: expect.any(Error) },
       );
       expect(mocks.error).toHaveBeenCalledWith('Failed to generate plan');
+    });
+  });
+
+  it('shows the seed summary from a structured plan.seeds field over the description', () => {
+    mocks.useContentPlans.mockReturnValue({
+      isLoading: false,
+      plans: [
+        makePlan({
+          seeds: {
+            advertiserIds: ['adv-1', 'adv-2', 'adv-3'],
+            isColdStart: false,
+            isImportedHistoryIncluded: true,
+            isPatternsIncluded: true,
+            sourceIds: ['source-1'],
+          },
+        }),
+      ],
+      refresh: mocks.refresh,
+    });
+
+    render(<ContentPlansSection />);
+
+    expect(screen.getByText('Grounded')).toBeVisible();
+    expect(
+      screen.getByText('3 advertisers · 1 creator · patterns · own history'),
+    ).toBeVisible();
+  });
+
+  it('renders the seed picker with advertisers and sources checked by default, drops an unchecked advertiser, and toggles the switches', async () => {
+    mocks.getSeeds.mockResolvedValue({
+      advertisers: [
+        {
+          adCount: 3,
+          id: 'adv-1',
+          name: 'Rival Co',
+          platform: 'meta',
+          topHeadline: 'Best deal ever',
+        },
+      ],
+      dataset: {
+        confidence: 'low',
+        genfeedPosts: 0,
+        importedPosts: 2,
+        totalPosts: 2,
+      },
+      importedPostCount: 2,
+      isColdStart: true,
+      patternCount: 4,
+      sources: [
+        {
+          displayName: 'Creator',
+          handle: 'creator',
+          id: 'source-1',
+          platform: 'instagram',
+          postCount: 5,
+          sourceType: 'account',
+        },
+        {
+          displayName: 'Own',
+          handle: 'own',
+          id: 'source-own',
+          platform: 'instagram',
+          postCount: 9,
+          sourceType: 'own-account',
+        },
+      ],
+    });
+
+    render(<ContentPlansSection />);
+    fireEvent.click(screen.getByRole('button', { name: /Generate plan now/i }));
+    await screen.findByRole('dialog');
+
+    const advertiserCheckbox = await screen.findByRole('checkbox', {
+      name: 'seed-advertiser-adv-1',
+    });
+    const sourceCheckbox = screen.getByRole('checkbox', {
+      name: 'seed-source-source-1',
+    });
+    expect(advertiserCheckbox).toBeChecked();
+    expect(sourceCheckbox).toBeChecked();
+    expect(
+      screen.queryByRole('checkbox', { name: 'seed-source-source-own' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(advertiserCheckbox);
+    expect(advertiserCheckbox).not.toBeChecked();
+
+    const switches = screen
+      .getAllByRole('checkbox')
+      .filter(
+        (element) => !element.getAttribute('aria-label')?.startsWith('seed-'),
+      );
+    for (const switchInput of switches) {
+      fireEvent.click(switchInput);
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate plan' }));
+
+    await waitFor(() => {
+      expect(mocks.generate).toHaveBeenCalledWith(
+        'brand-one',
+        expect.objectContaining({
+          seeds: {
+            advertiserIds: [],
+            isImportedHistoryIncluded: false,
+            isPatternsIncluded: false,
+            sourceIds: ['source-1'],
+          },
+        }),
+      );
     });
   });
 });

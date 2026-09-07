@@ -51,3 +51,17 @@ export interface IContentPlanSeedSelection {
   isImportedHistoryIncluded?: boolean;
   isPatternsIncluded?: boolean;
 }
+
+/**
+ * Effective seeds a plan was generated from, persisted on the plan's config
+ * (`ContentPlanSeedsRecord` in
+ * `apps/server/api/src/collections/content-plans/schemas/content-plan.schema.ts`)
+ * and surfaced by `ContentPlanSerializer`.
+ */
+export interface IContentPlanSeeds {
+  advertiserIds: string[];
+  sourceIds: string[];
+  isColdStart: boolean;
+  isImportedHistoryIncluded: boolean;
+  isPatternsIncluded: boolean;
+}

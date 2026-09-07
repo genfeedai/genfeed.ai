@@ -1,6 +1,7 @@
 import type {
   IContentPlan,
   IContentPlanItem,
+  IContentPlanSeedPreview,
   IGenerateContentPlanInput,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -62,7 +63,32 @@ export class ContentPlansService extends HTTPBaseService {
   async generate(
     brandId: string,
     input: IGenerateContentPlanInput,
-  ): Promise<void> {
-    await this.instance.post(`/brands/${brandId}/content/plans`, input);
+  ): Promise<ContentPlanWithItems> {
+    const response = await this.instance.post<{
+      items: JsonApiResponseDocument;
+      plan: JsonApiResponseDocument;
+    }>(`/brands/${brandId}/content/plans`, input);
+
+    return {
+      items: deserializeCollection<IContentPlanItem>(response.data.items),
+      plan: deserializeResource<IContentPlan>(response.data.plan),
+    };
+  }
+
+  /**
+   * Cold-start seed-selection preview (#4511 Lane F). Returned as a plain
+   * object by `ContentEngineController.getPlanSeeds`, not a JSON:API
+   * document, so no deserialization is needed.
+   */
+  async getSeeds(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<IContentPlanSeedPreview> {
+    const response = await this.instance.get<IContentPlanSeedPreview>(
+      `/brands/${brandId}/content/plans/seeds`,
+      { signal },
+    );
+
+    return response.data;
   }
 }
