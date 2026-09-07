@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { BookOpen } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 /** Passages the harness folds in for an explicit selection, ~500 chars each. */
@@ -23,10 +24,11 @@ const SELECTED_PASSAGE_BUDGET = 8;
 const CHARS_PER_PASSAGE = 500;
 const CHARS_PER_TOKEN = 4;
 
-const PURPOSE_LABEL: Record<KnowledgeSourcePurpose, string> = {
-  [KnowledgeSourcePurpose.BRAND_TRUTH]: 'Brand Truth',
-  [KnowledgeSourcePurpose.INSPIRATION]: 'Inspiration',
-  [KnowledgeSourcePurpose.RESEARCH]: 'Research',
+/** Keys resolve under `pages.library.knowledge.purpose`. */
+const PURPOSE_KEY: Record<KnowledgeSourcePurpose, string> = {
+  [KnowledgeSourcePurpose.BRAND_TRUTH]: 'brandTruth',
+  [KnowledgeSourcePurpose.INSPIRATION]: 'inspiration',
+  [KnowledgeSourcePurpose.RESEARCH]: 'research',
 };
 
 export function countKnowledgeSelection(selection: KnowledgeSelection): number {
@@ -59,6 +61,8 @@ export default function KnowledgeContextPicker({
   onChange,
   value,
 }: KnowledgeContextPickerProps) {
+  const translate = useTranslations('pages.library.knowledge.picker');
+  const translatePurpose = useTranslations('pages.library.knowledge.purpose');
   const { isLoading, rows, spaces } = useKnowledgeLibrary({ brandId });
   const readyRows = useMemo(
     () =>
@@ -87,8 +91,8 @@ export default function KnowledgeContextPicker({
             icon={<BookOpen className="size-4" />}
             label={
               selectedCount > 0
-                ? `Knowledge · ${selectedCount} selected`
-                : 'Knowledge'
+                ? translate('selectedLabel', { count: selectedCount })
+                : translate('label')
             }
             variant={ButtonVariant.SECONDARY}
           />
@@ -96,14 +100,14 @@ export default function KnowledgeContextPicker({
         <PopoverContent align="start" className="w-80">
           <div className="flex flex-col gap-3">
             <div>
-              <p className="text-sm font-semibold">Ground this generation</p>
+              <p className="text-sm font-semibold">{translate('title')}</p>
               <p className="text-xs text-muted-foreground">
-                Pick sources or spaces; only ready, visible sources apply.
+                {translate('description')}
               </p>
             </div>
             <fieldset className="flex flex-col gap-1">
               <legend className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-                Purposes
+                {translate('purposes')}
               </legend>
               {Object.values(KnowledgeSourcePurpose).map((purpose) => (
                 <label
@@ -111,7 +115,7 @@ export default function KnowledgeContextPicker({
                   key={purpose}
                 >
                   <Checkbox
-                    aria-label={PURPOSE_LABEL[purpose]}
+                    aria-label={translatePurpose(PURPOSE_KEY[purpose])}
                     checked={value.purposes?.includes(purpose) ?? false}
                     onCheckedChange={() =>
                       onChange({
@@ -123,14 +127,14 @@ export default function KnowledgeContextPicker({
                       })
                     }
                   />
-                  {PURPOSE_LABEL[purpose]}
+                  {translatePurpose(PURPOSE_KEY[purpose])}
                 </label>
               ))}
             </fieldset>
             {spaces.length > 0 ? (
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Spaces
+                  {translate('spaces')}
                 </legend>
                 {spaces.map((space) => (
                   <label
@@ -138,7 +142,9 @@ export default function KnowledgeContextPicker({
                     key={space.id}
                   >
                     <Checkbox
-                      aria-label={space.isInbox ? 'Inbox' : space.title}
+                      aria-label={
+                        space.isInbox ? translate('inbox') : space.title
+                      }
                       checked={value.spaceIds?.includes(space.id) ?? false}
                       onCheckedChange={() =>
                         onChange({
@@ -147,20 +153,22 @@ export default function KnowledgeContextPicker({
                         })
                       }
                     />
-                    {space.isInbox ? 'Inbox' : space.title}
+                    {space.isInbox ? translate('inbox') : space.title}
                   </label>
                 ))}
               </fieldset>
             ) : null}
             <fieldset className="flex max-h-48 flex-col gap-1 overflow-y-auto">
               <legend className="text-2xs font-bold uppercase tracking-wide text-muted-foreground">
-                Sources
+                {translate('sources')}
               </legend>
               {isLoading ? (
-                <span className="text-xs text-muted-foreground">Loading…</span>
+                <span className="text-xs text-muted-foreground">
+                  {translate('loading')}
+                </span>
               ) : readyRows.length === 0 ? (
                 <span className="text-xs text-muted-foreground">
-                  No ready sources yet. Add some in Library › Knowledge.
+                  {translate('empty')}
                 </span>
               ) : (
                 readyRows.map((row) => (
@@ -182,7 +190,7 @@ export default function KnowledgeContextPicker({
                     />
                     <span className="truncate">{row.source.title}</span>
                     <span className="ml-auto text-2xs uppercase text-muted-foreground">
-                      {PURPOSE_LABEL[row.source.purpose]}
+                      {translatePurpose(PURPOSE_KEY[row.source.purpose])}
                     </span>
                   </label>
                 ))
@@ -191,12 +199,15 @@ export default function KnowledgeContextPicker({
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>
                 {selectedCount > 0
-                  ? `Up to ${SELECTED_PASSAGE_BUDGET} passages · ~${tokenEstimate} tokens`
-                  : 'Brand default: top matches from all sources'}
+                  ? translate('budget', {
+                      passages: SELECTED_PASSAGE_BUDGET,
+                      tokens: tokenEstimate,
+                    })
+                  : translate('brandDefault')}
               </span>
               {selectedCount > 0 ? (
                 <Button
-                  label="Clear"
+                  label={translate('clear')}
                   onClick={() => onChange({})}
                   variant={ButtonVariant.GHOST}
                 />
