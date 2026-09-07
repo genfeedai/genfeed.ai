@@ -12,7 +12,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { Model } from '@models/ai/model.model';
 import type { TableSortDirection } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
@@ -64,7 +63,7 @@ export function useModelsList({
   );
   const currentPage = Number(searchParams?.get('page')) || 1;
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm.trim(), 250);
+  const normalizedSearchTerm = searchTerm.trim();
 
   const isAdminScope = scope === PageScope.SUPERADMIN;
 
@@ -157,7 +156,7 @@ export function useModelsList({
     isAdminScope,
     adminOrg,
     adminBrand,
-    debouncedSearchTerm,
+    normalizedSearchTerm,
     sortKey,
     sortDirection,
   ] as const;
@@ -186,8 +185,8 @@ export function useModelsList({
         query.category = categoryFilter;
       }
 
-      if (debouncedSearchTerm) {
-        query.search = debouncedSearchTerm;
+      if (normalizedSearchTerm) {
+        query.search = normalizedSearchTerm;
       }
 
       if (isAdminScope) {

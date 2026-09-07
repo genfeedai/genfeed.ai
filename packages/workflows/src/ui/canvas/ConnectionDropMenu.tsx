@@ -1,15 +1,15 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { NodeCategory, NodeType } from '@genfeedai/contracts/types';
 import {
   CONNECTION_RULES,
   getNodesByCategory,
 } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { Input } from '@genfeedai/ui/primitives/input';
+import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
@@ -217,18 +217,15 @@ function ConnectionDropMenuComponent() {
 
         {/* Search */}
         <div className="px-3 py-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder="Search compatible nodes..."
-              aria-label="Search compatible nodes"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-7 pr-2 py-1.5 text-xs bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          <FormSearchbar
+            ariaLabel="Search compatible nodes"
+            inputClassName="text-xs bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            inputRef={inputRef}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search compatible nodes..."
+            size={ComponentSize.SM}
+            value={search}
+          />
         </div>
 
         {/* Node list */}

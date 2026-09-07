@@ -71,6 +71,18 @@ describe('RestreamService', () => {
     });
   });
 
+  it('reads the numeric Restream profile id as a string', async () => {
+    http.get.mockReturnValue(
+      of({ data: { email: 'host@example.com', id: 12345, username: 'host' } }),
+    );
+
+    await expect(service.getProfile('tok')).resolves.toEqual({
+      email: 'host@example.com',
+      id: '12345',
+      username: 'host',
+    });
+  });
+
   it('fails closed when the Restream profile has no id', async () => {
     http.get.mockReturnValue(of({ data: { username: 'host' } }));
 

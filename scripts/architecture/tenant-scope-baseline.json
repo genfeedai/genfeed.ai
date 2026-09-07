@@ -875,14 +875,6 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "bc8e6de7fdfd113a2720",
-      "method": "count",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "eeddb85e407deac9bef2",
       "method": "count",
       "model": "Model",
@@ -907,23 +899,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "7fdbd2af25066d088f1d",
-      "method": "findFirst",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "0915503799d11c2ed543",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "451deff299bcd2166377",
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"

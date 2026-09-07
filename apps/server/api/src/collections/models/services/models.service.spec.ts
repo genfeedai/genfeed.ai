@@ -336,10 +336,10 @@ describe('ModelsService', () => {
       orderBy: [{ createdAt: 'desc' }],
       skip: 0,
       take: 10,
-      where: { category: ModelCategory.IMAGE },
+      where: { category: ModelCategory.IMAGE, isDeleted: false },
     });
     expect(modelDelegate.count).toHaveBeenCalledWith({
-      where: { category: ModelCategory.IMAGE },
+      where: { category: ModelCategory.IMAGE, isDeleted: false },
     });
     expect(result.totalDocs).toBe(1);
   });
@@ -360,7 +360,7 @@ describe('ModelsService', () => {
       orderBy: [{ isHighlighted: 'desc' }, { label: 'asc' }],
       skip: 0,
       take: 10,
-      where: { category: ModelCategory.IMAGE },
+      where: { category: ModelCategory.IMAGE, isDeleted: false },
     });
   });
 
@@ -382,8 +382,35 @@ describe('ModelsService', () => {
       orderBy: [{ isDefault: 'desc' }, { label: 'asc' }],
       skip: 0,
       take: 10,
-      where: { category: ModelCategory.IMAGE },
+      where: { category: ModelCategory.IMAGE, isDeleted: false },
     });
+  });
+
+  it('restricts findAll to org-owned or global rows when an organizationId is supplied', async () => {
+    modelDelegate.findMany.mockResolvedValue([]);
+    modelDelegate.count.mockResolvedValue(0);
+
+    await service.findAll(
+      {
+        where: {
+          OR: [{ key: 'a' }, { key: 'b' }],
+          organizationId: 'org-1',
+        },
+      },
+      { limit: 10, page: 1, pagination: true },
+    );
+
+    const expectedWhere = {
+      AND: [
+        { OR: [{ key: 'a' }, { key: 'b' }] },
+        { OR: [{ organizationId: 'org-1' }, { organizationId: null }] },
+      ],
+      isDeleted: false,
+    };
+    expect(modelDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expectedWhere }),
+    );
+    expect(modelDelegate.count).toHaveBeenCalledWith({ where: expectedWhere });
   });
 
   it('reads the public catalog through a narrow, platform-only projection', async () => {

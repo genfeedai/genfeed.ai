@@ -92,6 +92,7 @@ function TabsContent({
   contentClassName,
   fullWidth = true,
   stopClickPropagation = false,
+  testId,
 }: TabsEnhancedProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -205,6 +206,7 @@ function TabsContent({
     return (
       <nav
         aria-label={ariaLabel}
+        data-testid={testId}
         className={cn(
           'ml-auto flex min-w-0 justify-end',
           fullWidth && 'w-full',
@@ -289,6 +291,7 @@ function TabsContent({
     <TabsRoot
       value={activeValue}
       onValueChange={handleValueChange}
+      data-testid={testId}
       className={cn(
         children == null
           ? 'ml-auto flex min-w-0 justify-end'

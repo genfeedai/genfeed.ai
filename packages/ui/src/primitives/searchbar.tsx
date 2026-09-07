@@ -10,8 +10,10 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from './button';
+
+export const SEARCHBAR_DEBOUNCE_MS = 300;
 
 const SIZE_CLASSES: Record<ComponentSize, string> = {
   [ComponentSize.LG]: 'h-12 text-base',
@@ -30,9 +32,17 @@ const ICON_SIZES: Record<ComponentSize, string> = {
 };
 
 export interface SearchbarProps {
+  /** Committed search value. With `onSearch`, the input keeps its own draft
+   * and only re-syncs when this changes from outside (back navigation, reset). */
   value?: string;
+  /** Fires on every keystroke. Use for purely local, in-memory filtering. */
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  /** Fires with the trimmed-for-emptiness draft after `debounceMs` of
+   * inactivity, and immediately on Enter or clear. Use for anything that hits
+   * the router, a query param, or the network. */
   onSearch?: (value: string) => void;
+  /** Delay before `onSearch` fires. Defaults to `SEARCHBAR_DEBOUNCE_MS`. */
+  debounceMs?: number;
   placeholder?: string;
   ariaLabel?: string;
   name?: string;
@@ -55,6 +65,8 @@ export interface SearchbarProps {
 export default function Searchbar({
   value,
   onChange,
+  onSearch,
+  debounceMs = SEARCHBAR_DEBOUNCE_MS,
   placeholder = 'Search…',
   ariaLabel = 'Search',
   name = 'search',
@@ -71,9 +83,82 @@ export default function Searchbar({
 }: SearchbarProps): ReactElement {
   const internalRef = useRef<HTMLInputElement>(null);
   const resolvedRef = inputRef ?? internalRef;
+  const isDebounced = Boolean(onSearch);
+
+  const committedValue = value ?? '';
+  const [draft, setDraft] = useState(committedValue);
+  const lastCommittedRef = useRef(committedValue);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
+  const cancelPending = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+  }, []);
+
+  const commit = useCallback(
+    (nextValue: string) => {
+      cancelPending();
+      if (nextValue === lastCommittedRef.current) {
+        return;
+      }
+      lastCommittedRef.current = nextValue;
+      onSearchRef.current?.(nextValue);
+    },
+    [cancelPending],
+  );
+
+  // Re-sync the draft only when the committed value changes from outside
+  // (URL navigation, programmatic reset), never because our own commit landed.
+  useEffect(() => {
+    if (committedValue !== lastCommittedRef.current) {
+      lastCommittedRef.current = committedValue;
+      cancelPending();
+      setDraft(committedValue);
+    }
+  }, [committedValue, cancelPending]);
+
+  useEffect(() => cancelPending, [cancelPending]);
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onChange?.(event);
+    if (!isDebounced) {
+      return;
+    }
+    const nextValue = event.target.value;
+    setDraft(nextValue);
+    cancelPending();
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = undefined;
+      commit(nextValue);
+    }, debounceMs);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown?.(event);
+    if (isDebounced && event.key === 'Enter' && !event.defaultPrevented) {
+      commit(event.currentTarget.value);
+    }
+  };
 
   const handleClear = () => {
-    if (onClear) {
+    if (isDebounced) {
+      cancelPending();
+      setDraft('');
+      lastCommittedRef.current = '';
+      if (onClear) {
+        onClear();
+      } else {
+        onSearchRef.current?.('');
+      }
+    } else if (onClear) {
       onClear();
     } else if (onChange) {
       const input = resolvedRef.current;
@@ -92,6 +177,7 @@ export default function Searchbar({
     resolvedRef.current?.focus();
   };
 
+  const displayedValue = isDebounced ? draft : value;
   const sizeClass = SIZE_CLASSES[size];
   const iconSize = ICON_SIZES[size];
 
@@ -111,22 +197,22 @@ export default function Searchbar({
         name={name}
         ref={resolvedRef}
         type="text"
-        value={value}
-        onChange={onChange}
+        value={displayedValue}
+        onChange={handleChange}
         placeholder={placeholder}
         className={cn(
           sizeClass,
           'w-full border border-input bg-background px-3 text-foreground',
           showIcon && 'pl-10',
-          showClearButton && value && 'pr-8',
+          showClearButton && displayedValue && 'pr-8',
           inputClassName,
         )}
         disabled={isDisabled}
         onClick={onClick}
-        onKeyDown={onKeyDown}
+        onKeyDown={handleKeyDown}
       />
 
-      {showClearButton && value && (
+      {showClearButton && displayedValue && (
         <Button
           ariaLabel="Clear search"
           withWrapper={false}

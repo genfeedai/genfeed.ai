@@ -17,7 +17,6 @@ import {
 import { ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ChangeEvent } from 'react';
 
 interface FilterOption {
   label: string;
@@ -58,10 +57,7 @@ export default function PublishingContentLibraryToolbar({
       <div className="w-48 sm:w-56 xl:w-64">
         <FormSearchbar
           value={searchValue}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            onSearchChange(event.target.value)
-          }
-          onClear={() => onSearchChange('')}
+          onSearch={onSearchChange}
           placeholder="Search posts"
           size={ComponentSize.SM}
           className="w-full"
