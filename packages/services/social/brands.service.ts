@@ -1,4 +1,7 @@
-import type { ReferenceImageCategory } from '@genfeedai/contracts';
+import type {
+  IBrandSkillSelection,
+  ReferenceImageCategory,
+} from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   FastlaneGenerateIdeasRequest,
@@ -317,7 +320,7 @@ export class BrandsService extends BaseService<Brand> {
 
   public async updateEnabledSkills(
     id: string,
-    selection: { enabledSkills: string[]; useDefaultSkills: boolean },
+    selection: IBrandSkillSelection,
   ): Promise<void> {
     await this.instance.patch(`/${id}/agent-config/enabled-skills`, selection);
   }

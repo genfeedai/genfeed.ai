@@ -26,7 +26,10 @@ import { scopedWhere } from '@api/index';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { ByokProvider } from '@genfeedai/contracts';
+import {
+  ByokProvider,
+  type IBrandEffectiveSkillSelection,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -520,7 +523,7 @@ export class SkillsService {
   async getBrandSkillSelection(
     organizationId: string,
     brandId: string,
-  ): Promise<{ enabledSlugs: string[]; isUsingDefaults: boolean }> {
+  ): Promise<IBrandEffectiveSkillSelection> {
     this.requireOrganizationId(organizationId);
 
     const brand = await findOrThrow(

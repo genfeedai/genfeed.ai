@@ -324,6 +324,28 @@ describe('useBrandEnabledSkills', () => {
     });
 
     expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['skill-a'],
+      useDefaultSkills: false,
+    });
+    expect(result.current.enabledSlugs).toEqual(['skill-a']);
+  });
+
+  it('seeds the explicit list with the defaults when leaving default mode without one', async () => {
+    setBrand([], { useDefaultSkills: true });
+
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({ defaultSlugs: ['content-writing'] }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isUsingDefaults).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.setUseDefaults(false);
+    });
+
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
       enabledSkills: ['content-writing'],
       useDefaultSkills: false,
     });

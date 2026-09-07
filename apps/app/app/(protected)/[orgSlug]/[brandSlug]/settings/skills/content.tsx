@@ -220,6 +220,10 @@ export default function BrandSettingsSkillsPage() {
     };
   }, [refreshCatalog]);
 
+  // The skill modal lives in global UI state, so leaving the route while the
+  // detail sheet is open must not leave it active for the next visit.
+  useEffect(() => () => closeModal(ModalEnum.SKILL), []);
+
   const filteredSkills = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
 

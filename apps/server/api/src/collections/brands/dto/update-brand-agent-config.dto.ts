@@ -447,7 +447,7 @@ export class UpdateBrandAgentConfigDto {
   enabledSkills?: string[];
 
   @IsBoolean()
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @ApiProperty({
     description:
       'Use the first-party default skill set instead of enabledSkills',

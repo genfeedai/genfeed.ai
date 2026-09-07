@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import type { IBrandSkillSelection } from '@genfeedai/contracts';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { BrandsService } from '@services/social/brands.service';
@@ -25,16 +26,11 @@ export interface UseBrandEnabledSkillsReturn {
   toggleSkill: (slug: string) => Promise<void>;
 }
 
-interface SkillSelection {
-  enabledSkills: string[];
-  useDefaultSkills: boolean;
-}
-
 function readPersistedSelection(
   agentConfig:
     | { enabledSkills?: string[]; useDefaultSkills?: boolean }
     | undefined,
-): SkillSelection {
+): IBrandSkillSelection {
   const enabledSkills = agentConfig?.enabledSkills ?? EMPTY_ENABLED_SKILL_SLUGS;
   const useDefaultSkills =
     agentConfig?.useDefaultSkills ??
@@ -56,13 +52,13 @@ export function useBrandEnabledSkills({
 }: UseBrandEnabledSkillsOptions = {}): UseBrandEnabledSkillsReturn {
   const { getToken } = useAuthIdentity();
   const { isReady, refreshBrands, selectedBrand } = useBrand();
-  const [selection, setSelection] = useState<SkillSelection>({
+  const [selection, setSelection] = useState<IBrandSkillSelection>({
     enabledSkills: [],
     useDefaultSkills: true,
   });
   const [isLoading, setIsLoading] = useState(false);
   const activeBrandIdRef = useRef<string | null>(null);
-  const selectionRef = useRef<SkillSelection>(selection);
+  const selectionRef = useRef<IBrandSkillSelection>(selection);
   const isLoadingRef = useRef(false);
   const mutationIdRef = useRef(0);
 
@@ -76,7 +72,7 @@ export function useBrandEnabledSkills({
   const defaultSlugsRef = useRef(defaultSlugs);
   defaultSlugsRef.current = defaultSlugs;
 
-  const applySelection = useCallback((next: SkillSelection) => {
+  const applySelection = useCallback((next: IBrandSkillSelection) => {
     selectionRef.current = next;
     setSelection(next);
   }, []);
@@ -121,7 +117,7 @@ export function useBrandEnabledSkills({
   }, [applySelection, isReady, persistedSelection, selectedBrandId]);
 
   const persistSelection = useCallback(
-    async (nextSelection: SkillSelection) => {
+    async (nextSelection: IBrandSkillSelection) => {
       if (!isReady || !selectedBrandId || isLoadingRef.current) return;
 
       const mutationId = ++mutationIdRef.current;
@@ -197,14 +193,15 @@ export function useBrandEnabledSkills({
       const current = selectionRef.current;
       if (current.useDefaultSkills === useDefaultSkills) return;
 
-      await persistSelection({
-        // Turning defaults off keeps the default set as the starting point;
-        // turning them on keeps the explicit list for when they go off again.
-        enabledSkills: useDefaultSkills
+      // Turning defaults on keeps the explicit list for when they go off
+      // again. Turning them off restores that list, and only a brand that
+      // never had one is seeded with the default set.
+      const enabledSkills =
+        useDefaultSkills || current.enabledSkills.length > 0
           ? current.enabledSkills
-          : [...defaultSlugsRef.current],
-        useDefaultSkills,
-      });
+          : [...defaultSlugsRef.current];
+
+      await persistSelection({ enabledSkills, useDefaultSkills });
     },
     [persistSelection],
   );
