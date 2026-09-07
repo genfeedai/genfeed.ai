@@ -30,6 +30,7 @@ interface InstagramDiscoveryMediaNode {
   media_type?: unknown;
   media_url?: unknown;
   permalink?: unknown;
+  thumbnail_url?: unknown;
   timestamp?: unknown;
 }
 
