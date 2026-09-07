@@ -11,6 +11,7 @@ import Link from 'next/link';
 
 import AgentStrategiesEmptyState from './AgentStrategiesEmptyState';
 import AgentStrategyDialog from './AgentStrategyDialog';
+import ContentPlansSection from './ContentPlansSection';
 import { useAgentStrategiesColumns } from './useAgentStrategiesColumns';
 import { useAgentStrategiesPage } from './useAgentStrategiesPage';
 
@@ -63,6 +64,10 @@ export default function AgentStrategiesPage() {
             />
           }
         />
+
+        <div className="mt-6">
+          <ContentPlansSection />
+        </div>
       </Container>
 
       <AgentStrategyDialog

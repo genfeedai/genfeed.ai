@@ -92,6 +92,7 @@ export class ContentPlannerService {
     const performance = await this.planPerformanceContextService.build({
       brandId,
       organizationId,
+      seeds: dto.seeds,
     });
 
     const systemPrompt = this.buildSystemPrompt(voice, strategy);
@@ -125,6 +126,13 @@ export class ContentPlannerService {
       organizationId,
       periodEnd: new Date(dto.periodEnd),
       periodStart: new Date(dto.periodStart),
+      seeds: {
+        advertiserIds: dto.seeds?.advertiserIds ?? [],
+        isColdStart: performance.isColdStart,
+        isImportedHistoryIncluded: dto.seeds?.isImportedHistoryIncluded ?? true,
+        isPatternsIncluded: dto.seeds?.isPatternsIncluded ?? true,
+        sourceIds: dto.seeds?.sourceIds ?? [],
+      },
       status: ContentPlanStatus.DRAFT,
     });
 

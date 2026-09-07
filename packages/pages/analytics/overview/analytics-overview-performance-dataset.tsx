@@ -4,7 +4,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IPerformanceContentItem,
   IWeeklyPerformanceSummary,
-  PerformanceDatasetConfidence,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -14,24 +13,15 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentPerformanceService } from '@services/analytics/content-performance.service';
 import { logger } from '@services/core/logger.service';
+import PerformanceDatasetBadge, {
+  LOW_CONFIDENCE_STATES,
+} from '@ui/analytics/performance-dataset-badge/PerformanceDatasetBadge';
 import Badge from '@ui/display/badge/Badge';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-
-const CONFIDENCE_BADGE_VARIANT: Record<
-  PerformanceDatasetConfidence,
-  'warning' | 'info' | 'success'
-> = {
-  high: 'success',
-  low: 'warning',
-  medium: 'info',
-  none: 'warning',
-};
-
-const LOW_CONFIDENCE_STATES: PerformanceDatasetConfidence[] = ['none', 'low'];
 
 export default function AnalyticsOverviewPerformanceDataset() {
   const translate = useTranslations('pages.analytics.performanceDataset');
@@ -87,11 +77,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
       density="compact"
       flush
       title={translate('title')}
-      actions={
-        <Badge variant={CONFIDENCE_BADGE_VARIANT[dataset.confidence]}>
-          {translate(`confidence.${dataset.confidence}`)}
-        </Badge>
-      }
+      actions={<PerformanceDatasetBadge confidence={dataset.confidence} />}
     >
       <div className="flex flex-col gap-3 px-4 pt-3 sm:px-5">
         <p className="text-sm text-foreground/70">

@@ -34,6 +34,7 @@ describe('SourcePostsService', () => {
     count: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    groupBy: vi.fn(),
     upsert: vi.fn(),
   };
   const ingredient = {
@@ -149,6 +150,66 @@ describe('SourcePostsService', () => {
     expect(result.count).toBe(1);
     expect(result.corpus).toContain('@source');
     expect(result.corpus).toContain('AI content generation');
+  });
+
+  it('filters the weekly corpus by explicit sourceIds when provided', async () => {
+    sourcePost.findMany.mockResolvedValue([]);
+
+    await service.getWeeklyCorpus('org-1', 'brand-1', 30, 10, {
+      sourceIds: ['source-1', 'source-2'],
+    });
+
+    expect(sourcePost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          sourceId: { in: ['source-1', 'source-2'] },
+        }),
+      }),
+    );
+  });
+
+  it('filters the weekly corpus by sourceTypes when no explicit sourceIds are given', async () => {
+    sourcePost.findMany.mockResolvedValue([]);
+
+    await service.getWeeklyCorpus('org-1', 'brand-1', 30, 10, {
+      sourceTypes: ['account'],
+    });
+
+    expect(sourcePost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          source: { is: { sourceType: { in: ['account'] } } },
+        }),
+      }),
+    );
+  });
+
+  it('counts recent posts grouped by source for the seed preview', async () => {
+    sourcePost.groupBy.mockResolvedValue([
+      { _count: { _all: 4 }, sourceId: 'source-1' },
+      { _count: { _all: 2 }, sourceId: 'source-2' },
+    ]);
+
+    const counts = await service.countRecentPostsBySource(
+      'org-1',
+      'brand-1',
+      30,
+    );
+
+    expect(sourcePost.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        by: ['sourceId'],
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(counts).toEqual({ 'source-1': 4, 'source-2': 2 });
   });
 
   it('filters source posts by the canonical sourceId without loading relations', async () => {

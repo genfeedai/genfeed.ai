@@ -1,6 +1,9 @@
 import { CreateContentPlanDto } from '@api/collections/content-plans/dto/create-content-plan.dto';
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
-import type { ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
+import type {
+  ContentPlanDocument,
+  ContentPlanSeedsRecord,
+} from '@api/collections/content-plans/schemas/content-plan.schema';
 import {
   asDate,
   asNumber,
@@ -33,6 +36,7 @@ export interface CreateContentPlanInternal {
   periodEnd: Date;
   itemCount: number;
   isDeleted: boolean;
+  seeds?: ContentPlanSeedsRecord;
 }
 
 interface ContentPlanConfigInput {
@@ -42,6 +46,7 @@ interface ContentPlanConfigInput {
   name?: string;
   periodEnd?: Date | string;
   periodStart?: Date | string;
+  seeds?: ContentPlanSeedsRecord;
   status?: ContentPlanStatus;
 }
 
@@ -79,6 +84,7 @@ export class ContentPlansService extends BaseService<
               name: input.name,
               periodEnd: input.periodEnd,
               periodStart: input.periodStart,
+              seeds: input.seeds,
               status: input.status,
             },
             undefined,
@@ -242,6 +248,7 @@ export class ContentPlansService extends BaseService<
       organization: doc.organizationId,
       periodEnd: asDate(config.periodEnd),
       periodStart: asDate(config.periodStart),
+      seeds: (config.seeds as ContentPlanSeedsRecord | undefined) ?? null,
       status: asString(config.status) ?? ContentPlanStatus.DRAFT,
     });
   }
@@ -278,6 +285,10 @@ export class ContentPlansService extends BaseService<
 
     if (data.executedCount !== undefined) {
       payload.executedCount = data.executedCount;
+    }
+
+    if (data.seeds !== undefined) {
+      payload.seeds = data.seeds;
     }
 
     return payload;

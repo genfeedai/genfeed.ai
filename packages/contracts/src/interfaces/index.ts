@@ -109,6 +109,8 @@ export * from './content/clip-source.interface';
 export * from './content/clip-terminal-contract.interface';
 export * from './content/clip-workflow.interface';
 export * from './content/composer-content.interface';
+export * from './content/content-plan.interface';
+export * from './content/content-plan-seed.interface';
 export * from './content/content-run.interface';
 export * from './content/content-run-service.contract';
 export * from './content/dashboard-layout.interface';
