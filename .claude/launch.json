@@ -24,6 +24,37 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "bun run --cwd apps/server/notifications dev"],
       "port": 3111
+    },
+    {
+      "name": "app-debug",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run --cwd apps/app dev:debug"],
+      "port": 3000,
+      "url": "http://genfeed.localhost:3000"
+    },
+    {
+      "name": "api-debug",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run --cwd apps/server/api dev:debug"],
+      "port": 3010,
+      "url": "http://genfeed.localhost:3010"
+    },
+    {
+      "name": "files-debug",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bun run --cwd apps/server/files dev:debug"],
+      "port": 3012,
+      "url": "http://genfeed.localhost:3012"
+    },
+    {
+      "name": "notifications-debug",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "bun run --cwd apps/server/notifications dev:debug"
+      ],
+      "port": 3111,
+      "url": "http://genfeed.localhost:3111"
     }
   ]
 }

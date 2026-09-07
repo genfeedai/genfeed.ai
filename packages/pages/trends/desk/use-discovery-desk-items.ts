@@ -49,6 +49,10 @@ const EMPTY_FEED: SocialSourcesResponse = {
   },
 };
 
+// `placeholderData`, never `initialData`: the shared QueryClient has a 30s
+// staleTime, and initialData is treated as a fresh cache entry, so the Desk
+// would mount with the empty placeholder and skip the real fetch until a
+// manual refresh invalidated it.
 const FOLLOWING_POSTS_LIMIT = 100;
 const VIRAL_VIDEOS_LIMIT = 12;
 
@@ -97,10 +101,11 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: trendContentError,
     isLoading: isLoadingTrendContent,
     isFetching: isFetchingTrendContent,
+    isPlaceholderData: isPlaceholderTrendContent,
     refetch: refetchTrendContent,
   } = useQuery<TrendContentResponse>({
     enabled: isBrandReady,
-    initialData: EMPTY_TREND_CONTENT,
+    placeholderData: EMPTY_TREND_CONTENT,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({});
@@ -114,10 +119,11 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: followingFeedError,
     isLoading: isLoadingFollowingFeed,
     isFetching: isFetchingFollowingFeed,
+    isPlaceholderData: isPlaceholderFollowingFeed,
     refetch: refetchFollowingFeed,
   } = useQuery<SocialSourcesResponse>({
     enabled: isBrandReady,
-    initialData: EMPTY_FEED,
+    placeholderData: EMPTY_FEED,
     queryFn: async () => {
       const service = await getSocialSourcesService();
       return service.getFollowingFeed({
@@ -137,10 +143,11 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: viralVideosError,
     isLoading: isLoadingViralVideos,
     isFetching: isFetchingViralVideos,
+    isPlaceholderData: isPlaceholderViralVideos,
     refetch: refetchViralVideos,
   } = useQuery<ITrendVideo[]>({
     enabled: isBrandReady,
-    initialData: [],
+    placeholderData: [],
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getViralVideos({ limit: VIRAL_VIDEOS_LIMIT });
@@ -191,8 +198,16 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     viralVideosQueryKey,
   ]);
 
+  // `placeholderData` reports a successful query while the first request is
+  // still in flight, so a cache miss shows up as fetching placeholder data
+  // rather than as `isLoading`. Treat it as the initial load.
   const isLoading =
-    isLoadingTrendContent || isLoadingFollowingFeed || isLoadingViralVideos;
+    isLoadingTrendContent ||
+    isLoadingFollowingFeed ||
+    isLoadingViralVideos ||
+    (isFetchingTrendContent && isPlaceholderTrendContent) ||
+    (isFetchingFollowingFeed && isPlaceholderFollowingFeed) ||
+    (isFetchingViralVideos && isPlaceholderViralVideos);
   const isFetching =
     isFetchingHealth ||
     isFetchingTrendContent ||

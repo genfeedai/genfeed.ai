@@ -155,6 +155,21 @@ describe('useDiscoveryDeskItems', () => {
     expect(result.current.sources).toEqual([]);
   });
 
+  it('reports the initial load, not a refresh, while placeholder data covers a cache miss', async () => {
+    mockGetTrendContent.mockImplementation(() => new Promise(() => {}));
+    mockGetFollowingFeed.mockImplementation(() => new Promise(() => {}));
+    mockGetViralVideos.mockImplementation(() => new Promise(() => {}));
+
+    const { result } = renderHook(() => useDiscoveryDeskItems(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => expect(mockGetTrendContent).toHaveBeenCalled());
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isRefreshing).toBe(false);
+    expect(result.current.items).toEqual([]);
+  });
+
   it('refresh invalidates and refetches all three sources', async () => {
     const { result } = renderHook(() => useDiscoveryDeskItems(), {
       wrapper: createQueryWrapper(),

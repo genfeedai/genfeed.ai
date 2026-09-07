@@ -180,9 +180,21 @@ vi.mock('@ui/analytics/trends', () => ({
 }));
 
 vi.mock('@ui/card/Card', () => ({
-  default: ({ children, label }: { children: ReactNode; label?: string }) => (
+  default: ({
+    children,
+    description,
+    headerAction,
+    label,
+  }: {
+    children: ReactNode;
+    description?: ReactNode;
+    headerAction?: ReactNode;
+    label?: string;
+  }) => (
     <section>
       {label && <h2>{label}</h2>}
+      {description && <p>{description}</p>}
+      {headerAction}
       {children}
     </section>
   ),
@@ -440,7 +452,7 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
     expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.getByText('native-api: healthy')).toBeInTheDocument();
+    expect(screen.getByText('Native Api · healthy')).toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
     // detail route before the click and cmd-click opens it in a new tab.
@@ -522,15 +534,12 @@ describe('AnalyticsTrends', () => {
       await screen.findByText('Trend corpus degraded'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/apify: Saved fallback previews are being used/),
+      screen.getByText(/Apify: Saved fallback previews are being used/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByText('Last successful refresh: Not recorded').length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText('Last attempt: Not recorded').length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Last refresh').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Last attempt').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
   it('shows corpus health as unavailable when its request fails', async () => {

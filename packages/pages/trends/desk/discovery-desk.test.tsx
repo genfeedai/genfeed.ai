@@ -117,6 +117,14 @@ vi.mock('@pages/trends/desk/desk-heat-strip', () => ({
   default: () => <div data-testid="desk-heat-strip" />,
 }));
 
+vi.mock('@pages/trends/desk/desk-sources-menu', () => ({
+  default: () => <div data-testid="desk-sources-menu" />,
+}));
+
+vi.mock('@pages/trends/following/FollowSourceModal', () => ({
+  default: () => null,
+}));
+
 interface MockViewProps {
   items: DiscoveryDeskItem[];
   onCursor: (key: string) => void;
@@ -207,7 +215,7 @@ describe('DiscoveryDesk', () => {
     expect(screen.queryByTestId('desk-table-view')).not.toBeInTheDocument();
   });
 
-  it('filters to the Following source when ?source=following', () => {
+  it('renders the Following deck with one column per platform when ?source=following', () => {
     const trendsItem = buildItem({
       key: 'trend:public',
       source: 'trends',
@@ -218,26 +226,64 @@ describe('DiscoveryDesk', () => {
       source: 'following',
       title: 'Followed creator signal',
     });
+    const linkedinItem = buildItem({
+      key: 'trend:linkedin',
+      platform: 'linkedin',
+      source: 'following',
+      title: 'LinkedIn creator signal',
+    });
     mocks.useDiscoveryDeskItems.mockReturnValue({
       error: null,
       isLoading: false,
       isRefreshing: false,
-      items: [trendsItem, followingItem],
+      items: [trendsItem, followingItem, linkedinItem],
       refresh: vi.fn().mockResolvedValue(undefined),
       sources: [],
       summary: {
         connectedPlatforms: ['twitter'],
         lockedPlatforms: [],
-        totalItems: 2,
-        totalTrends: 2,
+        totalItems: 3,
+        totalTrends: 3,
       },
     });
     mocks.paramState.source = 'following';
 
     render(<DiscoveryDesk />);
 
+    expect(screen.getByTestId('following-deck')).toBeInTheDocument();
+    expect(screen.queryByTestId('desk-table-view')).not.toBeInTheDocument();
     expect(screen.getByText('Followed creator signal')).toBeInTheDocument();
+    expect(screen.getByText('LinkedIn creator signal')).toBeInTheDocument();
     expect(screen.queryByText('Public trend signal')).not.toBeInTheDocument();
+    // Trend corpus health is about public trends, not followed creators.
+    expect(screen.queryByText('Source health')).not.toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('following-deck-column');
+    expect(columns.map((column) => column.getAttribute('aria-label'))).toEqual([
+      'X',
+      'LinkedIn',
+    ]);
+    expect(
+      screen.getByRole('button', { name: /Add a column/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the follow-creators empty state on the Following deck without sources', () => {
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [],
+      sources: [],
+    });
+    mocks.paramState.source = 'following';
+
+    render(<DiscoveryDesk />);
+
+    expect(
+      screen.getByText('Follow creators to build your deck'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('discovery-readiness-cards'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the selection bar after selecting a row and batch-remixes sequentially', async () => {

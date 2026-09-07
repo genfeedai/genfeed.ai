@@ -82,7 +82,10 @@ export default function ContentRunListPage() {
     refetch,
   } = useQuery<ContentRunRecord[]>({
     enabled: isBrandReady,
-    initialData: EMPTY_RUNS,
+    // placeholderData, never initialData: the shared QueryClient has a 30s
+    // staleTime, and initialData is treated as a fresh cache entry, so the
+    // list would mount empty and skip the fetch until something invalidated it.
+    placeholderData: EMPTY_RUNS,
     queryFn: async () => {
       if (!brandId) {
         return EMPTY_RUNS;

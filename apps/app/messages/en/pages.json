@@ -69,10 +69,6 @@
         "unavailableHealth": "Health unavailable",
         "missingHealth": "No saved health is available for this platform. Reload to check again.",
         "notRecorded": "Not recorded",
-        "sourceTimestamp": "Last observed source timestamp: {timestamp}",
-        "previewTimestamp": "Last preview observation: {timestamp}",
-        "lastRefresh": "Last successful refresh: Not recorded",
-        "lastAttempt": "Last attempt: Not recorded",
         "status": {
           "healthy": "healthy",
           "stale": "stale",
@@ -91,7 +87,10 @@
           "empty_source_preview": "No source previews were observed.",
           "fallback_source_preview": "Saved fallback previews are being used.",
           "stale_source_preview": "Saved source previews are stale."
-        }
+        },
+        "sourceTimestampLabel": "Last observed",
+        "lastRefreshLabel": "Last refresh",
+        "lastAttemptLabel": "Last attempt"
       }
     }
   },
