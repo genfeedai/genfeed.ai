@@ -133,9 +133,12 @@ describe('TrendDetail', () => {
     expect(screen.getByText('Loading trend…')).toBeInTheDocument();
     expect(screen.getByText('Trend Metrics')).toBeInTheDocument();
     expect(screen.getByText('Mentions')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('trend-detail-body-skeleton'),
-    ).toBeInTheDocument();
+    // The dedicated body-skeleton wrapper was dropped in #4150's shell-first
+    // loading pass — MetricCard now renders its own pulse placeholder per
+    // KPI tile while the request is in flight.
+    const metricCards = screen.getAllByTestId('metric-card');
+    expect(metricCards.length).toBeGreaterThan(0);
+    expect(metricCards[0].querySelector('.animate-pulse')).toBeInTheDocument();
   });
 
   it('surfaces a failure and notifies the user', async () => {
