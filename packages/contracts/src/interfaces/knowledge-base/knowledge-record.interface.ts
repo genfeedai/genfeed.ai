@@ -127,3 +127,25 @@ export interface KnowledgeSourceCaptureResult {
   jobId?: string;
   versionId?: string;
 }
+
+/** One legacy row the backfill could not convert safely. */
+export interface KnowledgeLegacyQuarantine {
+  id: string;
+  kind: 'bookmark' | 'context-source';
+  reason: string;
+}
+
+/** Outcome of one organization's legacy Knowledge backfill run. */
+export interface KnowledgeLegacyBackfillReport {
+  organizationId: string;
+  bookmarks: { migrated: number; skipped: number; quarantined: number };
+  contextSources: {
+    migrated: number;
+    relinkedChunks: number;
+    skipped: number;
+    quarantined: number;
+  };
+  spacesCreated: number;
+  quarantine: KnowledgeLegacyQuarantine[];
+  completedAt: string;
+}

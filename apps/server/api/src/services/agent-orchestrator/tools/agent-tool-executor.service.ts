@@ -22,6 +22,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
+import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
@@ -191,6 +192,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly brandContentHandler: AgentBrandContentToolHandler,
     private readonly prepareHandler: AgentPrepareToolHandler,
     private readonly spawnHandler: AgentSpawnToolHandler,
+    private readonly knowledgeHandler: AgentKnowledgeToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
@@ -919,6 +921,15 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'capture_memory':
         return this.memoryGoalsHandler.captureMemory(params, ctx);
+
+      case 'search_knowledge':
+      case 'list_knowledge_sources':
+      case 'read_knowledge_source':
+      case 'capture_knowledge':
+      case 'assign_knowledge_purpose':
+      case 'archive_knowledge_source':
+      case 'retry_knowledge_ingestion':
+        return this.knowledgeHandler.execute(toolName, params, ctx);
 
       case 'create_goal':
         return this.memoryGoalsHandler.createGoal(params, ctx);

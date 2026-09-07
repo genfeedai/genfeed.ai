@@ -7,6 +7,7 @@ import { KnowledgeSourcesController } from '@api/collections/contexts/controller
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
@@ -31,6 +32,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSourceIngestWorkflowService,
     KnowledgeCaptureService,
     KnowledgeSelectionService,
+    KnowledgeLegacyBackfillService,
   ],
   imports: [
     ByokModule,
@@ -46,6 +48,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSourceIngestWorkflowService,
     KnowledgeCaptureService,
     KnowledgeSelectionService,
+    KnowledgeLegacyBackfillService,
   ],
 })
 export class ContextsModule {}

@@ -10,6 +10,7 @@ import {
 import { KnowledgeListDto } from '@api/collections/contexts/dto/knowledge-list.dto';
 import { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -43,6 +44,7 @@ export class KnowledgeSourcesController {
   constructor(
     private readonly records: KnowledgeRecordsService,
     private readonly capture: KnowledgeCaptureService,
+    private readonly legacyBackfill: KnowledgeLegacyBackfillService,
   ) {}
 
   /**
@@ -72,6 +74,16 @@ export class KnowledgeSourcesController {
       ...(result.jobId ? { jobId: result.jobId } : {}),
       ...(result.version ? { versionId: result.version.id } : {}),
     };
+  }
+
+  /**
+   * Convert this organization's legacy bookmarks and context sources into
+   * Knowledge exactly once. Safe to call again: migrated rows are skipped and
+   * the latest report replaces the previous one.
+   */
+  @Post('backfill-legacy')
+  async backfillLegacy(@CurrentUser() user: AuthenticatedUser) {
+    return this.legacyBackfill.run(user.organizationId);
   }
 
   /** Queue ingestion for every current version that is not ready yet. */
