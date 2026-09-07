@@ -10,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import {
@@ -37,6 +38,7 @@ export class ContentEngineController {
     private readonly contentPlannerService: ContentPlannerService,
     private readonly contentPlansService: ContentPlansService,
     private readonly contentPlanItemsService: ContentPlanItemsService,
+    private readonly contentPlanSeedsService: ContentPlanSeedsService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
@@ -57,13 +59,32 @@ export class ContentEngineController {
   ) {
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
-    const data = await this.contentPlannerService.generatePlan(
+    const { items, plan } = await this.contentPlannerService.generatePlan(
       organization,
       brandId,
       userId,
       dto,
     );
-    return serializeSingle(req, ContentPlanSerializer, data);
+    return {
+      items: serializeCollection(req, ContentPlanItemSerializer, {
+        docs: items,
+      }),
+      plan: serializeSingle(req, ContentPlanSerializer, plan),
+    };
+  }
+
+  /**
+   * Preview surface for cold-start seeding: what a plan would be grounded in
+   * before the caller picks a subset via `GenerateContentPlanDto.seeds`.
+   * Declared before `plans/:planId` so `seeds` never matches that param.
+   */
+  @Get('plans/seeds')
+  async getPlanSeeds(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+  ) {
+    const organization = user.organizationId;
+    return this.contentPlanSeedsService.buildPreview(organization, brandId);
   }
 
   @Get('plans')

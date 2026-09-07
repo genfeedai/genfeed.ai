@@ -3,6 +3,12 @@ export interface GeneratePlanFormState {
   periodEnd: string;
   itemCount: string;
   topics: string;
+  /** Watched-advertiser IDs currently checked in the seed picker. */
+  advertiserIds: string[];
+  /** Followed-creator social source IDs currently checked in the seed picker. */
+  sourceIds: string[];
+  isImportedHistoryIncluded: boolean;
+  isPatternsIncluded: boolean;
 }
 
 export interface GeneratePlanDialogProps {

@@ -11,4 +11,5 @@ export const contentPlanAttributes = createEntityAttributes([
   'periodEnd',
   'itemCount',
   'executedCount',
+  'seeds',
 ]);

@@ -52,6 +52,12 @@ export function useContentPlansSection() {
           itemCount: form.itemCount ? Number(form.itemCount) : undefined,
           periodEnd: form.periodEnd,
           periodStart: form.periodStart,
+          seeds: {
+            advertiserIds: form.advertiserIds,
+            isImportedHistoryIncluded: form.isImportedHistoryIncluded,
+            isPatternsIncluded: form.isPatternsIncluded,
+            sourceIds: form.sourceIds,
+          },
           topics: topics.length > 0 ? topics : undefined,
         });
 

@@ -507,6 +507,38 @@ export class AdPerformanceService {
       .slice(0, limit);
   }
 
+  /**
+   * Ads belonging to a caller-chosen set of watched advertisers, rather than
+   * the global top-N. `researchSnapshotKey` is the watched advertiser's own
+   * id (see `replaceResearchSnapshot`), so this is a direct membership filter
+   * — no need to re-derive advertiser identity from ad content.
+   */
+  async findByWatchedAdvertisers(params: {
+    organizationId: string;
+    brandId?: string;
+    advertiserIds: string[];
+    limit?: number;
+  }): Promise<AdPerformanceDocument[]> {
+    if (params.advertiserIds.length === 0) {
+      return [];
+    }
+
+    const limit = this.resolveTopPerformerLimit(params.limit);
+    const records = await this.prisma.adPerformance.findMany({
+      orderBy: this.buildMetricOrderBy('performanceScore'),
+      take: limit,
+      where: scopedWhere(params.organizationId, {
+        ...(params.brandId
+          ? { OR: [{ brandId: params.brandId }, { brandId: null }] }
+          : {}),
+        researchFreshnessState: 'fresh',
+        researchSnapshotKey: { in: params.advertiserIds },
+      }),
+    });
+
+    return records.map((record) => this.normalizeRecord(record));
+  }
+
   async findById(
     id: string,
     organizationId: string,

@@ -4,6 +4,7 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
+import { ContentPlanSeedsService } from '@api/services/content-engine/content-plan-seeds.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -35,6 +36,9 @@ describe('ContentEngineController', () => {
   let contentPlanItemsService: {
     listByPlan: ReturnType<typeof vi.fn>;
     softDeleteByPlan: ReturnType<typeof vi.fn>;
+  };
+  let contentPlanSeedsService: {
+    buildPreview: ReturnType<typeof vi.fn>;
   };
   let systemWorkflowRunner: {
     runWorkflow: ReturnType<typeof vi.fn>;
@@ -74,9 +78,10 @@ describe('ContentEngineController', () => {
         {
           provide: ContentPlannerService,
           useValue: {
-            generatePlan: vi
-              .fn()
-              .mockResolvedValue({ id: 'plan-1', status: 'draft' }),
+            generatePlan: vi.fn().mockResolvedValue({
+              items: [{ id: 'item-1' }, { id: 'item-2' }],
+              plan: { id: 'plan-1', status: 'draft' },
+            }),
           },
         },
         {
@@ -103,6 +108,24 @@ describe('ContentEngineController', () => {
             softDeleteByPlan: vi.fn().mockResolvedValue({ acknowledged: true }),
           },
         },
+        {
+          provide: ContentPlanSeedsService,
+          useValue: {
+            buildPreview: vi.fn().mockResolvedValue({
+              advertisers: [],
+              dataset: {
+                confidence: 'none',
+                genfeedPosts: 0,
+                importedPosts: 0,
+                totalPosts: 0,
+              },
+              importedPostCount: 0,
+              isColdStart: true,
+              patternCount: 0,
+              sources: [],
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -110,6 +133,7 @@ describe('ContentEngineController', () => {
     contentPlannerService = module.get(ContentPlannerService);
     contentPlansService = module.get(ContentPlansService);
     contentPlanItemsService = module.get(ContentPlanItemsService);
+    contentPlanSeedsService = module.get(ContentPlanSeedsService);
   });
 
   afterEach(() => {
@@ -138,7 +162,54 @@ describe('ContentEngineController', () => {
         userId,
         dto,
       );
-      expect(result).toEqual({ data: { id: 'plan-1', status: 'draft' } });
+      expect(result).toEqual({
+        items: { data: [{ id: 'item-1' }, { id: 'item-2' }] },
+        plan: { data: { id: 'plan-1', status: 'draft' } },
+      });
+    });
+  });
+
+  describe('getPlanSeeds', () => {
+    it('should return the seed preview scoped to organization and brand', async () => {
+      const preview = {
+        advertisers: [
+          {
+            adCount: 3,
+            id: 'adv-1',
+            name: 'Rival Co',
+            platform: 'meta',
+            topHeadline: 'Hi',
+          },
+        ],
+        dataset: {
+          confidence: 'low',
+          genfeedPosts: 0,
+          importedPosts: 2,
+          totalPosts: 2,
+        },
+        importedPostCount: 2,
+        isColdStart: true,
+        patternCount: 1,
+        sources: [
+          {
+            displayName: 'Creator',
+            handle: 'creator',
+            id: 'source-1',
+            platform: 'instagram',
+            postCount: 4,
+            sourceType: 'account',
+          },
+        ],
+      };
+      contentPlanSeedsService.buildPreview.mockResolvedValue(preview);
+
+      const result = await controller.getPlanSeeds(mockUser, 'brand-1');
+
+      expect(contentPlanSeedsService.buildPreview).toHaveBeenCalledWith(
+        orgId,
+        'brand-1',
+      );
+      expect(result).toEqual(preview);
     });
   });
 
