@@ -201,8 +201,8 @@ describe('ContentPlannerService', () => {
     const userMessage = chatArgs.messages.find(
       (message: { role: string }) => message.role === 'user',
     );
-    expect(userMessage.content).toContain('Performance grounding:');
-    expect(userMessage.content).toContain('Stop scrolling, start shipping');
+    expect(userMessage?.content).toContain('Performance grounding:');
+    expect(userMessage?.content).toContain('Stop scrolling, start shipping');
     expect(contentPlansService.createInternal).toHaveBeenCalledWith(
       expect.objectContaining({
         description: expect.stringContaining('cold-start plan'),
