@@ -17,6 +17,7 @@ const makePerformanceItem = (
   description: '',
   engagementRate: 0,
   likes: 0,
+  origin: 'genfeed',
   platform: 'linkedin',
   postId: 'post-1',
   saves: 0,
@@ -32,6 +33,12 @@ const makeSummary = (
   avgEngagementByContentType: [],
   avgEngagementByPlatform: [],
   bestPostingTimes: [],
+  dataset: {
+    confidence: 'none',
+    genfeedPosts: 0,
+    importedPosts: 0,
+    totalPosts: 0,
+  },
   topHooks: [],
   topPerformers: [],
   weekOverWeekTrend: {

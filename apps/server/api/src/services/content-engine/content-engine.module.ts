@@ -1,27 +1,42 @@
+import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { ContentPlanItemsModule } from '@api/collections/content-plan-items/content-plan-items.module';
 import { ContentPlansModule } from '@api/collections/content-plans/content-plans.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { PatternMatcherModule } from '@api/services/pattern-matcher/pattern-matcher.module';
 import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
+import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentEngineController],
   exports: [ContentPlannerService, ContentExecutionService],
   imports: [
+    AdPerformanceModule,
+    ContentPerformanceModule,
     ContentPlansModule,
     ContentPlanItemsModule,
+    PatternMatcherModule,
     PostsModule,
+    SourcePostsModule,
     BrandsModule,
     LlmDispatcherModule,
+    LoggerModule,
     SkillWorkflowModule,
     ContentOrchestrationModule,
   ],
-  providers: [ContentPlannerService, ContentExecutionService],
+  providers: [
+    ContentPlannerService,
+    ContentExecutionService,
+    PlanPerformanceContextService,
+  ],
 })
 export class ContentEngineModule {}

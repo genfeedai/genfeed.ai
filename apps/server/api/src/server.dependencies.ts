@@ -256,6 +256,7 @@ export interface ServerPrisma {
   member: PrismaClient['member'];
   newsletter: PrismaClient['newsletter'];
   post: PrismaClient['post'];
+  sourcePost: PrismaClient['sourcePost'];
   workflow: PrismaClient['workflow'];
   workflowExecution: PrismaClient['workflowExecution'];
   publishApproval: PrismaClient['publishApproval'];

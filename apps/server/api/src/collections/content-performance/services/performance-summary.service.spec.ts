@@ -32,6 +32,7 @@ describe('PerformanceSummaryService', () => {
   const analyticsFindMany = vi.fn();
   const analyticsAggregate = vi.fn();
   const postFindMany = vi.fn();
+  const sourcePostFindMany = vi.fn();
   const queryRaw = vi.fn();
 
   const prisma = {
@@ -41,6 +42,7 @@ describe('PerformanceSummaryService', () => {
       aggregate: analyticsAggregate,
       findMany: analyticsFindMany,
     },
+    sourcePost: { findMany: sourcePostFindMany },
   } as unknown as ServerPrisma;
 
   let service: PerformanceSummaryService;
@@ -50,6 +52,7 @@ describe('PerformanceSummaryService', () => {
     service = new PerformanceSummaryService(prisma);
     analyticsFindMany.mockResolvedValue([]);
     postFindMany.mockResolvedValue([]);
+    sourcePostFindMany.mockResolvedValue([]);
     queryRaw.mockResolvedValue([]);
     analyticsAggregate.mockResolvedValue({ _sum: {} });
   });
@@ -93,6 +96,7 @@ describe('PerformanceSummaryService', () => {
         description: 'A great description. Second sentence.',
         engagementRate: 5,
         likes: 10,
+        origin: 'genfeed',
         platform: 'instagram',
         postId: 'post-1',
         publishDate: '2026-07-20T14:00:00.000Z',
@@ -787,6 +791,156 @@ describe('PerformanceSummaryService', () => {
       );
 
       expect(context).not.toContain('Your top hooks');
+    });
+  });
+
+  describe('imported own-account posts', () => {
+    function makeSourcePost(overrides: Record<string, unknown> = {}) {
+      return {
+        contentType: 'reel',
+        id: 'source-post-1',
+        metrics: { comments: 20, likes: 400, shares: 30, views: 2000 },
+        platform: 'instagram',
+        publishedAt: new Date('2026-09-01T09:30:00.000Z'),
+        text: 'Imported hook line\nRest of the caption.',
+        ...overrides,
+      };
+    }
+
+    it('only reads posts from active own-account sources inside the window', async () => {
+      await service.getTopPerformers('org-1', 'brand-1', 5, {
+        endDate: '2026-09-05',
+        startDate: '2026-08-01',
+      });
+
+      const args = sourcePostFindMany.mock.calls[0]?.[0];
+      expect(args.where).toMatchObject({
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        source: {
+          is: { isDeleted: false, sourceType: 'own-account' },
+        },
+      });
+      expect(args.where.publishedAt.gte).toBeInstanceOf(Date);
+      expect(args.where.publishedAt.lte).toBeInstanceOf(Date);
+    });
+
+    it('ranks imported posts alongside Genfeed analytics and marks their origin', async () => {
+      analyticsFindMany.mockResolvedValue([
+        makeAnalytics({ engagementRate: 5, postId: 'post-1' }),
+      ]);
+      postFindMany.mockResolvedValue([makePost()]);
+      sourcePostFindMany.mockResolvedValue([
+        makeSourcePost(),
+        makeSourcePost({
+          id: 'source-post-2',
+          metrics: { comments: 1, likes: 2, views: 1000 },
+          text: 'Weak imported post',
+        }),
+      ]);
+
+      const items = await service.getTopPerformers('org-1', 'brand-1', 2);
+
+      expect(items.map((item) => [item.postId, item.origin])).toEqual([
+        ['source-post-1', 'imported'],
+        ['post-1', 'genfeed'],
+      ]);
+      expect(items[0]).toMatchObject({
+        comments: 20,
+        description: 'Imported hook line\nRest of the caption.',
+        engagementRate: 22.5,
+        likes: 400,
+        platform: 'instagram',
+        publishDate: '2026-09-01T09:30:00.000Z',
+        shares: 30,
+        sourcePostId: 'source-post-1',
+        title: 'Imported hook line',
+        views: 2000,
+      });
+    });
+
+    it('applies the worst-performer view floor to imported posts too', async () => {
+      sourcePostFindMany.mockResolvedValue([
+        makeSourcePost({ id: 'unreached', metrics: { likes: 0, views: 3 } }),
+        makeSourcePost({ id: 'reached', metrics: { likes: 1, views: 500 } }),
+      ]);
+
+      const items = await service.getWorstPerformers('org-1', 'brand-1', 5);
+
+      expect(items.map((item) => item.postId)).toEqual(['reached']);
+    });
+
+    it('folds imported posts into the weekly dataset, platform averages and trend', async () => {
+      analyticsFindMany.mockResolvedValue([makeAnalytics()]);
+      postFindMany.mockResolvedValue([makePost()]);
+      queryRaw
+        .mockResolvedValueOnce([
+          { avg_engagement_rate: 4, platform: 'instagram', total_posts: 3 },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      analyticsAggregate
+        .mockResolvedValueOnce({ _sum: { totalLikes: 100 } })
+        .mockResolvedValueOnce({ _sum: { totalLikes: 100 } });
+      sourcePostFindMany
+        // current window
+        .mockResolvedValueOnce([
+          makeSourcePost(),
+          makeSourcePost({
+            id: 'source-post-2',
+            metrics: { likes: 100, views: 1000 },
+            platform: 'tiktok',
+          }),
+        ])
+        // previous window
+        .mockResolvedValueOnce([
+          makeSourcePost({ id: 'old', metrics: { likes: 50, views: 1000 } }),
+        ]);
+
+      const summary = await service.getWeeklySummary('org-1', 'brand-1');
+
+      expect(summary.dataset).toEqual({
+        confidence: 'low',
+        genfeedPosts: 1,
+        importedPosts: 2,
+        totalPosts: 3,
+      });
+      expect(summary.avgEngagementByPlatform).toEqual([
+        { avgEngagementRate: 10, platform: 'tiktok', totalPosts: 1 },
+        { avgEngagementRate: 8.625, platform: 'instagram', totalPosts: 4 },
+      ]);
+      expect(summary.avgEngagementByContentType).toEqual([
+        { avgEngagementRate: 16.25, category: 'REEL', totalPosts: 2 },
+      ]);
+      expect(summary.bestPostingTimes).toEqual([
+        { avgEngagementRate: 16.25, hour: 9, postCount: 2 },
+      ]);
+      expect(summary.weekOverWeekTrend).toMatchObject({
+        currentEngagement: 100 + 450 + 100,
+        direction: 'up',
+        previousEngagement: 100 + 50,
+      });
+      expect(summary.topHooks).toContain('Imported hook line');
+    });
+
+    it('describes the dataset in the generated performance context', async () => {
+      sourcePostFindMany
+        .mockResolvedValueOnce([makeSourcePost()])
+        .mockResolvedValueOnce([]);
+
+      const context = await service.generatePerformanceContext(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(context).toContain(
+        'Based on 0 Genfeed posts and 1 imported post from your connected accounts (low confidence).',
+      );
+      expect(context).toContain(
+        'Your top hooks last week: [Imported hook line].',
+      );
+      expect(context).toContain('Best platform: instagram.');
     });
   });
 });

@@ -4,6 +4,7 @@
  * optimal posting times, audience growth predictions, and AI-generated actionable insights.
  */
 
+import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { InsightsController } from '@api/collections/insights/controllers/insights.controller';
 import { InsightsService } from '@api/collections/insights/services/insights.service';
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ByokModule,
     ConfigModule,
+    ContentPerformanceModule,
     CreditsModule,
     LlmDispatcherModule,
     ModelsModule,

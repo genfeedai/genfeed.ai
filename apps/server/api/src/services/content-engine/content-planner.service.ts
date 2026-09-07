@@ -8,6 +8,10 @@ import {
 import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
 import { type ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import {
+  type PlanPerformanceContext,
+  PlanPerformanceContextService,
+} from '@api/services/content-engine/plan-performance-context.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
@@ -55,6 +59,7 @@ export class ContentPlannerService {
     private readonly brandsService: BrandsService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly logger: LoggerService,
+    private readonly planPerformanceContextService: PlanPerformanceContextService,
   ) {}
 
   async generatePlan(
@@ -81,8 +86,16 @@ export class ContentPlannerService {
     const voice = agentConfig?.voice;
     const strategy = agentConfig?.strategy;
 
+    // Real performance grounding: own history (Genfeed + imported posts) when
+    // there is enough of it, otherwise a cold-start brief from competitor ads,
+    // creative patterns and followed creators.
+    const performance = await this.planPerformanceContextService.build({
+      brandId,
+      organizationId,
+    });
+
     const systemPrompt = this.buildSystemPrompt(voice, strategy);
-    const userPrompt = this.buildUserPrompt(dto, strategy);
+    const userPrompt = this.buildUserPrompt(dto, strategy, performance);
 
     const response = await this.llmDispatcherService.chatCompletion(
       {
@@ -103,7 +116,9 @@ export class ContentPlannerService {
     const plan = await this.contentPlansService.createInternal({
       brandId,
       createdBy: userId,
-      description: `AI-generated plan: ${parsed.name}`,
+      description: performance.isColdStart
+        ? `AI-generated cold-start plan (seeded from competitor ads, creative patterns and followed creators; ${performance.dataset.totalPosts} own posts in the last 30 days): ${parsed.name}`
+        : `AI-generated plan (grounded in ${performance.dataset.totalPosts} own posts, ${performance.dataset.importedPosts} imported): ${parsed.name}`,
       isDeleted: false,
       itemCount: parsed.items.length,
       name: dto.name ?? parsed.name,
@@ -139,6 +154,8 @@ export class ContentPlannerService {
       `${this.constructorName}: Generated plan with ${items.length} items`,
       {
         brandId,
+        dataset: performance.dataset,
+        isColdStart: performance.isColdStart,
         organizationId,
         planId,
       },
@@ -210,6 +227,7 @@ Ensure content aligns with the brand voice and strategy.`;
       frequency?: string;
       goals?: string[];
     },
+    performance?: PlanPerformanceContext,
   ): string {
     const itemCount = dto.itemCount ?? 7;
     const topics = dto.topics?.length
@@ -226,12 +244,16 @@ Ensure content aligns with the brand voice and strategy.`;
     const extra = dto.additionalInstructions
       ? `Additional instructions: ${dto.additionalInstructions}`
       : '';
+    const performanceSection = performance?.section
+      ? `\nPerformance grounding:\n${performance.section}\n`
+      : '';
 
     return `Generate a content plan with ${itemCount} items for the period ${dto.periodStart} to ${dto.periodEnd}.
 ${topics}
 ${platforms}
 ${platformGuidance}
 ${extra}
+${performanceSection}
 Mix skill-based content (writing, trends) with media pipeline items (images, videos) for variety.`.trim();
   }
 

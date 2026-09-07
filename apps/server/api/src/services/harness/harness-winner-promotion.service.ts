@@ -133,6 +133,7 @@ export class HarnessWinnerPromotionService {
           metadata: {
             engagementRate: candidate.item.engagementRate,
             kind: 'performance_winner',
+            origin: candidate.item.origin,
             platform: candidate.item.platform,
             postId,
             promotedAt: new Date().toISOString(),
@@ -149,9 +150,11 @@ export class HarnessWinnerPromotionService {
           data: {
             content: candidate.content,
             kind: 'performance_winner',
+            origin: candidate.item.origin,
             metadata: {
               engagementRate: candidate.item.engagementRate,
               kind: 'performance_winner',
+              origin: candidate.item.origin,
               platform: candidate.item.platform,
               postId,
               promotedAt: new Date().toISOString(),
@@ -257,7 +260,9 @@ export class HarnessWinnerPromotionService {
           authorClosedLoops: readAuthorClosedLoops(item),
         }).toFixed(1)}/1k]`
       : '';
-    return `Winning post${platform}${rate}${xScore}: ${text.slice(0, 400)}`;
+    const provenance =
+      item.origin === 'imported' ? ' (imported from your account)' : '';
+    return `Winning post${platform}${provenance}${rate}${xScore}: ${text.slice(0, 400)}`;
   }
 
   private resolveProvider<T>(
