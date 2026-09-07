@@ -923,25 +923,13 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.memoryGoalsHandler.captureMemory(params, ctx);
 
       case 'search_knowledge':
-        return this.knowledgeHandler.searchKnowledge(params, ctx);
-
       case 'list_knowledge_sources':
-        return this.knowledgeHandler.listKnowledgeSources(params, ctx);
-
       case 'read_knowledge_source':
-        return this.knowledgeHandler.readKnowledgeSource(params, ctx);
-
       case 'capture_knowledge':
-        return this.knowledgeHandler.captureKnowledge(params, ctx);
-
       case 'assign_knowledge_purpose':
-        return this.knowledgeHandler.assignKnowledgePurpose(params, ctx);
-
       case 'archive_knowledge_source':
-        return this.knowledgeHandler.archiveKnowledgeSource(params, ctx);
-
       case 'retry_knowledge_ingestion':
-        return this.knowledgeHandler.retryKnowledgeIngestion(params, ctx);
+        return this.knowledgeHandler.execute(toolName, params, ctx);
 
       case 'create_goal':
         return this.memoryGoalsHandler.createGoal(params, ctx);
