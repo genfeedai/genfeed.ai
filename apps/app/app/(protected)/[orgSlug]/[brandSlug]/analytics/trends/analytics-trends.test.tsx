@@ -180,9 +180,21 @@ vi.mock('@ui/analytics/trends', () => ({
 }));
 
 vi.mock('@ui/card/Card', () => ({
-  default: ({ children, label }: { children: ReactNode; label?: string }) => (
+  default: ({
+    children,
+    description,
+    headerAction,
+    label,
+  }: {
+    children: ReactNode;
+    description?: ReactNode;
+    headerAction?: ReactNode;
+    label?: string;
+  }) => (
     <section>
       {label && <h2>{label}</h2>}
+      {description && <p>{description}</p>}
+      {headerAction}
       {children}
     </section>
   ),
