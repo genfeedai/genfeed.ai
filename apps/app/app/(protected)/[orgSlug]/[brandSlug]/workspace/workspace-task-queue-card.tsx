@@ -1,20 +1,7 @@
-'use client';
-
-import type { Task, TasksService } from '@services/management/tasks.service';
+import type { WorkspaceTaskQueueCardProps } from '@props/workspace/workspace-task-queue-card.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { WorkspaceTaskCard } from './workspace-task-card';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
-
-interface WorkspaceTaskQueueCardProps {
-  busyTaskId: string | null;
-  isLoading?: boolean;
-  items: Task[];
-  mutateTask: (
-    taskId: string,
-    operation: (service: TasksService) => Promise<Task>,
-  ) => Promise<void>;
-  openPlanningConversation: (task: Task) => Promise<void>;
-}
 
 export function WorkspaceTaskQueueCard({
   busyTaskId,

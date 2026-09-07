@@ -1,13 +1,5 @@
-'use client';
-
-import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
+import type { AgentStrategyScoreFieldsProps } from '@props/automation/agent-strategy-score-fields.props';
 import { Input } from '@ui/primitives/input';
-import type { Dispatch, SetStateAction } from 'react';
-
-interface AgentStrategyScoreFieldsProps {
-  form: AgentStrategyFormState;
-  setForm: Dispatch<SetStateAction<AgentStrategyFormState>>;
-}
 
 export default function AgentStrategyScoreFields({
   form,

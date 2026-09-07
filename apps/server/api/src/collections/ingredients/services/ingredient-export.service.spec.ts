@@ -180,6 +180,23 @@ describe('IngredientExportService', () => {
     expect(files.watermarkExport).not.toHaveBeenCalled();
   });
 
+  it('rejects brand logos without an image MIME type', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      ...brand,
+      watermarkLogoId: 'logo-1',
+    });
+    prisma.asset.findFirst.mockResolvedValue({
+      id: 'logo-1',
+      mimeType: null,
+      category: 'LOGO',
+      cloudObjectKey: 'logos/logo-1',
+    });
+    await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(files.watermarkExport).not.toHaveBeenCalled();
+  });
+
   it('rejects missing watermark configuration', async () => {
     prisma.brand.findFirst.mockResolvedValue({ ...brand, watermarkText: ' ' });
     await expect(service.export('image-1', 'org-1', true)).rejects.toThrow(

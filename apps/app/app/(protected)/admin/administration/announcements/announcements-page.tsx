@@ -1,10 +1,11 @@
 'use client';
 
-import type { IAnnouncement } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AnnouncementComposeFormState,
   AnnouncementsPageProps,
+  AnnouncementsPageAction as PageAction,
+  AnnouncementsPageState as PageState,
 } from '@props/admin/announcements.props';
 import { AdminAnnouncementsService } from '@services/admin/announcements.service';
 import { logger } from '@services/core/logger.service';
@@ -30,26 +31,6 @@ const INITIAL_FORM: AnnouncementComposeFormState = {
 };
 
 const TWEET_MAX_CHARS = 280;
-
-type PageState = {
-  activeTab: string;
-  form: AnnouncementComposeFormState;
-  isSubmitting: boolean;
-  announcements: IAnnouncement[];
-  isLoadingHistory: boolean;
-};
-
-type PageAction =
-  | { type: 'SET_TAB'; tab: string }
-  | {
-      type: 'SET_FIELD';
-      field: keyof AnnouncementComposeFormState;
-      value: string | boolean;
-    }
-  | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
-  | { type: 'SET_ANNOUNCEMENTS'; announcements: IAnnouncement[] }
-  | { type: 'SET_LOADING_HISTORY'; isLoadingHistory: boolean }
-  | { type: 'SUBMIT_SUCCESS' };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {

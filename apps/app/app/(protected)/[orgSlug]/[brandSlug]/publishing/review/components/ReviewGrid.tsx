@@ -1,25 +1,11 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type { ReviewGridProps } from '@props/publishing/review-grid.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import ReviewItemsTable from './ReviewItemsTable';
-
-interface ReviewGridProps {
-  activeItem: IBatchItem | null;
-  isActioning: boolean;
-  items: IBatchItem[];
-  selectedIds: Set<string>;
-  onBulkApprove: () => void;
-  onBulkReject: () => void;
-  onBulkRewriteWithAgent: () => void;
-  onSelectItem: (itemId: string) => void;
-  onToggleSelect: (itemId: string) => void;
-}
 
 /**
  * Table-only review canvas. Item detail + decisions live in the agent

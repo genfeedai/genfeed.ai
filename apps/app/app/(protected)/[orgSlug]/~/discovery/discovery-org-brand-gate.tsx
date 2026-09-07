@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';

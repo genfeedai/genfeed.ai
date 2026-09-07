@@ -1,7 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Voice } from '@models/ingredients/voice.model';
+import type { VoiceCatalogRowProps } from '@props/library/voice-catalog-row.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
@@ -53,18 +52,6 @@ function getVoiceSubtitle(voice: Voice): string {
     | undefined;
 
   return metadata?.description || voice.externalVoiceId || voice.id;
-}
-
-export interface VoiceCatalogRowProps {
-  isBrandDefault: boolean;
-  isOrgDefault: boolean;
-  isSavingBrandDefault: boolean;
-  isSavingOrgDefault: boolean;
-  onDelete?: (() => void) | null;
-  onSaveBrandDefault?: (() => void) | null;
-  onSaveOrganizationDefault: () => void;
-  selectedBrandLabel?: string;
-  voice: Voice;
 }
 
 export default function VoiceCatalogRow({

@@ -18,6 +18,8 @@ import {
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
+import type { OrgRootAppPageProps } from '@props/layout/org-root-app-page.props';
+import type { PostsListSearchParams } from '@props/publishing/publishing-list-page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { notFound, redirect } from 'next/navigation';
@@ -35,10 +37,7 @@ import PublishingContentPage from '../../../[brandSlug]/publishing/content/page'
 import PublishingOverviewRoute from '../../../[brandSlug]/publishing/overview/page';
 import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
-import {
-  type PostsListSearchParams,
-  renderPostsListPage,
-} from '../../../[brandSlug]/publishing/publishing-list-page';
+import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
@@ -62,15 +61,6 @@ const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   overview: 'assets',
   video: 'videos',
   voice: 'voices',
-};
-
-type OrgRootAppPageProps = {
-  params: Promise<{
-    orgRootApp: string;
-    orgSlug: string;
-    segments?: string[];
-  }>;
-  searchParams?: PostsListSearchParams;
 };
 
 function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
@@ -348,11 +338,12 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'content') {
-      return (
-        <PublishingLayoutContent>
-          <PublishingContentPage />
-        </PublishingLayoutContent>
-      );
+      // Legacy content route redirects to the posts list.
+      await PublishingContentPage({
+        params: Promise.resolve({ brandSlug: '~', orgSlug }),
+        searchParams: searchParams ?? Promise.resolve({}),
+      });
+      return null;
     }
 
     if (publishingSegments.length === 1 && section === 'review') {
@@ -364,11 +355,12 @@ export default async function OrgRootAppPage({
     }
 
     if (publishingSegments.length === 1 && section === 'calendar') {
-      return (
-        <PublishingLayoutContent>
-          <PostsCalendarPage />
-        </PublishingLayoutContent>
-      );
+      // The calendar route redirects to the posts list in calendar view.
+      await PostsCalendarPage({
+        params: Promise.resolve({ brandSlug: '~', orgSlug }),
+        searchParams: searchParams ?? Promise.resolve({}),
+      });
+      return null;
     }
 
     if (publishingSegments.length === 2 && section === 'posts' && campaignId) {

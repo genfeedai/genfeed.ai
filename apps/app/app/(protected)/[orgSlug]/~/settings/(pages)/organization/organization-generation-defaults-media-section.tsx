@@ -1,5 +1,4 @@
-'use client';
-
+import type { MediaSectionProps } from '@props/settings/organization-generation-defaults-media-section.props';
 import {
   Select,
   SelectContent,
@@ -7,26 +6,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-
-type MediaModel = {
-  id: string;
-  key: string;
-  label: string;
-};
-
-type MediaSectionProps = {
-  imageModels: MediaModel[];
-  videoModels: MediaModel[];
-  musicModels: MediaModel[];
-  defaultImageModel: string;
-  defaultVideoModel: string;
-  defaultImageToVideoModel: string;
-  defaultMusicModel: string;
-  onDefaultImageModelChange: (value: string) => void;
-  onDefaultVideoModelChange: (value: string) => void;
-  onDefaultImageToVideoModelChange: (value: string) => void;
-  onDefaultMusicModelChange: (value: string) => void;
-};
 
 export default function OrganizationGenerationDefaultsMediaSection({
   imageModels,

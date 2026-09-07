@@ -35,6 +35,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'untranslated string ratchet',
   },
   {
+    command: ['bun', 'run', 'check:inline-types'],
+    name: 'inline type ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:type-assertions'],
     name: 'type assertions',
   },

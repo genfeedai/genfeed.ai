@@ -1,7 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
+import type { VoiceCatalogCardProps as Props } from '@props/admin/voices.props';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -23,16 +22,6 @@ function getProviderLabel(provider?: string): string {
       return provider ?? 'Unknown';
   }
 }
-
-type Props = {
-  togglingKey: string | null;
-  voice: ExternalVoice;
-  onToggle: (
-    voice: ExternalVoice,
-    field: 'isActive' | 'isDefaultSelectable' | 'isFeatured',
-    value: boolean,
-  ) => void;
-};
 
 export default function VoiceCatalogCard({
   togglingKey,

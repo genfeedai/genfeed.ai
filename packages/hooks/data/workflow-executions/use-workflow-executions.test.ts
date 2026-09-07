@@ -7,6 +7,7 @@ const { listMock } = vi.hoisted(() => ({ listMock: vi.fn() }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
     getToken: vi.fn(),
+    isLoaded: true,
     orgId: 'org-1',
     userId: 'user-1',
   }),

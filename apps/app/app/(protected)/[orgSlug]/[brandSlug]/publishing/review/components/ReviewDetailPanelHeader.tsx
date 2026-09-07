@@ -1,15 +1,8 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
+import type { ReviewDetailPanelHeaderProps } from '@props/publishing/review-detail-panel-header.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
-import type { ReviewPanelItem } from './review-panel.types';
-
-interface ReviewDetailPanelHeaderProps {
-  item: ReviewPanelItem;
-  statusLabel: string;
-}
 
 export default function ReviewDetailPanelHeader({
   item,
@@ -24,7 +17,7 @@ export default function ReviewDetailPanelHeader({
     <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
         <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-          Review
+          Approval queue
         </p>
         <h2 className="mt-1 line-clamp-2 text-base font-semibold text-foreground">
           {title}

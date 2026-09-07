@@ -1,5 +1,7 @@
-'use client';
-
+import type {
+  AddAgentDialogProps,
+  AddAgentMode,
+} from '@props/automation/add-agent-dialog.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import {
   Dialog,
@@ -13,14 +15,7 @@ import { useEffect, useState } from 'react';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
 import AgentWizardPage from './new/AgentWizardPage';
 
-export type AddAgentMode = 'custom' | 'library';
-
-interface AddAgentDialogProps {
-  initialMode?: AddAgentMode;
-  isOpen: boolean;
-  onCreated: () => Promise<void> | void;
-  onOpenChange: (isOpen: boolean) => void;
-}
+export type { AddAgentMode } from '@props/automation/add-agent-dialog.props';
 
 export default function AddAgentDialog({
   initialMode = 'library',

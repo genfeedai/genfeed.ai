@@ -290,20 +290,47 @@ export class YoutubeController {
         expiry_date: tokens.expiry_date,
         refresh_token: tokens.refresh_token,
       });
-      const channelDetails = (await this.youtubeService.getChannelDetails(
-        organizationId,
-        brandId,
-        oauth2Client,
-      )) as {
-        customUrl?: string;
-        id?: string;
-        thumbnails?: {
-          default?: { url?: string | null };
-          high?: { url?: string | null };
-          medium?: { url?: string | null };
-        };
-        title?: string;
-      };
+      let channelDetails:
+        | {
+            customUrl?: string;
+            id?: string;
+            thumbnails?: {
+              default?: { url?: string | null };
+              high?: { url?: string | null };
+              medium?: { url?: string | null };
+            };
+            title?: string;
+          }
+        | undefined;
+
+      try {
+        channelDetails = (await this.youtubeService.getChannelDetails(
+          organizationId,
+          brandId,
+          oauth2Client,
+        )) as typeof channelDetails;
+      } catch (channelError: unknown) {
+        this.loggerService.error(
+          'Failed to fetch YouTube channel for connected account',
+          channelError,
+        );
+        channelDetails = undefined;
+      }
+
+      if (!channelDetails?.id) {
+        await this.credentialsService.patch(credential.id, {
+          isConnected: false,
+        });
+        throw new HttpException(
+          {
+            detail:
+              'No YouTube channel is attached to this Google account. Sign in with the Google account that owns the channel, or create a channel first.',
+            title: 'No YouTube channel found',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       return await this.credentialsService.updateExternalProfile(
         credential.id,
         organizationId,
@@ -319,6 +346,9 @@ export class YoutubeController {
         },
       );
     } catch (verifyError: unknown) {
+      if (verifyError instanceof HttpException) {
+        throw verifyError;
+      }
       this.loggerService.error(
         'Failed to verify YouTube connection',
         verifyError,

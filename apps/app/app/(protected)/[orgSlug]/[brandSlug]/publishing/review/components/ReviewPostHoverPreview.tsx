@@ -1,10 +1,8 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { ReviewPostHoverPreviewProps } from '@props/publishing/review-post-hover-preview.props';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { Button } from '@ui/primitives/button';
 import {
@@ -15,18 +13,9 @@ import {
 import { ArrowUpRight, PanelRightOpen } from 'lucide-react';
 import NextLink from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { buildReviewItemTargetPreview } from './review-item.helpers';
-
-interface ReviewPostHoverPreviewProps {
-  children: ReactNode;
-  className?: string;
-  item: IBatchItem;
-  /** Select row / open Context rail. */
-  onOpenDetail?: () => void;
-}
 
 export default function ReviewPostHoverPreview({
   children,

@@ -648,3 +648,196 @@ describe('AgentWorkflowToolExecuteService listWorkflowRuns / getWorkflowRun', ()
     });
   });
 });
+
+describe('AgentWorkflowToolExecuteService partial reruns', () => {
+  const workflows = { findOne: vi.fn() };
+  const executor = {
+    executePartialWorkflowDocument: vi.fn(),
+    executeManualWorkflow: vi.fn(),
+  };
+  const system = { getWorkflow: vi.fn(), runWorkflow: vi.fn() };
+  const ctx = {
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
+    validatedScope: {
+      brandId: 'brand-1',
+      contextVersion: 2,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      organizationId: 'org-1',
+      source: 'explicit',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    },
+  } as ToolExecutionContext;
+  const workflow = {
+    id: 'wf-1',
+    nodes: [{ id: 'voice' }, { id: 'lipsync' }],
+    lockedNodeIds: [],
+    inputVariables: [{ key: 'language', required: true }],
+  };
+  const service = new AgentWorkflowToolExecuteService(
+    workflows as never,
+    executor as never,
+    {} as never,
+    {} as never,
+    system as never,
+  );
+  beforeEach(() => {
+    vi.resetAllMocks();
+    workflows.findOne.mockResolvedValue(workflow);
+    executor.executePartialWorkflowDocument.mockResolvedValue({
+      executionId: 'run-1',
+      status: 'completed',
+    });
+  });
+  it('preserves input variables and the validated brand scope on partial dispatch', async () => {
+    const result = await service.executeWorkflow(
+      {
+        workflowId: 'wf-1',
+        nodeIds: ['voice', 'lipsync'],
+        variables: { language: 'es' },
+      },
+      ctx,
+    );
+    expect(workflows.findOne).toHaveBeenCalledWith({
+      id: 'wf-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+    expect(executor.executePartialWorkflowDocument).toHaveBeenCalledWith(
+      workflow,
+      'user-1',
+      'org-1',
+      ['voice', 'lipsync'],
+      true,
+      { language: 'es' },
+      ctx.validatedScope,
+    );
+    expect(executor.executeManualWorkflow).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+  it('does not dispatch a partial execution outside the tenant', async () => {
+    workflows.findOne.mockResolvedValue(null);
+    const result = await service.executeWorkflow(
+      { workflowId: 'wf-foreign', nodeIds: ['voice'] },
+      ctx,
+    );
+    expect(result.success).toBe(false);
+    expect(executor.executePartialWorkflowDocument).not.toHaveBeenCalled();
+  });
+  it('propagates scope rejection from the authorization boundary', async () => {
+    executor.executePartialWorkflowDocument.mockRejectedValue(
+      new Error('Workflow belongs to a different brand'),
+    );
+    await expect(
+      service.executeWorkflow(
+        { workflowId: 'wf-1', nodeIds: ['voice'], inputs: { language: 'es' } },
+        ctx,
+      ),
+    ).rejects.toThrow('different brand');
+    expect(executor.executeManualWorkflow).not.toHaveBeenCalled();
+  });
+  it.each([
+    { nodeIds: [] },
+    { nodeIds: ['voice', 'voice'] },
+    { nodeIds: ['missing'] },
+    { nodeIds: [''] },
+  ])('rejects invalid selected node IDs %j', async ({ nodeIds }) => {
+    const result = await service.executeWorkflow(
+      { workflowId: 'wf-1', nodeIds, variables: { language: 'es' } },
+      ctx,
+    );
+    expect(result.success).toBe(false);
+    expect(executor.executePartialWorkflowDocument).not.toHaveBeenCalled();
+  });
+  it('requires variables on partial runs instead of silently dropping them', async () => {
+    const result = await service.executeWorkflow(
+      { workflowId: 'wf-1', nodeIds: ['voice'] },
+      ctx,
+    );
+    expect(result.error).toContain('language');
+    expect(executor.executePartialWorkflowDocument).not.toHaveBeenCalled();
+  });
+  it('rejects selected locked nodes rather than silently keeping stale speech', async () => {
+    workflows.findOne.mockResolvedValue({
+      ...workflow,
+      lockedNodeIds: ['voice'],
+    });
+    const result = await service.executeWorkflow(
+      { workflowId: 'wf-1', nodeIds: ['voice'], variables: { language: 'es' } },
+      ctx,
+    );
+    expect(result.error).toContain('locked');
+    expect(executor.executePartialWorkflowDocument).not.toHaveBeenCalled();
+  });
+  it('passes explicit lock override to execution', async () => {
+    workflows.findOne.mockResolvedValue({
+      ...workflow,
+      lockedNodeIds: ['voice'],
+    });
+    await service.executeWorkflow(
+      {
+        workflowId: 'wf-1',
+        nodeIds: ['voice'],
+        variables: { language: 'es' },
+        respectLocks: false,
+      },
+      ctx,
+    );
+    expect(executor.executePartialWorkflowDocument.mock.calls[0][4]).toBe(
+      false,
+    );
+  });
+  it.each(['failed', 'FAILED'])(
+    'does not report %s partial execution as success',
+    async (status) => {
+      executor.executePartialWorkflowDocument.mockResolvedValue({
+        executionId: 'run-1',
+        status,
+        error: 'Missing upstream cache',
+      });
+      const result = await service.executeWorkflow(
+        {
+          workflowId: 'wf-1',
+          nodeIds: ['voice'],
+          variables: { language: 'es' },
+        },
+        ctx,
+      );
+      expect(result).toMatchObject({
+        success: false,
+        error: 'Missing upstream cache',
+      });
+    },
+  );
+  it('requires installation before partial execution of a system workflow', async () => {
+    system.getWorkflow.mockReturnValue({ definition: { inputVariables: [] } });
+    const result = await service.executeWorkflow(
+      { workflowId: 'system-1', nodeIds: ['voice'] },
+      ctx,
+    );
+    expect(result.error).toContain('saved workflow');
+    expect(system.runWorkflow).not.toHaveBeenCalled();
+  });
+});
+
+vi.mock(
+  '@api/collections/workflow-executions/services/workflow-executions.service',
+  () => ({ WorkflowExecutionsService: class {} }),
+);
+vi.mock(
+  '@api/collections/workflows/services/workflow-executor.service',
+  () => ({ WorkflowExecutorService: class {} }),
+);
+vi.mock(
+  '@api/collections/workflows/services/workflow-scheduler.service',
+  () => ({ WorkflowSchedulerService: class {} }),
+);
+vi.mock('@api/collections/workflows/services/workflows.service', () => ({
+  WorkflowsService: class {},
+}));
+vi.mock('@api/collections/workflows/system-workflow-runner.service', () => ({
+  SystemWorkflowRunnerService: class {},
+}));

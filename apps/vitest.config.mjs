@@ -532,6 +532,10 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/ui/src/charts.ts'),
       },
       {
+        find: /^@ui\/tokens\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/tokens/$1'),
+      },
+      {
         find: /^@ui\/components\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/components/$1'),
       },

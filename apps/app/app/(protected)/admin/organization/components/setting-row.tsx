@@ -1,16 +1,8 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { SettingRowProps } from '@props/admin/organization-settings.props';
 import { Button } from '@ui/primitives/button';
 import { TableCell, TableRow } from '@ui/primitives/table';
 import { Pencil } from 'lucide-react';
-
-interface SettingRowProps {
-  label: string;
-  value: unknown;
-  type: 'boolean' | 'number' | 'string' | 'array';
-  onEdit: () => void;
-}
 
 function formatValue(value: unknown, type: string): string {
   if (value === null || value === undefined) {

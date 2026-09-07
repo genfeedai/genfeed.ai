@@ -10,7 +10,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import {
-  OPEN_CONTEXT_TAB_EVENT,
   OPEN_CONVERSATION_TAB_EVENT,
   OPEN_FILES_TAB_EVENT,
 } from '@/lib/workspace/agent-composer-events';
@@ -637,9 +636,10 @@ describe('UniversalWorkspaceShell', () => {
     );
     const conversation = screen.getByTestId('inspector-conversation');
     await waitFor(() => expect(conversation).not.toBeVisible());
+    // The composer only shows under Chat; Context ends at its own content.
     expect(
       screen.getByTestId('workspace-inspector-composer-slot'),
-    ).toBeVisible();
+    ).not.toBeVisible();
     expect(screen.getByText('Selected asset preview')).toBeVisible();
     fireEvent(window, new Event(OPEN_CONVERSATION_TAB_EVENT));
     expect(conversation).toBeVisible();
@@ -805,28 +805,6 @@ describe('UniversalWorkspaceShell', () => {
         'Context and conversation for the active workspace surface.',
       ),
     ).not.toBeInTheDocument();
-  });
-
-  it('preserves saved Chat tabs while editing panels on an agent route', () => {
-    window.localStorage.setItem(
-      'genfeed:workspace-inspector:tabs',
-      JSON.stringify({
-        activeKind: 'conversation',
-        openKinds: ['context', 'conversation'],
-      }),
-    );
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Canvas</div>
-      </UniversalWorkspaceShell>,
-    );
-    fireEvent(window, new Event(OPEN_FILES_TAB_EVENT));
-    fireEvent.click(screen.getByRole('button', { name: 'Close Files' }));
-    expect(
-      JSON.parse(
-        window.localStorage.getItem('genfeed:workspace-inspector:tabs') ?? '{}',
-      ).openKinds,
-    ).toEqual(['context', 'conversation']);
   });
 
   it('carries one conversation from the agent surface into the canvas inspector', () => {
@@ -1023,27 +1001,6 @@ describe('UniversalWorkspaceShell', () => {
     expect(conversationSection).toBeInTheDocument();
   });
 
-  it('reopens and selects Context after the tab was closed', () => {
-    navigation.pathname = '/acme/moonrise/library/assets';
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Library</div>
-      </UniversalWorkspaceShell>,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Close Context' }));
-    expect(
-      screen.queryByRole('tab', { name: 'Context' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).toBeVisible();
-    fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-  });
-
   it('opens the mobile inspector drawer on the composer conversation event', async () => {
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       addEventListener: vi.fn(),
@@ -1114,9 +1071,9 @@ describe('UniversalWorkspaceShell', () => {
         <div>Library</div>
       </UniversalWorkspaceShell>,
     );
-    expect(screen.getAllByRole('tab')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Add panel' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Files' }));
+    expect(screen.getByRole('tab', { name: 'Files' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Add panel' })).toBeNull();
+    await user.click(screen.getByRole('tab', { name: 'Files' }));
     expect(screen.getByRole('tab', { name: 'Files' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -1126,15 +1083,14 @@ describe('UniversalWorkspaceShell', () => {
       'false',
     );
     expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Close Files' }));
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveFocus();
+    await user.click(screen.getByRole('tab', { name: 'Context' }));
     expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
   });
 
-  it('keeps Chat and its composer mounted while switching and closing tabs', async () => {
+  it('keeps Chat and its composer mounted while switching tabs', async () => {
     const user = userEvent.setup();
     navigation.pathname = '/acme/moonrise/library/assets';
     render(
@@ -1148,9 +1104,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(conversation).toBeVisible();
     await user.click(screen.getByRole('tab', { name: 'Context' }));
     expect(conversation).not.toBeVisible();
-    expect(composer).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Close Chat' }));
+    expect(composer).not.toBeVisible();
     fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+    expect(composer).toBeVisible();
     expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
     expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
       composer,

@@ -247,7 +247,9 @@ describe('McpAuthGuard', () => {
       await expect(guard.canActivate(context)).rejects.toMatchObject({
         status: 429,
       });
-      expect(guard.canActivate(context)).rejects.toBeInstanceOf(HttpException);
+      await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+        HttpException,
+      );
       // Auth must not run once the caller is over the limit.
       expect(mockAuthService.authenticateRequest).not.toHaveBeenCalled();
       expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', '42');

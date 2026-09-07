@@ -1,8 +1,10 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+const require = createRequire(import.meta.url);
 const repoRoot = path.resolve(__dirname, '../..');
 const pagesRoot = path.resolve(__dirname);
 const appRoot = path.resolve(repoRoot, './apps/app');
@@ -164,6 +166,19 @@ export default defineConfig({
       {
         find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
         replacement: path.resolve(packageSrc('contracts'), 'interfaces/$1'),
+      },
+      {
+        // jsdom suites never load the Sentry bundles: the server entry throws
+        // outside a file:// URL and the client entry needs next/router.
+        find: /^@sentry\/nextjs$/,
+        replacement: path.resolve(
+          __dirname,
+          '../config/test/sentry-nextjs.shim.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
+        replacement: path.resolve(packageSrc('contracts'), 'api-types/$1'),
       },
       {
         find: /^@genfeedai\/contracts$/,

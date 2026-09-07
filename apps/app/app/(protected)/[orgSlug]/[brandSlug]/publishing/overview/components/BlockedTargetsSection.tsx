@@ -1,5 +1,3 @@
-'use client';
-
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewBlockedSectionProps } from '@props/publisher/publishing-overview.props';
 import { ListRow } from '@ui/lists/list-row/ListRow';

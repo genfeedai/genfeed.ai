@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { ModalEnum } from '@genfeedai/contracts';
 import type {

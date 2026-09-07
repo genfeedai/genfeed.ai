@@ -10,6 +10,7 @@ import type {
 } from '@files/shared/interfaces/job.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { assertSafeObjectKey } from '@libs/security';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
@@ -41,9 +42,18 @@ export class VideoMergeJobService {
 
       await this.mergeVideos(job, inputPaths, outputPath, musicPath);
       const finalOutput = await this.resizeVideo(job, outputPath, tempPath);
+      const probe = await this.ffmpegService.probe(finalOutput);
+      const videoStream = probe.streams.find(
+        (stream) => stream.codec_type === 'video',
+      );
       const s3Key = await this.uploadVideo(job, finalOutput);
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'merge');
+      await this.ffmpegService.cleanupTempFiles(
+        ...inputPaths,
+        ...(job.data.params.isPersistedOutputOnly ? [finalOutput] : []),
+        ...(finalOutput !== outputPath ? [outputPath] : []),
+        ...(musicPath ? [musicPath] : []),
+      );
       this.webSocketService.emitSuccess(
         metadata.websocketUrl,
         {
@@ -61,7 +71,18 @@ export class VideoMergeJobService {
         ingredientId,
       );
 
-      return { outputPath: finalOutput, s3Key, success: true };
+      return {
+        ...(job.data.params.isPersistedOutputOnly
+          ? {}
+          : { outputPath: finalOutput }),
+        s3Key,
+        url: this.s3Service.getPublicUrl(s3Key),
+        success: true,
+        duration: Number(probe.format.duration),
+        size: Number(probe.format.size),
+        width: videoStream?.width,
+        height: videoStream?.height,
+      };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Merge job failed: ${message}`);
@@ -89,6 +110,20 @@ export class VideoMergeJobService {
     const { params } = job.data;
     const inputPaths: string[] = [];
     const totalVideos = (params.sourceIds || []).length;
+    if (totalVideos < 1)
+      throw new Error('Video merge requires at least one source');
+    if (
+      params.sourceStorageKeys &&
+      params.sourceStorageKeys.length !== totalVideos
+    ) {
+      throw new Error('Stored video keys must match the ordered source IDs');
+    }
+    const keys = params.sourceStorageKeys?.map((key) => {
+      const safeKey = assertSafeObjectKey(key, (message) => new Error(message));
+      if (!safeKey.startsWith('ingredients/videos/'))
+        throw new Error('Merge sources must use video storage keys');
+      return safeKey;
+    });
 
     for (let index = 0; index < totalVideos; index++) {
       const sourceId = params.sourceIds?.[index];
@@ -97,7 +132,8 @@ export class VideoMergeJobService {
       }
 
       const inputPath = path.join(tempPath, `input_${index}.mp4`);
-      const s3Key = this.s3Service.generateS3Key('videos', sourceId);
+      const s3Key =
+        keys?.[index] ?? this.s3Service.generateS3Key('videos', sourceId);
       await this.s3Service.downloadFile(s3Key, inputPath);
       inputPaths.push(inputPath);
 
@@ -180,7 +216,11 @@ export class VideoMergeJobService {
           label,
         ),
       );
-    } else if (params.transition && params.transition !== 'none') {
+    } else if (
+      params.transition &&
+      params.transition !== 'none' &&
+      String(params.transition) !== 'cut'
+    ) {
       const label = 'Merging videos with transitions';
       this.emitStepProgress(job, 'merging', 0, startProgress, label);
       await this.ffmpegService.mergeVideosWithTransitions(

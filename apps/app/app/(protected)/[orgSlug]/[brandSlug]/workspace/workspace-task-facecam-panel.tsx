@@ -1,6 +1,5 @@
-'use client';
-
 import { CardVariant } from '@genfeedai/contracts';
+import type { WorkspaceTaskFacecamPanelProps } from '@props/workspace/workspace-task-facecam-panel.props';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -10,26 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-
-interface FacecamOption {
-  id: string;
-  label: string;
-  preview?: string;
-  provider?: string;
-}
-
-interface WorkspaceTaskFacecamPanelProps {
-  avatars: FacecamOption[];
-  avatarId: string;
-  error: string | null;
-  isLoading: boolean;
-  isSaveAsDefault: boolean;
-  onAvatarChange: (value: string) => void;
-  onSaveAsDefaultChange: (checked: boolean) => void;
-  onVoiceChange: (voiceId: string, provider: string) => void;
-  voiceId: string;
-  voices: FacecamOption[];
-}
 
 export function WorkspaceTaskFacecamPanel({
   avatars,

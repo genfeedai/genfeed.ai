@@ -22,7 +22,6 @@ function collectSourceFiles(relativeRoot: string): string[] {
 }
 
 const DIVIDER_SOURCES = [
-  'app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-overview-sidebar.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx',
@@ -74,8 +73,7 @@ const ICONIC_STATUS_SOURCES = [
 ] as const;
 
 const TASK_STATUS_SOURCES = [
-  'app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/tasks/issue-overlay.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/tasks/task-pills.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-header.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/sub-issue-row.tsx',

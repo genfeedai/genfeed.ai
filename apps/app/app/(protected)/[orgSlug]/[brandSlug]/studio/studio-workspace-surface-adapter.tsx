@@ -7,33 +7,17 @@ import type {
   IGenerationItem,
   IIngredient,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  StudioWorkspaceInspectorProps,
+  StudioWorkspaceSurfaceAdapterProps,
+} from '@props/studio/studio-workspace-surface-adapter.props';
 import { type ReactNode, useCallback, useMemo } from 'react';
 import {
   type ProductWorkspaceSurfaceAdapter,
   useRegisterWorkspaceSurfaceAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 
-interface StudioWorkspaceSurfaceAdapterProps {
-  error?: string | null;
-  isLoading?: boolean;
-  isProcessing?: boolean;
-  mode: string;
-  versions?: readonly IIngredient[];
-}
-
 const EMPTY_VERSIONS: readonly IIngredient[] = [];
-
-interface StudioWorkspaceInspectorProps
-  extends StudioWorkspaceSurfaceAdapterProps {
-  activeGenerations: readonly IGenerationItem[];
-  brandLabel: string;
-  currentFormat: { height: number; width: number } | null;
-  generationQueue: readonly IGenerationItem[];
-  organizationId: string;
-  selectedAsset: IIngredient | null;
-  selectedVersionId: string | null;
-  selectedVersionNumber?: number;
-}
 
 function titleCase(value: string): string {
   const normalized = value.replaceAll('_', ' ').replaceAll('-', ' ').trim();

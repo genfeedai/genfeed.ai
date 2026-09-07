@@ -1,12 +1,12 @@
 'use client';
 
+import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { TabsProps } from '@props/ui/navigation/tabs.props';
+import type { WorkspacePageContentProps } from '@props/workspace/workspace-page.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
@@ -19,8 +19,8 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
-
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
@@ -28,18 +28,15 @@ import {
   hasWorkspaceOverviewSignal,
   WorkspaceDashboard,
 } from './workspace-dashboard';
-import { workspaceInboxTableColumns } from './workspace-inbox-columns';
+import { getWorkspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
   DEFAULT_REVIEW_INBOX,
-  INBOX_VIEW_OPTIONS,
-  type InboxView,
-  type ReviewInboxSummary,
+  useInboxViewOptions,
   WORKSPACE_SECTION_STACK_CLASS,
-  type WorkspaceSection,
 } from './workspace-task.helpers';
-import { WorkspaceTaskInspector } from './workspace-task-inspector';
 import { WorkspaceTaskQueueCard } from './workspace-task-queue-card';
+import { WorkspaceTaskRailAdapter } from './workspace-task-rail-adapter';
 
 const WorkspaceTaskComposer = dynamic(
   () =>
@@ -49,14 +46,6 @@ const WorkspaceTaskComposer = dynamic(
   { ssr: false },
 );
 
-interface WorkspacePageContentProps {
-  defaultInboxView?: InboxView;
-  initialAnalytics?: Partial<IAnalytics>;
-  initialReviewInbox?: ReviewInboxSummary;
-  initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
-  section?: WorkspaceSection;
-}
-
 function WorkspacePageContentContent({
   defaultInboxView = 'unread',
   initialAnalytics,
@@ -64,6 +53,10 @@ function WorkspacePageContentContent({
   initialTimeSeriesData,
   section = 'overview',
 }: WorkspacePageContentProps) {
+  const translate = useTranslations('pages.workspaceOverview');
+  const statusTranslate = useTranslations('pages.tasks.status');
+  const statusLabels = useTaskStatusLabels();
+  const inboxViewOptions = useInboxViewOptions();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
   const surfaceSelection = useWorkspaceSurfaceSelection();
@@ -164,9 +157,9 @@ function WorkspacePageContentContent({
 
     return {
       activeTab: defaultInboxView,
-      ariaLabel: 'Inbox views',
+      ariaLabel: translate('inbox.viewsAriaLabel'),
       fullWidth: false,
-      items: INBOX_VIEW_OPTIONS.map((option) => {
+      items: inboxViewOptions.map((option) => {
         const count =
           option.id === 'unread'
             ? unreadInboxTasks.length
@@ -194,16 +187,14 @@ function WorkspacePageContentContent({
   }, [
     defaultInboxView,
     href,
+    inboxViewOptions,
     isInboxSection,
     isWorkspaceTasksLoading,
     queueTasks.length,
     recentInboxTasks.length,
+    translate,
     unreadInboxTasks.length,
   ]);
-
-  const activeInboxView = INBOX_VIEW_OPTIONS.find(
-    (option) => option.id === defaultInboxView,
-  );
 
   const workspaceHeaderActions = useMemo(() => {
     if (!shouldShowComposer && isOverviewSection) {
@@ -236,29 +227,38 @@ function WorkspacePageContentContent({
     shouldShowComposer,
   ]);
 
-  const inboxEmpty =
+  const inboxEmptyKey =
     section === 'inbox' && defaultInboxView === 'unread'
-      ? {
-          description: 'New work will land here when something needs you.',
-          label: "You're caught up",
-        }
+      ? 'unread'
       : section === 'inbox' && defaultInboxView === 'recent'
-        ? {
-            description:
-              'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
-            label: 'No inbox activity yet',
-          }
-        : {
-            description:
-              'Tasks enter the inbox when they need review, a decision, or follow-up.',
-            label: 'Inbox is empty',
-          };
+        ? 'recent'
+        : 'all';
+  const inboxEmpty = {
+    description: translate(`inboxEmpty.${inboxEmptyKey}.description`),
+    label: translate(`inboxEmpty.${inboxEmptyKey}.label`),
+  };
+
+  const inboxTableItems =
+    section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5);
+  // Only agent-run tasks carry an execution path; hide the column when none do
+  // so seeded or manual queues never show an empty column.
+  const hasInboxPaths = inboxTableItems.some((task) =>
+    Boolean(task.executionPathUsed),
+  );
+  const workspaceInboxTableColumns = useMemo(
+    () =>
+      getWorkspaceInboxTableColumns(translate, statusTranslate, statusLabels),
+    [translate, statusTranslate, statusLabels],
+  );
+  const inboxTableColumns = hasInboxPaths
+    ? workspaceInboxTableColumns
+    : workspaceInboxTableColumns.filter(
+        (column) => column.key !== 'executionPathUsed',
+      );
 
   const inboxTable = (
     <AppTable<Task>
-      items={
-        section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
-      }
+      items={inboxTableItems}
       isLoading={isWorkspaceTasksLoading}
       emptyLabel={inboxEmpty.label}
       emptyDescription={inboxEmpty.description}
@@ -275,7 +275,7 @@ function WorkspacePageContentContent({
         setSelectedTaskId(task.id);
         replaceTaskSearchParam(task.id);
       }}
-      columns={workspaceInboxTableColumns}
+      columns={inboxTableColumns}
     />
   );
 
@@ -346,18 +346,18 @@ function WorkspacePageContentContent({
               data-testid="workspace-inbox"
               className="space-y-3"
             >
-              <WorkspaceSurface
-                density="compact"
-                description={
-                  section === 'inbox'
-                    ? (activeInboxView?.description ?? sectionCopy.description)
-                    : 'Latest items waiting on your review.'
-                }
-                framed={false}
-                title={section === 'inbox' ? sectionCopy.title : 'Inbox'}
-              >
-                {inboxTable}
-              </WorkspaceSurface>
+              {section === 'inbox' ? (
+                inboxTable
+              ) : (
+                <WorkspaceSurface
+                  density="compact"
+                  description="Latest items waiting on your review."
+                  framed={false}
+                  title="Inbox"
+                >
+                  {inboxTable}
+                </WorkspaceSurface>
+              )}
             </section>
           ) : null}
         </div>
@@ -378,17 +378,15 @@ function WorkspacePageContentContent({
         ) : null}
       </div>
 
-      <WorkspaceTaskInspector
+      <WorkspaceTaskRailAdapter
         task={selectedTask}
         busyTaskId={busyTaskId}
         onKeepOutput={(taskId, outputId) =>
           mutateTask(taskId, (service) => service.keepOutput(taskId, outputId))
         }
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTaskId(null);
-            replaceTaskSearchParam(null);
-          }
+        onClose={() => {
+          setSelectedTaskId(null);
+          replaceTaskSearchParam(null);
         }}
         onApprove={(taskId) =>
           mutateTask(taskId, (service) => service.approve(taskId))

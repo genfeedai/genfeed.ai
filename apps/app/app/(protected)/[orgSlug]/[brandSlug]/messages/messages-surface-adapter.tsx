@@ -1,11 +1,9 @@
-'use client';
-
 import { useAgentChatStore } from '@genfeedai/agent';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
-  SocialConversation,
-  SocialInboxReference,
-} from '@genfeedai/contracts/interfaces';
+  MessagesSurfaceAdapterParams,
+  MessagesSurfaceInspectorProps,
+} from '@props/messages/messages-surface-adapter.props';
 import { Button } from '@ui/primitives/button';
 import { Link, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -16,16 +14,6 @@ import {
   type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getSocialInboxReferenceKey } from './messages-surface.helpers';
-
-interface MessagesSurfaceAdapterParams {
-  readonly canAttachReferences: boolean;
-  readonly isConversationReferenced: boolean;
-  readonly onToggleConversationReference: () => void;
-  readonly references: readonly SocialInboxReference[];
-  readonly selectedConversation: SocialConversation | null;
-}
-
-type MessagesSurfaceInspectorProps = MessagesSurfaceAdapterParams;
 
 function MessagesSurfaceInspector({
   canAttachReferences,

@@ -36,7 +36,7 @@ function connectionLabel(connection: {
 
 /**
  * Manual external URLs (website / other) + read-only connected socials.
- * Social OAuth is managed on /settings/social — not typed as freeform links.
+ * Social OAuth is managed on /settings/integrations — not typed as freeform links.
  */
 export default function BrandDetailExternalLinksCard({
   links,

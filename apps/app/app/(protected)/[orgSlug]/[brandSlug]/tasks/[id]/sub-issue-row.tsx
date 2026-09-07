@@ -1,16 +1,9 @@
-'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Task, TaskStatus } from '@services/management/tasks.service';
+import type { SubIssueRowProps } from '@props/tasks/sub-issue-row.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-
-type SubIssueRowProps = {
-  issue: Task;
-  statusLabels: Record<TaskStatus, string>;
-};
 
 export function SubIssueRow({ issue, statusLabels }: SubIssueRowProps) {
   return (

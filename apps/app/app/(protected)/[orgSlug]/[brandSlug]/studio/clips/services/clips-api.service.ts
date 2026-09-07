@@ -13,6 +13,7 @@ import type {
   ClipResultMode,
   IHighlight,
 } from '@props/studio/clips.props';
+import type { ClipsApiClient } from '@props/studio/clips-api.props';
 import { EnvironmentService } from '@services/core/environment.service';
 
 import { mapClipProjectSummary } from '../utils/map-clip-project-summary';
@@ -50,7 +51,7 @@ interface GenerateClipsPayload {
   voiceId?: string;
 }
 
-interface SubmitHookApprovalPayload {
+export interface SubmitHookApprovalPayload {
   action: HookClipApprovalAction;
   feedback?: string;
 }
@@ -98,13 +99,13 @@ interface PrepareUploadResponse {
   uploadUrl: string;
 }
 
-interface EditorHandoffResponse {
+export interface EditorHandoffResponse {
   editorPath: string;
   editorProjectId: string;
   videoUrl: string;
 }
 
-interface PublishHandoffResponse {
+export interface PublishHandoffResponse {
   payload: {
     assets: Array<{
       assetId: string;
@@ -121,19 +122,19 @@ interface PublishHandoffResponse {
   };
 }
 
-interface LibraryLinkResponse {
+export interface LibraryLinkResponse {
   clipResultId: string;
   error?: string;
   ingredientId?: string;
   status: ClipLibraryLinkStatus;
 }
 
-interface RewriteHighlightPayload {
+export interface RewriteHighlightPayload {
   platform: string;
   tone: string;
 }
 
-interface RewriteHighlightResponse {
+export interface RewriteHighlightResponse {
   rewrittenScript: string;
 }
 
@@ -150,7 +151,7 @@ interface ClipResultRawItem {
 
 // ─── Service ──────────────────────────────────────────────────────
 
-export class ClipsApiService {
+export class ClipsApiService implements ClipsApiClient {
   private readonly apiEndpoint: string;
   private readonly getToken: () => Promise<string>;
 

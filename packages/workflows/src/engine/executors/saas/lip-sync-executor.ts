@@ -5,6 +5,7 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
+import { mediaArtifactUrl } from './media-artifact-url';
 
 export interface LipSyncResult {
   videoUrl: string;
@@ -15,9 +16,9 @@ export interface LipSyncResult {
  * The actual implementation is injected at runtime from the NestJS service layer.
  */
 export type LipSyncResolver = (
-  mediaUrl: string,
-  audioUrl: string,
-  options: { mode?: 'video' | 'image' },
+  media: unknown,
+  audio: unknown,
+  options: { mode?: 'video' | 'image'; model?: string; syncMode?: string },
   context: ExecutionContext,
   node: ExecutableNode,
 ) => Promise<LipSyncResult>;
@@ -65,25 +66,47 @@ export class LipSyncExecutor extends BaseExecutor {
       throw new Error('LipSync resolver not configured');
     }
 
-    // Media can come from 'video' or 'image' input port
-    const mediaUrl =
-      (inputs.get('video') as string) ?? (inputs.get('image') as string);
+    const videoUrl = mediaArtifactUrl(inputs.get('video'), 'video');
+    const imageUrl = mediaArtifactUrl(inputs.get('image'), 'image');
+    const mediaUrl = videoUrl ?? imageUrl;
 
     if (!mediaUrl) {
       throw new Error('Missing required input: video or image');
     }
 
-    const audioUrl = this.getRequiredInput<string>(inputs, 'audio');
-    const mode = this.getOptionalConfig<'video' | 'image'>(
+    const audioUrl = mediaArtifactUrl(inputs.get('audio'), 'audio');
+    if (!audioUrl) throw new Error('Missing required input: audio');
+    const mode = videoUrl ? 'video' : 'image';
+    if (node.config.mode !== undefined && node.config.mode !== mode) {
+      throw new Error(
+        `Configured lip-sync mode ${String(node.config.mode)} does not match the connected ${mode} source. Change the mode or connect the matching media.`,
+      );
+    }
+    const model = this.getOptionalConfig<string>(
       node.config,
-      'mode',
-      'image',
+      'model',
+      mode === 'image' ? 'heygen/avatar' : 'sync/lipsync-2',
     );
+    if (
+      (mode === 'image' && model !== 'heygen/avatar') ||
+      (mode === 'video' &&
+        !['sync/lipsync-2', 'sync/lipsync-2-pro'].includes(model))
+    ) {
+      throw new Error(`Model ${model} does not support ${mode} lip sync`);
+    }
+    const syncMode = this.getOptionalConfig<string>(
+      node.config,
+      'syncMode',
+      'loop',
+    );
+    if (!['loop', 'bounce', 'cut_off', 'silence', 'remap'].includes(syncMode)) {
+      throw new Error('Invalid lip-sync timing mode');
+    }
 
     const result = await this.resolver(
-      mediaUrl,
-      audioUrl,
-      { mode },
+      inputs.get(videoUrl ? 'video' : 'image'),
+      inputs.get('audio'),
+      { mode, model, syncMode },
       input.context,
       node,
     );

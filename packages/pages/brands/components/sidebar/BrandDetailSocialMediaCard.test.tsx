@@ -168,21 +168,27 @@ vi.mock('@services/core/notifications.service', () => ({
 vi.mock('@ui/card/Card', () => ({
   __esModule: true,
   default: ({
+    actions,
     children,
     description,
     headerAction,
+    icon,
     label,
   }: {
+    actions?: ReactNode;
     children: ReactNode;
     description?: ReactNode;
     headerAction?: ReactNode;
+    icon?: ReactNode;
     label?: ReactNode;
   }) => (
     <div data-testid="social-card">
+      {icon}
       {label ? <h3>{label}</h3> : null}
       {description ? <p>{description}</p> : null}
       {headerAction}
       {children}
+      {actions}
     </div>
   ),
 }));
@@ -342,20 +348,27 @@ describe('BrandDetailSocialMediaCard', () => {
     // the same vocabulary, so a linked account must not read "Not connected".
     expect(screen.getByText('Linked')).toBeInTheDocument();
     expect(screen.getByText('1 connected')).toBeInTheDocument();
-    // Reconnect and disconnect address the account, and the tile keeps
-    // offering a second one.
-    expect(
-      screen.getByRole('button', { name: 'Reconnect Genfeed' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Disconnect Genfeed' }),
-    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Add another Instagram account' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/one instagram account per brand/i),
     ).not.toBeInTheDocument();
+
+    // Reconnect, posting times, and disconnect sit behind the row's actions menu.
+    const moreActionsTrigger = screen.getByRole('button', {
+      name: 'More actions for Genfeed',
+    });
+    fireEvent.pointerDown(moreActionsTrigger);
+    fireEvent.click(moreActionsTrigger);
+    expect(
+      screen.getByRole('menuitem', { name: 'Reconnect' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Disconnect' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Posting times' }));
     expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
       'credential-1',
     );
@@ -601,9 +614,12 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Disconnect Genfeed Labs' }),
-    );
+    const moreActionsTrigger = screen.getByRole('button', {
+      name: 'More actions for Genfeed Labs',
+    });
+    fireEvent.pointerDown(moreActionsTrigger);
+    fireEvent.click(moreActionsTrigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Disconnect' }));
 
     // The confirmation has to say the other account survives — that is the
     // whole difference from the old one-account-per-platform behaviour.

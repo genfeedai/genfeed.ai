@@ -21,6 +21,7 @@ export * from './keyword-trigger-executor';
 export * from './lens-effects-executor';
 // Lip sync executor
 export * from './lip-sync-executor';
+export * from './localize-speech-executor';
 export * from './mention-trigger-executor';
 export * from './music-source-executor';
 export * from './new-follower-trigger-executor';

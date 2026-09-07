@@ -1,20 +1,9 @@
-'use client';
-
 import type { ITrendPlaybook } from '@genfeedai/contracts/interfaces';
+import type { Props } from '@props/analytics/playbook-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-
-type PlatformConfigEntry = {
-  icon?: React.ComponentType<{ className?: string }>;
-  label?: string;
-};
-
-type Props = {
-  playbooks: ITrendPlaybook[];
-  platformConfigLookup: Record<string, PlatformConfigEntry>;
-};
 
 export default function PlaybookSection({
   playbooks,

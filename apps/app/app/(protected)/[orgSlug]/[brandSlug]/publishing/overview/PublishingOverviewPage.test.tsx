@@ -132,7 +132,7 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 }));
 
 vi.mock('@ui/overview/OverviewLayout', () => ({
-  default: ({
+  OverviewContent: ({
     cards,
     header,
   }: {

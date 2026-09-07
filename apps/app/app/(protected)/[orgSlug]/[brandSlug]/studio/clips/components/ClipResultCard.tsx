@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
@@ -8,8 +6,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   ClipLibraryLinkStatus,
   ClipReadyAction,
-  ClipResult,
-  ClipResultMode,
+  ClipResultCardProps,
   ClipStatus,
   ViralityBadgeProps,
 } from '@props/studio/clips.props';
@@ -22,15 +19,6 @@ import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
-
-import type { ClipsApiService } from '../services/clips-api.service';
-
-interface ClipResultCardProps {
-  clip: ClipResult;
-  clipsService: ClipsApiService;
-  mode?: ClipResultMode;
-  projectId: string;
-}
 
 const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
   captioning: {

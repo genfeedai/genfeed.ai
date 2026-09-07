@@ -1,6 +1,5 @@
-'use client';
-
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { WorkflowExecutionRowProps } from '@props/automation/workflow-execution-row.props';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -32,12 +31,6 @@ function getExecutionModelLabel(execution: IWorkflowExecution): string {
   }
 
   return actualModel ?? requestedModel ?? 'Untracked';
-}
-
-interface WorkflowExecutionRowProps {
-  execution: IWorkflowExecution;
-  isExpanded: boolean;
-  onToggle: (executionId: string) => void;
 }
 
 export default function WorkflowExecutionRow({

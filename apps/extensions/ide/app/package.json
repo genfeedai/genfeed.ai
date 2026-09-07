@@ -232,7 +232,7 @@
   },
   "dependencies": {
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.71.0",
+    "@sentry/node": "10.73.0",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/actions": "workspace:*"
   },

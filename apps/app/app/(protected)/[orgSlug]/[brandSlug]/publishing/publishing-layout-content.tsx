@@ -13,20 +13,17 @@ import {
   PostFormat,
 } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import {
-  applyRailSegment,
-  RELEASE_RAIL_SEGMENTS,
-  railSegmentFromSearchParams,
-} from '@pages/posts/rail/release-rail-segments.helpers';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
+import type {
+  PublishingLayoutAction,
+  PublishingLayoutState,
+} from '@props/publishing/publishing-layout-content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
@@ -41,26 +38,6 @@ function buildNewPostAgentPrompt(brandLabel?: string | null): string {
 
   return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;
 }
-
-type PublishingLayoutState = {
-  refreshFn: RefreshFunction | (() => RefreshFunction) | null;
-  isRefreshing: boolean;
-  filtersNode: ReactNode;
-  exportNode: ReactNode;
-  viewToggleNode: ReactNode;
-  scheduleActionsNode: ReactNode;
-};
-
-type PublishingLayoutAction =
-  | {
-      type: 'SET_REFRESH_FN';
-      payload: RefreshFunction | (() => RefreshFunction) | null;
-    }
-  | { type: 'SET_IS_REFRESHING'; payload: boolean }
-  | { type: 'SET_FILTERS_NODE'; payload: ReactNode }
-  | { type: 'SET_EXPORT_NODE'; payload: ReactNode }
-  | { type: 'SET_VIEW_TOGGLE_NODE'; payload: ReactNode }
-  | { type: 'SET_SCHEDULE_ACTIONS_NODE'; payload: ReactNode };
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
@@ -115,9 +92,6 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
-  const translateRail = useTranslations('pages.posts.list.rail');
   const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
 
@@ -145,36 +119,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
     routeSuffix[0] === 'campaigns' ||
     routeSuffix[0] === 'calendar';
-  const isPostsListRoute =
-    routeSuffix[0] === 'posts' && routeSuffix.length === 1;
-  const publishingHeaderTabs = useMemo<TabsProps | undefined>(() => {
-    if (!isPostsListRoute || !pathname) {
-      return undefined;
-    }
-
-    const activeSegment = railSegmentFromSearchParams(
-      new URLSearchParams(searchParamsString),
-    );
-
-    return {
-      activeTab: activeSegment,
-      ariaLabel: 'Publishing status',
-      fullWidth: false,
-      items: RELEASE_RAIL_SEGMENTS.map((segment) => {
-        const params = new URLSearchParams(searchParamsString);
-        params.delete('page');
-        const queryString = applyRailSegment(params, segment).toString();
-
-        return {
-          href: queryString ? `${pathname}?${queryString}` : pathname,
-          id: segment,
-          label: translateRail(`segments.${segment}`),
-          matchMode: 'exact' as const,
-        };
-      }),
-    };
-  }, [isPostsListRoute, pathname, searchParamsString, translateRail]);
-
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
       refreshFn();
@@ -266,9 +210,8 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         description="Manage and publish across platforms."
         icon={Newspaper}
         titleVisibility="sr-only"
-        headerTabs={publishingHeaderTabs}
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {filtersNode}
             {viewToggleNode}
             {exportNode}
@@ -285,7 +228,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   variant={ButtonVariant.DEFAULT}
                   withWrapper={false}
                   icon={<Plus className="size-4" />}
-                  label="New content"
+                  label="New post"
                 />
               }
             >
@@ -295,8 +238,32 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="Post with Agent"
+                  label="Social post"
                   onClick={handleNewPost}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="Article"
+                  onClick={() =>
+                    openAgentComposer(
+                      'Help me write a new long-form article for my brand.',
+                    )
+                  }
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="Newsletter"
+                  onClick={() =>
+                    openAgentComposer(
+                      'Help me write a new newsletter for my brand.',
+                    )
+                  }
                 />
                 <Button
                   withWrapper={false}

@@ -153,7 +153,7 @@ describe('IngredientQuickActions', () => {
       screen.queryByTestId('primary-actions-group'),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('masonry-compact-actions')).toHaveClass(
-      'bg-secondary/80',
+      'bg-background/90',
     );
   });
 

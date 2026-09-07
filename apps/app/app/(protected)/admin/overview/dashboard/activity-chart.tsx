@@ -1,6 +1,5 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ActivityChartProps } from '@props/admin/dashboard.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -39,11 +38,6 @@ const _compactNumberFormatter = new Intl.NumberFormat('en-US', {
 function formatDate(dateStr: string) {
   const date = new Date(dateStr);
   return _dateFormatter.format(date);
-}
-
-interface ActivityChartProps {
-  data: { date: string; posts: number }[];
-  isLoading: boolean;
 }
 
 export default function ActivityChart({ data, isLoading }: ActivityChartProps) {

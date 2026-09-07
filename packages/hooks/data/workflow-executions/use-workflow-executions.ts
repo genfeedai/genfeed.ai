@@ -25,14 +25,18 @@ export interface UseWorkflowExecutionsReturn {
 export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
 ): UseWorkflowExecutionsReturn {
-  const { getToken, orgId, userId } = useAuthIdentity();
+  const { getToken, isLoaded, orgId, userId } = useAuthIdentity();
+  // orgId stays null until the organization plugin lands; key on the session.
+  const isIdentityReady = isLoaded && Boolean(userId);
   const {
     data = [],
-    isLoading,
+    isPending,
     isError,
     isFetching,
     refetch,
   } = useQuery({
+    // Wait for identity so the first paint never shows an empty "0" strip.
+    enabled: isIdentityReady,
     queryKey: [
       'workflow-executions',
       userId ?? 'anonymous',
@@ -88,9 +92,9 @@ export function useWorkflowExecutions(
   return {
     cancelExecution,
     executions: data,
-    isRefreshing: isFetching && !isLoading,
+    isRefreshing: isFetching && !isPending,
     isError,
-    isLoading,
+    isLoading: isPending,
     refresh: async () => {
       await refetch();
     },

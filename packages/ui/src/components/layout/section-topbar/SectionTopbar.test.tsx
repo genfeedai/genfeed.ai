@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -10,6 +10,13 @@ const navigationState = vi.hoisted(() => ({
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => navigationState,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 
 describe('SectionTopbar', () => {
   it('keeps semantic back navigation out of the tab slot', () => {
@@ -134,7 +141,7 @@ describe('SectionTopbar', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
-  it('pins actions to the right when the breadcrumb owns the title', () => {
+  it('places tabs after actions at the far right when the breadcrumb owns the title', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 
     render(
@@ -151,10 +158,10 @@ describe('SectionTopbar', () => {
 
     expect(row).toContainElement(tabs);
     expect(row).toContainElement(actions);
-    expect(tabs).toHaveClass('flex-1');
+    expect(tabs).toHaveClass('min-w-0');
     expect(actions).toHaveClass('shrink-0');
-    // Actions are the trailing sibling — right edge of the header toolbar.
-    expect(row?.lastElementChild).toBe(actions);
+    // Tabs follow actions in visual and keyboard order.
+    expect(row?.lastElementChild).toBe(tabs);
   });
 
   it('honors titleVisibility=sr-only even without a breadcrumb', () => {
@@ -184,5 +191,34 @@ describe('SectionTopbar', () => {
     expect(topbar.tagName).toBe('H1');
     expect(topbar).toHaveClass('sr-only');
     expect(topbar.className).not.toMatch(/border-b/);
+  });
+
+  it('renders a help trigger after actions that opens a popover with the given title and body', () => {
+    render(
+      <SectionTopbar
+        title="Trending Content"
+        actions={<button type="button">Refresh</button>}
+        help={{ title: 'About Trending', body: 'How this page works.' }}
+      />,
+    );
+
+    const actionsSlot = screen.getByTestId('section-topbar-actions');
+    const helpTrigger = screen.getByRole('button', {
+      name: 'About this page',
+    });
+    expect(actionsSlot).toContainElement(helpTrigger);
+
+    fireEvent.click(helpTrigger);
+
+    expect(screen.getByText('About Trending')).toBeInTheDocument();
+    expect(screen.getByText('How this page works.')).toBeInTheDocument();
+  });
+
+  it('omits the help trigger when the help prop is not provided', () => {
+    render(<SectionTopbar title="Trending Content" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'About this page' }),
+    ).not.toBeInTheDocument();
   });
 });
