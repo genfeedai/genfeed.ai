@@ -9,6 +9,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
@@ -30,6 +31,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSourceIngestService,
     KnowledgeSourceIngestWorkflowService,
     KnowledgeCaptureService,
+    KnowledgeSelectionService,
     KnowledgeLegacyBackfillService,
   ],
   imports: [
@@ -45,6 +47,7 @@ import { Module } from '@nestjs/common';
     KnowledgeSourceIngestService,
     KnowledgeSourceIngestWorkflowService,
     KnowledgeCaptureService,
+    KnowledgeSelectionService,
     KnowledgeLegacyBackfillService,
   ],
 })

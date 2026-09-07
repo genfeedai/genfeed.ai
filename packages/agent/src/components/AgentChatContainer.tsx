@@ -24,6 +24,8 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
 export function AgentChatContainer({
+  knowledgeSelection,
+  knowledgePicker,
   apiService,
   archivedNotice,
   isLoadingThread = false,
@@ -213,6 +215,8 @@ export function AgentChatContainer({
           <AgentChatEmptyState
             addFiles={container.addFiles}
             apiService={apiService}
+            knowledgeSelection={knowledgeSelection}
+            knowledgePicker={knowledgePicker}
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
             composerBanner={
@@ -317,6 +321,8 @@ export function AgentChatContainer({
               workEvents={container.workEvents}
               addFiles={container.addFiles}
               apiService={apiService}
+              knowledgeSelection={knowledgeSelection}
+              knowledgePicker={knowledgePicker}
               chatAttachments={container.chatAttachments}
               clearAllAttachments={container.clearAllAttachments}
               dragHandlers={container.dragHandlers}

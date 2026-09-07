@@ -123,6 +123,9 @@ export class AgentTurnAcceptanceService {
           ...(request.generationSettings
             ? { generationSettings: request.generationSettings }
             : {}),
+          ...(request.knowledgeSelection
+            ? { knowledgeSelection: request.knowledgeSelection }
+            : {}),
           ...(request.model ? { model: request.model } : {}),
           ...(request.pageContext ? { pageContext: request.pageContext } : {}),
           ...(request.planModeEnabled !== undefined
@@ -163,6 +166,9 @@ export class AgentTurnAcceptanceService {
           : {}),
         ...(request.generationSettings
           ? { generationSettings: request.generationSettings }
+          : {}),
+        ...(request.knowledgeSelection
+          ? { knowledgeSelection: request.knowledgeSelection }
           : {}),
         ...(request.transferId
           ? {

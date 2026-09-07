@@ -46,6 +46,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   AgentContentMentionItem,
+  KnowledgeReceipt,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/contracts/types';
@@ -106,6 +107,7 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   organizationId?: string;
   originalPostId?: string;
   platform?: CredentialPlatform;
+  knowledgeReceipts?: KnowledgeReceipt[];
   promptUsed?: string;
   publishIntent?: string;
   reviewEvents?: Record<string, unknown>[];
@@ -161,6 +163,7 @@ const POST_SCALAR_FIELDS = [
   'generationId',
   'groupId',
   'hookVersion',
+  'knowledgeReceipts',
   'isAnalyticsEnabled',
   'isDeleted',
   'isRepeat',

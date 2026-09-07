@@ -6,6 +6,7 @@ import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollo
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -19,6 +20,10 @@ import type { ReactElement, ReactNode } from 'react';
 type AgentChatEmptyStateProps = {
   addFiles: (files: File[]) => void;
   apiService: AgentApiService;
+  /** Knowledge selection sent with every turn from the composer. */
+  knowledgeSelection?: KnowledgeSelection;
+  /** Host-provided Knowledge picker rendered inside the composer. */
+  knowledgePicker?: ReactNode;
   chatAttachments: AttachmentItem[];
   clearAllAttachments: () => void;
   dragHandlers: DragHandlers;
@@ -56,6 +61,8 @@ type AgentChatEmptyStateProps = {
 };
 
 export function AgentChatEmptyState({
+  knowledgeSelection,
+  knowledgePicker,
   addFiles,
   apiService,
   chatAttachments,
@@ -166,6 +173,8 @@ export function AgentChatEmptyState({
               <AgentChatInput
                 addFiles={addFiles}
                 apiService={apiService}
+                knowledgeSelection={knowledgeSelection}
+                knowledgePicker={knowledgePicker}
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
                 disabled={isReadOnly}

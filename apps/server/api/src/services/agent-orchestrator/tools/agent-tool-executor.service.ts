@@ -65,6 +65,7 @@ import {
 } from '@genfeedai/contracts';
 import type {
   AgentToolResult,
+  KnowledgeSelection,
   ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
 
@@ -84,6 +85,8 @@ export interface ToolExecutionContext {
   generationPriority?: RouterPriority;
   generationMode?: AgentGenerationMode;
   generationSettings?: AgentGenerationSettings;
+  /** Explicit Knowledge selection chosen for this turn. */
+  knowledgeSelection?: KnowledgeSelection;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   thinkingModel?: string;
   generationModelOverride?: string | null;

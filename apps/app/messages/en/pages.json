@@ -1151,6 +1151,21 @@
         "moveError": "Failed to move source",
         "addSuccess": "Source added; ingestion started",
         "addError": "Failed to add source"
+      },
+      "picker": {
+        "label": "Knowledge",
+        "selectedLabel": "Knowledge · {count} selected",
+        "title": "Ground this generation",
+        "description": "Pick sources or spaces; only ready, visible sources apply.",
+        "purposes": "Purposes",
+        "spaces": "Spaces",
+        "inbox": "Inbox",
+        "sources": "Sources",
+        "loading": "Loading…",
+        "empty": "No ready sources yet. Add some in Library › Knowledge.",
+        "budget": "Up to {passages} passages · ~{tokens} tokens",
+        "brandDefault": "Brand default: top matches from all sources",
+        "clear": "Clear"
       }
     }
   },

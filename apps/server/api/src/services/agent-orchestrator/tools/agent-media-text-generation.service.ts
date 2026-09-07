@@ -24,8 +24,12 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import {
   ContentIntelligencePlatform,
   formatPlatformLabel,
+  KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  KnowledgeSelection,
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {
@@ -54,6 +58,39 @@ function splitThreadSegments(content: string): string[] {
     .map((segment) => segment.trim())
     .filter(Boolean);
   return segments.length > 0 ? segments : [content];
+}
+
+/**
+ * Tool parameters may name sources or purposes explicitly; otherwise the
+ * turn-level selection from the composer applies. Ids never widen scope:
+ * retrieval still filters by the caller's organization and brand.
+ */
+export function resolveToolKnowledgeSelection(
+  params: Record<string, unknown>,
+  ctx: Pick<ToolExecutionContext, 'knowledgeSelection'>,
+): KnowledgeSelection | undefined {
+  const sourceIds = readStringList(params.knowledgeSourceIds);
+  const purposes = readStringList(params.knowledgePurposes)?.filter(
+    (purpose): purpose is KnowledgeSourcePurpose =>
+      Object.values(KnowledgeSourcePurpose).includes(
+        purpose as KnowledgeSourcePurpose,
+      ),
+  );
+  if (sourceIds?.length || purposes?.length) {
+    return {
+      ...(sourceIds?.length ? { sourceIds } : {}),
+      ...(purposes?.length ? { purposes } : {}),
+    };
+  }
+  return ctx.knowledgeSelection;
+}
+
+function readStringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const items = value.filter(
+    (item): item is string => typeof item === 'string' && item.trim() !== '',
+  );
+  return items.length > 0 ? items : undefined;
 }
 
 @Injectable()
@@ -265,11 +302,13 @@ export class AgentMediaTextGenerationService {
     const platform =
       (readOptionalString(params.platform) as ContentIntelligencePlatform) ??
       ContentIntelligencePlatform.TWITTER;
+    const knowledge = resolveToolKnowledgeSelection(params, ctx);
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
         additionalContext: params.additionalContext as string[] | undefined,
         brandId: params.brandId ? (params.brandId as string) : undefined,
+        ...(knowledge ? { knowledge } : {}),
         platform,
         topic: params.topic as string,
         variationsCount: 1,
@@ -287,6 +326,7 @@ export class AgentMediaTextGenerationService {
         content: generated?.content ?? '',
         hashtags: generated?.hashtags ?? [],
         hook: generated?.hook,
+        knowledgeReceipts: generated?.knowledgeReceipts ?? [],
         patternUsed: generated?.patternUsed,
       },
       nextActions: generated?.content

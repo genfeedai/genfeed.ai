@@ -23,3 +23,25 @@ export interface BrandContentMemoryHit {
   relevance: number;
   source?: string;
 }
+
+/**
+ * Explicit Knowledge selection for one execution. Sources and spaces are
+ * unioned; purposes narrow the union. Empty selection means brand default.
+ */
+export interface KnowledgeSelection {
+  sourceIds?: string[];
+  spaceIds?: string[];
+  purposes?: KnowledgeSourcePurpose[];
+}
+
+/** Resolved retrieval filters derived from a {@link KnowledgeSelection}. */
+export interface KnowledgeRetrievalFilters {
+  knowledgeSourceIds?: string[];
+  knowledgePurposes?: KnowledgeSourcePurpose[];
+}
+
+/** Citation plus the passage that reached the model; persisted with outputs. */
+export interface KnowledgeReceipt extends KnowledgeRetrievalCitation {
+  excerpt: string;
+  relevance: number;
+}

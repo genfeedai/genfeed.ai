@@ -4117,6 +4117,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'isRepeat',
       'isShareToFeedSelected',
+      'knowledgeReceipts',
       'label',
       'lastAttemptAt',
       'listeningTheme',

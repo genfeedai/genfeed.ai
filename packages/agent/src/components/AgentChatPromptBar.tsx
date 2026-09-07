@@ -17,6 +17,7 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -30,6 +31,10 @@ import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
   apiService: AgentApiService;
+  /** Knowledge selection sent with every turn from the composer. */
+  knowledgeSelection?: KnowledgeSelection;
+  /** Host-provided Knowledge picker rendered inside the composer. */
+  knowledgePicker?: ReactNode;
   layoutMode: 'fixed' | 'surface-fixed';
   followUps?: readonly ComposerFollowUp[];
   isBusy: boolean;
@@ -74,6 +79,8 @@ type AgentChatPromptBarProps = {
 };
 
 export function AgentChatPromptBar({
+  knowledgeSelection,
+  knowledgePicker,
   apiService,
   layoutMode,
   followUps = [],
@@ -201,6 +208,8 @@ export function AgentChatPromptBar({
         }
         onStop={onStop}
         apiService={apiService}
+        knowledgeSelection={knowledgeSelection}
+        knowledgePicker={knowledgePicker}
         // Error ends the turn from the operator's POV — show Send again, not Stop.
         showStop={isRunActive && !error}
         willQueueFollowUp={isBusy}

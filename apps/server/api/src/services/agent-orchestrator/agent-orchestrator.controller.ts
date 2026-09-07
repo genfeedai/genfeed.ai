@@ -173,6 +173,7 @@ export class AgentOrchestratorController {
       generationMode: body.generationMode,
       generationSettings: body.generationSettings,
       hostSupportsApproval: body.hostSupportsApproval,
+      knowledgeSelection: body.knowledgeSelection,
       model: body.model,
       pageContext,
       planModeEnabled: body.planModeEnabled,

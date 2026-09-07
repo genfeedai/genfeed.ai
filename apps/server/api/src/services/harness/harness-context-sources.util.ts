@@ -1,5 +1,8 @@
 import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
-import type { KnowledgeRetrievalCitation } from '@genfeedai/contracts/interfaces';
+import type {
+  KnowledgeReceipt,
+  KnowledgeRetrievalCitation,
+} from '@genfeedai/contracts/interfaces';
 import type {
   HarnessRecordKind,
   HarnessSourceRecord,
@@ -105,4 +108,41 @@ function normalizeHarnessKind(
     default:
       return 'performance_winner';
   }
+}
+
+function isCitation(value: unknown): value is KnowledgeRetrievalCitation {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as KnowledgeRetrievalCitation).sourceId === 'string' &&
+    typeof (value as KnowledgeRetrievalCitation).versionId === 'string'
+  );
+}
+
+/**
+ * Receipts for every cited passage that reached the brief, so a generated
+ * output can point back to the exact source versions that shaped it.
+ */
+export function collectKnowledgeReceipts(
+  sources: readonly HarnessSourceRecord[] | undefined,
+): KnowledgeReceipt[] {
+  const receipts: KnowledgeReceipt[] = [];
+  const seen = new Set<string>();
+  for (const source of sources ?? []) {
+    const citation = source.metadata?.citation;
+    if (!isCitation(citation)) {
+      continue;
+    }
+    const key = `${citation.versionId}:${source.content}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const relevance =
+      typeof source.metadata?.relevance === 'number'
+        ? source.metadata.relevance
+        : (source.weight ?? 0);
+    receipts.push({ ...citation, excerpt: source.content, relevance });
+  }
+  return receipts;
 }

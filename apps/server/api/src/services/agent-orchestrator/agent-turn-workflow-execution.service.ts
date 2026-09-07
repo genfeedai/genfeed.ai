@@ -41,9 +41,11 @@ import {
   AgentThreadStatus,
   AgentType,
   isExplicitAgentMediaGenerationMode,
+  KnowledgeSourcePurpose,
   resolveAgentTurnGenerationMode,
   toRouterPriority,
 } from '@genfeedai/contracts';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
@@ -157,6 +159,52 @@ function projectGenerationSettings(
   };
 }
 
+function projectStringList(value: unknown, path: string): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.some((item) => typeof item !== 'string' || !item.trim())
+  ) {
+    throw new Error(`${path} must be a list of non-empty strings`);
+  }
+  return value.length > 0 ? (value as string[]) : undefined;
+}
+
+function projectKnowledgeSelection(
+  value: unknown,
+): KnowledgeSelection | undefined {
+  if (value === undefined) return undefined;
+  const selection = readRecord(value);
+  const sourceIds = projectStringList(
+    selection.sourceIds,
+    'request.knowledgeSelection.sourceIds',
+  );
+  const spaceIds = projectStringList(
+    selection.spaceIds,
+    'request.knowledgeSelection.spaceIds',
+  );
+  const purposes = projectStringList(
+    selection.purposes,
+    'request.knowledgeSelection.purposes',
+  );
+  if (
+    purposes?.some(
+      (purpose) =>
+        !Object.values(KnowledgeSourcePurpose).includes(
+          purpose as KnowledgeSourcePurpose,
+        ),
+    )
+  ) {
+    throw new Error('request.knowledgeSelection.purposes is unsupported');
+  }
+  if (!sourceIds && !spaceIds && !purposes) return undefined;
+  return {
+    ...(sourceIds ? { sourceIds } : {}),
+    ...(spaceIds ? { spaceIds } : {}),
+    ...(purposes ? { purposes: purposes as KnowledgeSourcePurpose[] } : {}),
+  };
+}
+
 function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   threadId: string;
 } {
@@ -204,6 +252,13 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
       ? {
           generationSettings: projectGenerationSettings(
             request.generationSettings,
+          ),
+        }
+      : {}),
+    ...(request.knowledgeSelection !== undefined
+      ? {
+          knowledgeSelection: projectKnowledgeSelection(
+            request.knowledgeSelection,
           ),
         }
       : {}),
@@ -448,6 +503,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       generationPriority,
       generationSettings: request.generationSettings,
       hostSupportsApproval: request.hostSupportsApproval ?? true,
+      ...(request.knowledgeSelection
+        ? { knowledgeSelection: request.knowledgeSelection }
+        : {}),
       resolvedSkills: resolved.resolvedSkills,
       scope,
     };

@@ -13,6 +13,7 @@ import type {
   AgentTransferPresentation,
   AgentUIBlock,
   AnalyticsQueryReference,
+  KnowledgeSelection,
   ScopedResearchFindingReference,
   SocialInboxReference,
 } from '@genfeedai/contracts/interfaces';
@@ -570,6 +571,7 @@ export interface AgentChatPayload {
     prioritize?: RouterPriority;
     resolution?: string;
   };
+  knowledgeSelection?: KnowledgeSelection;
   content: string;
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';

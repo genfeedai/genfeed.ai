@@ -12,6 +12,21 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
           description: 'Brand ID to use for tone and voice',
           type: 'string',
         },
+        knowledgePurposes: {
+          description:
+            'Restrict grounding to saved Knowledge with these purposes (BRAND_TRUTH, INSPIRATION, RESEARCH)',
+          items: {
+            enum: ['BRAND_TRUTH', 'INSPIRATION', 'RESEARCH'],
+            type: 'string',
+          },
+          type: 'array',
+        },
+        knowledgeSourceIds: {
+          description:
+            'Ground the content on these saved Knowledge source ids only; the output cites them',
+          items: { type: 'string' },
+          type: 'array',
+        },
         platform: {
           description: 'Target social platform',
           enum: [

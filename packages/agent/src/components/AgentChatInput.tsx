@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AgentGenerationMode } from '@genfeedai/contracts';
+import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
@@ -20,7 +21,13 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 
 // Stable default so memoized children do not see a new [] every render.
 const EMPTY_CHAT_ATTACHMENTS: AttachmentItem[] = [];
@@ -66,6 +73,10 @@ interface AgentChatInputProps {
   /** Credits lock shown on the generation-setup popover's model rows. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
+  /** Knowledge selection sent with every turn from this composer. */
+  knowledgeSelection?: KnowledgeSelection;
+  /** Host-provided picker rendered above the attachment tray. */
+  knowledgePicker?: ReactNode;
 }
 
 function mapAttachmentToTrayAsset(
@@ -102,6 +113,8 @@ export function AgentChatInput({
   isTopAttached = false,
   creditsAvailable = null,
   willQueueFollowUp = false,
+  knowledgeSelection,
+  knowledgePicker,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -150,6 +163,7 @@ export function AgentChatInput({
     generationMode,
     generationSettings,
     hasQueuedFollowUps,
+    knowledgeSelection,
     isUploading,
     onPromoteQueuedFollowUp,
     onSend,
@@ -195,15 +209,20 @@ export function AgentChatInput({
 
       <PromptBarComposer
         beforeBody={
-          hasAttachments || references.length > 0 ? (
-            <AgentChatInputAttachmentTray
-              assets={trayAssets}
-              attachmentStatusById={attachmentStatusById}
-              isDisabled={disabled}
-              onRemoveAttachedAsset={handleRemoveAttachment}
-              onRemoveReference={handleRemoveReference}
-              references={references}
-            />
+          knowledgePicker || hasAttachments || references.length > 0 ? (
+            <>
+              {knowledgePicker}
+              {hasAttachments || references.length > 0 ? (
+                <AgentChatInputAttachmentTray
+                  assets={trayAssets}
+                  attachmentStatusById={attachmentStatusById}
+                  isDisabled={disabled}
+                  onRemoveAttachedAsset={handleRemoveAttachment}
+                  onRemoveReference={handleRemoveReference}
+                  references={references}
+                />
+              ) : null}
+            </>
           ) : null
         }
         className={cn(

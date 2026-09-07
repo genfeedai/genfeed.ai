@@ -30,6 +30,8 @@ import {
   getChannelTextPolicy,
   repurposePostContent,
 } from '@genfeedai/contracts/api-types/contracts/channel-repurpose.contract';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadGatewayException,
@@ -249,6 +251,7 @@ export class PostRepurposeService {
       credentialId,
       previewMedia,
       reviewItem.postId,
+      generated[0]?.knowledgeReceipts ?? [],
     );
     await this.recalculateGroup(params, source);
 
@@ -288,6 +291,7 @@ export class PostRepurposeService {
     credentialId: string | undefined,
     previewMedia: SourceMediaItem | undefined,
     draftPostId: string,
+    knowledgeReceipts: KnowledgeReceipt[] = [],
   ): Promise<void> {
     const validation = validateChannelTargetSettings({
       caption: undefined,
@@ -302,6 +306,7 @@ export class PostRepurposeService {
       data: {
         credentialId: credentialId ?? null,
         groupId: source.groupId ?? null,
+        knowledgeReceipts: toPrismaJson(knowledgeReceipts),
         order,
         originalPostId: source.id,
         targetExecutionState: TargetExecutionState.DRAFT,

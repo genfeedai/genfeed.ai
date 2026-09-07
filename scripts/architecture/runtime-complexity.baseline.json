@@ -72,7 +72,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1257,
+    "actual": 1260,
     "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/posts.service.ts"
@@ -210,7 +210,7 @@
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 452,
+    "actual": 453,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
@@ -222,7 +222,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
   },
   {
-    "actual": 196,
+    "actual": 199,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnWorkflowExecutionService.execute"

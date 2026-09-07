@@ -20,6 +20,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import {
   BadGatewayException,
   BadRequestException,
@@ -112,7 +114,14 @@ export class PostVariationService {
       );
     }
 
-    await this.persistVariations(params, postIds, groupId, actualCount, prompt);
+    await this.persistVariations(
+      params,
+      postIds,
+      groupId,
+      actualCount,
+      prompt,
+      generated[0]?.knowledgeReceipts ?? [],
+    );
 
     // The direct prisma.post.updateMany writes bypass BaseService, so bust the
     // post collection/query caches (plus the public `posts` tag) explicitly.
@@ -166,6 +175,7 @@ export class PostVariationService {
     groupId: string,
     actualCount: number,
     prompt: string,
+    knowledgeReceipts: KnowledgeReceipt[] = [],
   ): Promise<void> {
     await Promise.all(
       postIds.map(async (postId, index) => {
@@ -174,6 +184,7 @@ export class PostVariationService {
           data: {
             generationId: groupId,
             groupId,
+            knowledgeReceipts: toPrismaJson(knowledgeReceipts),
             order: index,
             originalPostId:
               params.source.kind === 'owned-post' ? params.source.id : null,
