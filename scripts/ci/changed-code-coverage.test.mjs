@@ -857,6 +857,13 @@ test('coverage rides the changed-test shards as mergeable blobs on pull requests
       `${name} must branch on the env flag, not the raw event name`,
     );
     assert.match(job, /--reporter=default --reporter=blob/);
+    // Vitest 5 writes blobs to .vitest/blob/ by default; the staging step
+    // globs .vitest-reports/, so the shard must pin the output file.
+    assert.match(
+      job,
+      /--outputFile\.blob=\.vitest-reports\/blob-\$\{\{ matrix\.shard \}\}-\$\{\{ matrix\.total \}\}\.json/,
+      `${name} must pin the blob output under .vitest-reports/`,
+    );
     // One slow or red shard must not cancel its siblings and destroy their
     // lcov — and every shard's verdict still reaches the gate individually.
     assert.match(job, /fail-fast: false/, `${name} must not fail fast`);

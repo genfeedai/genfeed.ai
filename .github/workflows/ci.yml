@@ -745,7 +745,9 @@ jobs:
           if [ "$WITH_COVERAGE" = "true" ]; then
             # Vitest does not finalize LCOV inside a sharded run. Persist its
             # blob report and merge all shards in Changed Coverage Report.
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob)
+            # Vitest 5 defaults the blob to .vitest/blob/; pin it so staging keeps
+            # reading .vitest-reports/.
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-${{ matrix.total }}.json)
           fi
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
@@ -847,7 +849,9 @@ jobs:
             # Pass the same explicit flags the app lane uses: a bare --coverage
             # left the API shards reporting `All files | 0 | 0 | 0 | 0`, so the
             # merge job had nothing to turn into LCOV and failed the report.
-            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob)
+            # Vitest 5 defaults the blob to .vitest/blob/; pin it so staging keeps
+            # reading .vitest-reports/.
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-${{ matrix.total }}.json)
           fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
