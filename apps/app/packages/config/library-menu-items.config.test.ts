@@ -18,6 +18,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/shelf/approved',
       '/library/shelf/failed',
       '/library/shelf/archived',
+      '/library/knowledge',
       '/library/trash',
     ]);
   });

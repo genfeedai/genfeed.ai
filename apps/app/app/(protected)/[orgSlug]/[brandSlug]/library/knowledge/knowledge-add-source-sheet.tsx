@@ -26,14 +26,15 @@ import {
   SheetTitle,
 } from '@ui/primitives/sheet';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type CaptureMode = 'text' | 'url' | 'document';
 
-const MODE_OPTIONS: Array<{ label: string; value: CaptureMode }> = [
-  { label: 'Paste text', value: 'text' },
-  { label: 'Web page URL', value: 'url' },
-  { label: 'PDF or document URL', value: 'document' },
+const MODE_OPTIONS: Array<{ labelKey: string; value: CaptureMode }> = [
+  { labelKey: 'modeText', value: 'text' },
+  { labelKey: 'modeUrl', value: 'url' },
+  { labelKey: 'modeDocument', value: 'document' },
 ];
 
 const KIND_BY_MODE: Record<CaptureMode, KnowledgeSourceKind> = {
@@ -42,24 +43,25 @@ const KIND_BY_MODE: Record<CaptureMode, KnowledgeSourceKind> = {
   url: KnowledgeSourceKind.URL,
 };
 
+/** Keys resolve under `pages.library.knowledge.purpose`. */
 export const PURPOSE_OPTIONS: Array<{
-  description: string;
-  label: string;
+  hintKey: string;
+  labelKey: string;
   value: KnowledgeSourcePurpose;
 }> = [
   {
-    description: 'Style and ideas to draw from; never treated as fact.',
-    label: 'Inspiration',
+    hintKey: 'inspirationHint',
+    labelKey: 'inspiration',
     value: KnowledgeSourcePurpose.INSPIRATION,
   },
   {
-    description: 'Facts about your brand that generations must respect.',
-    label: 'Brand Truth',
+    hintKey: 'brandTruthHint',
+    labelKey: 'brandTruth',
     value: KnowledgeSourcePurpose.BRAND_TRUTH,
   },
   {
-    description: 'Market and audience material for context.',
-    label: 'Research',
+    hintKey: 'researchHint',
+    labelKey: 'research',
     value: KnowledgeSourcePurpose.RESEARCH,
   },
 ];
@@ -70,6 +72,8 @@ export default function KnowledgeAddSourceSheet({
   onClose,
   onSubmit,
 }: KnowledgeAddSourceSheetProps) {
+  const translate = useTranslations('pages.library.knowledge.add');
+  const translatePurpose = useTranslations('pages.library.knowledge.purpose');
   const [mode, setMode] = useState<CaptureMode>('url');
   const [title, setTitle] = useState('');
   const [purpose, setPurpose] = useState<KnowledgeSourcePurpose>(
@@ -119,95 +123,96 @@ export default function KnowledgeAddSourceSheet({
     >
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Add knowledge source</SheetTitle>
-          <SheetDescription>
-            Genfeed extracts, chunks and embeds the source so generations can
-            cite it.
-          </SheetDescription>
+          <SheetTitle>{translate('title')}</SheetTitle>
+          <SheetDescription>{translate('description')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 py-4">
-          <Field label="Source type">
+          <Field label={translate('sourceType')}>
             <Select
               onValueChange={(value) => setMode(value as CaptureMode)}
               value={mode}
             >
-              <SelectTrigger aria-label="Source type">
+              <SelectTrigger aria-label={translate('sourceType')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {MODE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {translate(option.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Title">
+          <Field label={translate('titleLabel')}>
             <Input
-              aria-label="Title"
+              aria-label={translate('titleLabel')}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Pricing page"
+              placeholder={translate('titlePlaceholder')}
               value={title}
             />
           </Field>
           {isTextMode ? (
-            <Field label="Text">
+            <Field label={translate('text')}>
               <Textarea
-                aria-label="Text"
+                aria-label={translate('text')}
                 onChange={(event) => setText(event.target.value)}
-                placeholder="Paste the material Genfeed should know"
+                placeholder={translate('textPlaceholder')}
                 rows={8}
                 value={text}
               />
             </Field>
           ) : (
-            <Field label={mode === 'document' ? 'Document URL' : 'URL'}>
+            <Field
+              label={translate(mode === 'document' ? 'documentUrl' : 'url')}
+            >
               <Input
-                aria-label={mode === 'document' ? 'Document URL' : 'URL'}
+                aria-label={translate(
+                  mode === 'document' ? 'documentUrl' : 'url',
+                )}
                 onChange={(event) => setReferenceUrl(event.target.value)}
-                placeholder="https://"
+                placeholder={translate('urlPlaceholder')}
                 type="url"
                 value={referenceUrl}
               />
             </Field>
           )}
-          <Field label="Purpose">
+          <Field label={translate('purposeLabel')}>
             <Select
               onValueChange={(value) =>
                 setPurpose(value as KnowledgeSourcePurpose)
               }
               value={purpose}
             >
-              <SelectTrigger aria-label="Purpose">
+              <SelectTrigger aria-label={translate('purposeLabel')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PURPOSE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {translatePurpose(option.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              {
+              {translatePurpose(
                 PURPOSE_OPTIONS.find((option) => option.value === purpose)
-                  ?.description
-              }
+                  ?.hintKey ?? 'inspirationHint',
+              )}
             </p>
           </Field>
         </div>
         <SheetFooter>
           <Button
-            label="Cancel"
+            label={translate('cancel')}
             onClick={onClose}
             variant={ButtonVariant.SECONDARY}
           />
           <Button
             isDisabled={!isValid}
             isLoading={isSubmitting}
-            label="Add source"
+            label={translate('submit')}
             onClick={() => {
               void handleSubmit();
             }}

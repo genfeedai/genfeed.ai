@@ -6,6 +6,7 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { BookOpen, Globe, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
 import KnowledgeSourcesList from './knowledge-sources-list';
 
@@ -14,25 +15,26 @@ export default function LibraryKnowledgePage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [seedRequestId, setSeedRequestId] = useState(0);
   const website = selectedBrand?.website ?? undefined;
+  const translate = useTranslations('pages.library.knowledge');
 
   return (
     <Container
-      description="Sources Genfeed grounds your generations on, with citations."
+      description={translate('description')}
       icon={BookOpen}
-      label="Knowledge"
+      label={translate('title')}
       right={
         <div className="flex items-center gap-2">
           <Button
             icon={<Globe className="size-4" />}
             isDisabled={!brandId}
-            label="Seed from Brand Kit"
+            label={translate('seedFromBrandKit')}
             onClick={() => setSeedRequestId((id) => id + 1)}
             variant={ButtonVariant.SECONDARY}
           />
           <Button
             icon={<Plus className="size-4" />}
             isDisabled={!brandId}
-            label="Add source"
+            label={translate('addSource')}
             onClick={() => setIsAddOpen(true)}
           />
         </div>

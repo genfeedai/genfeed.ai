@@ -101,7 +101,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestImages.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/BrandDetailLatestVideos.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/interview/content.tsx": 24,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/kit/content.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/content.tsx": 33,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/publishing-posting-sets-section.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/publishing/publishing-rss-sources-section.tsx": 26,
