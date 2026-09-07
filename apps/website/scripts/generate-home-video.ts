@@ -502,6 +502,18 @@ const CONTENT_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
 };
 
+/**
+ * A day of caching, then revalidate.
+ *
+ * These filenames are stable — `hero-loop.mp4` is always the hero clip — so
+ * `immutable` would be a lie: regenerating a clip overwrites the key, and every
+ * browser already holding the old one would keep it for a year. Content-hashed
+ * names would earn `immutable`, at the cost of a code change on every
+ * regeneration. A day is the trade: a refreshed clip reaches everyone within a
+ * day, and the hot path still serves from cache.
+ */
+const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800';
+
 function upload(artefacts: Artefacts, prefix: string): void {
   for (const file of Object.values(artefacts)) {
     const key = `${CDN_PREFIX}/${prefix}/${path.basename(file)}`;
@@ -515,7 +527,7 @@ function upload(artefacts: Artefacts, prefix: string): void {
       '--content-type',
       CONTENT_TYPES[path.extname(file)] ?? 'application/octet-stream',
       '--cache-control',
-      'public, max-age=31536000, immutable',
+      CACHE_CONTROL,
     ]);
   }
 }
@@ -641,10 +653,17 @@ async function main(): Promise<void> {
     throw new Error('REPLICATE_KEY is not set — cannot generate.');
   }
 
-  if (only !== 'formats')
-    await buildHero(token, shouldRegenerate, shouldUpload);
-  if (only !== 'hero')
-    await buildFormats(token, shouldRegenerate, shouldUpload);
+  // Both groups at once. They share nothing but the token, and running the six
+  // carousel clips behind the three hero scenes would double an already long
+  // wall-clock for no benefit.
+  await Promise.all([
+    only === 'formats'
+      ? Promise.resolve()
+      : buildHero(token, shouldRegenerate, shouldUpload),
+    only === 'hero'
+      ? Promise.resolve()
+      : buildFormats(token, shouldRegenerate, shouldUpload),
+  ]);
 
   logger.log(
     shouldUpload
