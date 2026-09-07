@@ -300,7 +300,7 @@ export default function GeneratePlanDialog({
 
           <DialogFooter className="gap-2 sm:space-x-0">
             <Button
-              label="Cancel"
+              label={translate('dialogCancel')}
               type="button"
               variant={ButtonVariant.SECONDARY}
               onClick={() => onOpenChange(false)}

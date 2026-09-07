@@ -571,7 +571,8 @@
       "seedSummaryCreators": "{count, plural, one {# creator} other {# creators}}",
       "seedSummaryOwnHistory": "own history",
       "seedSummaryPatterns": "patterns",
-      "title": "Recent plans"
+      "title": "Recent plans",
+      "dialogCancel": "Cancel"
     },
     "contentRuns": {
       "statusFilter": "Filter content runs by status",
