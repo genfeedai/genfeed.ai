@@ -283,32 +283,6 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/searchbar', () => ({
-  default: ({
-    value,
-    onChange,
-    onClear,
-    placeholder,
-  }: {
-    value?: string;
-    onChange?: (event: { target: { value: string } }) => void;
-    onClear?: () => void;
-    placeholder?: string;
-  }) => (
-    <div>
-      <input
-        aria-label={placeholder}
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => onChange?.(event)}
-      />
-      <button type="button" onClick={onClear}>
-        Clear
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
   default: ({
     activeView,
@@ -384,15 +358,14 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
   ),
 }));
 
+// Stub commits every keystroke synchronously; the real primitive debounces.
 vi.mock('@ui/primitives/searchbar', () => ({
   default: ({
-    onChange,
-    onClear,
+    onSearch,
     placeholder,
     value,
   }: {
-    onChange: (event: { target: { value: string } }) => void;
-    onClear: () => void;
+    onSearch: (value: string) => void;
     placeholder?: string;
     value: string;
   }) => (
@@ -401,9 +374,9 @@ vi.mock('@ui/primitives/searchbar', () => ({
         aria-label={placeholder}
         placeholder={placeholder}
         value={value}
-        onChange={(event) => onChange(event as never)}
+        onChange={(event) => onSearch(event.target.value)}
       />
-      <button onClick={onClear} type="button">
+      <button onClick={() => onSearch('')} type="button">
         Clear
       </button>
     </div>
@@ -594,10 +567,6 @@ describe('AdsResearchPageClient', () => {
 
     fireEvent.change(screen.getByPlaceholderText('Search ads'), {
       target: { value: 'google' },
-    });
-    // The search bar debounces; Enter commits the draft immediately.
-    fireEvent.keyDown(screen.getByPlaceholderText('Search ads'), {
-      key: 'Enter',
     });
 
     expect(screen.queryByText('Meta hook story')).not.toBeInTheDocument();
