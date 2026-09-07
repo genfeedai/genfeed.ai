@@ -73,6 +73,9 @@ describe('InstagramController', () => {
   let instagramAuthorizedSignalsServiceMock: {
     refresh: ReturnType<typeof vi.fn>;
   };
+  let historyImportServiceMock: {
+    scheduleForCredential: ReturnType<typeof vi.fn>;
+  };
 
   const instagramConfig: Record<string, string> = {
     INSTAGRAM_API_VERSION: 'v18.0',
