@@ -4,8 +4,13 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const BUILT_IN_CONTENT_WRITING_SKILL_ID = testId(
+  'skill-builtin-content-writing',
+);
 
 type SkillRow = {
   config: Record<string, unknown>;
@@ -157,7 +162,7 @@ describe('SkillsService', () => {
           source: 'built_in',
           status: 'published',
         },
-        id: 'cskillbuiltincontentwrite',
+        id: BUILT_IN_CONTENT_WRITING_SKILL_ID,
         organizationId: null,
       }),
       makeSkillRow(),
@@ -416,7 +421,7 @@ describe('SkillsService', () => {
           source: 'built_in',
           status: 'published',
         },
-        id: 'cskillbuiltincontentwrite',
+        id: BUILT_IN_CONTENT_WRITING_SKILL_ID,
         organizationId: null,
       }),
     ]);
