@@ -1,4 +1,5 @@
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
+import { InstagramBusinessDiscoveryProvider } from '@api/services/source-collector/providers/instagram-business-discovery.provider';
 import { InstagramOfficialProvider } from '@api/services/source-collector/providers/instagram-official.provider';
 import { LinkedinOfficialProvider } from '@api/services/source-collector/providers/linkedin-official.provider';
 import { TiktokOfficialProvider } from '@api/services/source-collector/providers/tiktok-official.provider';
@@ -28,8 +29,10 @@ function hasExternalPostId(
  * SourceCollector — ordered provider chain for Following / social-source sync.
  *
  * X: brand OAuth → app bearer → Apify
- * IG / TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
- * YouTube / LinkedIn: brand OAuth only (own account history, no public feed)
+ * IG: brand OAuth (own account, needs `credentialId`) → Business Discovery
+ *     (competitor accounts, via the brand's own credential) → Apify
+ * TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
+ * YouTube / LinkedIn: brand OAuth (own account history) → Apify (public feed)
  *
  * Throws when every provider fails (no silent empty success).
  */
@@ -42,6 +45,7 @@ export class SourceCollectorService {
     private readonly twitterBrandOAuth: TwitterBrandOAuthProvider,
     private readonly twitterAppBearer: TwitterAppBearerProvider,
     private readonly instagramOfficial: InstagramOfficialProvider,
+    private readonly instagramBusinessDiscovery: InstagramBusinessDiscoveryProvider,
     private readonly tiktokOfficial: TiktokOfficialProvider,
     private readonly youtubeOfficial: YoutubeOfficialProvider,
     private readonly linkedinOfficial: LinkedinOfficialProvider,
@@ -52,6 +56,7 @@ export class SourceCollectorService {
       this.twitterBrandOAuth,
       this.twitterAppBearer,
       this.instagramOfficial,
+      this.instagramBusinessDiscovery,
       this.tiktokOfficial,
       this.youtubeOfficial,
       this.linkedinOfficial,

@@ -1,6 +1,7 @@
 import type {
   ApifyHashtagData,
   ApifyInstagramPost,
+  ApifyLinkedInPost,
   ApifyNormalizedInstagramComment,
   ApifyNormalizedSocialComment,
   ApifyNormalizedTikTokComment,
@@ -16,6 +17,7 @@ import type {
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
+import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
 import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
@@ -39,6 +41,7 @@ import { Injectable } from '@nestjs/common';
  * - ApifyYouTubeService: YouTube trends, videos, comments
  * - ApifyRedditService: Reddit trends, videos, comments, posts
  * - ApifyPinterestService: Pinterest trends
+ * - ApifyLinkedInService: LinkedIn public profile posts
  */
 @Injectable()
 export class ApifyService {
@@ -52,6 +55,7 @@ export class ApifyService {
     private readonly youtubeService: ApifyYouTubeService,
     private readonly redditService: ApifyRedditService,
     private readonly pinterestService: ApifyPinterestService,
+    private readonly linkedinService: ApifyLinkedInService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -203,6 +207,13 @@ export class ApifyService {
     return this.youtubeService.getYouTubeChannelVideos(channelUrl, options);
   }
 
+  getYouTubeChannelUploads(
+    channelUrl: string,
+    options?: { limit?: number },
+  ): Promise<ApifyYouTubeVideo[]> {
+    return this.youtubeService.getYouTubeChannelUploads(channelUrl, options);
+  }
+
   searchYouTubeVideos(
     query: string,
     options?: { limit?: number },
@@ -246,6 +257,15 @@ export class ApifyService {
     options?: { limit?: number; subreddit?: string },
   ): Promise<ApifyRedditPost[]> {
     return this.redditService.searchRedditPosts(query, options);
+  }
+
+  // ==================== LinkedIn ====================
+
+  getLinkedInProfilePosts(
+    profileUrl: string,
+    options?: { limit?: number },
+  ): Promise<ApifyLinkedInPost[]> {
+    return this.linkedinService.getLinkedInProfilePosts(profileUrl, options);
   }
 
   // ==================== Pinterest ====================

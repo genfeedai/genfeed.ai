@@ -9,9 +9,55 @@ import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
+/** YouTube channel ids are `UC` followed by 22 URL-safe characters. */
+const YOUTUBE_CHANNEL_ID_PATTERN = /^UC[\w-]{22}$/;
+
 /**
- * Apify fallback for public timelines (X / IG / TikTok).
- * X throws when APIFY_API_TOKEN is missing (honest failure).
+ * Build a YouTube channel URL for Apify's channel scraper from a bare
+ * handle. A canonical channel id (`UC…`) resolves to `/channel/{id}`;
+ * anything else is treated as an `@handle`.
+ */
+function toYoutubeChannelUrl(handle: string): string {
+  return YOUTUBE_CHANNEL_ID_PATTERN.test(handle)
+    ? `https://www.youtube.com/channel/${handle}`
+    : `https://www.youtube.com/@${handle}`;
+}
+
+/**
+ * Build a LinkedIn profile URL for Apify's profile scraper from a bare
+ * handle. LinkedIn source handles already collapse `/in/`, `/company/` and
+ * `/school/` prefixes (see `social-source-handle.util.ts`), so — matching
+ * that util's own `buildProfileUrl` — this assumes a personal profile
+ * (`/in/`); a company/school page handle is not distinguishable at this
+ * point and would need the original prefix threaded through.
+ */
+function toLinkedinProfileUrl(handle: string): string {
+  return `https://www.linkedin.com/in/${handle}`;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readCount(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.floor(value)
+    : undefined;
+}
+
+function readDate(value: unknown): Date | undefined {
+  const raw = readString(value);
+  if (!raw) {
+    return undefined;
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+/**
+ * Apify fallback for public timelines (X / IG / TikTok / YouTube / LinkedIn).
+ * X, YouTube and LinkedIn throw when APIFY_API_TOKEN is missing (honest
+ * failure).
  */
 @Injectable()
 export class ApifySocialProvider implements SourceTimelineProvider {
@@ -20,6 +66,8 @@ export class ApifySocialProvider implements SourceTimelineProvider {
     SocialSourcePlatform.TWITTER,
     SocialSourcePlatform.INSTAGRAM,
     SocialSourcePlatform.TIKTOK,
+    SocialSourcePlatform.YOUTUBE,
+    SocialSourcePlatform.LINKEDIN,
   ] as const;
 
   constructor(private readonly apifyService: ApifyService) {}
@@ -146,6 +194,94 @@ export class ApifySocialProvider implements SourceTimelineProvider {
             thumbnailUrl: video.musicMeta?.coverUrl,
           }),
         ),
+        provider: 'apify',
+      };
+    }
+
+    if (platform === SocialSourcePlatform.YOUTUBE) {
+      const videos = await this.apifyService.getYouTubeChannelUploads(
+        toYoutubeChannelUrl(handle),
+        { limit },
+      );
+      return {
+        handle,
+        platform,
+        posts: videos
+          .map((video): CollectedSourcePost | undefined => {
+            const id = readString(video.id);
+            if (!id) {
+              return undefined;
+            }
+            const url =
+              readString(video.url) ?? `https://www.youtube.com/watch?v=${id}`;
+            return {
+              authorId: readString(video.channelId),
+              authorUsername: readString(video.channelName) || handle,
+              contentType: 'video',
+              contentUrl: url,
+              createdAt: readDate(video.publishedAt) ?? new Date(),
+              id,
+              metrics: {
+                comments: readCount(video.commentCount),
+                likes: readCount(video.likeCount),
+                views: readCount(video.viewCount),
+              },
+              platform: SocialSourcePlatform.YOUTUBE,
+              text: readString(video.title) ?? '',
+              thumbnailUrl: readString(video.thumbnailUrl),
+            };
+          })
+          .filter((post): post is CollectedSourcePost => Boolean(post)),
+        provider: 'apify',
+      };
+    }
+
+    if (platform === SocialSourcePlatform.LINKEDIN) {
+      const posts = await this.apifyService.getLinkedInProfilePosts(
+        toLinkedinProfileUrl(handle),
+        { limit },
+      );
+      return {
+        handle,
+        platform,
+        posts: posts
+          .map((post): CollectedSourcePost | undefined => {
+            const id = readString(post.id) ?? readString(post.urn);
+            if (!id) {
+              return undefined;
+            }
+            const imageUrl =
+              readString(post.imageUrl) ?? readString(post.images?.[0]);
+            const videoUrl = readString(post.videoUrl);
+            return {
+              authorDisplayName:
+                readString(post.authorName) ?? readString(post.authorFullName),
+              authorUsername: handle,
+              contentType: videoUrl ? 'video' : 'post',
+              contentUrl:
+                readString(post.postUrl) ??
+                readString(post.url) ??
+                readString(post.authorUrl),
+              createdAt:
+                readDate(post.postedAt) ??
+                readDate(post.date) ??
+                readDate(post.publishedAt) ??
+                new Date(),
+              id,
+              mediaUrls: [videoUrl, imageUrl].filter((value): value is string =>
+                Boolean(value),
+              ),
+              metrics: {
+                comments: readCount(post.commentsCount ?? post.numComments),
+                likes: readCount(post.likesCount ?? post.numLikes),
+                shares: readCount(post.sharesCount ?? post.numShares),
+              },
+              platform: SocialSourcePlatform.LINKEDIN,
+              text: readString(post.text) ?? readString(post.commentary) ?? '',
+              thumbnailUrl: imageUrl,
+            };
+          })
+          .filter((post): post is CollectedSourcePost => Boolean(post)),
         provider: 'apify',
       };
     }
