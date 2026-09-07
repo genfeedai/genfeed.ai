@@ -1,5 +1,5 @@
 import type { HomeOutputAsset } from '@props/website/home.props';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import type { ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HomeOutputCard from './_output-card';
@@ -102,7 +102,7 @@ describe('HomeOutputCard', () => {
     stubEnvironment();
     render(<HomeOutputCard asset={ASSET} isPreloaded={false} />);
 
-    intersect?.([{ isIntersecting: true }]);
+    act(() => intersect?.([{ isIntersecting: true }]));
 
     const player = screen.getByTestId('home-hero-output-carousel-video');
 
