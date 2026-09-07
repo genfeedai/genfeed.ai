@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
@@ -112,6 +113,7 @@ describe('ContentPlannerService', () => {
   let contentPlanItemsService: vi.Mocked<ContentPlanItemsService>;
   let llmDispatcherService: vi.Mocked<LlmDispatcherService>;
   let logger: vi.Mocked<LoggerService>;
+  let planPerformanceContextService: vi.Mocked<PlanPerformanceContextService>;
 
   function stubGeneratePlan(options?: {
     brand?: typeof baseBrand | typeof brandWithoutAgentConfig | null;
@@ -152,12 +154,82 @@ describe('ContentPlannerService', () => {
       warn: vi.fn(),
     } as unknown as vi.Mocked<LoggerService>;
 
+    planPerformanceContextService = {
+      build: vi.fn().mockResolvedValue({
+        dataset: {
+          confidence: 'none',
+          genfeedPosts: 0,
+          importedPosts: 0,
+          totalPosts: 0,
+        },
+        isColdStart: true,
+        section: '',
+      }),
+    } as unknown as vi.Mocked<PlanPerformanceContextService>;
+
     service = new ContentPlannerService(
       contentPlansService,
       contentPlanItemsService,
       brandsService,
       llmDispatcherService,
       logger,
+      planPerformanceContextService,
+    );
+  });
+
+  it('grounds the user prompt in the plan performance context', async () => {
+    stubGeneratePlan();
+    planPerformanceContextService.build.mockResolvedValueOnce({
+      dataset: {
+        confidence: 'low',
+        genfeedPosts: 1,
+        importedPosts: 2,
+        totalPosts: 3,
+      },
+      isColdStart: true,
+      section:
+        'Cold start: only 3 own posts in the window.\n- "Stop scrolling, start shipping" — by Rival Co, on meta (score 91)',
+    });
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    expect(planPerformanceContextService.build).toHaveBeenCalledWith({
+      brandId: mockBrandId,
+      organizationId: mockOrgId,
+    });
+    const chatArgs = llmDispatcherService.chatCompletion.mock.calls[0][0];
+    const userMessage = chatArgs.messages.find(
+      (message: { role: string }) => message.role === 'user',
+    );
+    expect(userMessage.content).toContain('Performance grounding:');
+    expect(userMessage.content).toContain('Stop scrolling, start shipping');
+    expect(contentPlansService.createInternal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: expect.stringContaining('cold-start plan'),
+      }),
+    );
+  });
+
+  it('describes a grounded plan when own history is sufficient', async () => {
+    stubGeneratePlan();
+    planPerformanceContextService.build.mockResolvedValueOnce({
+      dataset: {
+        confidence: 'high',
+        genfeedPosts: 30,
+        importedPosts: 12,
+        totalPosts: 42,
+      },
+      isColdStart: false,
+      section:
+        'Own history (last 30 days): 30 Genfeed posts and 12 imported posts.',
+    });
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    expect(contentPlansService.createInternal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: expect.stringContaining('42 own posts, 12 imported'),
+      }),
     );
   });
 
