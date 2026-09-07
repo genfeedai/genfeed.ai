@@ -31,6 +31,7 @@ export * from './analytics/dashboard-preset.interface';
 export * from './analytics/evaluation.interface';
 export * from './analytics/fleet-evaluation-policy.interface';
 export * from './analytics/insight.interface';
+export * from './analytics/performance-dataset.interface';
 export * from './analytics/platform-config.interface';
 export * from './analytics/saved-ad.interface';
 export * from './analytics/training.interface';
