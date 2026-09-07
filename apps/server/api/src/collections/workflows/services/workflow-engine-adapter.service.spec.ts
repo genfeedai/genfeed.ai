@@ -989,9 +989,40 @@ describe('WorkflowEngineAdapterService', () => {
         waitForJob: vi.fn().mockResolvedValue({ outputPath: '/tmp/out.mp4' }),
       };
       const filesClientService = {
+        audioOverlay: vi.fn().mockResolvedValue({
+          duration: 12,
+          publicUrl: 'https://cdn.example.com/merged.mp4',
+          s3Key: 'ingredients/videos/merged-1',
+        }),
+        getPresignedDownloadUrl: vi
+          .fn()
+          .mockResolvedValue('https://cdn.example.com/presigned'),
         uploadToS3: vi.fn().mockResolvedValue({ width: 1920 }),
       };
-      const ingredientsService = { patch: vi.fn().mockResolvedValue({}) };
+      const ingredientsService = {
+        findOne: vi.fn(async ({ id }: { id: string }) => {
+          if (id === captionedId) {
+            return {
+              id: captionedId,
+              brandId,
+              category: 'VIDEO',
+              s3Key: `ingredients/videos/${captionedId}`,
+              status: 'GENERATED',
+            };
+          }
+          if (id === musicId) {
+            return {
+              id: musicId,
+              brandId,
+              category: 'MUSIC',
+              s3Key: `ingredients/musics/${musicId}`,
+              status: 'GENERATED',
+            };
+          }
+          return null;
+        }),
+        patch: vi.fn().mockResolvedValue({}),
+      };
       const metadataService = { patch: vi.fn().mockResolvedValue({}) };
       const musicsService = {
         findOne: vi.fn().mockResolvedValue({ id: musicId }),
@@ -1140,15 +1171,24 @@ describe('WorkflowEngineAdapterService', () => {
         await executionService.executeWorkflow(overlayWorkflow);
 
       expectCompleted(overlayResult);
-      expect(
-        videoMusicOrchestrationService.mergeVideoWithMusic,
-      ).toHaveBeenCalledWith(
-        captionedId,
-        musicId,
-        30,
-        false,
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: captionedId, organizationId }),
+      );
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: musicId, organizationId }),
+      );
+      expect(filesClientService.audioOverlay).toHaveBeenCalledWith(
         expect.objectContaining({
-          brandId,
+          audioVolume: 30,
+          mixMode: 'replace',
+          videoVolume: 0,
+        }),
+      );
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        captionedId,
+        expect.objectContaining({
+          s3Key: 'ingredients/videos/merged-1',
+          status: 'GENERATED',
         }),
       );
     });

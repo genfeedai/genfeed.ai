@@ -1,13 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { EditorTextPanelHeaderProps } from '@props/studio/editor-text-panel-header.props';
 import { Button } from '@ui/primitives/button';
-
-interface EditorTextPanelHeaderProps {
-  isExpanded: boolean;
-  onToggleExpanded: () => void;
-  onAddText: () => void;
-}
 
 function EditorTextPanelHeader({
   isExpanded,

@@ -4,6 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
+const SIDEBAR_TRANSLATIONS: Record<string, string> = {
+  newTask: 'New Task',
+  newTaskAriaLabel: 'Open new task modal',
+  search: 'Search',
+  workspace: 'Workspace',
+};
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => SIDEBAR_TRANSLATIONS[key] ?? key,
+}));
+
 const {
   appLayoutSpy,
   appSidebarSpy,
@@ -1128,11 +1139,9 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(
-      screen.queryByRole('button', { name: 'New Task' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Search' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
   it('hands the nav column to the Library actions and folders panel', () => {
@@ -1174,6 +1183,21 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it('keeps the sidebar quick actions on non-workspace section surfaces', () => {
+    mockPathname.value = '/org-123/brand-123/automation/workflows';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
   it('gives Studio routes their own nav column', () => {

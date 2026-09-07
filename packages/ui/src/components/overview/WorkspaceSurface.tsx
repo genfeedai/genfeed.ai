@@ -71,7 +71,7 @@ export function WorkspaceSurface({
       {hasHeader ? (
         <div className={cn('flex flex-col', HEADER_GAP_CLASSES[density])}>
           {/* Title row: actions always sit on one line with the title block. */}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex min-h-control-sm items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {eyebrow ? (
                 <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">

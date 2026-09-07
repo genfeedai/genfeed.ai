@@ -6,27 +6,14 @@ import {
   EditorEffectType,
   EditorTrackType,
 } from '@genfeedai/contracts';
+import type { IEditorEffect } from '@genfeedai/contracts/interfaces';
 import type {
-  IEditorEffect,
-  IEditorTrack,
-} from '@genfeedai/contracts/interfaces';
+  EditorEffectsPanelProps,
+  EffectConfig,
+} from '@props/studio/editor-effects-panel.props';
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { type JSX, useCallback, useState } from 'react';
-
-interface EditorEffectsPanelProps {
-  tracks: IEditorTrack[];
-  selectedTrackId: string | null;
-  selectedClipId: string | null;
-  onTrackUpdate: (trackId: string, updates: Partial<IEditorTrack>) => void;
-}
-
-interface EffectConfig {
-  type: EditorEffectType;
-  label: string;
-  description: string;
-  defaultIntensity: number;
-}
 
 const AVAILABLE_EFFECTS: EffectConfig[] = [
   {

@@ -1,52 +1,10 @@
-import type { IngredientFormat } from '@genfeedai/contracts';
-import type {
-  IEditorProject,
-  IEditorTrack,
-} from '@genfeedai/contracts/interfaces';
-import type { RefObject } from 'react';
+import type { EditorLayoutProps } from '@props/studio/editor-layout.props';
 import EditorEffectsPanel from './EditorEffectsPanel';
-import EditorPreview, { type EditorPreviewRef } from './EditorPreview';
+import EditorPreview from './EditorPreview';
 import EditorPropertiesPanel from './EditorPropertiesPanel';
 import EditorTextPanel from './EditorTextPanel';
 import EditorTimeline from './EditorTimeline';
 import EditorToolbar from './EditorToolbar';
-
-type Props = {
-  project: IEditorProject;
-  previewRef: RefObject<EditorPreviewRef | null>;
-  isPlaying: boolean;
-  currentFrame: number;
-  zoom: number;
-  isDirty: boolean;
-  isRendering: boolean;
-  selectedTrackId: string | null;
-  selectedClipId: string | null;
-  onPlayPause: () => void;
-  onSeek: (frame: number) => void;
-  onSeekStart: () => void;
-  onSeekEnd: () => void;
-  onStepBack: () => void;
-  onStepForward: () => void;
-  onZoomChange: (zoom: number) => void;
-  onFormatChange: (format: IngredientFormat) => void;
-  onAddVideoTrack: () => void;
-  onAddAudioTrack: () => void;
-  onSave: () => void;
-  onRender: () => void;
-  onBack: () => void;
-  onAddTextTrack: (newTrack: IEditorTrack) => void;
-  onTrackUpdate: (trackId: string, trackUpdates: Partial<IEditorTrack>) => void;
-  onClipMove: (trackId: string, clipId: string, newStartFrame: number) => void;
-  onClipResize: (
-    trackId: string,
-    clipId: string,
-    newDuration: number,
-    fromStart: boolean,
-  ) => void;
-  onClipSelect: (trackId: string, clipId: string) => void;
-  onFrameChange: (frame: number) => void;
-  onPlayingChange: (isPlaying: boolean) => void;
-};
 
 export default function EditorLayout({
   project,
@@ -78,7 +36,7 @@ export default function EditorLayout({
   onClipSelect,
   onFrameChange,
   onPlayingChange,
-}: Props) {
+}: EditorLayoutProps) {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Toolbar */}

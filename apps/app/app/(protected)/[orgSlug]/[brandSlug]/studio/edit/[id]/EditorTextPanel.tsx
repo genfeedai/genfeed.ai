@@ -5,22 +5,12 @@ import type {
   IEditorTextOverlay,
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
+import type { EditorTextPanelProps } from '@props/studio/editor-text-panel.props';
 import { useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorTextPanelHeader from './EditorTextPanelHeader';
 import EditorTextProperties from './EditorTextProperties';
 import EditorTextTrackList from './EditorTextTrackList';
-
-interface EditorTextPanelProps {
-  tracks: IEditorTrack[];
-  fps: number;
-  totalFrames: number;
-  selectedTrackId: string | null;
-  selectedClipId: string | null;
-  onAddTextTrack: (track: IEditorTrack) => void;
-  onTrackUpdate: (trackId: string, updates: Partial<IEditorTrack>) => void;
-  onClipSelect: (trackId: string, clipId: string) => void;
-}
 
 const DEFAULT_TEXT_OVERLAY: IEditorTextOverlay = {
   backgroundColor: 'transparent',

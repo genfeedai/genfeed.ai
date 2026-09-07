@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { AnalyticsOrganizationsListProps } from '@props/admin/analytics.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {
   AnalyticsService,
@@ -29,10 +30,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-export interface AnalyticsOrganizationsListProps {
-  basePath?: string;
-}
 
 export default function AnalyticsOrganizationsList({
   basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,

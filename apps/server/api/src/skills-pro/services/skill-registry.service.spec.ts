@@ -219,26 +219,89 @@ describe('SkillRegistryService', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
-    it('should throw when CDN returns non-OK response', async () => {
+    it('should not throw when CDN returns non-OK response and should return empty registry when nothing is cached', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
       });
 
-      await expect(service.getRegistry()).rejects.toThrow(
-        'Failed to fetch skill registry: 500 Internal Server Error',
-      );
+      const result = await service.getRegistry();
+
+      expect(result.skills).toEqual([]);
+      expect(result.bundlePrice).toBe(0);
     });
 
-    it('should throw when fetch itself fails', async () => {
+    it('should not throw when fetch itself fails and should return empty registry when nothing is cached', async () => {
       global.fetch = vi
         .fn()
         .mockRejectedValue(new Error('Network unreachable'));
 
-      await expect(service.getRegistry()).rejects.toThrow(
-        'Network unreachable',
+      const result = await service.getRegistry();
+
+      expect(result.skills).toEqual([]);
+      expect(result.bundlePrice).toBe(0);
+    });
+
+    it('should return the last cached registry when the CDN returns 403 after a prior success', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(mockCdnRegistry),
+        ok: true,
+      });
+
+      const first = await service.getRegistry();
+
+      // Expire cache and simulate the CDN now returning 403.
+      getMutableService().cacheExpiresAt = 0;
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+      });
+
+      const second = await service.getRegistry();
+
+      expect(second).toEqual(first);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('non-OK response'),
+        expect.objectContaining({
+          status: 403,
+          url: 'https://cdn.genfeed.ai/skills/registry.json',
+        }),
       );
+    });
+
+    it('should log a warning with status and url when the CDN returns 403 and nothing is cached', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+      });
+
+      await service.getRegistry();
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('non-OK response'),
+        expect.objectContaining({
+          status: 403,
+          statusText: 'Forbidden',
+          url: 'https://cdn.genfeed.ai/skills/registry.json',
+        }),
+      );
+    });
+
+    it('should not refetch the CDN within the negative-cache window after a failure', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+      });
+      global.fetch = mockFetch;
+
+      await service.getRegistry();
+      await service.getRegistry();
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
     it('should log fetching and caching events', async () => {

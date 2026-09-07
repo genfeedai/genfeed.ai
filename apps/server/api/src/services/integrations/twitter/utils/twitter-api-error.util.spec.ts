@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getTwitterRetryAfterMs,
   isTwitterAuthorizationError,
+  isTwitterClientAuthError,
   isTwitterOAuthCodeError,
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
@@ -102,6 +103,43 @@ describe('mapTwitterApiError', () => {
             error_description: 'Client authentication failed',
           },
           status: 401,
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('classifies a 401 ApiResponseError-shaped invalid_client/unauthorized_client body as a deployment credential error', () => {
+    expect(
+      isTwitterClientAuthError({
+        data: {
+          error: 'unauthorized_client',
+          error_description: 'Client authentication failed',
+        },
+        response: {
+          data: {
+            error: 'unauthorized_client',
+            error_description: 'Client authentication failed',
+          },
+          status: 401,
+        },
+        status: 401,
+      }),
+    ).toBe(true);
+
+    expect(
+      isTwitterClientAuthError({
+        error: 'invalid_client',
+        response: { status: 401 },
+      }),
+    ).toBe(true);
+  });
+
+  it('does not classify an expired authorization code as a client credential error', () => {
+    expect(
+      isTwitterClientAuthError({
+        data: {
+          error: 'invalid_grant',
+          error_description: 'The authorization code has expired',
         },
       }),
     ).toBe(false);

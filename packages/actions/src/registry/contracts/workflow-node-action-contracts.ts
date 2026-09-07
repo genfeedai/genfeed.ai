@@ -13,6 +13,13 @@ import {
 } from './schema-builders';
 
 type InputField =
+  | 'sourceLanguage'
+  | 'targetLanguage'
+  | 'timingToleranceSeconds'
+  | 'syncMode'
+  | 'segments'
+  | 'speed'
+  | 'settings'
   | 'acceptsStructuredPrompt'
   | 'actionVerb'
   | 'addWatermark'
@@ -208,6 +215,35 @@ const TEXT_OR_OBJECT_SCHEMA = {
 
 function inputFieldSchema(field: InputField): ActionJsonSchema {
   switch (field) {
+    case 'segments':
+      return arraySchema(
+        closedObjectSchema(
+          {
+            start: { type: 'number', minimum: 0 },
+            end: { type: 'number', minimum: 0 },
+            text: STRING_SCHEMA,
+            voiceId: STRING_SCHEMA,
+            language: STRING_SCHEMA,
+          },
+          ['start', 'end', 'text'],
+        ),
+      );
+    case 'speed':
+      return { type: 'number', minimum: 0.7, maximum: 1.2 };
+    case 'settings':
+      return JSON_DOCUMENT_SCHEMA;
+    case 'timingToleranceSeconds':
+      return { default: 0.75, minimum: 0, type: 'number' };
+    case 'syncMode':
+      return enumSchema([
+        'loop',
+        'bounce',
+        'cut_off',
+        'silence',
+        'remap',
+      ] as const);
+    case 'mixMode':
+      return enumSchema(['replace', 'mix', 'background'] as const);
     case 'brandVoice':
     case 'harnessContext':
       return TEXT_OR_OBJECT_SCHEMA;
@@ -682,11 +718,46 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: STRING_SCHEMA,
     },
     lipSync: {
-      inputSchema: inputSchema(['audio', 'brandId', 'image', 'video']),
+      inputSchema: inputSchema([
+        'audio',
+        'brandId',
+        'image',
+        'video',
+        'mode',
+        'model',
+        'syncMode',
+      ]),
       outputSchema: objectOutput({
         id: STRING_SCHEMA,
         status: STRING_SCHEMA,
         videoUrl: STRING_SCHEMA,
+      }),
+    },
+    localizeSpeech: {
+      inputSchema: inputSchema([
+        'video',
+        'script',
+        'segments',
+        'brandId',
+        'targetLanguage',
+        'sourceLanguage',
+        'voiceId',
+        'timingToleranceSeconds',
+      ]),
+      outputSchema: objectOutput({
+        audio: objectOutput({
+          id: STRING_SCHEMA,
+          audioUrl: STRING_SCHEMA,
+          duration: NUMBER_SCHEMA,
+          status: STRING_SCHEMA,
+        }),
+        transcript: objectOutput({
+          text: STRING_SCHEMA,
+          segments: arraySchema(JSON_DOCUMENT_SCHEMA),
+        }),
+        translatedScript: STRING_SCHEMA,
+        segments: arraySchema(JSON_DOCUMENT_SCHEMA),
+        duration: NUMBER_SCHEMA,
       }),
     },
     llm: {
@@ -1040,6 +1111,17 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         summary: STRING_SCHEMA,
       }),
     },
+    separateDialogue: {
+      inputSchema: inputSchema(['video', 'audio', 'brandId']),
+      outputSchema: objectOutput({
+        audio: objectOutput({
+          id: STRING_SCHEMA,
+          audioUrl: STRING_SCHEMA,
+          status: STRING_SCHEMA,
+        }),
+        reviewRequired: { const: true, type: 'boolean' },
+      }),
+    },
     soundOverlay: {
       inputSchema: inputSchema([
         'audioVolume',
@@ -1095,7 +1177,15 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     textToSpeech: {
-      inputSchema: inputSchema(['text', 'voiceId']),
+      inputSchema: inputSchema([
+        'text',
+        'voiceId',
+        'brandId',
+        'language',
+        'model',
+        'settings',
+        'speed',
+      ]),
       outputSchema: objectOutput({
         audioUrl: STRING_SCHEMA,
         duration: NUMBER_SCHEMA,

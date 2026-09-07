@@ -268,6 +268,24 @@ describe('ReviewGateNode', () => {
     });
   });
 
+  it('enables audio preview controls while keeping approval required', () => {
+    renderReviewGate({
+      approvalId: 'approval-audio',
+      approvalStatus: ReviewGateStatus.PENDING,
+      inputMedia: 'https://cdn.example.com/background.wav',
+      inputType: 'audio',
+      notifyChannels: [],
+    });
+    expect(screen.getByTestId('media-preview')).toHaveTextContent(
+      'audio:https://cdn.example.com/background.wav',
+    );
+    expect(screen.getByTestId('media-preview')).toHaveAttribute(
+      'data-controls',
+      'true',
+    );
+    expect(mocks.submitApproval).not.toHaveBeenCalled();
+  });
+
   it('submits approval and rejection decisions', async () => {
     const baseData = {
       approvalId: 'approval-1',

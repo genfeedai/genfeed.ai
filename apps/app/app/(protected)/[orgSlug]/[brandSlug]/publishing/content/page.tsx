@@ -1,13 +1,19 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Content library');
-
-/**
- * Type-aware content library — social posts, articles, and newsletters
- * federated into one table. Distinct from the Posts lifecycle list at
- * `/publishing/posts`, which is social-post-only.
- */
-export default function PublishingContentPage() {
-  return <PublishingContentLibrary />;
+export default async function PublishingContentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ orgSlug: string; brandSlug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { orgSlug, brandSlug } = await params;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(await searchParams)) {
+    for (const item of Array.isArray(value) ? value : value ? [value] : [])
+      query.append(key, item);
+  }
+  redirect(
+    `/${encodeURIComponent(orgSlug)}/${encodeURIComponent(brandSlug)}/publishing/posts?${query}`,
+  );
 }

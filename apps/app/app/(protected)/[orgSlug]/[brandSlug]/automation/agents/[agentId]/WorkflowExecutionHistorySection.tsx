@@ -1,6 +1,4 @@
-'use client';
-
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { WorkflowExecutionHistorySectionProps } from '@props/automation/workflow-execution-history-section.props';
 import {
   Table,
   TableBody,
@@ -10,13 +8,6 @@ import {
 } from '@ui/primitives/table';
 import { useTranslations } from 'next-intl';
 import WorkflowExecutionRow from './WorkflowExecutionRow';
-
-interface WorkflowExecutionHistorySectionProps {
-  executions: IWorkflowExecution[];
-  expandedExecutionId: string | null;
-  isLoading: boolean;
-  onToggleExpand: (executionId: string) => void;
-}
 
 export default function WorkflowExecutionHistorySection({
   executions,

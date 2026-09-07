@@ -1,21 +1,9 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { Voice } from '@models/ingredients/voice.model';
+import type { VoiceCatalogListProps } from '@props/library/voice-catalog-list.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
-
-export interface VoiceCatalogListProps {
-  children: ReactNode;
-  generateHref?: string;
-  hasActiveFilters: boolean;
-  onCloneVoice: () => void;
-  onClearFilters: () => void;
-  voices: Voice[];
-}
 
 export default function VoiceCatalogList({
   children,

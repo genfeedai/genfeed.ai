@@ -4,6 +4,16 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 
+const { createReadStreamMock } = vi.hoisted(() => ({
+  createReadStreamMock: vi.fn().mockReturnValue('mock-stream'),
+}));
+
+vi.mock('node:fs', () => ({
+  default: {
+    createReadStream: createReadStreamMock,
+  },
+}));
+
 describe('GiphyService', () => {
   let service: GiphyService;
   let httpService: { post: ReturnType<typeof vi.fn> };
@@ -48,13 +58,6 @@ describe('GiphyService', () => {
     httpService.post.mockReturnValue(
       of({ data: { data: { id: 'gif-abc123' } } }),
     );
-
-    // Mock fs.createReadStream
-    vi.mock('node:fs', () => ({
-      default: {
-        createReadStream: vi.fn().mockReturnValue('mock-stream'),
-      },
-    }));
 
     const result = await service.uploadGif('/tmp/test.gif', 'ai,funny');
     expect(result).toBe('gif-abc123');

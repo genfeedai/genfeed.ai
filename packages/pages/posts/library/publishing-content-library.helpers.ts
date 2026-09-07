@@ -3,7 +3,7 @@ import {
   formatPlatformLabel,
   Platform,
 } from '@genfeedai/contracts';
-import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { IPost, IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 
@@ -17,6 +17,9 @@ export type PublishingContentType = (typeof PUBLISHING_CONTENT_TYPES)[number];
 export type PublishingContentTypeFilter = PublishingContentType | 'all';
 
 export interface PublishingContentLibraryItem {
+  channels?: string[];
+  release?: IReleaseGroup;
+  scheduledAt?: string | null;
   channel: string;
   createdAt: string;
   id: string;
@@ -29,7 +32,7 @@ export interface PublishingContentLibraryItem {
 export interface PublishingContentLibraryFilters {
   channel: string;
   search: string;
-  status: string;
+  status: string | string[];
   type: PublishingContentTypeFilter;
 }
 
@@ -41,7 +44,8 @@ function stripHtml(value?: string): string {
 }
 
 function normalizedStatus(status?: string): string {
-  return status?.trim().toLowerCase() || 'draft';
+  const value = status?.trim().toLowerCase() || 'draft';
+  return value === 'public' ? 'published' : value;
 }
 
 function newestFirst(
@@ -60,7 +64,7 @@ export function formatPublishingContentType(
     case 'newsletter':
       return 'Newsletter';
     case 'post':
-      return 'Post';
+      return 'Social post';
   }
 }
 
@@ -91,20 +95,56 @@ export function createPublishingContentLibraryItems({
   articles,
   newsletters,
   posts,
+  releases = [],
 }: {
-  articles: Article[];
+  articles: Pick<
+    Article,
+    'id' | 'createdAt' | 'label' | 'status' | 'summary' | 'content' | 'category'
+  >[];
   newsletters: Newsletter[];
   posts: IPost[];
+  releases?: IReleaseGroup[];
 }): PublishingContentLibraryItem[] {
-  const postItems: PublishingContentLibraryItem[] = posts.map((post) => ({
-    channel: post.platform ?? 'social',
-    createdAt: post.createdAt,
-    id: post.id,
-    status: normalizedStatus(post.status),
-    summary: stripHtml(post.description),
-    title: post.label?.trim() || stripHtml(post.description) || 'Untitled post',
-    type: 'post',
-  }));
+  const releasePostIds = new Set(
+    releases.flatMap((release) =>
+      (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.id,
+      ),
+    ),
+  );
+  const releaseIds = new Set(releases.map((release) => release.id));
+  const releaseItems: PublishingContentLibraryItem[] = releases.map(
+    (release) => ({
+      channel: release.targets?.[0]?.platform ?? 'social',
+      channels: (Array.isArray(release.targets) ? release.targets : []).map(
+        (target) => target.platform,
+      ),
+      createdAt: release.createdAt,
+      id: release.id,
+      release,
+      scheduledAt: release.scheduledAt,
+      status: normalizedStatus(release.status),
+      summary: stripHtml(release.baseContent),
+      title: release.title?.trim() || 'Untitled post',
+      type: 'post',
+    }),
+  );
+  const postItems: PublishingContentLibraryItem[] = posts
+    .filter(
+      (post) =>
+        !releasePostIds.has(post.id) &&
+        !(post.groupId && releaseIds.has(post.groupId)),
+    )
+    .map((post) => ({
+      channel: post.platform ?? 'social',
+      createdAt: post.createdAt,
+      id: post.id,
+      status: normalizedStatus(post.status),
+      summary: stripHtml(post.description),
+      title:
+        post.label?.trim() || stripHtml(post.description) || 'Untitled post',
+      type: 'post',
+    }));
 
   const articleItems: PublishingContentLibraryItem[] = articles.map(
     (article) => ({
@@ -133,7 +173,12 @@ export function createPublishingContentLibraryItems({
     }),
   );
 
-  return [...postItems, ...articleItems, ...newsletterItems].sort(newestFirst);
+  return [
+    ...releaseItems,
+    ...postItems,
+    ...articleItems,
+    ...newsletterItems,
+  ].sort(newestFirst);
 }
 
 export function filterPublishingContentLibraryItems(
@@ -147,11 +192,23 @@ export function filterPublishingContentLibraryItems(
       return false;
     }
 
-    if (filters.channel !== 'all' && item.channel !== filters.channel) {
+    if (
+      filters.channel !== 'all' &&
+      !(item.channels ?? [item.channel]).includes(filters.channel)
+    ) {
       return false;
     }
 
-    if (filters.status !== 'all' && item.status !== filters.status) {
+    const statuses = Array.isArray(filters.status)
+      ? filters.status
+      : filters.status === 'all'
+        ? []
+        : [filters.status];
+    if (
+      statuses.length &&
+      !statuses.includes(item.status) &&
+      !(statuses.includes('not-posted') && item.status !== 'published')
+    ) {
       return false;
     }
 

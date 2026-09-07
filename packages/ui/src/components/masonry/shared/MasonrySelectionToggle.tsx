@@ -42,10 +42,10 @@ export default function MasonrySelectionToggle<T extends IIngredient>({
         ariaLabel={isSelected ? 'Deselect asset' : 'Select asset'}
         aria-pressed={isSelected}
         className={cn(
-          'flex size-5 items-center justify-center rounded-full border transition-colors',
+          'flex size-6 items-center justify-center rounded-full border backdrop-blur transition-colors shadow-border',
           isSelected
             ? 'border-primary bg-primary text-primary-foreground'
-            : 'border-white/70 bg-black/40 text-transparent backdrop-blur-sm hover:border-white' /* design-system-allow-content-color -- media overlay */,
+            : 'border-transparent bg-background/90 text-transparent hover:text-foreground/60' /* design-system-allow-content-color -- media overlay */,
         )}
         data-testid={`masonry-select-${ingredient.id}`}
         onClick={handleClick}
@@ -53,7 +53,7 @@ export default function MasonrySelectionToggle<T extends IIngredient>({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
       >
-        <Check className="size-3" strokeWidth={3} />
+        <Check className="size-3.5" strokeWidth={3} />
       </Button>
     </div>
   );

@@ -209,7 +209,7 @@ describe('Tabs', () => {
     expect(tabsContainer).toBeInTheDocument();
   });
 
-  it('applies the canonical outlined appearance', () => {
+  it('applies the shared right-aligned segmented appearance', () => {
     const handleTabChange = vi.fn();
     render(
       <Tabs
@@ -222,10 +222,15 @@ describe('Tabs', () => {
     const tabList = screen.getByRole('tablist');
     const activeTab = screen.getByRole('tab', { name: /home/i });
 
-    expect(tabList).toHaveClass('gap-1', 'overflow-x-auto');
+    expect(tabList).toHaveClass(
+      'ml-auto',
+      'rounded-lg',
+      'gap-1',
+      'overflow-x-auto',
+    );
     expect(activeTab).toHaveClass(
-      'border-input',
-      'data-[state=active]:bg-accent',
+      'border-0',
+      'data-[state=active]:bg-background',
       'shrink-0',
     );
   });
@@ -262,7 +267,7 @@ describe('Tabs', () => {
 
     const inactiveTab = screen.getByRole('link', { name: /settings/i });
 
-    expect(inactiveTab).toHaveClass('text-foreground');
+    expect(inactiveTab).toHaveClass('text-foreground/70');
     expect(inactiveTab).not.toHaveClass('text-secondary');
   });
 
@@ -419,8 +424,8 @@ describe('Tabs', () => {
     expect(screen.getByRole('tablist')).not.toHaveAttribute('data-variant');
     expect(screen.getByRole('tablist')).not.toHaveAttribute('data-size');
     expect(screen.getByRole('tab', { name: /recent/i })).toHaveClass(
-      'border-input',
-      'data-[state=active]:bg-accent',
+      'border-0',
+      'data-[state=active]:bg-background',
     );
   });
 });
@@ -444,10 +449,8 @@ describe('PanelTabs', () => {
     ];
     const props = {
       ariaLabel: 'Panels',
-      closeLabel: (label: string) => `Close ${label}`,
       footer: <div>Prompt bar</div>,
       items,
-      onClose: vi.fn(),
       onTabChange: vi.fn(),
     };
     const view = render(<PanelTabs {...props} activeTab="context" />);
@@ -459,16 +462,13 @@ describe('PanelTabs', () => {
     expect(transcript).toBeVisible();
     expect(screen.queryByText('Asset preview')).not.toBeInTheDocument();
   });
-  it('supports keyboard selection and closing without nested buttons', async () => {
+  it('supports keyboard selection across the segmented strip', async () => {
     const user = userEvent.setup();
-    const onClose = vi.fn();
     const onTabChange = vi.fn();
     render(
       <PanelTabs
         activeTab="context"
         ariaLabel="Panels"
-        closeLabel={(label) => `Close ${label}`}
-        onClose={onClose}
         onTabChange={onTabChange}
         items={[
           { id: 'context', label: 'Context', isOpen: true, content: 'Preview' },
@@ -479,12 +479,6 @@ describe('PanelTabs', () => {
     screen.getByRole('tab', { name: 'Context' }).focus();
     await user.keyboard('{ArrowRight}');
     expect(onTabChange).toHaveBeenCalledWith('files');
-    await user.keyboard('{Delete}');
-    expect(onClose).toHaveBeenCalledWith('files');
-    expect(
-      screen
-        .getByRole('button', { name: 'Close Context' })
-        .closest('[role="tab"]'),
-    ).toBeNull();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

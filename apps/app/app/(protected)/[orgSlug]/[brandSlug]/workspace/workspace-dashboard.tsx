@@ -1,5 +1,3 @@
-'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -13,8 +11,11 @@ import type {
   SurfaceSummaryItem,
 } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
-import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type {
+  DashboardProps,
+  ReviewInboxSummary,
+} from '@props/workspace/workspace-dashboard.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
@@ -31,28 +32,6 @@ import { useMemo } from 'react';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 const DASHBOARD_ROW_LIMIT = 5;
-
-interface ReviewInboxSummary {
-  approvedCount: number;
-  changesRequestedCount: number;
-  pendingCount: number;
-  readyCount: number;
-  recentItems: unknown[];
-  rejectedCount: number;
-}
-
-interface DashboardProps {
-  activeExecutions: IWorkflowExecution[];
-  executions: IWorkflowExecution[];
-  isExecutionsLoading?: boolean;
-  isTasksLoading?: boolean;
-  isTrendsLoading?: boolean;
-  reviewInbox: ReviewInboxSummary;
-  stats: WorkflowExecutionStats;
-  trendsHref?: string;
-  trendItems?: TrendItem[];
-  workspaceTasks: Task[];
-}
 
 function formatRelativeTime(date: string): string {
   const delta = Date.now() - new Date(date).getTime();

@@ -79,6 +79,84 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
     );
   });
 
+  it('reruns a selected locked node while preserving workflow inputs and upstream cached media', async () => {
+    const received: unknown[] = [];
+    engineAdapter.executeNode.mockImplementation(
+      async (
+        current: ExecutableNode,
+        inputs: Map<string, unknown>,
+      ): Promise<NodeExecutionResult> => {
+        received.push(inputs.get('language'), inputs.get('video'));
+        return {
+          nodeId: current.id,
+          status: 'completed',
+          output: 'new-speech',
+          startedAt: new Date(),
+          retryCount: 0,
+          creditsUsed: 0,
+        };
+      },
+    );
+    const graph: ExecutableWorkflow = {
+      ...workflow,
+      lockedNodeIds: ['language', 'source', 'publish'],
+      nodes: [
+        {
+          id: 'language',
+          type: 'workflowInput',
+          inputs: [],
+          label: 'Language',
+          config: {},
+          isLocked: true,
+          cachedOutput: 'es',
+        },
+        {
+          ...node,
+          id: 'source',
+          isLocked: true,
+          cachedOutput: { id: 'original-video' },
+        },
+        { ...node, isLocked: true, cachedOutput: 'old-speech' },
+      ],
+      edges: [
+        {
+          id: 'language-speech',
+          source: 'language',
+          target: 'publish',
+          targetHandle: 'language',
+        },
+        {
+          id: 'source-speech',
+          source: 'source',
+          target: 'publish',
+          targetHandle: 'video',
+        },
+      ],
+    };
+    const graphRunner = new WorkflowNodeGraphRunnerService(
+      engineAdapter as never,
+      new WorkflowExecutionGraphService(),
+      progressService as never,
+      nodeProgressTracker as never,
+      reviewGateService as never,
+    );
+    const result = await graphRunner.executeNodeGraph(
+      graph,
+      triggerEvent,
+      'partial-execution',
+      {
+        startedAt: new Date(),
+        workflowLabel: 'Localize',
+        selectedNodeIds: ['publish'],
+        respectLocks: false,
+      },
+    );
+    expect(result.status).toBe('completed');
+    expect(received).toEqual(['es', { id: 'original-video' }]);
+    expect(engineAdapter.executeNode).toHaveBeenCalledTimes(1);
+    expect(result.nodeResults.get('publish')?.output).toBe('new-speech');
+  });
+
   it.each([null, 'prepare', 'infer', 'finalize'])(
     'runs the shared failure handler only for an actual failure (%s)',
     async (failedNode) => {

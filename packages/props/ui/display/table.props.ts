@@ -45,6 +45,8 @@ export interface TableProps<T> {
   getRowClassName?: (item: T) => string;
   /** Section title inside the table card chrome (matches Card `label`). */
   label?: string;
+  /** Accessible name for the `<table>` element when no visible `label` is shown. */
+  ariaLabel?: string;
   /** Optional supporting line under `label`. */
   description?: string;
   emptyLabel?: string;

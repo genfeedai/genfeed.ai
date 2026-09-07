@@ -19,6 +19,10 @@ vi.mock('next-intl', async () => {
 const calendarMocks = vi.hoisted(() => {
   const instances: Array<{
     destroy: ReturnType<typeof vi.fn>;
+    prev: ReturnType<typeof vi.fn>;
+    next: ReturnType<typeof vi.fn>;
+    today: ReturnType<typeof vi.fn>;
+    changeView: ReturnType<typeof vi.fn>;
     options: CalendarOptions;
     render: () => void;
   }> = [];
@@ -27,6 +31,11 @@ const calendarMocks = vi.hoisted(() => {
 
   class MockCalendar {
     destroy = vi.fn();
+    prev = vi.fn();
+    next = vi.fn();
+    today = vi.fn();
+    changeView = vi.fn();
+    getDate = () => new Date('2026-03-09T00:00:00Z');
     options: CalendarOptions;
 
     constructor(_element: HTMLElement, options: CalendarOptions) {
@@ -161,11 +170,26 @@ describe('ContentCalendarView', () => {
       expect(calendarMocks.instances).toHaveLength(1);
     });
 
-    expect(calendarMocks.instances[0]?.options.headerToolbar).toEqual({
-      center: 'title',
-      left: 'prev,next',
-      right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
+    expect(calendarMocks.instances[0]?.options.headerToolbar).toBe(false);
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Day',
+      'Week',
+      'Month',
+      'List',
+    ]);
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Month' }), {
+      button: 0,
+      ctrlKey: false,
     });
+    expect(calendarMocks.instances[0]?.changeView).toHaveBeenCalledWith(
+      'dayGridMonth',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next period' }));
+    expect(calendarMocks.instances[0]?.next).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
+    expect(calendarMocks.instances[0]?.prev).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+    expect(calendarMocks.instances[0]?.today).toHaveBeenCalledOnce();
   });
 
   it('hides the switcher when only one layout is offered', async () => {
@@ -183,9 +207,7 @@ describe('ContentCalendarView', () => {
       expect(calendarMocks.instances).toHaveLength(1);
     });
 
-    expect(calendarMocks.instances[0]?.options.headerToolbar).toEqual(
-      expect.objectContaining({ right: '' }),
-    );
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
   // The instance is torn down and rebuilt on every data refresh, so a view the

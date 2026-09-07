@@ -1,5 +1,3 @@
-'use client';
-
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import type {

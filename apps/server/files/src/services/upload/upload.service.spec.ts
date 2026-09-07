@@ -200,6 +200,7 @@ describe('UploadService', () => {
       expect(result.width).toBe(1920);
       expect(result.height).toBe(1080);
       expect(result.publicUrl).toBe('https://s3.example.com/test-key');
+      expect(result.s3Key).toBe('ingredients/images/test-key');
       expect(mockStorage.upload).toHaveBeenCalled();
     });
 

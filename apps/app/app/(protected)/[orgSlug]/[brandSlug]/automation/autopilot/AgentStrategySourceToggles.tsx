@@ -1,13 +1,5 @@
-'use client';
-
-import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
+import type { AgentStrategySourceTogglesProps } from '@props/automation/agent-strategy-source-toggles.props';
 import { Checkbox } from '@ui/primitives/checkbox';
-import type { Dispatch, SetStateAction } from 'react';
-
-interface AgentStrategySourceTogglesProps {
-  form: AgentStrategyFormState;
-  setForm: Dispatch<SetStateAction<AgentStrategyFormState>>;
-}
 
 export default function AgentStrategySourceToggles({
   form,

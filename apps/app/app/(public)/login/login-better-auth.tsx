@@ -5,6 +5,10 @@ import { isDesktopClient } from '@genfeedai/config/deployment';
 import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
+import type {
+  InvitationNotice,
+  LoginBetterAuthProps,
+} from '@props/auth/login-better-auth.props';
 import Alert from '@ui/feedback/alert/Alert';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -62,12 +66,6 @@ function readDesktopBridgeError(error: unknown, fallback: string): string {
   return message || fallback;
 }
 
-type LoginMode = 'chooser' | 'magic-link' | 'password';
-type InvitationNotice = {
-  message: string;
-  type: AlertCategory;
-};
-
 function getInvitationNotice(
   outcome: string | null,
 ): InvitationNotice | undefined {
@@ -107,10 +105,7 @@ function getInvitationNotice(
   }
 }
 
-export interface LoginBetterAuthProps {
-  isDesktopShell?: boolean;
-  mode?: LoginMode;
-}
+export type { LoginBetterAuthProps };
 
 export default function LoginBetterAuth({
   isDesktopShell = false,

@@ -26,6 +26,7 @@ describe('FFmpegEffectsService', () => {
   let service: FFmpegEffectsService;
   let coreService: {
     executeFFmpeg: ReturnType<typeof vi.fn>;
+    probe: ReturnType<typeof vi.fn>;
     ensureOutputDir: ReturnType<typeof vi.fn>;
   };
   let loggerService: {
@@ -38,6 +39,10 @@ describe('FFmpegEffectsService', () => {
     vi.clearAllMocks();
 
     coreService = {
+      probe: vi.fn().mockResolvedValue({
+        format: { duration: '30' },
+        streams: [{ codec_type: 'audio' }],
+      }),
       ensureOutputDir: vi.fn().mockResolvedValue(undefined),
       executeFFmpeg: vi.fn().mockResolvedValue(undefined),
     };

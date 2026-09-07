@@ -1,5 +1,4 @@
 import {
-  closeInspectorTab,
   defaultInspectorPaneLayout,
   openInspectorTab,
   parsePersistedInspectorPaneLayout,
@@ -23,23 +22,6 @@ describe('workspace inspector tabs', () => {
     expect(openInspectorTab(layout, 'context')).toEqual({
       activeKind: 'context',
       openKinds: ['context', 'files'],
-    });
-  });
-  it('closes an active tab into its neighbor and can close every tab', () => {
-    const layout = openInspectorTab(
-      defaultInspectorPaneLayout(),
-      'conversation',
-    );
-    expect(closeInspectorTab(layout, 'conversation')).toEqual(
-      defaultInspectorPaneLayout(),
-    );
-    expect(closeInspectorTab(defaultInspectorPaneLayout(), 'context')).toEqual({
-      activeKind: null,
-      openKinds: [],
-    });
-    expect(closeInspectorTab(layout, 'context')).toEqual({
-      activeKind: 'conversation',
-      openKinds: ['conversation'],
     });
   });
   it('filters unavailable tabs when the conversation becomes the main canvas', () => {

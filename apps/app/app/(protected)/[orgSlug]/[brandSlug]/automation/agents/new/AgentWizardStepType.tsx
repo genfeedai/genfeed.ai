@@ -1,11 +1,11 @@
-'use client';
-
 import { AgentType, ButtonVariant } from '@genfeedai/contracts';
 import {
   LinkedinIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import type { AgentOptionPickerItem } from '@props/automation/agent-option-picker.props';
+import type { Props } from '@props/automation/agent-wizard-step-type.props';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowRight,
@@ -19,9 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 
-import AgentOptionPicker, {
-  type AgentOptionPickerItem,
-} from '../AgentOptionPicker';
+import AgentOptionPicker from '../AgentOptionPicker';
 
 function formatDailyBudget(credits: number) {
   return `${credits} credits / day`;
@@ -106,12 +104,6 @@ const AGENT_TYPES: AgentOptionPickerItem<AgentType>[] = [
     value: AgentType.YOUTUBE_SCRIPT,
   },
 ];
-
-type Props = {
-  selectedAgentType: AgentType;
-  onSelectType: (type: AgentType) => void;
-  onNext: () => void;
-};
 
 export default function AgentWizardStepType({
   selectedAgentType,

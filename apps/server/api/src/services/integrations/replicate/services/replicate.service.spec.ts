@@ -1,4 +1,6 @@
+import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { isCloudDeployment } from '@genfeedai/config';
+import { AgentFailureReason } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -76,6 +78,48 @@ describe('ReplicateService', () => {
     trainingsCreate.mockResolvedValue({ id: 'train-1' });
     modelsCreate.mockResolvedValue({});
     wait.mockImplementation(async (prediction) => prediction);
+  });
+
+  it('separates vocals and validates the pinned model background output', async () => {
+    const { service } = createHarness();
+    wait.mockResolvedValue({
+      status: 'succeeded',
+      output: {
+        vocals: 'https://cdn.test/vocals.wav',
+        other: 'https://cdn.test/background.wav',
+      },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4', 'organization-key'),
+    ).resolves.toEqual({ backgroundUrl: 'https://cdn.test/background.wav' });
+    expect(predictionsCreate).toHaveBeenCalledWith({
+      version:
+        '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953',
+      input: {
+        audio: 'https://cdn.test/ad.mp4',
+        stem: 'vocals',
+        output_format: 'wav',
+      },
+    });
+    expect(constructed.at(-1)).toEqual({ auth: 'organization-key' });
+  });
+
+  it('rejects failed or malformed background separation instead of returning a vocal stem', async () => {
+    const { service } = createHarness();
+    wait.mockResolvedValue({
+      status: 'succeeded',
+      output: { vocals: 'https://cdn.test/vocals.wav' },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4'),
+    ).rejects.toThrow('background audio stem');
+    wait.mockResolvedValue({
+      status: 'failed',
+      output: { other: 'https://cdn.test/background.wav' },
+    });
+    await expect(
+      service.separateDialogue('https://cdn.test/ad.mp4'),
+    ).rejects.toThrow('background audio stem');
   });
 
   describe('construction', () => {
@@ -201,6 +245,26 @@ describe('ReplicateService', () => {
       predictionsCreate.mockRejectedValueOnce(new Error('boom'));
 
       await expect(service.runModel('owner/model', {})).rejects.toThrow('boom');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('maps a 402 response to a non-retryable insufficient-credit error', async () => {
+      const { loggerService, service } = createHarness();
+      predictionsCreate.mockRejectedValueOnce({
+        message: 'Insufficient credit',
+        response: { status: 402 },
+      });
+
+      const failure = await service
+        .runModel('owner/model', {})
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ReplicateProviderError);
+      expect((failure as ReplicateProviderError).statusCode).toBe(402);
+      expect((failure as ReplicateProviderError).isRetryable).toBe(false);
+      expect((failure as ReplicateProviderError).reason).toBe(
+        AgentFailureReason.INSUFFICIENT_CREDITS,
+      );
       expect(loggerService.error).toHaveBeenCalled();
     });
   });

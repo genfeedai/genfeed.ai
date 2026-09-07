@@ -11,6 +11,7 @@ import type {
   ClipSourceKind,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
+import type { ClipsApiClient } from '@props/studio/clips-api.props';
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
@@ -148,4 +149,47 @@ export interface ClipsProjectCardProps {
 
 export interface ClipsWorkspaceProps {
   projectId?: string;
+}
+
+export interface RewriteState {
+  isRewriting: boolean;
+  hasBeenRewritten: boolean;
+  platform: string;
+  tone: string;
+  rewriteError: string | null;
+}
+
+export type RewriteAction =
+  | { type: 'START_REWRITE' }
+  | { type: 'REWRITE_SUCCESS' }
+  | { type: 'REWRITE_ERROR'; error: string }
+  | { type: 'RESTORE' }
+  | { type: 'SET_PLATFORM'; platform: string }
+  | { type: 'SET_TONE'; tone: string };
+
+export interface ClipResultCardProps {
+  clip: ClipResult;
+  clipsService: ClipsApiClient;
+  mode?: ClipResultMode;
+  projectId: string;
+}
+
+export interface ClipsProgressViewProps {
+  clipsService: ClipsApiClient;
+  isRetrying: boolean;
+  onReset: () => void;
+  onRetryFailedClips: () => void;
+  onRetrySource: () => void;
+  project: ProjectState;
+  selectedCount: number;
+}
+
+export interface HighlightReviewCardProps {
+  highlight: IHighlight;
+  selected: boolean;
+  onToggle: () => void;
+  onTitleEdit: (text: string) => void;
+  onScriptEdit: (text: string) => void;
+  projectId?: string;
+  clipsService?: ClipsApiClient;
 }

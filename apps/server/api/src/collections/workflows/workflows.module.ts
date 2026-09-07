@@ -1,4 +1,6 @@
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
+import { ByokModule } from '@api/services/byok/byok.module';
+import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
 /**
  * Workflows Module
  * Automation templates: reusable multi-step workflows, triggers (manual/auto),
@@ -151,6 +153,8 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     WorkflowsCoreModule,
+    MediaLocalizationModule,
+    ByokModule,
     AdOptimizationAuditLogsModule,
     AdOptimizationConfigsModule,
     AdOptimizationRecommendationsModule,

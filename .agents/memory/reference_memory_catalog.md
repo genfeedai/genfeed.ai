@@ -205,3 +205,5 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 
 - [features/agent](features/agent/README.md) — orchestration, threading, collections, tools, frontend
 - [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
+
+- [Dynamic video workflows](spec-dynamic-video-workflows.md) — #4500 localization and scene composition contracts.

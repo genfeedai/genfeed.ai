@@ -5,6 +5,7 @@ import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { ActivitySignalProps } from '@props/automation/automation-overview-page.props';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
@@ -22,7 +23,6 @@ import {
   Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { ComponentType } from 'react';
 
 export default function AutomationOverviewPage() {
   const { href } = useOrgUrl();
@@ -165,16 +165,6 @@ export default function AutomationOverviewPage() {
       </div>
     </OverviewLayout>
   );
-}
-
-interface ActivitySignalProps {
-  color: string;
-  cta: string;
-  description: string;
-  href: string;
-  icon: ComponentType<{ className?: string }>;
-  kicker: string;
-  label: string;
 }
 
 function ActivitySignal({

@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

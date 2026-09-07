@@ -1,16 +1,6 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { IEditorTrack } from '@genfeedai/contracts/interfaces';
+import type { EditorTextTrackListProps } from '@props/studio/editor-text-track-list.props';
 import { Button } from '@ui/primitives/button';
-
-interface EditorTextTrackListProps {
-  textTracks: IEditorTrack[];
-  fps: number;
-  selectedClipId: string | null;
-  onClipSelect: (trackId: string, clipId: string) => void;
-  onDeleteTrack: (trackId: string) => void;
-}
 
 function EditorTextTrackList({
   textTracks,

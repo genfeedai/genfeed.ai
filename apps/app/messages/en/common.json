@@ -145,6 +145,12 @@
     "download": "Download",
     "merge": "Merge"
   },
+  "sidebar": {
+    "newTask": "New Task",
+    "newTaskAriaLabel": "Open new task modal",
+    "search": "Search",
+    "workspace": "Workspace"
+  },
   "settings": {
     "search": {
       "empty": "No settings found",
@@ -288,13 +294,24 @@
           "publishing": "Publishing",
           "research": "Research",
           "review": "Review"
+        },
+        "search": {
+          "label": "Search skills",
+          "placeholder": "Search skills…"
         }
       },
       "heading": "Skills",
       "testPrompt": "Use my {name} setup to create a small sample for {channel}. Explain how the skill affects the output.",
       "thisBrand": "this brand",
       "thisChannel": "this channel",
-      "title": "Brand content behavior for {brand}"
+      "title": "Brand content behavior for {brand}",
+      "table": {
+        "enabled": "Enabled",
+        "modality": "Modality",
+        "name": "Name",
+        "source": "Source",
+        "stage": "Stage"
+      }
     }
   },
   "workspaceInspector": {
@@ -303,9 +320,7 @@
     "openOverlayPreview": "Open overlay preview",
     "returnToConversation": "Return to conversation",
     "tabs": {
-      "add": "Add panel",
       "chat": "Chat",
-      "close": "Close {panel}",
       "panels": "Inspector panels",
       "browser": "Browser",
       "browserEmptyDescription": "Page and generation previews appear here when you open them.",
@@ -575,10 +590,29 @@
       "columnStarted": "Started",
       "columnStatus": "Status",
       "creditsSuffix": "credits",
-      "empty": "No workflow executions yet",
+      "empty": "No workflow executions yet.",
       "historyTitle": "Workflow execution history",
       "noNodeResults": "No node results recorded yet.",
-      "unavailableWorkflow": "Workflow unavailable"
+      "unavailableWorkflow": "Workflow unavailable",
+      "recentRuns": "Recent runs",
+      "emptyFiltered": "No workflow executions match your search.",
+      "columnRun": "Run",
+      "statusCancelled": "Cancelled",
+      "statusCompleted": "Completed",
+      "statusFailed": "Failed",
+      "statusPending": "Pending",
+      "statusRunning": "Running",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago",
+      "statsTotal": "Total",
+      "statsActive": "Active",
+      "statsCompleted": "Completed",
+      "statsFailed": "Failed",
+      "statsCredits": "Credits",
+      "creditsEstimated": "Estimated credits; the run has not been reconciled yet.",
+      "paginationLabel": "runs"
     },
     "workflowRun": {
       "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",
@@ -1125,6 +1159,7 @@
   },
   "notificationInbox": {
     "title": "Notifications",
+    "tabsLabel": "Updates",
     "open": "Open notifications",
     "openCount": "Open notifications, {count} unread",
     "readAll": "Mark all read",

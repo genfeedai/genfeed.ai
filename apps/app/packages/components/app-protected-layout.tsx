@@ -61,6 +61,7 @@ import {
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
 import ImpersonationBanner from './impersonation-banner';
+import { usePageHelp } from './use-page-help';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
@@ -424,6 +425,7 @@ function AppLayoutWithDynamicMenu({
   // Registry seeds parent as :brandSlug / :orgSlug; prefer live display names.
   // Agent conversation: Agent / <thread title, 25 chars>.
   const rawPathname = usePathname();
+  const pageHelp = usePageHelp(rawPathname);
   const layoutBreadcrumb = useMemo(() => {
     const breadcrumb = workspaceShellRoute?.breadcrumb;
     if (!breadcrumb) {
@@ -512,6 +514,7 @@ function AppLayoutWithDynamicMenu({
         bannerComponent={shellBanner}
         breadcrumb={layoutBreadcrumb}
         brandSlug={brandSlug}
+        pageHelp={pageHelp}
         currentApp={currentApp}
         menuComponent={menuComponent}
         topbarComponent={topbarComponent}

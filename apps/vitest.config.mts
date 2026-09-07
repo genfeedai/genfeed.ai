@@ -34,6 +34,15 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        // jsdom suites never load the Sentry bundles: the server entry throws
+        // outside a file:// URL and the client entry needs next/router.
+        find: /^@sentry\/nextjs$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/config/test/sentry-nextjs.shim.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/contracts\/api-types\/(.*)$/,
         replacement: path.resolve(
           repoRoot,

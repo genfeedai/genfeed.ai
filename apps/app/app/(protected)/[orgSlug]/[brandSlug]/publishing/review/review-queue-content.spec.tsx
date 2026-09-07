@@ -314,6 +314,14 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/main${path}` }),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/publishing/review',
   useRouter: () => ({
@@ -582,6 +590,24 @@ describe('ReviewQueueContent', () => {
     await waitFor(() => {
       expect(unassignItem).toHaveBeenCalledWith('batch-1', 'item-1');
     });
+  });
+
+  it('frames itself as the approval queue and links back to Posts with the selection', () => {
+    searchParamsState.set('batch', 'batch-1');
+    searchParamsState.set('item', 'item-1');
+    mockReviewQueries();
+
+    render(<ReviewQueueContent />);
+
+    const framing = screen.getByTestId('approval-queue-framing');
+    expect(framing).toHaveTextContent('title');
+    expect(framing).toHaveTextContent('description');
+    expect(
+      within(framing).getByRole('link', { name: 'openPosts' }),
+    ).toHaveAttribute(
+      'href',
+      '/acme/main/publishing/posts?batch=batch-1&item=item-1',
+    );
   });
 
   it('loads review batches, syncs the active item, and handles batch/filter changes', async () => {

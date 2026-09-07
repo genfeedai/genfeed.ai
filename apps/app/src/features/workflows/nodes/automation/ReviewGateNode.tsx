@@ -249,7 +249,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         <MediaPreview
           src={data.inputMedia}
           type={data.inputType}
-          controls={data.inputType === 'video'}
+          controls={data.inputType === 'video' || data.inputType === 'audio'}
           autoPlay={false}
         />
       )}

@@ -54,20 +54,6 @@ export function openInspectorTab(
       : [...layout.openKinds, kind],
   };
 }
-export function closeInspectorTab(
-  layout: WorkspaceInspectorPaneLayout,
-  kind: WorkspaceInspectorTabKind,
-): WorkspaceInspectorPaneLayout {
-  const index = layout.openKinds.indexOf(kind);
-  const openKinds = layout.openKinds.filter((tab) => tab !== kind);
-  return {
-    activeKind:
-      layout.activeKind === kind
-        ? (openKinds[Math.max(0, index - 1)] ?? null)
-        : layout.activeKind,
-    openKinds,
-  };
-}
 export function parsePersistedInspectorPaneLayout(
   raw: string | null,
 ): WorkspaceInspectorPaneLayout | null {

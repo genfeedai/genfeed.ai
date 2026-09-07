@@ -188,6 +188,11 @@ const UI_TEST_MESSAGES = {
       },
       otherAssets: 'Other assets',
     },
+    publishing: {
+      calendar: {
+        today: 'Today',
+      },
+    },
     publish: {
       calendar: {
         schedule: 'Schedule',

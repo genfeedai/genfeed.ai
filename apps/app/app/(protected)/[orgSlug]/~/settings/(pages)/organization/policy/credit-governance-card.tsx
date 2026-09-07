@@ -1,14 +1,6 @@
-'use client';
-
+import type { CreditGovernanceCardProps } from '@props/settings/policy.props';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
-
-type CreditGovernanceCardProps = {
-  agentDailyCreditCap: string;
-  brandDailyCreditCap: string;
-  onAgentDailyCreditCapChange: (value: string) => void;
-  onBrandDailyCreditCapChange: (value: string) => void;
-};
 
 export default function CreditGovernanceCard({
   agentDailyCreditCap,

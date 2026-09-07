@@ -17,8 +17,10 @@ export default function Pagination({
   currentPage = 1,
   totalPages = 1,
   onPageChange,
+  totalItems,
+  totalLabel = 'results',
 }: PaginationProps) {
-  if (totalPages <= 1) {
+  if (totalPages <= 1 && totalItems === undefined) {
     return null;
   }
 
@@ -66,103 +68,112 @@ export default function Pagination({
   };
 
   return (
-    <PaginationPrimitive className="inline-flex w-auto mx-0 justify-start">
-      <PaginationContent>
-        <PaginationItem>
-          {onPageChange ? (
-            <PaginationPrevious
-              href={createPageHref(Math.max(clampedPage - 1, 1))}
-              onClick={(event) => {
-                event.preventDefault();
-                handlePageChange(clampedPage - 1);
-              }}
-              aria-disabled={clampedPage === 1}
-              className={
-                clampedPage === 1 ? 'pointer-events-none opacity-50' : ''
-              }
-            />
-          ) : (
-            <PaginationPrevious
-              href={createPageHref(Math.max(clampedPage - 1, 1))}
-              aria-disabled={clampedPage === 1}
-              className={
-                clampedPage === 1 ? 'pointer-events-none opacity-50' : ''
-              }
-            />
-          )}
-        </PaginationItem>
-
-        {visiblePages.map((item) => {
-          if (typeof item === 'string') {
-            return (
-              <PaginationItem key={item}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            );
-          }
-
-          if (onPageChange) {
-            return (
-              <PaginationItem key={item}>
-                <PaginationLink
-                  href={createPageHref(item)}
-                  isActive={item === clampedPage}
+    <div className="flex w-full flex-wrap items-center justify-between gap-4">
+      {totalItems !== undefined ? (
+        <p className="text-sm tabular-nums text-muted-foreground">
+          {totalItems.toLocaleString()} {totalLabel}
+        </p>
+      ) : null}
+      {totalPages > 1 ? (
+        <PaginationPrimitive className="ml-auto mr-0 inline-flex w-auto justify-end">
+          <PaginationContent>
+            <PaginationItem>
+              {onPageChange ? (
+                <PaginationPrevious
+                  href={createPageHref(Math.max(clampedPage - 1, 1))}
                   onClick={(event) => {
                     event.preventDefault();
-                    handlePageChange(item);
+                    handlePageChange(clampedPage - 1);
                   }}
-                >
-                  {item}
-                </PaginationLink>
-              </PaginationItem>
-            );
-          }
-
-          return (
-            <PaginationItem key={item}>
-              <PaginationLink
-                href={createPageHref(item)}
-                isActive={item === clampedPage}
-                onClick={(event) => {
-                  if (item === clampedPage) {
-                    event.preventDefault();
+                  aria-disabled={clampedPage === 1}
+                  className={
+                    clampedPage === 1 ? 'pointer-events-none opacity-50' : ''
                   }
-                }}
-              >
-                {item}
-              </PaginationLink>
+                />
+              ) : (
+                <PaginationPrevious
+                  href={createPageHref(Math.max(clampedPage - 1, 1))}
+                  aria-disabled={clampedPage === 1}
+                  className={
+                    clampedPage === 1 ? 'pointer-events-none opacity-50' : ''
+                  }
+                />
+              )}
             </PaginationItem>
-          );
-        })}
 
-        <PaginationItem>
-          {onPageChange ? (
-            <PaginationNext
-              href={createPageHref(Math.min(clampedPage + 1, totalPages))}
-              onClick={(event) => {
-                event.preventDefault();
-                handlePageChange(clampedPage + 1);
-              }}
-              aria-disabled={clampedPage === totalPages}
-              className={
-                clampedPage === totalPages
-                  ? 'pointer-events-none opacity-50'
-                  : ''
+            {visiblePages.map((item) => {
+              if (typeof item === 'string') {
+                return (
+                  <PaginationItem key={item}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                );
               }
-            />
-          ) : (
-            <PaginationNext
-              href={createPageHref(Math.min(clampedPage + 1, totalPages))}
-              aria-disabled={clampedPage === totalPages}
-              className={
-                clampedPage === totalPages
-                  ? 'pointer-events-none opacity-50'
-                  : ''
+
+              if (onPageChange) {
+                return (
+                  <PaginationItem key={item}>
+                    <PaginationLink
+                      href={createPageHref(item)}
+                      isActive={item === clampedPage}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        handlePageChange(item);
+                      }}
+                    >
+                      {item}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
               }
-            />
-          )}
-        </PaginationItem>
-      </PaginationContent>
-    </PaginationPrimitive>
+
+              return (
+                <PaginationItem key={item}>
+                  <PaginationLink
+                    href={createPageHref(item)}
+                    isActive={item === clampedPage}
+                    onClick={(event) => {
+                      if (item === clampedPage) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    {item}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+
+            <PaginationItem>
+              {onPageChange ? (
+                <PaginationNext
+                  href={createPageHref(Math.min(clampedPage + 1, totalPages))}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handlePageChange(clampedPage + 1);
+                  }}
+                  aria-disabled={clampedPage === totalPages}
+                  className={
+                    clampedPage === totalPages
+                      ? 'pointer-events-none opacity-50'
+                      : ''
+                  }
+                />
+              ) : (
+                <PaginationNext
+                  href={createPageHref(Math.min(clampedPage + 1, totalPages))}
+                  aria-disabled={clampedPage === totalPages}
+                  className={
+                    clampedPage === totalPages
+                      ? 'pointer-events-none opacity-50'
+                      : ''
+                  }
+                />
+              )}
+            </PaginationItem>
+          </PaginationContent>
+        </PaginationPrimitive>
+      ) : null}
+    </div>
   );
 }

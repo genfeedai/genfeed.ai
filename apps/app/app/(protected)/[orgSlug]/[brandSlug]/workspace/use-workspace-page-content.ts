@@ -1,7 +1,4 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -9,7 +6,7 @@ import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workf
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import * as Sentry from '@sentry/nextjs';
-import { Task, TasksService } from '@services/management/tasks.service';
+import { type Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -22,6 +19,7 @@ import {
 } from 'react';
 import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
 import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
+import { usePlanningConversation } from './use-planning-conversation';
 import {
   applyRealtimeTaskUpdate,
   DEFAULT_REVIEW_INBOX,
@@ -29,7 +27,7 @@ import {
   isTaskInInboxQueue,
   isUnreadInboxTask,
   type ReviewInboxSummary,
-  SECTION_COPY,
+  useWorkspaceSectionCopy,
   type WorkspaceSection,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
@@ -82,7 +80,7 @@ export function useWorkspacePageContent({
   const { subscribe } = useSocketManager();
   const { organizationId } = useBrand();
   const pathname = usePathname();
-  const { push, replace } = useRouter();
+  const { replace } = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const requestedTaskId = searchParams.get('taskId');
@@ -439,45 +437,23 @@ export function useWorkspacePageContent({
     }
   };
 
-  const openPlanningConversation = async (task: Task) => {
-    setBusyTaskId(task.id);
-    setWorkspaceActionError(null);
-
-    try {
-      const token = await resolveAuthToken(getToken);
-      if (!token) {
-        setWorkspaceActionError('Authentication token unavailable.');
-        return;
-      }
-
-      const service = TasksService.getInstance(token);
-      const planningThread = await service.ensurePlanningThread(task.id);
-
+  const { openPlanningConversation } = usePlanningConversation({
+    onError: setWorkspaceActionError,
+    onTaskUpdated: (updatedTask) => {
       startTransition(() => {
         setWorkspaceTasks((current) =>
           current.map((item) =>
-            item.id === task.id
-              ? new Task({ ...item, planningThreadId: planningThread.threadId })
-              : item,
+            item.id === updatedTask.id ? updatedTask : item,
           ),
         );
       });
-
-      push(`${APP_ROUTES.AGENT.ROOT}/${planningThread.threadId}`);
-    } catch (error) {
-      setWorkspaceActionError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to open the planning conversation.',
-      );
-    } finally {
-      setBusyTaskId(null);
-    }
-  };
+    },
+    setBusyTaskId,
+  });
 
   const isOverviewSection = section === 'overview';
   const isInboxSection = section === 'inbox';
-  const sectionCopy = SECTION_COPY[section];
+  const sectionCopy = useWorkspaceSectionCopy()[section];
   const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
   const shouldShowSectionSnapshot = section === 'inbox';

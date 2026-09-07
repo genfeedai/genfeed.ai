@@ -2,6 +2,7 @@
 'use client';
 
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
@@ -12,6 +13,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
@@ -19,6 +21,33 @@ import WorkspacePageContent from './workspace-page';
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
+});
+
+// The rail is rendered by the shell, not the page — render the real detail
+// view inline here so assertions against its content and footer actions
+// keep working.
+vi.mock('./workspace-task-rail-adapter', async () => {
+  const { WorkspaceTaskDetail } = await import('./workspace-task-inspector');
+
+  function WorkspaceTaskRailAdapter({
+    onClose,
+    ...detailProps
+  }: WorkspaceTaskDetailProps & { onClose: () => void }) {
+    if (!detailProps.task) {
+      return null;
+    }
+
+    return (
+      <div>
+        <WorkspaceTaskDetail {...detailProps} />
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return { WorkspaceTaskRailAdapter };
 });
 
 const getTokenMock = vi.fn();
@@ -231,9 +260,28 @@ async function openTaskComposerFromSidebar() {
   ).toBeInTheDocument();
 }
 
+async function openMoreActions(inspector: HTMLElement) {
+  const user = userEvent.setup();
+  await user.click(
+    within(inspector).getByRole('button', { name: /more actions/i }),
+  );
+  return user;
+}
+
+// Radix tabs activate on pointer down (and focus), not on click.
+function selectTab(tab: HTMLElement): void {
+  fireEvent.mouseDown(tab, { button: 0 });
+  fireEvent.focus(tab);
+  fireEvent.click(tab);
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Radix menus need pointer capture and scrollIntoView, which jsdom lacks.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
     window.history.replaceState({}, '', '/workspace');
     getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
@@ -502,14 +550,18 @@ describe('WorkspacePageContent', () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole(
-        'button',
-        {
-          name: /plan next steps/i,
-        },
-      ),
-    );
+    const inspector = screen.getByTestId('workspace-task-inspector');
+    const primary = within(inspector).queryByRole('button', {
+      name: /plan next steps/i,
+    });
+    if (primary) {
+      fireEvent.click(primary);
+    } else {
+      const user = await openMoreActions(inspector);
+      await user.click(
+        await screen.findByRole('menuitem', { name: /plan next steps/i }),
+      );
+    }
 
     await waitFor(() => {
       expect(ensurePlanningThreadMock).toHaveBeenCalledWith('task-plan-1');
@@ -585,9 +637,6 @@ describe('WorkspacePageContent', () => {
         'Your five most recently updated inbox tasks will appear here as work moves through the queue.',
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Latest queue movement, regardless of status.'),
-    ).toBeInTheDocument();
   });
 
   it('opens the inspector sheet for inbox items', async () => {
@@ -650,23 +699,25 @@ describe('WorkspacePageContent', () => {
       expect(getExecutionByIdMock).toHaveBeenCalledWith('execution-1');
     });
 
-    await waitFor(() => {
-      expect(
-        within(screen.getByTestId('workspace-task-inspector')).getByText(
-          'Report threads: 1',
-        ),
-      ).toBeInTheDocument();
-    });
+    const reportInspector = screen.getByTestId('workspace-task-inspector');
+    selectTab(within(reportInspector).getByRole('tab', { name: 'Activity' }));
 
     expect(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
-        name: 'Open Report',
-      }),
-    ).toHaveAttribute('href', '/agent/thread-report-123');
-    expect(
-      within(screen.getByTestId('workspace-task-inspector')).getByRole('link', {
+      within(reportInspector).getByRole('link', {
         name: 'Open report thread',
       }),
+    ).toHaveAttribute('href', '/agent/thread-report-123');
+
+    selectTab(within(reportInspector).getByRole('tab', { name: 'Records' }));
+
+    await waitFor(() => {
+      expect(
+        within(reportInspector).getByText('Report threads: 1'),
+      ).toBeInTheDocument();
+    });
+    await openMoreActions(screen.getByTestId('workspace-task-inspector'));
+    expect(
+      await screen.findByRole('menuitem', { name: 'Open Report' }),
     ).toHaveAttribute('href', '/agent/thread-report-123');
   });
 
@@ -700,6 +751,7 @@ describe('WorkspacePageContent', () => {
     });
 
     const inspector = screen.getByTestId('workspace-task-inspector');
+    selectTab(within(inspector).getByRole('tab', { name: 'Activity' }));
 
     expect(
       within(inspector).getByText('Generated outputs'),
@@ -751,9 +803,12 @@ describe('WorkspacePageContent', () => {
 
     const inspector = screen.getByTestId('workspace-task-inspector');
 
-    expect(
-      within(inspector).getByRole('link', { name: 'Open Issue' }),
-    ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
+    selectTab(within(inspector).getByRole('tab', { name: 'Records' }));
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
+
+    await openMoreActions(inspector);
+    expect(
+      await screen.findByRole('menuitem', { name: 'Open Issue' }),
+    ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
   });
 });

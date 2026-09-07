@@ -43,7 +43,7 @@ export default function BrandSettingsAgentDefaultsPage() {
 
   return (
     <Container>
-      <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <div className="flex w-full flex-col gap-3">
         <Card
           label="Agent defaults"
           description="Identity assets and model defaults for this brand’s agents. Writing voice is edited on Brand voice."

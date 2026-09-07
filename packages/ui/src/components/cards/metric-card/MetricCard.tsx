@@ -145,7 +145,7 @@ const MetricCard = memo(function MetricCard({
         >
           {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
           {isPositiveTrend ? '+' : ''}
-          {trend}%
+          {Math.round(trend * 10) / 10}%
           {trendLabel ? (
             <span className="font-normal text-foreground/40">{trendLabel}</span>
           ) : null}
@@ -175,8 +175,7 @@ const MetricCard = memo(function MetricCard({
       className={cn('h-full', className)}
       data-testid="metric-card"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className={LABEL_CLASS}>{label}</p>
+      <div className="flex items-center gap-2">
         {Icon ? (
           <span
             className={cn(
@@ -188,6 +187,7 @@ const MetricCard = memo(function MetricCard({
             <Icon className={size === 'lg' ? 'size-5' : 'size-4'} />
           </span>
         ) : null}
+        <p className={LABEL_CLASS}>{label}</p>
       </div>
 
       {valueNode}

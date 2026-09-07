@@ -21,6 +21,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import type { SelectedBrandState } from '@props/library/library-voices-page.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -35,14 +36,6 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import VoiceCatalogList from './voice-catalog-list';
 import VoiceLibraryRowItem from './voice-library-row-item';
 import VoiceLibrarySkeleton from './voice-library-skeleton';
-
-type SelectedBrandState = {
-  agentConfig?: {
-    defaultVoiceId?: string | null;
-    defaultVoiceRef?: DefaultVoiceRef | null;
-  };
-  label?: string;
-};
 
 const PAGE_SIZE = 12;
 

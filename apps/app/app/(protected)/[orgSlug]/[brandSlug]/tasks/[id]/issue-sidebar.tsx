@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
@@ -9,28 +7,12 @@ import {
 } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import type {
-  Task,
-  TaskLinkedEntityModel,
-  TaskPriority,
-  TaskStatus,
-} from '@services/management/tasks.service';
+import type { IssueSidebarProps } from '@props/tasks/issue-sidebar.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { FileText, Image, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
-
-type IssueSidebarProps = {
-  issue: Task;
-  statusLabels: Record<TaskStatus, string>;
-  statusTransitions: Record<TaskStatus, TaskStatus[]>;
-  priorityColors: Record<TaskPriority, string>;
-  priorityLabels: Record<TaskPriority, string>;
-  entityModelColors: Record<TaskLinkedEntityModel, string>;
-  entityModelLabels: Record<TaskLinkedEntityModel, string>;
-  onStatusUpdate: (newStatus: TaskStatus) => Promise<void>;
-};
 
 export default function IssueSidebar({
   issue,
