@@ -286,13 +286,20 @@ export class SourcePostsService {
     brandId: string,
     days = 7,
     limit = 50,
+    filter: { sourceIds?: string[]; sourceTypes?: string[] } = {},
   ): Promise<WeeklySourceCorpusResult> {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const sourceIds = filter.sourceIds?.filter(Boolean) ?? [];
+    const sourceTypes = filter.sourceTypes?.filter(Boolean) ?? [];
     const posts = await this.db.sourcePost.findMany({
       orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
       take: Math.min(100, Math.max(1, limit)),
       where: scopedWhere(organizationId, {
         brandId,
+        ...(sourceIds.length > 0 ? { sourceId: { in: sourceIds } } : {}),
+        ...(sourceTypes.length > 0
+          ? { source: { is: { sourceType: { in: sourceTypes } } } }
+          : {}),
         OR: [
           { publishedAt: { gte: since } },
           { publishedAt: null, collectedAt: { gte: since } },
@@ -311,6 +318,36 @@ export class SourcePostsService {
       count: posts.length,
       posts,
     };
+  }
+
+  /**
+   * Recent post counts per followed source, keyed by `SocialSource.id`, over
+   * the same window `getWeeklyCorpus` reads. Powers the cold-start seed
+   * preview so a caller can see how much material each source would add
+   * before choosing it.
+   */
+  async countRecentPostsBySource(
+    organizationId: string,
+    brandId: string,
+    days: number,
+  ): Promise<Record<string, number>> {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const grouped = await this.prisma.sourcePost.groupBy({
+      _count: { _all: true },
+      by: ['sourceId'],
+      where: scopedWhere(organizationId, {
+        brandId,
+        OR: [
+          { publishedAt: { gte: since } },
+          { publishedAt: null, collectedAt: { gte: since } },
+        ],
+      }),
+    });
+
+    return grouped.reduce<Record<string, number>>((acc, row) => {
+      acc[row.sourceId] = row._count._all;
+      return acc;
+    }, {});
   }
 
   async createDraftFromPost(

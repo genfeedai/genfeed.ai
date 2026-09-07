@@ -521,6 +521,51 @@ describe('AdPerformanceService', () => {
     });
   });
 
+  describe('findByWatchedAdvertisers', () => {
+    it('returns nothing without a database read when no advertiser ids are given', async () => {
+      await expect(
+        service.findByWatchedAdvertisers({
+          advertiserIds: [],
+          organizationId: 'org-1',
+        }),
+      ).resolves.toEqual([]);
+      expect(findMany).not.toHaveBeenCalled();
+    });
+
+    it('scopes ads to the selected watched advertisers and fresh research', async () => {
+      await service.findByWatchedAdvertisers({
+        advertiserIds: ['adv-1', 'adv-2'],
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      });
+
+      expect(findMany).toHaveBeenCalledWith({
+        orderBy: [
+          { performanceScore: { nulls: 'last', sort: 'desc' } },
+          { updatedAt: 'desc' },
+        ],
+        take: 10,
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: 'org-1',
+          OR: [{ brandId: 'brand-1' }, { brandId: null }],
+          researchFreshnessState: 'fresh',
+          researchSnapshotKey: { in: ['adv-1', 'adv-2'] },
+        }),
+      });
+    });
+
+    it('does not require a brand filter when no brandId is given', async () => {
+      await service.findByWatchedAdvertisers({
+        advertiserIds: ['adv-1'],
+        organizationId: 'org-1',
+      });
+
+      const call = findMany.mock.calls[0][0];
+      expect(call.where).not.toHaveProperty('OR');
+    });
+  });
+
   describe('findById', () => {
     it('returns null when the record does not exist', async () => {
       await expect(service.findById('missing', 'org-1')).resolves.toBeNull();

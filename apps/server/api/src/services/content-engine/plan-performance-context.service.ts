@@ -7,6 +7,8 @@ import {
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
+import { SocialSourceType } from '@genfeedai/contracts';
+import type { IContentPlanSeedSelection } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -50,6 +52,7 @@ export class PlanPerformanceContextService {
   async build(params: {
     organizationId: string;
     brandId: string;
+    seeds?: IContentPlanSeedSelection;
   }): Promise<PlanPerformanceContext> {
     const summary = await this.loadSummary(params);
     const dataset: PerformanceDataset = summary?.dataset ?? {
@@ -62,12 +65,16 @@ export class PlanPerformanceContextService {
       dataset.confidence === 'none' || dataset.confidence === 'low';
 
     const sections: string[] = [];
-    if (summary) {
+    if (summary && params.seeds?.isImportedHistoryIncluded !== false) {
       const ownHistory = this.describeOwnHistory(summary);
       if (ownHistory) sections.push(ownHistory);
     }
     if (isColdStart) {
-      const coldStart = await this.describeColdStartSources(params, dataset);
+      const coldStart = await this.describeColdStartSources(
+        params,
+        dataset,
+        params.seeds,
+      );
       if (coldStart) sections.push(coldStart);
     }
 
@@ -152,11 +159,14 @@ export class PlanPerformanceContextService {
   private async describeColdStartSources(
     params: { organizationId: string; brandId: string },
     dataset: PerformanceDataset,
+    seeds?: IContentPlanSeedSelection,
   ): Promise<string> {
     const [ads, patterns, corpus] = await Promise.all([
-      this.loadCompetitorAds(params),
-      this.loadCreativePatterns(params),
-      this.loadFollowedCorpus(params),
+      this.loadCompetitorAds(params, seeds?.advertiserIds),
+      seeds?.isPatternsIncluded === false
+        ? Promise.resolve([])
+        : this.loadCreativePatterns(params),
+      this.loadFollowedCorpus(params, seeds?.sourceIds),
     ]);
     if (ads.length === 0 && patterns.length === 0 && !corpus) {
       return dataset.totalPosts === 0
@@ -184,17 +194,25 @@ export class PlanPerformanceContextService {
     return lines.join('\n');
   }
 
-  private async loadCompetitorAds(params: {
-    organizationId: string;
-    brandId: string;
-  }): Promise<string[]> {
+  private async loadCompetitorAds(
+    params: { organizationId: string; brandId: string },
+    advertiserIds?: string[],
+  ): Promise<string[]> {
     try {
-      const ads = await this.adPerformanceService.findTopPerformers({
-        brandId: params.brandId,
-        limit: COMPETITOR_AD_LIMIT,
-        metric: 'performanceScore',
-        organizationId: params.organizationId,
-      });
+      const ads =
+        advertiserIds && advertiserIds.length > 0
+          ? await this.adPerformanceService.findByWatchedAdvertisers({
+              advertiserIds,
+              brandId: params.brandId,
+              limit: COMPETITOR_AD_LIMIT,
+              organizationId: params.organizationId,
+            })
+          : await this.adPerformanceService.findTopPerformers({
+              brandId: params.brandId,
+              limit: COMPETITOR_AD_LIMIT,
+              metric: 'performanceScore',
+              organizationId: params.organizationId,
+            });
       return ads.flatMap((ad) => {
         const record = ad as Record<string, unknown>;
         const headline = sanitize(readString(record.headlineText), 120);
@@ -266,16 +284,22 @@ export class PlanPerformanceContextService {
     }
   }
 
-  private async loadFollowedCorpus(params: {
-    organizationId: string;
-    brandId: string;
-  }): Promise<string> {
+  private async loadFollowedCorpus(
+    params: { organizationId: string; brandId: string },
+    sourceIds?: string[],
+  ): Promise<string> {
     try {
       const result = await this.sourcePostsService.getWeeklyCorpus(
         params.organizationId,
         params.brandId,
         PLAN_PERFORMANCE_WINDOW_DAYS,
         FOLLOWED_CORPUS_LIMIT,
+        sourceIds && sourceIds.length > 0
+          ? { sourceIds }
+          : // Own history is already covered by the dataset section, so the
+            // default followed-creator corpus excludes the brand's own
+            // account and only reads accounts it follows.
+            { sourceTypes: [SocialSourceType.ACCOUNT] },
       );
       if (result.count === 0) {
         return '';
