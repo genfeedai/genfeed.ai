@@ -34,10 +34,11 @@ export default function HomeOutputCard({
   const [hasPainted, setHasPainted] = useState(false);
   const figureRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hasClip = Boolean(asset.mp4 && asset.webm);
 
   useEffect(() => {
     const figure = figureRef.current;
-    if (!figure) return;
+    if (!figure || !hasClip) return;
 
     // `saveData` is Chromium-only and absent elsewhere; an absent flag means
     // "no stated preference", which is not the same as "wants the video".
@@ -54,8 +55,11 @@ export default function HomeOutputCard({
         if (!entry) return;
 
         if (entry.isIntersecting) {
+          // First pass there is no element yet — this render is what creates
+          // it, and `autoPlay` starts it. On a later pass the element exists
+          // and was paused on the way out, so it needs an explicit nudge.
           setIsClipWanted(true);
-          void videoRef.current?.play().catch(() => {
+          videoRef.current?.play().catch(() => {
             // Autoplay can still be refused (a background tab, a battery-saver
             // policy). The poster is already correct, so there is nothing to do.
           });
@@ -70,7 +74,7 @@ export default function HomeOutputCard({
     observer.observe(figure);
 
     return () => observer.disconnect();
-  }, []);
+  }, [hasClip]);
 
   return (
     <figure
@@ -87,8 +91,9 @@ export default function HomeOutputCard({
         src={asset.poster}
       />
 
-      {isClipWanted ? (
+      {isClipWanted && hasClip ? (
         <video
+          autoPlay
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
             hasPainted ? 'opacity-100' : 'opacity-0'
           }`}

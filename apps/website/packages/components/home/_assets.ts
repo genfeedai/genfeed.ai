@@ -33,9 +33,12 @@ export const HOME_HERO_VIDEO = {
  */
 export const HOME_OUTPUT_CAROUSEL_ASSETS: readonly HomeOutputAsset[] = [
   {
-    ...clip('formats', 'images'),
+    // Still only for now: this clip is the one scene the generator has not
+    // produced yet, and a card without a clip is a supported state. Publish
+    // `formats/images.*` and swap this back to clip() to set it moving.
     alt: 'Generated product photography for a launch campaign',
     format: 'Product campaign',
+    poster: home('formats/images.webp'),
     title: 'One visual world',
   },
   {

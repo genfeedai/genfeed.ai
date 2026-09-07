@@ -254,6 +254,40 @@ function readEnvLocal(key: string): string | undefined {
 
 // ─── 1. Generate ────────────────────────────────────────────────────────────
 
+const THROTTLE_ATTEMPTS = 4;
+const THROTTLE_BACKOFF_MS = 15_000;
+
+/**
+ * Retry a submission that was throttled rather than refused.
+ *
+ * Replicate cuts the burst allowance to five concurrent predictions while the
+ * account holds less than ten dollars of credit, so submitting nine scenes at
+ * once returns 429 for the overflow. That is a queueing problem, not a rejected
+ * prompt — the scene is fine and simply needs to be asked for again a moment
+ * later. Anything that is not a throttle is rethrown immediately: a content
+ * refusal will refuse just as hard on the fourth attempt.
+ */
+async function withThrottleRetry<T>(
+  key: string,
+  submit: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await submit();
+    } catch (error: unknown) {
+      const message = String(error);
+      const isThrottled =
+        message.includes('429') || message.includes('throttled');
+
+      if (!isThrottled || attempt >= THROTTLE_ATTEMPTS) throw error;
+
+      const wait = THROTTLE_BACKOFF_MS * attempt;
+      logger.log(`${key}: throttled, retrying in ${wait / 1000}s`);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
+}
+
 /**
  * One scene → one raw MP4, cached on disk. Generation is the only step that
  * costs money, so a cached raw is reused unless the caller explicitly asks for
@@ -276,18 +310,20 @@ async function generateScene(
 
   logger.log(`${scene.key}: generating — this takes a few minutes`);
 
-  const output = await replicate.run(MODEL, {
-    input: {
-      aspect_ratio: scene.aspectRatio,
-      duration: scene.durationSeconds,
-      // Every clip plays muted by policy, so a generated soundtrack would be
-      // bytes nobody hears — and `-an` strips it in the encode regardless.
-      generate_audio: false,
-      prompt: scene.prompt,
-      resolution: '720p',
-      watermark: false,
-    },
-  });
+  const output = await withThrottleRetry(scene.key, () =>
+    replicate.run(MODEL, {
+      input: {
+        aspect_ratio: scene.aspectRatio,
+        duration: scene.durationSeconds,
+        // Every clip plays muted by policy, so a generated soundtrack would be
+        // bytes nobody hears — and `-an` strips it in the encode regardless.
+        generate_audio: false,
+        prompt: scene.prompt,
+        resolution: '720p',
+        watermark: false,
+      },
+    }),
+  );
 
   const url =
     typeof output === 'string'

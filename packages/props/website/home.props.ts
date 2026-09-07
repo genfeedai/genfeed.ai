@@ -31,14 +31,20 @@ export interface HeroVideoProps {
   webmSrc: string;
 }
 
-/** One generated clip in the homepage output rail. */
+/**
+ * One card in the homepage output rail.
+ *
+ * The still is required and the clip is not. A card whose clip has not been
+ * generated yet is a normal state, not a broken one — it renders as the still
+ * it already had, and starts moving the day its clip is published.
+ */
 export interface HomeOutputAsset {
   alt: string;
   format: string;
-  mp4: string;
+  mp4?: string;
   poster: string;
   title: string;
-  webm: string;
+  webm?: string;
 }
 
 export interface HomeOutputCardProps {

@@ -108,6 +108,9 @@ describe('HomeOutputCard', () => {
 
     expect(player).toHaveAttribute('poster', ASSET.poster);
     expect(player).toHaveAttribute('loop');
+    // Without this the clip never starts: the observer sets state, and the
+    // element it creates does not exist yet for an imperative play() call.
+    expect(player).toHaveAttribute('autoplay');
     expect(player.hasAttribute('controls')).toBe(false);
     expect(
       Array.from(player.querySelectorAll('source')).map((source) =>
@@ -144,6 +147,22 @@ describe('HomeOutputCard', () => {
     rerender(<HomeOutputCard asset={ASSET} isPreloaded />);
 
     expect(screen.getByRole('img')).toHaveAttribute('data-priority', 'true');
+  });
+
+  it('renders a card whose clip has not been generated as a still', () => {
+    stubEnvironment();
+    render(
+      <HomeOutputCard
+        asset={{ ...ASSET, mp4: undefined, webm: undefined }}
+        isPreloaded={false}
+      />,
+    );
+
+    expect(intersect).toBeUndefined();
+    expect(screen.getByRole('img')).toHaveAttribute('data-src', ASSET.poster);
+    expect(
+      screen.queryByTestId('home-hero-output-carousel-video'),
+    ).not.toBeInTheDocument();
   });
 
   it('names the format and the claim on the card', () => {
