@@ -1,18 +1,22 @@
-'use client';
-
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
-import { useParams } from 'next/navigation';
 import { Suspense } from 'react';
 
 import ClipsWorkspace from '../ClipsWorkspace';
 
-export default function StudioClipProjectPage() {
-  const params = useParams<{ projectId: string }>();
+export const generateMetadata = createPageMetadata('Clips');
+
+export default async function StudioClipProjectPage({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}) {
+  const { projectId } = await params;
 
   return (
     <FeatureGate flagKey="studio">
       <Suspense fallback={null}>
-        <ClipsWorkspace projectId={params.projectId} />
+        <ClipsWorkspace projectId={projectId} />
       </Suspense>
     </FeatureGate>
   );
