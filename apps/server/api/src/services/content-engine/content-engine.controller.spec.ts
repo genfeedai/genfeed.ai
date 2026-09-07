@@ -213,6 +213,50 @@ describe('ContentEngineController', () => {
     });
   });
 
+  describe('getPlanSeeds', () => {
+    it('should return the seed preview scoped to organization and brand', async () => {
+      const preview = {
+        advertisers: [
+          {
+            adCount: 3,
+            id: 'adv-1',
+            name: 'Rival Co',
+            platform: 'meta',
+            topHeadline: 'Hi',
+          },
+        ],
+        dataset: {
+          confidence: 'low',
+          genfeedPosts: 0,
+          importedPosts: 2,
+          totalPosts: 2,
+        },
+        importedPostCount: 2,
+        isColdStart: true,
+        patternCount: 1,
+        sources: [
+          {
+            displayName: 'Creator',
+            handle: 'creator',
+            id: 'source-1',
+            platform: 'instagram',
+            postCount: 4,
+            sourceType: 'account',
+          },
+        ],
+      };
+      contentPlanSeedsService.buildPreview.mockResolvedValue(preview);
+
+      const result = await controller.getPlanSeeds(mockUser, 'brand-1');
+
+      expect(contentPlanSeedsService.buildPreview).toHaveBeenCalledWith(
+        orgId,
+        'brand-1',
+      );
+      expect(result).toEqual(preview);
+    });
+  });
+
   describe('listPlans', () => {
     it('should list plans by brand with organization scope', async () => {
       const result = await controller.listPlans(mockReq, mockUser, 'brand-1');

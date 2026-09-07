@@ -87,6 +87,20 @@ export class ContentEngineController {
     return this.contentPlanSeedsService.buildPreview(organization, brandId);
   }
 
+  /**
+   * Preview surface for cold-start seeding: what a plan would be grounded in
+   * before the caller picks a subset via `GenerateContentPlanDto.seeds`.
+   * Declared before `plans/:planId` so `seeds` never matches that param.
+   */
+  @Get('plans/seeds')
+  async getPlanSeeds(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+  ) {
+    const organization = user.organizationId;
+    return this.contentPlanSeedsService.buildPreview(organization, brandId);
+  }
+
   @Get('plans')
   async listPlans(
     @Req() req: Request,
