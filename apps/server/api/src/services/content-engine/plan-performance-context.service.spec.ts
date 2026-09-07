@@ -30,7 +30,10 @@ function makeSummary(overrides: Partial<WeeklySummary> = {}): WeeklySummary {
 
 describe('PlanPerformanceContextService', () => {
   const performanceSummaryService = { getWeeklySummary: vi.fn() };
-  const adPerformanceService = { findTopPerformers: vi.fn() };
+  const adPerformanceService = {
+    findByWatchedAdvertisers: vi.fn(),
+    findTopPerformers: vi.fn(),
+  };
   const patternMatcherService = { getTopPatternsForBrand: vi.fn() };
   const sourcePostsService = { getWeeklyCorpus: vi.fn() };
   const logger = {
@@ -47,6 +50,7 @@ describe('PlanPerformanceContextService', () => {
     vi.clearAllMocks();
     performanceSummaryService.getWeeklySummary.mockResolvedValue(makeSummary());
     adPerformanceService.findTopPerformers.mockResolvedValue([]);
+    adPerformanceService.findByWatchedAdvertisers.mockResolvedValue([]);
     patternMatcherService.getTopPatternsForBrand.mockResolvedValue([]);
     sourcePostsService.getWeeklyCorpus.mockResolvedValue({
       corpus: '',
@@ -204,7 +208,7 @@ describe('PlanPerformanceContextService', () => {
         },
       }),
     );
-    adPerformanceService.findByWatchedAdvertisers = vi.fn().mockResolvedValue([
+    adPerformanceService.findByWatchedAdvertisers.mockResolvedValue([
       {
         adPlatform: 'meta',
         advertiserName: 'Chosen Advertiser',
