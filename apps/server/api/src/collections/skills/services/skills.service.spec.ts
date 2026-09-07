@@ -8,9 +8,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const BUILT_IN_CONTENT_WRITING_SKILL_ID = testId(
-  'skill-builtin-content-writing',
-);
+const BUILT_IN_CONTENT_WRITING_SKILL_ID = testId('content-writing-skill');
 
 type SkillRow = {
   config: Record<string, unknown>;
