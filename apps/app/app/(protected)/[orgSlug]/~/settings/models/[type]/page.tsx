@@ -1,5 +1,8 @@
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
 import ModelsTypePageClientContent from './page-content';
+
+export const generateMetadata = createPageMetadata('Models');
 
 export default function ModelsTypePage({
   params,

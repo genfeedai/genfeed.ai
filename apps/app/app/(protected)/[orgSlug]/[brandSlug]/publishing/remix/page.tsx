@@ -1,3 +1,4 @@
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { PostsRemixPageProps } from '@props/publishing/posts-remix-page.props';
 import LibraryRemixSurface from '@/features/library-remix/LibraryRemixSurface';
 import {
@@ -5,6 +6,8 @@ import {
   LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY,
 } from '@/features/library-remix/library-remix-reference';
 import TrendRemixPage from './trend-remix-page';
+
+export const generateMetadata = createPageMetadata('Remix');
 
 const LEGACY_TREND_REMIX_QUERY_KEYS = [
   'sourceAuthor',
