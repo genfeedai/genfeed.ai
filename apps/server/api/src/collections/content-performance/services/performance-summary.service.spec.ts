@@ -96,6 +96,7 @@ describe('PerformanceSummaryService', () => {
         description: 'A great description. Second sentence.',
         engagementRate: 5,
         likes: 10,
+        origin: 'genfeed',
         platform: 'instagram',
         postId: 'post-1',
         publishDate: '2026-07-20T14:00:00.000Z',

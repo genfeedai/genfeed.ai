@@ -196,6 +196,9 @@ describe('analytics ingestion to dashboard smoke path', () => {
         Promise.resolve(where.id.in.includes(postId) ? [post] : []),
       ),
     },
+    // No own-account imports in this smoke path; the dashboard summary must
+    // still read the imported corpus and get nothing back.
+    sourcePost: { findMany: vi.fn(() => Promise.resolve([])) },
     postAnalytics: {
       aggregate: vi.fn(({ where }) =>
         Promise.resolve(aggregateAnalyticsRows(where)),
