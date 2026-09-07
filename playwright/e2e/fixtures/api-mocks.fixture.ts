@@ -259,6 +259,9 @@ function normalizeExecution(
     _id: execution.id,
     completedAt: execution.completedAt,
     createdAt: execution.startedAt,
+    // The serializer exposes creditsUsed at the top level; the history table
+    // reads it there when an execution has no accounting summary.
+    creditsUsed: execution.status === 'COMPLETED' ? 18 : 7,
     durationMs,
     error:
       execution.status === 'FAILED'

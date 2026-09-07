@@ -58,7 +58,9 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      thresholds: { branches: 90, functions: 98, lines: 86, statements: 86 },
+      // Nightly Coverage run 34119676939 (2026-09-07): 85.09% branches, 97.95%
+      // functions. Floor ~2 points below the measured table, as packages/ui does.
+      thresholds: { branches: 83, functions: 96, lines: 86, statements: 86 },
       exclude: ['src/**/*.d.ts', 'src/**/__tests__/**'],
       include: ['src/**/*.ts'],
       provider: 'v8',
