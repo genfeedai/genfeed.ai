@@ -1,23 +1,31 @@
 import { parseSocialPostUrl, SocialSourcePlatform } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
+const SOCIAL_SOURCE_PLATFORMS = new Set<string>(
+  Object.values(SocialSourcePlatform),
+);
+
 /**
- * Non-throwing platform mapper: credential platforms (`instagram`, `tiktok`,
- * `twitter`) share their wire value with {@link SocialSourcePlatform}; every
- * other platform has no source collector yet and maps to `undefined`.
+ * Profile-URL path prefixes that sit in front of the handle on platforms
+ * whose profile URLs are not `/{handle}`.
+ */
+const PROFILE_PATH_PREFIXES: Readonly<Record<string, ReadonlySet<string>>> = {
+  [SocialSourcePlatform.LINKEDIN]: new Set(['in', 'company', 'school']),
+  [SocialSourcePlatform.YOUTUBE]: new Set(['c', 'channel', 'user']),
+};
+
+/**
+ * Non-throwing platform mapper: credential platforms share their wire value
+ * with {@link SocialSourcePlatform}; every other platform has no source
+ * collector and maps to `undefined`.
  */
 export function toSocialSourcePlatform(
   platform: string | null | undefined,
 ): SocialSourcePlatform | undefined {
   const normalized = platform?.trim().toLowerCase();
-  if (
-    normalized === SocialSourcePlatform.TWITTER ||
-    normalized === SocialSourcePlatform.INSTAGRAM ||
-    normalized === SocialSourcePlatform.TIKTOK
-  ) {
-    return normalized;
-  }
-  return undefined;
+  return normalized && SOCIAL_SOURCE_PLATFORMS.has(normalized)
+    ? (normalized as SocialSourcePlatform)
+    : undefined;
 }
 
 export function normalizePlatform(platform: string): SocialSourcePlatform {
@@ -47,7 +55,12 @@ export function normalizeHandle(platform: string, input: string): string {
           `Profile URL must use ${allowedHosts.join(' or ')}`,
         );
       }
-      const path = url.pathname.split('/').find(Boolean);
+      const segments = url.pathname.split('/').filter(Boolean);
+      const prefixes = PROFILE_PATH_PREFIXES[platform];
+      const path =
+        prefixes && segments[0] && prefixes.has(segments[0].toLowerCase())
+          ? segments[1]
+          : segments[0];
       if (!path || path === '@') {
         throw new BadRequestException('Profile URL must include a handle');
       }
@@ -79,6 +92,10 @@ export function getPlatformHosts(platform: string): string[] {
       return ['tiktok.com'];
     case SocialSourcePlatform.TWITTER:
       return ['x.com', 'twitter.com'];
+    case SocialSourcePlatform.YOUTUBE:
+      return ['youtube.com', 'm.youtube.com'];
+    case SocialSourcePlatform.LINKEDIN:
+      return ['linkedin.com'];
     default:
       throw new BadRequestException(`Unsupported source platform: ${platform}`);
   }
@@ -91,7 +108,13 @@ export function buildProfileUrl(platform: string, handle: string): string {
       return `https://www.instagram.com/${cleanHandle}`;
     case SocialSourcePlatform.TIKTOK:
       return `https://www.tiktok.com/@${cleanHandle}`;
-    default:
+    case SocialSourcePlatform.YOUTUBE:
+      return `https://www.youtube.com/@${cleanHandle}`;
+    case SocialSourcePlatform.LINKEDIN:
+      return `https://www.linkedin.com/in/${cleanHandle}`;
+    case SocialSourcePlatform.TWITTER:
       return `https://x.com/${cleanHandle}`;
+    default:
+      throw new BadRequestException(`Unsupported source platform: ${platform}`);
   }
 }

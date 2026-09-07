@@ -43,6 +43,20 @@ describe('SourceCollectorService', () => {
     collectTimeline: vi.fn(),
   };
 
+  const youtubeOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.YOUTUBE],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
+  const linkedinOfficial = {
+    name: 'brand-oauth',
+    platforms: [SocialSourcePlatform.LINKEDIN],
+    canCollect: vi.fn().mockResolvedValue(false),
+    collectTimeline: vi.fn(),
+  };
+
   const tiktokOfficial = {
     name: 'brand-oauth',
     platforms: [SocialSourcePlatform.TIKTOK],
@@ -62,6 +76,8 @@ describe('SourceCollectorService', () => {
       appBearer as never,
       instagramOfficial as never,
       tiktokOfficial as never,
+      youtubeOfficial as never,
+      linkedinOfficial as never,
       apify as never,
     );
   });

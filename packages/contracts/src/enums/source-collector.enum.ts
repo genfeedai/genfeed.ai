@@ -2,6 +2,10 @@ export enum SocialSourcePlatform {
   TWITTER = 'twitter',
   INSTAGRAM = 'instagram',
   TIKTOK = 'tiktok',
+  /** Own-account history only (YouTube Data API); no public timeline collector. */
+  YOUTUBE = 'youtube',
+  /** Own-account history only (LinkedIn UGC posts); no public timeline collector. */
+  LINKEDIN = 'linkedin',
 }
 
 export enum SocialSourceType {

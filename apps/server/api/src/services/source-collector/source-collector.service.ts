@@ -1,10 +1,12 @@
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
 import { InstagramOfficialProvider } from '@api/services/source-collector/providers/instagram-official.provider';
+import { LinkedinOfficialProvider } from '@api/services/source-collector/providers/linkedin-official.provider';
 import { TiktokOfficialProvider } from '@api/services/source-collector/providers/tiktok-official.provider';
 import {
   TwitterAppBearerProvider,
   TwitterBrandOAuthProvider,
 } from '@api/services/source-collector/providers/twitter-official.provider';
+import { YoutubeOfficialProvider } from '@api/services/source-collector/providers/youtube-official.provider';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,
@@ -27,6 +29,7 @@ function hasExternalPostId(
  *
  * X: brand OAuth → app bearer → Apify
  * IG / TikTok: brand OAuth (own account only, needs `credentialId`) → Apify
+ * YouTube / LinkedIn: brand OAuth only (own account history, no public feed)
  *
  * Throws when every provider fails (no silent empty success).
  */
@@ -40,6 +43,8 @@ export class SourceCollectorService {
     private readonly twitterAppBearer: TwitterAppBearerProvider,
     private readonly instagramOfficial: InstagramOfficialProvider,
     private readonly tiktokOfficial: TiktokOfficialProvider,
+    private readonly youtubeOfficial: YoutubeOfficialProvider,
+    private readonly linkedinOfficial: LinkedinOfficialProvider,
     private readonly apifySocial: ApifySocialProvider,
   ) {
     // Priority order matters.
@@ -48,6 +53,8 @@ export class SourceCollectorService {
       this.twitterAppBearer,
       this.instagramOfficial,
       this.tiktokOfficial,
+      this.youtubeOfficial,
+      this.linkedinOfficial,
       this.apifySocial,
     ];
   }

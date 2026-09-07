@@ -1,5 +1,6 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
@@ -42,7 +43,11 @@ const BaseModule = createServiceModule(YoutubeService, {
 @Module({
   controllers: [YoutubeController],
   exports: [...(BaseModule.exports ?? []), YoutubeAuthorizedSignalsService],
-  imports: [...(BaseModule.imports ?? []), SocialWarmupEnrollmentsModule],
+  imports: [
+    ...(BaseModule.imports ?? []),
+    SocialWarmupEnrollmentsModule,
+    SocialSourceHistoryImportModule,
+  ],
   providers: [...(BaseModule.providers ?? []), YoutubeAuthorizedSignalsService],
 })
 export class YoutubeModule {}
