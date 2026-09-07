@@ -36,6 +36,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   REPLICATE_MODEL_DISCOVERY: 'replicate-model-discovery',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   RSS_AUTOPOST: 'rss-autopost',
+  SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC: 'social-source-own-account-resync',
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS: 'tiktok-status',
   TRANSCRIPT_PURGE: 'transcript-purge',
@@ -136,6 +137,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.RSS_AUTOPOST]: {
     pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC]: {
+    pattern: '0 * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.STREAK_MAINTENANCE]: {

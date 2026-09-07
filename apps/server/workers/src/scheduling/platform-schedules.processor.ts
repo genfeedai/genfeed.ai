@@ -17,6 +17,7 @@ import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
+import { CronSocialSourceResyncService } from '@workers/crons/social-sources/cron.social-source-resync.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
@@ -64,6 +65,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly referrals: ReferralsService,
     private readonly reviewGate: CronReviewGateTimeoutService,
     private readonly rss: CronRssAutopostService,
+    private readonly socialSourceResync: CronSocialSourceResyncService,
     private readonly streaks: CronStreaksService,
     private readonly tiktok: CronTiktokStatusService,
     private readonly transcriptPurge: CronTranscriptPurgeService,
@@ -119,6 +121,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.reviewGate.resolveTimedOutReviewGates(),
       [PLATFORM_SCHEDULED_TASKS.RSS_AUTOPOST]: () =>
         this.rss.pollEnabledSources(),
+      [PLATFORM_SCHEDULED_TASKS.SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC]: () =>
+        this.socialSourceResync.resyncDueSources(),
       [PLATFORM_SCHEDULED_TASKS.STREAK_MAINTENANCE]: () =>
         this.streaks.processStreaks(),
       [PLATFORM_SCHEDULED_TASKS.TIKTOK_STATUS]: () =>
