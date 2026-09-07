@@ -23,8 +23,7 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import type { ChangeEvent } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 // Default filter options
 const DEFAULT_STATUS_OPTIONS = [
@@ -123,8 +122,6 @@ export default function FiltersBar({
   filterOptions = DEFAULT_FILTER_OPTIONS,
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
-  const [searchValue, setSearchValue] = useState(filters.search ?? '');
-
   // Notify parent of filter changes - all filters are now server-side
   const notifyFilterChange = useCallback(
     (newFilters: typeof filters) => {
@@ -142,31 +139,8 @@ export default function FiltersBar({
     [onFiltersChange],
   );
 
-  useEffect(() => {
-    setSearchValue(filters.search ?? '');
-  }, [filters.search]);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
-        notifyFilterChange({ ...filters, search: searchValue });
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchValue, filters, notifyFilterChange]);
-
-  const updateFiltersBar = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-
-    if (name === 'search') {
-      setSearchValue(value);
-    } else {
-      notifyFilterChange({ ...filters, [name]: value });
-    }
+  const handleSearch = (value: string) => {
+    notifyFilterChange({ ...filters, search: value });
   };
 
   const handleDropdownChange = (name: string, value: string | string[]) => {
@@ -186,7 +160,6 @@ export default function FiltersBar({
       type: '',
     };
 
-    setSearchValue('');
     notifyFilterChange(clearedFilters);
   };
 
@@ -222,8 +195,8 @@ export default function FiltersBar({
       {visibleFilters.search && (
         <div className="min-w-0 basis-56 max-w-96 flex-1">
           <FormSearchbar
-            value={searchValue}
-            onChange={updateFiltersBar}
+            value={filters.search ?? ''}
+            onSearch={handleSearch}
             placeholder="Search label, description, or tags"
             size={ComponentSize.SM}
           />

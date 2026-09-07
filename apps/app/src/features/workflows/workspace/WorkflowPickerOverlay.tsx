@@ -1,15 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   ArrowLeft,
   ArrowRight,
   ExternalLink,
   Paperclip,
-  Search,
   Zap,
 } from 'lucide-react';
 
@@ -44,16 +43,13 @@ export function WorkflowPickerOverlay({
   return (
     <div className="flex max-h-[min(62vh,36rem)] min-h-0 flex-col">
       <div className="border-b border-border p-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            aria-label="Search authorized workflows"
-            className="pl-9"
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search this page"
-            value={search}
-          />
-        </div>
+        <FormSearchbar
+          ariaLabel="Search authorized workflows"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search this page"
+          size={ComponentSize.MD}
+          value={search}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">

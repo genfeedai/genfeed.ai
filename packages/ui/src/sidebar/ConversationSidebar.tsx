@@ -1,10 +1,10 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn';
 import { Search } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 
 import { Button } from '../primitives/button';
-import { Input } from '../primitives/input';
+import Searchbar from '../primitives/searchbar';
 
 export interface ConversationSidebarFilter<TValue extends string> {
   count?: number;
@@ -34,14 +34,16 @@ export function ConversationSidebarSearch({
           aria-hidden="true"
           className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground/36"
         />
-        <Input
-          aria-label={ariaLabel}
-          className="h-8 w-full rounded-md border-border bg-background-secondary pl-8 pr-2.5 text-xs placeholder:text-foreground/28"
+        <Searchbar
+          ariaLabel={ariaLabel}
+          inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-foreground/28"
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            onChange(event.target.value)
+          }
           placeholder={placeholder}
+          showIcon={false}
+          size={ComponentSize.SM}
           value={value}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => {
-            onChange(event.target.value);
-          }}
         />
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

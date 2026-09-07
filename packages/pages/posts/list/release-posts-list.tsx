@@ -128,7 +128,6 @@ export default function ReleasePostsList({
   );
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform === 'all' ? undefined : platform;
-  const [toolbarSearchValue, setToolbarSearchValue] = useState(search);
   const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const viewMode = parsePublishingPostsViewMode(
@@ -358,10 +357,6 @@ export default function ReleasePostsList({
     [replaceSearchParams, storeView],
   );
 
-  useEffect(() => {
-    setToolbarSearchValue(search);
-  }, [search]);
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs once per mount to seed the URL from the brand's last choice; the toggle and handleViewModeChange own every change after that.
   useEffect(() => {
     if (searchParams?.has(PUBLISHING_POSTS_QUERY_KEYS.VIEW)) {
@@ -376,28 +371,28 @@ export default function ReleasePostsList({
     });
   }, []);
 
-  useEffect(() => {
-    if (toolbarSearchValue === search) {
-      return;
-    }
-    const timeoutId = window.setTimeout(() => {
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      if (value === search) {
+        return;
+      }
       replaceSearchParams((params) => {
-        if (toolbarSearchValue) {
-          params.set('search', toolbarSearchValue);
+        if (value) {
+          params.set('search', value);
         } else {
           params.delete('search');
         }
         params.delete('page');
       });
-    }, 300);
-    return () => window.clearTimeout(timeoutId);
-  }, [replaceSearchParams, search, toolbarSearchValue]);
+    },
+    [replaceSearchParams, search],
+  );
 
   useEffect(() => {
     setFiltersNode(
       isCalendar ? null : (
         <PostsListToolbar
-          onSearchChange={setToolbarSearchValue}
+          onSearchChange={handleSearchChange}
           onSortChange={(nextSort) =>
             replaceSearchParams((params) => {
               if (nextSort === 'createdAt: -1') {
@@ -408,7 +403,7 @@ export default function ReleasePostsList({
               params.delete('page');
             })
           }
-          searchValue={toolbarSearchValue}
+          searchValue={search}
           sortOptions={RELEASE_POSTS_SORT_OPTIONS}
           sortValue={sort}
         />
@@ -416,11 +411,12 @@ export default function ReleasePostsList({
     );
     return () => setFiltersNode(null);
   }, [
+    handleSearchChange,
     isCalendar,
     replaceSearchParams,
+    search,
     setFiltersNode,
     sort,
-    toolbarSearchValue,
   ]);
 
   useEffect(() => {
