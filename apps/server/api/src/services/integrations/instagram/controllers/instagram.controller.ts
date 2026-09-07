@@ -301,18 +301,13 @@ export class InstagramController {
         url,
       });
 
-      credential = await this.refreshSignalsAfterConnection({
+      credential = await this.finalizeConnection({
         accessToken: access_token,
         credential,
         grantedScopes: scope,
         organizationId: existingCredential.organizationId,
         url,
       });
-      await this.scheduleHistoryImportAfterConnection(
-        credential.id.toString(),
-        existingCredential.organizationId,
-        url,
-      );
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -391,15 +386,20 @@ export class InstagramController {
     }
   }
 
-  private async refreshSignalsAfterConnection(params: {
+  /**
+   * Post-connection work that must never fail the connection itself: refresh
+   * the authorized signals snapshot, then queue the import of the account's
+   * existing posts. Both are best-effort and logged on failure.
+   */
+  private async finalizeConnection(params: {
     accessToken: string;
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
     grantedScopes: string | undefined;
     organizationId: string;
     url: string;
   }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { accessToken, credential, grantedScopes, organizationId, url } =
-      params;
+    const { accessToken, grantedScopes, organizationId, url } = params;
+    let credential = params.credential;
     try {
       await this.instagramAuthorizedSignalsService.refresh({
         accessToken,
@@ -408,34 +408,21 @@ export class InstagramController {
         grantedScopes,
         organizationId,
       });
-      return (
+      credential =
         (await this.credentialsService.findOne({
           id: credential.id.toString(),
           organizationId,
           platform: CredentialPlatform.INSTAGRAM,
-        })) ?? credential
-      );
+        })) ?? credential;
     } catch (signalError: unknown) {
       this.loggerService.warn(
         `${url} authorized signal refresh failed after connection`,
         getSafeInstagramOAuthErrorLog(signalError),
       );
-      return credential;
     }
-  }
-
-  /**
-   * Queue the import of the account's existing posts. Best-effort: a failed
-   * schedule is logged and never fails the connection.
-   */
-  private async scheduleHistoryImportAfterConnection(
-    credentialId: string,
-    organizationId: string,
-    url: string,
-  ): Promise<void> {
     try {
       await this.historyImportService.scheduleForCredential({
-        credentialId,
+        credentialId: credential.id.toString(),
         organizationId,
       });
     } catch (scheduleError: unknown) {
@@ -444,6 +431,7 @@ export class InstagramController {
         getSafeInstagramOAuthErrorLog(scheduleError),
       );
     }
+    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')
