@@ -71,7 +71,11 @@ export class TopPerformerPromptContextService {
       positiveSignals.push(
         ...topPerformers.slice(0, 3).map((item) => {
           const label = this.describeContentItem(item);
-          return `Model winning example "${label}" (${item.engagementRate.toFixed(2)}% engagement).`;
+          const provenance =
+            item.origin === 'imported'
+              ? ` imported from your ${SecurityUtil.sanitizePromptInput(item.platform, 40)} account`
+              : '';
+          return `Model winning example "${label}"${provenance} (${item.engagementRate.toFixed(2)}% engagement).`;
         }),
       );
     }

@@ -1,8 +1,33 @@
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { SocialSourceType } from '@genfeedai/contracts';
+import type { SourcePostMetrics } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
+
+/**
+ * Where a performance row comes from: content Genfeed published (daily
+ * `PostAnalytics` snapshots) or posts the brand published elsewhere and
+ * imported through its own-account social source.
+ */
+export type PerformanceContentOrigin = 'genfeed' | 'imported';
+
+export type PerformanceDatasetConfidence = 'none' | 'low' | 'medium' | 'high';
+
+/** Fewer distinct posts than this in the window reads as low confidence. */
+export const PERFORMANCE_DATASET_LOW_MAX_POSTS = 5;
+/** Fewer distinct posts than this in the window reads as medium confidence. */
+export const PERFORMANCE_DATASET_MEDIUM_MAX_POSTS = 20;
+/** Upper bound on imported posts folded into one summary window. */
+const IMPORTED_PERFORMANCE_LIMIT = 500;
+
+export interface PerformanceDataset {
+  genfeedPosts: number;
+  importedPosts: number;
+  totalPosts: number;
+  confidence: PerformanceDatasetConfidence;
+}
 
 export interface WeeklySummaryOptions {
   topN?: number;
@@ -30,7 +55,11 @@ export interface WorstPerformersOptions {
 export const DEFAULT_WORST_PERFORMER_MIN_VIEWS = 10;
 
 export interface PerformanceContentItem {
+  /** Genfeed post id, or the source post id for imported content. */
   postId: string;
+  origin: PerformanceContentOrigin;
+  /** Set for imported content so consumers can reach the `SourcePost` row. */
+  sourcePostId?: string;
   title: string;
   description: string;
   platform: string;
@@ -41,6 +70,18 @@ export interface PerformanceContentItem {
   shares: number;
   saves: number;
   publishDate?: string;
+}
+
+interface ImportedPerformanceItem extends PerformanceContentItem {
+  origin: 'imported';
+  sourcePostId: string;
+  category: string;
+  hour: number | null;
+}
+
+interface ImportedPerformanceWindow {
+  current: ImportedPerformanceItem[];
+  previous: ImportedPerformanceItem[];
 }
 
 export interface PlatformEngagement {
@@ -69,6 +110,8 @@ export interface PromptPerformanceItem {
 }
 
 export interface WeeklySummary {
+  /** How much content backs this window, split by origin. */
+  dataset: PerformanceDataset;
   topPerformers: PerformanceContentItem[];
   worstPerformers: PerformanceContentItem[];
   avgEngagementByPlatform: PlatformEngagement[];
@@ -159,6 +202,25 @@ export class PerformanceSummaryService {
       startDate,
       endDate,
     );
+    const previousFilter: Prisma.PostAnalyticsWhereInput = {
+      ...matchFilter,
+      date: { gte: previousStartDate, lte: previousEndDate },
+    };
+
+    // Own-account imports are loaded once per window and folded into every
+    // section below, so a brand that connected with a year of history is
+    // ranked on what it actually published — not only on Genfeed output.
+    const [importedCurrent, importedPrevious, genfeedPosts] = await Promise.all(
+      [
+        this.loadImportedPerformance(matchFilter),
+        this.loadImportedPerformance(previousFilter),
+        this.countGenfeedPosts(matchFilter),
+      ],
+    );
+    const imported: ImportedPerformanceWindow = {
+      current: importedCurrent,
+      previous: importedPrevious,
+    };
 
     const [
       topPerformers,
@@ -169,22 +231,32 @@ export class PerformanceSummaryService {
       topHooks,
       weekOverWeekTrend,
     ] = await Promise.all([
-      this.getContentByEngagement(matchFilter, topN, 'desc'),
-      this.getContentByEngagement(matchFilter, worstN, 'asc'),
-      this.getAvgEngagementByPlatform(matchFilter),
-      this.getAvgEngagementByContentType(matchFilter),
-      this.getBestPostingTimes(matchFilter),
-      this.getTopHooks(matchFilter),
-      this.getWeekOverWeekTrend(matchFilter, {
-        ...matchFilter,
-        date: { gte: previousStartDate, lte: previousEndDate },
-      }),
+      this.getContentByEngagement(
+        matchFilter,
+        topN,
+        'desc',
+        undefined,
+        imported.current,
+      ),
+      this.getContentByEngagement(
+        matchFilter,
+        worstN,
+        'asc',
+        undefined,
+        imported.current,
+      ),
+      this.getAvgEngagementByPlatform(matchFilter, imported.current),
+      this.getAvgEngagementByContentType(matchFilter, imported.current),
+      this.getBestPostingTimes(matchFilter, imported.current),
+      this.getTopHooks(matchFilter, imported.current),
+      this.getWeekOverWeekTrend(matchFilter, previousFilter, imported),
     ]);
 
     return {
       avgEngagementByContentType,
       avgEngagementByPlatform,
       bestPostingTimes,
+      dataset: buildDataset(genfeedPosts, imported.current.length),
       topHooks,
       topPerformers,
       weekOverWeekTrend,
@@ -213,7 +285,13 @@ export class PerformanceSummaryService {
       endDate,
     );
 
-    return this.getContentByEngagement(matchFilter, limit, 'desc');
+    return this.getContentByEngagement(
+      matchFilter,
+      limit,
+      'desc',
+      undefined,
+      await this.loadImportedPerformance(matchFilter),
+    );
   }
 
   /**
@@ -243,6 +321,7 @@ export class PerformanceSummaryService {
       limit,
       'asc',
       options.minViews ?? DEFAULT_WORST_PERFORMER_MIN_VIEWS,
+      await this.loadImportedPerformance(matchFilter),
     );
   }
 
@@ -345,19 +424,43 @@ export class PerformanceSummaryService {
       startDate,
       endDate,
     );
+    const previousFilter: Prisma.PostAnalyticsWhereInput = {
+      ...matchFilter,
+      date: { gte: previousStartDate, lte: previousEndDate },
+    };
+    const [importedCurrent, importedPrevious, genfeedPosts] = await Promise.all(
+      [
+        this.loadImportedPerformance(matchFilter),
+        this.loadImportedPerformance(previousFilter),
+        this.countGenfeedPosts(matchFilter),
+      ],
+    );
+    const imported: ImportedPerformanceWindow = {
+      current: importedCurrent,
+      previous: importedPrevious,
+    };
 
     const [topPerformers, platformEngagement, bestTimes, trend] =
       await Promise.all([
-        this.getContentByEngagement(matchFilter, 3, 'desc'),
-        this.getAvgEngagementByPlatform(matchFilter),
-        this.getBestPostingTimes(matchFilter),
-        this.getWeekOverWeekTrend(matchFilter, {
-          ...matchFilter,
-          date: { gte: previousStartDate, lte: previousEndDate },
-        }),
+        this.getContentByEngagement(
+          matchFilter,
+          3,
+          'desc',
+          undefined,
+          imported.current,
+        ),
+        this.getAvgEngagementByPlatform(matchFilter, imported.current),
+        this.getBestPostingTimes(matchFilter, imported.current),
+        this.getWeekOverWeekTrend(matchFilter, previousFilter, imported),
       ]);
 
     const lines: string[] = [];
+    const dataset = buildDataset(genfeedPosts, imported.current.length);
+    if (dataset.importedPosts > 0) {
+      lines.push(
+        `Based on ${dataset.genfeedPosts} Genfeed ${dataset.genfeedPosts === 1 ? 'post' : 'posts'} and ${dataset.importedPosts} imported ${dataset.importedPosts === 1 ? 'post' : 'posts'} from your connected accounts (${dataset.confidence} confidence).`,
+      );
+    }
 
     if (topPerformers.length > 0) {
       const hooks = topPerformers
@@ -395,11 +498,68 @@ export class PerformanceSummaryService {
 
   // ─── Private helpers ───────────────────────────────────────────────
 
+  /**
+   * Distinct Genfeed posts with analytics in the window — the Genfeed half of
+   * the dataset size reported alongside every summary.
+   */
+  private async countGenfeedPosts(
+    matchFilter: Prisma.PostAnalyticsWhereInput,
+  ): Promise<number> {
+    const organizationId = String(matchFilter.organizationId ?? '');
+    const rows = await this.prisma.postAnalytics.findMany({
+      distinct: ['postId'],
+      select: { postId: true },
+      where: { ...matchFilter, post: { is: scopedWhere(organizationId) } },
+    });
+    return rows.length;
+  }
+
+  /**
+   * Posts the brand published outside Genfeed, imported through its
+   * own-account social sources, mapped onto the same performance shape as
+   * `PostAnalytics` rows so every section can rank them together.
+   */
+  private async loadImportedPerformance(
+    matchFilter: Prisma.PostAnalyticsWhereInput,
+  ): Promise<ImportedPerformanceItem[]> {
+    const organizationId = String(matchFilter.organizationId ?? '');
+    const brandId = String(matchFilter.brandId ?? '');
+    if (!organizationId || !brandId) {
+      return [];
+    }
+    const dateRange = (matchFilter.date ?? {}) as DateRangeFilter;
+    const rows = await this.prisma.sourcePost.findMany({
+      orderBy: { publishedAt: 'desc' },
+      select: {
+        contentType: true,
+        id: true,
+        metrics: true,
+        platform: true,
+        publishedAt: true,
+        text: true,
+      },
+      take: IMPORTED_PERFORMANCE_LIMIT,
+      where: scopedWhere(organizationId, {
+        brandId,
+        publishedAt: {
+          gte: dateRange.gte ?? new Date(0),
+          lte: dateRange.lte ?? new Date(),
+        },
+        source: {
+          is: { isDeleted: false, sourceType: SocialSourceType.OWN_ACCOUNT },
+        },
+      }),
+    });
+
+    return rows.map((row) => toImportedPerformanceItem(row));
+  }
+
   private async getContentByEngagement(
     matchFilter: Prisma.PostAnalyticsWhereInput,
     limit: number,
     sortDirection: 'asc' | 'desc',
     minViews?: number,
+    imported: ImportedPerformanceItem[] = [],
   ): Promise<PerformanceContentItem[]> {
     const organizationId = String(matchFilter.organizationId ?? '');
     const where: Prisma.PostAnalyticsWhereInput = {
@@ -430,7 +590,7 @@ export class PerformanceSummaryService {
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
 
-    return analytics.map((item) => {
+    const genfeedItems: PerformanceContentItem[] = analytics.map((item) => {
       const post = postMap.get(String(item.postId));
       const publishDate = post?.publicationDate
         ? new Date(post.publicationDate).toISOString()
@@ -440,6 +600,7 @@ export class PerformanceSummaryService {
         description: String(post?.description || ''),
         engagementRate: Number(item.engagementRate || 0),
         likes: Number(item.totalLikes || 0),
+        origin: 'genfeed',
         platform: String(item.platform || ''),
         postId: String(item.postId),
         ...(publishDate ? { publishDate } : {}),
@@ -449,10 +610,22 @@ export class PerformanceSummaryService {
         views: Number(item.totalViews || 0),
       };
     });
+    if (imported.length === 0) {
+      return genfeedItems;
+    }
+
+    const importedItems = imported
+      .filter((item) => minViews === undefined || item.views >= minViews)
+      .map((item) => toPerformanceContentItem(item));
+    const sign = sortDirection === 'desc' ? -1 : 1;
+    return [...genfeedItems, ...importedItems]
+      .sort((a, b) => sign * (a.engagementRate - b.engagementRate))
+      .slice(0, limit);
   }
 
   private async getAvgEngagementByPlatform(
     matchFilter: Prisma.PostAnalyticsWhereInput,
+    imported: ImportedPerformanceItem[] = [],
   ): Promise<PlatformEngagement[]> {
     const rows = await this.prisma.$queryRaw<PlatformEngagementRow[]>(
       Prisma.sql`
@@ -470,15 +643,27 @@ export class PerformanceSummaryService {
       `,
     );
 
-    return rows.map((row) => ({
+    const genfeed = rows.map((row) => ({
       avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
       platform: row.platform || 'unknown',
       totalPosts: Number(row.total_posts ?? 0),
     }));
+    return mergeWeightedAverages(
+      genfeed,
+      imported,
+      (item) => item.platform,
+      (item) => item.platform || 'unknown',
+      (key, avgEngagementRate, totalPosts) => ({
+        avgEngagementRate,
+        platform: key,
+        totalPosts,
+      }),
+    );
   }
 
   private async getAvgEngagementByContentType(
     matchFilter: Prisma.PostAnalyticsWhereInput,
+    imported: ImportedPerformanceItem[] = [],
   ): Promise<ContentTypeEngagement[]> {
     const rows = await this.prisma.$queryRaw<ContentTypeEngagementRow[]>(
       Prisma.sql`
@@ -496,15 +681,27 @@ export class PerformanceSummaryService {
       `,
     );
 
-    return rows.map((row) => ({
+    const genfeed = rows.map((row) => ({
       avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
       category: row.category || 'unknown',
       totalPosts: Number(row.total_posts ?? 0),
     }));
+    return mergeWeightedAverages(
+      genfeed,
+      imported,
+      (item) => item.category,
+      (item) => item.category,
+      (key, avgEngagementRate, totalPosts) => ({
+        avgEngagementRate,
+        category: key,
+        totalPosts,
+      }),
+    );
   }
 
   private async getBestPostingTimes(
     matchFilter: Prisma.PostAnalyticsWhereInput,
+    imported: ImportedPerformanceItem[] = [],
   ): Promise<PostingTimeAnalysis[]> {
     const rows = await this.prisma.$queryRaw<PostingTimeAnalysisRow[]>(
       Prisma.sql`
@@ -523,20 +720,39 @@ export class PerformanceSummaryService {
       `,
     );
 
-    return rows.map((row) => ({
+    const genfeed = rows.map((row) => ({
       avgEngagementRate: Number(row.avg_engagement_rate ?? 0),
       hour: Number(row.hour),
       postCount: Number(row.post_count ?? 0),
     }));
+    const merged = mergeWeightedAverages(
+      genfeed.map((row) => ({
+        avgEngagementRate: row.avgEngagementRate,
+        key: String(row.hour),
+        totalPosts: row.postCount,
+      })),
+      imported.filter((item) => item.hour !== null),
+      (item) => item.key,
+      (item) => String(item.hour),
+      (key, avgEngagementRate, totalPosts) => ({
+        avgEngagementRate,
+        hour: Number(key),
+        postCount: totalPosts,
+      }),
+    );
+    return merged.slice(0, 24);
   }
 
   private async getTopHooks(
     matchFilter: Prisma.PostAnalyticsWhereInput,
+    imported: ImportedPerformanceItem[] = [],
   ): Promise<string[]> {
     const topContent = await this.getContentByEngagement(
       matchFilter,
       5,
       'desc',
+      undefined,
+      imported,
     );
 
     return topContent
@@ -551,6 +767,7 @@ export class PerformanceSummaryService {
   private async getWeekOverWeekTrend(
     currentFilter: Prisma.PostAnalyticsWhereInput,
     previousFilter: Prisma.PostAnalyticsWhereInput,
+    imported: ImportedPerformanceWindow = { current: [], previous: [] },
   ): Promise<{
     direction: 'up' | 'down' | 'stable';
     percentageChange: number;
@@ -576,10 +793,14 @@ export class PerformanceSummaryService {
       );
     };
 
-    const [currentEngagement, previousEngagement] = await Promise.all([
+    const [genfeedCurrent, genfeedPrevious] = await Promise.all([
       aggregateEngagement(currentFilter),
       aggregateEngagement(previousFilter),
     ]);
+    const currentEngagement =
+      genfeedCurrent + sumImportedEngagement(imported.current);
+    const previousEngagement =
+      genfeedPrevious + sumImportedEngagement(imported.previous);
 
     let percentageChange = 0;
     if (previousEngagement > 0) {
@@ -603,4 +824,155 @@ export class PerformanceSummaryService {
       previousEngagement,
     };
   }
+}
+
+// ─── Imported content helpers ───────────────────────────────────────
+
+type ImportedSourcePostRow = {
+  contentType: string;
+  id: string;
+  metrics: unknown;
+  platform: string;
+  publishedAt: Date | null;
+  text: string | null;
+};
+
+/** Imported content types onto the `PostCategory` labels the SQL groups use. */
+const IMPORTED_CATEGORY_BY_CONTENT_TYPE: Readonly<Record<string, string>> = {
+  post: 'POST',
+  reel: 'REEL',
+  tweet: 'TEXT',
+  video: 'VIDEO',
+};
+
+function readMetric(metrics: SourcePostMetrics, key: string): number {
+  const value = metrics[key];
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? value
+    : 0;
+}
+
+function toImportedPerformanceItem(
+  row: ImportedSourcePostRow,
+): ImportedPerformanceItem {
+  const metrics =
+    row.metrics &&
+    typeof row.metrics === 'object' &&
+    !Array.isArray(row.metrics)
+      ? (row.metrics as SourcePostMetrics)
+      : {};
+  const likes = readMetric(metrics, 'likes');
+  const comments = readMetric(metrics, 'comments');
+  const shares = readMetric(metrics, 'shares');
+  const saves = readMetric(metrics, 'saves');
+  const views =
+    readMetric(metrics, 'views') ||
+    readMetric(metrics, 'impressions') ||
+    readMetric(metrics, 'reach');
+  // Same formula PostAnalyticsService uses for Genfeed posts.
+  const engagementRate =
+    views > 0 ? ((likes + comments + shares) / views) * 100 : 0;
+  const text = (row.text ?? '').trim();
+  const title = text.split(/\n/)[0]?.trim().slice(0, 120) ?? '';
+  const publishedAt = row.publishedAt ? new Date(row.publishedAt) : null;
+
+  return {
+    category:
+      IMPORTED_CATEGORY_BY_CONTENT_TYPE[row.contentType.toLowerCase()] ??
+      'unknown',
+    comments,
+    description: text,
+    engagementRate,
+    hour: publishedAt ? publishedAt.getUTCHours() : null,
+    likes,
+    origin: 'imported',
+    platform: row.platform,
+    postId: row.id,
+    ...(publishedAt ? { publishDate: publishedAt.toISOString() } : {}),
+    saves,
+    shares,
+    sourcePostId: row.id,
+    title,
+    views,
+  };
+}
+
+function toPerformanceContentItem(
+  item: ImportedPerformanceItem,
+): PerformanceContentItem {
+  const { category: _category, hour: _hour, ...content } = item;
+  return content;
+}
+
+function sumImportedEngagement(items: ImportedPerformanceItem[]): number {
+  return items.reduce(
+    (total, item) => total + item.likes + item.comments + item.shares,
+    0,
+  );
+}
+
+function buildDataset(
+  genfeedPosts: number,
+  importedPosts: number,
+): PerformanceDataset {
+  const totalPosts = genfeedPosts + importedPosts;
+  let confidence: PerformanceDatasetConfidence = 'high';
+  if (totalPosts === 0) {
+    confidence = 'none';
+  } else if (totalPosts < PERFORMANCE_DATASET_LOW_MAX_POSTS) {
+    confidence = 'low';
+  } else if (totalPosts < PERFORMANCE_DATASET_MEDIUM_MAX_POSTS) {
+    confidence = 'medium';
+  }
+  return { confidence, genfeedPosts, importedPosts, totalPosts };
+}
+
+/**
+ * Fold imported items into SQL-grouped averages: each bucket's average is
+ * re-weighted by post count so one imported reel cannot outvote fifty
+ * Genfeed posts, and buckets only imports have are added. Sorted by average
+ * engagement descending, as the SQL queries are.
+ */
+function mergeWeightedAverages<
+  G extends { avgEngagementRate: number; totalPosts: number },
+  R,
+>(
+  genfeed: G[],
+  imported: ImportedPerformanceItem[],
+  readGenfeedKey: (row: G) => string,
+  readImportedKey: (item: ImportedPerformanceItem) => string,
+  build: (key: string, avgEngagementRate: number, totalPosts: number) => R,
+): R[] {
+  if (imported.length === 0) {
+    return genfeed.map((row) =>
+      build(readGenfeedKey(row), row.avgEngagementRate, row.totalPosts),
+    );
+  }
+  const buckets = new Map<string, { sum: number; count: number }>();
+  for (const row of genfeed) {
+    buckets.set(readGenfeedKey(row), {
+      count: row.totalPosts,
+      sum: row.avgEngagementRate * row.totalPosts,
+    });
+  }
+  for (const item of imported) {
+    const key = readImportedKey(item);
+    const bucket = buckets.get(key) ?? { count: 0, sum: 0 };
+    bucket.count += 1;
+    bucket.sum += item.engagementRate;
+    buckets.set(key, bucket);
+  }
+  return [...buckets.entries()]
+    .map(([key, bucket]) =>
+      build(
+        key,
+        bucket.count > 0 ? bucket.sum / bucket.count : 0,
+        bucket.count,
+      ),
+    )
+    .sort((a, b) => {
+      const left = (a as { avgEngagementRate: number }).avgEngagementRate;
+      const right = (b as { avgEngagementRate: number }).avgEngagementRate;
+      return right - left;
+    });
 }
