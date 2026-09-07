@@ -18,10 +18,30 @@ export interface UseBrandEnabledSkillsOptions {
 
 export interface UseBrandEnabledSkillsReturn {
   enabledSlugs: string[];
-  /** True while the brand has no explicit selection and defaults apply. */
+  /** True while the brand runs on the first-party default set. */
   isUsingDefaults: boolean;
   isLoading: boolean;
+  setUseDefaults: (isUsingDefaults: boolean) => Promise<void>;
   toggleSkill: (slug: string) => Promise<void>;
+}
+
+interface SkillSelection {
+  enabledSkills: string[];
+  useDefaultSkills: boolean;
+}
+
+function readPersistedSelection(
+  agentConfig:
+    | { enabledSkills?: string[]; useDefaultSkills?: boolean }
+    | undefined,
+): SkillSelection {
+  const enabledSkills = agentConfig?.enabledSkills ?? EMPTY_ENABLED_SKILL_SLUGS;
+  const useDefaultSkills =
+    agentConfig?.useDefaultSkills ??
+    // Legacy rule: no flag stored means defaults while the list is empty.
+    enabledSkills.length === 0;
+
+  return { enabledSkills, useDefaultSkills };
 }
 
 function areStringArraysEqual(left: string[], right: string[]): boolean {
@@ -36,23 +56,30 @@ export function useBrandEnabledSkills({
 }: UseBrandEnabledSkillsOptions = {}): UseBrandEnabledSkillsReturn {
   const { getToken } = useAuthIdentity();
   const { isReady, refreshBrands, selectedBrand } = useBrand();
-  const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
+  const [selection, setSelection] = useState<SkillSelection>({
+    enabledSkills: [],
+    useDefaultSkills: true,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const activeBrandIdRef = useRef<string | null>(null);
-  const enabledSlugsRef = useRef<string[]>([]);
+  const selectionRef = useRef<SkillSelection>(selection);
   const isLoadingRef = useRef(false);
   const mutationIdRef = useRef(0);
 
   const selectedBrandId = selectedBrand?.id ?? null;
-  const persistedEnabledSlugs = useMemo(
-    () =>
-      selectedBrand?.agentConfig?.enabledSkills ?? EMPTY_ENABLED_SKILL_SLUGS,
-    [selectedBrand?.agentConfig?.enabledSkills],
+  const persistedSelection = useMemo(
+    () => readPersistedSelection(selectedBrand?.agentConfig),
+    [selectedBrand?.agentConfig],
   );
-  const persistedEnabledSlugsRef = useRef(persistedEnabledSlugs);
-  persistedEnabledSlugsRef.current = persistedEnabledSlugs;
+  const persistedSelectionRef = useRef(persistedSelection);
+  persistedSelectionRef.current = persistedSelection;
   const defaultSlugsRef = useRef(defaultSlugs);
   defaultSlugsRef.current = defaultSlugs;
+
+  const applySelection = useCallback((next: SkillSelection) => {
+    selectionRef.current = next;
+    setSelection(next);
+  }, []);
 
   useEffect(() => {
     mutationIdRef.current += 1;
@@ -61,45 +88,46 @@ export function useBrandEnabledSkills({
     setIsLoading(false);
 
     if (!isReady || !selectedBrandId) {
-      enabledSlugsRef.current = [];
-      setEnabledSlugs((current) => (current.length === 0 ? current : []));
+      applySelection({ enabledSkills: [], useDefaultSkills: true });
       return;
     }
 
-    const nextPersistedSlugs = persistedEnabledSlugsRef.current;
-    enabledSlugsRef.current = [...nextPersistedSlugs];
-    setEnabledSlugs([...nextPersistedSlugs]);
-  }, [isReady, selectedBrandId]);
+    applySelection({
+      enabledSkills: [...persistedSelectionRef.current.enabledSkills],
+      useDefaultSkills: persistedSelectionRef.current.useDefaultSkills,
+    });
+  }, [applySelection, isReady, selectedBrandId]);
 
   useEffect(() => {
     if (!isReady || !selectedBrandId || isLoadingRef.current) {
       return;
     }
 
-    if (areStringArraysEqual(enabledSlugsRef.current, persistedEnabledSlugs)) {
+    const current = selectionRef.current;
+    if (
+      current.useDefaultSkills === persistedSelection.useDefaultSkills &&
+      areStringArraysEqual(
+        current.enabledSkills,
+        persistedSelection.enabledSkills,
+      )
+    ) {
       return;
     }
 
-    enabledSlugsRef.current = [...persistedEnabledSlugs];
-    setEnabledSlugs([...persistedEnabledSlugs]);
-  }, [isReady, persistedEnabledSlugs, selectedBrandId]);
+    applySelection({
+      enabledSkills: [...persistedSelection.enabledSkills],
+      useDefaultSkills: persistedSelection.useDefaultSkills,
+    });
+  }, [applySelection, isReady, persistedSelection, selectedBrandId]);
 
-  const toggleSkill = useCallback(
-    async (slug: string) => {
+  const persistSelection = useCallback(
+    async (nextSelection: SkillSelection) => {
       if (!isReady || !selectedBrandId || isLoadingRef.current) return;
 
       const mutationId = ++mutationIdRef.current;
       const targetBrandId = selectedBrandId;
-      const previousSlugs = enabledSlugsRef.current;
-      // An empty selection means the runtime defaults apply, so the first
-      // toggle starts from that effective set instead of from nothing.
-      const baseSlugs =
-        previousSlugs.length === 0 ? defaultSlugsRef.current : previousSlugs;
-      const nextSlugs = baseSlugs.includes(slug)
-        ? baseSlugs.filter((s) => s !== slug)
-        : [...baseSlugs, slug];
-      enabledSlugsRef.current = nextSlugs;
-      setEnabledSlugs(nextSlugs);
+      const previousSelection = selectionRef.current;
+      applySelection(nextSelection);
       isLoadingRef.current = true;
       setIsLoading(true);
 
@@ -109,7 +137,7 @@ export function useBrandEnabledSkills({
 
         await BrandsService.getInstance(token).updateEnabledSkills(
           targetBrandId,
-          nextSlugs,
+          nextSelection,
         );
 
         if (
@@ -132,8 +160,7 @@ export function useBrandEnabledSkills({
           activeBrandIdRef.current === targetBrandId &&
           mutationIdRef.current === mutationId
         ) {
-          enabledSlugsRef.current = previousSlugs;
-          setEnabledSlugs(previousSlugs);
+          applySelection(previousSelection);
         }
       } finally {
         if (
@@ -145,19 +172,53 @@ export function useBrandEnabledSkills({
         }
       }
     },
-    [getToken, isReady, refreshBrands, selectedBrandId],
+    [applySelection, getToken, isReady, refreshBrands, selectedBrandId],
   );
 
-  const isUsingDefaults = enabledSlugs.length === 0;
-  const effectiveEnabledSlugs = useMemo(
-    () => (isUsingDefaults ? defaultSlugs : enabledSlugs),
-    [defaultSlugs, enabledSlugs, isUsingDefaults],
+  const toggleSkill = useCallback(
+    async (slug: string) => {
+      const current = selectionRef.current;
+      // Changing one switch while defaults apply turns the brand into an
+      // explicit selection that starts from the default set.
+      const baseSlugs = current.useDefaultSkills
+        ? defaultSlugsRef.current
+        : current.enabledSkills;
+      const enabledSkills = baseSlugs.includes(slug)
+        ? baseSlugs.filter((s) => s !== slug)
+        : [...baseSlugs, slug];
+
+      await persistSelection({ enabledSkills, useDefaultSkills: false });
+    },
+    [persistSelection],
+  );
+
+  const setUseDefaults = useCallback(
+    async (useDefaultSkills: boolean) => {
+      const current = selectionRef.current;
+      if (current.useDefaultSkills === useDefaultSkills) return;
+
+      await persistSelection({
+        // Turning defaults off keeps the default set as the starting point;
+        // turning them on keeps the explicit list for when they go off again.
+        enabledSkills: useDefaultSkills
+          ? current.enabledSkills
+          : [...defaultSlugsRef.current],
+        useDefaultSkills,
+      });
+    },
+    [persistSelection],
+  );
+
+  const enabledSlugs = useMemo(
+    () => (selection.useDefaultSkills ? defaultSlugs : selection.enabledSkills),
+    [defaultSlugs, selection],
   );
 
   return {
-    enabledSlugs: effectiveEnabledSlugs,
+    enabledSlugs,
     isLoading,
-    isUsingDefaults,
+    isUsingDefaults: selection.useDefaultSkills,
+    setUseDefaults,
     toggleSkill,
   };
 }

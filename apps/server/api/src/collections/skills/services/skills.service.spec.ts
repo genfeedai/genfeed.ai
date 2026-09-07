@@ -405,10 +405,52 @@ describe('SkillsService', () => {
     ).rejects.toBeInstanceOf(ValidationException);
   });
 
-  it('keeps an empty brand enabledSkills list empty for settings toggles', async () => {
+  it('reports the accessible defaults while a brand has no explicit selection', async () => {
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: {
+          isBuiltIn: true,
+          isEnabled: true,
+          name: 'Content Writing',
+          slug: 'content-writing',
+          source: 'built_in',
+          status: 'published',
+        },
+        id: 'cskillbuiltincontentwriting',
+        organizationId: null,
+      }),
+    ]);
+
     await expect(
-      service.getEnabledSkillSlugs('org-1', 'brand-1'),
-    ).resolves.toEqual([]);
+      service.getBrandSkillSelection('org-1', 'brand-1'),
+    ).resolves.toEqual({
+      enabledSlugs: ['content-writing'],
+      isUsingDefaults: true,
+    });
+  });
+
+  it('treats an explicit empty selection with defaults off as no skills', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: [], useDefaultSkills: false },
+      id: 'brand-1',
+    });
+
+    await expect(
+      service.getBrandSkillSelection('org-1', 'brand-1'),
+    ).resolves.toEqual({ enabledSlugs: [], isUsingDefaults: false });
+    expect(prisma.skill.findMany).not.toHaveBeenCalled();
+  });
+
+  it('ignores the explicit list while defaults are switched on', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: true },
+      id: 'brand-1',
+    });
+    prisma.skill.findMany.mockResolvedValue([makeSkillRow()]);
+
+    await expect(
+      service.getBrandSkillSelection('org-1', 'brand-1'),
+    ).resolves.toEqual({ enabledSlugs: [], isUsingDefaults: true });
   });
 
   it('filters malformed and inaccessible stored enabled-skill slugs', async () => {

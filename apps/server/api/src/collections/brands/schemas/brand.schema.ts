@@ -81,6 +81,12 @@ export interface BrandAgentConfig {
   defaultVoiceRef?: DefaultVoiceRef;
   enabledSkills?: string[];
   persona?: string;
+  /**
+   * Whether the first-party default skill set applies instead of
+   * `enabledSkills`. Undefined keeps the legacy rule: defaults while the list
+   * is empty.
+   */
+  useDefaultSkills?: boolean;
   platformOverrides?:
     | Map<string, BrandAgentPlatformOverride>
     | Record<string, BrandAgentPlatformOverride>;

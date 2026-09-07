@@ -317,11 +317,9 @@ export class BrandsService extends BaseService<Brand> {
 
   public async updateEnabledSkills(
     id: string,
-    enabledSkills: string[],
+    selection: { enabledSkills: string[]; useDefaultSkills: boolean },
   ): Promise<void> {
-    await this.instance.patch(`/${id}/agent-config/enabled-skills`, {
-      enabledSkills,
-    });
+    await this.instance.patch(`/${id}/agent-config/enabled-skills`, selection);
   }
 
   /**

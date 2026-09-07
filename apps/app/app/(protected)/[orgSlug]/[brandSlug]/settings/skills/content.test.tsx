@@ -14,6 +14,7 @@ const listSkillsMock = vi.fn();
 const customizeSkillMock = vi.fn();
 const updateSkillMock = vi.fn();
 const toggleSkillMock = vi.fn();
+const setUseDefaultsMock = vi.fn();
 const selectedBrandMock = {
   agentConfig: {
     enabledSkills: [],
@@ -54,6 +55,7 @@ vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
     enabledSlugs: [],
     isLoading: false,
     isUsingDefaults: false,
+    setUseDefaults: setUseDefaultsMock,
     toggleSkill: toggleSkillMock,
   }),
 }));
@@ -175,6 +177,9 @@ describe('BrandSettingsSkillsPage', () => {
     expect(
       screen.getByRole('switch', { name: 'Enable YouTube Script Setup' }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Use default skills' }));
+    expect(setUseDefaultsMock).toHaveBeenCalledWith(true);
 
     fireEvent.click(screen.getByText('YouTube Script Setup'));
 

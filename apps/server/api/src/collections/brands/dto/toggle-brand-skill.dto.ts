@@ -7,6 +7,8 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -28,4 +30,13 @@ export class ToggleBrandSkillDto {
     type: [String],
   })
   enabledSkills!: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Use the first-party default skill set instead of the explicit list',
+    required: false,
+  })
+  useDefaultSkills?: boolean;
 }

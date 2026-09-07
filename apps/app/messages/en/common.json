@@ -236,12 +236,13 @@
         "testWithAgent": "Test with Agent"
       },
       "catalog": {
-        "defaultsApplied": "No skills selected yet. The built-in defaults are enabled until you change a toggle.",
         "description": "Browse built-in, imported, and organization-owned content skills.",
         "empty": "No skills match the current filters.",
         "enableSkill": "Enable {name}",
         "loading": "Loading skill catalog…",
-        "title": "Catalog"
+        "title": "Catalog",
+        "useDefaults": "Use default skills",
+        "useDefaultsDescription": "On: the agent runs the built-in default set. Off: only the skills you toggle below are active."
       },
       "detail": {
         "coverage": "Coverage",

@@ -323,7 +323,10 @@ export class BrandsAgentConfigController {
     const updatedBrand = await this.brandsService.updateAgentConfig(
       id,
       organizationId,
-      { enabledSkills: toggleDto.enabledSkills } as UpdateBrandAgentConfigDto,
+      {
+        enabledSkills: toggleDto.enabledSkills,
+        useDefaultSkills: toggleDto.useDefaultSkills,
+      } as UpdateBrandAgentConfigDto,
     );
 
     if (!updatedBrand) {

@@ -29,14 +29,24 @@ import { useBrandEnabledSkills } from './use-brand-enabled-skills';
 
 function setBrand(
   enabledSkills: string[] | undefined,
-  options: { brandId?: string; isReady?: boolean; hasBrand?: boolean } = {},
+  options: {
+    brandId?: string;
+    isReady?: boolean;
+    hasBrand?: boolean;
+    useDefaultSkills?: boolean;
+  } = {},
 ): void {
-  const { brandId = 'brand-1', hasBrand = true, isReady = true } = options;
+  const {
+    brandId = 'brand-1',
+    hasBrand = true,
+    isReady = true,
+    useDefaultSkills,
+  } = options;
   mockUseBrand.mockReturnValue({
     isReady,
     refreshBrands: refreshBrandsMock,
     selectedBrand: hasBrand
-      ? { agentConfig: { enabledSkills }, id: brandId }
+      ? { agentConfig: { enabledSkills, useDefaultSkills }, id: brandId }
       : null,
   });
 }
@@ -81,10 +91,10 @@ describe('useBrandEnabledSkills', () => {
     });
 
     expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
-    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', [
-      'skill-a',
-      'skill-b',
-    ]);
+    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', {
+      enabledSkills: ['skill-a', 'skill-b'],
+      useDefaultSkills: false,
+    });
     expect(refreshBrandsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -266,10 +276,57 @@ describe('useBrandEnabledSkills', () => {
       await result.current.toggleSkill('content-writing');
     });
 
-    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', [
-      'model-selector',
-    ]);
+    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', {
+      enabledSkills: ['model-selector'],
+      useDefaultSkills: false,
+    });
     expect(result.current.enabledSlugs).toEqual(['model-selector']);
     expect(result.current.isUsingDefaults).toBe(false);
+  });
+
+  it('keeps an explicit empty selection empty when defaults are off', async () => {
+    setBrand([], { useDefaultSkills: false });
+
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({ defaultSlugs: ['content-writing'] }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isUsingDefaults).toBe(false);
+    });
+    expect(result.current.enabledSlugs).toEqual([]);
+  });
+
+  it('switches defaults on and off through setUseDefaults', async () => {
+    setBrand(['skill-a'], { useDefaultSkills: false });
+
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({ defaultSlugs: ['content-writing'] }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.enabledSlugs).toEqual(['skill-a']);
+    });
+
+    await act(async () => {
+      await result.current.setUseDefaults(true);
+    });
+
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['skill-a'],
+      useDefaultSkills: true,
+    });
+    expect(result.current.isUsingDefaults).toBe(true);
+    expect(result.current.enabledSlugs).toEqual(['content-writing']);
+
+    await act(async () => {
+      await result.current.setUseDefaults(false);
+    });
+
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['content-writing'],
+      useDefaultSkills: false,
+    });
+    expect(result.current.enabledSlugs).toEqual(['content-writing']);
   });
 });

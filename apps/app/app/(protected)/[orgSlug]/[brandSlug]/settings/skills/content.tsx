@@ -18,8 +18,10 @@ import type {
   SkillDraft,
 } from '@props/settings/skills.props';
 import { type Skill, SkillsService } from '@services/content/skills.service';
+import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { Switch } from '@ui/primitives/switch';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
@@ -158,6 +160,7 @@ export default function BrandSettingsSkillsPage() {
     enabledSlugs,
     isLoading: isTogglingSkill,
     isUsingDefaults,
+    setUseDefaults,
     toggleSkill,
   } = useBrandEnabledSkills({ defaultSlugs: defaultSkillSlugs });
 
@@ -403,11 +406,15 @@ export default function BrandSettingsSkillsPage() {
         </div>
       ) : null}
 
-      {isUsingDefaults && !isLoading ? (
-        <p className="mb-3 text-xs text-muted-foreground">
-          {translate('catalog.defaultsApplied')}
-        </p>
-      ) : null}
+      <InsetSurface className="mb-4" density="compact">
+        <Switch
+          checked={isUsingDefaults}
+          description={translate('catalog.useDefaultsDescription')}
+          isDisabled={isTogglingSkill || isLoading}
+          label={translate('catalog.useDefaults')}
+          onCheckedChange={(isChecked) => void setUseDefaults(isChecked)}
+        />
+      </InsetSurface>
 
       <SkillsTable
         enabledSlugs={enabledSlugs}

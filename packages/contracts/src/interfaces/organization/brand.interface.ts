@@ -147,6 +147,8 @@ export interface IBrandAgentConfig {
   heygenVoiceId?: string | null;
   persona?: string;
   enabledSkills?: string[];
+  /** Defaults apply instead of `enabledSkills`; undefined means defaults while the list is empty. */
+  useDefaultSkills?: boolean;
   voice?: IBrandAgentVoice;
   strategy?: IBrandAgentStrategy;
   prompting?: IBrandAgentPrompting;

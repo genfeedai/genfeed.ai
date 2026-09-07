@@ -446,6 +446,15 @@ export class UpdateBrandAgentConfigDto {
   })
   enabledSkills?: string[];
 
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Use the first-party default skill set instead of enabledSkills',
+    required: false,
+  })
+  useDefaultSkills?: boolean;
+
   @ValidateNested()
   @Type(() => UpdateBrandAgentScheduleDto)
   @IsOptional()
