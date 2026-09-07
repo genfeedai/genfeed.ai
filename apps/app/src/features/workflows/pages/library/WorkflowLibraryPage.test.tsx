@@ -252,7 +252,10 @@ vi.mock('./useWorkflowLibraryPage', () => ({
     loadWorkflows: vi.fn(),
     searchInput: '',
     setSearchInput: vi.fn(),
-    workflows: mocks.workflows,
+    workflows: mocks.workflows.map((workflow) => ({
+      cloudSync: mocks.cloudSync,
+      ...workflow,
+    })),
   }),
 }));
 
@@ -267,7 +270,6 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.workflows = [
       {
         id: 'workflow-1',
-        cloudSync: mocks.cloudSync,
         createdAt: '2026-07-01T00:00:00.000Z',
         isScheduleEnabled: true,
         lifecycle: 'published',
