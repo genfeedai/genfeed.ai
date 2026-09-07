@@ -452,7 +452,7 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
     expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.getByText('native-api: healthy')).toBeInTheDocument();
+    expect(screen.getByText('Native Api · healthy')).toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
     // detail route before the click and cmd-click opens it in a new tab.
@@ -534,7 +534,7 @@ describe('AnalyticsTrends', () => {
       await screen.findByText('Trend corpus degraded'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/apify: Saved fallback previews are being used/),
+      screen.getByText(/Apify: Saved fallback previews are being used/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
     expect(
