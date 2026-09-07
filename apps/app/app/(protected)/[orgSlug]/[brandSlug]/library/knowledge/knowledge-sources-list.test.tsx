@@ -26,6 +26,11 @@ const mocks = vi.hoisted(() => ({
   useKnowledgeLibrary: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
 }));
