@@ -38,6 +38,8 @@ export const API_ENDPOINTS = {
   INGREDIENTS: '/ingredients',
   INSIGHTS: '/insights',
   KNOWLEDGE_BASES: '/contexts',
+  KNOWLEDGE_SOURCES: '/knowledge-sources',
+  KNOWLEDGE_SPACES: '/knowledge-spaces',
   LENSES: '/elements/lenses',
   LIGHTINGS: '/elements/lightings',
   LINKS: '/links',

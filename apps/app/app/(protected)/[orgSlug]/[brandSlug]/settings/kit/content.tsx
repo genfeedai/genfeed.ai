@@ -1,6 +1,8 @@
 'use client';
 
-import { AssetCategory } from '@genfeedai/contracts';
+import { AssetCategory, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
@@ -10,6 +12,9 @@ import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
+import { BookOpen } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
 
@@ -19,6 +24,7 @@ import { captureBrandOsFunnelStage } from '@/lib/analytics';
  */
 export default function BrandSettingsKitPage() {
   const translate = useTranslations('pages.brandKitSettings');
+  const { href } = useOrgUrl();
   const {
     brand,
     brandId,
@@ -49,7 +55,7 @@ export default function BrandSettingsKitPage() {
   return (
     <Container>
       <section
-        aria-label="Brand Kit settings"
+        aria-label={translate('settingsAriaLabel')}
         className="mx-auto flex max-w-3xl flex-col gap-3"
         data-control-baseline="32px"
         data-scale-role="product"
@@ -111,6 +117,25 @@ export default function BrandSettingsKitPage() {
           }
           onDeleteReference={handleRequestDeleteReference}
         />
+
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-semibold text-foreground">
+                {translate('knowledgeTitle')}
+              </h2>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {translate('knowledgeDescription')}
+              </p>
+            </div>
+            <Button asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={href(APP_ROUTES.LIBRARY.KNOWLEDGE)}>
+                <BookOpen className="size-4" />
+                {translate('openKnowledge')}
+              </Link>
+            </Button>
+          </div>
+        </Card>
       </section>
     </Container>
   );

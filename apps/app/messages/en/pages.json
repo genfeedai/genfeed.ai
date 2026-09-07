@@ -267,7 +267,11 @@
     "manualAdjustments": "Manual adjustments",
     "manualDescription": "Add owned guidance and reference assets after reviewing the scan.",
     "reviewDescription": "Review extracted and inferred evidence before accepting it. Candidate colors stay separate from Genfeed product tokens.",
-    "reviewTitle": "Review brand evidence"
+    "reviewTitle": "Review brand evidence",
+    "settingsAriaLabel": "Brand Kit settings",
+    "knowledgeTitle": "Brand Knowledge",
+    "knowledgeDescription": "Save your website, docs and pasted material so generations cite them. Seed it from this Brand Kit in one click.",
+    "openKnowledge": "Open Knowledge"
   },
   "platforms": {
     "home": {
@@ -1071,6 +1075,83 @@
     "otherAssets": "Other assets",
     "sidebar": {
       "shelvesGroup": "Shelves"
+    },
+    "knowledge": {
+      "title": "Knowledge",
+      "description": "Sources Genfeed grounds your generations on, with citations.",
+      "seedFromBrandKit": "Seed from Brand Kit",
+      "addSource": "Add source",
+      "seedNeedsWebsite": "Add a website to the Brand Kit first",
+      "state": {
+        "queued": "Queued",
+        "processing": "Processing",
+        "ready": "Ready",
+        "failed": "Failed",
+        "none": "No capture"
+      },
+      "purpose": {
+        "brandTruth": "Brand Truth",
+        "inspiration": "Inspiration",
+        "research": "Research",
+        "brandTruthHint": "Facts about your brand that generations must respect.",
+        "inspirationHint": "Style and ideas to draw from; never treated as fact.",
+        "researchHint": "Market and audience material for context."
+      },
+      "add": {
+        "title": "Add knowledge source",
+        "description": "Genfeed extracts, chunks and embeds the source so generations can cite it.",
+        "modeText": "Paste text",
+        "modeUrl": "Web page URL",
+        "modeDocument": "PDF or document URL",
+        "sourceType": "Source type",
+        "titleLabel": "Title",
+        "titlePlaceholder": "Pricing page",
+        "text": "Text",
+        "textPlaceholder": "Paste the material Genfeed should know",
+        "url": "URL",
+        "documentUrl": "Document URL",
+        "urlPlaceholder": "https://",
+        "purposeLabel": "Purpose",
+        "cancel": "Cancel",
+        "submit": "Add source",
+        "success": "Source added; ingestion started",
+        "error": "Failed to add source"
+      },
+      "detail": {
+        "captured": "{kind} · captured {date}",
+        "neverCaptured": "never",
+        "version": "version {version} · {state}",
+        "purpose": "Purpose",
+        "usedInGeneration": "Used in generation",
+        "spaces": "Spaces",
+        "noSpaces": "Not in any space",
+        "addToSpace": "Add to space",
+        "retry": "Retry ingestion",
+        "archive": "Archive",
+        "inbox": "Inbox"
+      },
+      "list": {
+        "source": "Source",
+        "purpose": "Purpose",
+        "state": "State",
+        "captured": "Captured",
+        "spaces": "Spaces",
+        "allSources": "All sources",
+        "inbox": "Inbox",
+        "retry": "Retry",
+        "retryIngestion": "Retry ingestion",
+        "emptyTitle": "No knowledge sources yet",
+        "emptyDescription": "Add a web page, a document or pasted text and Genfeed will cite it in generations.",
+        "loadError": "Knowledge could not be loaded.",
+        "retrySuccess": "Ingestion requeued",
+        "retryError": "Failed to retry ingestion",
+        "updateError": "Failed to update source",
+        "archiveSuccess": "Source archived",
+        "archiveError": "Failed to archive source",
+        "moveError": "Failed to move source",
+        "addSuccess": "Source added; ingestion started",
+        "addError": "Failed to add source"
+      }
     }
   },
   "onboarding": {
