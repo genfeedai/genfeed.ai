@@ -537,12 +537,9 @@ describe('AnalyticsTrends', () => {
       screen.getByText(/Apify: Saved fallback previews are being used/),
     ).toBeInTheDocument();
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByText('Last successful refresh: Not recorded').length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getAllByText('Last attempt: Not recorded').length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Last refresh').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Last attempt').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
   it('shows corpus health as unavailable when its request fails', async () => {
