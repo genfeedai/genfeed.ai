@@ -1,13 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 
 import {
   getNodesByCategory,
   type NodeCategory,
 } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { Input } from '@genfeedai/ui/primitives/input';
+import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,
@@ -407,17 +407,14 @@ export function NodePalette({
 
       {/* Search bar */}
       <div className="border-b border-border p-3">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search nodes..."
-            aria-label="Search nodes"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 w-full bg-secondary pl-8 pr-3 text-sm"
-          />
-        </div>
+        <FormSearchbar
+          ariaLabel="Search nodes"
+          inputClassName="h-9 bg-secondary"
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search nodes..."
+          size={ComponentSize.MD}
+          value={searchQuery}
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto">

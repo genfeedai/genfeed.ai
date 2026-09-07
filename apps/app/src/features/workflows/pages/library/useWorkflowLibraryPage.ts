@@ -9,7 +9,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type CloudWorkflowData,
   createWorkflowApiService,
@@ -18,7 +18,6 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { useCloudSession } from '@/hooks/useCloudSession';
 
-const SEARCH_DEBOUNCE_MS = 300;
 export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
 export function useWorkflowLibraryPage() {
@@ -31,7 +30,6 @@ export function useWorkflowLibraryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<IPaginationParams>({
@@ -40,23 +38,9 @@ export function useWorkflowLibraryPage() {
     pages: 1,
     total: 0,
   });
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
   const loadedScopeKeyRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
-
-  // Debounced search
-  useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearch(searchInput);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    };
-  }, [searchInput]);
 
   // Load workflows
   const loadWorkflows = useCallback(
@@ -68,7 +52,7 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
-        const scopeKey = `${organizationId}:${pageScope}:${brandId ?? ''}:${debouncedSearch}`;
+        const scopeKey = `${organizationId}:${pageScope}:${brandId ?? ''}:${searchInput}`;
         const requestPage = loadedScopeKeyRef.current === scopeKey ? page : 1;
         if (loadedScopeKeyRef.current !== scopeKey && page !== 1) {
           setPage(1);
@@ -80,7 +64,7 @@ export function useWorkflowLibraryPage() {
           limit: WORKFLOW_LIBRARY_PAGE_SIZE,
           page: requestPage,
         };
-        if (debouncedSearch) params.search = debouncedSearch;
+        if (searchInput) params.search = searchInput;
 
         const data = await service.listPage(params);
         if (signal.aborted) return;
@@ -99,7 +83,7 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [brandId, debouncedSearch, getService, organizationId, page, pageScope],
+    [brandId, getService, organizationId, page, pageScope, searchInput],
   );
 
   useEffect(() => {
@@ -119,7 +103,7 @@ export function useWorkflowLibraryPage() {
   useEffect(() => {
     setPage((current) => (current === 1 ? current : 1));
     setSelectedIds((current) => (current.size === 0 ? current : new Set()));
-  }, [brandId, debouncedSearch, organizationId, pageScope]);
+  }, [brandId, organizationId, pageScope, searchInput]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: page changes must drop selected IDs that are no longer in the current query.
   useEffect(() => {
@@ -264,17 +248,6 @@ export function useWorkflowLibraryPage() {
     [],
   );
 
-  // Filter client-side for instant feedback during debounce
-  const filteredWorkflows = useMemo(() => {
-    if (!searchInput || searchInput === debouncedSearch) return workflows;
-    const query = searchInput.toLowerCase();
-    return workflows.filter(
-      (w) =>
-        w.label.toLowerCase().includes(query) ||
-        w.description?.toLowerCase().includes(query),
-    );
-  }, [workflows, searchInput, debouncedSearch]);
-
   return {
     href,
     isConnected,
@@ -290,7 +263,6 @@ export function useWorkflowLibraryPage() {
     handleToggleSchedule,
     handleDisableSelected,
     applyScheduleUpdate,
-    filteredWorkflows,
     selectedIds,
     toggleSelected,
     clearSelection,

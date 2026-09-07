@@ -1,7 +1,7 @@
 'use client';
 
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { Input } from '@ui/primitives/input';
-import { FileText, ImageIcon, Search } from 'lucide-react';
+import FormSearchbar from '@ui/primitives/searchbar';
+import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
@@ -79,21 +79,14 @@ export function ContentLibraryPicker({
         </DialogHeader>
 
         <div className="border-b border-border px-4 py-3">
-          <div className="relative">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              aria-label="Search library content"
-              className="h-9 pl-9"
-              onChange={(event) => {
-                setQuery(event.target.value);
-              }}
-              placeholder="Search by title or type…"
-              value={query}
-            />
-          </div>
+          <FormSearchbar
+            ariaLabel="Search library content"
+            inputClassName="h-9"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search by title or type…"
+            size={ComponentSize.MD}
+            value={query}
+          />
         </div>
 
         <div

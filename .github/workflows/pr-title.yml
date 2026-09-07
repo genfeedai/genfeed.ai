@@ -22,8 +22,12 @@ on:
 concurrency:
   # `github.event.pull_request` is absent on merge_group; each queue entry has
   # its own `gh-readonly-queue/...` ref, so `github.ref` is already unique.
+  # Never cancel: a cancelled run still reports a "PR Title" check on the head
+  # commit, and the ruleset treats it as a failed required check, leaving a
+  # green PR blocked until someone reruns it. Runs take seconds, so let them
+  # queue instead.
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+  cancel-in-progress: false
 
 permissions:
   pull-requests: read

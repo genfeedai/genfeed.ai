@@ -1,11 +1,16 @@
-import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  VoiceProvider,
+} from '@genfeedai/contracts';
 import type {
   VoicesCatalogControlsProps as Props,
   ProviderFilter,
 } from '@props/admin/voices.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
   SelectContent,
@@ -13,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
   { label: 'All providers', value: 'all' },
@@ -42,15 +47,12 @@ export default function VoicesCatalogControls({
             <span className="text-sm font-medium text-foreground/70">
               Search
             </span>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
-              <Input
-                className="pl-9"
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Search by name or external ID"
-                value={search}
-              />
-            </div>
+            <FormSearchbar
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search by name or external ID"
+              size={ComponentSize.MD}
+              value={search}
+            />
           </div>
 
           <div className="space-y-2">
