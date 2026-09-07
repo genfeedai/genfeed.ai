@@ -595,6 +595,10 @@ describe('AdsResearchPageClient', () => {
     fireEvent.change(screen.getByPlaceholderText('Search ads'), {
       target: { value: 'google' },
     });
+    // The search bar debounces; Enter commits the draft immediately.
+    fireEvent.keyDown(screen.getByPlaceholderText('Search ads'), {
+      key: 'Enter',
+    });
 
     expect(screen.queryByText('Meta hook story')).not.toBeInTheDocument();
     expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();

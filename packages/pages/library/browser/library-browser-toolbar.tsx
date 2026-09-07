@@ -27,7 +27,6 @@ import {
   selectedAssetTypeIds,
 } from '@utils/media/library-asset-type.util';
 import { Frame, LayoutGrid, Rows3, Upload, X } from 'lucide-react';
-import type { ChangeEvent } from 'react';
 import { useMemo } from 'react';
 
 import { LIBRARY_TYPE_CHIPS } from './library-browser.config';
@@ -137,10 +136,7 @@ export default function LibraryBrowserToolbar({
           <FormSearchbar
             className="w-full"
             inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              onSearchChange(event.target.value)
-            }
-            onClear={() => onSearchChange('')}
+            onSearch={onSearchChange}
             placeholder={searchPlaceholder}
             size={ComponentSize.SM}
             value={search}

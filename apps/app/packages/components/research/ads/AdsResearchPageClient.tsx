@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useState } from 'react';
+import { useState } from 'react';
 
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
@@ -256,10 +256,7 @@ export default function AdsResearchPageClient() {
             <div className="w-full sm:max-w-xs lg:max-w-sm">
               <FormSearchbar
                 value={search}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setSearch(event.target.value)
-                }
-                onClear={() => setSearch('')}
+                onSearch={setSearch}
                 placeholder="Search ads"
                 size={ComponentSize.MD}
                 className="w-full"
