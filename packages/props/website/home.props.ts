@@ -30,3 +30,19 @@ export interface HeroVideoProps {
   posterSrc: string;
   webmSrc: string;
 }
+
+/** One generated clip in the homepage output rail. */
+export interface HomeOutputAsset {
+  alt: string;
+  format: string;
+  mp4: string;
+  poster: string;
+  title: string;
+  webm: string;
+}
+
+export interface HomeOutputCardProps {
+  asset: HomeOutputAsset;
+  /** The rail preloads only the first card; the rest wait until they scroll in. */
+  isPreloaded: boolean;
+}

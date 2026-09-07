@@ -5,23 +5,23 @@ import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarouse
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {
-  HOME_ASSETS,
+  HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
 } from '@web-components/home/_assets';
 import HomeHeroVideo from '@web-components/home/_hero-video';
-import Image from 'next/image';
+import HomeOutputCard from '@web-components/home/_output-card';
 import Link from 'next/link';
 
 const AGENT_HREF = '/agent';
 
 export default function HomeHero(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
+    <section className="relative overflow-hidden border-b border-edge/5 bg-background pb-28 pt-20 sm:pb-36 sm:pt-28 lg:pb-44 lg:pt-36">
       <HomeHeroVideo
-        alt={HOME_ASSETS.heroVideo.alt}
-        mp4Src={HOME_ASSETS.heroVideo.mp4}
-        posterSrc={HOME_ASSETS.heroVideo.poster}
-        webmSrc={HOME_ASSETS.heroVideo.webm}
+        alt={HOME_HERO_VIDEO.alt}
+        mp4Src={HOME_HERO_VIDEO.mp4}
+        posterSrc={HOME_HERO_VIDEO.poster}
+        webmSrc={HOME_HERO_VIDEO.webm}
       />
 
       <div className="container relative mx-auto px-6 text-center">
@@ -75,54 +75,28 @@ export default function HomeHero(): React.ReactElement {
         </div>
       </div>
 
+      {/*
+        The rail breaks the container on purpose: cards run to both edges so the
+        row reads as a strip of output that continues past the viewport rather
+        than a boxed gallery of six. The inset matches the container's gutter at
+        the point the container stops growing, so the first card lines up with
+        the headline above it.
+      */}
       <div
-        className="animate-gen-rise relative mt-20 w-screen px-6 [--gen-stagger-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="animate-gen-rise relative mt-24 w-screen [--gen-stagger-delay:360ms] sm:mt-32 lg:mt-36"
         data-testid="home-hero-output-carousel"
       >
         <HorizontalCarousel
-          className="mx-auto"
-          gap="sm"
-          itemClassName="snap-x snap-mandatory pb-3"
+          gap="md"
+          itemClassName="snap-x snap-mandatory scroll-px-6 px-6 pb-4 lg:scroll-px-[max(3rem,calc((100vw-90rem)/2))] lg:px-[max(3rem,calc((100vw-90rem)/2))]"
         >
-          {HOME_OUTPUT_CAROUSEL_ASSETS.map((item, index) => {
-            const isFeatured = index === 0;
-
-            return (
-              <figure
-                key={item.alt}
-                className={`group relative flex-none snap-center overflow-hidden rounded-xl bg-card shadow-border-strong ${
-                  isFeatured
-                    ? 'h-[32rem] w-[78vw] max-w-[31rem] sm:h-[38rem]'
-                    : 'h-[28rem] w-[68vw] max-w-[22rem] sm:h-[34rem]'
-                }`}
-                data-testid="home-hero-output-carousel-item"
-              >
-                <Image
-                  alt={item.alt}
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"
-                  fill
-                  sizes={
-                    isFeatured
-                      ? '(max-width: 640px) 78vw, 496px'
-                      : '(max-width: 640px) 68vw, 352px'
-                  }
-                  src={item.src}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(5,6,7,0.94))]" />
-                <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
-                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/65">
-                    {item.format}
-                  </Text>
-                  <Heading
-                    as="h2"
-                    className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl"
-                  >
-                    {item.title}
-                  </Heading>
-                </figcaption>
-              </figure>
-            );
-          })}
+          {HOME_OUTPUT_CAROUSEL_ASSETS.map((asset, index) => (
+            <HomeOutputCard
+              asset={asset}
+              isPreloaded={index === 0}
+              key={asset.format}
+            />
+          ))}
         </HorizontalCarousel>
       </div>
     </section>

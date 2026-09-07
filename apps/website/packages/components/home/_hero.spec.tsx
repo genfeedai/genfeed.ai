@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
-  HOME_ASSETS,
+  HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
 } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
@@ -28,6 +28,24 @@ vi.mock('next/image', () => ({
 vi.mock('@web-components/home/_hero-video', () => ({
   default: ({ posterSrc }: { posterSrc: string }) => (
     <div data-poster={posterSrc} data-testid="home-hero-video" />
+  ),
+}));
+
+vi.mock('@web-components/home/_output-card', () => ({
+  default: ({
+    asset,
+    isPreloaded,
+  }: {
+    asset: { poster: string; title: string };
+    isPreloaded: boolean;
+  }) => (
+    <figure
+      data-poster={asset.poster}
+      data-preloaded={isPreloaded ? 'true' : 'false'}
+      data-testid="home-hero-output-carousel-item"
+    >
+      {asset.title}
+    </figure>
   ),
 }));
 
@@ -85,18 +103,22 @@ describe('HomeHero', () => {
 
     expect(screen.getByTestId('home-hero-video')).toHaveAttribute(
       'data-poster',
-      HOME_ASSETS.heroVideo.poster,
+      HOME_HERO_VIDEO.poster,
     );
   });
 
-  it('leaves the LCP to the hero poster, not the below-fold carousel', () => {
+  it('preloads only the first card in the rail', () => {
     render(<HomeHero />);
 
     const preloaded = screen
-      .getAllByRole('img')
-      .filter((image) => image.getAttribute('data-priority') === 'true');
+      .getAllByTestId('home-hero-output-carousel-item')
+      .filter((card) => card.getAttribute('data-preloaded') === 'true');
 
-    expect(preloaded).toHaveLength(0);
+    expect(preloaded).toHaveLength(1);
+    expect(preloaded[0]).toHaveAttribute(
+      'data-poster',
+      HOME_OUTPUT_CAROUSEL_ASSETS[0]?.poster,
+    );
   });
 
   it('never shows fabricated studio metrics', () => {
@@ -153,23 +175,16 @@ describe('HomeHero', () => {
     render(<HomeHero />);
 
     expect(screen.getByTestId('home-hero-output-carousel')).toBeInTheDocument();
-    expect(
-      screen.getAllByTestId('home-hero-output-carousel-item'),
-    ).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
+
+    const cards = screen.getAllByTestId('home-hero-output-carousel-item');
+
+    expect(cards).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
+    expect(cards.map((card) => card.getAttribute('data-poster'))).toEqual(
+      HOME_OUTPUT_CAROUSEL_ASSETS.map((asset) => asset.poster),
+    );
     expect(
       screen.queryByTestId('home-hero-output-wall'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
-
-    const imageSources = screen
-      .getAllByRole('img')
-      .map((image) => image.getAttribute('data-src'));
-
-    expect(imageSources).toEqual(
-      HOME_OUTPUT_CAROUSEL_ASSETS.map((asset) => asset.src),
-    );
-    expect(
-      imageSources.some((src) => src?.includes('generated-output-wall.png')),
-    ).toBe(false);
   });
 });
