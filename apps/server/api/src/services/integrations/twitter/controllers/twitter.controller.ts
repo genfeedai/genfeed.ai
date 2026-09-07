@@ -287,7 +287,7 @@ export class TwitterController {
   private async finalizeConnection(params: {
     accessToken: string;
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    grantedScopes: string | undefined;
+    grantedScopes: readonly string[] | string | undefined;
     organizationId: string;
     url: string;
   }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
