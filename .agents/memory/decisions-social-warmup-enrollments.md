@@ -9,7 +9,7 @@ type: project
 **Why:** Keep enrollments independent of blueprint catalog updates and of admin lead-warmup.
 
 **How to apply:**
-- Three Prisma models: enrollment, append-only event, signal. No `mongoId`. Soft delete is `isDeleted` only.
+- Three Prisma models: enrollment, append-only event, signal. Soft delete is `isDeleted` only.
 - Unique active enrollment is a **partial** SQL index, not `@@unique` in schema.prisma.
 - Provenance stays the blueprint lowercase string (`user_confirmed` / `platform_verified` / `genfeed_observed`).
 - Account age prefers `native-account-age`, then `first-upload-platform-signal` `createTime`. STALE / FAILED / MISSING stay distinct.

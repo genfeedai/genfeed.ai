@@ -56,7 +56,7 @@ beforeAll(async () => {
 
 // Cleanup after all tests
 afterAll(async () => {
-  // No MongoDB memory server to stop — Prisma connects to the configured DATABASE_URL
+  // No database server to stop — Prisma connects to the configured DATABASE_URL
 });
 
 // Clear mocks between tests

@@ -39,7 +39,7 @@ reviews:
     - path: "apps/server/**/*.ts"
       instructions: >
         Focus on correctness, regressions, authorization, and multi-tenancy.
-        Flag MongoDB queries or mutations that do not consistently scope by
+        Flag Prisma queries or mutations that do not consistently scope by
         organization where required, miss soft-delete constraints
         (`isDeleted: false`) where the collection expects them, or bypass
         established NestJS module/service/controller boundaries.

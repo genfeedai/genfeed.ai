@@ -10,7 +10,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MongoIdFactory } from '@test/factories/base.factory';
+import { TestIdFactory } from '@test/factories/base.factory';
 import {
   mockCacheService,
   mockConfigService,
@@ -57,7 +57,7 @@ describe('Video Generation Integration Tests', () => {
   let ffmpegService: MockFFmpegService;
 
   beforeAll(async () => {
-    // Start in-memory MongoDB
+    // Start the integration database
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [ConfigModule, PrismaModule],
@@ -237,7 +237,7 @@ describe('Video Generation Integration Tests', () => {
     it('should handle concurrent video generation requests', async () => {
       const requests = Array.from({ length: 5 }, (_, i) => ({
         prompt: `Video ${i}`,
-        user: MongoIdFactory.createString(),
+        user: TestIdFactory.createString(),
       }));
 
       ffmpegService.createKenBurnsVideoWithTransitions.mockImplementation(

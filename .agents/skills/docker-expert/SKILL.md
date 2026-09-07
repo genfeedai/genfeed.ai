@@ -15,7 +15,7 @@ metadata:
 - Container networking and volumes
 - Multi-stage builds optimization
 - Health checks and restart policies
-- MongoDB/Redis container setup
+- PostgreSQL/Redis container setup
 
 ## Dockerfile Best Practices
 
@@ -83,24 +83,29 @@ CMD ["npm", "start"]
 - Configure health checks
 - Use secrets management
 
-### MongoDB with Docker Compose
+### PostgreSQL with Docker Compose
+
+Persistence is PostgreSQL with the `vector` extension — match `docker/local/docker-compose.yml`:
 
 ```yaml
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: mongodb
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: genfeed-postgres
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      POSTGRES_DB: genfeed
+      POSTGRES_USER: genfeed
+      POSTGRES_PASSWORD: genfeed_local
+    ports:
+      - "5432:5432"
     volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app-network
-    command: mongod --auth
+      - genfeed_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U genfeed"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 ```
 
 ## Health Checks

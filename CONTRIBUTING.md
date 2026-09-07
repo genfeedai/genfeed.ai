@@ -314,6 +314,9 @@ are enforced by repository code and which remain GitHub administrator settings.
   module-level `COPY` const to satisfy `bun run check:untranslated-strings`.
 - Tests are colocated (`*.test.ts` / `*.spec.ts`); write the failing test
   first when fixing a bug.
+- Changing a `packages/*` public API surface needs either a package version bump
+  or a changenote under [`.changes/`](.changes/README.md). Run
+  `bun run check:package-api-surface --base-ref origin/master` to see which.
 - Repository-wide conventions that agents and humans both follow are in
   [AGENTS.md](AGENTS.md); the declared stack and how to change it are in
   [GOVERNANCE.md](GOVERNANCE.md).

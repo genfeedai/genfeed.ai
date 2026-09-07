@@ -310,7 +310,6 @@ export interface VideoJobData {
   ingredientId: string;
   userId: string;
   organizationId: string;
-  clerkUserId: string;
   priority?: JobPriority;
 
   params: {

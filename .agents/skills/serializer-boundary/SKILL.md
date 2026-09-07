@@ -11,12 +11,12 @@ Use when API response shapes or model-to-response mappings change.
 
 - New/updated API endpoints
 - Response contract updates
-- Refactors touching Mongoose documents returned to clients
+- Refactors touching Prisma records returned to clients
 
 ## Hard rules
 
 - Keep serializers in `packages/serializers`.
-- Do not return raw Mongoose documents directly to clients.
+- Do not return raw Prisma records directly to clients.
 - Preserve path-alias imports; avoid deep relative import chains.
 
 ## Execution checklist

@@ -3,7 +3,7 @@ type SerializableDocument = Record<string, unknown> & {
 };
 
 /**
- * Unwraps Prisma/Mongoose-shaped documents to a plain record.
+ * Unwraps Prisma-shaped documents to a plain record.
  * Used by content-intelligence serializers that flatten a JSON `data` column.
  */
 export function toSerializableDocument(data: unknown): SerializableDocument {

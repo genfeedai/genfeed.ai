@@ -72,21 +72,21 @@ const sanitized = sanitize(userInput);
 **Prevent Injection Attacks:**
 
 ```typescript
-// BAD: NoSQL Injection risk
-const query = { [userInput]: value };
+// BAD: attacker-controlled filter key
+const where = { [userInput]: value };
 
-// GOOD: Validated input
-const query = {
-  organization: validatedOrgId,
-  email: validatedEmail
+// GOOD: validated, explicit, tenant-scoped
+const where = {
+  organizationId: validatedOrgId,
+  email: validatedEmail,
+  isDeleted: false,
 };
 
-// BAD: SQL Injection (if using SQL)
-const query = `SELECT * FROM users WHERE email = '${email}'`;
+// BAD: SQL injection via interpolation
+await prisma.$queryRawUnsafe(`SELECT * FROM users WHERE email = '${email}'`);
 
-// GOOD: Parameterized query
-const query = 'SELECT * FROM users WHERE email = ?';
-db.query(query, [email]);
+// GOOD: parameterized tagged template
+await prisma.$queryRaw`SELECT * FROM users WHERE email = ${email}`;
 ```
 
 ### 3. Data Protection
@@ -312,21 +312,23 @@ async getData() {
 - Proper HTTP status codes
 - Log errors securely
 
-## MongoDB Security
+## PostgreSQL / Prisma Security
 
 **Connection Security:**
 
-- Use connection strings (not hardcoded)
+- Connection string from `ConfigService`, never hardcoded and never `process.env` in service logic
 - Database user with minimal privileges
-- Network access restricted
+- Network access restricted; TLS enforced (`POSTGRES_CA_FILE`)
 - Encryption at rest enabled
 
 **Query Security:**
 
-- Validate all inputs
-- Use parameterized queries
-- Prevent NoSQL injection
-- Enforce multi-tenancy
+- Validate all inputs at the DTO boundary
+- Prisma's query builder parameterizes by default; raw SQL uses `Prisma.sql` tagged
+  templates — never string interpolation into `$queryRawUnsafe`
+- Enforce multi-tenancy: every tenant-scoped query carries `organizationId` **and**
+  `isDeleted: false`. `bun run check:relation-alias-reads` bans relation-name aliases
+  standing in for scalar ids.
 
 **Index Security:**
 

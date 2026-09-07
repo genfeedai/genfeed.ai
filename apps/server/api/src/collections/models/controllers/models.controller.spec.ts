@@ -93,7 +93,7 @@ describe('ModelsController', () => {
   const mockRequest = {
     context: {
       organizationId: mockOrgId,
-      userId: 'user-mongo-id',
+      userId: 'user-legacy-id',
       isSuperAdmin: false,
       subscriptionTier: 'free',
       stripeSubscriptionStatus: 'active',

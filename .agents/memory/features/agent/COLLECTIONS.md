@@ -1,169 +1,103 @@
 # Agent Persistence Records
 
-> **Last verified:** 2026-06-29 against `packages/prisma/prisma/schema.prisma` and agent collection services.
+> **Last verified:** 2026-09-07 against `packages/prisma/prisma/schema.prisma`,
+> the agent collection controllers, and their services.
 
-Storage source of truth is Prisma/Postgres. Files under `apps/server/api/src/collections/agent-*/schemas/` are TypeScript compatibility wrappers around Prisma types, not Mongoose schemas. Some wrappers still expose legacy aliases such as `_id`, `organization`, `user`, and `room`; service writes should use canonical Prisma fields (`id`, `organizationId`, `userId`, `threadId`, `brandId`, etc.).
+Storage source of truth is Prisma/Postgres. Files under
+`apps/server/api/src/collections/agent-*/schemas/` are thin TypeScript wrappers that
+re-export the Prisma model type, sometimes widening a `Json` column to an object shape
+(`AgentRoomDocument`, `AgentMemoryDocument`). They declare no fields of their own.
+
+**Field lists live in `schema.prisma`, not here.** This file records the durable shape —
+services, endpoints, and ranking behavior — that a reader cannot recover from the schema
+alone. Read the model block in `schema.prisma` for the current columns.
+
+Every agent model carries `id` (cuid), `organizationId`, `createdAt`, and `updatedAt`.
+`AgentThread` and `AgentMessage` also carry `isDeleted`; `AgentMemory` has no soft-delete
+column and is hard-deleted by `removeMemory`.
 
 ## AgentThread
 
-**Prisma model:** `AgentThread`
-**Table:** `agent_threads`
-**Compatibility type:** `AgentRoomDocument`
-
-Canonical fields:
-
-```typescript
-{
-  id: string
-  mongoId?: string
-  userId: string
-  organizationId: string
-  title?: string
-  status?: string
-  config: Json
-  isDeleted: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-```
+**Prisma model:** `AgentThread` · **Table:** `agent_threads` ·
+**Wrapper:** `AgentRoomDocument` (widens `config` to `Record<string, unknown>`)
 
 **Service:** `AgentThreadsService`
 
 - `getUserThreads(userId, organizationId, status?)`
-- `archiveThread(threadId, organizationId)` / `unarchiveThread()`
+- `archiveThread(threadId, organizationId)` / `unarchiveThread()` / `archiveAllThreads()`
 - `updateThreadMetadata(threadId, organizationId, payload)`
 - `branchThread(threadId, organizationId, userId)` creates a new thread and copies messages
+- `listAgentRuns(...)` backs the separate `agent/runs` controller
 
-**Controller endpoints:** canonical namespace is `/agent/threads`.
+**Controllers:** `agent/threads` (`AgentThreadsController`) and `agent/runs`
+(`AgentRunsController`).
 
 | Method | Path | Operation |
 |--------|------|-----------|
 | `GET` | `/agent/threads` | List user threads (filter by status) |
-| `GET` | `/agent/threads/:threadId` | Get thread by ID |
 | `POST` | `/agent/threads` | Create new thread |
-| `GET` | `/agent/threads/:threadId/messages` | List thread messages |
-| `GET` | `/agent/threads/:threadId/messages/:messageId` | Get one thread message |
-| `POST` | `/agent/threads/:threadId/messages` | Add message |
-| `POST` | `/agent/threads/:threadId/branches` | Branch thread |
+| `PATCH` | `/agent/threads` | Bulk update |
+| `GET` | `/agent/threads/:threadId` | Get thread by ID |
 | `PATCH` | `/agent/threads/:threadId` | Update metadata or status |
+| `PATCH` | `/agent/threads/:threadId/context` | Update thread context |
+| `GET` | `/agent/threads/:threadId/messages` | List thread messages |
+| `POST` | `/agent/threads/:threadId/messages` | Add message |
+| `GET` | `/agent/threads/:threadId/messages/:messageId` | Get one thread message |
+| `GET` | `/agent/threads/:threadId/messages/:messageId/artifact-references` | Resolve artifact references |
+| `GET` | `/agent/runs` | List agent runs |
 
 ## AgentMessage
 
-**Prisma model:** `AgentMessage`
-**Table:** `agent_messages`
+**Prisma model:** `AgentMessage` · **Table:** `agent_messages`
 
-Canonical fields:
+**Indexes:** `@@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)])`,
+`@@index([threadId, isDeleted, id])`
 
-```typescript
-{
-  id: string
-  mongoId?: string
-  threadId: string
-  organizationId: string
-  userId?: string
-  brandId?: string
-  role: string
-  content?: string
-  toolCalls?: Json
-  toolResults?: Json
-  metadata?: Json
-  isDeleted: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-```
+**Service:** `AgentMessagesService`. The service still uses `room` in its parameter names
+as a synonym for the thread; writes go to the canonical `threadId` column.
 
-**Indexes:** `@@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])`, `@@index([threadId, isDeleted, id])`
-
-**Service:** `AgentMessagesService`
-
-- `addMessage(dto)` maps compatibility `room` to canonical `threadId`
-- `getMessagesByRoom(roomId, organizationId, { limit, page, cursor })`
-- `getRecentMessages(roomId, limit?)`
+- `addMessage(dto)` maps the compatibility `room` field to canonical `threadId`
+- `getMessagesByRoom(roomId, organizationId, { limit, page, cursor })` / `getMessagesPage`
+- `getRecentMessages(roomId, limit?)` / `getMessagesAfter` / `getAllMessages` / `getAllMessagesAfter`
+- `countMessages(roomId)` / `countMessagesAfter`
 - `copyMessages(sourceRoom, targetRoom, organizationId)`
+- `resolveMessageArtifactReferences(...)` backs the artifact-references endpoint
 
 ## WorkflowExecution
 
-**Prisma model:** `WorkflowExecution`
-**Table:** `workflow_executions`
+**Prisma model:** `WorkflowExecution` · **Table:** `workflow_executions`
 
-The AgentRun model was deleted in the workflow-only execution hard cut. Agent turns persist a `WorkflowExecution` row (plus per-node `WorkflowExecutionNodeResult`s). There is no `agent_runs` table and no `AgentRunsService`.
+The `AgentRun` model was deleted in the workflow-only execution hard cut. Agent turns
+persist a `WorkflowExecution` row plus per-node `WorkflowExecutionNodeResult`s. There is
+no `agent_runs` table — the `agent/runs` endpoint reads threads and executions.
 
-Canonical fields:
-
-```typescript
-{
-  id: string
-  idempotencyKey?: string
-  workflowId: string
-  workflowVersionId: string
-  userId: string
-  organizationId: string
-  status: WorkflowExecutionStatus
-  result?: Json
-  error?: string
-  startedAt?: Date
-  completedAt?: Date
-  progress: number
-  durationMs?: number
-  creditsUsed: number
-  failedNodeId?: string
-  trigger?: string
-  isDeleted: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-```
-
-**Indexes:** `@@unique([organizationId, idempotencyKey])`, `@@index([organizationId, isDeleted, createdAt(sort: Desc)])`
+**Indexes:** `@@unique([organizationId, idempotencyKey])`,
+`@@index([organizationId, isDeleted, createdAt(sort: Desc)])`
 
 **Service:** `WorkflowExecutionsService` (`apps/server/api/src/collections/workflow-executions/`)
 
 ## AgentMemory
 
-**Prisma model:** `AgentMemory`
-**Table:** `agent_memories`
+**Prisma model:** `AgentMemory` · **Table:** `agent_memories` ·
+**Wrapper:** `AgentMemoryDocument` (narrows `contentType`, `kind`, `scope` to their unions)
 
-Canonical fields:
-
-```typescript
-{
-  id: string
-  mongoId?: string
-  organizationId: string
-  userId: string
-  brandId?: string
-  campaignId?: string
-  content?: string
-  type?: string
-  metadata?: Json
-  scope?: string
-  kind?: string
-  contentType?: string
-  platform?: string
-  summary?: string
-  tags: string[]
-  sourceType?: string
-  sourceUrl?: string
-  sourceContentId?: string
-  sourceMessageId?: string
-  importance?: number
-  confidence?: number
-  performanceSnapshot?: Json
-  createdAt: Date
-  updatedAt: Date
-}
-```
+Enum-like unions live in the schema wrapper, not in Prisma: `AGENT_MEMORY_KINDS`,
+`AGENT_MEMORY_SCOPES`, `AGENT_MEMORY_CONTENT_TYPES`.
 
 **Service:** `AgentMemoriesService`
 
 - `getMemoriesForPrompt(userId, organizationId, { query?, contentType?, brandId?, pinnedMemoryIds?, limit? })`
-  - Fetches candidates, ranks by pinned status, brand/content match, kind, importance/confidence, query terms, and recency.
+  - Fetches candidates, ranks by pinned status, brand/content match, kind,
+    importance/confidence, query terms, and recency.
+- `getFeedbackMemoriesForGeneration(...)`
 - `listForUser(userId, organizationId, { limit? })`
 - `createMemory(userId, organizationId, payload)`
 - `getCampaignMemories(campaignId, organizationId, contentType?)`
 - `saveCampaignMemory(userId, organizationId, campaignId, payload)`
 - `removeMemory(memoryId, userId, organizationId)`
+
+Capture paths are separate services: `AgentMemoryCaptureService.capture(...)` and
+`TaskFeedbackMemoryAdapterService.captureFromTaskReview(...)`.
 
 **Memory in system prompt** is organized into five sections:
 

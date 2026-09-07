@@ -35,8 +35,8 @@ clear convention.
 
 ## Persistence Invariants
 
-- Use Prisma models and the repository's existing Prisma service boundaries;
-  do not add Mongoose schemas, `ObjectId` references, or Mongo query idioms.
+- Use Prisma models and the repository's existing Prisma service boundaries.
+  Prisma is the only persistence layer; there is no second ORM or document store.
 - Every tenant-scoped query includes both `organizationId: orgId` and
   `isDeleted: false`. Apply the documented self-hosted single-tenant exception
   only where the existing boundary supports it.
@@ -72,7 +72,7 @@ clear convention.
 
 ## Reject These Patterns
 
-- MongoDB/Mongoose examples or compatibility shims in new code.
+- Compatibility shims, dual-read paths, or backward-compatibility wrappers in new code.
 - Tenant queries without organization and soft-delete scope.
 - Raw Prisma records returned as public responses when a serializer exists.
 - Nest decorators in shared framework-agnostic packages.

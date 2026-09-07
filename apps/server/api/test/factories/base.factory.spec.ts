@@ -1,4 +1,4 @@
-import { BaseFactory, MongoIdFactory } from '@test/factories/base.factory';
+import { BaseFactory, TestIdFactory } from '@test/factories/base.factory';
 import {
   clearAllMocks,
   generateTestEmail,
@@ -57,18 +57,18 @@ describe('BaseFactory', () => {
   });
 });
 
-describe('MongoIdFactory', () => {
+describe('TestIdFactory', () => {
   it('creates valid ObjectIds and string representations', () => {
-    const objectId = MongoIdFactory.create();
-    const stringId = MongoIdFactory.createString();
+    const objectId = TestIdFactory.create();
+    const stringId = TestIdFactory.createString();
 
-    expect(MongoIdFactory.isValid(objectId)).toBe(true);
-    expect(MongoIdFactory.isValid(stringId)).toBe(true);
+    expect(TestIdFactory.isValid(objectId)).toBe(true);
+    expect(TestIdFactory.isValid(stringId)).toBe(true);
   });
 
   it('creates many ids', () => {
-    expect(MongoIdFactory.createMany(2)).toHaveLength(2);
-    expect(MongoIdFactory.createManyStrings(3)).toHaveLength(3);
+    expect(TestIdFactory.createMany(2)).toHaveLength(2);
+    expect(TestIdFactory.createManyStrings(3)).toHaveLength(3);
   });
 });
 

@@ -7,7 +7,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MongoIdFactory } from '@test/factories/base.factory';
+import { TestIdFactory } from '@test/factories/base.factory';
 import {
   mockConfigService,
   mockLoggerService,
@@ -54,7 +54,7 @@ type CreditTransactionsServiceMock = {
 };
 
 describe('Payment Processing Integration Tests (Stripe)', () => {
-  // Increase timeout for MongoDB memory server operations
+  // Increase timeout for integration database operations
   // vi timeout configured in vitest.config(30000);
 
   let app: INestApplication;
@@ -218,7 +218,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
   });
 
   afterAll(async () => {
-    // Ensure proper cleanup order: app -> module -> mongo
+    // Ensure proper cleanup order: app -> module -> database
     try {
       if (app) {
         await app.close();
@@ -253,9 +253,9 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     it('should create a new Stripe customer', async () => {
       const userData = {
         email: 'test@example.com',
-        id: MongoIdFactory.createString(),
+        id: TestIdFactory.createString(),
         name: 'Test User',
-        organization: MongoIdFactory.createString(),
+        organization: TestIdFactory.createString(),
       };
 
       const mockStripeCustomer = {
@@ -273,7 +273,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
         mockStripeCustomer,
       );
       (customersService.create as vi.Mock).mockResolvedValue({
-        _id: MongoIdFactory.createString(),
+        _id: TestIdFactory.createString(),
         organization: userData.organization,
         stripeCustomerId: mockStripeCustomer.id,
       });
@@ -321,7 +321,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     it('should create and activate a subscription', async () => {
       const customerId = 'cus_test123';
       const priceId = 'price_test123';
-      const userId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
 
       const mockSubscription = {
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
@@ -348,7 +348,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
         mockSubscription,
       );
       (subscriptionsService.create as vi.Mock).mockResolvedValue({
-        _id: MongoIdFactory.createString(),
+        _id: TestIdFactory.createString(),
         status: 'active',
         stripeSubscriptionId: mockSubscription.id,
         user: userId,
@@ -670,7 +670,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
             metadata: {
               credits: '1000',
               type: 'credit_purchase',
-              userId: MongoIdFactory.createString(),
+              userId: TestIdFactory.createString(),
             },
           },
         },
@@ -745,7 +745,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
 
   describe('Credit System Integration', () => {
     it('should deduct credits for video generation', async () => {
-      const userId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
       const videoGenerationCost = 100;
 
       (creditTransactionsService.calculateBalance as vi.Mock).mockResolvedValue(
@@ -772,7 +772,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     });
 
     it('should handle insufficient credits', async () => {
-      const userId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
       const requiredCredits = 100;
 
       (creditTransactionsService.calculateBalance as vi.Mock).mockResolvedValue(
@@ -792,7 +792,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     });
 
     it('should add credits after successful payment', async () => {
-      const userId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
       const creditAmount = 1000;
 
       (creditTransactionsService.addCredits as vi.Mock).mockResolvedValue({

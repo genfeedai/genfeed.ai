@@ -1,10 +1,10 @@
 # Agent Threading & Event Sourcing
 
-> **Last verified:** 2026-06-29 against `apps/server/api/src/services/agent-threading/` and `packages/prisma/prisma/schema.prisma`.
+> **Last verified:** 2026-09-07 against `apps/server/api/src/services/agent-threading/` and `packages/prisma/prisma/schema.prisma`.
 
 **Directory:** `apps/server/api/src/services/agent-threading/`
 
-Agent threading now persists through Prisma/Postgres. The `schemas/*.schema.ts` files in this directory are compatibility document types around Prisma rows and snapshot JSON, not Mongoose collection schemas.
+Agent threading persists through Prisma/Postgres. The `schemas/*.schema.ts` files in this directory are thin document types over Prisma rows and snapshot JSON; they declare no persisted fields of their own.
 
 ## Module Exports
 
@@ -25,7 +25,10 @@ Agent threading now persists through Prisma/Postgres. The `schemas/*.schema.ts` 
 
 Runtime/session bindings, input requests, and profile snapshots are not standalone Prisma tables in the current schema. Current services adapt them into document-like shapes from `AgentThreadSnapshot.data`.
 
-## Event Types (19)
+## Event Types (21)
+
+Source of truth: `AGENT_THREAD_EVENT_TYPES` in
+`apps/server/api/src/services/agent-threading/types/agent-thread.types.ts`.
 
 ```
 thread.turn_requested    thread.turn_started
@@ -34,6 +37,7 @@ tool.started             tool.progress           tool.completed
 input.requested          input.resolved
 plan.upserted            ui.blocks_updated
 run.cancelled            run.completed            run.failed
+run.interrupted          run.retried
 memory.flushed
 work.started             work.updated             work.completed
 error.raised
@@ -105,7 +109,6 @@ Canonical row fields:
 ```typescript
 {
   id: string
-  mongoId?: string
   organizationId: string
   threadId: string
   data: Json

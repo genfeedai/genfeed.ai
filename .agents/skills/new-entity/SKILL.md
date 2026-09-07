@@ -51,7 +51,7 @@ Before writing any file:
 
 **File:** `packages/prisma/prisma/schema.prisma`
 
-Append model block. Use scalar foreign keys (`userId`, `organizationId`, `brandId`). Never add `mongoId` or Clerk/auth-provider id columns.
+Append model block. Use scalar foreign keys (`userId`, `organizationId`, `brandId`). Never add a legacy or auth-provider id column alongside them — `id` plus the scalar FKs are the only identity.
 
 ```prisma
 model <EntityName> {

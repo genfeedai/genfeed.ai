@@ -42,13 +42,13 @@ metadata:
 
 **API Response Times:** Target < 200ms (p95), caching, background jobs, connection pooling
 
-**Query Optimization:** Indexes, projections, pagination, optimized aggregations
+**Query Optimization:** Indexes, `select`/`include` narrowing, cursor pagination, no N+1 relation loads
 
-### Database (MongoDB)
+### Database (PostgreSQL / Prisma)
 
-**Indexes:** On frequently queried fields, compound indexes, monitor usage
+**Indexes:** `@@index` on hot filters; compound indexes lead with `organizationId` for tenant-scoped reads; monitor usage
 
-**Queries:** Early $match, projection before expensive ops, sort with indexes
+**Queries:** Filter in the database not in JS, `select` only the columns you use, sort on an indexed column, batch relation loads to avoid N+1
 
 ### Infrastructure (AWS)
 

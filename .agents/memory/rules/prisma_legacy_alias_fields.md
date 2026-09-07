@@ -1,6 +1,6 @@
-# Prisma rows: never read Mongo-era alias fields
+# Prisma rows: never read relation-name alias fields
 
-**last_verified: 2026-08-14** · Canonical doc: [docs/identity-resolution.md](../../../docs/identity-resolution.md)
+**last_verified: 2026-09-07** · Canonical doc: [docs/identity-resolution.md](../../../docs/identity-resolution.md)
 
 Scalar foreign keys (`organizationId`, `userId`, `brandId`, `roleId`) are the only
 persistence identity on Prisma rows. Relation names are reserved for actual
@@ -18,5 +18,5 @@ an id (`post.organization !== orgId`), and using `_id` / `organization` /
 
 API request identity is `AuthenticatedUser` on `request.user`
 (`userId`, `organizationId`, `brandId`, `isSuperAdmin`). Do not nest those
-fields under Clerk-shaped `publicMetadata`. Controllers use
+fields under a nested `publicMetadata` object. Controllers use
 `extractRequestContext` / `getIsSuperAdmin` — there is no `getPublicMetadata`.

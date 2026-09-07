@@ -78,9 +78,8 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           exit-code: "0"
-          # .deepsec is a vendored side-project with its own pnpm lockfile — its
-          # deps never ship. node_modules is already covered via the lockfiles.
-          skip-dirs: ".deepsec,**/node_modules"
+          # node_modules is already covered via the lockfiles.
+          skip-dirs: "**/node_modules"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
