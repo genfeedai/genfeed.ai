@@ -47,6 +47,8 @@ const PLATFORM_OPTIONS = [
   { label: 'X', value: SocialSourcePlatform.TWITTER },
   { label: 'Instagram', value: SocialSourcePlatform.INSTAGRAM },
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
+  { label: 'YouTube', value: SocialSourcePlatform.YOUTUBE },
+  { label: 'LinkedIn', value: SocialSourcePlatform.LINKEDIN },
 ] as const;
 
 type SourceCandidate = {

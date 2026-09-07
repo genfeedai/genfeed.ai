@@ -65,6 +65,7 @@ describe('ApifyYouTubeService', () => {
             extractHashtags: vi.fn((text: string) =>
               (text.match(/#\w+/g) || []).map((t) => t.slice(1)),
             ),
+            getApiToken: vi.fn().mockReturnValue('test-token'),
             loggerService: {
               error: vi.fn(),
               log: vi.fn(),
@@ -255,6 +256,42 @@ describe('ApifyYouTubeService', () => {
       );
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getYouTubeChannelUploads', () => {
+    it('should return raw channel uploads without normalization', async () => {
+      baseService.runActor.mockResolvedValue([mockRawVideo]);
+
+      const result = await service.getYouTubeChannelUploads(
+        'https://youtube.com/@TestChannel',
+        { limit: 5 },
+      );
+
+      expect(result).toEqual([mockRawVideo]);
+      expect(baseService.runActor).toHaveBeenCalledWith(
+        baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
+        expect.objectContaining({
+          maxResults: 5,
+          startUrls: [{ url: 'https://youtube.com/@TestChannel' }],
+        }),
+      );
+    });
+
+    it('should throw when APIFY_API_TOKEN is not configured', async () => {
+      baseService.getApiToken.mockReturnValue(null);
+
+      await expect(
+        service.getYouTubeChannelUploads('https://youtube.com/@TestChannel'),
+      ).rejects.toThrow('APIFY_API_TOKEN is not configured');
+    });
+
+    it('should rethrow when the actor run fails', async () => {
+      baseService.runActor.mockRejectedValue(new Error('Actor failed'));
+
+      await expect(
+        service.getYouTubeChannelUploads('https://youtube.com/@Chan'),
+      ).rejects.toThrow('Actor failed');
     });
   });
 

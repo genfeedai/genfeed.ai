@@ -6,6 +6,7 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
+import { InstagramBusinessDiscoveryProvider } from '@api/services/source-collector/providers/instagram-business-discovery.provider';
 import { InstagramOfficialProvider } from '@api/services/source-collector/providers/instagram-official.provider';
 import { LinkedinOfficialProvider } from '@api/services/source-collector/providers/linkedin-official.provider';
 import { TiktokOfficialProvider } from '@api/services/source-collector/providers/tiktok-official.provider';
@@ -36,6 +37,7 @@ import { Module } from '@nestjs/common';
     TwitterBrandOAuthProvider,
     TwitterAppBearerProvider,
     InstagramOfficialProvider,
+    InstagramBusinessDiscoveryProvider,
     TiktokOfficialProvider,
     YoutubeOfficialProvider,
     LinkedinOfficialProvider,
