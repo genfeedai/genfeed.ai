@@ -23,3 +23,10 @@ export interface HowStep {
   step: string;
   title: string;
 }
+
+export interface HeroVideoProps {
+  alt: string;
+  mp4Src: string;
+  posterSrc: string;
+  webmSrc: string;
+}

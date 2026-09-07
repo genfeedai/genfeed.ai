@@ -104,3 +104,6 @@ apps/server/api/openapi/openapi.json
 
 # Local thumbnail worker scratch output (media); never commit to this public repo
 public/tmp/
+
+# Hero background video artefacts (generated, published to the CDN)
+apps/website/.hero-video/

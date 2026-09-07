@@ -8,7 +8,21 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 const home = (file: string) =>
   cdnAsset(`/assets/branding/website/home/${file}`);
 
+const heroVideo = (file: string) => home(`hero/${file}`);
+
 export const HOME_ASSETS = {
+  /**
+   * The hero background clip, generated through the product's own Replicate
+   * provider and published by `scripts/generate-hero-video.ts`. The poster is
+   * frame 0 of `mp4`, which is what makes the still-to-playback handoff
+   * seamless — regenerate the pair together, never one without the other.
+   */
+  heroVideo: {
+    alt: 'Generated creator footage playing behind the Genfeed headline',
+    mp4: heroVideo('hero-loop.mp4'),
+    poster: heroVideo('hero-loop-poster.webp'),
+    webm: heroVideo('hero-loop.webm'),
+  },
   formats: {
     ads: home('formats/ads.webp'),
     articles: home('formats/articles.webp'),

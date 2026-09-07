@@ -4,7 +4,11 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
+import {
+  HOME_ASSETS,
+  HOME_OUTPUT_CAROUSEL_ASSETS,
+} from '@web-components/home/_assets';
+import HomeHeroVideo from '@web-components/home/_hero-video';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -12,8 +16,15 @@ const AGENT_HREF = '/agent';
 
 export default function HomeHero(): React.ReactElement {
   return (
-    <section className="overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
-      <div className="container mx-auto px-6 text-center">
+    <section className="relative overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
+      <HomeHeroVideo
+        alt={HOME_ASSETS.heroVideo.alt}
+        mp4Src={HOME_ASSETS.heroVideo.mp4}
+        posterSrc={HOME_ASSETS.heroVideo.poster}
+        webmSrc={HOME_ASSETS.heroVideo.webm}
+      />
+
+      <div className="container relative mx-auto px-6 text-center">
         <Text className="animate-gen-stagger-in text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
           Made with Genfeed
         </Text>
@@ -65,7 +76,7 @@ export default function HomeHero(): React.ReactElement {
       </div>
 
       <div
-        className="animate-gen-rise mt-20 w-screen px-6 [--gen-stagger-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="animate-gen-rise relative mt-20 w-screen px-6 [--gen-stagger-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
         data-testid="home-hero-output-carousel"
       >
         <HorizontalCarousel
@@ -90,7 +101,6 @@ export default function HomeHero(): React.ReactElement {
                   alt={item.alt}
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"
                   fill
-                  priority={isFeatured}
                   sizes={
                     isFeatured
                       ? '(max-width: 640px) 78vw, 496px'

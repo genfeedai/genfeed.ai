@@ -1,5 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
+import {
+  HOME_ASSETS,
+  HOME_OUTPUT_CAROUSEL_ASSETS,
+} from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
@@ -19,6 +22,12 @@ vi.mock('next/image', () => ({
       data-src={typeof props.src === 'string' ? props.src : undefined}
       role="img"
     />
+  ),
+}));
+
+vi.mock('@web-components/home/_hero-video', () => ({
+  default: ({ posterSrc }: { posterSrc: string }) => (
+    <div data-poster={posterSrc} data-testid="home-hero-video" />
   ),
 }));
 
@@ -71,18 +80,23 @@ describe('HomeHero', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('preloads exactly one carousel image for the LCP', () => {
+  it('plays a generated clip behind the headline', () => {
+    render(<HomeHero />);
+
+    expect(screen.getByTestId('home-hero-video')).toHaveAttribute(
+      'data-poster',
+      HOME_ASSETS.heroVideo.poster,
+    );
+  });
+
+  it('leaves the LCP to the hero poster, not the below-fold carousel', () => {
     render(<HomeHero />);
 
     const preloaded = screen
       .getAllByRole('img')
       .filter((image) => image.getAttribute('data-priority') === 'true');
 
-    expect(preloaded).toHaveLength(1);
-    expect(preloaded[0]).toHaveAttribute(
-      'data-src',
-      HOME_OUTPUT_CAROUSEL_ASSETS[0].src,
-    );
+    expect(preloaded).toHaveLength(0);
   });
 
   it('never shows fabricated studio metrics', () => {
