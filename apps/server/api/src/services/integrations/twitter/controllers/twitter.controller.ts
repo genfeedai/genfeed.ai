@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -53,6 +54,7 @@ export class TwitterController {
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly twitterAuthorizedSignalsService: TwitterAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
     private readonly twitterService: TwitterService,
   ) {}
 
@@ -234,26 +236,13 @@ export class TwitterController {
         },
       );
 
-      try {
-        await this.twitterAuthorizedSignalsService.refresh({
-          accessToken,
-          credentialId: updatedCredential.id.toString(),
-          force: true,
-          grantedScopes: scope,
-          organizationId,
-        });
-        updatedCredential =
-          (await this.credentialsService.findOne({
-            id: updatedCredential.id.toString(),
-            organizationId,
-            platform: toPrismaCredentialPlatform(CredentialPlatform.TWITTER),
-          })) ?? updatedCredential;
-      } catch (signalError: unknown) {
-        this.loggerService.warn(
-          `${url} authorized signal refresh failed after connection`,
-          signalError,
-        );
-      }
+      updatedCredential = await this.finalizeConnection({
+        accessToken,
+        credential: updatedCredential,
+        grantedScopes: scope,
+        organizationId,
+        url,
+      });
 
       return serializeSingle(request, CredentialSerializer, updatedCredential);
     } catch (error: unknown) {
@@ -288,6 +277,54 @@ export class TwitterController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Post-connection work that must never fail the connection itself: refresh
+   * the authorized signals snapshot, then queue the import of the account's
+   * existing posts. Both are best-effort and logged on failure.
+   */
+  private async finalizeConnection(params: {
+    accessToken: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    grantedScopes: readonly string[] | string | undefined;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, grantedScopes, organizationId, url } = params;
+    let credential = params.credential;
+    try {
+      await this.twitterAuthorizedSignalsService.refresh({
+        accessToken,
+        credentialId: credential.id.toString(),
+        force: true,
+        grantedScopes,
+        organizationId,
+      });
+      credential =
+        (await this.credentialsService.findOne({
+          id: credential.id.toString(),
+          organizationId,
+          platform: toPrismaCredentialPlatform(CredentialPlatform.TWITTER),
+        })) ?? credential;
+    } catch (signalError: unknown) {
+      this.loggerService.warn(
+        `${url} authorized signal refresh failed after connection`,
+        signalError,
+      );
+    }
+    try {
+      await this.historyImportService.scheduleForCredential({
+        credentialId: credential.id.toString(),
+        organizationId,
+      });
+    } catch (scheduleError: unknown) {
+      this.loggerService.warn(
+        `${url} history import scheduling failed after connection`,
+        scheduleError,
+      );
+    }
+    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

@@ -309,6 +309,63 @@ describe('SocialSourcesService', () => {
     });
   });
 
+  describe('resyncOwnAccount', () => {
+    const ownAccountSource = {
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      handle: 'openai',
+      id: 'source-1',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      sourceType: SocialSourceType.OWN_ACCOUNT,
+      userId: 'user-1',
+    };
+
+    it('re-collects an own-account source over a fixed 90-day/100-post window', async () => {
+      sourceCollector.collectTimeline.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [],
+        provider: 'app-bearer',
+      });
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+        posts: [],
+        rejectedCount: 0,
+      });
+      socialSource.update.mockResolvedValue({ id: 'source-1' });
+
+      const result = await service.resyncOwnAccount(ownAccountSource as never);
+
+      expect(sourceCollector.collectTimeline).toHaveBeenCalledWith(
+        SocialSourcePlatform.TWITTER,
+        'openai',
+        expect.objectContaining({
+          credentialId: 'credential-1',
+          limit: 100,
+          since: expect.any(Date),
+          sinceId: undefined,
+        }),
+      );
+      const since = sourceCollector.collectTimeline.mock.calls[0][2].since;
+      const daysAgo = (Date.now() - since.getTime()) / (24 * 60 * 60 * 1000);
+      expect(daysAgo).toBeGreaterThan(89);
+      expect(daysAgo).toBeLessThan(91);
+      expect(result.count).toBe(0);
+    });
+
+    it('rejects a source that is not an own-account source', async () => {
+      await expect(
+        service.resyncOwnAccount({
+          ...ownAccountSource,
+          sourceType: SocialSourceType.ACCOUNT,
+        } as never),
+      ).rejects.toThrow(
+        'History import is only available for the brand’s own connected accounts',
+      );
+      expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
+    });
+  });
+
   it('continues syncing a brand after one source fails', async () => {
     socialSource.findMany.mockResolvedValue([
       {

@@ -20,6 +20,18 @@ export interface SocialPostUrlReference {
 const TWITTER_HOSTS = new Set(['x.com', 'twitter.com', 'mobile.twitter.com']);
 const INSTAGRAM_HOSTS = new Set(['instagram.com']);
 const TIKTOK_HOSTS = new Set(['tiktok.com']);
+const YOUTUBE_HOSTS = new Set(['youtube.com', 'm.youtube.com']);
+const YOUTUBE_SHORT_HOSTS = new Set(['youtu.be']);
+const LINKEDIN_HOSTS = new Set(['linkedin.com']);
+
+const YOUTUBE_VIDEO_ID = /^[\w-]{6,}$/;
+const LINKEDIN_ACTIVITY_ID = /-(?:activity|ugcPost|share)-(\d+)/;
+
+/** Read one query-string parameter without the URL global (see above). */
+function readQueryParam(input: string, key: string): string | undefined {
+  const match = new RegExp(`[?&]${key}=([^&#]+)`).exec(input);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
 
 const INSTAGRAM_POST_SEGMENTS = new Set(['p', 'reel', 'reels', 'tv']);
 
@@ -117,6 +129,60 @@ export function parseSocialPostUrl(
       postId,
       url: trimmed,
     };
+  }
+
+  if (YOUTUBE_HOSTS.has(host) || YOUTUBE_SHORT_HOSTS.has(host)) {
+    // youtube.com/watch?v={id} · youtube.com/shorts/{id} · youtu.be/{id}
+    const postId = YOUTUBE_SHORT_HOSTS.has(host)
+      ? segments[0]
+      : segments[0] === 'watch'
+        ? readQueryParam(trimmed, 'v')
+        : segments[0] === 'shorts' || segments[0] === 'live'
+          ? segments[1]
+          : undefined;
+    if (!postId || !YOUTUBE_VIDEO_ID.test(postId)) {
+      return null;
+    }
+    return {
+      authorHandle: null,
+      platform: SocialSourcePlatform.YOUTUBE,
+      postId,
+      url: trimmed,
+    };
+  }
+
+  if (LINKEDIN_HOSTS.has(host)) {
+    // linkedin.com/posts/{author}-{slug}-activity-{id}-xxxx
+    // linkedin.com/feed/update/urn:li:activity:{id}
+    if (segments[0] === 'posts' && segments[1]) {
+      const match = LINKEDIN_ACTIVITY_ID.exec(segments[1]);
+      if (!match) {
+        return null;
+      }
+      const authorSlug = segments[1].split('_')[0];
+      return {
+        authorHandle:
+          authorSlug && authorSlug !== segments[1]
+            ? cleanHandle(authorSlug)
+            : null,
+        platform: SocialSourcePlatform.LINKEDIN,
+        postId: `urn:li:activity:${match[1]}`,
+        url: trimmed,
+      };
+    }
+    if (segments[0] === 'feed' && segments[1] === 'update' && segments[2]) {
+      const urn = decodeURIComponent(segments[2]);
+      if (!/^urn:li:(activity|share|ugcPost):\d+$/.test(urn)) {
+        return null;
+      }
+      return {
+        authorHandle: null,
+        platform: SocialSourcePlatform.LINKEDIN,
+        postId: urn,
+        url: trimmed,
+      };
+    }
+    return null;
   }
 
   if (TIKTOK_HOSTS.has(host)) {

@@ -28,6 +28,7 @@ import { materializeJsonDocumentSchema } from './schema-builders';
 import { getSignupPrefillActionContract } from './signup-prefill-action-contracts';
 import { getSocialInboxActionContract } from './social-inbox-action-contracts';
 import { getSocialReplyCampaignActionContract } from './social-reply-campaign-action-contracts';
+import { getSocialSourceActionContract } from './social-source-action-contracts';
 import { getSystemActionContract } from './system-action-contracts';
 import { getTelegramActionContract } from './telegram-action-contracts';
 import { getTwitterPipelineActionContract } from './twitter-pipeline-action-contracts';
@@ -59,6 +60,7 @@ const CONTRACT_RESOLVERS = [
   getTwitterPipelineActionContract,
   getSocialInboxActionContract,
   getSocialReplyCampaignActionContract,
+  getSocialSourceActionContract,
   getSystemActionContract,
   getMaintenanceActionContract,
   getNewsletterActionContract,

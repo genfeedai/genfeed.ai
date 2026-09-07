@@ -20,6 +20,7 @@ vi.mock('twitter-api-v2', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
@@ -108,6 +109,14 @@ describe('TwitterController', () => {
         {
           provide: TwitterAuthorizedSignalsService,
           useValue: mockTwitterAuthorizedSignalsService,
+        },
+        {
+          provide: SocialSourceHistoryImportService,
+          useValue: {
+            scheduleForCredential: vi
+              .fn()
+              .mockResolvedValue({ sourceId: 'source-1', status: 'scheduled' }),
+          },
         },
         { provide: CredentialsService, useValue: mockCredentialsService },
       ],

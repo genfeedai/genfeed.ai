@@ -1,6 +1,7 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { SocialSourceHistoryImportModule } from '@api/collections/social-sources/social-source-history-import.module';
 import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -23,7 +24,11 @@ const BaseModule = createServiceModule(TwitterService, {
 @Module({
   controllers: [TwitterController],
   exports: [...(BaseModule.exports ?? []), TwitterAuthorizedSignalsService],
-  imports: [...(BaseModule.imports ?? []), SocialWarmupEnrollmentsModule],
+  imports: [
+    ...(BaseModule.imports ?? []),
+    SocialWarmupEnrollmentsModule,
+    SocialSourceHistoryImportModule,
+  ],
   providers: [...(BaseModule.providers ?? []), TwitterAuthorizedSignalsService],
 })
 export class TwitterModule {}

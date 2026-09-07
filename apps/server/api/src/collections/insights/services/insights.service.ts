@@ -1,3 +1,4 @@
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
 import type { ForecastDocument } from '@api/collections/insights/schemas/forecast.schema';
@@ -25,8 +26,12 @@ import {
   BadRequestException,
   Injectable,
   type OnModuleInit,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+
+/** Brands whose performance grounds an organisation-level insight prompt. */
+const INSIGHT_GROUNDING_BRAND_LIMIT = 3;
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
@@ -72,6 +77,8 @@ export class InsightsService implements OnModuleInit {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    @Optional()
+    private readonly performanceSummaryService?: PerformanceSummaryService,
   ) {}
 
   onModuleInit(): void {
@@ -605,8 +612,9 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
         timezone,
       });
 
+      const grounding = await this.buildPerformanceGrounding(organizationId);
       const prompt = `Based on ${platform} best practices and audience engagement patterns, provide the best posting times in ${timezone} timezone.
-
+${grounding}
 Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
 {
   "recommendedTimes": [
@@ -682,12 +690,55 @@ Provide 5-7 optimal time slots.`;
     );
   }
 
+  /**
+   * Real performance context for the organisation's active brands — Genfeed
+   * posts plus posts imported from connected accounts — so insight and timing
+   * prompts reason from what the brand actually published instead of generic
+   * best practices. Empty when nothing is available.
+   */
+  private async buildPerformanceGrounding(
+    organizationId: string,
+  ): Promise<string> {
+    if (!this.performanceSummaryService) {
+      return '';
+    }
+    const brands = await this.prisma.brand.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true, label: true },
+      take: INSIGHT_GROUNDING_BRAND_LIMIT,
+      where: scopedWhere(organizationId, { isActive: true }),
+    });
+    const lines: string[] = [];
+    for (const brand of brands) {
+      try {
+        const context =
+          await this.performanceSummaryService.generatePerformanceContext(
+            organizationId,
+            brand.id,
+          );
+        if (context && !context.startsWith('No performance data')) {
+          lines.push(`- ${brand.label}: ${context}`);
+        }
+      } catch (error: unknown) {
+        this.logger.warn('Insight grounding skipped brand performance', {
+          brandId: brand.id,
+          error: (error as Error)?.message,
+        });
+      }
+    }
+    if (lines.length === 0) {
+      return '';
+    }
+    return `\nGround every insight in this recent performance data (last 7 days, Genfeed posts plus posts imported from connected social accounts):\n${lines.join('\n')}\n`;
+  }
+
   private async generateInsightDrafts(
     plan: InsightGenerationPlan,
   ): Promise<{ drafts: InsightData[] }> {
     if (plan.missingCount === 0) return { drafts: [] };
+    const grounding = await this.buildPerformanceGrounding(plan.organizationId);
     const prompt = `Generate ${plan.missingCount} actionable insights for a content creator.
-
+${grounding}
 Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
 {
   "insights": [

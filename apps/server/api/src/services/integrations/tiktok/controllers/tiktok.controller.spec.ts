@@ -6,6 +6,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
@@ -133,6 +134,14 @@ describe('TiktokController', () => {
         {
           provide: TiktokAuthorizedSignalsService,
           useValue: tiktokAuthorizedSignalsService,
+        },
+        {
+          provide: SocialSourceHistoryImportService,
+          useValue: {
+            scheduleForCredential: vi
+              .fn()
+              .mockResolvedValue({ sourceId: 'source-1', status: 'scheduled' }),
+          },
         },
         { provide: HttpService, useValue: httpService },
       ],

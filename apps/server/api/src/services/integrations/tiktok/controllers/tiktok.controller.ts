@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -55,6 +56,7 @@ export class TiktokController {
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly tiktokAuthorizedSignalsService: TiktokAuthorizedSignalsService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
     private readonly tiktokService: TiktokService,
     private readonly httpService: HttpService,
   ) {
@@ -226,32 +228,67 @@ export class TiktokController {
         },
       );
 
-      try {
-        await this.tiktokAuthorizedSignalsService.refresh({
-          accessToken: access_token,
-          credentialId: credential.id.toString(),
-          force: true,
-          grantedScopes: scope,
-          organizationId,
-        });
-        credential =
-          (await this.credentialsService.findOne({
-            id: credential.id.toString(),
-            organizationId,
-            platform: CredentialPlatform.TIKTOK,
-          })) ?? credential;
-      } catch (signalError: unknown) {
-        this.loggerService.warn(
-          `${url} authorized signal refresh failed after connection`,
-          signalError,
-        );
-      }
+      credential = await this.finalizeConnection({
+        accessToken: access_token,
+        credential,
+        grantedScopes: scope,
+        organizationId,
+        url,
+      });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Post-connection work that must never fail the connection itself: refresh
+   * the authorized signals snapshot, then queue the import of the account's
+   * existing posts. Both are best-effort and logged on failure.
+   */
+  private async finalizeConnection(params: {
+    accessToken: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    grantedScopes: string | undefined;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, grantedScopes, organizationId, url } = params;
+    let credential = params.credential;
+    try {
+      await this.tiktokAuthorizedSignalsService.refresh({
+        accessToken,
+        credentialId: credential.id.toString(),
+        force: true,
+        grantedScopes,
+        organizationId,
+      });
+      credential =
+        (await this.credentialsService.findOne({
+          id: credential.id.toString(),
+          organizationId,
+          platform: CredentialPlatform.TIKTOK,
+        })) ?? credential;
+    } catch (signalError: unknown) {
+      this.loggerService.warn(
+        `${url} authorized signal refresh failed after connection`,
+        signalError,
+      );
+    }
+    try {
+      await this.historyImportService.scheduleForCredential({
+        credentialId: credential.id.toString(),
+        organizationId,
+      });
+    } catch (scheduleError: unknown) {
+      this.loggerService.warn(
+        `${url} history import scheduling failed after connection`,
+        scheduleError,
+      );
+    }
+    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

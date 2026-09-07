@@ -28,6 +28,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly watermarkLogoId: BrandDocument['watermarkLogoId'];
   declare readonly watermarkOpacity: BrandDocument['watermarkOpacity'];
   declare readonly watermarkPosition: BrandDocument['watermarkPosition'];
+  declare readonly isSocialHistoryImportEnabled: BrandDocument['isSocialHistoryImportEnabled'];
 
   declare readonly primaryColor: BrandDocument['primaryColor'];
   declare readonly secondaryColor: BrandDocument['secondaryColor'];

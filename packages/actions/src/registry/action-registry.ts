@@ -2394,6 +2394,21 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Persists one bounded set of generated tenant insights.',
   ),
   internalAction(
+    'social-source.history-import.run',
+    'Import Social Account History',
+    "Imports a connected social account's existing posts into its own-account source.",
+  ),
+  internalAction(
+    'social-source.own-account-resync.discover',
+    'Discover Own-Account Resync Sources',
+    'Discovers own-account social sources due for a metrics resync across every tenant.',
+  ),
+  internalAction(
+    'social-source.own-account-resync.run',
+    'Resync Own-Account Social Source',
+    "Re-collects one connected account's recent posts so imported metrics keep maturing.",
+  ),
+  internalAction(
     'knowledge.source.discover-backfill',
     'Discover Knowledge Source Backfill',
     'Discovers bounded knowledge sources that require ingestion.',

@@ -1,9 +1,57 @@
 import type {
+  SocialSourceHistoryImportStatus,
   SocialSourcePlatform,
   SocialSourceType,
   SourcePostActionType,
 } from '../..';
 import type { IBaseEntity } from '../index';
+
+/**
+ * Audit trail for importing a connected account's existing posts. Stored on
+ * `ISocialSource.metadata.historyImport` for own-account sources.
+ */
+export interface SocialSourceHistoryImport {
+  status: SocialSourceHistoryImportStatus;
+  credentialId: string;
+  /** How far back the import reaches, in days. */
+  windowDays: number;
+  requestedAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  importedCount?: number;
+  rejectedCount?: number;
+  /** Which collector fulfilled the import (brand-oauth, apify, ...). */
+  provider?: string | null;
+  error?: string | null;
+  /** Why the import was skipped (e.g. the brand opted out). */
+  skipReason?: string | null;
+}
+
+export interface SocialSourceMetadata {
+  historyImport?: SocialSourceHistoryImport;
+  [key: string]: unknown;
+}
+
+/** Queue payload for the own-account history import system workflow. */
+export interface SocialSourceHistoryImportWorkflowInput {
+  organizationId: string;
+  brandId: string;
+  sourceId: string;
+  credentialId: string;
+  userId: string;
+  windowDays: number;
+  limit: number;
+}
+
+export interface SocialSourceHistoryImportScheduleResult {
+  status: 'scheduled' | 'skipped';
+  sourceId?: string;
+  skipReason?:
+    | 'brand_opted_out'
+    | 'credential_unavailable'
+    | 'missing_handle'
+    | 'unsupported_platform';
+}
 
 export interface SourcePostMetrics {
   likes?: number;
@@ -34,7 +82,7 @@ export interface ISocialSource extends IBaseEntity {
   lastSyncStatus?: string | null;
   lastSyncError?: string | null;
   lastPostExternalId?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: SocialSourceMetadata;
 }
 
 export interface ISourcePost extends IBaseEntity {

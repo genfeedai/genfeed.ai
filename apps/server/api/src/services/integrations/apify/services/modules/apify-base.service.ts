@@ -155,6 +155,9 @@ export class ApifyBaseService {
     INSTAGRAM_POST_SCRAPER: 'apify/instagram-post-scraper',
     INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
 
+    // LinkedIn scrapers
+    LINKEDIN_PROFILE_SCRAPER: 'curious_coder/linkedin-profile-scraper',
+
     // Pinterest scrapers
     PINTEREST_SCRAPER: 'alexey/pinterest-scraper',
     REDDIT_COMMENT_SCRAPER: 'trudax/reddit-comments-scraper',

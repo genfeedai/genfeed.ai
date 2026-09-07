@@ -54,6 +54,16 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
+    default: true,
+    description:
+      'Import the existing posts of a social account when it is connected',
+    required: false,
+  })
+  readonly isSocialHistoryImportEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
     description: 'Whether the brand is marked as deleted',
     required: false,
   })

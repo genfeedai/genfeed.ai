@@ -1,12 +1,58 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsNumber,
   IsOptional,
   IsString,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+/** Caller-chosen subset of cold-start seeds forwarded to plan generation. */
+export class ContentPlanSeedSelectionDto {
+  @IsArray()
+  @IsEntityId({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Watched-advertiser IDs to ground the plan in',
+    required: false,
+    type: [String],
+  })
+  readonly advertiserIds?: string[];
+
+  @IsArray()
+  @IsEntityId({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Followed-creator social source IDs to ground the plan in',
+    required: false,
+    type: [String],
+  })
+  readonly sourceIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description: "Whether to include the brand's own imported history",
+    required: false,
+  })
+  readonly isImportedHistoryIncluded?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: true,
+    description: 'Whether to include extracted creative patterns',
+    required: false,
+  })
+  readonly isPatternsIncluded?: boolean;
+}
 
 export class GenerateContentPlanDto {
   @IsString()
@@ -38,4 +84,9 @@ export class GenerateContentPlanDto {
   @IsString()
   @IsOptional()
   readonly additionalInstructions?: string;
+
+  @ValidateNested()
+  @Type(() => ContentPlanSeedSelectionDto)
+  @IsOptional()
+  readonly seeds?: ContentPlanSeedSelectionDto;
 }

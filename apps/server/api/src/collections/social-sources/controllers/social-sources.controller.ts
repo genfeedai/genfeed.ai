@@ -5,6 +5,7 @@ import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/socia
 import { SyncSocialSourceDto } from '@api/collections/social-sources/dto/sync-social-source.dto';
 import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
 import { ValidateSocialSourceDto } from '@api/collections/social-sources/dto/validate-social-source.dto';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
@@ -36,7 +37,10 @@ import type { Request } from 'express';
 @Controller('social-sources')
 @UseGuards(RolesGuard)
 export class SocialSourcesController {
-  constructor(private readonly socialSourcesService: SocialSourcesService) {}
+  constructor(
+    private readonly socialSourcesService: SocialSourcesService,
+    private readonly historyImportService: SocialSourceHistoryImportService,
+  ) {}
 
   @Get('feed')
   getFeed(@CurrentUser() user: User, @Query() query: SocialSourcesQueryDto) {
@@ -138,6 +142,23 @@ export class SocialSourcesController {
     const context = resolveRequiredBrandRequestContext(user, query);
     const source = await this.socialSourcesService.removeScoped(id, context);
     return serializeSingle(request, SocialSourceSerializer, source);
+  }
+
+  /**
+   * Queue (or re-queue) the import of a connected account's existing posts.
+   * Only own-account sources qualify; the run itself happens in the workflow
+   * queue and reports back through `metadata.historyImport` on the source.
+   */
+  @Post(':id/history-import')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async scheduleHistoryImport(
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Param('id') id: string,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const source = await this.socialSourcesService.findOneScoped(id, context);
+    return this.historyImportService.rescheduleForSource(source, user.userId);
   }
 
   @Post(':id/sync')

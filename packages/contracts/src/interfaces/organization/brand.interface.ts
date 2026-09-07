@@ -27,6 +27,7 @@ export interface IBrand extends IBaseEntity {
   watermarkLogoId?: string | null;
   watermarkOpacity?: number;
   watermarkPosition?: WatermarkPosition;
+  isSocialHistoryImportEnabled?: boolean;
 
   logo?: IAsset;
   banner?: IAsset;

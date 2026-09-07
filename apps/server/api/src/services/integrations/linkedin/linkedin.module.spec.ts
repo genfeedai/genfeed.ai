@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
@@ -68,6 +69,10 @@ describe('LinkedInModule', () => {
         {
           provide: LinkedInAuthorizedSignalsService,
           useValue: { refresh: vi.fn() },
+        },
+        {
+          provide: SocialSourceHistoryImportService,
+          useValue: { scheduleForCredential: vi.fn() },
         },
       ],
     }).compile();

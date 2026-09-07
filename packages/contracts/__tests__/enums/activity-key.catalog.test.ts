@@ -110,6 +110,20 @@ describe('parseActivityKey', () => {
       operation: 'connect',
       subject: 'integration',
     });
+    expect(
+      parseActivityKey(ActivityKey.SOCIAL_HISTORY_IMPORT_COMPLETED),
+    ).toMatchObject({
+      lifecycle: 'completed',
+      operation: 'import',
+      subject: 'integration',
+    });
+    expect(
+      parseActivityKey(ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED),
+    ).toMatchObject({
+      lifecycle: 'skipped',
+      operation: 'import',
+      subject: 'integration',
+    });
   });
 });
 

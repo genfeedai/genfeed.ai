@@ -11,15 +11,18 @@ import AgentStrategiesPage from './agent-strategies-page';
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
+  generatePlan: vi.fn(),
   href: vi.fn((path: string) => `/org/acme/brand/demo${path}`),
   loggerError: vi.fn(),
   push: vi.fn(),
   refresh: vi.fn(),
+  refreshPlans: vi.fn(),
   runNow: vi.fn(),
   setActive: vi.fn(),
   success: vi.fn(),
   update: vi.fn(),
   useAgentStrategies: vi.fn(),
+  useContentPlans: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -33,6 +36,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    generate: mocks.generatePlan,
     runNow: mocks.runNow,
     setActive: mocks.setActive,
     update: mocks.update,
@@ -43,6 +47,10 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
   useAgentStrategies: () => mocks.useAgentStrategies(),
 }));
 
+vi.mock('@hooks/data/content-plans/use-content-plans', () => ({
+  useContentPlans: () => mocks.useContentPlans(),
+}));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: mocks.href,
@@ -51,6 +59,18 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('@services/automation/agent-strategies.service', () => ({
   AgentStrategiesService: {
+    getInstance: vi.fn(),
+  },
+}));
+
+vi.mock('@services/analytics/content-performance.service', () => ({
+  ContentPerformanceService: {
+    getInstance: vi.fn(),
+  },
+}));
+
+vi.mock('@services/content/content-plans.service', () => ({
+  ContentPlansService: {
     getInstance: vi.fn(),
   },
 }));
@@ -162,6 +182,27 @@ vi.mock('@ui/display/table/Table', () => ({
       </table>
     );
   },
+}));
+
+vi.mock('@ui/card/Card', () => ({
+  default: ({
+    children,
+    description,
+    headerAction,
+    label,
+  }: {
+    children: ReactNode;
+    description?: string;
+    headerAction?: ReactNode;
+    label?: ReactNode;
+  }) => (
+    <section>
+      <h2>{label}</h2>
+      <p>{description}</p>
+      <div>{headerAction}</div>
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
@@ -390,6 +431,13 @@ describe('AgentStrategiesPage', () => {
     mocks.setActive.mockResolvedValue(undefined);
     mocks.update.mockResolvedValue(makeStrategy());
     mocks.refresh.mockResolvedValue(undefined);
+    mocks.refreshPlans.mockResolvedValue(undefined);
+    mocks.generatePlan.mockResolvedValue(undefined);
+    mocks.useContentPlans.mockReturnValue({
+      isLoading: false,
+      plans: [],
+      refresh: mocks.refreshPlans,
+    });
     mocks.useAgentStrategies.mockReturnValue({
       isLoading: false,
       refresh: mocks.refresh,

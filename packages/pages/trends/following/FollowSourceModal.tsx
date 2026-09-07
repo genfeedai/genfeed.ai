@@ -44,9 +44,11 @@ import {
 } from 'react';
 
 const PLATFORM_OPTIONS = [
-  { label: 'X', value: SocialSourcePlatform.TWITTER },
-  { label: 'Instagram', value: SocialSourcePlatform.INSTAGRAM },
-  { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
+  { labelKey: 'platforms.twitter', value: SocialSourcePlatform.TWITTER },
+  { labelKey: 'platforms.instagram', value: SocialSourcePlatform.INSTAGRAM },
+  { labelKey: 'platforms.tiktok', value: SocialSourcePlatform.TIKTOK },
+  { labelKey: 'platforms.youtube', value: SocialSourcePlatform.YOUTUBE },
+  { labelKey: 'platforms.linkedin', value: SocialSourcePlatform.LINKEDIN },
 ] as const;
 
 type SourceCandidate = {
@@ -543,10 +545,12 @@ export default function FollowSourceModal({
                 className="max-h-[42vh] space-y-2 overflow-y-auto pr-0.5"
               >
                 {candidates.map((candidate) => {
-                  const platformLabel =
-                    PLATFORM_OPTIONS.find(
-                      (option) => option.value === candidate.platform,
-                    )?.label ?? candidate.platform;
+                  const platformOption = PLATFORM_OPTIONS.find(
+                    (option) => option.value === candidate.platform,
+                  );
+                  const platformLabel = platformOption
+                    ? translate(platformOption.labelKey)
+                    : candidate.platform;
                   const canSelect = isCandidateSelectable(candidate);
                   const isChecked = selectedKeySet.has(candidate.key);
                   const selectLabel = `Select ${platformLabel} @${candidate.handle}`;

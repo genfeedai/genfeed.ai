@@ -203,6 +203,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
+    file: 'apps/server/workers/src/crons/social-sources/cron.social-source-resync.service.ts',
+    id: 'social-source-own-account-resync',
+    methodName: 'resyncDueSources',
+    reason:
+      'Platform schedule discovery handler; every tenant own-account source runs through the social-source own-account resync workflow (#4532).',
+  },
+  {
     file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
     id: 'streak-maintenance',
     methodName: 'processStreaks',

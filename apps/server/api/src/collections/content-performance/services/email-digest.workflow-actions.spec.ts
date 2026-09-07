@@ -14,6 +14,12 @@ const summary: WeeklySummary = {
   avgEngagementByContentType: [],
   avgEngagementByPlatform: [],
   bestPostingTimes: [],
+  dataset: {
+    confidence: 'none',
+    genfeedPosts: 0,
+    importedPosts: 0,
+    totalPosts: 0,
+  },
   topHooks: [],
   topPerformers: [],
   weekOverWeekTrend: {

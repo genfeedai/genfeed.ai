@@ -2,6 +2,7 @@
 
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
+import BrandSocialHistoryImportCard from '@pages/brands/components/sidebar/BrandSocialHistoryImportCard';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -42,6 +43,11 @@ export default function BrandSettingsIntegrationsPage() {
   return (
     <Container>
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
+        <BrandSocialHistoryImportCard
+          brand={brand}
+          brandId={brandId}
+          onRefreshBrand={() => handleRefreshBrand(true)}
+        />
         <BrandDetailSocialMediaCard
           brandId={brandId}
           connections={socialConnections}

@@ -1,5 +1,6 @@
 'use client';
 
+import { SocialSourceType } from '@genfeedai/contracts';
 import type {
   ISocialSource,
   ITrendVideo,
@@ -147,14 +148,27 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     queryKey: viralVideosQueryKey,
   });
 
-  const items = useMemo<DiscoveryDeskItem[]>(
-    () => [
+  const items = useMemo<DiscoveryDeskItem[]>(() => {
+    const ownAccountSourceIds = new Set(
+      followingFeed.sources
+        .filter((source) => source.sourceType === SocialSourceType.OWN_ACCOUNT)
+        .map((source) => source.id),
+    );
+    return [
       ...trendContent.items.map(toDeskItemFromTrend),
-      ...followingFeed.posts.map(toDeskItemFromSourcePost),
+      ...followingFeed.posts.map((post) =>
+        toDeskItemFromSourcePost(post, {
+          isOwnAccount: ownAccountSourceIds.has(post.sourceId),
+        }),
+      ),
       ...viralVideos.map(toDeskItemFromViralVideo),
-    ],
-    [trendContent.items, followingFeed.posts, viralVideos],
-  );
+    ];
+  }, [
+    trendContent.items,
+    followingFeed.posts,
+    followingFeed.sources,
+    viralVideos,
+  ]);
 
   const refresh = useCallback(async () => {
     await Promise.all([

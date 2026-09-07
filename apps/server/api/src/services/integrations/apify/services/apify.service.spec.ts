@@ -1,6 +1,7 @@
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
+import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
 import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
@@ -33,6 +34,7 @@ describe('ApifyService', () => {
     searchTwitterTweets: ReturnType<typeof vi.fn>;
   };
   let youtubeService: {
+    getYouTubeChannelUploads: ReturnType<typeof vi.fn>;
     getYouTubeChannelVideos: ReturnType<typeof vi.fn>;
     getYouTubeVideoComments: ReturnType<typeof vi.fn>;
     searchYouTubeVideos: ReturnType<typeof vi.fn>;
@@ -45,6 +47,9 @@ describe('ApifyService', () => {
   };
   let pinterestService: {
     getPinterestTrends: ReturnType<typeof vi.fn>;
+  };
+  let linkedinService: {
+    getLinkedInProfilePosts: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -99,6 +104,7 @@ describe('ApifyService', () => {
         {
           provide: ApifyYouTubeService,
           useValue: {
+            getYouTubeChannelUploads: vi.fn(),
             getYouTubeChannelVideos: vi.fn(),
             getYouTubeTrends: vi.fn(),
             getYouTubeVideoComments: vi.fn(),
@@ -121,6 +127,12 @@ describe('ApifyService', () => {
           provide: ApifyPinterestService,
           useValue: {
             getPinterestTrends: vi.fn(),
+          },
+        },
+        {
+          provide: ApifyLinkedInService,
+          useValue: {
+            getLinkedInProfilePosts: vi.fn(),
           },
         },
         {
@@ -154,6 +166,9 @@ describe('ApifyService', () => {
     pinterestService = module.get(
       ApifyPinterestService,
     ) as unknown as typeof pinterestService;
+    linkedinService = module.get(
+      ApifyLinkedInService,
+    ) as unknown as typeof linkedinService;
   });
 
   afterEach(() => {
@@ -344,6 +359,30 @@ describe('ApifyService', () => {
       expect(youtubeService.searchYouTubeVideos).toHaveBeenCalledWith(
         'search term',
         undefined,
+      );
+    });
+
+    it('should delegate getYouTubeChannelUploads to youtubeService', async () => {
+      youtubeService.getYouTubeChannelUploads.mockResolvedValue([]);
+
+      await service.getYouTubeChannelUploads('channel-url', { limit: 20 });
+
+      expect(youtubeService.getYouTubeChannelUploads).toHaveBeenCalledWith(
+        'channel-url',
+        { limit: 20 },
+      );
+    });
+  });
+
+  describe('LinkedIn delegation', () => {
+    it('should delegate getLinkedInProfilePosts to linkedinService', async () => {
+      linkedinService.getLinkedInProfilePosts.mockResolvedValue([]);
+
+      await service.getLinkedInProfilePosts('profile-url', { limit: 20 });
+
+      expect(linkedinService.getLinkedInProfilePosts).toHaveBeenCalledWith(
+        'profile-url',
+        { limit: 20 },
       );
     });
   });

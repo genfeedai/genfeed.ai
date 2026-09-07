@@ -3,6 +3,7 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import { ApifyAdsService } from '@api/services/integrations/apify/services/modules/apify-ads.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
+import { ApifyLinkedInService } from '@api/services/integrations/apify/services/modules/apify-linkedin.service';
 import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
 import { ApifyRedditService } from '@api/services/integrations/apify/services/modules/apify-reddit.service';
 import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
@@ -26,6 +27,7 @@ const BaseModule = createServiceModule(ApifyService, {
     ApifyYouTubeService,
     ApifyRedditService,
     ApifyPinterestService,
+    ApifyLinkedInService,
   ],
 });
 

@@ -6,6 +6,8 @@ export type SocialSourceDocument = SocialSource;
 export interface SocialSourceSyncDocumentResult {
   count: number;
   posts: SourcePostDocument[];
+  /** Which collector fulfilled the sync (brand-oauth, app-bearer, apify). */
+  provider?: string;
   rejectedCount: number;
   source: SocialSourceDocument;
 }

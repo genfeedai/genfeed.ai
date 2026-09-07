@@ -20,6 +20,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -71,6 +72,9 @@ describe('InstagramController', () => {
   };
   let instagramAuthorizedSignalsServiceMock: {
     refresh: ReturnType<typeof vi.fn>;
+  };
+  let historyImportServiceMock: {
+    scheduleForCredential: ReturnType<typeof vi.fn>;
   };
 
   const instagramConfig: Record<string, string> = {
@@ -126,6 +130,11 @@ describe('InstagramController', () => {
     instagramAuthorizedSignalsServiceMock = {
       refresh: vi.fn().mockResolvedValue({ state: 'full' }),
     };
+    historyImportServiceMock = {
+      scheduleForCredential: vi
+        .fn()
+        .mockResolvedValue({ sourceId: 'source-1', status: 'scheduled' }),
+    };
 
     const accountsMock = {
       findOne: brandsFindOneMock,
@@ -151,6 +160,7 @@ describe('InstagramController', () => {
       httpServiceMock,
       instagramServiceMock as unknown as InstagramService,
       instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
+      historyImportServiceMock as unknown as SocialSourceHistoryImportService,
       loggerMock,
     );
   });
@@ -409,6 +419,7 @@ describe('InstagramController', () => {
         { get: vi.fn(), post: vi.fn() } as unknown as HttpService,
         instagramServiceMock as unknown as InstagramService,
         instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
+        historyImportServiceMock as unknown as SocialSourceHistoryImportService,
         loggerMock,
       );
 
