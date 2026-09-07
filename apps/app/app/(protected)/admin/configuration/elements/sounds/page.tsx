@@ -1,18 +1,8 @@
-'use client';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import SoundsPageContent from './sounds-page-content';
 
-import { PageScope } from '@genfeedai/contracts';
-import { useElementsContext } from '@providers/elements/elements.context';
-import SoundsList from './sounds-list';
+export const generateMetadata = createPageMetadata('Sounds');
 
 export default function SoundsPage() {
-  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
-
-  return (
-    <SoundsList
-      filters={filters}
-      scope={PageScope.SUPERADMIN}
-      onRefresh={onRefresh}
-      onRefreshingChange={setIsRefreshing}
-    />
-  );
+  return <SoundsPageContent />;
 }
