@@ -1,30 +1,16 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ReviewDecisionPanelProps } from '@props/publishing/review-decision-panel.props';
+import type { ReviewPanelItem } from '@props/publishing/review-panel-item.props';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
 
-import type { ReviewPanelItem } from './review-panel.types';
 import {
   isApproved,
   isChangesRequested,
   isReadyToReview,
   isRejected,
 } from './review-state';
-
-interface ReviewDecisionPanelProps {
-  feedback: string;
-  isActioning: boolean;
-  isReady: boolean;
-  isSelected: boolean;
-  item: ReviewPanelItem;
-  onApprove: (itemId: string) => void;
-  onReject: (itemId: string, feedback?: string) => void;
-  onRequestChanges: (itemId: string, feedback?: string) => void;
-  onToggleSelect: (itemId: string) => void;
-  setFeedback: (value: string) => void;
-}
 
 function getApproveLabel(item: ReviewPanelItem): string {
   if (item.postId && !item.scheduledDate) {

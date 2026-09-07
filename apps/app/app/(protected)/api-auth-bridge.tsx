@@ -1,5 +1,3 @@
-'use client';
-
 import type { AuthTokenGetter } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useEffect } from 'react';

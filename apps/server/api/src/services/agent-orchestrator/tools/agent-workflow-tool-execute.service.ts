@@ -3,6 +3,7 @@ import type { WorkflowInputVariable } from '@api/collections/workflows/schemas/w
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
@@ -292,52 +293,130 @@ export class AgentWorkflowToolExecuteService {
       (params.variables as Record<string, unknown> | undefined) ??
       {};
 
+    const paramsError = this.validateExecuteWorkflowParams(params);
+    if (paramsError) return paramsError;
+
+    const nodeIds = params.nodeIds as string[] | undefined;
+    const respectLocks = params.respectLocks !== false;
     const tenantScope = {
       isDeleted: false,
       organizationId: ctx.organizationId,
     };
 
     const systemWorkflow = this.systemWorkflowRunner.getWorkflow(workflowId);
-    if (systemWorkflow) {
-      const mergedInputValues = this.mergeSystemWorkflowInputs(
-        systemWorkflow.definition.inputVariables ?? [],
-        inputValues,
-        ctx.brandId,
-      );
-      const missingKeys = this.missingRequiredInputKeys(
-        systemWorkflow.definition.inputVariables ?? [],
-        mergedInputValues,
-      );
-      if (missingKeys.length > 0) {
-        return {
-          creditsUsed: 0,
-          error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
-          success: false,
-        };
-      }
-
-      const { provenance, result } =
-        await this.systemWorkflowRunner.runWorkflow({
-          actionType: workflowId,
-          canonicalId: workflowId,
-          inputValues: mergedInputValues,
-          metadata: { origin: 'agent' },
-          organizationId: tenantScope.organizationId,
-          source: 'AgentWorkflowToolExecuteService.executeWorkflow',
-          userId: ctx.userId,
-        });
-
+    if (systemWorkflow && nodeIds) {
       return {
         creditsUsed: 0,
-        data: {
-          id: provenance.executionId,
-          result,
-          status: WorkflowExecutionStatus.COMPLETED,
-        },
-        success: true,
+        error:
+          'Partial execution requires a saved workflow. Install the system workflow before selecting nodes.',
+        success: false,
+      };
+    }
+    if (systemWorkflow) {
+      return this.executeSystemWorkflow(
+        systemWorkflow,
+        workflowId,
+        inputValues,
+        ctx,
+        tenantScope,
+      );
+    }
+
+    return this.executeSavedWorkflow(
+      workflowId,
+      inputValues,
+      nodeIds,
+      respectLocks,
+      ctx,
+      tenantScope,
+    );
+  }
+
+  private validateExecuteWorkflowParams(
+    params: Record<string, unknown>,
+  ): AgentToolResult | null {
+    const nodeIds = params.nodeIds;
+    if (
+      nodeIds !== undefined &&
+      (!Array.isArray(nodeIds) ||
+        nodeIds.length === 0 ||
+        nodeIds.some(
+          (id) => typeof id !== 'string' || id.trim().length === 0,
+        ) ||
+        new Set(nodeIds).size !== nodeIds.length)
+    ) {
+      return {
+        creditsUsed: 0,
+        error: 'nodeIds must be a nonempty array of unique node IDs',
+        success: false,
+      };
+    }
+    if (
+      params.respectLocks !== undefined &&
+      typeof params.respectLocks !== 'boolean'
+    ) {
+      return {
+        creditsUsed: 0,
+        error: 'respectLocks must be a boolean',
+        success: false,
+      };
+    }
+    return null;
+  }
+
+  private async executeSystemWorkflow(
+    systemWorkflow: SystemWorkflowGraphDefinition,
+    workflowId: string,
+    inputValues: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+    tenantScope: { isDeleted: boolean; organizationId: string },
+  ): Promise<AgentToolResult> {
+    const mergedInputValues = this.mergeSystemWorkflowInputs(
+      systemWorkflow.definition.inputVariables ?? [],
+      inputValues,
+      ctx.brandId,
+    );
+    const missingKeys = this.missingRequiredInputKeys(
+      systemWorkflow.definition.inputVariables ?? [],
+      mergedInputValues,
+    );
+    if (missingKeys.length > 0) {
+      return {
+        creditsUsed: 0,
+        error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
+        success: false,
       };
     }
 
+    const { provenance, result } = await this.systemWorkflowRunner.runWorkflow({
+      actionType: workflowId,
+      canonicalId: workflowId,
+      inputValues: mergedInputValues,
+      metadata: { origin: 'agent' },
+      organizationId: tenantScope.organizationId,
+      source: 'AgentWorkflowToolExecuteService.executeWorkflow',
+      userId: ctx.userId,
+    });
+
+    return {
+      creditsUsed: 0,
+      data: {
+        id: provenance.executionId,
+        result,
+        status: WorkflowExecutionStatus.COMPLETED,
+      },
+      success: true,
+    };
+  }
+
+  private async executeSavedWorkflow(
+    workflowId: string,
+    inputValues: Record<string, unknown>,
+    nodeIds: string[] | undefined,
+    respectLocks: boolean,
+    ctx: ToolExecutionContext,
+    tenantScope: { isDeleted: boolean; organizationId: string },
+  ): Promise<AgentToolResult> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
       ...tenantScope,
@@ -349,6 +428,30 @@ export class AgentWorkflowToolExecuteService {
         error: `Workflow ${workflowId} not found`,
         success: false,
       };
+    }
+
+    if (nodeIds) {
+      const knownNodeIds = new Set(
+        (workflow.nodes ?? []).map((node) => node.id),
+      );
+      const invalidNodeIds = nodeIds.filter((id) => !knownNodeIds.has(id));
+      if (invalidNodeIds.length > 0) {
+        return {
+          creditsUsed: 0,
+          error: `Invalid node IDs: ${invalidNodeIds.join(', ')}`,
+          success: false,
+        };
+      }
+      const selectedLocks = respectLocks
+        ? nodeIds.filter((id) => (workflow.lockedNodeIds ?? []).includes(id))
+        : [];
+      if (selectedLocks.length > 0) {
+        return {
+          creditsUsed: 0,
+          error: `Selected nodes are locked: ${selectedLocks.join(', ')}. Unlock them before rerunning, or include all required dependencies and set respectLocks to false.`,
+          success: false,
+        };
+      }
     }
 
     const requiredVars = (workflow.inputVariables ?? []).filter(
@@ -363,6 +466,36 @@ export class AgentWorkflowToolExecuteService {
         creditsUsed: 0,
         error: `Missing required workflow inputs: ${missingKeys.join(', ')}. Use get_workflow_inputs to discover expected variables.`,
         success: false,
+      };
+    }
+
+    if (nodeIds) {
+      const result =
+        await this.workflowExecutorService.executePartialWorkflowDocument(
+          workflow,
+          ctx.userId,
+          ctx.organizationId,
+          nodeIds,
+          respectLocks,
+          inputValues,
+          ctx.validatedScope,
+        );
+      return {
+        creditsUsed: 0,
+        data: {
+          id: result.executionId,
+          status: result.status,
+          nodeIds,
+          respectLocks,
+        },
+        success: String(result.status).toLowerCase() !== 'failed',
+        ...(String(result.status).toLowerCase() === 'failed'
+          ? {
+              error:
+                result.error ||
+                'Partial workflow execution failed. Ensure every upstream dependency is selected or has an explicitly locked cached output.',
+            }
+          : {}),
       };
     }
 

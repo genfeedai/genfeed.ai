@@ -1,6 +1,7 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
@@ -11,6 +12,33 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@api/collections/workflows/services/workflow-engine-executor-helper.service',
+  () => ({ WorkflowEngineExecutorHelperService: class {} }),
+);
+vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
+  FilesClientService: class {},
+}));
+vi.mock(
+  '@api/services/integrations/elevenlabs/services/elevenlabs.service',
+  () => ({ ElevenLabsService: class {} }),
+);
+vi.mock('@api/services/integrations/heygen/services/heygen.service', () => ({
+  HeyGenService: class {},
+}));
+vi.mock(
+  '@api/services/integrations/replicate/services/replicate.service',
+  () => ({ ReplicateService: class {} }),
+);
+vi.mock('@api/services/prompt-builder/prompt-builder.service', () => ({
+  PromptBuilderService: class {},
+}));
+vi.mock('@libs/logger/logger.service', () => ({ LoggerService: class {} }));
+vi.mock('@api/services/media-localization/media-localization.service', () => ({
+  MediaLocalizationService: class {},
+}));
+vi.mock('@api/services/byok/byok.service', () => ({ ByokService: class {} }));
 
 const wrapEngineExecutor =
   (executor: INodeExecutor) =>
@@ -367,5 +395,130 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       undefined,
       'continuation-1',
     );
+  });
+
+  it('rejects lip-sync when the source media and audio belong to different brands', async () => {
+    const requireMediaAsset = vi.fn(async (value: unknown) => {
+      if (value === 'video-asset') {
+        return {
+          brandId: 'brand-1',
+          category: 'video',
+          id: 'video-asset',
+          storageKey: 'video-key',
+          storageType: 'videos',
+        };
+      }
+      if (value === 'audio-asset') {
+        return {
+          brandId: 'brand-2',
+          category: 'audio',
+          id: 'audio-asset',
+          storageKey: 'audio-key',
+          storageType: 'audios',
+        };
+      }
+      throw new Error(`Unexpected media reference: ${String(value)}`);
+    });
+    const helper = {
+      readConfigString: () => undefined,
+      requireMediaAsset,
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const replicateService = { runModel: vi.fn() };
+    const filesClientService = { getPresignedDownloadUrl: vi.fn() };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      undefined,
+      undefined,
+      undefined,
+      replicateService as never,
+      filesClientService as never,
+    ).register(engine);
+
+    await expect(
+      getActionExecutor(engine, 'lipSync')?.(
+        {
+          config: {},
+          id: 'lip-sync-1',
+          inputs: [],
+          label: 'Lip sync',
+          type: 'lipSync',
+        },
+        new Map([
+          ['video', 'video-asset'],
+          ['audio', 'audio-asset'],
+        ]),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow(
+      'Lip-sync source media and audio must belong to the same brand',
+    );
+
+    expect(filesClientService.getPresignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it('marks the pending text-to-speech ingredient failed when BYOK key resolution rejects', async () => {
+    const patchIngredient = vi.fn();
+    const createWorkflowOutputIngredient = vi.fn().mockResolvedValue({
+      ingredientId: 'ingredient-1',
+      metadataId: 'metadata-1',
+    });
+    const helper = {
+      createWorkflowOutputIngredient,
+      patchIngredient,
+      readConfigString: () => undefined,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const elevenLabsService = { generateAndUploadAudio: vi.fn() };
+    const byokService = {
+      resolveApiKey: vi.fn().mockRejectedValue(new Error('BYOK unavailable')),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      undefined,
+      undefined,
+      elevenLabsService as never,
+      undefined,
+      undefined,
+      byokService as never,
+    ).register(engine);
+
+    await expect(
+      getActionExecutor(engine, 'textToSpeech')?.(
+        {
+          config: { brandId: 'brand-1', voiceId: 'voice-1' },
+          id: 'tts-1',
+          inputs: [],
+          label: 'Text to speech',
+          type: 'textToSpeech',
+        },
+        new Map([['text', 'Hello there']]),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('BYOK unavailable');
+
+    expect(patchIngredient).toHaveBeenCalledWith('ingredient-1', {
+      status: IngredientStatus.FAILED,
+    });
+    expect(elevenLabsService.generateAndUploadAudio).not.toHaveBeenCalled();
   });
 });

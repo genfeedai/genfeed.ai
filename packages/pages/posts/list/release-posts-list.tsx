@@ -4,7 +4,6 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   PageScope,
   type PostCategory,
-  PostStatus,
   type TargetExecutionState,
   TargetExecutionState as TargetState,
   ViewType,
@@ -18,16 +17,24 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
-import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import {
+  formatDateInTimezone,
+  getBrowserTimezone,
+} from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
 import ReleaseBoard from '@pages/posts/board/release-board';
 import AccountGrid from '@pages/posts/grid/account-grid';
+import PublishingContentIdentity from '@pages/posts/library/publishing-content-identity';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
-import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
+import { ReleaseRailActions } from '@pages/posts/rail/release-rail-row';
+import {
+  releaseNextInstant,
+  releaseOutcomeSummary,
+} from '@pages/posts/rail/release-rail-row.helpers';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
   targetRescheduleAction,
@@ -40,17 +47,16 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import Table from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import { Kbd } from '@ui/primitives/kbd';
-import { Kanban, LayoutGrid, Rows3 } from 'lucide-react';
+import { CalendarDays, Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostsListToolbar from './components/PostsListToolbar';
-import type { PublishingPostsView } from './posts-list-query';
 import {
   buildReleasePostsListQueryKey,
   RELEASE_POSTS_SORT_OPTIONS,
@@ -66,6 +72,7 @@ type ReleaseListPagination = {
 };
 
 export interface ReleasePostsListProps extends ContentProps {
+  calendar?: React.ReactNode;
   campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
@@ -76,21 +83,6 @@ export interface ReleasePostsListProps extends ContentProps {
   publicationState?: ReleasePostsPublicationState;
   search: string;
   sort: ReleasePostsSort;
-}
-
-function viewMessageKey(
-  view?: PublishingPostsView,
-): 'all' | 'failed' | 'notPosted' | 'posted' {
-  if (view === 'posted') {
-    return 'posted';
-  }
-  if (view === 'failed') {
-    return 'failed';
-  }
-  if (view === 'not-posted') {
-    return 'notPosted';
-  }
-  return 'all';
 }
 
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
@@ -108,6 +100,7 @@ const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
 
 export default function ReleasePostsList({
   campaignId,
+  calendar,
   contentTypes,
   credentialIds,
   executionStates,
@@ -127,6 +120,8 @@ export default function ReleasePostsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams?.toString() ?? '';
+  const isCalendar =
+    Boolean(calendar) && searchParams?.get('view') === 'calendar';
   const currentPage = Math.max(
     1,
     Number(new URLSearchParams(searchParamsString).get('page')) || 1,
@@ -223,11 +218,6 @@ export default function ReleasePostsList({
     queryKey,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const publishingView: PublishingPostsView | undefined =
-    executionStates?.includes(TargetState.FAILED)
-      ? PostStatus.FAILED
-      : publicationState;
-  const viewKey = viewMessageKey(publishingView);
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParamsString);
@@ -405,34 +395,51 @@ export default function ReleasePostsList({
 
   useEffect(() => {
     setFiltersNode(
-      <PostsListToolbar
-        onSearchChange={setToolbarSearchValue}
-        onSortChange={(nextSort) =>
-          replaceSearchParams((params) => {
-            if (nextSort === 'createdAt: -1') {
-              params.delete('sort');
-            } else {
-              params.set('sort', nextSort);
-            }
-            params.delete('page');
-          })
-        }
-        searchValue={toolbarSearchValue}
-        sortOptions={RELEASE_POSTS_SORT_OPTIONS}
-        sortValue={sort}
-      />,
+      isCalendar ? null : (
+        <PostsListToolbar
+          onSearchChange={setToolbarSearchValue}
+          onSortChange={(nextSort) =>
+            replaceSearchParams((params) => {
+              if (nextSort === 'createdAt: -1') {
+                params.delete('sort');
+              } else {
+                params.set('sort', nextSort);
+              }
+              params.delete('page');
+            })
+          }
+          searchValue={toolbarSearchValue}
+          sortOptions={RELEASE_POSTS_SORT_OPTIONS}
+          sortValue={sort}
+        />
+      ),
     );
     return () => setFiltersNode(null);
-  }, [replaceSearchParams, setFiltersNode, sort, toolbarSearchValue]);
+  }, [
+    isCalendar,
+    replaceSearchParams,
+    setFiltersNode,
+    sort,
+    toolbarSearchValue,
+  ]);
 
   useEffect(() => {
     setViewToggleNode(
       <ViewToggle
-        activeView={VIEW_MODE_TO_VIEW_TYPE[viewMode]}
+        activeView={
+          isCalendar ? ViewType.CALENDAR : VIEW_MODE_TO_VIEW_TYPE[viewMode]
+        }
         onChange={(nextView) =>
-          handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
+          nextView === ViewType.CALENDAR
+            ? replaceSearchParams((params) => params.set('view', 'calendar'))
+            : handleViewModeChange(VIEW_TYPE_TO_MODE[nextView] ?? 'list')
         }
         options={[
+          {
+            icon: <CalendarDays className="size-3.5 shrink-0" />,
+            label: 'Calendar view',
+            type: ViewType.CALENDAR,
+          },
           {
             icon: <Rows3 className="size-3.5 shrink-0" />,
             label: translate('viewToggle.list'),
@@ -451,15 +458,18 @@ export default function ReleasePostsList({
         ]}
       />,
     );
-    setRefresh(() => () => {
-      void refetch();
-    });
+    if (!isCalendar)
+      setRefresh(() => () => {
+        void refetch();
+      });
     return () => {
-      setRefresh(() => () => {});
+      if (!isCalendar) setRefresh(() => () => {});
       setViewToggleNode(null);
     };
   }, [
     handleViewModeChange,
+    isCalendar,
+    replaceSearchParams,
     refetch,
     setRefresh,
     setViewToggleNode,
@@ -491,6 +501,7 @@ export default function ReleasePostsList({
   }, [error]);
 
   const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
+    enabled: !isCalendar,
     itemCount: data.releases.length,
     onOpen: (index) => {
       const release = data.releases[index];
@@ -501,23 +512,11 @@ export default function ReleasePostsList({
     onRefresh: () => void refetch(),
   });
 
+  if (isCalendar) return <>{calendar}</>;
+
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">
-            {translate(`views.${viewKey}.title`)}
-          </h2>
-          <p className="mt-1 text-sm text-foreground/55">
-            {translate(`views.${viewKey}.description`)}
-          </p>
-        </div>
-        <p className="text-sm tabular-nums text-foreground/55">
-          {translate('postCount', { count: data.pagination.total })}
-        </p>
-      </div>
-
-      <div className="mb-3">
+      <div className="mb-3 empty:hidden">
         <ReleaseRailAccounts
           brandId={brandId}
           onToggle={handleAccountToggle}
@@ -563,59 +562,103 @@ export default function ReleasePostsList({
           label={translate('empty.label')}
         />
       ) : (
-        <div className="flex flex-col" role="listbox">
-          {data.releases.map((release, index) => (
-            <ReleaseRailRow
-              browserTimezone={browserTimezone}
-              index={index}
-              isActive={index === activeIndex}
-              key={release.id}
-              onActivate={() => {
-                setActiveIndex(index);
-                selectRelease(release.id);
-              }}
-              registerRow={registerItem(index)}
-              release={release}
-            />
-          ))}
-        </div>
+        <Table
+          items={data.releases}
+          getRowKey={(release) => release.id}
+          getRowClassName={(release) =>
+            data.releases[activeIndex]?.id === release.id ? 'bg-accent' : ''
+          }
+          onRowClick={(release) => {
+            setActiveIndex(
+              data.releases.findIndex((item) => item.id === release.id),
+            );
+            selectRelease(release.id);
+          }}
+          columns={[
+            {
+              key: 'title',
+              header: 'Content',
+              render: (release) => (
+                <div
+                  ref={registerItem(data.releases.indexOf(release))}
+                  data-release-id={release.id}
+                >
+                  <PublishingContentIdentity
+                    channels={(Array.isArray(release.targets)
+                      ? release.targets
+                      : []
+                    ).map((target) => target.platform)}
+                    title={release.title || translateRail('open')}
+                    summary={release.baseContent?.split('\n')[0]}
+                  />
+                </div>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              render: (release) => {
+                const outcome = releaseOutcomeSummary(release);
+                return (
+                  <div className="flex flex-wrap gap-2 text-xs text-foreground/55">
+                    {outcome.published > 0 ? (
+                      <span>
+                        {translateRail('outcome.published', {
+                          count: outcome.published,
+                        })}
+                      </span>
+                    ) : null}
+                    {outcome.failed > 0 ? (
+                      <span className="text-destructive">
+                        {translateRail('outcome.failed', {
+                          count: outcome.failed,
+                        })}
+                      </span>
+                    ) : null}
+                    {outcome.pending > 0 ? (
+                      <span>
+                        {translateRail('outcome.pending', {
+                          count: outcome.pending,
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'scheduledDate',
+              header: 'Scheduled',
+              render: (release) => {
+                const next = releaseNextInstant(release);
+                return next
+                  ? formatDateInTimezone(next, browserTimezone, 'short')
+                  : '—';
+              },
+            },
+            {
+              key: 'actions',
+              header: <span className="sr-only">{translate('actions')}</span>,
+              render: (release) => <ReleaseRailActions release={release} />,
+            },
+          ]}
+        />
       )}
 
-      {!error && viewMode === 'list' && data.releases.length > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.jKey')}</Kbd>
-            <Kbd>{translateRail('keys.kKey')}</Kbd>
-            {translateRail('keys.next')}
-          </span>
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.enterKey')}</Kbd>
-            {translateRail('keys.open')}
-          </span>
-          <span className="flex items-center gap-1">
-            <Kbd>{translateRail('keys.rKey')}</Kbd>
-            {translateRail('keys.refresh')}
-          </span>
-        </div>
-      ) : null}
-
-      {data.pagination.totalPages > 1 ? (
-        <div className="mt-4">
-          <Pagination
-            currentPage={currentPage}
-            onPageChange={(page) =>
-              replaceSearchParams((params) => {
-                if (page <= 1) {
-                  params.delete('page');
-                } else {
-                  params.set('page', String(page));
-                }
-              })
-            }
-            totalPages={data.pagination.totalPages}
-          />
-        </div>
-      ) : null}
+      <div className="mt-4">
+        <Pagination
+          currentPage={currentPage}
+          totalItems={data.pagination.total}
+          totalLabel="posts"
+          onPageChange={(page) =>
+            replaceSearchParams((params) => {
+              if (page <= 1) params.delete('page');
+              else params.set('page', String(page));
+            })
+          }
+          totalPages={data.pagination.totalPages}
+        />
+      </div>
 
       <ReleaseDetailDrawer
         brandId={brandId}

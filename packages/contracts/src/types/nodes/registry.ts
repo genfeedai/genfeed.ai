@@ -216,7 +216,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       temperature: 0.5,
     },
     description:
-      'Generate talking-head video from image/video and audio using Replicate',
+      'Animate a photo or lip-sync an existing video to replacement speech',
     icon: 'Mic',
     inputs: [
       { id: 'image', label: 'Face Image', type: 'image' },

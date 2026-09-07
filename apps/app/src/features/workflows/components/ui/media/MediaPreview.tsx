@@ -1,12 +1,13 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';
 
 interface MediaPreviewProps {
   src: string;
-  type: 'image' | 'video' | 'text' | null;
+  type: 'image' | 'video' | 'audio' | 'text' | null;
   className?: string;
   controls?: boolean;
   autoPlay?: boolean;
@@ -31,6 +32,18 @@ export function MediaPreview({
     'overflow-hidden bg-black/20', // design-system-allow-content-color
     className,
   );
+
+  if (type === 'audio') {
+    return (
+      <AudioPreviewPlayer
+        audioUrl={src}
+        label="Review audio"
+        className={cn('nodrag nowheel w-full', className)}
+        isTimelineVisible
+        stopOnUnmount
+      />
+    );
+  }
 
   if (type === 'video') {
     return (

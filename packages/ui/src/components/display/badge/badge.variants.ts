@@ -2,7 +2,7 @@ import { cva } from 'class-variance-authority';
 
 /**
  * CVA badge variants with semantic color options
- * Uses harmonized dark-mode palette with subtle backgrounds and borders
+ * Uses harmonized dark-mode palette with soft tinted backgrounds and no border ring
  *
  * Note: Some variants are intentional semantic aliases:
  * - error/destructive (rose) - use based on context
@@ -11,7 +11,7 @@ import { cva } from 'class-variance-authority';
  * - validated/operational (green) - use based on context
  */
 export const badgeVariants = cva(
-  'rounded-full border gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
+  'rounded-full gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
   {
     defaultVariants: {
       size: 'default',
@@ -25,36 +25,36 @@ export const badgeVariants = cva(
       },
       variant: {
         // Harmonized dark-mode palette with subtle backgrounds
-        accent: 'bg-primary/15 text-primary border-primary/30',
-        amber: 'bg-warning/10 text-warning border-warning/30',
+        accent: 'bg-primary/15 text-primary',
+        amber: 'bg-warning/10 text-warning',
         // Content type badges (categorical — distinguishing media kinds)
-        audio: 'bg-warning/15 text-warning border-warning/30',
-        avatar: 'bg-info/15 text-info border-info/30',
-        blue: 'bg-info/15 text-info border-info/30',
-        default: 'bg-primary/15 text-primary border-primary/30',
-        destructive: 'bg-destructive/10 text-destructive border-destructive/30',
+        audio: 'bg-warning/15 text-warning',
+        avatar: 'bg-info/15 text-info',
+        blue: 'bg-info/15 text-info',
+        default: 'bg-primary/15 text-primary',
+        destructive: 'bg-destructive/10 text-destructive',
         // Semantic aliases routed through the canonical destructive token
-        error: 'bg-destructive/10 text-destructive border-destructive/30',
-        ghost: 'bg-tertiary text-muted-foreground border-border',
-        gif: 'bg-info/15 text-info border-info/30',
+        error: 'bg-destructive/10 text-destructive',
+        ghost: 'bg-tertiary text-muted-foreground',
+        gif: 'bg-info/15 text-info',
         // Content type badges (categorical — distinguishing media kinds)
-        image: 'bg-info/15 text-info border-info/30',
-        info: 'bg-info/10 text-info border-info/30',
-        multimodal: 'bg-primary/15 text-primary border-primary/30',
-        operational: 'bg-success/10 text-success border-success/30',
+        image: 'bg-info/15 text-info',
+        info: 'bg-info/10 text-info',
+        multimodal: 'bg-primary/15 text-primary',
+        operational: 'bg-success/10 text-success',
         outline: 'border-border text-foreground bg-transparent',
-        primary: 'bg-primary/15 text-primary border-primary/30',
+        primary: 'bg-primary/15 text-primary',
         // Additional category colors
-        purple: 'bg-primary/15 text-primary border-primary/30',
-        secondary: 'bg-tertiary text-muted-foreground border-border',
-        slate: 'bg-tertiary text-muted-foreground border-border',
-        success: 'bg-success/10 text-success border-success/30',
-        text: 'bg-success/10 text-success border-success/30',
+        purple: 'bg-primary/15 text-primary',
+        secondary: 'bg-tertiary text-muted-foreground',
+        slate: 'bg-tertiary text-muted-foreground',
+        success: 'bg-success/10 text-success',
+        text: 'bg-success/10 text-success',
         // Status badges routed through canonical semantic tokens
-        validated: 'bg-success/10 text-success border-success/30',
-        video: 'bg-primary/15 text-primary border-primary/30',
-        voice: 'bg-warning/15 text-warning border-warning/30',
-        warning: 'bg-warning/10 text-warning border-warning/30',
+        validated: 'bg-success/10 text-success',
+        video: 'bg-primary/15 text-primary',
+        voice: 'bg-warning/15 text-warning',
+        warning: 'bg-warning/10 text-warning',
       },
     },
   },

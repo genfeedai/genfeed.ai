@@ -270,6 +270,37 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     expect(finalizer.finalizeExecution).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves an explicit audio preview type through a review decision', async () => {
+    const execution = buildExecution();
+    executionsService.findOne.mockResolvedValue({
+      ...execution,
+      metadata: {
+        pendingApproval: {
+          ...execution.metadata.pendingApproval,
+          inputMedia: 'https://cdn.example/extensionless-background',
+          rawMedia: {
+            id: 'background',
+            audioUrl: 'https://cdn.example/extensionless-background',
+          },
+        },
+      },
+    });
+    await service.submitReviewGateApproval(
+      WORKFLOW_ID,
+      EXECUTION_ID,
+      'user-1',
+      ORGANIZATION_ID,
+      NODE_ID,
+      false,
+    );
+    expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
+      EXECUTION_ID,
+      expect.objectContaining({
+        output: expect.objectContaining({ inputType: 'audio' }),
+      }),
+    );
+  });
+
   it('keeps a reusable system workflow active when one execution is rejected', async () => {
     executionsService.findOne.mockResolvedValue(
       buildExecution({

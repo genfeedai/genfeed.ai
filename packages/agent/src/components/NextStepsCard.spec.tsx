@@ -61,7 +61,9 @@ describe('NextStepsCard', () => {
         action={buildAction({
           nextSteps: [
             {
-              ctas: [{ href: '/settings/social', label: 'Open connections' }],
+              ctas: [
+                { href: '/settings/integrations', label: 'Open connections' },
+              ],
               id: 'step-1',
               title: 'Connect a social account',
             },

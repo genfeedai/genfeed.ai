@@ -48,7 +48,6 @@ type WorkspaceInspectorAdapters = {
 };
 
 type WorkspaceInspectorActions = {
-  readonly onCloseTab: (kind: WorkspaceInspectorTabKind) => void;
   readonly onOpenTab: (kind: WorkspaceInspectorTabKind) => void;
   readonly onOpenOverlay: () => void;
   readonly onOpenWorkflowPicker: () => boolean;
@@ -553,56 +552,43 @@ function WorkspaceInspectorContent({
       activeTab={chrome.activeKind}
       ariaLabel={translate('panels')}
       className="bg-background"
-      closeLabel={(label) => translate('close', { panel: label })}
       emptyState={
         <WorkspaceInspectorTabs
           availableKinds={chrome.availableKinds}
-          openKinds={[]}
           onOpenTab={actions.onOpenTab}
-          isLauncher
         />
       }
+      // The composer stays mounted so drafts survive tab switches, but it is
+      // only shown under the Chat pane; Context and Files end at their content.
       footer={
         isComposerOwner ? (
           <div
             className="shrink-0 border-t border-border p-2"
             data-testid="workspace-inspector-composer-slot"
+            hidden={chrome.activeKind !== 'conversation'}
             ref={actions.onSetComposerPortalTarget}
           />
         ) : null
       }
-      items={[
-        ...chrome.openKinds,
-        ...chrome.availableKinds.filter(
-          (kind) => !chrome.openKinds.includes(kind),
-        ),
-      ].map((kind) => ({
+      // Every available pane is always a tab: the strip is a segmented
+      // control, not a set of closable documents.
+      items={chrome.availableKinds.map((kind) => ({
         id: kind,
         label: translate(kind === 'conversation' ? 'chat' : kind),
         icon: WORKSPACE_INSPECTOR_TAB_ICONS[kind],
         content:
           kind === 'conversation' && !conversationSlot ? null : panels[kind],
-        isOpen: chrome.openKinds.includes(kind),
+        isOpen: true,
         keepMounted: kind === 'conversation' && conversationSlot !== null,
         testId:
           kind === 'conversation'
             ? 'workspace-inspector-conversation-section'
             : undefined,
       }))}
-      onClose={(kind) => {
-        if (isWorkspaceInspectorTabKind(kind)) actions.onCloseTab(kind);
-      }}
       onTabChange={(kind) => {
         if (isWorkspaceInspectorTabKind(kind)) actions.onOpenTab(kind);
       }}
       testId="workspace-inspector-panes"
-      trailing={
-        <WorkspaceInspectorTabs
-          availableKinds={chrome.availableKinds}
-          openKinds={chrome.openKinds}
-          onOpenTab={actions.onOpenTab}
-        />
-      }
     />
   );
 }

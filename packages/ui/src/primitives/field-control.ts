@@ -4,11 +4,25 @@
  * placeholder text. Semantic roles (`text-foreground`, `text-muted-foreground`)
  * carry the same value at every variant and every specificity.
  */
+/**
+ * Compact control row height shared by toolbars, filter triggers, tabs, and
+ * every field control. Lives in primitives (not `components/constants`) because
+ * the package build compiles primitives without the components tree.
+ */
+export const controlHeightClassName = 'h-8';
+
 export const fieldControlClassName =
   'flex h-8 w-full min-w-0 rounded-lg border border-border bg-background-tertiary px-3 py-1.5 text-sm text-foreground transition-[color,box-shadow,border-color,background-color] duration-200 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-border-strong disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50';
 
 export const fieldControlInputClassName =
   'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground';
+
+/**
+ * Subbar filter trigger: reads as a ghost button (no border, hover fill) so
+ * filters sit at the same weight as the other toolbar controls.
+ */
+export const ghostSelectTriggerClassName =
+  'h-8 w-auto gap-1.5 rounded-md border-0 bg-transparent px-2.5 text-xs font-medium text-foreground/70 shadow-none hover:bg-hover hover:text-foreground data-[state=open]:bg-hover data-[state=open]:text-foreground';
 
 export const fieldControlTriggerClassName =
   'items-center justify-between gap-2 whitespace-nowrap [&>span]:line-clamp-1';

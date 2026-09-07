@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -10,6 +8,7 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementMood } from '@models/elements/mood.model';
+import type { MoodsListAction, MoodsListState } from '@props/admin/moods.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -30,21 +29,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type MoodsListState = {
-  adminOrg: string;
-  adminBrand: string;
-  moods: ElementMood[];
-  isLoading: boolean;
-  selectedMood: IElementMood | null;
-};
-
-type MoodsListAction =
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | { type: 'SET_ADMIN_ORG_CLEAR_BRAND'; payload: string }
-  | { type: 'SET_MOODS'; payload: ElementMood[] }
-  | { type: 'SET_IS_LOADING'; payload: boolean }
-  | { type: 'SET_SELECTED_MOOD'; payload: IElementMood | null };
 
 function moodsListReducer(
   state: MoodsListState,

@@ -1,25 +1,15 @@
-'use client';
-
-import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
-import type { ICreatorWatchlist } from '@genfeedai/contracts/interfaces/analytics/creator-watchlist.interface';
+import type {
+  ICreatorWatchlist,
+  ITrendVideo,
+} from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
+import type { Props } from '@props/analytics/cross-platform-leaderboard-section.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-
-type PlatformConfigEntry = {
-  icon?: React.ComponentType<{ className?: string }>;
-  label?: string;
-};
-
-type Props = {
-  viralLeaderboard: ITrendVideo[];
-  creatorLeaderboard: ICreatorWatchlist[];
-  platformConfigLookup: Record<string, PlatformConfigEntry>;
-};
 
 export default function CrossPlatformLeaderboardSection({
   viralLeaderboard,

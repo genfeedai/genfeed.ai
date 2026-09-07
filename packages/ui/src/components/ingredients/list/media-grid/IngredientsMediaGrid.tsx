@@ -201,8 +201,9 @@ export default function IngredientsMediaGrid({
     <div className="flex flex-col gap-6">
       {timeGroups.map((group) => (
         <section key={group.label}>
-          <h3 className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40 backdrop-blur">
+          <h3 className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 text-sm font-semibold text-foreground backdrop-blur">
             {group.label}
+            <span className="text-foreground/55"> · {group.items.length}</span>
           </h3>
           <div style={columnStyle}>{group.items.map(renderIngredient)}</div>
         </section>

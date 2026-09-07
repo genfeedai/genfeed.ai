@@ -1,5 +1,3 @@
-'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
@@ -14,6 +12,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocialIntelligence } from '@hooks/data/analytics/use-social-intelligence/use-social-intelligence';
+import type {
+  SocialIntelligenceInboxProps,
+  ThemeCoverage,
+} from '@props/analytics/social-intelligence-inbox.props';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
 import Card from '@ui/card/Card';
@@ -25,18 +27,6 @@ import { ExternalLink, Inbox, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-
-interface SocialIntelligenceInboxProps {
-  brandId?: string;
-  organizationId: string;
-}
-
-interface ThemeCoverage {
-  included: string[];
-  missing: string[];
-  partial: boolean;
-  reason: string | null;
-}
 
 function formatWindow(start: string, end: string): string {
   const formatter = new Intl.DateTimeFormat(undefined, {

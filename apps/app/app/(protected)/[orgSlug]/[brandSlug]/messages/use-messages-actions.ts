@@ -1,5 +1,3 @@
-'use client';
-
 import { SocialConversationType } from '@genfeedai/contracts';
 import type {
   SocialConversationStatus,

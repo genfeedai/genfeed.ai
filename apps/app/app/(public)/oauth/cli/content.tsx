@@ -4,6 +4,11 @@ import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
+import type {
+  DesktopAuthorizeResponse,
+  DesktopIdentity,
+  FlowState,
+} from '@props/auth/oauth-cli-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -23,12 +28,6 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { redirectToCallback } from './callback-redirect';
 
-interface DesktopAuthorizeResponse {
-  code: string;
-  expiresAt: string;
-  state: string;
-}
-
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
@@ -42,29 +41,6 @@ function previewAuthCode(value: string): string {
   }
 
   return `${value.slice(0, AUTH_CODE_PREVIEW_LENGTH)}…`;
-}
-
-type FlowStep =
-  | 'validating'
-  | 'signing-in'
-  | 'requesting-token'
-  | 'redirecting'
-  | 'success'
-  | 'error';
-
-interface FlowState {
-  step: FlowStep;
-  error: string | null;
-  apiKey?: string | null;
-}
-
-interface DesktopIdentity {
-  firstName?: string | null;
-  id?: string;
-  lastName?: string | null;
-  primaryEmailAddress?: {
-    emailAddress?: string | null;
-  } | null;
 }
 
 function validatePort(value: string | null): number | null {

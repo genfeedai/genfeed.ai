@@ -1,8 +1,10 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, mergeConfig } from 'vitest/config';
 import baseConfig from '../vitest.config.mts';
 
+const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isShardRun = process.argv.some(
@@ -15,6 +17,18 @@ export default mergeConfig(
   defineConfig({
     resolve: {
       alias: [
+        // jsdom tests only ever run the browser SDK. The package root resolves to
+        // the server entry, which since 10.73 loads a webpack plugin at import
+        // time and throws outside a file:// URL.
+        {
+          // jsdom suites never load the Sentry bundles: the server entry throws
+          // outside a file:// URL and the client entry needs next/router.
+          find: /^@sentry\/nextjs$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/config/test/sentry-nextjs.shim.ts',
+          ),
+        },
         {
           find: /^@components\/buttons\/refresh\/button-refresh\/ButtonRefresh$/,
           replacement: path.resolve(

@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';

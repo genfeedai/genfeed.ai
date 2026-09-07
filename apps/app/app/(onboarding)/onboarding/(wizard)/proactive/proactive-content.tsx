@@ -4,10 +4,11 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import {
-  OnboardingService,
-  type ProactiveWorkspaceResponse,
-} from '@services/onboarding/onboarding.service';
+import type {
+  WorkspaceAction,
+  WorkspaceState,
+} from '@props/onboarding/proactive-content.props';
+import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
@@ -18,21 +19,6 @@ import ProactiveOutputsCard from './proactive-outputs-card';
 import ProactiveWorkspaceSidebar from './proactive-workspace-sidebar';
 
 const POLL_INTERVAL_MS = 8000;
-
-type WorkspaceState = {
-  workspace: ProactiveWorkspaceResponse | null;
-  isLoading: boolean;
-  isRefreshing: boolean;
-  error: string | null;
-};
-
-type WorkspaceAction =
-  | { type: 'LOAD_SUCCESS'; payload: ProactiveWorkspaceResponse }
-  | { type: 'LOAD_ERROR'; payload: string }
-  | { type: 'LOAD_DONE' }
-  | { type: 'REFRESH_START' }
-  | { type: 'REFRESH_SUCCESS'; payload: ProactiveWorkspaceResponse }
-  | { type: 'REFRESH_DONE' };
 
 const initialState: WorkspaceState = {
   workspace: null,

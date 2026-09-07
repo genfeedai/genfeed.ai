@@ -76,8 +76,8 @@ export const semanticColorTokens = {
     // background-200 — the content plane (sidebars, panels, cards).
     backgroundSecondary: { hex: '#161616', hsl: '0 0% 9%' },
     backgroundTertiary: { hex: '#1F1F1F', hsl: '0 0% 12%' },
-    border: { hex: '#333333', hsl: '0 0% 20%' },
-    borderStrong: { hex: '#4A4A4A', hsl: '0 0% 29%' },
+    border: { hex: '#262626', hsl: '0 0% 15%' },
+    borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
     // Lighter than the canvas, so a card reads as raised without a border.
     // 5% (not 9%) so dark panels separate from the 4% canvas.
     card: { hex: '#0D0D0D', hsl: '0 0% 5%' },
@@ -121,8 +121,8 @@ export const semanticColorTokens = {
     background: { hex: '#FAFAFA', hsl: '0 0% 98%' },
     backgroundSecondary: { hex: '#FFFFFF', hsl: '0 0% 100%' },
     backgroundTertiary: { hex: '#EDEDED', hsl: '0 0% 93%' },
-    border: { hex: '#D9D9D9', hsl: '0 0% 85%' },
-    borderStrong: { hex: '#C2C2C2', hsl: '0 0% 76%' },
+    border: { hex: '#E6E6E6', hsl: '0 0% 90%' },
+    borderStrong: { hex: '#D1D1D1', hsl: '0 0% 82%' },
     card: { hex: '#FFFFFF', hsl: '0 0% 100%' },
     cardForeground: { hex: '#171717', hsl: '0 0% 9%' },
     destructive: { hex: '#DC2626', hsl: '0 72% 51%' },

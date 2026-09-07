@@ -3,6 +3,7 @@
 import { signIn } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
+import type { SignUpBetterAuthProps } from '@props/auth/sign-up-better-auth.props';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -26,12 +27,6 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
-
-type SignUpMode = 'chooser' | 'magic-link';
-
-interface SignUpBetterAuthProps {
-  mode?: SignUpMode;
-}
 
 const SIGN_UP_MAGIC_LINK_METADATA = { intent: 'signup' } as const;
 

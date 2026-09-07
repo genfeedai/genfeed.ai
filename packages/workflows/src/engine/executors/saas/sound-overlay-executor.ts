@@ -4,6 +4,7 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
+import { mediaArtifactUrl } from './media-artifact-url';
 
 export type MixMode = 'replace' | 'mix' | 'background';
 
@@ -85,8 +86,16 @@ export class SoundOverlayExecutor extends BaseExecutor {
       throw new Error('Sound overlay processor not configured');
     }
 
-    const videoUrl = this.getRequiredInput<string>(inputs, 'videoUrl');
-    const soundUrl = this.getRequiredInput<string>(inputs, 'soundUrl');
+    const videoUrl = mediaArtifactUrl(
+      inputs.get('videoUrl') ?? inputs.get('video'),
+      'video',
+    );
+    const soundUrl = mediaArtifactUrl(
+      inputs.get('soundUrl') ?? inputs.get('audio'),
+      'audio',
+    );
+    if (!videoUrl) throw new Error('Missing required input: videoUrl');
+    if (!soundUrl) throw new Error('Missing required input: soundUrl');
 
     const mixMode = this.getOptionalConfig<MixMode>(
       node.config,

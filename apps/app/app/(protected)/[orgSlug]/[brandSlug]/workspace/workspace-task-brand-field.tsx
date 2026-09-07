@@ -1,16 +1,7 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { Editor } from '@tiptap/core';
+import type { WorkspaceTaskBrandFieldProps } from '@props/workspace/workspace-task-brand-field.props';
 import { EditorContent } from '@tiptap/react';
 import { Button } from '@ui/primitives/button';
-
-interface WorkspaceTaskBrandFieldProps {
-  editor: Editor | null;
-  onClear: () => void;
-  selectedTargetBrandLabel: string;
-  taskTargetBrandId: string | null;
-}
 
 export function WorkspaceTaskBrandField({
   editor,

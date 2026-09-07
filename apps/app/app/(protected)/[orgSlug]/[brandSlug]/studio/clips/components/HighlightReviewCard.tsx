@@ -1,7 +1,9 @@
-'use client';
-
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { IHighlight } from '@props/studio/clips.props';
+import type {
+  HighlightReviewCardProps,
+  RewriteAction,
+  RewriteState,
+} from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
@@ -17,17 +19,6 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useReducer, useRef } from 'react';
-import type { ClipsApiService } from '../services/clips-api.service';
-
-interface HighlightReviewCardProps {
-  highlight: IHighlight;
-  selected: boolean;
-  onToggle: () => void;
-  onTitleEdit: (text: string) => void;
-  onScriptEdit: (text: string) => void;
-  projectId?: string;
-  clipsService?: ClipsApiService;
-}
 
 const CLIP_TYPE_BADGE_CLASSES =
   'bg-secondary text-muted-foreground border-transparent';
@@ -60,22 +51,6 @@ function getViralityColor(score: number): string {
   if (score >= 60) return 'bg-warning/10 text-warning border-transparent';
   return 'bg-destructive/10 text-destructive border-transparent';
 }
-
-type RewriteState = {
-  isRewriting: boolean;
-  hasBeenRewritten: boolean;
-  platform: string;
-  tone: string;
-  rewriteError: string | null;
-};
-
-type RewriteAction =
-  | { type: 'START_REWRITE' }
-  | { type: 'REWRITE_SUCCESS' }
-  | { type: 'REWRITE_ERROR'; error: string }
-  | { type: 'RESTORE' }
-  | { type: 'SET_PLATFORM'; platform: string }
-  | { type: 'SET_TONE'; tone: string };
 
 const initialRewriteState: RewriteState = {
   isRewriting: false,

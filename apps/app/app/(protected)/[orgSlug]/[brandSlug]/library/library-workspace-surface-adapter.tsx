@@ -1,5 +1,3 @@
-'use client';
-
 import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';

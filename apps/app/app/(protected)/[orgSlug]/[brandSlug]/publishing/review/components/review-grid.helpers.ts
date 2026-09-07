@@ -1,5 +1,10 @@
 import { BatchItemStatus } from '@genfeedai/contracts';
 import type { IBatchItem } from '@genfeedai/contracts/interfaces';
+import type {
+  ReviewFilter,
+  ReviewFilterCounts,
+  ReviewStatusFilter,
+} from '@props/publishing/review-filters.props';
 import {
   isApproved,
   isChangesRequested,
@@ -8,17 +13,11 @@ import {
   isRejected,
 } from './review-state';
 
-export type ReviewFilter =
-  | 'ready'
-  | 'approved'
-  | 'changes_requested'
-  | 'failed'
-  | 'pending'
-  | 'skipped'
-  | 'all';
-
-/** Statuses that can be multi-selected (excludes synthetic `all`). */
-export type ReviewStatusFilter = Exclude<ReviewFilter, 'all'>;
+export type {
+  ReviewFilter,
+  ReviewFilterCounts,
+  ReviewStatusFilter,
+} from '@props/publishing/review-filters.props';
 
 export const REVIEW_STATUS_FILTER_VALUES: ReviewStatusFilter[] = [
   'ready',
@@ -28,16 +27,6 @@ export const REVIEW_STATUS_FILTER_VALUES: ReviewStatusFilter[] = [
   'pending',
   'skipped',
 ];
-
-export interface ReviewFilterCounts {
-  all: number;
-  approved: number;
-  changes_requested: number;
-  failed: number;
-  pending: number;
-  ready: number;
-  skipped: number;
-}
 
 export function getReviewFilterCounts(items: IBatchItem[]): ReviewFilterCounts {
   return items.reduce<ReviewFilterCounts>(

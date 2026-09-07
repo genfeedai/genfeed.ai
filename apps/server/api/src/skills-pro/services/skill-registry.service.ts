@@ -35,6 +35,13 @@ export interface SkillRegistry {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const NEGATIVE_CACHE_TTL_MS = 60 * 1000; // 1 minute
+
+const EMPTY_REGISTRY: SkillRegistry = {
+  bundlePrice: 0,
+  skills: [],
+  updatedAt: new Date(0).toISOString(),
+};
 
 @Injectable()
 export class SkillRegistryService {
@@ -43,6 +50,7 @@ export class SkillRegistryService {
   private cachedBundleStripePriceId: string | undefined;
   private cachedBundlePriceCents: number | undefined;
   private cacheExpiresAt = 0;
+  private lastFetchFailedAt = 0;
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,18 +63,43 @@ export class SkillRegistryService {
       return this.cachedRegistry;
     }
 
+    if (
+      !this.cachedRegistry &&
+      Date.now() - this.lastFetchFailedAt < NEGATIVE_CACHE_TTL_MS
+    ) {
+      return EMPTY_REGISTRY;
+    }
+
     const registryUrl = `${this.configService.cdnUrl}/skills/registry.json`;
 
     this.loggerService.log(`${this.constructorName} fetching registry`, {
       url: registryUrl,
     });
 
-    const response = await fetch(registryUrl);
+    let response: Response;
+    try {
+      response = await fetch(registryUrl);
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} failed to fetch registry`,
+        {
+          error: error instanceof Error ? error.message : String(error),
+          url: registryUrl,
+        },
+      );
+      return this.handleFetchFailure();
+    }
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch skill registry: ${response.status} ${response.statusText}`,
+      this.loggerService.warn(
+        `${this.constructorName} registry fetch returned non-OK response`,
+        {
+          status: response.status,
+          statusText: response.statusText,
+          url: registryUrl,
+        },
       );
+      return this.handleFetchFailure();
     }
 
     const cdnData = (await response.json()) as CdnSkillRegistry;
@@ -82,12 +115,18 @@ export class SkillRegistryService {
     this.cachedBundleStripePriceId = cdnData.bundle?.stripePriceId;
     this.cachedBundlePriceCents = bundlePriceCents;
     this.cacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    this.lastFetchFailedAt = 0;
 
     this.loggerService.log(`${this.constructorName} registry cached`, {
       skillCount: registry.skills.length,
     });
 
     return registry;
+  }
+
+  private handleFetchFailure(): SkillRegistry {
+    this.lastFetchFailedAt = Date.now();
+    return this.cachedRegistry ?? EMPTY_REGISTRY;
   }
 
   async getMetadataRegistry(): Promise<SkillsProRegistryCatalogDto> {

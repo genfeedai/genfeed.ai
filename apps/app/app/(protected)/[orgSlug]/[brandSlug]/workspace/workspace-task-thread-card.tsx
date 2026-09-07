@@ -1,16 +1,10 @@
-'use client';
-
-import type { TaskEvent } from '@services/management/tasks.service';
+import type { WorkspaceTaskThreadCardProps } from '@props/workspace/workspace-task-thread-card.props';
 import Card from '@ui/card/Card';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   formatWorkspaceEventLabel,
   getWorkspaceEventMessage,
 } from './workspace-task-inspector-helpers';
-
-interface WorkspaceTaskThreadCardProps {
-  eventStream: TaskEvent[];
-}
 
 export function WorkspaceTaskThreadCard({
   eventStream,

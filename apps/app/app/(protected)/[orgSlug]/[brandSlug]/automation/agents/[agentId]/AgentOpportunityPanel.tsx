@@ -1,19 +1,11 @@
-'use client';
-
 import {
   DefinitionDetail,
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import type { AgentStrategyOpportunity } from '@services/automation/agent-strategies.service';
+import type { AgentOpportunityPanelProps } from '@props/automation/agent-opportunity-panel.props';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-
-type AgentOpportunityPanelProps = {
-  requestedOpportunityId: string;
-  selectedOpportunity: AgentStrategyOpportunity | null;
-  isOpportunitiesLoading: boolean;
-};
 
 export default function AgentOpportunityPanel({
   requestedOpportunityId,

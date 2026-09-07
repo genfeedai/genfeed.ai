@@ -30,16 +30,17 @@ describe('AutoPagination', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should not render when there is only one page', () => {
+  it('keeps totals visible when there is only one page', () => {
     vi.mocked(PagesService.getTotalPages).mockReturnValue(1);
 
-    const { container } = render(<AutoPagination />);
-    expect(container.firstChild).toBeNull();
+    render(<AutoPagination />);
+    expect(screen.getByText('50 results')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
   it('should show total when showTotal is true', () => {
     render(<AutoPagination showTotal />);
-    expect(screen.getByText(/showing page/i)).toBeInTheDocument();
+    expect(screen.getByText('50 results')).toBeInTheDocument();
   });
 
   it('should use custom totalLabel', () => {

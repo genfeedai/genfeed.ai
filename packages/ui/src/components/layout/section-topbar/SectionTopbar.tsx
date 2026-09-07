@@ -1,8 +1,10 @@
 'use client';
 
+import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
+import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
@@ -10,7 +12,7 @@ import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topb
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - tabs left, primary tools right, inside the same bar
+ * - primary tools followed by tabs at the right edge, inside the same bar
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row, then optional tab strip under it
@@ -26,6 +28,7 @@ export default function SectionTopbar({
   leading,
   tabs,
   titleVisibility = 'auto',
+  help,
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
@@ -35,9 +38,12 @@ export default function SectionTopbar({
       : titleVisibility === 'sr-only'
         ? false
         : !hasCanonicalBreadcrumb;
-  const hasActions = Boolean(actions);
   const hasLeading = Boolean(leading);
   const hasTabs = Boolean(tabs);
+  const routeHelp = usePageHelp();
+  const resolvedHelp = help === undefined ? routeHelp : help;
+  const helpTrigger = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
+  const hasActions = Boolean(actions) || Boolean(helpTrigger);
 
   // Chrome-only title with no tools: do not paint an empty border-b strip.
   if (!hasVisibleTitle && !hasLeading && !hasTabs && !hasActions) {
@@ -57,24 +63,16 @@ export default function SectionTopbar({
         <h1 className="sr-only">{title}</h1>
         <div
           className={cn(
-            'flex w-full items-center gap-3 px-4 py-1.5 sm:px-6',
+            'flex w-full items-center justify-end gap-3 px-4 py-1.5 sm:px-6',
             !hasLeading && !hasTabs && hasActions && 'justify-end',
           )}
         >
           {hasLeading ? (
             <div
               data-testid="section-topbar-leading"
-              className="flex shrink-0 items-center"
+              className="mr-auto flex shrink-0 items-center"
             >
               {leading}
-            </div>
-          ) : null}
-          {hasTabs ? (
-            <div
-              data-testid="section-topbar-tabs"
-              className="min-w-0 flex-1 overflow-x-auto scrollbar-thin"
-            >
-              {tabs}
             </div>
           ) : null}
           {hasActions ? (
@@ -88,6 +86,15 @@ export default function SectionTopbar({
               )}
             >
               {actions}
+              {helpTrigger}
+            </div>
+          ) : null}
+          {hasTabs ? (
+            <div
+              data-testid="section-topbar-tabs"
+              className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
+            >
+              {tabs}
             </div>
           ) : null}
         </div>
@@ -138,6 +145,7 @@ export default function SectionTopbar({
             className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
             {actions}
+            {helpTrigger}
           </div>
         ) : null}
       </div>
@@ -145,7 +153,7 @@ export default function SectionTopbar({
       {hasTabs ? (
         <div
           data-testid="section-topbar-tabs"
-          className="overflow-x-auto px-4 pb-1.5 scrollbar-thin"
+          className="flex justify-end overflow-x-auto px-6 pb-1.5 scrollbar-thin"
         >
           {tabs}
         </div>

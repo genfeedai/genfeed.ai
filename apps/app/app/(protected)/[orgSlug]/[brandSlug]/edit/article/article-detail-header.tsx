@@ -1,8 +1,5 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { GlobalModalsContextValue } from '@providers/global-modals/global-modals.provider';
-import type { ClipboardService } from '@services/core/clipboard.service';
+import type { ArticleDetailHeaderProps } from '@props/edit/article-detail-header.props';
 import { Button } from '@ui/primitives/button';
 import {
   Archive,
@@ -12,32 +9,6 @@ import {
   Rocket,
   Trash2,
 } from 'lucide-react';
-
-type ArticleDetailHeaderState = {
-  isNew: boolean;
-  hasXArticleSections: boolean;
-  isDirty: boolean;
-  isSaving: boolean;
-};
-
-type ArticleDetailHeaderPermissions = {
-  canPublish: boolean;
-  canArchive: boolean;
-};
-
-type ArticleDetailHeaderProps = {
-  state: ArticleDetailHeaderState;
-  permissions: ArticleDetailHeaderPermissions;
-  formLabel: string;
-  plainTextContent: string;
-  openConfirm: GlobalModalsContextValue['openConfirm'];
-  onPublish: () => void;
-  onArchive: () => void;
-  onDelete: () => void;
-  onSave: () => void;
-  onCopyFullArticle: () => void;
-  clipboardService: ClipboardService;
-};
 
 export default function ArticleDetailHeader({
   state,

@@ -58,16 +58,16 @@ describe('Badge', () => {
   );
 
   it.each([
-    ['scheduled', 'bg-warning/10', 'border-warning/30'],
-    ['processing', 'bg-info/10', 'border-info/30'],
-    ['warning', 'bg-warning/10', 'border-warning/30'],
-    ['canceled', 'bg-muted', 'border-border'],
+    ['scheduled', 'bg-warning/10', 'text-warning'],
+    ['processing', 'bg-info/10', 'text-info'],
+    ['warning', 'bg-warning/10', 'text-warning'],
+    ['canceled', 'bg-muted', 'text-muted-foreground'],
   ])(
-    'keeps the %s alias fill and border on one semantic tone',
-    (status, bgClass, borderClass) => {
+    'keeps the %s alias fill and text on one semantic tone',
+    (status, bgClass, textClass) => {
       const { container } = render(<Badge status={status} />);
 
-      expect(container.firstElementChild).toHaveClass(bgClass, borderClass);
+      expect(container.firstElementChild).toHaveClass(bgClass, textClass);
     },
   );
 

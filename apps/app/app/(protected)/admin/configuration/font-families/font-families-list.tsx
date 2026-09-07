@@ -10,6 +10,10 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { FontFamily } from '@models/elements/font-family.model';
+import type {
+  FontFamiliesAction as Action,
+  FontFamiliesState as State,
+} from '@props/admin/font-families.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -32,24 +36,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type FetchStatus = 'idle' | 'loading' | 'refreshing';
-
-type State = {
-  fontFamilies: FontFamily[];
-  fetchStatus: FetchStatus;
-  selectedFontFamily: IFontFamily | null;
-  adminOrg: string;
-  adminBrand: string;
-};
-
-type Action =
-  | { type: 'FETCH_START'; isRefreshing: boolean }
-  | { type: 'FETCH_SUCCESS'; fontFamilies: FontFamily[] }
-  | { type: 'FETCH_DONE' }
-  | { type: 'SET_SELECTED'; fontFamily: IFontFamily | null }
-  | { type: 'SET_ADMIN_ORG'; orgId: string }
-  | { type: 'SET_ADMIN_BRAND'; brandId: string };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {

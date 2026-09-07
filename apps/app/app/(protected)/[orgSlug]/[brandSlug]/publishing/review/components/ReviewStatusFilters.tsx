@@ -1,12 +1,7 @@
-'use client';
-
+import type { ReviewStatusFiltersProps } from '@props/publishing/review-status-filters.props';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { useMemo } from 'react';
-
-import type {
-  ReviewFilterCounts,
-  ReviewStatusFilter,
-} from './review-grid.helpers';
+import type { ReviewStatusFilter } from './review-grid.helpers';
 import { REVIEW_STATUS_FILTER_VALUES } from './review-grid.helpers';
 
 const STATUS_LABELS: Record<ReviewStatusFilter, string> = {
@@ -21,12 +16,6 @@ const STATUS_LABELS: Record<ReviewStatusFilter, string> = {
 /** Same shell chrome as the batch picker / publish list sort control. */
 export const PUBLISH_HEADER_DROPDOWN_CLASS =
   'h-8 max-w-[16rem] rounded-md border border-border bg-card px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground';
-
-interface ReviewStatusFiltersProps {
-  activeFilters: readonly ReviewStatusFilter[];
-  filterCounts: ReviewFilterCounts;
-  onFilterChange: (filters: ReviewStatusFilter[]) => void;
-}
 
 /**
  * Multi-select status filter for the Publish action rail.

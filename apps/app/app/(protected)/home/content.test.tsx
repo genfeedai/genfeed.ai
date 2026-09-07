@@ -265,15 +265,18 @@ describe('OperationalHomeContent', () => {
     ).toHaveClass('sr-only');
     expect(
       screen.getByText(
-        /Connect Claude Code, Codex, or another MCP client to unlock live/,
+        /Connect Claude Code, Codex, or another MCP client to manage this workspace/,
       ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Connect Genfeed/ }),
     ).toHaveAttribute('href', '/acme/~/connect');
     expect(
-      screen.getByRole('link', { name: /Manage API keys/ }),
-    ).toHaveAttribute('href', '/acme/~/settings/api-keys');
+      screen.queryByRole('link', { name: /Manage API keys/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Connect an AI client (optional)'),
+    ).toBeInTheDocument();
     const connectionState = screen.getByTestId('operational-home-unconfigured');
     const operationalSections = screen.getByTestId('operational-home-sections');
 
@@ -412,7 +415,7 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     for (const name of [
-      'catalog:home.approvals.open',
+      'catalog:home.approvals.viewAll',
       'catalog:home.publishing.open',
       'catalog:home.schedule.open',
       'catalog:home.credentials.manage',
@@ -611,9 +614,16 @@ describe('OperationalHomeContent', () => {
       within(needsYou).getAllByTestId('operational-home-needs-you-row'),
     ).toHaveLength(5);
     expect(
-      within(needsYou).getByTestId('operational-home-needs-you-overflow'),
+      within(needsYou).getByRole('link', {
+        name: 'catalog:home.approvals.viewAll',
+      }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
-    expect(needsYou).toHaveTextContent('catalog:home.approvals.overflow');
+    expect(needsYou).not.toHaveTextContent('catalog:home.approvals.overflow');
+    expect(
+      within(needsYou).queryByRole('link', {
+        name: 'catalog:home.approvals.open',
+      }),
+    ).not.toBeInTheDocument();
     expect(needsYou).toHaveTextContent('catalog:home.approvals.viewAll');
   });
 

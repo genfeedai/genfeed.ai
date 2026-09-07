@@ -1,21 +1,9 @@
-'use client';
-
 import { ComponentSize } from '@genfeedai/contracts';
-import type {
-  TemplateMetadata,
-  TemplatePerformance,
-} from '@genfeedai/contracts/interfaces/content/template-ui.interface';
+import type { TemplateSidebarProps as Props } from '@props/admin/templates.props';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
-
-type Props = {
-  metadata: TemplateMetadata;
-  performance: TemplatePerformance;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 export default function TemplateSidebar({
   metadata,

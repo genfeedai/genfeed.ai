@@ -145,6 +145,7 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    * hides the switcher entirely.
    */
   views?: CalendarViewKey[];
+  embedded?: boolean;
   filterControls?: ReactNode;
   modal?: ReactNode;
   /**

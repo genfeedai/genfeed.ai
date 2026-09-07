@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 export interface UseRailKeysOptions {
+  enabled?: boolean;
   itemCount: number;
   onOpen?: (index: number) => void;
   onRefresh?: () => void;
@@ -30,6 +31,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
  * row, r → refresh. Inactive while focus sits in a text-entry control.
  */
 export function useRailKeys({
+  enabled = true,
   itemCount,
   onOpen,
   onRefresh,
@@ -46,6 +48,7 @@ export function useRailKeys({
   }, [itemCount]);
 
   useEffect(() => {
+    if (!enabled) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (isTypingTarget(event.target)) {
         return;
@@ -75,7 +78,7 @@ export function useRailKeys({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeIndex, itemCount, onOpen, onRefresh]);
+  }, [activeIndex, enabled, itemCount, onOpen, onRefresh]);
 
   useEffect(() => {
     itemRefs.current.get(activeIndex)?.scrollIntoView({ block: 'nearest' });

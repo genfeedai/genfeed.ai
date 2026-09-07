@@ -8,6 +8,10 @@ import {
 import { Platform } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
+import type {
+  PostsLayoutAction,
+  PostsLayoutState,
+} from '@props/admin/posts.props';
 import Container from '@ui/layout/container/Container';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -22,26 +26,6 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
   setScheduleActionsNode: () => {},
   setViewToggleNode: () => {},
 };
-
-type PostsLayoutState = {
-  refreshFn: RefreshFunction | (() => RefreshFunction) | null;
-  isRefreshing: boolean;
-  filtersNode: ReactNode;
-  exportNode: ReactNode;
-  viewToggleNode: ReactNode;
-  scheduleActionsNode: ReactNode;
-};
-
-type PostsLayoutAction =
-  | {
-      type: 'SET_REFRESH_FN';
-      payload: RefreshFunction | (() => RefreshFunction) | null;
-    }
-  | { type: 'SET_IS_REFRESHING'; payload: boolean }
-  | { type: 'SET_FILTERS_NODE'; payload: ReactNode }
-  | { type: 'SET_EXPORT_NODE'; payload: ReactNode }
-  | { type: 'SET_VIEW_TOGGLE_NODE'; payload: ReactNode }
-  | { type: 'SET_SCHEDULE_ACTIONS_NODE'; payload: ReactNode };
 
 const initialPostsLayoutState: PostsLayoutState = {
   refreshFn: null,

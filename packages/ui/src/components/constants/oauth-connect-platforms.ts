@@ -22,6 +22,7 @@ export type OAuthConnectPlatformCategoryId =
 export interface OAuthConnectPlatformCategory {
   id: OAuthConnectPlatformCategoryId;
   label: string;
+  description: string;
 }
 
 export interface OAuthConnectPlatform {
@@ -86,11 +87,31 @@ export function resolveOAuthServicePath(
  */
 export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
   [
-    { id: 'social', label: 'Social networks' },
-    { id: 'video', label: 'Video' },
-    { id: 'communities', label: 'Communities' },
-    { id: 'creator', label: 'Creator' },
-    { id: 'ads', label: 'Advertising' },
+    {
+      id: 'social',
+      label: 'Social networks',
+      description: 'Post and manage text, image, and link updates.',
+    },
+    {
+      id: 'video',
+      label: 'Video',
+      description: 'Publish long-form and short-form video content.',
+    },
+    {
+      id: 'communities',
+      label: 'Communities',
+      description: 'Reach members of forums and community spaces.',
+    },
+    {
+      id: 'creator',
+      label: 'Creator',
+      description: 'Manage subscriber and fan platform integrations.',
+    },
+    {
+      id: 'ads',
+      label: 'Advertising',
+      description: 'Connect ad accounts to run and track campaigns.',
+    },
   ];
 
 /**

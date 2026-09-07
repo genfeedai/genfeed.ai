@@ -1,5 +1,3 @@
-'use client';
-
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewQueueSectionProps } from '@props/publisher/publishing-overview.props';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';

@@ -6,13 +6,30 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunHistoryList from './RunHistoryList';
 import RunStatsStrip from './RunStatsStrip';
 
 export default function MissionControl() {
   const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const handlePageChange = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (page <= 1) params.delete('page');
+      else params.set('page', String(page));
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
   const {
     cancelExecution,
     executions,
@@ -87,9 +104,11 @@ export default function MissionControl() {
             />
 
             <RunHistoryList
+              currentPage={currentPage}
               onClearFilter={searchQuery ? () => setSearchQuery('') : undefined}
               executions={historyExecutions}
               isLoading={isLoading}
+              onPageChange={handlePageChange}
             />
           </>
         )}

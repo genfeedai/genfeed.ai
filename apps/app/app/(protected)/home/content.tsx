@@ -10,7 +10,7 @@ import { useAccessState } from '@providers/access-state/access-state.provider';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, Key, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowRight, Info, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -22,11 +22,9 @@ import {
 } from './use-connect-genfeed-status';
 
 function ConnectionStatusLine({
-  apiKeysHref,
   connectHref,
   connection,
 }: {
-  apiKeysHref: string;
   connectHref: string;
   connection: UseConnectGenfeedStatusResult;
 }) {
@@ -91,29 +89,24 @@ function ConnectionStatusLine({
   }
 
   return (
-    <div
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 text-xs"
-      data-testid="operational-home-unconfigured"
-    >
-      <span className="text-foreground/60">
-        Connect Claude Code, Codex, or another MCP client to unlock live
-        operations.
-      </span>
-      <div className="flex flex-wrap gap-2">
-        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-          <Link href={connectHref}>
-            Connect Genfeed
-            <ArrowRight aria-hidden="true" className="size-3.5" />
-          </Link>
-        </Button>
-        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
-          <Link href={apiKeysHref}>
-            <Key aria-hidden="true" className="size-3.5" />
-            Manage API keys
-          </Link>
-        </Button>
-      </div>
-    </div>
+    <Alert variant="info" data-testid="operational-home-unconfigured">
+      <Info aria-hidden="true" />
+      <AlertTitle>Connect an AI client (optional)</AlertTitle>
+      <AlertDescription>
+        <p>
+          Connect Claude Code, Codex, or another MCP client to manage this
+          workspace from your AI tools. You can keep using the dashboard without
+          connecting.
+        </p>
+        <Link
+          className="mt-2 inline-flex items-center gap-1 font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          href={connectHref}
+        >
+          Connect Genfeed
+          <ArrowRight aria-hidden="true" className="size-3.5" />
+        </Link>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -154,21 +147,13 @@ export default function OperationalHomeContent() {
   }
 
   const connectHref = createOrganizationAppRoute(orgSlug, APP_ROUTES.CONNECT);
-  const apiKeysHref = createOrganizationAppRoute(
-    orgSlug,
-    APP_ROUTES.SETTINGS.API_KEYS,
-  );
 
   // Shell Container owns equal page insets — do not re-apply px/py here.
   return (
     <div className="flex w-full flex-col gap-5">
       <h1 className="sr-only">Operational home</h1>
 
-      <ConnectionStatusLine
-        apiKeysHref={apiKeysHref}
-        connectHref={connectHref}
-        connection={connection}
-      />
+      <ConnectionStatusLine connectHref={connectHref} connection={connection} />
 
       <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
     </div>

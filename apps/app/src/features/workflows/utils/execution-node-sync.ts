@@ -53,12 +53,26 @@ function coerceReviewGateStatus(value: unknown): ReviewGateStatus | null {
 
 function inferReviewMediaType(
   inputMedia: string | null,
-): 'image' | 'video' | 'text' | null {
+  explicitType?: unknown,
+): 'image' | 'video' | 'audio' | 'text' | null {
+  if (
+    explicitType === 'audio' ||
+    explicitType === 'image' ||
+    explicitType === 'video' ||
+    explicitType === 'text'
+  )
+    return explicitType;
   if (!inputMedia) {
     return null;
   }
 
   const normalized = inputMedia.split('?')[0]?.toLowerCase() ?? inputMedia;
+  if (
+    /\.(wav|mp3|m4a|aac|flac|ogg|opus)$/u.test(normalized) ||
+    /\/(musics|audios)\/[^/]+$/u.test(normalized)
+  )
+    return 'audio';
+
   if (/\.(mp4|mov|webm|m4v)$/u.test(normalized)) {
     return 'video';
   }
@@ -110,7 +124,10 @@ export function buildExecutionNodePatch(
       typeof output.approvedBy === 'string' ? output.approvedBy : undefined;
     patch.inputCaption = inputCaption;
     patch.inputMedia = inputMedia;
-    patch.inputType = inferReviewMediaType(inputMedia);
+    patch.inputType = inferReviewMediaType(
+      inputMedia,
+      output.inputType ?? output.mediaType,
+    );
     patch.outputCaption =
       approvalStatus === ReviewGateStatus.APPROVED ? outputCaption : null;
     patch.outputMedia =

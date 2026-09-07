@@ -5,6 +5,10 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAdminStats } from '@hooks/data/analytics/use-admin-stats/use-admin-stats';
+import type {
+  LeaderboardCardProps,
+  StatsGridProps,
+} from '@props/admin/dashboard.props';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -77,16 +81,6 @@ const orgTypes = [
   'Content Lab',
   'Media Network',
 ];
-
-interface LeaderboardCardProps {
-  data: {
-    rank: number;
-    organization: { id: string; name: string; logo?: string };
-    totalPosts: number;
-    growth: number;
-  }[];
-  isLoading: boolean;
-}
 
 function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
   return (
@@ -179,18 +173,6 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       </Button>
     </WorkspaceSurface>
   );
-}
-
-interface StatsGridProps {
-  stats: {
-    totalBrands: number;
-    pendingPosts: number;
-    activeWorkflows: number;
-    activeBots: number;
-    totalModels: number;
-    recentActivities: number;
-  };
-  isLoading: boolean;
 }
 
 function StatsGrid({ stats, isLoading }: StatsGridProps) {

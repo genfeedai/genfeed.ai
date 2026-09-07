@@ -165,7 +165,7 @@ function TrendRemixPageContent() {
     );
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
+    <main className="w-full space-y-6">
       <header className="max-w-2xl space-y-2">
         <div className="flex items-center gap-2 text-sm text-foreground/55">
           <Layers3 className="size-4" />

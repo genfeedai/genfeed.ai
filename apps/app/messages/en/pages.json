@@ -141,6 +141,123 @@
       "watchCompetitor": "Watch competitor"
     }
   },
+  "brandHarnessSettings": {
+    "badges": {
+      "scopePrefix": "scope: {scope}"
+    },
+    "brandMissing": "Brand not found.",
+    "description": "This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide).",
+    "fields": {
+      "aggression": {
+        "helper": "How sharp or soft the delivery reads.",
+        "label": "Aggression"
+      },
+      "audience": {
+        "helper": "One audience segment per line.",
+        "label": "ICP / Audience"
+      },
+      "avoid": {
+        "helper": "One example to avoid per line.",
+        "label": "Anti Examples"
+      },
+      "bannedPhrases": {
+        "helper": "One disallowed phrase per line.",
+        "label": "Banned Phrases"
+      },
+      "beliefs": {
+        "helper": "One core belief per line.",
+        "label": "Beliefs"
+      },
+      "description": {
+        "helper": "What this profile is for.",
+        "label": "Description"
+      },
+      "endings": {
+        "helper": "One closing line per line.",
+        "label": "Endings"
+      },
+      "enemies": {
+        "helper": "One thing this account argues against per line.",
+        "label": "Enemies"
+      },
+      "good": {
+        "helper": "One reference example per line.",
+        "label": "Good Examples"
+      },
+      "guardrails": {
+        "helper": "One guardrail per line.",
+        "label": "Guardrails"
+      },
+      "label": {
+        "helper": "Internal name for this harness profile.",
+        "label": "Label"
+      },
+      "lineRules": {
+        "helper": "One formatting rule per line.",
+        "label": "Line Rules"
+      },
+      "longFormSkeleton": {
+        "helper": "One beat per line for threads and articles.",
+        "label": "Long Form Skeleton"
+      },
+      "offers": {
+        "helper": "One thing this account sells or offers per line.",
+        "label": "Offers"
+      },
+      "platforms": {
+        "helper": "One platform per line (x, linkedin, instagram, tiktok).",
+        "label": "Platforms"
+      },
+      "proofPoints": {
+        "helper": "One proof point per line.",
+        "label": "Proof Points"
+      },
+      "sarcasm": {
+        "helper": "How much dry humor to allow.",
+        "label": "Sarcasm"
+      },
+      "scope": {
+        "helper": "Locked to brand on this settings page.",
+        "label": "Scope"
+      },
+      "shortFormSkeleton": {
+        "helper": "One beat per line for one-liners and short posts.",
+        "label": "Short Form Skeleton"
+      },
+      "stance": {
+        "helper": "The account's point of view.",
+        "label": "Stance"
+      },
+      "style": {
+        "helper": "Sentence and paragraph style.",
+        "label": "Style"
+      },
+      "tone": {
+        "helper": "Overall delivery tone.",
+        "label": "Tone"
+      },
+      "transitions": {
+        "helper": "One transition phrase per line.",
+        "label": "Transitions"
+      },
+      "vocabulary": {
+        "helper": "One preferred word or phrase per line.",
+        "label": "Vocabulary"
+      }
+    },
+    "promote": "Promote winners to memory",
+    "promoting": "Promoting…",
+    "save": "Save harness",
+    "saving": "Saving...",
+    "tabs": {
+      "delivery": "Delivery",
+      "examples": "Examples",
+      "identity": "Identity",
+      "structure": "Structure",
+      "thesis": "Thesis"
+    },
+    "title": "Brand harness"
+  },
   "brandKitReview": {
     "candidateTokenNotice": "Candidate only · not a Genfeed product token",
     "sourceEvidence": "Source evidence"
@@ -390,6 +507,7 @@
     "accountHeldByWarmup": "This account is currently held by warmup state.",
     "addAnotherAccount": "Add another {platform} account",
     "addAnotherDescription": "Add another account, or a new channel, for this brand.",
+    "brandNotFound": "Brand not found.",
     "cancel": "Cancel",
     "channelAvailability": "{connectedCount, plural, one {# connected account} other {# connected accounts}} · {channelCount} channels available",
     "checking": "Checking",
@@ -401,6 +519,7 @@
     "connectSocialAccountsDescription": "Connect your social media accounts to display them here.",
     "connectedAccounts": "Connected accounts",
     "connectedCount": "{count} connected",
+    "connectedStatus": "{count, plural, =0 {Not connected} one {# connected} other {# connected}}",
     "disconnect": "Disconnect",
     "disconnectAccount": "Disconnect account",
     "disconnectAccountDescription": "{account} stops publishing for this brand. Other accounts on {platform} are untouched, and you can reconnect it later.",
@@ -417,6 +536,7 @@
     },
     "linked": "Linked",
     "manage": "Manage",
+    "moreActionsAria": "More actions for {account}",
     "notConnected": "Not connected",
     "openProfile": "Open {account}",
     "openProfileAria": "Open {account} on {platform}",
@@ -424,7 +544,10 @@
     "overrideConfirmed": "Warmup override confirmed",
     "overrideDescription": "This bypasses the account-health publishing hold for 24 hours. Use it only after reviewing the platform warmup guidance.",
     "overrideReason": "Manual override confirmed from brand social dashboard.",
+    "postingTimes": "Posting times",
+    "postingTimesDialogTitle": "Posting times · {account}",
     "profilePictureAlt": "{account} profile picture",
+    "reconnect": "Reconnect",
     "reconnectAccount": "Reconnect {account}",
     "score": "{platform} · score {score}",
     "socialMedia": "Social Media",
@@ -618,7 +741,8 @@
         "board": "Board",
         "grid": "Grid",
         "list": "List"
-      }
+      },
+      "actions": "Actions"
     },
     "grid": {
       "emptyDescription": "Connect an account in Settings to see per-account lanes.",
@@ -632,6 +756,9 @@
       "reconnect": "Reconnect",
       "review": "Review",
       "untitled": "Untitled release"
+    },
+    "library": {
+      "approvalQueue": "Approval queue"
     }
   },
   "publishing": {
@@ -767,7 +894,12 @@
       "schedule": "Schedule",
       "scheduleAt": "Schedule at {label}",
       "skip": "Skip",
-      "write": "Write"
+      "write": "Write",
+      "today": "Today",
+      "filters": "Filters",
+      "filtersWithCount": "Filters ({count})",
+      "noFilterOptions": "No options available",
+      "clearFilters": "Clear filters"
     },
     "overview": {
       "blockedCount": "{count, plural, one {# blocked release} other {# blocked releases}}",
@@ -870,6 +1002,11 @@
       },
       "preview": {
         "empty": "No preview available for this draft."
+      },
+      "approvalQueue": {
+        "title": "Approval queue",
+        "description": "Drafts from generated batches that are waiting for a human decision. Posts is the complete publishing library.",
+        "openPosts": "Open in Posts"
       }
     }
   },
@@ -1154,14 +1291,154 @@
       "routing": "Routing",
       "runs": "Runs: {count}",
       "thread": "Thread: {value}",
-      "updated": "Updated"
+      "updated": "Updated",
+      "labels": {
+        "resultPreview": "Result preview",
+        "visualContinuityQa": "Visual continuity QA",
+        "reportLocation": "Report location",
+        "failure": "Failure",
+        "requestedChanges": "Requested changes",
+        "taskMetadata": "Task metadata",
+        "linkedRecords": "Linked records"
+      },
+      "autoRouted": "Auto-routed by workspace orchestration.",
+      "queued": "queued",
+      "reviewStateNone": "none",
+      "loading": "Loading…",
+      "unavailable": "Unavailable",
+      "notAssessed": "not assessed",
+      "confidencePercent": "{percent}% confidence"
     },
     "liveRuns": "Live runs",
     "noActiveTasks": "No active workspace tasks right now.",
     "openInbox": "Open Inbox",
     "openReview": "Open Review",
     "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
-    "requestChangesPrompt": "Please revise this task from the workspace inbox."
+    "requestChangesPrompt": "Please revise this task from the workspace inbox.",
+    "inbox": {
+      "viewsAriaLabel": "Inbox views",
+      "views": {
+        "unread": {
+          "label": "Unread",
+          "description": "Items that still need operator attention."
+        },
+        "recent": {
+          "label": "Recent",
+          "description": "Latest queue movement, regardless of status."
+        },
+        "all": {
+          "label": "All",
+          "description": "Everything in the workspace queue, including done items."
+        }
+      },
+      "columns": {
+        "task": "Task",
+        "status": "Status",
+        "path": "Path",
+        "updated": "Updated"
+      }
+    },
+    "sections": {
+      "inbox": {
+        "title": "Inbox",
+        "description": "Unread work, recent movement, and the full queue."
+      },
+      "overview": {
+        "title": "Overview",
+        "description": "Tasks, approvals, live work, and operator handoffs in one control surface."
+      }
+    },
+    "tools": {
+      "agent": {
+        "label": "Agent",
+        "description": "All conversations and threads live here."
+      },
+      "studio": {
+        "label": "Studio",
+        "description": "Storyboard, clips, and batch production surfaces."
+      },
+      "workflows": {
+        "label": "Workflows",
+        "description": "Workflow builder for repeatable automation."
+      },
+      "runs": {
+        "label": "Runs",
+        "description": "Operator view for live runs and execution state."
+      }
+    },
+    "library": {
+      "overview": {
+        "label": "Overview",
+        "description": "Browse every reusable source and generated asset."
+      },
+      "media": {
+        "label": "Media",
+        "description": "Generated images, videos, and motion assets."
+      },
+      "audioCaptions": {
+        "label": "Audio + captions",
+        "description": "Voice, music, and caption assets ready for reuse."
+      }
+    },
+    "relativeTime": {
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago",
+      "hoursAgo": "{hours}h ago",
+      "daysAgo": "{days}d ago"
+    },
+    "actions": {
+      "approve": "Approve",
+      "requestChanges": "Request Changes",
+      "dismiss": "Dismiss",
+      "planNextSteps": "Plan Next Steps",
+      "moreActions": "More actions",
+      "openInWrite": "Open in Write",
+      "openInGenerate": "Open in Generate",
+      "openInEdit": "Open in Edit",
+      "openInAutomation": "Open in Automation",
+      "openIssue": "Open Issue",
+      "openTool": "Open Tool",
+      "openReport": "Open Report",
+      "requestedChangesReason": "Requested changes: {reason}"
+    },
+    "openDetailsFor": "Open details for {title}",
+    "needsAttention": "Needs attention",
+    "inboxEmpty": {
+      "unread": {
+        "label": "You're caught up",
+        "description": "New work will land here when something needs you."
+      },
+      "recent": {
+        "label": "No inbox activity yet",
+        "description": "Your five most recently updated inbox tasks will appear here as work moves through the queue."
+      },
+      "all": {
+        "label": "Inbox is empty",
+        "description": "Tasks enter the inbox when they need review, a decision, or follow-up."
+      }
+    },
+    "sidebarCards": {
+      "inProgress": {
+        "label": "In progress",
+        "description": "Active workspace tasks and live execution state."
+      },
+      "recentOutputs": {
+        "label": "Recent outputs",
+        "description": "Latest generated ingredients and posts."
+      },
+      "recentActivity": {
+        "label": "Recent activity",
+        "description": "Execution logs stay available without owning the main navigation."
+      },
+      "librarySnapshot": {
+        "label": "Library snapshot",
+        "description": "Keep the ingredient library one click away from the dashboard."
+      },
+      "operatorTools": {
+        "label": "Operator tools",
+        "description": "Manual and expert surfaces stay available without owning the main navigation."
+      }
+    }
   },
   "workflows": {
     "actionNode": {
@@ -1324,6 +1601,74 @@
       "UNKNOWN": "Unknown"
     }
   },
+  "activities": {
+    "credits": "{amount} credits",
+    "selected": "{count} selected",
+    "clearSelection": "Clear selection"
+  },
+  "tasks": {
+    "inspector": {
+      "openFullPage": "Open full page",
+      "description": "Description",
+      "comments": "Comments ({count})",
+      "noComments": "No comments yet.",
+      "empty": "Select a task to see its details.",
+      "status": "Status",
+      "priority": "Priority",
+      "close": "Close inspector",
+      "contextLabel": "Tasks · {title}",
+      "contextLabelFallback": "Tasks",
+      "tabs": {
+        "details": "Details",
+        "activity": "Activity",
+        "records": "Records"
+      }
+    },
+    "status": {
+      "backlog": "Backlog",
+      "blocked": "Blocked",
+      "cancelled": "Cancelled",
+      "done": "Done",
+      "failed": "Failed",
+      "inProgress": "In Progress",
+      "inReview": "In Review",
+      "todo": "To Do",
+      "dismissed": "Dismissed",
+      "changesRequested": "Changes Requested"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "low": "Low",
+      "medium": "Medium"
+    },
+    "list": {
+      "assigned": "Assigned",
+      "noTasksKanban": "No tasks",
+      "openTaskError": "Could not open task.",
+      "updateTaskError": "Could not update task. Please try again.",
+      "allStatuses": "All Statuses",
+      "listView": "List view",
+      "kanbanView": "Kanban view",
+      "title": "Tasks",
+      "noMatchingTasks": "No matching tasks",
+      "noTasksYet": "No tasks yet",
+      "noMatchingTasksDescription": "Try a different status, or clear the filter to see every task.",
+      "noTasksYetDescription": "Create a task to start tracking work in this workspace.",
+      "newTask": "New Task",
+      "taskColumn": "Task",
+      "statusColumn": "Status",
+      "priorityColumn": "Priority",
+      "statusForTask": "Status for {title}",
+      "priorityForTask": "Priority for {title}",
+      "createTaskTitle": "Create Task",
+      "creating": "Creating...",
+      "titleLabel": "Title",
+      "descriptionLabel": "Description",
+      "taskTitlePlaceholder": "Task title",
+      "descriptionPlaceholder": "Optional description"
+    }
+  },
   "brandWatermark": {
     "title": "Brand watermark",
     "description": "Add a gentle watermark to client previews. Clean originals stay available. Configure text, a logo, or both before downloading with your brand watermark.",
@@ -1342,5 +1687,181 @@
     "saved": "Watermark settings saved.",
     "error": "Could not save watermark settings. Please try again.",
     "savedLogo": "Saved watermark logo"
+  },
+  "help": {
+    "workspaceOverview": {
+      "title": "Workspace overview",
+      "body": "Tasks, approvals, live work, and handoffs in one place. Start here to see what needs you today."
+    },
+    "workspaceInbox": {
+      "title": "Inbox",
+      "body": "Work that needs review, a decision, or follow-up lands here. Unread shows what still needs you; All shows the whole queue."
+    },
+    "workspaceTasks": {
+      "title": "Tasks",
+      "body": "Every unit of work in this workspace. Switch between list and board, filter by status, and open a task to edit it in the side rail."
+    },
+    "workspaceActivity": {
+      "title": "Activity",
+      "body": "A running log of generation runs and system events. Select rows to mark them read in bulk."
+    },
+    "automationOverview": {
+      "title": "Automation overview",
+      "body": "A summary of workflows, agents, and recent runs so you can spot failures before they pile up."
+    },
+    "automationWorkflows": {
+      "title": "Workflows",
+      "body": "Fixed, step-by-step automation graphs. Build one when the same sequence should run the same way every time."
+    },
+    "automationTemplates": {
+      "title": "Templates",
+      "body": "Reusable workflow starting points. Clone a template to create a workflow you can edit."
+    },
+    "automationRuns": {
+      "title": "Runs",
+      "body": "Every workflow execution with status, duration, and credits. Open a run to inspect each node and its output."
+    },
+    "automationAgents": {
+      "title": "Agents",
+      "body": "Agent roles you can enable for content, engagement, and support. Add one to make it available to autopilot policies."
+    },
+    "automationAutopilot": {
+      "title": "Autopilot policies",
+      "body": "A policy decides when an agent runs, its budget, and its direction. Use autopilot when the agent should adapt each run; use Workflows for fixed step-by-step graphs."
+    },
+    "automationPrograms": {
+      "title": "Programs",
+      "body": "Multi-step campaigns that agents execute over time. Track progress and pause or resume a program here."
+    },
+    "automationContentRuns": {
+      "title": "Content runs",
+      "body": "Batches of generated content grouped by run. Open one to review what was produced and where it went."
+    },
+    "publishingOverview": {
+      "title": "Publishing overview",
+      "body": "Queue health, upcoming releases, and connected accounts. Use it to catch blocked posts before their slot."
+    },
+    "publishingPosts": {
+      "title": "Posts",
+      "body": "The complete publishing library. Filter by type, channel, or status, and open a post to edit or schedule it."
+    },
+    "publishingApprovalQueue": {
+      "title": "Approval queue",
+      "body": "Drafts from generated batches waiting for a human decision. Approve, request changes, or reject; approved posts move to Posts."
+    },
+    "publishingCalendar": {
+      "title": "Calendar",
+      "body": "Scheduled and published posts by day. Drag to reschedule and click a slot to plan new content."
+    },
+    "publishingCampaigns": {
+      "title": "Campaigns",
+      "body": "Grouped posts that share a goal and timeframe. Create one to plan and measure a push across channels."
+    },
+    "publishingRemix": {
+      "title": "Remix",
+      "body": "Turn existing posts into new formats or channels. Pick a source post and a target to generate variants."
+    },
+    "analyticsOverview": {
+      "title": "Analytics overview",
+      "body": "Posts, views, and engagement for the selected range, plus per-platform trends once data lands."
+    },
+    "analyticsAccounts": {
+      "title": "Accounts",
+      "body": "Performance per connected account. Compare reach and engagement to see which accounts carry the brand."
+    },
+    "analyticsPosts": {
+      "title": "Post analytics",
+      "body": "Every published post ranked by performance. Use it to find what to repeat and what to retire."
+    },
+    "analyticsBrands": {
+      "title": "Brand analytics",
+      "body": "Cross-brand comparison for the organization. See which brands are growing and which need attention."
+    },
+    "analyticsStreaks": {
+      "title": "Streaks",
+      "body": "Publishing consistency over time. Streaks show how many consecutive days or weeks each account shipped content."
+    },
+    "analyticsInsights": {
+      "title": "Insights",
+      "body": "Automated observations drawn from your analytics, with suggested next actions."
+    },
+    "analyticsHooks": {
+      "title": "Hooks",
+      "body": "How opening lines perform. Compare hook styles to learn what stops the scroll for your audience."
+    },
+    "analyticsPerformanceLab": {
+      "title": "Performance Lab",
+      "body": "Experiments and comparisons across variants. Set up a test, then read the results here."
+    },
+    "analyticsTrends": {
+      "title": "Trends",
+      "body": "Topics and formats gaining traction across platforms, scored for relevance to your brand."
+    },
+    "analyticsTrendTurnover": {
+      "title": "Trend turnover",
+      "body": "How fast trends rise and fade on each platform, so you can time content before a topic peaks."
+    },
+    "library": {
+      "title": "Library",
+      "body": "All generated and uploaded assets. Browse by type or shelf, star favorites, and reuse anything in Studio or Publishing."
+    },
+    "libraryTrash": {
+      "title": "Trash",
+      "body": "Deleted assets stay here until they are purged. Restore anything you still need."
+    },
+    "studioGenerate": {
+      "title": "Generate",
+      "body": "Create images, video, audio, and copy from a prompt. Results land in the Library and can go straight to a post."
+    },
+    "studioStoryboard": {
+      "title": "Storyboard",
+      "body": "Build multi-frame video: interpolate stills, script scenes from generated images, or merge finished clips."
+    },
+    "studioClips": {
+      "title": "Clips",
+      "body": "Cut long videos into short clips with captions. Pick moments manually or let the agent find them."
+    },
+    "studioBatch": {
+      "title": "Batch",
+      "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
+    },
+    "studioFastlane": {
+      "title": "Fastlane",
+      "body": "The quickest path from an idea to a scheduled post, with sensible defaults at every step."
+    },
+    "studioEdit": {
+      "title": "Edit",
+      "body": "Long-form editing for articles and newsletters, with the agent as a co-writer."
+    },
+    "messagesInbox": {
+      "title": "Messages",
+      "body": "Comments, DMs, and mentions across connected accounts. Reply here or route them to an agent."
+    },
+    "messagesOutreach": {
+      "title": "Outreach sequences",
+      "body": "Multi-step outreach that runs on a schedule. Import contacts, set the cadence, and track replies."
+    },
+    "messagesReplies": {
+      "title": "Replies",
+      "body": "Suggested and sent replies. Review what the agent proposed before it goes out."
+    },
+    "messagesReplyDrip": {
+      "title": "Reply drip",
+      "body": "Timed follow-ups after a first reply. Configure the drip so no conversation goes cold."
+    },
+    "discoveryOverview": {
+      "title": "Discovery",
+      "body": "Content from accounts and topics you follow, ranked by what is moving. Save anything to remix later."
+    },
+    "discoveryAds": {
+      "title": "Ads research",
+      "body": "Competitor and category ads collected for inspiration. Filter by platform and format."
+    }
+  },
+  "autopilot": {
+    "platformsCell": {
+      "connected": "{platform}: posts as @{handle}",
+      "notConnected": "{platform}: no account connected yet"
+    }
   }
 }
