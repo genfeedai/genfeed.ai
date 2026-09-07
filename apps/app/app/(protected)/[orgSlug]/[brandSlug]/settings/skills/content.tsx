@@ -408,6 +408,7 @@ export default function BrandSettingsSkillsPage() {
 
       <InsetSurface className="mb-4" density="compact">
         <Switch
+          aria-label={translate('catalog.useDefaults')}
           checked={isUsingDefaults}
           description={translate('catalog.useDefaultsDescription')}
           isDisabled={isTogglingSkill || isLoading}

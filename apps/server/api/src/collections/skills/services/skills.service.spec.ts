@@ -157,7 +157,7 @@ describe('SkillsService', () => {
           source: 'built_in',
           status: 'published',
         },
-        id: 'cskillbuiltincontentwriting',
+        id: 'cskillbuiltincontentwrite',
         organizationId: null,
       }),
       makeSkillRow(),
@@ -416,7 +416,7 @@ describe('SkillsService', () => {
           source: 'built_in',
           status: 'published',
         },
-        id: 'cskillbuiltincontentwriting',
+        id: 'cskillbuiltincontentwrite',
         organizationId: null,
       }),
     ]);
