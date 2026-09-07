@@ -69,8 +69,7 @@ describe('CorpusHealthPanel', () => {
       screen.queryByRole('group', { name: 'X / Twitter' }),
     ).not.toBeInTheDocument();
     const reddit = within(screen.getByRole('group', { name: 'Reddit' }));
-    expect(reddit.getByText('Apify')).toBeInTheDocument();
-    expect(reddit.getByText('stale')).toBeInTheDocument();
+    expect(reddit.getByText('Apify · stale')).toBeInTheDocument();
     expect(reddit.getByText('Last observed')).toBeInTheDocument();
     expect(reddit.queryByText('Health unavailable')).not.toBeInTheDocument();
     // Refresh and attempt are never claimed when nothing was recorded.
