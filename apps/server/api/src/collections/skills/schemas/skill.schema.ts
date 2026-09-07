@@ -40,6 +40,8 @@ export const SKILL_STATUSES = ['draft', 'published', 'disabled'] as const;
 
 export interface SkillDocument extends Skill {
   channels?: string[];
+  /** Built-in slug the runtime injects while a brand has no explicit selection. */
+  isDefault?: boolean;
   modalities?: string[];
   name?: string;
   requiredProviders?: string[];

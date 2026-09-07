@@ -1,7 +1,4 @@
-import type {
-  IBrandSkillSelection,
-  ReferenceImageCategory,
-} from '@genfeedai/contracts';
+import type { ReferenceImageCategory } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   FastlaneGenerateIdeasRequest,
@@ -21,6 +18,7 @@ import type {
   IBrandOsPreviewClaimRequest,
   IBrandSetupRequest,
   IBrandSetupResponse,
+  IBrandSkillSelection,
   IGeneratedBrandProfile,
   IImage,
   IPaginatedResponse,
