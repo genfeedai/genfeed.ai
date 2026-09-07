@@ -330,12 +330,6 @@
     "symbol": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts"
   },
   {
-    "actual": 156,
-    "file": "apps/server/api/src/services/integrations/twitter/controllers/twitter.controller.ts",
-    "metric": "method-lines",
-    "symbol": "TwitterController.verify"
-  },
-  {
     "actual": 152,
     "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.ts",
     "metric": "method-lines",
