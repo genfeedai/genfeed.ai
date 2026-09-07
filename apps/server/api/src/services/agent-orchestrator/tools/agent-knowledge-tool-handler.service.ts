@@ -17,6 +17,15 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+export type KnowledgeToolName =
+  | 'archive_knowledge_source'
+  | 'assign_knowledge_purpose'
+  | 'capture_knowledge'
+  | 'list_knowledge_sources'
+  | 'read_knowledge_source'
+  | 'retry_knowledge_ingestion'
+  | 'search_knowledge';
+
 const SEARCH_DEFAULT_LIMIT = 6;
 const SEARCH_MAX_LIMIT = 12;
 const LIST_DEFAULT_LIMIT = 25;
@@ -119,6 +128,30 @@ export class AgentKnowledgeToolHandler {
     private readonly capture: KnowledgeCaptureService,
     private readonly contextsService: ContextsService,
   ) {}
+
+  /** Single dispatch entry so the executor's route table stays flat. */
+  execute(
+    toolName: KnowledgeToolName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    switch (toolName) {
+      case 'search_knowledge':
+        return this.searchKnowledge(params, ctx);
+      case 'list_knowledge_sources':
+        return this.listKnowledgeSources(params, ctx);
+      case 'read_knowledge_source':
+        return this.readKnowledgeSource(params, ctx);
+      case 'capture_knowledge':
+        return this.captureKnowledge(params, ctx);
+      case 'assign_knowledge_purpose':
+        return this.assignKnowledgePurpose(params, ctx);
+      case 'archive_knowledge_source':
+        return this.archiveKnowledgeSource(params, ctx);
+      case 'retry_knowledge_ingestion':
+        return this.retryKnowledgeIngestion(params, ctx);
+    }
+  }
 
   async searchKnowledge(
     params: Record<string, unknown>,

@@ -264,13 +264,13 @@
     "symbol": "AgentPublishToolHandler.publishConfirmedContent"
   },
   {
-    "actual": 29,
+    "actual": 30,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "constructor-dependencies",
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 306,
+    "actual": 315,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"
