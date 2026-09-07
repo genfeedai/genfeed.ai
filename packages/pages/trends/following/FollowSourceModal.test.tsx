@@ -41,6 +41,11 @@ vi.mock('next-intl', () => ({
         notFound: 'Not found',
         postChoice:
           'This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.',
+        'platforms.instagram': 'Instagram',
+        'platforms.linkedin': 'LinkedIn',
+        'platforms.tiktok': 'TikTok',
+        'platforms.twitter': 'X',
+        'platforms.youtube': 'YouTube',
         postLabel: '{platform} post',
         title: 'Follow sources',
       };
