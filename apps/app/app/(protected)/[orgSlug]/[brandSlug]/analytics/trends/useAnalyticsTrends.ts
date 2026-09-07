@@ -198,19 +198,28 @@ export function useAnalyticsTrends() {
     const fetchTrendingTopics = async () => {
       setIsLoadingTrends(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
-        const data = await service.getTrendsDiscovery();
+        controller.signal.throwIfAborted();
+        const data = await service.getTrendsDiscovery({
+          signal: controller.signal,
+        });
+        controller.signal.throwIfAborted();
         setTrendingTopics(data.trends || []);
         logger.info('Fetched trending topics', {
           count: data.trends?.length ?? 0,
         });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        // Superseded fetches reject with whatever the transport throws, so the
+        // signal is the reliable check — not the error's name.
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending topics', { error });
       } finally {
-        setIsLoadingTrends(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingTrends(false);
+        }
       }
     };
 
@@ -289,11 +298,15 @@ export function useAnalyticsTrends() {
     const fetchHashtags = async () => {
       setIsLoadingHashtags(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
+        controller.signal.throwIfAborted();
         const hashtags = await service.getTrendingHashtags({
           limit: 12,
           platform: hashtagPlatform || undefined,
+          signal: controller.signal,
         });
+        controller.signal.throwIfAborted();
         setTrendingHashtags(hashtags);
         trendsCache.set(
           `hashtags:${brandId}:${hashtagPlatform}`,
@@ -302,7 +315,7 @@ export function useAnalyticsTrends() {
         );
         logger.info('Fetched trending hashtags', { count: hashtags.length });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending hashtags', { error });
@@ -313,7 +326,9 @@ export function useAnalyticsTrends() {
           setTrendingHashtags(ch);
         }
       } finally {
-        setIsLoadingHashtags(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingHashtags(false);
+        }
       }
     };
 
@@ -328,13 +343,19 @@ export function useAnalyticsTrends() {
     const fetchSounds = async () => {
       setIsLoadingSounds(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
-        const sounds = await service.getTrendingSounds({ limit: 12 });
+        controller.signal.throwIfAborted();
+        const sounds = await service.getTrendingSounds({
+          limit: 12,
+          signal: controller.signal,
+        });
+        controller.signal.throwIfAborted();
         setTrendingSounds(sounds);
         trendsCache.set(`sounds:${brandId}`, sounds, TRENDS_CACHE_TTL);
         logger.info('Fetched trending sounds', { count: sounds.length });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending sounds', { error });
@@ -343,7 +364,9 @@ export function useAnalyticsTrends() {
           setTrendingSounds(cs);
         }
       } finally {
-        setIsLoadingSounds(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingSounds(false);
+        }
       }
     };
 
