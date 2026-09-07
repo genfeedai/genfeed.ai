@@ -10,6 +10,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ useKnowledgeLibrary: vi.fn() }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@pages/library/knowledge/hooks/use-knowledge-library', () => ({
   useKnowledgeLibrary: (options: unknown) => mocks.useKnowledgeLibrary(options),
 }));
