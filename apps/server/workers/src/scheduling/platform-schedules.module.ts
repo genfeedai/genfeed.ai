@@ -22,6 +22,7 @@ import { CronPatternExtractionModule } from '@workers/crons/pattern-extraction/c
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
 import { CronRssModule } from '@workers/crons/rss/cron.rss.module';
+import { CronSocialSourceResyncModule } from '@workers/crons/social-sources/cron.social-source-resync.module';
 import { CronStreaksModule } from '@workers/crons/streaks/cron.streaks.module';
 import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTranscriptPurgeModule } from '@workers/crons/transcript-purge/cron.transcript-purge.module';
@@ -66,6 +67,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronPostsModule,
     CronReviewGateModule,
     CronRssModule,
+    CronSocialSourceResyncModule,
     CronStreaksModule,
     CronTiktokModule,
     CronTranscriptPurgeModule,

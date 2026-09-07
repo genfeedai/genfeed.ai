@@ -33,6 +33,11 @@ import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfac
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+/** How far back a scheduled own-account resync reaches. */
+export const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
+/** Upper bound on posts pulled per scheduled own-account resync. */
+export const SOCIAL_OWN_ACCOUNT_RESYNC_LIMIT = 100;
+
 export interface SocialSourcesFeedResult {
   sources: SocialSourceDocument[];
   posts: SourcePostDocument[];
@@ -325,6 +330,25 @@ export class SocialSourcesService {
       isHistoryImport: true,
       limit: options.limit,
       since: options.since,
+    });
+  }
+
+  /**
+   * Scheduled daily re-sync of a connected account's recent history so
+   * imported metrics (views, likes, saves) keep maturing after the initial
+   * import — metrics are otherwise captured once and never refreshed. Uses a
+   * fixed, bounded window rather than the connect-time window so a
+   * long-running resync never grows unbounded.
+   */
+  async resyncOwnAccount(
+    source: SocialSourceDocument,
+  ): Promise<SocialSourceSyncDocumentResult> {
+    const since = new Date(
+      Date.now() - SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+    return this.importHistory(source, {
+      limit: SOCIAL_OWN_ACCOUNT_RESYNC_LIMIT,
+      since,
     });
   }
 

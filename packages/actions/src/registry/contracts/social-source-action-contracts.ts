@@ -1,5 +1,6 @@
 import type { ActionContractSchemas } from './action-contract.interface';
 import {
+  arraySchema,
   closedObjectSchema,
   NUMBER_SCHEMA,
   nullableSchema,
@@ -37,12 +38,45 @@ const HISTORY_IMPORT_RESULT = closedObjectSchema(
   ['importedCount', 'provider', 'rejectedCount', 'sourceId'],
 );
 
+const OWN_ACCOUNT_RESYNC_ITEM = closedObjectSchema(
+  {
+    brandId: STRING_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    sourceId: STRING_SCHEMA,
+    userId: STRING_SCHEMA,
+  },
+  ['brandId', 'organizationId', 'sourceId', 'userId'],
+);
+
+const OWN_ACCOUNT_RESYNC_RESULT = closedObjectSchema(
+  {
+    importedCount: NUMBER_SCHEMA,
+    provider: nullableSchema(STRING_SCHEMA),
+    rejectedCount: NUMBER_SCHEMA,
+    sourceId: STRING_SCHEMA,
+  },
+  ['importedCount', 'provider', 'rejectedCount', 'sourceId'],
+);
+
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'social-source.history-import.run': {
     inputSchema: closedObjectSchema({ request: HISTORY_IMPORT_REQUEST }, [
       'request',
     ]),
     outputSchema: HISTORY_IMPORT_RESULT,
+  },
+  'social-source.own-account-resync.discover': {
+    inputSchema: closedObjectSchema({}, []),
+    outputSchema: closedObjectSchema(
+      { items: arraySchema(OWN_ACCOUNT_RESYNC_ITEM) },
+      ['items'],
+    ),
+  },
+  'social-source.own-account-resync.run': {
+    inputSchema: closedObjectSchema({ request: OWN_ACCOUNT_RESYNC_ITEM }, [
+      'request',
+    ]),
+    outputSchema: OWN_ACCOUNT_RESYNC_RESULT,
   },
 };
 
