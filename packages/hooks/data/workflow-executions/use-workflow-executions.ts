@@ -74,7 +74,7 @@ export function useWorkflowExecutions(
       } else if (execution.status === WorkflowExecutionStatus.FAILED) {
         failed += 1;
       }
-      totalCredits += execution.creditsUsed;
+      totalCredits += execution.creditsUsed ?? 0;
     }
     return { active, completed, failed, total: data.length, totalCredits };
   }, [data]);
