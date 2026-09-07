@@ -59,13 +59,32 @@ export class ContentEngineController {
   ) {
     const organization = user.organizationId;
     const userId = user.userId ?? user.id;
-    const data = await this.contentPlannerService.generatePlan(
+    const { items, plan } = await this.contentPlannerService.generatePlan(
       organization,
       brandId,
       userId,
       dto,
     );
-    return serializeSingle(req, ContentPlanSerializer, data);
+    return {
+      items: serializeCollection(req, ContentPlanItemSerializer, {
+        docs: items,
+      }),
+      plan: serializeSingle(req, ContentPlanSerializer, plan),
+    };
+  }
+
+  /**
+   * Preview surface for cold-start seeding: what a plan would be grounded in
+   * before the caller picks a subset via `GenerateContentPlanDto.seeds`.
+   * Declared before `plans/:planId` so `seeds` never matches that param.
+   */
+  @Get('plans/seeds')
+  async getPlanSeeds(
+    @CurrentUser() user: User,
+    @Param('brandId') brandId: string,
+  ) {
+    const organization = user.organizationId;
+    return this.contentPlanSeedsService.buildPreview(organization, brandId);
   }
 
   /**

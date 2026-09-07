@@ -35,6 +35,7 @@ describe('PlatformSchedulesProcessor', () => {
   const referrals = { settleDueRewards: handler() };
   const reviewGate = { resolveTimedOutReviewGates: handler() };
   const rss = { pollEnabledSources: handler() };
+  const socialSourceResync = { resyncDueSources: handler() };
   const streaks = { processStreaks: handler() };
   const tiktok = { checkPendingTiktokPosts: handler() };
   const transcripts = { purgeExpiredTranscripts: handler() };
@@ -126,6 +127,10 @@ describe('PlatformSchedulesProcessor', () => {
         reviewGate.resolveTimedOutReviewGates,
       ],
       [PLATFORM_SCHEDULED_TASKS.RSS_AUTOPOST, rss.pollEnabledSources],
+      [
+        PLATFORM_SCHEDULED_TASKS.SOCIAL_SOURCE_OWN_ACCOUNT_RESYNC,
+        socialSourceResync.resyncDueSources,
+      ],
       [PLATFORM_SCHEDULED_TASKS.STREAK_MAINTENANCE, streaks.processStreaks],
       [PLATFORM_SCHEDULED_TASKS.TIKTOK_STATUS, tiktok.checkPendingTiktokPosts],
       [
@@ -173,6 +178,7 @@ describe('PlatformSchedulesProcessor', () => {
       referrals as never,
       reviewGate as never,
       rss as never,
+      socialSourceResync as never,
       streaks as never,
       tiktok as never,
       transcripts as never,
