@@ -412,6 +412,21 @@ export class KnowledgeRecordsService {
     });
   }
 
+  /** Spaces one source belongs to, inside the actor's visible scope. */
+  async listSourceSpaces(actor: KnowledgeActor, sourceId: string) {
+    await this.getSource(actor, sourceId);
+    const memberships = await this.prisma.knowledgeSpaceMembership.findMany({
+      include: { space: true },
+      where: {
+        organizationId: actor.organizationId,
+        sourceId,
+        isDeleted: false,
+        space: { is: this.ownership(actor) },
+      },
+    });
+    return memberships.map((membership) => membership.space);
+  }
+
   async listMemberships(actor: KnowledgeActor, spaceId: string) {
     await this.getSpace(actor, spaceId);
     return this.prisma.knowledgeSpaceMembership.findMany({

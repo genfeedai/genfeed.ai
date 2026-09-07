@@ -1,14 +1,14 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   ModelCapability,
   ProviderModel,
   ProviderType,
 } from '@genfeedai/contracts/types';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import { ExternalLink, Search, Sparkles, TriangleAlert, X } from 'lucide-react';
+import FormSearchbar from '@ui/primitives/searchbar';
+import { ExternalLink, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ModelCard } from './ModelCard';
@@ -90,16 +90,13 @@ function ModelBrowserModalComponent({
         <div className="space-y-0 border-b border-border">
           <div className="flex items-center gap-4 px-6 py-4">
             {/* Search */}
-            <div className="relative max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search models..."
-                className="pl-10"
-              />
-            </div>
+            <FormSearchbar
+              className="max-w-md flex-1"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search models..."
+              size={ComponentSize.MD}
+              value={searchQuery}
+            />
 
             {/* Provider filter - only show configured providers */}
             {configuredProviders.length > 0 && (

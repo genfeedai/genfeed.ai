@@ -89,7 +89,7 @@ describe('background user action routing', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('saves captured posts as accepted bookmarks', async () => {
+  it('captures saved posts as personal Knowledge through the canonical ingestion path', async () => {
     await dispatch({
       event: 'savePost',
       platform: 'twitter',
@@ -97,19 +97,48 @@ describe('background user action routing', () => {
       url: 'https://x.com/author/status/123',
     });
     expect(mocks.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/bookmarks$/),
+      expect.stringMatching(/\/knowledge-sources$/),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
-          category: 'TWEET',
-          platform: 'TWITTER',
-          content: '',
-          intent: 'INSPIRATION',
-          platformData: { metadata: { postId: 'post-id' } },
-          url: 'https://x.com/author/status/123',
+          kind: 'URL',
+          provenance: {
+            category: 'TWEET',
+            platform: 'TWITTER',
+            capturedBy: 'extension',
+            postId: 'post-id',
+          },
+          purpose: 'INSPIRATION',
+          referenceUrl: 'https://x.com/author/status/123',
+          scope: 'personal',
+          title: 'twitter · x.com',
         }),
       }),
     );
+  });
+
+  it('scopes a bookmark capture to the selected brand and keeps the captured text', async () => {
+    await dispatch({
+      data: {
+        brandId: 'brand-1',
+        content: 'Hook worth stealing',
+        intent: 'reply',
+        platform: 'twitter',
+        title: 'Great thread',
+        url: 'https://x.com/author/status/456',
+      },
+      event: 'saveBookmark',
+    });
+    const [path, init] = mocks.fetch.mock.calls.at(-1) as [string, RequestInit];
+    expect(path).toMatch(/\/knowledge-sources\?brandId=brand-1$/);
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      kind: 'URL',
+      purpose: 'RESEARCH',
+      referenceUrl: 'https://x.com/author/status/456',
+      scope: 'brand',
+      text: 'Hook worth stealing',
+      title: 'Great thread',
+    });
   });
 
   it('sends a turn and maps the assistant response rather than echoing a saved user message', async () => {

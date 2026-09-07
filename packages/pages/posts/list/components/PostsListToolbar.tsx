@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { useTranslations } from 'next-intl';
-import type { ChangeEvent } from 'react';
 
 export interface PostsListToolbarOption {
   label: string;
@@ -56,10 +55,7 @@ export default function PostsListToolbar({
       <div className="w-48 sm:w-56 xl:w-64">
         <FormSearchbar
           value={searchValue}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            onSearchChange(event.target.value)
-          }
-          onClear={() => onSearchChange('')}
+          onSearch={onSearchChange}
           placeholder={translate('toolbar.searchPlaceholder')}
           // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
           size={ComponentSize.SM}

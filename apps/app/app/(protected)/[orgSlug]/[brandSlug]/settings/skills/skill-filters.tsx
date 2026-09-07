@@ -1,8 +1,8 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { SkillFiltersProps } from '@props/settings/skills.props';
 import { Button } from '@ui/primitives/button';
 import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
-import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
   SelectContent,
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { RefreshCw, Search, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -36,16 +36,15 @@ export default function SkillFilters({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2.5">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground/40" />
-        <Input
-          aria-label={translate('filters.search.label')}
-          className="h-8 w-48 rounded-md border-0 bg-transparent pl-8 text-xs shadow-none hover:bg-hover focus-visible:bg-hover"
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder={translate('filters.search.placeholder')}
-          value={searchQuery}
-        />
-      </div>
+      <FormSearchbar
+        ariaLabel={translate('filters.search.label')}
+        className="w-48"
+        inputClassName="rounded-md border-0 bg-transparent text-xs shadow-none hover:bg-hover focus-visible:bg-hover"
+        onChange={(event) => onSearchQueryChange(event.target.value)}
+        placeholder={translate('filters.search.placeholder')}
+        size={ComponentSize.SM}
+        value={searchQuery}
+      />
 
       <Select onValueChange={onSourceFilterChange} value={sourceFilter}>
         <SelectTrigger

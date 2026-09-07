@@ -56,11 +56,13 @@ export default function PostsList({
     adminOrg,
     columns,
     currentPage,
+    filterSearch,
     filterSort,
     filters,
     handleAdminBrandChange,
     handleAdminOrgChange,
     handleFiltersChange,
+    handleSearchChange,
     handleOpenPostDetail,
     handlePageChange,
     handlePublicationStateChange,
@@ -76,12 +78,10 @@ export default function PostsList({
     selectedPostId,
     setFiltersNode,
     setSelectedPostId,
-    setToolbarSearchValue,
     setViewToggleNode,
     setViewType,
     sortOptions,
     status,
-    toolbarSearchValue,
     viewType,
   } = usePostsList({
     initialPostPresets,
@@ -146,25 +146,25 @@ export default function PostsList({
   useEffect(() => {
     setFiltersNode(
       <PostsListToolbar
-        searchValue={toolbarSearchValue}
+        searchValue={filterSearch}
         sortValue={filterSort || getDefaultSort(status)}
         sortOptions={sortOptions}
         publishingView={publishingView}
         onPublishingViewChange={handlePublicationStateChange}
-        onSearchChange={setToolbarSearchValue}
+        onSearchChange={handleSearchChange}
         onSortChange={handleToolbarSortChange}
       />,
     );
   }, [
+    filterSearch,
     filterSort,
     handlePublicationStateChange,
+    handleSearchChange,
     handleToolbarSortChange,
     publishingView,
     setFiltersNode,
-    setToolbarSearchValue,
     sortOptions,
     status,
-    toolbarSearchValue,
   ]);
 
   useEffect(() => {

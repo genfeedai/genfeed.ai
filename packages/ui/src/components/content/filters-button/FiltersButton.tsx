@@ -5,7 +5,6 @@ import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.int
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import { Button } from '@ui/primitives/button';
 import { Funnel as Filter } from 'lucide-react';
-import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -31,8 +30,6 @@ export default function FiltersButton({
   visibleFilters = DEFAULT_VISIBLE_FILTERS,
 }: FiltersBarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState(filters.search ?? '');
-  const isInternalUpdateRef = useRef(false);
   const dropdownRef = useRef<HTMLDivElement>(null); // portal content
   const triggerRef = useRef<HTMLDivElement>(null);
   const [portalCoords, setPortalCoords] = useState<{
@@ -103,39 +100,8 @@ export default function FiltersButton({
     [onFiltersChange],
   );
 
-  // Sync internal search value with external filters prop
-  // Only update if the change came from external source (not from internal debounced update)
-  useEffect(() => {
-    if (!isInternalUpdateRef.current && filters.search !== searchValue) {
-      requestAnimationFrame(() => {
-        setSearchValue(filters.search ?? '');
-      });
-    }
-    isInternalUpdateRef.current = false;
-  }, [filters.search, searchValue]);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
-        isInternalUpdateRef.current = true;
-        notifyFilterChange({ ...filters, search: searchValue });
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchValue, filters, notifyFilterChange]);
-
-  const updateFiltersButton = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-
-    if (name === 'search') {
-      setSearchValue(value);
-    } else {
-      notifyFilterChange({ ...filters, [name]: value });
-    }
+  const handleSearch = (value: string) => {
+    notifyFilterChange({ ...filters, search: value });
   };
 
   const handleDropdownChange = (name: string, value: string | string[]) => {
@@ -156,7 +122,6 @@ export default function FiltersButton({
       type: '',
     };
 
-    setSearchValue('');
     notifyFilterChange(clearedFilters);
   };
 
@@ -210,7 +175,6 @@ export default function FiltersButton({
           >
             <FiltersPanel
               filters={filters}
-              searchValue={searchValue}
               hasActiveFilters={!!hasActiveFilters}
               visibleFilters={visibleFilters}
               statusOptions={STATUS_OPTIONS}
@@ -222,7 +186,7 @@ export default function FiltersButton({
               favoriteOptions={FAVORITE_OPTIONS}
               accountOptions={ACCOUNT_OPTIONS}
               categoryOptions={CATEGORY_OPTIONS}
-              onSearchChange={updateFiltersButton}
+              onSearchChange={handleSearch}
               onDropdownChange={handleDropdownChange}
               onClearFilters={handleClearFilters}
             />

@@ -1,23 +1,16 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { Switch } from '@ui/primitives/switch';
-import {
-  CalendarClock,
-  Cloud,
-  CloudUpload,
-  Pause,
-  Plus,
-  Search,
-} from 'lucide-react';
+import { CalendarClock, Cloud, CloudUpload, Pause, Plus } from 'lucide-react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -59,7 +52,6 @@ export default function WorkflowLibraryPage() {
     handleToggleSchedule,
     handleDisableSelected,
     applyScheduleUpdate,
-    filteredWorkflows,
     selectedIds,
     toggleSelected,
     clearSelection,
@@ -80,16 +72,14 @@ export default function WorkflowLibraryPage() {
       actions={
         <div className="flex items-center gap-2">
           <div className="flex w-64 items-center gap-3">
-            <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
-              <Input
-                type="text"
-                placeholder={translate('library.searchPlaceholder')}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="h-8 rounded-md border-border bg-card py-1.5 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
-              />
-            </div>
+            <FormSearchbar
+              className="min-w-0 flex-1"
+              inputClassName="h-8 rounded-md border-border bg-card text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
+              onSearch={setSearchInput}
+              placeholder={translate('library.searchPlaceholder')}
+              size={ComponentSize.SM}
+              value={searchInput}
+            />
             {isLoading && workflows.length > 0 ? (
               <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
             ) : null}
@@ -175,9 +165,9 @@ export default function WorkflowLibraryPage() {
               ),
             )}
           </div>
-        ) : filteredWorkflows.length === 0 && !searchInput ? (
+        ) : workflows.length === 0 && !searchInput ? (
           <EmptyWorkflowState />
-        ) : filteredWorkflows.length === 0 && searchInput ? (
+        ) : workflows.length === 0 && searchInput ? (
           <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
             <p className="text-sm text-foreground/50">
               {translate('library.noMatching', { search: searchInput })}
@@ -208,7 +198,7 @@ export default function WorkflowLibraryPage() {
             </Button>
 
             {/* Workflow cards */}
-            {filteredWorkflows.map((workflow) => {
+            {workflows.map((workflow) => {
               const isSystemWorkflow = isCanonicalSystemWorkflow(workflow);
 
               return (
