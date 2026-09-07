@@ -548,7 +548,7 @@
     "packages/pages/trends/desk/desk-light-table-view.tsx": 1,
     "packages/pages/trends/desk/desk-sources-menu.tsx": 7,
     "packages/pages/trends/desk/desk-table-view.tsx": 1,
-    "packages/pages/trends/following/FollowSourceModal.tsx": 10,
+    "packages/pages/trends/following/FollowSourceModal.tsx": 7,
     "packages/pages/trends/list/components/HookRemixModal.tsx": 11,
     "packages/pages/trends/platform-detail/components/trends-platform-related-sections.tsx": 9,
     "packages/pages/trends/platform-detail/components/trends-platform-stat-bar.tsx": 8,

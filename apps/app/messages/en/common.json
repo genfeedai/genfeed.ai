@@ -799,7 +799,14 @@
       "notFound": "Not found",
       "postChoice": "This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.",
       "postLabel": "{platform} post",
-      "title": "Follow sources"
+      "title": "Follow sources",
+      "platforms": {
+        "instagram": "Instagram",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "twitter": "X",
+        "youtube": "YouTube"
+      }
     },
     "manage": {
       "empty": "No followed sources yet.",
