@@ -10,7 +10,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import FormSearchbar from '@ui/primitives/searchbar';
 import { CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import ModelsCatalogOverview from './components/ModelsCatalogOverview';
 import { useModelsList } from './useModelsList';
@@ -141,10 +141,7 @@ export default function ModelsList({
           <FormSearchbar
             className="w-full"
             inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
-            onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              handleSearchChange(event.target.value)
-            }
-            onClear={() => handleSearchChange('')}
+            onSearch={handleSearchChange}
             placeholder="Search models"
             size={ComponentSize.SM}
             value={searchTerm}

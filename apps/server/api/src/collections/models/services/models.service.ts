@@ -428,47 +428,43 @@ export class ModelsService extends BaseService<
     };
   }
 
-  /**
-   * Find a single model by filter.
-   * Supports querying by id, key, isDeleted, isActive, and organizationId.
-   *
-   * Security: always enforces isDeleted: false unless the caller explicitly
-   * passes a different value. When organizationId is supplied the result is
-   * restricted to models that belong to that org OR are global (null org).
-   */
-  override async findOne(
+  // Registry reads are global-plus-org (organizationId:null is the platform catalog),
+  // so scopedWhere would hide it: default isDeleted:false, narrow org to org-or-global.
+  private withRegistryVisibility(
     params: Record<string, unknown>,
-  ): Promise<ModelDocument | null> {
+  ): Record<string, unknown> {
     const scopedParams: Record<string, unknown> = {
       isDeleted: false,
       ...params,
     };
-
-    // When an organizationId is supplied, restrict to org-owned or global models
-    // to prevent cross-tenant reads.
     const organizationId = scopedParams.organizationId;
-    if (organizationId !== undefined && organizationId !== null) {
-      delete scopedParams.organizationId;
-      const existingOr = Array.isArray(scopedParams.OR)
-        ? (scopedParams.OR as Array<Record<string, unknown>>)
-        : undefined;
-
-      const orgVisibilityOr: Array<Record<string, unknown>> = [
-        { organizationId },
-        { organizationId: null },
-      ];
-
-      if (existingOr) {
-        scopedParams.AND = [{ OR: existingOr }, { OR: orgVisibilityOr }];
-        delete scopedParams.OR;
-      } else {
-        scopedParams.OR = orgVisibilityOr;
-      }
+    if (organizationId === undefined || organizationId === null) {
+      return scopedParams;
     }
+    delete scopedParams.organizationId;
+    const existingOr = Array.isArray(scopedParams.OR)
+      ? (scopedParams.OR as Array<Record<string, unknown>>)
+      : undefined;
+    const orgVisibilityOr: Array<Record<string, unknown>> = [
+      { organizationId },
+      { organizationId: null },
+    ];
+    if (existingOr) {
+      scopedParams.AND = [{ OR: existingOr }, { OR: orgVisibilityOr }];
+      delete scopedParams.OR;
+    } else {
+      scopedParams.OR = orgVisibilityOr;
+    }
+    return scopedParams;
+  }
 
+  override async findOne(
+    params: Record<string, unknown>,
+  ): Promise<ModelDocument | null> {
+    // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org
     const model = await this.prisma.model.findFirst({
       where: this.normalizeWhereForModel(
-        scopedParams,
+        this.withRegistryVisibility(params),
       ) as Prisma.ModelWhereInput,
     });
     return model ? this.normalizeModelDocument(model) : null;
@@ -557,19 +553,23 @@ export class ModelsService extends BaseService<
     options: AggregationOptions,
   ): Promise<AggregatePaginateResult<ModelDocument>> {
     const where = this.getFindAllWhere(input, options);
-    const dbWhere = this.normalizeWhereForModel(where);
+    const dbWhere = this.normalizeWhereForModel(
+      this.withRegistryVisibility(where),
+    ) as Prisma.ModelWhereInput;
     const orderBy = this.getFindAllOrderBy(input, options);
     const page = options.page ?? 1;
     const limit = options.limit ?? 20;
     const isPaginated = options.pagination !== false;
     const [docs, totalDocs] = await Promise.all([
+      // tenant-scope-ignore: withRegistryVisibility always sets isDeleted and restricts a supplied organizationId to org-or-global rows; the registry is intentionally global-plus-org, so scopedWhere would hide the platform catalog
       this.prisma.model.findMany({
         orderBy,
         skip: isPaginated ? (page - 1) * limit : undefined,
         take: isPaginated ? limit : undefined,
-        where: dbWhere as Prisma.ModelWhereInput,
+        where: dbWhere,
       }),
-      this.prisma.model.count({ where: dbWhere as Prisma.ModelWhereInput }),
+      // tenant-scope-ignore: count reuses the same withRegistryVisibility where as the projected rows above
+      this.prisma.model.count({ where: dbWhere }),
     ]);
     const normalizedDocs = docs.map((model) =>
       this.normalizeModelDocument(model),

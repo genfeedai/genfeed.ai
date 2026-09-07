@@ -9,11 +9,9 @@ import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { X } from 'lucide-react';
-import type { ChangeEvent } from 'react';
 
 type FiltersPanelProps = {
   filters: IFiltersState;
-  searchValue: string;
   hasActiveFilters: boolean;
   visibleFilters: NonNullable<FiltersBarProps['visibleFilters']>;
   statusOptions: readonly IFieldOption[];
@@ -25,16 +23,13 @@ type FiltersPanelProps = {
   favoriteOptions: readonly IFieldOption[];
   accountOptions: readonly IFieldOption[];
   categoryOptions: readonly IFieldOption[];
-  onSearchChange: (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => void;
+  onSearchChange: (value: string) => void;
   onDropdownChange: (name: string, value: string | string[]) => void;
   onClearFilters: () => void;
 };
 
 export default function FiltersPanel({
   filters,
-  searchValue,
   hasActiveFilters,
   visibleFilters,
   statusOptions,
@@ -56,8 +51,8 @@ export default function FiltersPanel({
       {visibleFilters.search && (
         <div className="w-full">
           <FormSearchbar
-            value={searchValue}
-            onChange={onSearchChange}
+            value={filters.search ?? ''}
+            onSearch={onSearchChange}
             placeholder="Search label, description, or tags"
             size={ComponentSize.SM}
           />

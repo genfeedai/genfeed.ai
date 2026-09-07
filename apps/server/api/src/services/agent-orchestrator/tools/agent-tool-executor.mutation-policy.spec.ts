@@ -137,6 +137,7 @@ describe('AgentToolExecutorService mutation policy', () => {
       unused,
       unused,
       unused,
+      unused,
       { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,

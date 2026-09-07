@@ -57,13 +57,7 @@ import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { LayoutGrid, TableProperties, TrendingUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  type ChangeEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-} from 'react';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 function buildFinding(item: DiscoveryDeskItem): AuthorizedResearchFinding {
   switch (item.raw.kind) {
@@ -352,10 +346,7 @@ export default function DiscoveryDesk() {
               <FormSearchbar
                 className="w-full"
                 inputClassName="h-8"
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setSearch(event.target.value)
-                }
-                onClear={() => setSearch('')}
+                onSearch={setSearch}
                 placeholder={translateDesk('searchPlaceholder')}
                 size={ComponentSize.SM}
                 value={search}

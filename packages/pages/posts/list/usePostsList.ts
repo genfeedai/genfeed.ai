@@ -240,13 +240,6 @@ export function usePostsList({
     }));
   }, [searchQueryParam, sortQueryParam, status]);
 
-  const [toolbarSearchValue, setToolbarSearchValue] =
-    useState(searchQueryParam);
-
-  useEffect(() => {
-    setToolbarSearchValue(searchQueryParam);
-  }, [searchQueryParam]);
-
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
 
   const handleAdminOrgChange = useCallback(
@@ -799,20 +792,15 @@ export function usePostsList({
     [],
   );
 
-  useEffect(() => {
-    if (toolbarSearchValue === filterSearch) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      handleFiltersChange({
-        ...filters,
-        search: toolbarSearchValue,
-      });
-    }, 300);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [toolbarSearchValue, filterSearch, filters, handleFiltersChange]);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      if (value === filterSearch) {
+        return;
+      }
+      handleFiltersChange({ ...filters, search: value });
+    },
+    [filterSearch, filters, handleFiltersChange],
+  );
 
   const handleGenerate = useCallback(
     async (
@@ -920,6 +908,7 @@ export function usePostsList({
     handleAdminBrandChange,
     handleAdminOrgChange,
     handleFiltersChange,
+    handleSearchChange,
     handleGenerate,
     handleOpenPostDetail,
     handlePageChange,
@@ -939,12 +928,10 @@ export function usePostsList({
     selectedPostId,
     setFiltersNode,
     setSelectedPostId,
-    setToolbarSearchValue,
     setViewToggleNode,
     setViewType,
     sortOptions,
     status,
-    toolbarSearchValue,
     viewType,
   };
 }

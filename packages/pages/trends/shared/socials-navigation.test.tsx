@@ -76,12 +76,13 @@ describe('SocialsNavigation', () => {
     );
   });
 
-  it('uses the shared outlined navigation style', () => {
+  it('uses the shared segmented navigation style', () => {
     render(<SocialsNavigation active="overview" />);
 
     const allPlatforms = screen.getByRole('link', { name: 'All platforms' });
-    expect(allPlatforms.className).toMatch(/border-input/);
+    expect(allPlatforms.className).toMatch(/rounded-md/);
     expect(allPlatforms.className).not.toMatch(/rounded-full/);
+    expect(allPlatforms.className).not.toMatch(/border-input/);
   });
 
   it('marks the all-platforms item as active on the discover overview page', () => {

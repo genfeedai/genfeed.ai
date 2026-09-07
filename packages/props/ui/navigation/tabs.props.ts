@@ -30,6 +30,7 @@ export interface TabsProps {
   contentClassName?: string;
   fullWidth?: boolean;
   stopClickPropagation?: boolean;
+  testId?: string;
 }
 
 export type TabsEnhancedProps = TabsProps;
