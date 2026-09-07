@@ -96,6 +96,14 @@ vi.mock('@services/content/skills.service', async () => {
 describe('BrandSettingsSkillsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        addEventListener: vi.fn(),
+        matches: true,
+        removeEventListener: vi.fn(),
+      }),
+    });
     Object.assign(routeParamsMock, {
       brandSlug: 'acme-creator',
       orgSlug: 'acme-org',

@@ -2,7 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
+import { ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
@@ -50,7 +55,6 @@ function draftFromSkill(skill: Skill | null): SkillDraft {
 const initialState: PageState = {
   error: null,
   isCustomizing: false,
-  isDetailSheetOpen: false,
   isLoading: true,
   isSavingSkill: false,
   modalityFilter: 'all',
@@ -68,10 +72,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         error: null,
-        isDetailSheetOpen: false,
         isLoading: true,
-        selectedSkillId: '',
-        skillDraft: emptyDraft(),
         skills: [],
       };
     case 'LOAD_SUCCESS':
@@ -80,7 +81,6 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         error: action.message,
-        isDetailSheetOpen: false,
         isLoading: false,
         selectedSkillId: '',
         skillDraft: emptyDraft(),
@@ -89,12 +89,11 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'SELECT_SKILL':
       return {
         ...state,
-        isDetailSheetOpen: true,
         selectedSkillId: action.id,
         skillDraft: action.draft,
       };
-    case 'CLOSE_DETAIL_SHEET':
-      return { ...state, isDetailSheetOpen: false };
+    case 'CLEAR_SELECTED_SKILL':
+      return { ...state, selectedSkillId: '', skillDraft: emptyDraft() };
     case 'SET_SOURCE_FILTER':
       return { ...state, sourceFilter: action.value };
     case 'SET_MODALITY_FILTER':
@@ -145,7 +144,6 @@ export default function BrandSettingsSkillsPage() {
   const {
     error,
     isCustomizing,
-    isDetailSheetOpen,
     isLoading,
     isSavingSkill,
     modalityFilter,
@@ -197,6 +195,7 @@ export default function BrandSettingsSkillsPage() {
         return;
       }
 
+      closeModal(ModalEnum.SKILL);
       dispatch({
         type: 'LOAD_ERROR',
         message: translate('errors.loadFailed'),
@@ -335,9 +334,14 @@ export default function BrandSettingsSkillsPage() {
     (id: string) => {
       const skill = skills.find((s) => s.id === id) ?? null;
       dispatch({ type: 'SELECT_SKILL', id, draft: draftFromSkill(skill) });
+      openModal(ModalEnum.SKILL);
     },
     [skills],
   );
+
+  const handleCloseDetail = useCallback(() => {
+    dispatch({ type: 'CLEAR_SELECTED_SKILL' });
+  }, []);
 
   if (!isReady || !brandId) {
     return <Loading isFullSize={false} />;
@@ -404,13 +408,8 @@ export default function BrandSettingsSkillsPage() {
 
       <SkillDetailSheet
         customizing={isCustomizing}
-        isOpen={isDetailSheetOpen}
+        onClose={handleCloseDetail}
         onCustomize={() => void handleCustomize()}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            dispatch({ type: 'CLOSE_DETAIL_SHEET' });
-          }
-        }}
         onOpenTestInChat={handleOpenTestInChat}
         onSaveSkill={() => void handleSaveSkill()}
         onSkillDraftChange={(updater) =>

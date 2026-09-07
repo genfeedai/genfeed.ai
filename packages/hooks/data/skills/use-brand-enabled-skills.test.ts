@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseBrand = vi.fn();
 const mockResolveAuthToken = vi.fn();
@@ -15,6 +15,14 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ getToken: vi.fn() }),
+}));
+
+const updateEnabledSkillsMock = vi.fn();
+
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: {
+    getInstance: () => ({ updateEnabledSkills: updateEnabledSkillsMock }),
+  },
 }));
 
 import { useBrandEnabledSkills } from './use-brand-enabled-skills';
@@ -34,19 +42,12 @@ function setBrand(
 }
 
 describe('useBrandEnabledSkills', () => {
-  const fetchMock = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockResolvedValue({ ok: true });
+    updateEnabledSkillsMock.mockResolvedValue(undefined);
     refreshBrandsMock.mockResolvedValue(undefined);
     mockResolveAuthToken.mockResolvedValue('token-abc');
     setBrand(['skill-a']);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('adopts the persisted enabled skills from the brand', async () => {
@@ -80,16 +81,10 @@ describe('useBrandEnabledSkills', () => {
     });
 
     expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/brands/brand-1/agent-config/enabled-skills'),
-      expect.objectContaining({
-        body: JSON.stringify({ enabledSkills: ['skill-a', 'skill-b'] }),
-        headers: expect.objectContaining({
-          Authorization: 'Bearer token-abc',
-        }),
-        method: 'PATCH',
-      }),
-    );
+    expect(updateEnabledSkillsMock).toHaveBeenCalledWith('brand-1', [
+      'skill-a',
+      'skill-b',
+    ]);
     expect(refreshBrandsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -108,7 +103,7 @@ describe('useBrandEnabledSkills', () => {
   });
 
   it('rolls back the optimistic update when the request fails', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 500 });
+    updateEnabledSkillsMock.mockRejectedValue(new Error('500'));
 
     const { result } = renderHook(() => useBrandEnabledSkills());
 
@@ -136,7 +131,7 @@ describe('useBrandEnabledSkills', () => {
       await result.current.toggleSkill('skill-b');
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(updateEnabledSkillsMock).not.toHaveBeenCalled();
     expect(result.current.enabledSlugs).toEqual(['skill-a']);
   });
 
@@ -157,9 +152,9 @@ describe('useBrandEnabledSkills', () => {
   });
 
   it('ignores a second toggle while the first brand update is pending', async () => {
-    let resolveRequest: ((value: { ok: boolean }) => void) | undefined;
-    fetchMock.mockReturnValue(
-      new Promise((resolve) => {
+    let resolveRequest: (() => void) | undefined;
+    updateEnabledSkillsMock.mockReturnValue(
+      new Promise<void>((resolve) => {
         resolveRequest = resolve;
       }),
     );
@@ -177,16 +172,16 @@ describe('useBrandEnabledSkills', () => {
     });
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
     });
     expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
 
-    resolveRequest?.({ ok: true });
+    resolveRequest?.();
     await act(async () => {
       await Promise.all([firstToggle, secondToggle]);
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
     expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
   });
 
@@ -199,13 +194,13 @@ describe('useBrandEnabledSkills', () => {
       await result.current.toggleSkill('skill-b');
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(updateEnabledSkillsMock).not.toHaveBeenCalled();
     expect(result.current.enabledSlugs).toEqual([]);
   });
 
   it('does not roll a failed request into a newly selected brand', async () => {
     let rejectRequest: ((reason?: unknown) => void) | undefined;
-    fetchMock.mockReturnValue(
+    updateEnabledSkillsMock.mockReturnValue(
       new Promise((_resolve, reject) => {
         rejectRequest = reject;
       }),
@@ -226,7 +221,7 @@ describe('useBrandEnabledSkills', () => {
       expect(result.current.isLoading).toBe(true);
     });
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
     });
 
     setBrand(['skill-c'], { brandId: 'brand-2' });

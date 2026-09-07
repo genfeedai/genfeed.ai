@@ -3,9 +3,9 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { BrandsService } from '@services/social/brands.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 const EMPTY_ENABLED_SKILL_SLUGS: string[] = [];
 
 export interface UseBrandEnabledSkillsReturn {
@@ -89,23 +89,10 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         const token = await resolveAuthToken(getToken);
         if (!token) throw new Error('No auth token');
 
-        const response = await fetch(
-          `${API_BASE}/brands/${targetBrandId}/agent-config/enabled-skills`,
-          {
-            body: JSON.stringify({ enabledSkills: nextSlugs }),
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            method: 'PATCH',
-          },
+        await BrandsService.getInstance(token).updateEnabledSkills(
+          targetBrandId,
+          nextSlugs,
         );
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to update enabled skills: ${response.status}`,
-          );
-        }
 
         if (
           activeBrandIdRef.current === targetBrandId &&

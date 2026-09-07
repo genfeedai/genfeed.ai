@@ -12,15 +12,19 @@ export type SkillDraft = {
   systemPromptTemplate: string;
 };
 
-export type Props = {
+export type SkillDetailCardProps = {
   customizing: boolean;
   onCustomize: () => void;
-  onOpenTestInChat: () => void;
   onSaveSkill: () => void;
   onSkillDraftChange: (updater: (current: SkillDraft) => SkillDraft) => void;
   savingSkill: boolean;
   selectedSkill: Skill | null;
   skillDraft: SkillDraft;
+};
+
+export type SkillDetailSheetProps = SkillDetailCardProps & {
+  onClose: () => void;
+  onOpenTestInChat: () => void;
 };
 
 export type SkillsPageState = {
@@ -33,7 +37,6 @@ export type SkillsPageState = {
   isLoading: boolean;
   isSavingSkill: boolean;
   isCustomizing: boolean;
-  isDetailSheetOpen: boolean;
   error: string | null;
   skillDraft: SkillDraft;
 };
@@ -43,7 +46,7 @@ export type SkillsPageAction =
   | { type: 'LOAD_SUCCESS'; skills: Skill[] }
   | { type: 'LOAD_ERROR'; message: string }
   | { type: 'SELECT_SKILL'; id: string; draft: SkillDraft }
-  | { type: 'CLOSE_DETAIL_SHEET' }
+  | { type: 'CLEAR_SELECTED_SKILL' }
   | { type: 'SET_SOURCE_FILTER'; value: SourceFilterValue }
   | { type: 'SET_MODALITY_FILTER'; value: ModalityFilterValue }
   | { type: 'SET_STAGE_FILTER'; value: StageFilterValue }
@@ -76,9 +79,4 @@ export type SkillsTableProps = {
   onSkillSelect: (id: string) => void;
   onToggleSkill: (slug: string) => void;
   skills: Skill[];
-};
-
-export type SkillDetailSheetProps = Props & {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
 };

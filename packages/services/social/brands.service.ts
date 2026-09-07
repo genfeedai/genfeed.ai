@@ -315,6 +315,15 @@ export class BrandsService extends BaseService<Brand> {
     await this.instance.patch(`/${id}/agent-config`, data);
   }
 
+  public async updateEnabledSkills(
+    id: string,
+    enabledSkills: string[],
+  ): Promise<void> {
+    await this.instance.patch(`/${id}/agent-config/enabled-skills`, {
+      enabledSkills,
+    });
+  }
+
   /**
    * AI brand voice / profile generation. Scans website when `url` is set, or
    * uses brandId context (and brand.website scrape server-side).

@@ -1,18 +1,16 @@
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { SkillDetailSheetProps } from '@props/settings/skills.props';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
+import Badge from '@ui/display/badge/Badge';
+import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
+import { Button } from '@ui/primitives/button';
+import { FlaskConical } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import SkillDetailCard from './SkillDetailCard';
 
 export default function SkillDetailSheet({
   customizing,
-  isOpen,
+  onClose,
   onCustomize,
-  onOpenChange,
   onOpenTestInChat,
   onSaveSkill,
   onSkillDraftChange,
@@ -23,22 +21,47 @@ export default function SkillDetailSheet({
   const translate = useTranslations('common.settings.skills');
 
   return (
-    <Sheet onOpenChange={onOpenChange} open={isOpen}>
-      <SheetContent className="flex w-full flex-col gap-4 overflow-y-auto sm:max-w-xl">
-        <SheetHeader>
-          <SheetTitle>{selectedSkill?.name ?? translate('heading')}</SheetTitle>
-        </SheetHeader>
-        <SkillDetailCard
-          customizing={customizing}
-          onCustomize={onCustomize}
-          onOpenTestInChat={onOpenTestInChat}
-          onSaveSkill={onSaveSkill}
-          onSkillDraftChange={onSkillDraftChange}
-          savingSkill={savingSkill}
-          selectedSkill={selectedSkill}
-          skillDraft={skillDraft}
-        />
-      </SheetContent>
-    </Sheet>
+    <EntityOverlayShell
+      actions={
+        selectedSkill ? (
+          <Button
+            icon={<FlaskConical className="size-4" />}
+            label={translate('actions.testWithAgent')}
+            onClick={onOpenTestInChat}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : null
+      }
+      badges={
+        selectedSkill ? (
+          <>
+            <Badge variant="outline">{selectedSkill.slug}</Badge>
+            {selectedSkill.version ? (
+              <Badge variant="ghost">
+                {translate('detail.version', {
+                  version: selectedSkill.version,
+                })}
+              </Badge>
+            ) : null}
+          </>
+        ) : null
+      }
+      description={selectedSkill?.description}
+      id={ModalEnum.SKILL}
+      onClose={onClose}
+      surface="flat"
+      title={selectedSkill?.name ?? translate('heading')}
+      width="lg"
+    >
+      <SkillDetailCard
+        customizing={customizing}
+        onCustomize={onCustomize}
+        onSaveSkill={onSaveSkill}
+        onSkillDraftChange={onSkillDraftChange}
+        savingSkill={savingSkill}
+        selectedSkill={selectedSkill}
+        skillDraft={skillDraft}
+      />
+    </EntityOverlayShell>
   );
 }
