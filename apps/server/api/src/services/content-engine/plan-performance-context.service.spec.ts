@@ -142,6 +142,7 @@ describe('PlanPerformanceContextService', () => {
       'brand-1',
       PLAN_PERFORMANCE_WINDOW_DAYS,
       10,
+      { sourceTypes: ['account'] },
     );
     expect(context.section).toContain(
       'Own history (last 30 days): 0 Genfeed posts and 2 imported posts',
@@ -190,6 +191,113 @@ describe('PlanPerformanceContextService', () => {
       'Hooks that worked: "Three mistakes I made"',
     );
     expect(context.section).not.toContain('Cold start');
+  });
+
+  it('narrows competitor ads to the selected watched advertisers', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue(
+      makeSummary({
+        dataset: {
+          confidence: 'low',
+          genfeedPosts: 0,
+          importedPosts: 1,
+          totalPosts: 1,
+        },
+      }),
+    );
+    adPerformanceService.findByWatchedAdvertisers = vi.fn().mockResolvedValue([
+      {
+        adPlatform: 'meta',
+        advertiserName: 'Chosen Advertiser',
+        headlineText: 'Chosen headline',
+      },
+    ]);
+
+    const context = await service.build({
+      ...params,
+      seeds: { advertiserIds: ['adv-1', 'adv-2'] },
+    });
+
+    expect(adPerformanceService.findByWatchedAdvertisers).toHaveBeenCalledWith({
+      advertiserIds: ['adv-1', 'adv-2'],
+      brandId: 'brand-1',
+      limit: 5,
+      organizationId: 'org-1',
+    });
+    expect(adPerformanceService.findTopPerformers).not.toHaveBeenCalled();
+    expect(context.section).toContain('Chosen headline');
+  });
+
+  it('narrows the followed-creator corpus to the selected sources', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue(
+      makeSummary({
+        dataset: {
+          confidence: 'low',
+          genfeedPosts: 0,
+          importedPosts: 1,
+          totalPosts: 1,
+        },
+      }),
+    );
+    sourcePostsService.getWeeklyCorpus.mockResolvedValue({
+      corpus: 'chosen source corpus',
+      count: 1,
+      posts: [{ id: 'sp-1' }],
+    });
+
+    await service.build({
+      ...params,
+      seeds: { sourceIds: ['source-1'] },
+    });
+
+    expect(sourcePostsService.getWeeklyCorpus).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      PLAN_PERFORMANCE_WINDOW_DAYS,
+      10,
+      { sourceIds: ['source-1'] },
+    );
+  });
+
+  it('skips creative patterns when isPatternsIncluded is false', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue(
+      makeSummary({
+        dataset: {
+          confidence: 'low',
+          genfeedPosts: 0,
+          importedPosts: 1,
+          totalPosts: 1,
+        },
+      }),
+    );
+
+    await service.build({
+      ...params,
+      seeds: { isPatternsIncluded: false },
+    });
+
+    expect(patternMatcherService.getTopPatternsForBrand).not.toHaveBeenCalled();
+  });
+
+  it('omits the own-history section when isImportedHistoryIncluded is false', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue(
+      makeSummary({
+        dataset: {
+          confidence: 'high',
+          genfeedPosts: 20,
+          importedPosts: 5,
+          totalPosts: 25,
+        },
+        topHooks: ['Three mistakes I made'],
+      }),
+    );
+
+    const context = await service.build({
+      ...params,
+      seeds: { isImportedHistoryIncluded: false },
+    });
+
+    expect(context.dataset.totalPosts).toBe(25);
+    expect(context.section).not.toContain('Own history');
   });
 
   it('degrades to an empty section when every source fails', async () => {

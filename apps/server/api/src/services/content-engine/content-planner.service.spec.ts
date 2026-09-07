@@ -210,6 +210,66 @@ describe('ContentPlannerService', () => {
     );
   });
 
+  it('forwards the seed selection to the performance context and persists it on the plan', async () => {
+    stubGeneratePlan();
+    planPerformanceContextService.build.mockResolvedValueOnce({
+      dataset: {
+        confidence: 'low',
+        genfeedPosts: 0,
+        importedPosts: 1,
+        totalPosts: 1,
+      },
+      isColdStart: true,
+      section: 'Cold start: only 1 own post in the window.',
+    });
+    const seeds = {
+      advertiserIds: ['adv-1'],
+      isImportedHistoryIncluded: false,
+      isPatternsIncluded: false,
+      sourceIds: ['source-1'],
+    };
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, {
+      ...baseDto,
+      seeds,
+    });
+
+    expect(planPerformanceContextService.build).toHaveBeenCalledWith({
+      brandId: mockBrandId,
+      organizationId: mockOrgId,
+      seeds,
+    });
+    expect(contentPlansService.createInternal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seeds: {
+          advertiserIds: ['adv-1'],
+          isColdStart: true,
+          isImportedHistoryIncluded: false,
+          isPatternsIncluded: false,
+          sourceIds: ['source-1'],
+        },
+      }),
+    );
+  });
+
+  it('persists default seed flags when no selection is provided', async () => {
+    stubGeneratePlan();
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    expect(contentPlansService.createInternal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seeds: {
+          advertiserIds: [],
+          isColdStart: true,
+          isImportedHistoryIncluded: true,
+          isPatternsIncluded: true,
+          sourceIds: [],
+        },
+      }),
+    );
+  });
+
   it('describes a grounded plan when own history is sufficient', async () => {
     stubGeneratePlan();
     planPerformanceContextService.build.mockResolvedValueOnce({

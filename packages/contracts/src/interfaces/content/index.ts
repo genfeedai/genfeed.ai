@@ -13,6 +13,7 @@ export * from './clip-source.interface';
 export * from './clip-terminal-contract.interface';
 export * from './clip-workflow.interface';
 export * from './composer-content.interface';
+export * from './content-plan-seed.interface';
 export * from './content-run.interface';
 export * from './content-run-service.contract';
 export * from './dashboard-layout.interface';
