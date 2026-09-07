@@ -224,12 +224,8 @@ export class RestreamService {
         }),
       );
       const data = response.data ?? {};
-      const id =
-        typeof data.id === 'string' && data.id.length > 0
-          ? data.id
-          : typeof data.userId === 'string' && data.userId.length > 0
-            ? data.userId
-            : undefined;
+      // Restream returns the profile id as a number (`"id": 000`).
+      const id = this.readScalarId(data.id) ?? this.readScalarId(data.userId);
 
       if (!id) {
         throw new HttpException(
@@ -263,6 +259,16 @@ export class RestreamService {
         HttpStatus.BAD_GATEWAY,
       );
     }
+  }
+
+  private readScalarId(value: unknown): string | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value);
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+    return undefined;
   }
 
   /**
