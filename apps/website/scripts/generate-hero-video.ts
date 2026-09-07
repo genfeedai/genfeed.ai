@@ -43,13 +43,19 @@ const logger = {
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 /**
- * Seedance 1 Pro renders coherent human motion at 1080p without the plastic
- * "AI b-roll" look, and returns a plain MP4 URL rather than a frame sequence.
+ * Seedance 2.5 tops out at 720p, which is the right ceiling here: the clip sits
+ * behind two overlays and a 5.5rem headline, so resolution buys nothing a
+ * visitor can see while costing every visitor the bytes. It renders coherent
+ * human motion without the plastic "AI b-roll" look and returns a plain MP4.
+ *
  * Pinned by name, not by version hash: Replicate resolves the owner/name form
- * to the current version, and a hero clip is regenerated deliberately, never
- * on a schedule that a stale pin would silently break.
+ * to the current version, and a hero clip is regenerated deliberately, never on
+ * a schedule that a stale pin would silently break.
  */
-const MODEL = 'bytedance/seedance-1-pro';
+const MODEL = 'bytedance/seedance-2.5';
+
+/** Native output height. The encode never upscales past it. */
+const SOURCE_WIDTH = 1280;
 
 /**
  * UGC, not stock. The shot has to read as a creator's own phone footage — the
@@ -65,9 +71,6 @@ const PROMPT = [
   'background, slow natural handheld drift, one continuous shot, no cuts,',
   'no text, no captions, no logos, cinematic 35mm look, subtle film grain.',
 ].join(' ');
-
-const NEGATIVE_PROMPT =
-  'text, captions, subtitles, watermark, logo, split screen, cuts, jump cut, blown highlights, bright white background, distorted hands, extra fingers';
 
 const CDN_PREFIX = 'assets/branding/website/home/hero';
 const CDN_BUCKET = 'cdn.genfeed.ai';
@@ -136,10 +139,12 @@ async function generate(token: string, destination: string): Promise<void> {
     input: {
       aspect_ratio: '16:9',
       duration: 10,
-      fps: 24,
-      negative_prompt: NEGATIVE_PROMPT,
+      // The hero plays muted by policy, so a generated soundtrack would be
+      // bytes nobody hears — and `-an` strips it in the encode regardless.
+      generate_audio: false,
       prompt: PROMPT,
-      resolution: '1080p',
+      resolution: '720p',
+      watermark: false,
     },
   });
 
@@ -303,7 +308,6 @@ async function main(): Promise<void> {
   if (isDryRun) {
     logger.log(`model:        ${MODEL}`);
     logger.log(`prompt:       ${PROMPT}`);
-    logger.log(`negative:     ${NEGATIVE_PROMPT}`);
     logger.log(`output dir:   ${OUTPUT_DIR}`);
     logger.log(`cdn target:   s3://${CDN_BUCKET}/${CDN_PREFIX}/`);
     logger.log(`replicate key: ${token ? 'found' : 'MISSING'}`);

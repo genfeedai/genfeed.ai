@@ -20,3 +20,29 @@ globalThis.ResizeObserver = class ResizeObserver {
 if (typeof window !== 'undefined') {
   window.ResizeObserver = globalThis.ResizeObserver;
 }
+
+// jsdom does not implement matchMedia either, and components that branch on
+// `prefers-reduced-motion` or a width query call it during layout effects.
+// Everything reports "no match": a test that cares about a specific media
+// state stubs the answer it needs, and every other test renders the
+// conservative branch rather than the decorative one.
+if (typeof window !== 'undefined') {
+  window.matchMedia = ((query: string) => ({
+    addEventListener: () => {
+      /* noop mock */
+    },
+    addListener: () => {
+      /* noop mock */
+    },
+    dispatchEvent: () => false,
+    matches: false,
+    media: query,
+    onchange: null,
+    removeEventListener: () => {
+      /* noop mock */
+    },
+    removeListener: () => {
+      /* noop mock */
+    },
+  })) as unknown as typeof window.matchMedia;
+}
