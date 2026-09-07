@@ -332,6 +332,12 @@ export default function DiscoveryDesk() {
   );
 
   const isFollowingView = sourceParam === 'following';
+  // The URL source can change before the reducer catches up, so never hand
+  // the Following deck an item from another source in that window.
+  const followingItems = useMemo(
+    () => filteredBySearch.filter((item) => item.source === 'following'),
+    [filteredBySearch],
+  );
   const hasDeskItems = !isLoading && !currentError && items.length > 0;
 
   return (
@@ -411,7 +417,7 @@ export default function DiscoveryDesk() {
           <FollowingDeck
             brandId={brandId}
             cursorKey={state.cursorKey}
-            items={filteredBySearch}
+            items={followingItems}
             onCursor={handleCursor}
             onSelectFinding={
               surface?.isEmbedded ? handleSelectFinding : undefined

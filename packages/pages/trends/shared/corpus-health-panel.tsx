@@ -46,6 +46,16 @@ function formatProviderLabel(provider: string): string {
     .join(' ');
 }
 
+// Backend timestamps render identically on the server and in the browser:
+// a fixed locale and UTC keep hydration free of locale or zone drift.
+const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  month: 'short',
+  timeZone: 'UTC',
+});
+
 function formatTimestamp(timestamp: string | null | undefined): string | null {
   if (!timestamp) {
     return null;
@@ -54,12 +64,7 @@ function formatTimestamp(timestamp: string | null | undefined): string | null {
   if (Number.isNaN(parsed.getTime())) {
     return timestamp;
   }
-  return parsed.toLocaleString(undefined, {
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    month: 'short',
-  });
+  return TIMESTAMP_FORMATTER.format(parsed);
 }
 
 /**

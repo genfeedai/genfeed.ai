@@ -100,6 +100,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: trendContentError,
     isLoading: isLoadingTrendContent,
     isFetching: isFetchingTrendContent,
+    isPlaceholderData: isPlaceholderTrendContent,
     refetch: refetchTrendContent,
   } = useQuery<TrendContentResponse>({
     enabled: isBrandReady,
@@ -117,6 +118,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: followingFeedError,
     isLoading: isLoadingFollowingFeed,
     isFetching: isFetchingFollowingFeed,
+    isPlaceholderData: isPlaceholderFollowingFeed,
     refetch: refetchFollowingFeed,
   } = useQuery<SocialSourcesResponse>({
     enabled: isBrandReady,
@@ -140,6 +142,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     error: viralVideosError,
     isLoading: isLoadingViralVideos,
     isFetching: isFetchingViralVideos,
+    isPlaceholderData: isPlaceholderViralVideos,
     refetch: refetchViralVideos,
   } = useQuery<ITrendVideo[]>({
     enabled: isBrandReady,
@@ -181,8 +184,16 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     viralVideosQueryKey,
   ]);
 
+  // `placeholderData` reports a successful query while the first request is
+  // still in flight, so a cache miss shows up as fetching placeholder data
+  // rather than as `isLoading`. Treat it as the initial load.
   const isLoading =
-    isLoadingTrendContent || isLoadingFollowingFeed || isLoadingViralVideos;
+    isLoadingTrendContent ||
+    isLoadingFollowingFeed ||
+    isLoadingViralVideos ||
+    (isFetchingTrendContent && isPlaceholderTrendContent) ||
+    (isFetchingFollowingFeed && isPlaceholderFollowingFeed) ||
+    (isFetchingViralVideos && isPlaceholderViralVideos);
   const isFetching =
     isFetchingHealth ||
     isFetchingTrendContent ||
