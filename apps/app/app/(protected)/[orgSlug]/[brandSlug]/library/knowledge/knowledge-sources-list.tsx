@@ -30,15 +30,16 @@ import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { RotateCcw } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
 import KnowledgeSourceDetailSheet from './knowledge-source-detail-sheet';
 import KnowledgeStateBadge from './knowledge-state-badge';
 
-const PURPOSE_LABEL: Record<string, string> = {
-  BRAND_TRUTH: 'Brand Truth',
-  INSPIRATION: 'Inspiration',
-  RESEARCH: 'Research',
+const PURPOSE_KEY: Record<string, string> = {
+  BRAND_TRUTH: 'brandTruth',
+  INSPIRATION: 'inspiration',
+  RESEARCH: 'research',
 };
 
 export default function KnowledgeSourcesList({
@@ -49,6 +50,9 @@ export default function KnowledgeSourcesList({
   seedRequestId,
   website,
 }: KnowledgeSourcesListProps) {
+  const translate = useTranslations('pages.library.knowledge.list');
+  const translatePurpose = useTranslations('pages.library.knowledge.purpose');
+  const translateSeed = useTranslations('pages.library.knowledge');
   const notifications = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
@@ -83,17 +87,17 @@ export default function KnowledgeSourcesList({
       try {
         const service = await getSourcesService();
         await service.capture(request, brandId);
-        notifications.success('Source added; ingestion started');
+        notifications.success(translate('addSuccess'));
         onAddClose();
         await refresh();
       } catch (captureError) {
         logger.error('Failed to add knowledge source', captureError);
-        notifications.error('Failed to add source');
+        notifications.error(translate('addError'));
       } finally {
         setIsSubmitting(false);
       }
     },
-    [brandId, getSourcesService, notifications, onAddClose, refresh],
+    [brandId, getSourcesService, notifications, onAddClose, refresh, translate],
   );
 
   const retry = useCallback(
@@ -101,14 +105,14 @@ export default function KnowledgeSourcesList({
       try {
         const service = await getSourcesService();
         await service.retry(source.id, brandId);
-        notifications.success('Ingestion requeued');
+        notifications.success(translate('retrySuccess'));
         await refresh();
       } catch (retryError) {
         logger.error('Failed to retry knowledge ingestion', retryError);
-        notifications.error('Failed to retry ingestion');
+        notifications.error(translate('retryError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh],
+    [brandId, getSourcesService, notifications, refresh, translate],
   );
 
   const update = useCallback(
@@ -119,10 +123,10 @@ export default function KnowledgeSourcesList({
         await refresh();
       } catch (updateError) {
         logger.error('Failed to update knowledge source', updateError);
-        notifications.error('Failed to update source');
+        notifications.error(translate('updateError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh],
+    [brandId, getSourcesService, notifications, refresh, translate],
   );
 
   const archive = useCallback(
@@ -130,15 +134,15 @@ export default function KnowledgeSourcesList({
       try {
         const service = await getSourcesService();
         await service.archive(source.id, brandId);
-        notifications.success('Source archived');
+        notifications.success(translate('archiveSuccess'));
         setSelectedSourceId(null);
         await refresh();
       } catch (archiveError) {
         logger.error('Failed to archive knowledge source', archiveError);
-        notifications.error('Failed to archive source');
+        notifications.error(translate('archiveError'));
       }
     },
-    [brandId, getSourcesService, notifications, refresh],
+    [brandId, getSourcesService, notifications, refresh, translate],
   );
 
   const moveToSpace = useCallback(
@@ -149,10 +153,10 @@ export default function KnowledgeSourcesList({
         await refresh();
       } catch (moveError) {
         logger.error('Failed to add knowledge source to space', moveError);
-        notifications.error('Failed to move source');
+        notifications.error(translate('moveError'));
       }
     },
-    [brandId, getSpacesService, notifications, refresh],
+    [brandId, getSpacesService, notifications, refresh, translate],
   );
 
   // Brand Kit seed: capture the brand website as Brand Truth exactly once per
@@ -163,7 +167,7 @@ export default function KnowledgeSourcesList({
     }
     setHandledSeedId(seedRequestId);
     if (!website) {
-      notifications.error('Add a website to the Brand Kit first');
+      notifications.error(translateSeed('seedNeedsWebsite'));
       onSeedHandled();
       return;
     }
@@ -186,28 +190,32 @@ export default function KnowledgeSourcesList({
     notifications,
     onSeedHandled,
     seedRequestId,
+    translateSeed,
     website,
   ]);
 
   const columns: TableColumn<KnowledgeSourceRow>[] = [
     {
-      header: 'Source',
+      header: translate('source'),
       key: 'title',
       render: (row) => row.source.title,
       subtext: (row) => row.source.kind,
     },
     {
-      header: 'Purpose',
+      header: translate('purpose'),
       key: 'purpose',
-      render: (row) => PURPOSE_LABEL[row.source.purpose] ?? row.source.purpose,
+      render: (row) =>
+        PURPOSE_KEY[row.source.purpose]
+          ? translatePurpose(PURPOSE_KEY[row.source.purpose])
+          : row.source.purpose,
     },
     {
-      header: 'State',
+      header: translate('state'),
       key: 'state',
       render: (row) => <KnowledgeStateBadge version={row.version} />,
     },
     {
-      header: 'Captured',
+      header: translate('captured'),
       key: 'observedAt',
       render: (row) => (row.version ? formatDate(row.version.observedAt) : '-'),
     },
@@ -216,9 +224,9 @@ export default function KnowledgeSourcesList({
   return (
     <div className="space-y-4">
       {spaces.length > 0 ? (
-        <nav aria-label="Spaces" className="flex flex-wrap gap-2">
+        <nav aria-label={translate('spaces')} className="flex flex-wrap gap-2">
           <Button
-            label="All sources"
+            label={translate('allSources')}
             onClick={() => setSelectedSpaceId(null)}
             variant={
               selectedSpaceId ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
@@ -227,7 +235,7 @@ export default function KnowledgeSourcesList({
           {spaces.map((space) => (
             <Button
               key={space.id}
-              label={space.isInbox ? 'Inbox' : space.title}
+              label={space.isInbox ? translate('inbox') : space.title}
               onClick={() => setSelectedSpaceId(space.id)}
               variant={
                 selectedSpaceId === space.id
@@ -244,7 +252,7 @@ export default function KnowledgeSourcesList({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
             <Button
-              label="Retry"
+              label={translate('retry')}
               onClick={() => {
                 void refresh();
               }}
@@ -263,12 +271,12 @@ export default function KnowledgeSourcesList({
               onClick: (row) => {
                 void retry(row.source);
               },
-              tooltip: 'Retry ingestion',
+              tooltip: translate('retryIngestion'),
             },
           ]}
           columns={columns}
-          emptyDescription="Add a web page, a document or pasted text and Genfeed will cite it in generations."
-          emptyLabel="No knowledge sources yet"
+          emptyDescription={translate('emptyDescription')}
+          emptyLabel={translate('emptyTitle')}
           getRowKey={(row) => row.source.id}
           isLoading={isLoading}
           items={visibleRows}

@@ -25,6 +25,7 @@ import {
   SheetTitle,
 } from '@ui/primitives/sheet';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 import { PURPOSE_OPTIONS } from './knowledge-add-source-sheet';
 import KnowledgeStateBadge from './knowledge-state-badge';
 
@@ -53,6 +54,8 @@ export default function KnowledgeSourceDetailSheet({
   row,
   spaces,
 }: KnowledgeSourceDetailSheetProps) {
+  const translate = useTranslations('pages.library.knowledge.detail');
+  const translatePurpose = useTranslations('pages.library.knowledge.purpose');
   if (!row) {
     return null;
   }
@@ -77,8 +80,12 @@ export default function KnowledgeSourceDetailSheet({
         <SheetHeader>
           <SheetTitle>{source.title}</SheetTitle>
           <SheetDescription>
-            {source.kind} · captured{' '}
-            {version ? formatDate(version.observedAt) : 'never'}
+            {translate('captured', {
+              date: version
+                ? formatDate(version.observedAt)
+                : translate('neverCaptured'),
+              kind: source.kind,
+            })}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 py-4">
@@ -86,7 +93,10 @@ export default function KnowledgeSourceDetailSheet({
             <KnowledgeStateBadge version={version} />
             {version ? (
               <span className="text-xs text-muted-foreground">
-                version {version.version} · {version.retrievalState}
+                {translate('version', {
+                  state: version.retrievalState,
+                  version: version.version,
+                })}
               </span>
             ) : null}
           </div>
@@ -106,7 +116,7 @@ export default function KnowledgeSourceDetailSheet({
               {text.length > PREVIEW_LENGTH ? '…' : ''}
             </pre>
           ) : null}
-          <Field label="Purpose">
+          <Field label={translate('purpose')}>
             <Select
               onValueChange={(value) => {
                 void onUpdate(source, {
@@ -115,32 +125,32 @@ export default function KnowledgeSourceDetailSheet({
               }}
               value={source.purpose}
             >
-              <SelectTrigger aria-label="Purpose">
+              <SelectTrigger aria-label={translate('purpose')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {PURPOSE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {translatePurpose(option.labelKey)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Used in generation">
+          <Field label={translate('usedInGeneration')}>
             <Switch
-              aria-label="Used in generation"
+              aria-label={translate('usedInGeneration')}
               checked={source.isVisible}
               onCheckedChange={(checked) => {
                 void onUpdate(source, { isVisible: checked });
               }}
             />
           </Field>
-          <Field label="Spaces">
+          <Field label={translate('spaces')}>
             <div className="flex flex-wrap gap-2">
               {spaceIds.length === 0 ? (
                 <span className="text-xs text-muted-foreground">
-                  Not in any space
+                  {translate('noSpaces')}
                 </span>
               ) : (
                 spaces
@@ -150,7 +160,7 @@ export default function KnowledgeSourceDetailSheet({
                       className="rounded-sm border border-border px-2 py-0.5 text-xs"
                       key={space.id}
                     >
-                      {space.isInbox ? 'Inbox' : space.title}
+                      {space.isInbox ? translate('inbox') : space.title}
                     </span>
                   ))
               )}
@@ -162,13 +172,16 @@ export default function KnowledgeSourceDetailSheet({
                 }}
                 value=""
               >
-                <SelectTrigger aria-label="Add to space" className="mt-2">
-                  <SelectValue placeholder="Add to space" />
+                <SelectTrigger
+                  aria-label={translate('addToSpace')}
+                  className="mt-2"
+                >
+                  <SelectValue placeholder={translate('addToSpace')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableSpaces.map((space) => (
                     <SelectItem key={space.id} value={space.id}>
-                      {space.isInbox ? 'Inbox' : space.title}
+                      {space.isInbox ? translate('inbox') : space.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -179,7 +192,7 @@ export default function KnowledgeSourceDetailSheet({
         <SheetFooter>
           {isFailed ? (
             <Button
-              label="Retry ingestion"
+              label={translate('retryIngestion')}
               onClick={() => {
                 void onRetry(source);
               }}
@@ -187,7 +200,7 @@ export default function KnowledgeSourceDetailSheet({
             />
           ) : null}
           <Button
-            label="Archive"
+            label={translate('archive')}
             onClick={() => {
               void onArchive(source);
             }}

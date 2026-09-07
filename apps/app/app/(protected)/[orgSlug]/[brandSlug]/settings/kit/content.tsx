@@ -55,7 +55,7 @@ export default function BrandSettingsKitPage() {
   return (
     <Container>
       <section
-        aria-label="Brand Kit settings"
+        aria-label={translate('settingsAriaLabel')}
         className="mx-auto flex max-w-3xl flex-col gap-3"
         data-control-baseline="32px"
         data-scale-role="product"
@@ -122,17 +122,16 @@ export default function BrandSettingsKitPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-1">
               <h2 className="text-sm font-semibold text-foreground">
-                Brand Knowledge
+                {translate('knowledgeTitle')}
               </h2>
               <p className="text-xs leading-5 text-muted-foreground">
-                Save your website, docs and pasted material so generations cite
-                them. Seed it from this Brand Kit in one click.
+                {translate('knowledgeDescription')}
               </p>
             </div>
             <Button asChild variant={ButtonVariant.SECONDARY}>
               <Link href={href(APP_ROUTES.LIBRARY.KNOWLEDGE)}>
                 <BookOpen className="size-4" />
-                Open Knowledge
+                {translate('openKnowledge')}
               </Link>
             </Button>
           </div>
