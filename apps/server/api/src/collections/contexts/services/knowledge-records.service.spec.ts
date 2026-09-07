@@ -70,6 +70,7 @@ function buildSourcesController() {
     controller: new KnowledgeSourcesController(
       records,
       new KnowledgeCaptureService(records, ingestWorkflow as never),
+      { run: vi.fn() } as never,
     ),
     ingestWorkflow,
   };
