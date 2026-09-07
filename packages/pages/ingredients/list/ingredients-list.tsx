@@ -66,7 +66,7 @@ export default function IngredientsList({
   type: typeProp,
   scope = PageScope.BRAND,
 }: IngredientsListProps) {
-  const { ingredientType, viewMode } = useIngredientsContext();
+  const { activeTypeLabel, ingredientType, viewMode } = useIngredientsContext();
   const { setHeaderMeta } = useIngredientsHeaderContext();
   const { selectedBrand } = useBrand();
   const type = ingredientType || typeProp;
@@ -298,6 +298,7 @@ export default function IngredientsList({
           <div className="min-w-0">
             <IngredientsListContent
               type={type}
+              activeTypeLabel={activeTypeLabel}
               scope={scope}
               singularType={singularType}
               viewMode={viewMode}

@@ -145,6 +145,7 @@ function IngredientLedgerAssetCell({
 
 export default function IngredientsListContent({
   type,
+  activeTypeLabel,
   scope,
   singularType,
   viewMode,
@@ -451,7 +452,7 @@ export default function IngredientsListContent({
         return (
           <CardEmptyContent
             label={`No ${noun} yet`}
-            description={`Generate or upload ${noun} and they will collect here.`}
+            description={`Generate or upload ${noun} to fill this list.`}
             className="w-full"
           />
         );
@@ -469,13 +470,18 @@ export default function IngredientsListContent({
       const mediaItems = isMediaCategory
         ? filteredIngredients
         : visualIngredients;
+      // `type` is 'ingredients' on every Library route — the type axis is a
+      // clearable chip, so the noun follows the chips, not the URL.
+      const mediaNoun = (
+        activeTypeLabel ?? (type === 'ingredients' ? 'assets' : type)
+      ).toLowerCase();
 
       return (
         <div className="flex flex-col gap-6">
           {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
             <IngredientsMediaGrid
-              emptyLabel={`No ${type === 'ingredients' ? 'assets' : type} yet`}
-              emptyDescription={`Generate or upload ${type === 'ingredients' ? 'assets' : type} and they will collect here.`}
+              emptyLabel={`No ${mediaNoun} yet`}
+              emptyDescription={`Generate or upload ${mediaNoun} to fill this list.`}
               items={mediaItems}
               onDeleteIngredient={onDeleteIngredient}
               onMarkArchived={onArchiveIngredient}

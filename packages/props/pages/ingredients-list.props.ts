@@ -59,6 +59,8 @@ export interface IngredientsListSidebarProps {
 
 export interface IngredientsListContentProps {
   type: string;
+  /** Plural label of the active Library type chips, when exactly one applies. */
+  activeTypeLabel?: string;
   scope: PageScope;
   singularType: IngredientCategory | string;
   viewMode?: LibraryViewMode;
