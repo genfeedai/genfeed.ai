@@ -40,10 +40,10 @@ describe('CorpusHealthPanel', () => {
       ).toBeInTheDocument();
     }
     expect(screen.queryByText('healthy')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByText('Last successful refresh: Not recorded'),
-    ).toHaveLength(3);
-    expect(screen.getAllByText('Last attempt: Not recorded')).toHaveLength(3);
+    expect(screen.getAllByText('Last refresh')).toHaveLength(3);
+    expect(screen.getAllByText('Last attempt')).toHaveLength(3);
+    // Three platforms × observed / refresh / attempt, all honestly unrecorded.
+    expect(screen.getAllByText('Not recorded')).toHaveLength(9);
   });
 
   it('scopes health to selected platforms and honestly labels stale observations', () => {
@@ -68,13 +68,13 @@ describe('CorpusHealthPanel', () => {
     expect(
       screen.queryByRole('group', { name: 'X / Twitter' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('apify: stale')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Last observed source timestamp:/),
-    ).toHaveTextContent('2026-09-01T09:00:00Z');
-    expect(
-      screen.getByText('Last successful refresh: Not recorded'),
-    ).toBeInTheDocument();
+    const reddit = within(screen.getByRole('group', { name: 'Reddit' }));
+    expect(reddit.getByText('Apify')).toBeInTheDocument();
+    expect(reddit.getByText('stale')).toBeInTheDocument();
+    expect(reddit.getByText('Last observed')).toBeInTheDocument();
+    expect(reddit.queryByText('Health unavailable')).not.toBeInTheDocument();
+    // Refresh and attempt are never claimed when nothing was recorded.
+    expect(reddit.getAllByText('Not recorded')).toHaveLength(2);
   });
 
   it('includes observed platforms and fixed degraded reason copy without raw provider errors', () => {
@@ -98,13 +98,10 @@ describe('CorpusHealthPanel', () => {
         }}
       />,
     );
-    const youtube = within(screen.getByRole('group', { name: 'youtube' }));
+    const youtube = within(screen.getByRole('group', { name: 'Youtube' }));
     expect(
-      youtube.getByText(/native-api: Saved fallback previews/),
+      youtube.getByText(/Native Api: Saved fallback previews/),
     ).toBeInTheDocument();
-    expect(youtube.getByText(/Last preview observation:/)).toHaveTextContent(
-      '2026-09-05T08:00:00Z',
-    );
     expect(screen.queryByText(/secret/)).not.toBeInTheDocument();
   });
 

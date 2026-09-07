@@ -1,8 +1,12 @@
 'use client';
 
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { CorpusHealthPanelProps } from '@props/trends/corpus-health-panel.props';
+import type { TrendCorpusFreshnessStatus } from '@props/trends/trends-page.props';
+import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { Heading } from '@ui/typography/heading';
+import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import MetricItem from '@ui/display/metric-item/MetricItem';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
 
@@ -11,11 +15,60 @@ const PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
   twitter: 'X / Twitter',
 };
+
+type CorpusStatus = TrendCorpusFreshnessStatus | 'unavailable';
+
+const SEGMENT_BADGE_VARIANT: Record<
+  TrendCorpusFreshnessStatus,
+  'success' | 'warning' | 'error'
+> = {
+  degraded: 'warning',
+  empty: 'error',
+  healthy: 'success',
+  stale: 'warning',
+};
+
 function normalizePlatform(platform: string): string {
   const normalized = platform.toLowerCase();
   return normalized === 'x' ? 'twitter' : normalized;
 }
 
+function formatPlatformLabel(platform: string): string {
+  return (
+    PLATFORM_LABELS[platform] ??
+    platform.charAt(0).toUpperCase() + platform.slice(1)
+  );
+}
+
+function formatProviderLabel(provider: string): string {
+  return provider
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatTimestamp(timestamp: string | null | undefined): string | null {
+  if (!timestamp) {
+    return null;
+  }
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+  return parsed.toLocaleString(undefined, {
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'short',
+  });
+}
+
+/**
+ * Source health summary for the trend corpus. One compact status row per
+ * platform, built from the shared Card / InsetSurface / MetricItem primitives
+ * so it reads like every other status card in the app.
+ */
 export default function CorpusHealthPanel({
   health,
   isUnavailable = false,
@@ -51,7 +104,7 @@ export default function CorpusHealthPanel({
         (segment) => normalizePlatform(segment.platform) === platform,
       ),
   );
-  const status = isUnavailable
+  const status: CorpusStatus | undefined = isUnavailable
     ? 'unavailable'
     : !health
       ? undefined
@@ -75,108 +128,130 @@ export default function CorpusHealthPanel({
         : status === 'empty' || status === 'unavailable'
           ? 'error'
           : 'default';
+  const notRecorded = translate('notRecorded');
 
   return (
-    <section
-      aria-label={translate('title')}
-      className="mb-4 space-y-3 rounded-lg border border-border p-4"
-    >
-      <div role="status" className="space-y-2">
-        <Heading as="h2" size="sm">
-          {translate('title')}
-        </Heading>
-        <Badge variant={variant}>
-          {status
-            ? translate(`corpusStatus.${status}`)
-            : translate('checkingCorpus')}
-        </Badge>
-        <Text size="sm" color="subtle-60">
-          {isUnavailable
+    <section aria-label={translate('title')} className="mb-4">
+      <Card
+        description={
+          isUnavailable
             ? translate('unavailableDescription')
-            : translate('description')}
-        </Text>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {platforms.map((platform) => {
-          const segments =
-            health?.segments.filter(
-              (segment) => normalizePlatform(segment.platform) === platform,
-            ) ?? [];
-          const failures =
-            health?.providerFailures.filter(
-              (failure) => normalizePlatform(failure.platform) === platform,
-            ) ?? [];
-          const label = PLATFORM_LABELS[platform] ?? platform;
-          return (
-            <div
-              key={platform}
-              role="group"
-              aria-label={label}
-              className="space-y-2 rounded-md border border-border p-3"
-            >
-              <Heading as="h3" size="sm">
-                {label}
-              </Heading>
-              {isUnavailable || segments.length === 0 ? (
-                <div className="space-y-1">
-                  <Text size="sm">
-                    {!health && !isUnavailable
-                      ? translate('checkingHealth')
-                      : translate('unavailableHealth')}
+            : translate('description')
+        }
+        headerAction={
+          <div role="status">
+            <Badge variant={variant}>
+              {status
+                ? translate(`corpusStatus.${status}`)
+                : translate('checkingCorpus')}
+            </Badge>
+          </div>
+        }
+        label={translate('title')}
+      >
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {platforms.map((platform) => {
+            const segments =
+              health?.segments.filter(
+                (segment) => normalizePlatform(segment.platform) === platform,
+              ) ?? [];
+            const failures =
+              health?.providerFailures.filter(
+                (failure) => normalizePlatform(failure.platform) === platform,
+              ) ?? [];
+            const label = formatPlatformLabel(platform);
+            const isChecking = !health && !isUnavailable;
+            const hasSegments = !isUnavailable && segments.length > 0;
+            const latestSeenAt = segments
+              .map((segment) => segment.latestSeenAt ?? null)
+              .filter((value): value is string => Boolean(value))
+              .sort()
+              .at(-1);
+
+            return (
+              <InsetSurface
+                aria-label={label}
+                className="flex flex-col gap-3"
+                density="compact"
+                key={platform}
+                role="group"
+                tone="muted"
+              >
+                <div className="flex items-center gap-2">
+                  {getPlatformIcon(platform, 'size-4 shrink-0')}
+                  <Text
+                    as="p"
+                    className="min-w-0 flex-1 truncate"
+                    size="sm"
+                    weight="semibold"
+                  >
+                    {label}
                   </Text>
-                  {health && !isUnavailable && segments.length === 0 ? (
-                    <Text size="xs" color="subtle-60">
-                      {translate('missingHealth')}
-                    </Text>
+                  {!hasSegments ? (
+                    <Badge variant={isChecking ? 'default' : 'ghost'}>
+                      {isChecking
+                        ? translate('checkingHealth')
+                        : translate('unavailableHealth')}
+                    </Badge>
                   ) : null}
                 </div>
-              ) : null}
-              {segments.length === 0 ? (
-                <Text size="xs" color="subtle-60">
-                  {translate('sourceTimestamp', {
-                    timestamp: translate('notRecorded'),
-                  })}
-                </Text>
-              ) : null}
-              {segments.map((segment) => (
-                <div key={segment.id} className="space-y-1">
-                  <Text size="sm">
-                    {segment.provider}: {translate(`status.${segment.status}`)}
+
+                {hasSegments ? (
+                  <ul className="flex flex-col gap-1.5">
+                    {segments.map((segment) => (
+                      <li
+                        className="flex items-center justify-between gap-2"
+                        key={segment.id}
+                      >
+                        <Text as="span" className="truncate" size="sm">
+                          {formatProviderLabel(segment.provider)}
+                        </Text>
+                        <Badge variant={SEGMENT_BADGE_VARIANT[segment.status]}>
+                          {translate(`status.${segment.status}`)}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                ) : health && !isUnavailable ? (
+                  <Text as="p" color="subtle-60" size="xs">
+                    {translate('missingHealth')}
                   </Text>
-                  <Text size="xs" color="subtle-60">
-                    {translate('sourceTimestamp', {
-                      timestamp:
-                        segment.latestSeenAt ?? translate('notRecorded'),
-                    })}
+                ) : null}
+
+                {failures.map((failure) => (
+                  <Text
+                    as="p"
+                    color="destructive"
+                    key={`${failure.provider}:${failure.reason}`}
+                    size="xs"
+                  >
+                    {formatProviderLabel(failure.provider)}:{' '}
+                    {translate(`failure.${failure.reason}`)}
+                    {failure.latestObservedAt
+                      ? ` · ${formatTimestamp(failure.latestObservedAt)}`
+                      : ''}
                   </Text>
+                ))}
+
+                <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+                  <MetricItem
+                    label={translate('sourceTimestampLabel')}
+                    value={formatTimestamp(latestSeenAt) ?? notRecorded}
+                  />
+                  <MetricItem
+                    label={translate('lastRefreshLabel')}
+                    value={notRecorded}
+                  />
+                  <MetricItem
+                    label={translate('lastAttemptLabel')}
+                    value={notRecorded}
+                  />
                 </div>
-              ))}
-              {failures.map((failure) => (
-                <div
-                  key={`${failure.provider}:${failure.reason}`}
-                  className="space-y-1"
-                >
-                  <Text size="sm">
-                    {failure.provider}: {translate(`failure.${failure.reason}`)}
-                  </Text>
-                  <Text size="xs" color="subtle-60">
-                    {translate('previewTimestamp', {
-                      timestamp:
-                        failure.latestObservedAt ?? translate('notRecorded'),
-                    })}
-                  </Text>
-                </div>
-              ))}
-              <Text size="xs" color="subtle-60">
-                {translate('lastRefresh')}
-              </Text>
-              <Text size="xs" color="subtle-60">
-                {translate('lastAttempt')}
-              </Text>
-            </div>
-          );
-        })}
-      </div>
+              </InsetSurface>
+            );
+          })}
+        </div>
+      </Card>
     </section>
   );
 }

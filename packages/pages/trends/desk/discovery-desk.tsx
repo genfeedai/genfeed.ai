@@ -39,6 +39,7 @@ import {
 import DeskTableView from '@pages/trends/desk/desk-table-view';
 import { useDeskKeyboard } from '@pages/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@pages/trends/desk/use-discovery-desk-items';
+import FollowingDeck from '@pages/trends/following/following-deck';
 import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
 import type {
   DiscoveryDeskItem,
@@ -51,7 +52,6 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -337,13 +337,16 @@ export default function DiscoveryDesk() {
     [translateDesk],
   );
 
+  const isFollowingView = sourceParam === 'following';
+  const hasDeskItems = !isLoading && !currentError && items.length > 0;
+
   return (
     <>
-      <SectionTopbar
-        title={translateDesk('title')}
-        subtitle={translateDesk('subtitle')}
+      <Container
+        description={translateDesk('subtitle')}
         icon={TrendingUp}
-        actions={
+        label={translateDesk('title')}
+        right={
           <>
             <div className="w-44 sm:w-56">
               <FormSearchbar
@@ -365,26 +368,28 @@ export default function DiscoveryDesk() {
                     count: filteredBySearch.length,
                   })}
             </Badge>
-            <ViewToggle
-              activeView={view}
-              onChange={setView}
-              options={viewOptions}
-              size={ComponentSize.SM}
-            />
+            {!isFollowingView ? (
+              <ViewToggle
+                activeView={view}
+                onChange={setView}
+                options={viewOptions}
+                size={ComponentSize.SM}
+              />
+            ) : null}
             <ButtonRefresh
               isRefreshing={isRefreshing}
               onClick={handleRefresh}
             />
           </>
         }
-      />
-
-      <Container>
-        <CorpusHealthPanel
-          health={corpusHealth}
-          isUnavailable={Boolean(healthError)}
-          selectedPlatforms={Array.from(state.filters.platforms)}
-        />
+      >
+        {!isFollowingView ? (
+          <CorpusHealthPanel
+            health={corpusHealth}
+            isUnavailable={Boolean(healthError)}
+            selectedPlatforms={Array.from(state.filters.platforms)}
+          />
+        ) : null}
         {currentError && !isLoading ? (
           <Alert type={AlertCategory.ERROR}>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -405,11 +410,36 @@ export default function DiscoveryDesk() {
           </Alert>
         ) : null}
 
-        {!isLoading && !currentError && items.length === 0 ? (
+        {isLoading ? (
+          <div className="py-8 text-sm text-foreground/40">
+            {translateDesk('loading')}
+          </div>
+        ) : null}
+
+        {isFollowingView && !isLoading && !currentError ? (
+          <FollowingDeck
+            brandId={brandId}
+            cursorKey={state.cursorKey}
+            items={filteredBySearch}
+            onCursor={handleCursor}
+            onSelectFinding={
+              surface?.isEmbedded ? handleSelectFinding : undefined
+            }
+            onSourcesChanged={refresh}
+            onToggleSelect={handleToggleSelect}
+            selection={state.selection}
+            sources={sources}
+          />
+        ) : null}
+
+        {!isFollowingView &&
+        !isLoading &&
+        !currentError &&
+        items.length === 0 ? (
           <DiscoveryReadinessCards summary={summary} />
         ) : null}
 
-        {!isLoading && !currentError && items.length > 0 ? (
+        {!isFollowingView && hasDeskItems ? (
           <div className="mb-4">
             <DeskHeatStrip
               activePlatforms={state.filters.platforms}
@@ -421,7 +451,7 @@ export default function DiscoveryDesk() {
           </div>
         ) : null}
 
-        {!isLoading && !currentError && items.length > 0 ? (
+        {!isFollowingView && hasDeskItems ? (
           <div className="mb-4">
             <DeskFilterRail
               brandId={brandId}
@@ -437,13 +467,7 @@ export default function DiscoveryDesk() {
           </div>
         ) : null}
 
-        {isLoading ? (
-          <div className="py-8 text-sm text-foreground/40">
-            {translateDesk('loading')}
-          </div>
-        ) : null}
-
-        {!isLoading && !currentError && items.length > 0 ? (
+        {!isFollowingView && hasDeskItems ? (
           filteredBySearch.length === 0 ? (
             <DeskEmptyState
               followingHref={followingHref}

@@ -1083,6 +1083,21 @@
         "engagement": "Engagement",
         "published": "Published",
         "actions": "Actions"
+      },
+      "following": {
+        "title": "Following",
+        "subtitle": "One column per platform — every post from the creators you follow, newest first.",
+        "columnSources": "{count, plural, one {# creator} other {# creators}}",
+        "columnPosts": "{count, plural, one {# post} other {# posts}}",
+        "columnEmpty": "No posts collected yet. Sync this platform to pull the latest.",
+        "addColumn": "Add a column",
+        "addColumnDescription": "Follow a creator on another platform to open a new column.",
+        "emptyTitle": "Follow creators to build your deck",
+        "emptyDescription": "Each platform you follow becomes its own column, like a TweetDeck for every social network.",
+        "followCreators": "Follow creators",
+        "openSource": "Open original",
+        "remix": "Remix",
+        "imported": "Imported"
       }
     }
   },
