@@ -447,8 +447,13 @@ export default function IngredientsListContent({
       // empty list, so an empty music or voice library used to be a blank pane.
       // Mirror the media grid and say so.
       if (filteredIngredients.length === 0) {
+        const noun = categoryToString(singularType);
         return (
-          <p className="text-sm text-foreground/45">{`No ${categoryToString(singularType)} yet`}</p>
+          <CardEmptyContent
+            label={`No ${noun} yet`}
+            description={`Generate or upload ${noun} and they will collect here.`}
+            className="w-full"
+          />
         );
       }
 
@@ -470,6 +475,7 @@ export default function IngredientsListContent({
           {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
             <IngredientsMediaGrid
               emptyLabel={`No ${type === 'ingredients' ? 'assets' : type} yet`}
+              emptyDescription={`Generate or upload ${type === 'ingredients' ? 'assets' : type} and they will collect here.`}
               items={mediaItems}
               onDeleteIngredient={onDeleteIngredient}
               onMarkArchived={onArchiveIngredient}
