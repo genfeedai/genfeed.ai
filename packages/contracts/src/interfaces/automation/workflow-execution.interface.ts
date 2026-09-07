@@ -24,7 +24,8 @@ export interface IWorkflowExecution {
   failure?: IAgentFailure | null;
   completedAt?: string;
   createdAt: string;
-  creditsUsed: number;
+  /** Absent on rows the API never recorded credits for; treat as zero. */
+  creditsUsed?: number;
   durationMs?: number;
   error?: string;
   failedNodeId?: string;

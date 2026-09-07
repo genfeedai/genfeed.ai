@@ -77,5 +77,7 @@ export function getExecutionCredits(
       return { isEstimate: true, value: accounting.estimatedCredits };
     }
   }
-  return { isEstimate: false, value: execution.creditsUsed };
+  // Executions without accounting can also arrive without `creditsUsed`;
+  // treat that as zero rather than crashing the history row.
+  return { isEstimate: false, value: execution.creditsUsed ?? 0 };
 }

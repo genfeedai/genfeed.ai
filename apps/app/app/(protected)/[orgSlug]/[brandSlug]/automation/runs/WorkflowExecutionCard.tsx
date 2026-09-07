@@ -50,7 +50,7 @@ export default function WorkflowExecutionCard({
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-          {execution.creditsUsed > 0 ? (
+          {(execution.creditsUsed ?? 0) > 0 ? (
             <span>
               {execution.creditsUsed} {translate('creditsSuffix')}
             </span>

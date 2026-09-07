@@ -60,7 +60,12 @@ jobs:
         run: |
           set -euo pipefail
           cd "${{ matrix.package }}"
-          if node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts.test?0:1)"; then
+          # A `test` script that wraps vitest in `sh -c` (packages/ui runs four
+          # shards that way) drops the appended --coverage flag, so a package
+          # that needs its own coverage entrypoint declares `test:cov`.
+          if node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts['test:cov']?0:1)"; then
+            bun run test:cov
+          elif node -e "const p=require('./package.json'); process.exit(p.scripts&&p.scripts.test?0:1)"; then
             bun run test -- --coverage
           else
             bunx vitest run --coverage
