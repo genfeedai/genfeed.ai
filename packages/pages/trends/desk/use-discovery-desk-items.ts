@@ -48,6 +48,10 @@ const EMPTY_FEED: SocialSourcesResponse = {
   },
 };
 
+// `placeholderData`, never `initialData`: the shared QueryClient has a 30s
+// staleTime, and initialData is treated as a fresh cache entry, so the Desk
+// would mount with the empty placeholder and skip the real fetch until a
+// manual refresh invalidated it.
 const FOLLOWING_POSTS_LIMIT = 100;
 const VIRAL_VIDEOS_LIMIT = 12;
 
@@ -99,7 +103,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     refetch: refetchTrendContent,
   } = useQuery<TrendContentResponse>({
     enabled: isBrandReady,
-    initialData: EMPTY_TREND_CONTENT,
+    placeholderData: EMPTY_TREND_CONTENT,
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getTrendContent({});
@@ -116,7 +120,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     refetch: refetchFollowingFeed,
   } = useQuery<SocialSourcesResponse>({
     enabled: isBrandReady,
-    initialData: EMPTY_FEED,
+    placeholderData: EMPTY_FEED,
     queryFn: async () => {
       const service = await getSocialSourcesService();
       return service.getFollowingFeed({
@@ -139,7 +143,7 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     refetch: refetchViralVideos,
   } = useQuery<ITrendVideo[]>({
     enabled: isBrandReady,
-    initialData: [],
+    placeholderData: [],
     queryFn: async () => {
       const service = await getTrendsService();
       return service.getViralVideos({ limit: VIRAL_VIDEOS_LIMIT });

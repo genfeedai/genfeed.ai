@@ -5,8 +5,6 @@ import type { CorpusHealthPanelProps } from '@props/trends/corpus-health-panel.p
 import type { TrendCorpusFreshnessStatus } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import MetricItem from '@ui/display/metric-item/MetricItem';
 import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
 
@@ -66,8 +64,8 @@ function formatTimestamp(timestamp: string | null | undefined): string | null {
 
 /**
  * Source health summary for the trend corpus. One compact status row per
- * platform, built from the shared Card / InsetSurface / MetricItem primitives
- * so it reads like every other status card in the app.
+ * platform inside the shared Card, with Badge status chips and a plain
+ * label/value list — so it reads like every other status card in the app.
  */
 export default function CorpusHealthPanel({
   health,
@@ -149,7 +147,7 @@ export default function CorpusHealthPanel({
         }
         label={translate('title')}
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="divide-y divide-border">
           {platforms.map((platform) => {
             const segments =
               health?.segments.filter(
@@ -169,88 +167,84 @@ export default function CorpusHealthPanel({
               .at(-1);
 
             return (
-              <InsetSurface
+              <li
                 aria-label={label}
-                className="flex flex-col gap-3"
-                density="compact"
+                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 md:flex-row md:items-baseline md:gap-4"
                 key={platform}
                 role="group"
-                tone="muted"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center gap-2 md:w-36 md:shrink-0">
                   {getPlatformIcon(platform, 'size-4 shrink-0')}
                   <Text
                     as="p"
-                    className="min-w-0 flex-1 truncate"
+                    className="min-w-0 truncate"
                     size="sm"
                     weight="semibold"
                   >
                     {label}
                   </Text>
-                  {!hasSegments ? (
-                    <Badge variant={isChecking ? 'default' : 'ghost'}>
-                      {isChecking
-                        ? translate('checkingHealth')
-                        : translate('unavailableHealth')}
-                    </Badge>
-                  ) : null}
                 </div>
 
-                {hasSegments ? (
-                  <ul className="flex flex-col gap-1.5">
-                    {segments.map((segment) => (
-                      <li
-                        className="flex items-center justify-between gap-2"
-                        key={segment.id}
-                      >
-                        <Text as="span" className="truncate" size="sm">
-                          {formatProviderLabel(segment.provider)}
-                        </Text>
-                        <Badge variant={SEGMENT_BADGE_VARIANT[segment.status]}>
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {hasSegments ? (
+                      segments.map((segment) => (
+                        <Badge
+                          key={segment.id}
+                          variant={SEGMENT_BADGE_VARIANT[segment.status]}
+                        >
+                          {formatProviderLabel(segment.provider)} ·{' '}
                           {translate(`status.${segment.status}`)}
                         </Badge>
-                      </li>
+                      ))
+                    ) : (
+                      <Badge variant={isChecking ? 'default' : 'ghost'}>
+                        {isChecking
+                          ? translate('checkingHealth')
+                          : translate('unavailableHealth')}
+                      </Badge>
+                    )}
+                  </div>
+                  {!hasSegments && health && !isUnavailable ? (
+                    <Text as="p" color="subtle-60" size="xs">
+                      {translate('missingHealth')}
+                    </Text>
+                  ) : null}
+                  {failures.map((failure) => (
+                    <Text
+                      as="p"
+                      color="destructive"
+                      key={`${failure.provider}:${failure.reason}`}
+                      size="xs"
+                    >
+                      {formatProviderLabel(failure.provider)}:{' '}
+                      {translate(`failure.${failure.reason}`)}
+                      {failure.latestObservedAt
+                        ? ` · ${formatTimestamp(failure.latestObservedAt)}`
+                        : ''}
+                    </Text>
+                  ))}
+                  <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    {[
+                      ['sourceTimestampLabel', formatTimestamp(latestSeenAt)],
+                      ['lastRefreshLabel', null],
+                      ['lastAttemptLabel', null],
+                    ].map(([key, value]) => (
+                      <div className="flex items-baseline gap-1" key={key}>
+                        <dt className="text-foreground/45">
+                          {translate(key as string)}
+                        </dt>
+                        <dd className="tabular-nums text-foreground/75">
+                          {value ?? notRecorded}
+                        </dd>
+                      </div>
                     ))}
-                  </ul>
-                ) : health && !isUnavailable ? (
-                  <Text as="p" color="subtle-60" size="xs">
-                    {translate('missingHealth')}
-                  </Text>
-                ) : null}
-
-                {failures.map((failure) => (
-                  <Text
-                    as="p"
-                    color="destructive"
-                    key={`${failure.provider}:${failure.reason}`}
-                    size="xs"
-                  >
-                    {formatProviderLabel(failure.provider)}:{' '}
-                    {translate(`failure.${failure.reason}`)}
-                    {failure.latestObservedAt
-                      ? ` · ${formatTimestamp(failure.latestObservedAt)}`
-                      : ''}
-                  </Text>
-                ))}
-
-                <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
-                  <MetricItem
-                    label={translate('sourceTimestampLabel')}
-                    value={formatTimestamp(latestSeenAt) ?? notRecorded}
-                  />
-                  <MetricItem
-                    label={translate('lastRefreshLabel')}
-                    value={notRecorded}
-                  />
-                  <MetricItem
-                    label={translate('lastAttemptLabel')}
-                    value={notRecorded}
-                  />
+                  </dl>
                 </div>
-              </InsetSurface>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </Card>
     </section>
   );
