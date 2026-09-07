@@ -23,6 +23,7 @@ import dynamic from 'next/dynamic';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
+import AnalyticsOverviewPerformanceDataset from './analytics-overview-performance-dataset';
 import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 import { useAnalyticsOverview } from './use-analytics-overview';
 
@@ -165,7 +166,12 @@ export default function AnalyticsOverview({
           />
         )}
 
-        {scope !== PageScope.SUPERADMIN ? <AnalyticsTopAccounts /> : null}
+        {scope !== PageScope.SUPERADMIN ? (
+          <>
+            <AnalyticsTopAccounts />
+            <AnalyticsOverviewPerformanceDataset />
+          </>
+        ) : null}
 
         {hasTimeseriesData || isTimeseriesLoading ? (
           <Card
