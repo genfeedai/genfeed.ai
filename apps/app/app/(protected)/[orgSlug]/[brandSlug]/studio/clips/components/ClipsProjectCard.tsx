@@ -1,5 +1,3 @@
-'use client';
-
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import type { ClipsProjectCardProps } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';

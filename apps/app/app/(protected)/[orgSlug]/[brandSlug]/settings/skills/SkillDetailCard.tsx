@@ -1,7 +1,5 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
-import type { Skill } from '@services/content/skills.service';
+import type { Props } from '@props/settings/skills.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -16,24 +14,6 @@ import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { FlaskConical, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-type SkillDraft = {
-  defaultInstructions: string;
-  description: string;
-  name: string;
-  systemPromptTemplate: string;
-};
-
-type Props = {
-  customizing: boolean;
-  onCustomize: () => void;
-  onOpenTestInChat: () => void;
-  onSaveSkill: () => void;
-  onSkillDraftChange: (updater: (current: SkillDraft) => SkillDraft) => void;
-  savingSkill: boolean;
-  selectedSkill: Skill | null;
-  skillDraft: SkillDraft;
-};
 
 export default function SkillDetailCard({
   customizing,

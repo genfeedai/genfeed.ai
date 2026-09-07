@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -10,6 +8,10 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementCameraMovement } from '@models/elements/camera-movement.model';
+import type {
+  CameraMovementsAction,
+  CameraMovementsState,
+} from '@props/admin/camera-movements.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -29,25 +31,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type CameraMovementsState = {
-  cameraMovements: ElementCameraMovement[];
-  isLoading: boolean;
-  selectedCameraMovement: IElementCameraMovement | null;
-  adminOrg: string;
-  adminBrand: string;
-};
-
-type CameraMovementsAction =
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_CAMERA_MOVEMENTS'; payload: ElementCameraMovement[] }
-  | { type: 'SET_SELECTED'; payload: IElementCameraMovement | null }
-  | { type: 'SET_ADMIN_ORG'; payload: string }
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | { type: 'SET_ADMIN_ORG_AND_CLEAR_BRAND'; payload: string }
-  | { type: 'FETCH_START'; payload: { isRefresh: boolean } }
-  | { type: 'FETCH_DONE'; payload: ElementCameraMovement[] }
-  | { type: 'FETCH_ERROR' };
 
 function cameraMovementsReducer(
   state: CameraMovementsState,

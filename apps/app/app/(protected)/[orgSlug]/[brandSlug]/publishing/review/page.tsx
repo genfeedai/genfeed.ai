@@ -2,7 +2,7 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 import { Suspense } from 'react';
 import ReviewQueueContent from './review-queue-content';
 
-export const generateMetadata = createPageMetadata('Posts Review');
+export const generateMetadata = createPageMetadata('Approval queue');
 
 export default function PostsReviewPage() {
   return (

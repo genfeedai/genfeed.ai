@@ -11,6 +11,11 @@ import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
+import type {
+  FormAction,
+  FormState,
+  PublishingConfig,
+} from '@props/settings/publishing-content.props';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -91,36 +96,6 @@ function SettingsToggleRow({
     </div>
   );
 }
-
-type PublishingConfig = {
-  autoPublish?: {
-    confidenceThreshold?: number;
-    enabled?: boolean;
-  };
-  schedule?: {
-    cronExpression?: string;
-    enabled?: boolean;
-    timezone?: string;
-  };
-};
-
-type FormState = {
-  cronExpression: string;
-  timezone: string;
-  isScheduleEnabled: boolean;
-  isAutoPublishEnabled: boolean;
-  confidenceThreshold: string;
-  isSaving: boolean;
-};
-
-type FormAction =
-  | { type: 'RESET'; config: PublishingConfig | undefined }
-  | { type: 'SET_CRON'; value: string }
-  | { type: 'SET_TIMEZONE'; value: string }
-  | { type: 'SET_SCHEDULE_ENABLED'; value: boolean }
-  | { type: 'SET_AUTO_PUBLISH_ENABLED'; value: boolean }
-  | { type: 'SET_CONFIDENCE_THRESHOLD'; value: string }
-  | { type: 'SET_SAVING'; value: boolean };
 
 const READINESS_CHECKS = [
   ['tokenFreshness', 'Token'],

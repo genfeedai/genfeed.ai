@@ -121,7 +121,10 @@ describe('TextToSpeechExecutor', () => {
         'Hello from input',
         'voice-abc',
         input.context,
-        input.node,
+        {
+          ...input.node,
+          config: { ...input.node.config, text: 'Hello from input' },
+        },
       );
       expect(result.data).toEqual({
         audioUrl: 'https://cdn.example.com/speech.mp3',

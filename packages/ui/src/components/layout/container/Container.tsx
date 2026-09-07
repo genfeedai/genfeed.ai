@@ -1,13 +1,17 @@
 'use client';
 
+import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
+import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ComponentType, ReactNode } from 'react';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
+
+const ContainerInsetContext = createContext(false);
 
 /**
  * Page body shell.
@@ -37,19 +41,25 @@ export default function Container({
   onTabChange: controlledOnTabChange,
   left,
   right,
+  help,
   children,
   bodyClassName,
   fullWidth = true,
   className = '',
 }: ContainerProps) {
+  const isNested = useContext(ContainerInsetContext);
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
   const hasLeft = Boolean(left);
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+  const routeHelp = usePageHelp();
+  // Nested containers never repeat the page-level help trigger.
+  const resolvedHelp = isNested ? null : help === undefined ? routeHelp : help;
+  const helpNode = resolvedHelp ? <HelpPopover help={resolvedHelp} /> : null;
 
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
-  const hasHeaderRight = Boolean(right);
+  const hasHeaderRight = Boolean(right) || Boolean(helpNode);
   const hasBodyTabs = Boolean(tabs && tabs.length > 0);
   // Prefer explicit headerTabs. Body tabs + primary actions used to render as
   // a right-only bar with an orphan strip underneath — always promote.
@@ -81,7 +91,7 @@ export default function Container({
       (!hasVisibleTitle && hasHeaderRight)
     );
 
-  const insetClassName = fullWidth ? 'px-5 sm:px-6' : '';
+  const insetClassName = fullWidth && !isNested ? 'px-5 sm:px-6' : '';
   const bodyInsetClassName = fullWidth ? insetClassName : '';
 
   // One pattern: SectionTopbar for any local nav and/or chrome-only tools.
@@ -109,7 +119,7 @@ export default function Container({
   const moduleTabsNode = resolvedHeaderTabs ? (
     <Tabs
       {...resolvedHeaderTabs}
-      className={cn(resolvedHeaderTabs.className, 'mb-0 w-full justify-start')}
+      className={cn(resolvedHeaderTabs.className, 'mb-0 w-full justify-end')}
     />
   ) : null;
 
@@ -121,86 +131,122 @@ export default function Container({
     : 'mx-auto max-w-[1280px] px-5 py-5 sm:px-6 sm:py-6';
 
   return (
-    <div
-      data-testid="container"
-      className={cn(
-        'w-full',
-        !usesModuleLocalChrome && classicPaddingClassName,
-        usesModuleLocalChrome &&
-          (fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]'),
-        className,
-      )}
-      data-module-chrome={usesModuleLocalChrome ? 'section-topbar' : 'classic'}
-    >
-      {needsStandaloneScreenReaderTitle ? (
-        <ContainerTitle title={label as ReactNode} titleVisibility="sr-only" />
-      ) : null}
-
-      {usesModuleLocalChrome ? (
-        <SectionTopbar
-          title={sectionTitle}
-          subtitle={sectionSubtitle}
-          icon={sectionIcon}
-          titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
-          actions={
-            hasHeaderRight ? (
-              <div
-                data-testid="container-header-actions"
-                className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
-              >
-                {right}
-              </div>
-            ) : undefined
-          }
-          tabs={moduleTabsNode ?? undefined}
-        />
-      ) : null}
-
-      {usesTitleActionToolbar ? (
-        <div
-          className={cn(
-            'mb-4 flex items-center justify-between gap-4 pb-3',
-            insetClassName,
-          )}
-        >
-          <ContainerTitle title={label} description={description} icon={icon} />
-          <div
-            data-testid="container-header-actions"
-            className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
-          >
-            {right}
-          </div>
-        </div>
-      ) : null}
-
-      {hasVisibleTitle && !usesModuleLocalChrome && !usesTitleActionToolbar ? (
-        <div className={cn('mb-4 pb-3', insetClassName)}>
-          <ContainerTitle title={label} description={description} icon={icon} />
-        </div>
-      ) : null}
-
-      {hasLeft ? (
-        <div
-          className={cn(
-            'mb-4',
-            usesModuleLocalChrome
-              ? cn(bodyInsetClassName, 'pt-5 sm:pt-6')
-              : insetClassName,
-          )}
-        >
-          {left}
-        </div>
-      ) : null}
-
+    <ContainerInsetContext.Provider value={true}>
       <div
+        data-testid="container"
+        data-nested={isNested || undefined}
         className={cn(
-          usesModuleLocalChrome
-            ? cn(bodyInsetClassName, 'py-5 sm:py-6', bodyClassName)
-            : cn(bodyInsetClassName, bodyClassName),
+          'w-full',
+          !isNested && !usesModuleLocalChrome && classicPaddingClassName,
+          !isNested &&
+            usesModuleLocalChrome &&
+            (fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]'),
+          className,
         )}
+        data-module-chrome={
+          usesModuleLocalChrome ? 'section-topbar' : 'classic'
+        }
       >
-        {children}
+        {needsStandaloneScreenReaderTitle ? (
+          <ContainerTitle
+            title={label as ReactNode}
+            titleVisibility="sr-only"
+          />
+        ) : null}
+
+        {usesModuleLocalChrome && isNested ? (
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+            {hasVisibleTitle ? (
+              <ContainerTitle
+                title={label}
+                description={description}
+                icon={icon}
+              />
+            ) : (
+              <h1 className="sr-only">{sectionTitle}</h1>
+            )}
+            {right}
+            {helpNode}
+            {moduleTabsNode}
+          </div>
+        ) : usesModuleLocalChrome ? (
+          <SectionTopbar
+            title={sectionTitle}
+            subtitle={sectionSubtitle}
+            icon={sectionIcon}
+            titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
+            actions={
+              right ? (
+                <div
+                  data-testid="container-header-actions"
+                  className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
+                >
+                  {right}
+                </div>
+              ) : undefined
+            }
+            help={resolvedHelp}
+            tabs={moduleTabsNode ?? undefined}
+          />
+        ) : null}
+
+        {usesTitleActionToolbar ? (
+          <div
+            className={cn(
+              'mb-4 flex items-center justify-between gap-4 pb-3',
+              insetClassName,
+            )}
+          >
+            <ContainerTitle
+              title={label}
+              description={description}
+              icon={icon}
+            />
+            <div
+              data-testid="container-header-actions"
+              className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
+            >
+              {right}
+              {helpNode}
+            </div>
+          </div>
+        ) : null}
+
+        {hasVisibleTitle &&
+        !usesModuleLocalChrome &&
+        !usesTitleActionToolbar ? (
+          <div className={cn('mb-4 pb-3', insetClassName)}>
+            <ContainerTitle
+              title={label}
+              description={description}
+              icon={icon}
+            />
+          </div>
+        ) : null}
+
+        {hasLeft ? (
+          <div
+            className={cn(
+              'mb-4',
+              usesModuleLocalChrome && !isNested
+                ? cn(bodyInsetClassName, 'pt-5 sm:pt-6')
+                : insetClassName,
+            )}
+          >
+            {left}
+          </div>
+        ) : null}
+
+        <div
+          className={cn(
+            usesModuleLocalChrome && !isNested
+              ? cn(bodyInsetClassName, 'py-5 sm:py-6', bodyClassName)
+              : cn(bodyInsetClassName, bodyClassName),
+          )}
+        >
+          {children}
+        </div>
       </div>
-    </div>
+    </ContainerInsetContext.Provider>
   );
 }

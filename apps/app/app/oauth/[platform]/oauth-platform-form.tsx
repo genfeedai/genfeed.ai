@@ -4,6 +4,10 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import type {
+  OAuthPlatformFormProps,
+  VerifyResult,
+} from '@props/auth/oauth-platform-form.props';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { Button } from '@ui/primitives/button';
@@ -14,15 +18,6 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 import { resolveSameOriginReturnTo } from '@/lib/navigation/resolve-same-origin-return-to';
-
-interface OAuthPlatformFormProps {
-  platform: string;
-}
-
-type VerifyResult =
-  | { status: 'loading' }
-  | { status: 'success' }
-  | { status: 'error'; canRetry: boolean; errorMessage: string };
 
 const OAUTH1_PLATFORMS = ['x-ads'];
 

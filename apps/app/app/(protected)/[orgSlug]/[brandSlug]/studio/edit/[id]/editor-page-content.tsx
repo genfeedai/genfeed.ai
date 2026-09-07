@@ -1,13 +1,10 @@
 'use client';
 
+import type { EditorPageContentProps } from '@props/studio/editor-page-content.props';
 import EditorLayout from './EditorLayout';
 import EditorLoadingState from './EditorLoadingState';
 import EditorNotFound from './EditorNotFound';
 import { useEditorPageContent } from './useEditorPageContent';
-
-interface EditorPageContentProps {
-  projectId: string;
-}
 
 export default function EditorPageContent({
   projectId,

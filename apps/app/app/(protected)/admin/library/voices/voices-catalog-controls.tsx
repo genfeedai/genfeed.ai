@@ -1,6 +1,8 @@
-'use client';
-
 import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
+import type {
+  VoicesCatalogControlsProps as Props,
+  ProviderFilter,
+} from '@props/admin/voices.props';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -13,26 +15,11 @@ import {
 } from '@ui/primitives/select';
 import { RefreshCw, Search } from 'lucide-react';
 
-export type ProviderFilter =
-  | 'all'
-  | VoiceProvider.ELEVENLABS
-  | VoiceProvider.HEYGEN;
-
 const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
   { label: 'All providers', value: 'all' },
   { label: 'ElevenLabs', value: VoiceProvider.ELEVENLABS },
   { label: 'HeyGen', value: VoiceProvider.HEYGEN },
 ];
-
-type Props = {
-  isSyncingAll: boolean;
-  providerFilter: ProviderFilter;
-  search: string;
-  syncingProvider: VoiceProvider | null;
-  onProviderFilterChange: (value: ProviderFilter) => void;
-  onSearchChange: (value: string) => void;
-  onSync: (providers?: VoiceProvider[]) => void;
-};
 
 export default function VoicesCatalogControls({
   isSyncingAll,

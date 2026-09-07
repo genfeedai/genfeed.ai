@@ -1,6 +1,8 @@
 import { buildAudioOverlayArgs } from '@files/services/ffmpeg/helpers/audio-overlay-args.helper';
 
 const baseOptions = {
+  durationSeconds: 30,
+  hasVideoAudio: true,
   audioPath: '/tmp/audio.mp3',
   audioVolume: 0.8,
   fadeIn: 0,
@@ -21,7 +23,11 @@ describe('buildAudioOverlayArgs', () => {
       mixMode: 'replace',
     });
 
-    expect(filterFrom(args)).toBe('[1:a]volume=0.8[aout]');
+    expect(filterFrom(args)).toContain(
+      '[1:a]volume=0.8,apad,atrim=duration=30',
+    );
+    expect(args).not.toContain('-shortest');
+    expect(args[args.indexOf('-t') + 1]).toBe('30');
     expect(args).toContain('copy');
     expect(args.at(-1)).toBe('/tmp/output.mp4');
   });
@@ -35,10 +41,20 @@ describe('buildAudioOverlayArgs', () => {
     });
     const filter = filterFrom(args);
 
-    expect(filter).toContain('[0:a]volume=0.6[va]');
+    expect(filter).toContain('[0:a]volume=0.6,apad');
     expect(filter).toContain('afade=t=in:st=0:d=2');
-    expect(filter).toContain('afade=t=out:st=-3:d=3');
+    expect(filter).toContain('afade=t=out:st=27:d=3');
     expect(filter).toContain('amix=inputs=2');
+  });
+
+  it('supports videos without an original audio stream', () => {
+    const args = buildAudioOverlayArgs({
+      ...baseOptions,
+      hasVideoAudio: false,
+      mixMode: 'mix',
+    });
+    expect(filterFrom(args)).not.toContain('[0:a]');
+    expect(filterFrom(args)).toContain('[aout]');
   });
 
   it('ducks background audio to thirty percent of its requested volume', () => {
@@ -47,6 +63,6 @@ describe('buildAudioOverlayArgs', () => {
       mixMode: 'background',
     });
 
-    expect(filterFrom(args)).toContain('[1:a]volume=0.24[bg]');
+    expect(filterFrom(args)).toContain('[1:a]volume=0.24,apad');
   });
 });

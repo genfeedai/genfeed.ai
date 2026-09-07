@@ -1,20 +1,11 @@
-'use client';
-
+import type { ProvidersServerListProps } from '@props/onboarding/providers-server-list.props';
 import Card from '@ui/card/Card';
 
 import ProvidersRowItem from './providers-row-item';
 
-type ProviderRow = {
-  description: string;
-  enabled: boolean;
-  key: string;
-};
-
-type Props = {
-  providerRows: ProviderRow[];
-};
-
-export default function ProvidersServerList({ providerRows }: Props) {
+export default function ProvidersServerList({
+  providerRows,
+}: ProvidersServerListProps) {
   return (
     <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">

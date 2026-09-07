@@ -1,8 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -48,6 +47,10 @@ const collections = {
   ],
 };
 
+vi.mock('@pages/posts/release/release-detail-drawer', () => ({
+  default: () => null,
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
@@ -67,6 +70,10 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -92,33 +99,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mocks.search),
 }));
 
-vi.mock('@ui/display/table/Table', () => ({
-  default: ({
-    emptyState,
-    items,
-    onRowClick,
-  }: {
-    emptyState?: ReactNode;
-    items: Array<{ id: string; title: string; type: string }>;
-    onRowClick: (item: { id: string; title: string; type: string }) => void;
-  }) =>
-    items.length === 0 ? (
-      emptyState
-    ) : (
-      <div>
-        {items.map((item) => (
-          <button
-            key={`${item.type}:${item.id}`}
-            type="button"
-            onClick={() => onRowClick(item)}
-          >
-            {item.title}
-          </button>
-        ))}
-      </div>
-    ),
-}));
-
 describe('PublishingContentLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -130,27 +110,63 @@ describe('PublishingContentLibrary', () => {
     render(<PublishingContentLibrary />);
 
     expect(
-      screen.getByRole('button', { name: 'Social launch copy' }),
+      screen.getByRole('link', { name: 'Open Social launch copy' }),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Launch guide' })).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Founder weekly' }),
+      screen.getByRole('link', { name: 'Open Launch guide' }),
     ).toBeVisible();
-    expect(screen.getByText('3 items')).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Open Founder weekly' }),
+    ).toBeVisible();
+    expect(screen.getByText('3 posts')).toBeVisible();
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
   });
 
   it.each([
     ['Social launch copy', '/publishing/posts/post-1'],
-    ['Launch guide', '/edit/article/article-1'],
-    ['Founder weekly', '/edit/newsletter/newsletter-1'],
+    ['Launch guide', '/publishing/posts/article-1'],
+    ['Founder weekly', '/publishing/posts/newsletter-1'],
   ])('opens %s through its canonical editor route', (title, route) => {
     render(<PublishingContentLibrary />);
 
-    fireEvent.click(screen.getByRole('button', { name: title }));
+    expect(screen.getByRole('link', { name: `Open ${title}` })).toHaveAttribute(
+      'href',
+      `/acme/main${route}`,
+    );
+  });
 
-    expect(mocks.push).toHaveBeenCalledWith(`/acme/main${route}`);
+  it('links to the approval queue and carries the selected batch and item', async () => {
+    mocks.search = 'batch=batch-1&item=item-9&status=draft';
+
+    render(<PublishingContentLibrary />);
+
+    await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
+    const [toolbar] = mocks.setFiltersNode.mock.calls.at(-1) ?? [];
+    render(toolbar);
+
+    expect(screen.getByRole('link', { name: 'approvalQueue' })).toHaveAttribute(
+      'href',
+      '/acme/main/publishing/review?batch=batch-1&item=item-9',
+    );
+  });
+
+  it('combines multiple statuses with the content type', () => {
+    mocks.search = 'status=published&status=draft&type=article';
+    render(<PublishingContentLibrary />);
+    expect(
+      screen.getByRole('link', { name: 'Open Launch guide' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('link', { name: 'Open Founder weekly' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retains the view selector around calendar content', () => {
+    mocks.search = 'view=calendar';
+    render(<PublishingContentLibrary calendar={<div>Calendar content</div>} />);
+    expect(screen.getByText('Calendar content')).toBeVisible();
+    expect(mocks.setViewToggleNode).toHaveBeenCalled();
   });
 
   it('shows the combination empty state when URL filters match no rows', () => {
@@ -158,8 +174,8 @@ describe('PublishingContentLibrary', () => {
 
     render(<PublishingContentLibrary />);
 
-    expect(screen.getByText('0 items')).toBeVisible();
-    expect(screen.getByText('No matching content')).toBeVisible();
+    expect(screen.getByText('0 posts')).toBeVisible();
+    expect(screen.getByText('No matching posts')).toBeVisible();
     expect(
       screen.getByText(
         'Try a different type, channel, lifecycle status, or search.',
@@ -176,7 +192,7 @@ describe('PublishingContentLibrary', () => {
 
     render(<PublishingContentLibrary />);
 
-    expect(screen.getByText('No content yet')).toBeVisible();
+    expect(screen.getByText('No posts yet')).toBeVisible();
     expect(
       screen.getByText(
         'Posts, articles, and newsletters will appear here as you create them.',

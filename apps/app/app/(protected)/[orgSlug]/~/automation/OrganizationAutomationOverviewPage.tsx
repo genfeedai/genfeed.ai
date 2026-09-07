@@ -10,6 +10,10 @@ import {
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type {
+  OrganizationAutomationBrand,
+  OrganizationAutomationBrandCardProps,
+} from '@props/automation/organization-automation-overview-page.props';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
@@ -40,21 +44,6 @@ const AUTOMATION_SURFACES = [
     path: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
 ] as const;
-
-interface OrganizationAutomationBrand {
-  href: string;
-  id: string;
-  label: string;
-  surfaces: {
-    href: string;
-    label: string;
-    icon: (typeof AUTOMATION_SURFACES)[number]['icon'];
-  }[];
-}
-
-interface OrganizationAutomationBrandCardProps {
-  brand: OrganizationAutomationBrand;
-}
 
 /**
  * Org-level Automation home at `/:orgSlug/~/automation`.

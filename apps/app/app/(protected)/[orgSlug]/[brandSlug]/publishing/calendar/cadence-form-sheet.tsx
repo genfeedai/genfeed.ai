@@ -1,13 +1,10 @@
-'use client';
-
 import {
   ButtonSize,
   ButtonVariant,
   CadenceGenerateLanding,
   PostCategory,
 } from '@genfeedai/contracts';
-import type { IPostingCadence } from '@genfeedai/contracts/interfaces';
-import type { CreatePostingCadenceInput } from '@services/content/posting-cadences.service';
+import type { CadenceFormSheetProps } from '@props/publishing/cadence-form-sheet.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
@@ -30,17 +27,6 @@ const CADENCE_FORMATS = [
   PostCategory.TEXT,
   PostCategory.VIDEO,
 ] as const;
-
-type CadenceFormSheetProps = {
-  brandId: string;
-  cadence?: IPostingCadence | null;
-  credentialId: string;
-  isOpen: boolean;
-  isPending: boolean;
-  onClose: () => void;
-  onDelete?: () => void;
-  onSubmit: (input: CreatePostingCadenceInput) => void;
-};
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);

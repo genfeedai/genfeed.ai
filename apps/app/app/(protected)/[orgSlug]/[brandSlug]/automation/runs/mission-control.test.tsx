@@ -4,6 +4,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MissionControl from './mission-control';
 
 const state = vi.hoisted(() => ({ isError: false, refresh: vi.fn() }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/brand/automation/runs',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/brand${path}` }),
+}));
+
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),

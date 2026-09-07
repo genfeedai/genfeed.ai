@@ -1,6 +1,4 @@
-'use client';
-
-import type { AnnouncementComposeFormState } from '@props/admin/announcements.props';
+import type { AnnouncementComposeFormProps as Props } from '@props/admin/announcements.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -8,18 +6,6 @@ import { Textarea } from '@ui/primitives/textarea';
 import { Globe } from 'lucide-react';
 
 const TWEET_MAX_CHARS = 280;
-
-type Props = {
-  form: AnnouncementComposeFormState;
-  isSubmitting: boolean;
-  tweetCharCount: number;
-  tweetOverLimit: boolean;
-  onFieldChange: (
-    field: keyof AnnouncementComposeFormState,
-    value: string | boolean,
-  ) => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-};
 
 export default function AnnouncementComposeForm({
   form,

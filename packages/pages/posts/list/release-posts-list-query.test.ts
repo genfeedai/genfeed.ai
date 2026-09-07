@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   buildReleasePostsListQueryKey,
+  normalizeReleaseExecutionStates,
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from './release-posts-list-query';
@@ -62,5 +63,25 @@ describe('release-posts-list-query', () => {
     expect(normalizeReleasePostsSort('scheduledDate: 1')).toBe(
       'scheduledDate: 1',
     );
+  });
+});
+
+describe('execution state selection', () => {
+  it('keeps distinct valid states in a stable order for hydration and cache keys', () => {
+    expect(
+      normalizeReleaseExecutionStates([
+        'failed',
+        'scheduled',
+        'failed',
+        'invalid',
+      ]),
+    ).toEqual([TargetExecutionState.SCHEDULED, TargetExecutionState.FAILED]);
+    expect(normalizeReleaseExecutionStates('published')).toEqual([
+      TargetExecutionState.PUBLISHED,
+    ]);
+  });
+  it('clears the filter for empty or invalid selections', () => {
+    expect(normalizeReleaseExecutionStates([])).toBeUndefined();
+    expect(normalizeReleaseExecutionStates('invalid')).toBeUndefined();
   });
 });

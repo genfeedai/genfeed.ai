@@ -122,6 +122,26 @@ export function isTwitterOAuthCodeError(error: unknown): boolean {
   );
 }
 
+/**
+ * True when X/Twitter rejected this deployment's own OAuth app credentials
+ * (client id/secret or app type mismatch), rather than a caller-supplied
+ * authorization code or token. This is a deployment configuration failure,
+ * not a transient or per-user error.
+ */
+export function isTwitterClientAuthError(error: unknown): boolean {
+  const status = readStatus(error) ?? readAxiosStatus(error);
+  const oauthText = readOAuthErrorText(error);
+  const message = readMessage(error).toLowerCase();
+
+  const hasClientAuthText =
+    oauthText.includes('invalid_client') ||
+    oauthText.includes('unauthorized_client') ||
+    message.includes('invalid_client') ||
+    message.includes('unauthorized_client');
+
+  return (status === 401 && hasClientAuthText) || hasClientAuthText;
+}
+
 export function isTwitterAuthorizationError(error: unknown): boolean {
   if (isTwitterScopeOrTierError(error) || isTwitterRateLimitError(error)) {
     return false;

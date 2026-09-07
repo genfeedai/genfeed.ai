@@ -1,5 +1,3 @@
-'use client';
-
 import { ModalEnum, PageScope } from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
@@ -10,6 +8,10 @@ import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/el
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementStyle } from '@models/elements/style.model';
+import type {
+  StylesListAction,
+  StylesListState,
+} from '@props/admin/styles.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
@@ -30,25 +32,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-
-type StylesListState = {
-  styles: ElementStyle[];
-  isLoading: boolean;
-  selectedStyle: ElementStyle | null;
-  adminOrg: string;
-  adminBrand: string;
-};
-
-type StylesListAction =
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_STYLES'; payload: ElementStyle[] }
-  | { type: 'SET_SELECTED_STYLE'; payload: ElementStyle | null }
-  | { type: 'SET_ADMIN_ORG'; payload: string }
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | {
-      type: 'SET_ADMIN_FILTER';
-      payload: { adminOrg: string; adminBrand: string };
-    };
 
 function stylesListReducer(
   state: StylesListState,

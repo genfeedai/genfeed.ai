@@ -1,24 +1,8 @@
-'use client';
-
 import { AgentAutonomyMode, ButtonVariant } from '@genfeedai/contracts';
-import type { IAgentWizardFormData } from '@genfeedai/contracts/interfaces';
+import type { Props } from '@props/automation/agent-wizard-step-review.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowLeft, Check } from 'lucide-react';
-
-type AgentTypeConfig = {
-  label: string;
-};
-
-type Props = {
-  form: IAgentWizardFormData;
-  setForm: React.Dispatch<React.SetStateAction<IAgentWizardFormData>>;
-  selectedBrandLabel: string | undefined;
-  selectedTypeConfig: AgentTypeConfig | undefined;
-  onBack: () => void;
-  onSubmit: () => void;
-  isSubmitting: boolean;
-};
 
 export default function AgentWizardStepReview({
   form,

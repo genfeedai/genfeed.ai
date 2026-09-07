@@ -5,14 +5,11 @@ import {
   APP_ROUTES,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import type { OrganizationAutomationBrandEmptyStateProps } from '@props/automation/organization-automation-brand-empty-state.props';
 import { Button } from '@ui/primitives/button';
 import { Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-
-interface OrganizationAutomationBrandEmptyStateProps {
-  orgSlug: string;
-}
 
 /**
  * Brandless state for the deeper Automation surfaces.

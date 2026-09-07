@@ -1,5 +1,3 @@
-'use client';
-
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -27,6 +25,11 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
+import type {
+  NeedsYouItem,
+  OperationalHomeSectionsProps,
+  ReviewInboxItem,
+} from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -40,7 +43,7 @@ import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, ImageOff, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -56,14 +59,6 @@ import {
   summarizeUpcomingSchedule,
   type UpcomingScheduleDay,
 } from './operational-home.helpers';
-
-interface OperationalHomeSectionsProps {
-  brandSlug?: string;
-  orgSlug: string;
-}
-
-type ReviewInboxItem =
-  OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
 
 const EXECUTION_STATUS_VARIANTS: Record<
   WorkflowExecutionStatus,
@@ -152,11 +147,6 @@ function isAwaitingReview(item: ReviewInboxItem): boolean {
   return normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET;
 }
 
-type NeedsYouItem =
-  | { credential: ICredential; key: string; type: 'credential' }
-  | { execution: IWorkflowExecution; key: string; type: 'failed' }
-  | { item: ReviewInboxItem; key: string; type: 'review' };
-
 function buildNeedsYouItems({
   credentials,
   failedExecutions,
@@ -165,7 +155,7 @@ function buildNeedsYouItems({
   credentials: ICredential[];
   failedExecutions: IWorkflowExecution[];
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
-}): { items: NeedsYouItem[]; overflow: number } {
+}): NeedsYouItem[] {
   const reviewItems: NeedsYouItem[] = reviewInbox.recentItems
     .filter(isAwaitingReview)
     .map((item) => ({
@@ -188,7 +178,7 @@ function buildNeedsYouItems({
   const allItems = [...reviewItems, ...failedItems, ...credentialItems];
   const items = allItems.slice(0, NEEDS_YOU_LIMIT);
 
-  return { items, overflow: allItems.length - items.length };
+  return items;
 }
 
 function getExecutionTimestamp(execution: IWorkflowExecution): string {
@@ -253,7 +243,7 @@ function NeedsYouSurface({
   const credentialsHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
     : brandSetupHref;
-  const { items: needsYouItems, overflow } = buildNeedsYouItems({
+  const needsYouItems = buildNeedsYouItems({
     credentials,
     failedExecutions,
     reviewInbox,
@@ -271,17 +261,17 @@ function NeedsYouSurface({
   return (
     <WorkspaceSurface
       actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={reviewHref}>
-            {translate('home.approvals.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </Button>
+        <Link
+          href={reviewHref}
+          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {translate('home.approvals.viewAll')}
+          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+        </Link>
       }
       data-testid="operational-home-needs-you"
       density="compact"
       flush
-      eyebrow="Needs you"
       title="Attention queue"
     >
       {isLoading ? (
@@ -322,21 +312,14 @@ function NeedsYouSurface({
                           src={item.mediaUrl}
                         />
                       </span>
-                    ) : (
-                      <span
-                        aria-label="No media"
-                        className="inline-flex size-10 items-center justify-center rounded-md bg-background-secondary text-muted-foreground shadow-border"
-                        role="img"
-                      >
-                        <ImageOff aria-hidden="true" className="size-4" />
-                      </span>
-                    )
+                    ) : null
                   }
                   meta={
                     <span className="flex flex-wrap items-center gap-2">
                       {item.platform ? (
                         <PlatformBadge
                           platform={item.platform}
+                          showLabel={false}
                           size={ComponentSize.SM}
                         />
                       ) : null}
@@ -438,20 +421,6 @@ function NeedsYouSurface({
               />
             );
           })}
-          {overflow > 0 ? (
-            <ListRow
-              data-testid="operational-home-needs-you-overflow"
-              density="compact"
-              href={reviewHref}
-              title={translate('home.approvals.overflow', { count: overflow })}
-              trailing={
-                <span className="flex items-center gap-1 text-sm text-foreground/55">
-                  {translate('home.approvals.viewAll')}
-                  <ArrowRight aria-hidden="true" className="size-3.5" />
-                </span>
-              }
-            />
-          ) : null}
         </div>
       )}
     </WorkspaceSurface>
@@ -653,19 +622,19 @@ function PublishingSurface({
   return (
     <WorkspaceSurface
       actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={postsHref}>
-            {translate('home.publishing.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </Button>
+        <Link
+          href={postsHref}
+          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {translate('home.publishing.open')}
+          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+        </Link>
       }
       className="h-full"
       data-testid="operational-home-publishing"
       density="compact"
       flush
-      eyebrow="Publishing state"
-      title="Distribution operations"
+      title="Publishing"
     >
       {isLoading ? (
         <ListRowsSkeleton rows={3} />
@@ -752,25 +721,26 @@ function CredentialHealthSurface({
             onClick={() => {
               void onRetry();
             }}
+            size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
             <RefreshCw aria-hidden="true" className="size-4" />
           </Button>
-          <Button asChild variant={ButtonVariant.SECONDARY}>
-            <Link href={settingsHref}>
-              {translate('home.credentials.manage')}
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          </Button>
+          <Link
+            href={settingsHref}
+            className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {translate('home.credentials.manage')}
+            <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+          </Link>
         </>
       }
       className="h-full"
       data-testid="operational-home-credentials"
       density="compact"
       flush
-      eyebrow="Credential health"
-      title="Channel readiness"
+      title="Accounts"
     >
       {isLoading ? (
         <>
@@ -826,18 +796,18 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
   return (
     <WorkspaceSurface
       actions={
-        <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={activityHref}>
-            {translate('home.activity.open')}
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
-        </Button>
+        <Link
+          href={activityHref}
+          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {translate('home.activity.open')}
+          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
+        </Link>
       }
       data-testid="operational-home-activity"
       density="compact"
       flush
-      eyebrow="Recent activity"
-      title="What changed"
+      title="Recent activity"
     >
       {isLoading ? (
         <ListRowsSkeleton rows={4} />

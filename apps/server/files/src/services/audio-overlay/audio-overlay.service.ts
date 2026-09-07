@@ -1,16 +1,20 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
+import { downloadPublicMedia } from '@files/services/audio-overlay/media-download';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const VIDEO_DOWNLOAD_LIMIT_BYTES = 500 * 1024 * 1024;
-const VIDEO_DOWNLOAD_TIMEOUT_MS = 120_000;
 const AUDIO_DOWNLOAD_LIMIT_BYTES = 100 * 1024 * 1024;
-const AUDIO_DOWNLOAD_TIMEOUT_MS = 60_000;
 
 export type AudioOverlayMixMode = 'replace' | 'mix' | 'background';
 
@@ -29,6 +33,8 @@ export type AudioOverlayResponse = {
   audioUrl: string;
   mixMode: AudioOverlayMixMode;
   outputUrl: string;
+  publicUrl: string;
+  duration: number;
   s3Key: string;
   success: true;
   videoUrl: string;
@@ -44,9 +50,9 @@ type AudioOverlayPaths = {
 export class AudioOverlayService {
   constructor(
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
-    @Inject(HttpService) private readonly httpService: HttpService,
     private readonly logger: LoggerService,
     @Inject(UploadService) private readonly uploadService: UploadService,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   async processAudioOverlay(
@@ -119,7 +125,11 @@ export class AudioOverlayService {
         audioUrl: body.audioUrl,
         mixMode,
         outputUrl: uploadResult.publicUrl,
-        s3Key: finalKey,
+        publicUrl: uploadResult.publicUrl,
+        duration: Number(
+          (await this.ffmpegService.probe(paths.output)).format.duration,
+        ),
+        s3Key: `ingredients/videos/${finalKey}`,
         success: true,
         videoUrl: body.videoUrl,
       };
@@ -140,6 +150,12 @@ export class AudioOverlayService {
   }
 
   private validateRequiredFields(body: AudioOverlayRequest): void {
+    if (
+      body.mixMode &&
+      !['replace', 'mix', 'background'].includes(body.mixMode)
+    ) {
+      throw new HttpException('Invalid mixMode', HttpStatus.BAD_REQUEST);
+    }
     if (!body.videoUrl || !body.audioUrl) {
       throw new HttpException(
         'videoUrl and audioUrl are required',
@@ -149,45 +165,24 @@ export class AudioOverlayService {
   }
 
   private async downloadVideo(videoUrl: string): Promise<Buffer> {
-    this.logger.log(`Downloading video from: ${videoUrl}`);
-    const response = await firstValueFrom(
-      this.httpService.get(videoUrl, {
-        maxContentLength: VIDEO_DOWNLOAD_LIMIT_BYTES,
-        responseType: 'arraybuffer',
-        timeout: VIDEO_DOWNLOAD_TIMEOUT_MS,
-      }),
+    return downloadPublicMedia(
+      videoUrl,
+      VIDEO_DOWNLOAD_LIMIT_BYTES,
+      this.configService,
     );
-    return Buffer.from(response.data);
   }
 
-  private async downloadAudio(audioUrl: string): Promise<{
-    data: Buffer;
-    extension: string;
-  }> {
-    this.logger.log(`Downloading audio from: ${audioUrl}`);
-    const response = await firstValueFrom(
-      this.httpService.get(audioUrl, {
-        maxContentLength: AUDIO_DOWNLOAD_LIMIT_BYTES,
-        responseType: 'arraybuffer',
-        timeout: AUDIO_DOWNLOAD_TIMEOUT_MS,
-      }),
-    );
+  private async downloadAudio(
+    audioUrl: string,
+  ): Promise<{ data: Buffer; extension: string }> {
     return {
-      data: Buffer.from(response.data),
-      extension: this.resolveAudioExtension(response.headers['content-type']),
+      data: await downloadPublicMedia(
+        audioUrl,
+        AUDIO_DOWNLOAD_LIMIT_BYTES,
+        this.configService,
+      ),
+      extension: '.mp3',
     };
-  }
-
-  private resolveAudioExtension(rawContentType: unknown): string {
-    const contentType =
-      (typeof rawContentType === 'string' ? rawContentType : undefined) ||
-      'audio/mpeg';
-
-    if (contentType.includes('wav')) return '.wav';
-    if (contentType.includes('ogg')) return '.ogg';
-    if (contentType.includes('m4a')) return '.m4a';
-    if (contentType.includes('aac')) return '.aac';
-    return '.mp3';
   }
 
   private cleanupTempFiles(paths: AudioOverlayPaths): void {

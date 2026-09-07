@@ -1,5 +1,3 @@
-'use client';
-
 export default function VoiceLibrarySkeleton() {
   return (
     <div className="space-y-3" data-testid="voice-row-skeleton">

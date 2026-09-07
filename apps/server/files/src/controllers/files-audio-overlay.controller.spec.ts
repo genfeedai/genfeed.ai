@@ -6,6 +6,7 @@ describe('FilesAudioOverlayController', () => {
   };
   const controller = new FilesAudioOverlayController(
     audioOverlayService as never,
+    { assemble: vi.fn() } as never,
   );
 
   afterEach(() => {

@@ -537,11 +537,34 @@ export class WorkflowExecutorService {
     organizationId: string,
     nodeIds: string[],
     respectLocks = true,
+    inputValues: Record<string, unknown> = {},
+    agentScope?: ValidatedAgentScope,
   ): Promise<WorkflowExecutionResult> {
+    if (agentScope) {
+      if (!this.agentScopeContextService)
+        throw new Error(
+          'Agent scope validator is unavailable for workflow execution.',
+        );
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        agentScope,
+        'workflow',
+      );
+      this.agentScopeContextService.assertResourceBrand(
+        agentScope,
+        workflowDoc.brandId,
+        'workflow',
+      );
+    }
+    const normalized =
+      this.documentService.normalizeWorkflowDocument(workflowDoc);
+    const knownIds = new Set(normalized.nodes.map((node) => node.id));
+    if (!nodeIds.length || nodeIds.some((id) => !knownIds.has(id))) {
+      throw new Error('Partial execution requires existing workflow node IDs');
+    }
     return this.executeWorkflowDocument(
-      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      normalized,
       {
-        data: {},
+        data: inputValues,
         organizationId,
         platform: 'manual',
         type: 'partial',
@@ -549,6 +572,7 @@ export class WorkflowExecutorService {
       },
       WorkflowExecutionTrigger.MANUAL,
       {
+        ...(agentScope ? { agentScope: toAgentScopeMetadata(agentScope) } : {}),
         executionMode: 'partial',
         selectedNodeIds: nodeIds,
       },

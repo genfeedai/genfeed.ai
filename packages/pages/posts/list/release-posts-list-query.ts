@@ -1,7 +1,7 @@
 import {
   type PageScope,
   PostCategory,
-  type TargetExecutionState,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 
 export type ReleasePostsPublicationState = 'posted' | 'not-posted';
@@ -86,4 +86,14 @@ export function normalizeReleasePostContentTypes(
     ...new Set(requested.filter((entry) => allowed.has(entry))),
   ] as PostCategory[];
   return normalized.length > 0 ? normalized : undefined;
+}
+
+export function normalizeReleaseExecutionStates(
+  value?: string | string[],
+): TargetExecutionState[] | undefined {
+  const requested = Array.isArray(value) ? value : value ? [value] : [];
+  const states = Object.values(TargetExecutionState).filter((state) =>
+    requested.includes(state),
+  );
+  return states.length ? states : undefined;
 }

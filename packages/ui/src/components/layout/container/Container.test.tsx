@@ -16,6 +16,48 @@ describe('Container', () => {
     navigationState.hasCanonicalBreadcrumb = false;
   });
 
+  it('lets the outer container own page padding and width across nested layouts', () => {
+    render(
+      <Container>
+        <Container fullWidth={false}>
+          <Container>
+            <span>Nested content</span>
+          </Container>
+        </Container>
+      </Container>,
+    );
+    const containers = screen.getAllByTestId('container');
+    expect(containers[0]).toHaveClass('sm:py-6');
+    for (const nested of containers.slice(1)) {
+      expect(nested).toHaveAttribute('data-nested', 'true');
+      expect(nested).not.toHaveClass('sm:py-6', 'max-w-[1280px]');
+      expect(nested.lastElementChild).not.toHaveClass('sm:px-6');
+    }
+  });
+
+  it('keeps nested tools and tabs without adding another padded toolbar', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+    render(
+      <Container>
+        <Container
+          label="Details"
+          right={<button type="button">Refresh details</button>}
+          tabs={['Recent', 'All']}
+        >
+          Detail content
+        </Container>
+      </Container>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Refresh details' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Recent' })).toBeInTheDocument();
+    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByTestId('container')[1].lastElementChild,
+    ).not.toHaveClass('sm:py-6');
+  });
+
   it('renders children', () => {
     render(<Container>content</Container>);
     expect(screen.getByText('content')).toBeInTheDocument();

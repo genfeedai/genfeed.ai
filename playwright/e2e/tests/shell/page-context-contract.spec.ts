@@ -48,7 +48,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/publishing`,
     currentApp: 'publishing',
     sectionLabel: 'Publishing',
-    pageLabels: ['Not posted', 'New content'],
+    pageLabels: ['Not posted', 'New post'],
   },
   {
     route: `${BRAND_BASE}/publishing/campaigns`,

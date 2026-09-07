@@ -1,25 +1,24 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  ViewType,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  IssuesListAction,
+  IssuesListState,
+  ViewMode,
+} from '@props/tasks/issues-list.props';
+import { NotificationsService } from '@services/core/notifications.service';
 import {
   type Task,
   type TaskPriority,
   type TaskStatus,
   TasksService,
 } from '@services/management/tasks.service';
-import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
-import Badge from '@ui/display/badge/Badge';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
+import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import {
@@ -30,6 +29,7 @@ import {
   DialogTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -40,96 +40,28 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { CirclePlus, Columns2, List } from 'lucide-react';
-import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 
-import IssueOverlay from './issue-overlay';
-import { openIssueOverlay } from './issue-overlay-controls';
-
-type ViewMode = ViewType.KANBAN | ViewType.LIST;
-
-const STATUS_ORDER: TaskStatus[] = [
-  'backlog',
-  'todo',
-  'in_progress',
-  'in_review',
-  'blocked',
-  'done',
-  'cancelled',
-];
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  backlog: 'Backlog',
-  blocked: 'Blocked',
-  cancelled: 'Cancelled',
-  done: 'Done',
-  failed: 'Failed',
-  in_progress: 'In Progress',
-  in_review: 'In Review',
-  todo: 'To Do',
-};
-
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  critical: 'Critical',
-  high: 'High',
-  low: 'Low',
-  medium: 'Medium',
-};
-
-const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  critical: 'text-red-400',
-  high: 'text-orange-400',
-  low: 'text-gray-800',
-  medium: 'text-muted-foreground',
-};
-
-function TaskStatusBadge({ status }: { status: TaskStatus }) {
-  return (
-    <Badge status={status} size={ComponentSize.SM}>
-      {STATUS_LABELS[status]}
-    </Badge>
-  );
-}
-
-function TaskPriorityIndicator({ priority }: { priority: TaskPriority }) {
-  return (
-    <span
-      className={cn(
-        'text-2xs font-medium uppercase tracking-wider',
-        PRIORITY_COLORS[priority],
-      )}
-    >
-      {PRIORITY_LABELS[priority]}
-    </span>
-  );
-}
-
-function IssueRow({
-  issue,
-  onSelect,
-}: {
-  issue: Task;
-  onSelect: (issue: Task) => void;
-}) {
-  return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      className="flex w-full items-center gap-4 border-b border-border px-4 py-3 text-left transition-colors hover:bg-muted/40"
-      onClick={() => onSelect(issue)}
-    >
-      <span className="w-20 shrink-0 text-xs font-mono text-gray-800">
-        {issue.identifier}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-        {issue.title}
-      </span>
-      <TaskPriorityIndicator priority={issue.priority} />
-      <TaskStatusBadge status={issue.status} />
-      <span className="w-28 shrink-0 text-right text-xs text-gray-800">
-        {getRelativeTime(issue.updatedAt)}
-      </span>
-    </Button>
-  );
-}
+import {
+  PRIORITY_ORDER,
+  STATUS_ORDER,
+  TaskPriorityBadge,
+  TaskPrioritySelect,
+  TaskStatusBadge,
+  TaskStatusSelect,
+  useTaskPriorityLabels,
+  useTaskStatusLabels,
+} from './task-pills';
+import { useTaskSelection } from './task-selection-context';
 
 function IssueCard({
   issue,
@@ -138,21 +70,19 @@ function IssueCard({
   issue: Task;
   onSelect: (issue: Task) => void;
 }) {
+  const translate = useTranslations('pages.tasks.list');
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
       className="block w-full rounded border border-border bg-card/60 p-3 text-left transition-colors hover:bg-muted/60"
       onClick={() => onSelect(issue)}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-2xs font-mono text-gray-800">
-          {issue.identifier}
-        </span>
-        <TaskPriorityIndicator priority={issue.priority} />
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <p className="text-sm leading-snug text-foreground">{issue.title}</p>
+        <TaskPriorityBadge priority={issue.priority} />
       </div>
-      <p className="mb-2 text-sm leading-snug text-foreground">{issue.title}</p>
       {issue.assigneeUserId ? (
-        <span className="text-2xs text-gray-800">Assigned</span>
+        <span className="text-2xs text-gray-800">{translate('assigned')}</span>
       ) : null}
     </Button>
   );
@@ -167,51 +97,30 @@ function KanbanColumn({
   issues: Task[];
   onSelect: (issue: Task) => void;
 }) {
+  const translate = useTranslations('pages.tasks.list');
+  const statusLabels = useTaskStatusLabels();
   return (
-    <div className="flex w-72 shrink-0 flex-col">
-      <div className="mb-3 flex items-center gap-2 px-1">
+    <section
+      aria-label={statusLabels[status]}
+      className="flex h-full w-72 shrink-0 flex-col rounded-lg bg-background-secondary"
+    >
+      <div className="flex shrink-0 items-center gap-2 px-3 py-2.5">
         <TaskStatusBadge status={status} />
-        <span className="text-xs text-gray-800">{issues.length}</span>
+        <span className="text-xs text-muted-foreground">{issues.length}</span>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {issues.map((issue) => (
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <div className="rounded border border-dashed border-border p-4 text-center text-xs text-gray-800">
-            No tasks
-          </div>
+          <p className="py-6 text-center text-xs text-muted-foreground">
+            {translate('noTasksKanban')}
+          </p>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }
-
-type IssuesListState = {
-  issues: Task[];
-  isLoading: boolean;
-  viewMode: ViewMode;
-  statusFilter: TaskStatus | '';
-  showCreateDialog: boolean;
-  createTitle: string;
-  createDescription: string;
-  createPriority: TaskPriority;
-  isCreating: boolean;
-  selectedIssue: Task | null;
-};
-
-type IssuesListAction =
-  | { type: 'SET_ISSUES'; payload: Task[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_VIEW_MODE'; payload: ViewMode }
-  | { type: 'SET_STATUS_FILTER'; payload: TaskStatus | '' }
-  | { type: 'SET_SHOW_CREATE_DIALOG'; payload: boolean }
-  | { type: 'SET_CREATE_TITLE'; payload: string }
-  | { type: 'SET_CREATE_DESCRIPTION'; payload: string }
-  | { type: 'SET_CREATE_PRIORITY'; payload: TaskPriority }
-  | { type: 'SET_CREATING'; payload: boolean }
-  | { type: 'SET_SELECTED_ISSUE'; payload: Task | null }
-  | { type: 'RESET_CREATE_FORM' };
 
 const initialIssuesListState: IssuesListState = {
   createDescription: '',
@@ -220,10 +129,7 @@ const initialIssuesListState: IssuesListState = {
   isCreating: false,
   isLoading: true,
   issues: [],
-  selectedIssue: null,
   showCreateDialog: false,
-  statusFilter: '',
-  viewMode: ViewType.LIST,
 };
 
 function issuesListReducer(
@@ -235,10 +141,6 @@ function issuesListReducer(
       return { ...state, issues: action.payload };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
-    case 'SET_VIEW_MODE':
-      return { ...state, viewMode: action.payload };
-    case 'SET_STATUS_FILTER':
-      return { ...state, statusFilter: action.payload };
     case 'SET_SHOW_CREATE_DIALOG':
       return { ...state, showCreateDialog: action.payload };
     case 'SET_CREATE_TITLE':
@@ -249,8 +151,6 @@ function issuesListReducer(
       return { ...state, createPriority: action.payload };
     case 'SET_CREATING':
       return { ...state, isCreating: action.payload };
-    case 'SET_SELECTED_ISSUE':
-      return { ...state, selectedIssue: action.payload };
     case 'RESET_CREATE_FORM':
       return {
         ...state,
@@ -266,7 +166,34 @@ function issuesListReducer(
 }
 
 export default function IssuesList() {
+  const translate = useTranslations('pages.tasks.list');
+  const tCommon = useTranslations('common.actions');
+  const statusLabels = useTaskStatusLabels();
+  const priorityLabels = useTaskPriorityLabels();
   const { brandId } = useBrand();
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const taskId = searchParams.get('taskId');
+  // View and filter live in the URL so a refresh or shared link restores them.
+  const viewMode: ViewMode =
+    searchParams.get('view') === ViewType.KANBAN
+      ? ViewType.KANBAN
+      : ViewType.LIST;
+  const statusParam = searchParams.get('status');
+  const statusFilter: TaskStatus | '' =
+    statusParam && STATUS_ORDER.includes(statusParam as TaskStatus)
+      ? (statusParam as TaskStatus)
+      : '';
+  const selection = useTaskSelection();
+  const selectTask = selection?.selectTask;
+  const commitTask = selection?.commitTask;
+  const selectionRevision = selection?.revision ?? 0;
   const [state, dispatch] = useReducer(
     issuesListReducer,
     initialIssuesListState,
@@ -278,10 +205,7 @@ export default function IssuesList() {
     isCreating,
     isLoading,
     issues,
-    selectedIssue,
     showCreateDialog,
-    statusFilter,
-    viewMode,
   } = state;
   const controllerRef = useRef<AbortController | null>(null);
 
@@ -350,14 +274,86 @@ export default function IssuesList() {
     };
   }, [loadIssues]);
 
-  const handleSelectIssue = useCallback((issue: Task) => {
-    dispatch({ type: 'SET_SELECTED_ISSUE', payload: issue });
-    openIssueOverlay();
-  }, []);
+  const setUrlParam = useCallback(
+    (key: 'status' | 'taskId' | 'view', value: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) params.set(key, value);
+      else params.delete(key);
+      router.replace(`${pathname}${params.size ? `?${params}` : ''}`, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
+  const setTaskUrl = useCallback(
+    (id: string | null) => setUrlParam('taskId', id),
+    [setUrlParam],
+  );
 
-  const handleOverlayClose = useCallback(() => {
-    dispatch({ type: 'SET_SELECTED_ISSUE', payload: null });
-  }, []);
+  const handleSelectIssue = useCallback(
+    (issue: Task) => {
+      selectTask?.(issue);
+      setTaskUrl(issue.id);
+    },
+    [selectTask, setTaskUrl],
+  );
+
+  // `?taskId=` is the source of truth for the inspector: resolve it from the
+  // loaded list first, and only fetch when the task is outside the current page.
+  useEffect(() => {
+    if (!taskId) {
+      selectTask?.(null);
+      return;
+    }
+    let cancelled = false;
+    const issue = issues.find((item) => item.id === taskId);
+    if (issue) {
+      selectTask?.(issue);
+    } else if (!isLoading) {
+      void getTasksService()
+        .then((service) => service.findOne(taskId))
+        .then((task) => {
+          if (!cancelled) selectTask?.(task);
+        })
+        .catch(() => {
+          if (!cancelled)
+            notificationsService.error(translate('openTaskError'));
+        });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    taskId,
+    issues,
+    isLoading,
+    getTasksService,
+    notificationsService,
+    selectTask,
+    translate,
+  ]);
+
+  // The inspector saves through the shared selection; refetch so rows match.
+  useEffect(() => {
+    if (selectionRevision > 0) void loadIssues();
+  }, [selectionRevision, loadIssues]);
+
+  const updateIssue = async (
+    issue: Task,
+    input: { status?: TaskStatus; priority?: TaskPriority },
+  ) => {
+    setSavingId(issue.id);
+    try {
+      const service = await getTasksService();
+      const updated = await service.updateTask(issue.id, input);
+      if (selection?.selectedTask?.id === issue.id) commitTask?.(updated);
+      else await loadIssues();
+    } catch {
+      notificationsService.error(translate('updateTaskError'));
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const groupedByStatus = STATUS_ORDER.reduce(
     (acc, status) => {
@@ -386,32 +382,28 @@ export default function IssuesList() {
     <div className="flex flex-wrap items-center justify-end gap-2.5">
       {hasItems ? (
         <Button
-          variant={ButtonVariant.DEFAULT}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
-          className="inline-flex items-center gap-1.5"
           onClick={openCreateDialog}
         >
-          <CirclePlus className="size-3.5" aria-hidden="true" />
-          New Task
+          <CirclePlus className="size-4" aria-hidden="true" />
+          {translate('newTask')}
         </Button>
       ) : null}
       <Select
         value={statusFilter || 'all'}
         onValueChange={(value) =>
-          dispatch({
-            type: 'SET_STATUS_FILTER',
-            payload: value === 'all' ? '' : (value as TaskStatus),
-          })
+          setUrlParam('status', value === 'all' ? null : value)
         }
       >
-        <SelectTrigger className="w-auto text-xs">
-          <SelectValue placeholder="All Statuses" />
+        <SelectTrigger className={ghostSelectTriggerClassName}>
+          <SelectValue placeholder={translate('allStatuses')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="all">{translate('allStatuses')}</SelectItem>
           {STATUS_ORDER.map((s) => (
             <SelectItem key={s} value={s}>
-              {STATUS_LABELS[s]}
+              {statusLabels[s]}
             </SelectItem>
           ))}
         </SelectContent>
@@ -420,19 +412,22 @@ export default function IssuesList() {
         <ViewToggle
           activeView={viewMode}
           onChange={(nextView) =>
-            dispatch({ type: 'SET_VIEW_MODE', payload: nextView })
+            setUrlParam(
+              'view',
+              nextView === ViewType.KANBAN ? ViewType.KANBAN : null,
+            )
           }
           options={[
             {
-              ariaLabel: 'List view',
+              ariaLabel: translate('listView'),
               icon: <List aria-hidden="true" className="size-4" />,
-              label: 'List view',
+              label: translate('listView'),
               type: ViewType.LIST,
             },
             {
-              ariaLabel: 'Kanban view',
+              ariaLabel: translate('kanbanView'),
               icon: <Columns2 aria-hidden="true" className="size-4" />,
-              label: 'Kanban view',
+              label: translate('kanbanView'),
               type: ViewType.KANBAN,
             },
           ]}
@@ -444,7 +439,7 @@ export default function IssuesList() {
   return (
     <Container
       fullWidth
-      label="Tasks"
+      label={translate('title')}
       titleVisibility="sr-only"
       right={toolbar}
     >
@@ -452,16 +447,18 @@ export default function IssuesList() {
         <SkeletonTable rows={6} columns={4} />
       ) : isEmpty ? (
         <CardEmpty
-          label={isFiltered ? 'No matching tasks' : 'No tasks yet'}
+          label={
+            isFiltered ? translate('noMatchingTasks') : translate('noTasksYet')
+          }
           description={
             isFiltered
-              ? 'Try a different status, or clear the filter to see every task.'
-              : 'Create a task to start tracking work in this workspace.'
+              ? translate('noMatchingTasksDescription')
+              : translate('noTasksYetDescription')
           }
           action={
             isStartEmpty
               ? {
-                  label: 'New Task',
+                  label: translate('newTask'),
                   onClick: openCreateDialog,
                   variant: ButtonVariant.DEFAULT,
                 }
@@ -469,38 +466,70 @@ export default function IssuesList() {
           }
         />
       ) : viewMode === ViewType.LIST ? (
-        <Card>
-          <div className="divide-y divide-border/40">
-            {STATUS_ORDER.reduce<JSX.Element[]>((sections, status) => {
-              if (groupedByStatus[status].length === 0) {
-                return sections;
-              }
-              const statusTasks = groupedByStatus[status];
-              sections.push(
-                <div key={status}>
-                  <div className="flex items-center gap-2 bg-card/60 px-4 py-2">
-                    <TaskStatusBadge status={status} />
-                    <span className="text-xs text-gray-800">
-                      {statusTasks.length}
+        <Table<Task>
+          ariaLabel={translate('title')}
+          items={issues}
+          getRowKey={(issue) => issue.id}
+          onRowClick={handleSelectIssue}
+          columns={[
+            {
+              key: 'title',
+              header: translate('taskColumn'),
+              render: (issue) => (
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  textTransform="none"
+                  className="w-full flex-col items-start gap-0 text-left text-sm font-medium"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleSelectIssue(issue);
+                  }}
+                >
+                  <span className="block">{issue.title}</span>
+                  {issue.description ? (
+                    <span className="mt-1 block line-clamp-2 text-xs font-normal text-muted-foreground">
+                      {issue.description}
                     </span>
-                  </div>
-                  <div>
-                    {statusTasks.map((issue) => (
-                      <IssueRow
-                        issue={issue}
-                        key={issue.id}
-                        onSelect={handleSelectIssue}
-                      />
-                    ))}
-                  </div>
-                </div>,
-              );
-              return sections;
-            }, [])}
-          </div>
-        </Card>
+                  ) : null}
+                </Button>
+              ),
+            },
+            {
+              key: 'status',
+              header: translate('statusColumn'),
+              render: (issue) => (
+                <TaskStatusSelect
+                  ariaLabel={translate('statusForTask', {
+                    title: issue.title,
+                  })}
+                  isDisabled={savingId === issue.id}
+                  value={issue.status}
+                  onChange={(status) => void updateIssue(issue, { status })}
+                />
+              ),
+            },
+            {
+              key: 'priority',
+              header: translate('priorityColumn'),
+              render: (issue) => (
+                <TaskPrioritySelect
+                  ariaLabel={translate('priorityForTask', {
+                    title: issue.title,
+                  })}
+                  isDisabled={savingId === issue.id}
+                  value={issue.priority}
+                  onChange={(priority) => void updateIssue(issue, { priority })}
+                />
+              ),
+            },
+          ]}
+        />
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div
+          className="flex h-[calc(100dvh-10rem)] min-h-96 gap-3 overflow-x-auto"
+          data-testid="tasks-kanban-board"
+        >
           {STATUS_ORDER.map((status) => (
             <KanbanColumn
               issues={groupedByStatus[status]}
@@ -519,16 +548,16 @@ export default function IssuesList() {
       >
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Create Task</DialogTitle>
+            <DialogTitle>{translate('createTaskTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Title
+                {translate('titleLabel')}
               </span>
               <Input
                 type="text"
-                placeholder="Task title"
+                placeholder={translate('taskTitlePlaceholder')}
                 value={createTitle}
                 onChange={(e) =>
                   dispatch({
@@ -540,11 +569,11 @@ export default function IssuesList() {
             </div>
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Description
+                {translate('descriptionLabel')}
               </span>
               <Textarea
                 className="w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
-                placeholder="Optional description"
+                placeholder={translate('descriptionPlaceholder')}
                 rows={4}
                 value={createDescription}
                 onChange={(e) =>
@@ -557,7 +586,7 @@ export default function IssuesList() {
             </div>
             <div>
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                Priority
+                {translate('priorityColumn')}
               </span>
               <Select
                 value={createPriority}
@@ -572,10 +601,11 @@ export default function IssuesList() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  {PRIORITY_ORDER.map((priority) => (
+                    <SelectItem key={priority} value={priority}>
+                      {priorityLabels[priority]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -588,7 +618,7 @@ export default function IssuesList() {
                 dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: false })
               }
             >
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               variant={ButtonVariant.DEFAULT}
@@ -597,12 +627,13 @@ export default function IssuesList() {
               disabled={isCreating || !createTitle.trim()}
               onClick={handleCreateIssue}
             >
-              {isCreating ? 'Creating...' : 'Create Task'}
+              {isCreating
+                ? translate('creating')
+                : translate('createTaskTitle')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <IssueOverlay issue={selectedIssue} onClose={handleOverlayClose} />
     </Container>
   );
 }

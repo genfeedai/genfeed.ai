@@ -1,5 +1,4 @@
-'use client';
-
+import type { AdvancedRoutingCardProps } from '@props/settings/model-routing.props';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -10,22 +9,7 @@ import {
 } from '@ui/primitives';
 import { Switch } from '@ui/primitives/switch';
 
-import type { EnabledModelOption } from './resolve-enabled-model-options';
-
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
-
-type AdvancedRoutingCardProps = {
-  allowAdvancedOverrides: boolean;
-  generationModelOverride: string;
-  modelOptions: EnabledModelOption[];
-  isSaving: boolean;
-  onAllowAdvancedOverridesChange: (checked: boolean) => void;
-  onGenerationModelOverrideChange: (value: string) => void;
-  onReviewModelOverrideChange: (value: string) => void;
-  onThinkingModelOverrideChange: (value: string) => void;
-  reviewModelOverride: string;
-  thinkingModelOverride: string;
-};
 
 export default function AdvancedRoutingCard({
   allowAdvancedOverrides,

@@ -1,15 +1,10 @@
+import type { PostsRemixPageProps } from '@props/publishing/posts-remix-page.props';
 import LibraryRemixSurface from '@/features/library-remix/LibraryRemixSurface';
 import {
   LIBRARY_REMIX_SOURCE_QUERY_KEY,
   LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY,
 } from '@/features/library-remix/library-remix-reference';
 import TrendRemixPage from './trend-remix-page';
-
-type PostsRemixPageProps = {
-  readonly searchParams?: Promise<
-    Record<string, string | string[] | undefined>
-  >;
-};
 
 const LEGACY_TREND_REMIX_QUERY_KEYS = [
   'sourceAuthor',

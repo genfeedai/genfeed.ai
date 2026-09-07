@@ -1,21 +1,11 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ProactiveHeroCardProps } from '@props/onboarding/proactive-hero-card.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import type { ProactiveWorkspaceResponse } from '@services/onboarding/onboarding.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw, Sparkles } from 'lucide-react';
-
-type Props = {
-  workspace: ProactiveWorkspaceResponse;
-  statusLabel: string;
-  isRefreshing: boolean;
-  onConfigureProviders: () => void;
-  onContinueSelfServe: () => void;
-};
 
 export default function ProactiveHeroCard({
   workspace,
@@ -23,7 +13,7 @@ export default function ProactiveHeroCard({
   isRefreshing,
   onConfigureProviders,
   onContinueSelfServe,
-}: Props) {
+}: ProactiveHeroCardProps) {
   return (
     <Card bodyClassName="gap-0 p-8" className="border-border bg-card">
       <div className="flex flex-wrap items-start justify-between gap-6">

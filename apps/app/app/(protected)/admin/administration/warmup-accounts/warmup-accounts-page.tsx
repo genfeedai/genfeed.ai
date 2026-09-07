@@ -8,6 +8,9 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
+  WarmupActiveInvitationRequest as ActiveInvitationRequest,
+  WarmupAccountsPageAction as PageAction,
+  WarmupAccountsPageState as PageState,
   WarmupAccountDetailProps,
   WarmupAccountFormState,
   WarmupAccountsPageProps,
@@ -71,43 +74,6 @@ const STATUS_META: Record<
   PROVISIONED: { label: 'Provisioned', variant: 'info' },
   PROVISIONING: { label: 'Provisioning', variant: 'warning' },
 };
-
-type PageState = {
-  accounts: IWarmupAccount[];
-  activeTab: 'accounts' | 'create';
-  form: WarmupAccountFormState;
-  invitationAction: PendingInvitationAction | null;
-  isLoading: boolean;
-  isSubmitting: boolean;
-  loadTrigger: number;
-  selectedAccountId?: string;
-};
-
-type PendingInvitationAction = {
-  accountId: string;
-  action: WarmupInvitationAction;
-  requestId: number;
-};
-
-type ActiveInvitationRequest = PendingInvitationAction & {
-  controller: AbortController;
-};
-
-type PageAction =
-  | { type: 'SET_TAB'; tab: 'accounts' | 'create' }
-  | { type: 'SET_LOADING'; isLoading: boolean }
-  | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
-  | { type: 'SET_ACCOUNTS'; accounts: IWarmupAccount[] }
-  | {
-      type: 'SET_FIELD';
-      field: keyof WarmupAccountFormState;
-      value: string;
-    }
-  | { type: 'SET_SELECTED'; accountId: string }
-  | { type: 'SET_INVITATION_ACTION'; request: PendingInvitationAction }
-  | { type: 'CLEAR_INVITATION_ACTION'; requestId: number }
-  | { type: 'UPSERT_ACCOUNT'; account: IWarmupAccount }
-  | { type: 'CREATE_SUCCESS'; account: IWarmupAccount };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {

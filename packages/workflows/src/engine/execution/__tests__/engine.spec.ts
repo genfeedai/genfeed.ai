@@ -560,6 +560,105 @@ describe('WorkflowEngine', () => {
       expect(capturedInputs[0].get('media')).toEqual({ image: 'cached.png' });
     });
 
+    it('rerenders edited localized speech and composition while reusing both generated scenes', async () => {
+      const rerunEngine = createTestEngine();
+      const generation = vi.fn();
+      const localize = vi.fn(async () => ({
+        audio: {
+          id: 'spanish-voice-2',
+          audioUrl: 'https://cdn.example.com/es-2.mp3',
+          duration: 30,
+          status: 'completed',
+        },
+        transcript: {
+          text: 'Original',
+          segments: [{ start: 0, end: 30, text: 'Original' }],
+        },
+        translatedScript: 'Spanish revision',
+        segments: [{ start: 0, end: 30, text: 'Spanish revision' }],
+        duration: 30,
+      }));
+      const lipSync = vi.fn(async () => ({
+        id: 'localized',
+        status: 'completed',
+        videoUrl: 'https://cdn.example.com/localized.mp4',
+      }));
+      const stitch = vi.fn<NodeExecutor>(async () =>
+        buildFixtureOutput('videoStitch'),
+      );
+      rerunEngine.registerExecutor('videoGen', generation);
+      rerunEngine.registerExecutor('localizeSpeech', localize);
+      rerunEngine.registerExecutor('lipSync', lipSync);
+      rerunEngine.registerExecutor('videoStitch', stitch);
+      const workflow = makeWorkflow(
+        [
+          {
+            ...createExecutableActionNode({
+              actionId: 'videoGen',
+              id: 'scene-a',
+              isLocked: true,
+            }),
+            cachedOutput: { videoUrl: 'https://cdn.example.com/a.mp4' },
+          },
+          {
+            ...createExecutableActionNode({
+              actionId: 'videoGen',
+              id: 'scene-b',
+              isLocked: true,
+            }),
+            cachedOutput: { videoUrl: 'https://cdn.example.com/b.mp4' },
+          },
+          createExecutableActionNode({
+            actionId: 'localizeSpeech',
+            id: 'speech',
+            parameters: {
+              brandId: 'brand',
+              targetLanguage: 'es',
+              voiceId: 'new-voice',
+              script: 'Spanish revision',
+            },
+          }),
+          createExecutableActionNode({ actionId: 'lipSync', id: 'sync' }),
+          createExecutableActionNode({ actionId: 'videoStitch', id: 'final' }),
+        ],
+        [
+          makeEdge('scene-a', 'speech', {
+            sourceHandle: 'videoUrl',
+            targetHandle: 'video',
+          }),
+          makeEdge('scene-a', 'sync', {
+            sourceHandle: 'videoUrl',
+            targetHandle: 'video',
+          }),
+          makeEdge('speech', 'sync', {
+            sourceHandle: 'audio',
+            targetHandle: 'audio',
+          }),
+          makeEdge('sync', 'final', {
+            sourceHandle: 'videoUrl',
+            targetHandle: 'videos',
+          }),
+          makeEdge('scene-b', 'final', {
+            sourceHandle: 'videoUrl',
+            targetHandle: 'videos',
+          }),
+        ],
+        { lockedNodeIds: ['scene-a', 'scene-b'] },
+      );
+      const result = await rerunEngine.execute(workflow);
+      expect(result.status).toBe('completed');
+      expect(generation).not.toHaveBeenCalled();
+      expect(localize).toHaveBeenCalledTimes(1);
+      expect(lipSync).toHaveBeenCalledTimes(1);
+      expect(stitch).toHaveBeenCalledTimes(1);
+      expect(result.nodeResults.get('scene-a')?.status).toBe('skipped');
+      expect(result.nodeResults.get('scene-b')?.status).toBe('skipped');
+      expect(stitch.mock.calls[0]?.[1]?.get('videos')).toEqual([
+        'https://cdn.example.com/localized.mp4',
+        'https://cdn.example.com/b.mp4',
+      ]);
+    });
+
     it('should execute locked nodes when respectLocks is false', async () => {
       const workflow = makeWorkflow(
         [

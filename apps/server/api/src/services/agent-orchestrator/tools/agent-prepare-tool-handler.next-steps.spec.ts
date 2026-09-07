@@ -50,7 +50,7 @@ describe('AgentPrepareToolHandler.suggestNextSteps', () => {
     });
 
     expect(readSteps(result)[0]?.ctas).toEqual([
-      { href: '/settings/social', label: 'Open connections' },
+      { href: '/settings/integrations', label: 'Open connections' },
       {
         action: 'send_prompt',
         label: 'Do it here',

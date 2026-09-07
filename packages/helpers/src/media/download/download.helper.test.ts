@@ -1,6 +1,14 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 // Mock file-saver
 const { mockSaveAs } = vi.hoisted(() => ({
@@ -47,7 +55,8 @@ const mockLink = {
 };
 const mockAppendChild = vi.fn();
 const mockRemoveChild = vi.fn();
-global.document = {
+const originalDocument = global.document;
+const mockDocument = {
   ...global.document,
   body: {
     ...global.document?.body,
@@ -65,10 +74,21 @@ import {
 describe('download.helper', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: mockDocument,
+    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterAll(() => {
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: originalDocument,
+    });
   });
 
   describe('downloadIngredient', () => {

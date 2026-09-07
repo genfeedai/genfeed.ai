@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentStrategyDialogProps } from '@props/automation/agent-strategies-page.props';
 import { Button } from '@ui/primitives/button';

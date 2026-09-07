@@ -15,6 +15,12 @@ import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
+import type {
+  DraftState,
+  InboxItem,
+  IntentState,
+  ReplyIntent,
+} from '@props/messages/replies-page.props';
 import Card from '@ui/card/Card';
 import { EmptyState } from '@ui/card/EmptyState';
 import Container from '@ui/layout/container/Container';
@@ -34,27 +40,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
-type ReplyIntent = 'thanks' | 'question' | 'troll' | 'spam' | 'default';
-
-type InboxItem = {
-  authorDisplayName?: string;
-  authorId: string;
-  authorUsername: string;
-  commentId: string;
-  commentText: string;
-  commentUrl?: string;
-  createdAt: string;
-  intent: ReplyIntent;
-  intentLabel: string;
-  parentPostId: string;
-  parentPostPreview?: string;
-  parentPostUrl?: string;
-  shouldSkipAuto: boolean;
-};
-
-type DraftState = Record<string, string>;
-type IntentState = Record<string, ReplyIntent>;
 
 const INTENT_OPTIONS: Array<{ label: string; value: ReplyIntent }> = [
   { label: 'Thanks', value: 'thanks' },

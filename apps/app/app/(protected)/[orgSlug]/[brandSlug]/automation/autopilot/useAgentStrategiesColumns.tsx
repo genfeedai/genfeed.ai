@@ -1,3 +1,4 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
@@ -25,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import AgentStrategyPlatformsCell from './AgentStrategyPlatformsCell';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -84,6 +86,7 @@ export function useAgentStrategiesColumns(
   handleRunNow: (strategy: AgentStrategy) => Promise<void>,
   handleToggle: (strategy: AgentStrategy) => Promise<void>,
 ) {
+  const { credentials } = useBrand();
   const columns = useMemo<TableColumn<AgentStrategy>[]>(
     () => [
       {
@@ -140,11 +143,10 @@ export function useAgentStrategiesColumns(
         header: 'Platforms',
         key: 'platforms',
         render: (strategy) => (
-          <span className="text-sm">
-            {strategy.platforms.length > 0
-              ? strategy.platforms.join(', ')
-              : '—'}
-          </span>
+          <AgentStrategyPlatformsCell
+            credentials={credentials}
+            platforms={strategy.platforms}
+          />
         ),
       },
       {
@@ -208,7 +210,7 @@ export function useAgentStrategiesColumns(
         ),
       },
     ],
-    [],
+    [credentials],
   );
 
   const actions = useMemo(

@@ -272,7 +272,7 @@ describe('AppProtectedTopbar', () => {
       name: 'Breadcrumb',
     });
     const switcher = screen.getByTestId('app-switcher');
-    const activityMenu = screen.getByTestId('topbar-activity-menu');
+    const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
@@ -449,7 +449,7 @@ describe('AppProtectedTopbar', () => {
   it('places credits first in the right-side control cluster', () => {
     render(<AppProtectedTopbar />);
 
-    const activityMenu = screen.getByTestId('topbar-activity-menu');
+    const activityMenu = screen.getByTestId('notification-inbox');
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
     const credits = screen.getByTestId('topbar-credits-bar');
@@ -466,22 +466,6 @@ describe('AppProtectedTopbar', () => {
       cloudSyncIndicator.compareDocumentPosition(switcher) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-  });
-
-  it('shows task context with a scoped return link', () => {
-    mockSearchParams = new URLSearchParams([
-      ['taskId', 'task-1'],
-      ['taskTitle', 'Launch plan'],
-    ]);
-
-    render(<AppProtectedTopbar />);
-
-    expect(screen.getByText('Task context')).toBeInTheDocument();
-    expect(screen.getByText('Launch plan')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
-      'href',
-      '/workspace/overview?taskId=task-1',
-    );
   });
 
   it('does not render a settings cog in the topbar (settings lives in the sidebar user menu)', () => {

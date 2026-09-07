@@ -333,7 +333,7 @@ describe('ModelsService', () => {
     );
 
     expect(modelDelegate.findMany).toHaveBeenCalledWith({
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }],
       skip: 0,
       take: 10,
       where: { category: ModelCategory.IMAGE },
@@ -342,6 +342,48 @@ describe('ModelsService', () => {
       where: { category: ModelCategory.IMAGE },
     });
     expect(result.totalDocs).toBe(1);
+  });
+
+  it('builds orderBy as an array of single-key objects from input.orderBy', async () => {
+    modelDelegate.findMany.mockResolvedValue([makeModel()]);
+    modelDelegate.count.mockResolvedValue(1);
+
+    await service.findAll(
+      {
+        orderBy: { isHighlighted: -1, label: 1 },
+        where: { category: ModelCategory.IMAGE },
+      },
+      { limit: 10, page: 1, pagination: true },
+    );
+
+    expect(modelDelegate.findMany).toHaveBeenCalledWith({
+      orderBy: [{ isHighlighted: 'desc' }, { label: 'asc' }],
+      skip: 0,
+      take: 10,
+      where: { category: ModelCategory.IMAGE },
+    });
+  });
+
+  it('builds orderBy as an array of single-key objects from options.sort', async () => {
+    modelDelegate.findMany.mockResolvedValue([makeModel()]);
+    modelDelegate.count.mockResolvedValue(1);
+
+    await service.findAll(
+      { where: { category: ModelCategory.IMAGE } },
+      {
+        limit: 10,
+        page: 1,
+        pagination: true,
+        sort: { isDefault: -1, label: 1 },
+      },
+    );
+
+    expect(modelDelegate.findMany).toHaveBeenCalledWith({
+      orderBy: [{ isDefault: 'desc' }, { label: 'asc' }],
+      skip: 0,
+      take: 10,
+      where: { category: ModelCategory.IMAGE },
+    });
   });
 
   it('reads the public catalog through a narrow, platform-only projection', async () => {

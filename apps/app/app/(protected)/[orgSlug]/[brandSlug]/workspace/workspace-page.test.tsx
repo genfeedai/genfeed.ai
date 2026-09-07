@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { WorkspaceTaskDetailProps } from '@props/workspace/workspace-task-inspector.props';
 import {
   act,
   fireEvent,
@@ -7,7 +8,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
@@ -16,33 +17,35 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('@ui/primitives/sheet', () => ({
-  Sheet: ({
-    children,
-    onOpenChange,
-    open,
-  }: {
-    children: ReactNode;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-  }) =>
-    open ? (
+// The rail is rendered by the shell, not the page — the page only mounts the
+// adapter that registers it. Render the real detail view inline here so
+// assertions against its content and footer actions keep working, and expose
+// a "Close" button standing in for the shell's own close affordance so the
+// `onClose` wiring (the old Sheet's `onOpenChange(false)` branch) stays
+// covered.
+vi.mock('./workspace-task-rail-adapter', async () => {
+  const { WorkspaceTaskDetail } = await import('./workspace-task-inspector');
+
+  function WorkspaceTaskRailAdapter({
+    onClose,
+    ...detailProps
+  }: WorkspaceTaskDetailProps & { onClose: () => void }) {
+    if (!detailProps.task) {
+      return null;
+    }
+
+    return (
       <div>
-        {children}
-        <button type="button" onClick={() => onOpenChange?.(false)}>
+        <WorkspaceTaskDetail {...detailProps} />
+        <button type="button" onClick={onClose}>
           Close
         </button>
       </div>
-    ) : null,
-  SheetContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SheetDescription: ({ children }: { children: ReactNode }) => (
-    <p>{children}</p>
-  ),
-  SheetHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SheetTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
-}));
+    );
+  }
+
+  return { WorkspaceTaskRailAdapter };
+});
 
 const mocks = vi.hoisted(() => ({
   approve: vi.fn(),
@@ -308,6 +311,13 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
   });
 }
 
+// Radix tabs activate on pointer down (and focus), not on click.
+function selectTab(tab: HTMLElement): void {
+  fireEvent.mouseDown(tab, { button: 0 });
+  fireEvent.focus(tab);
+  fireEvent.click(tab);
+}
+
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -428,13 +438,13 @@ describe('WorkspacePageContent', () => {
       '/workspace/inbox/unread?taskId=task-1',
       { scroll: false },
     );
-    expect(
-      await screen.findByTestId(
-        'workspace-task-inspector',
-        {},
-        { timeout: 5000 },
-      ),
-    ).toBeVisible();
+    const taskInspector = await screen.findByTestId(
+      'workspace-task-inspector',
+      {},
+      { timeout: 5000 },
+    );
+    expect(taskInspector).toBeVisible();
+    selectTab(within(taskInspector).getByRole('tab', { name: 'Activity' }));
     expect(await screen.findByText('Generated image preview')).toBeVisible();
     expect(await screen.findByText('Visual continuity QA')).toBeVisible();
     expect(
@@ -443,8 +453,8 @@ describe('WorkspacePageContent', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Hero image').length).toBeGreaterThan(0);
     });
-    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledWith('issue-1'));
     expect(await screen.findByText('Open report thread')).toBeVisible();
+    await waitFor(() => expect(mocks.findOne).toHaveBeenCalledWith('issue-1'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove from kept' }));
     await waitFor(() =>
@@ -456,8 +466,17 @@ describe('WorkspacePageContent', () => {
       expect(mocks.trashOutput).toHaveBeenCalledWith('task-1', 'output-1'),
     );
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Request Changes' })[0],
+    // Secondary actions sit behind the More actions menu.
+    Element.prototype.hasPointerCapture = vi.fn(() => false);
+    Element.prototype.releasePointerCapture = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    const user = userEvent.setup();
+    const openMoreActions = async () =>
+      user.click(screen.getAllByRole('button', { name: /more actions/i })[0]);
+
+    await openMoreActions();
+    await user.click(
+      await screen.findByRole('menuitem', { name: 'Request Changes' }),
     );
     await waitFor(() =>
       expect(mocks.requestChanges).toHaveBeenCalledWith(
@@ -466,12 +485,22 @@ describe('WorkspacePageContent', () => {
       ),
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Dismiss' })[0]);
+    await openMoreActions();
+    await user.click(await screen.findByRole('menuitem', { name: 'Dismiss' }));
     await waitFor(() => expect(mocks.dismiss).toHaveBeenCalledWith('task-1'));
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Plan Next Steps' })[0],
-    );
+    // Once the task leaves review, Plan Next Steps is the primary button.
+    const primaryPlan = screen.queryByRole('button', {
+      name: 'Plan Next Steps',
+    });
+    if (primaryPlan) {
+      await user.click(primaryPlan);
+    } else {
+      await openMoreActions();
+      await user.click(
+        await screen.findByRole('menuitem', { name: 'Plan Next Steps' }),
+      );
+    }
     await waitFor(() =>
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),
     );

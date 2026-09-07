@@ -1,42 +1,7 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { WorkspaceTaskToolbarProps } from '@props/workspace/workspace-task-toolbar.props';
 import { Button } from '@ui/primitives/button';
 import { Sparkles } from 'lucide-react';
-
-import type { WorkspaceTaskMode } from './workspace-task-composer.constants';
-
-interface TaskPreset {
-  label: string;
-  outputType:
-    | 'post'
-    | 'newsletter'
-    | 'image'
-    | 'video'
-    | 'facecam'
-    | 'caption'
-    | 'ingredient';
-}
-
-interface TaskModeOption {
-  description: string;
-  id: WorkspaceTaskMode;
-  label: string;
-}
-
-interface WorkspaceTaskToolbarProps {
-  isEnhancementBusy: boolean;
-  hasPreviousRequest: boolean;
-  hasRequest: boolean;
-  modeOptions: TaskModeOption[];
-  onEnhance: () => void;
-  onOutputTypeChange: (outputType: TaskPreset['outputType']) => void;
-  onTaskModeChange: (mode: WorkspaceTaskMode) => void;
-  onUndoEnhancement: () => void;
-  outputType: TaskPreset['outputType'];
-  presets: TaskPreset[];
-  taskMode: WorkspaceTaskMode;
-}
 
 export function WorkspaceTaskToolbar({
   isEnhancementBusy,

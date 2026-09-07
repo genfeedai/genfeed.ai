@@ -2,8 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type {
+  IntegrationsAction,
+  IntegrationsState,
+} from '@props/settings/integrations-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -11,38 +14,6 @@ import { useCallback, useEffect, useReducer } from 'react';
 
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import ByokProviderCard from '../api-keys/byok-provider-card';
-
-type IntegrationsState = {
-  providerStatuses: IByokProviderStatus[];
-  expandedProvider: string | null;
-  apiKeyInputs: Record<string, string>;
-  apiSecretInputs: Record<string, string>;
-  savingProvider: string | null;
-  validatingProvider: string | null;
-  removingProvider: string | null;
-  isLoading: boolean;
-};
-
-type IntegrationsAction =
-  | { type: 'SET_PROVIDER_STATUSES'; payload: IByokProviderStatus[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_EXPANDED_PROVIDER'; payload: string | null }
-  | { type: 'SET_API_KEY_INPUT'; payload: { provider: string; value: string } }
-  | {
-      type: 'SET_API_SECRET_INPUT';
-      payload: { provider: string; value: string };
-    }
-  | { type: 'SET_SAVING_PROVIDER'; payload: string | null }
-  | { type: 'SET_VALIDATING_PROVIDER'; payload: string | null }
-  | { type: 'SET_REMOVING_PROVIDER'; payload: string | null }
-  | {
-      type: 'SAVE_SUCCESS';
-      payload: {
-        provider: string;
-        statuses: IByokProviderStatus[];
-      };
-    }
-  | { type: 'SAVE_DONE' };
 
 const initialState: IntegrationsState = {
   apiKeyInputs: {},

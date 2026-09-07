@@ -4,6 +4,7 @@ import type {
   WorkflowExecutionTrigger,
 } from '../..';
 import type { IAgentFailure } from '../ai/agent-failure.interface';
+import type { WorkflowAccounting } from '../billing/workflow-accounting.interface';
 
 export interface IWorkflowExecutionNodeResult {
   actionId?: string;
@@ -18,6 +19,7 @@ export interface IWorkflowExecutionNodeResult {
 }
 
 export interface IWorkflowExecution {
+  accounting?: WorkflowAccounting | null;
   failureReason?: AgentFailureReason | null;
   failure?: IAgentFailure | null;
   completedAt?: string;

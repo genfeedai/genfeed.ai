@@ -148,40 +148,24 @@ describe('BrandSettingsSkillsPage', () => {
     updateSkillMock.mockResolvedValue({});
   });
 
-  it('renders the brand skill catalog and routes skill testing into /agent', async () => {
+  it('renders the brand skill table and opens the detail sheet on row click', async () => {
     render(<BrandSettingsSkillsPage />);
 
-    expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: /skills/i,
-      }),
-    ).toBeVisible();
-    expect(
-      screen.getByText(/brand content behavior for acme brand/i),
-    ).toBeVisible();
     await waitFor(() => {
       expect(listSkillsMock).toHaveBeenCalledTimes(1);
     });
-    const skillButtons = await screen.findAllByRole(
-      'button',
-      {
-        name: /YouTube Script Setup/i,
-      },
-      { timeout: 5000 },
-    );
-    expect(skillButtons.length).toBeGreaterThan(0);
+
+    expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
     expect(screen.getByText(/built in/i)).toBeInTheDocument();
     expect(
       screen.getByRole('switch', { name: 'Enable YouTube Script Setup' }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('YouTube Script Setup'));
+
     expect(
-      screen.getByRole('group', { name: /filter skills by source/i }),
+      await screen.findByRole('textbox', { name: 'Name' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /^customized$/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Default instructions' }),
     ).toBeInTheDocument();
@@ -193,6 +177,19 @@ describe('BrandSettingsSkillsPage', () => {
         '/acme-org/acme-creator/agent/new?prompt=Use%20my%20YouTube%20Script%20Setup%20setup%20to%20create%20a%20small%20sample%20for%20youtube.%20Explain%20how%20the%20skill%20affects%20the%20output.',
       );
     });
+  });
+
+  it('filters skills by source using the subbar select', async () => {
+    render(<BrandSettingsSkillsPage />);
+
+    await waitFor(() => {
+      expect(listSkillsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
+
+    expect(
+      screen.getByRole('combobox', { name: /filter skills by source/i }),
+    ).toBeInTheDocument();
   });
 
   it('clears the previous organization catalog while a new scope loads and fails', async () => {

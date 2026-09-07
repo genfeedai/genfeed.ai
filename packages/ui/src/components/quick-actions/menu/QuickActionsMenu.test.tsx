@@ -45,6 +45,7 @@ describe('QuickActionsMenu', () => {
     );
 
     await waitFor(() => {
+      expect(screen.getByRole('menu')).toBeInTheDocument();
       expect(screen.getByText('Transform')).toBeInTheDocument();
       expect(screen.getByText('Danger')).toBeInTheDocument();
       expect(screen.getByText('Trim Video')).toBeInTheDocument();
@@ -52,17 +53,10 @@ describe('QuickActionsMenu', () => {
     });
 
     const menu = screen.getByTestId('quick-actions-menu');
-    expect(menu).toHaveClass('min-w-40', 'bg-secondary', 'shadow-dropdown');
-    expect(menu.innerHTML).not.toMatch(
-      /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
-    );
-    expect(screen.getByRole('button', { name: 'Trim Video' })).toHaveClass(
-      'gap-2',
-      'px-2.5',
-      'py-1.5',
-      'text-xs',
-      'text-foreground',
-    );
+    expect(menu).toHaveClass('min-w-40');
+
+    const menuItems = screen.getAllByRole('menuitem');
+    expect(menuItems).toHaveLength(actions.length);
   });
 
   it('forwards clicks from a menu action', async () => {

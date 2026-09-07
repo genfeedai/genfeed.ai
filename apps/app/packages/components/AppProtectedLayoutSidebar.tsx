@@ -16,6 +16,7 @@ import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarAction
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
@@ -106,6 +107,7 @@ export default function AppProtectedLayoutSidebar({
   navPanel,
 }: Props) {
   const { settings } = useBrand();
+  const translate = useTranslations('common.sidebar');
   // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher is ALWAYS
   // visible because it is the entry point to org-scoped surfaces (settings,
   // brands, credits). Single-tenant modes still have exactly one org that a
@@ -121,6 +123,20 @@ export default function AppProtectedLayoutSidebar({
     isCollapsed,
     onToggleCollapse,
   };
+
+  const renderQuickActions = () => (
+    <>
+      <SidebarActionTrigger
+        ariaLabel={translate('newTaskAriaLabel')}
+        icon={<Plus className="size-4 flex-shrink-0" />}
+        label={translate('newTask')}
+        onClick={dispatchOpenTaskComposer}
+        shortcut="⌘⇧N"
+        testId="sidebar-primary-action"
+      />
+      <SidebarSearchTrigger label={translate('search')} />
+    </>
+  );
 
   if (isFocusedOnboardingRoute) {
     return null;
@@ -148,7 +164,7 @@ export default function AppProtectedLayoutSidebar({
         active: isConversationRoute,
         currentApp,
         items: [],
-        sectionLabel: 'Workspace',
+        sectionLabel: translate('workspace'),
         showOrgSwitcher: true,
       },
       {
@@ -238,7 +254,9 @@ export default function AppProtectedLayoutSidebar({
         renderTopSlot={
           isSettingsRoute
             ? () => <SettingsSearch scope={settingsScope} />
-            : undefined
+            : isConversationRoute
+              ? undefined
+              : renderQuickActions
         }
       />
     );
@@ -249,23 +267,11 @@ export default function AppProtectedLayoutSidebar({
       {...sidebarStateProps}
       currentApp={currentApp}
       items={menuItems}
-      sectionLabel="Workspace"
+      sectionLabel={translate('workspace')}
       collapsedSidebarWidth={0}
       mobileSidebarWidth={304}
       orgSwitcherSlot={orgSwitcherSlot}
-      renderTopSlot={() => (
-        <>
-          <SidebarActionTrigger
-            ariaLabel="Open new task modal"
-            icon={<Plus className="size-4 flex-shrink-0" />}
-            label="New Task"
-            onClick={dispatchOpenTaskComposer}
-            shortcut="⌘⇧N"
-            testId="sidebar-primary-action"
-          />
-          <SidebarSearchTrigger />
-        </>
-      )}
+      renderTopSlot={renderQuickActions}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems
       showUserProfile

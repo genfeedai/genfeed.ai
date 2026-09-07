@@ -11,6 +11,10 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Folder } from '@models/content/folder.model';
+import type {
+  FoldersListAction,
+  FoldersListState,
+} from '@props/admin/folders.props';
 import type { ContentProps } from '@props/layout/content.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { FoldersService } from '@services/content/folders.service';
@@ -37,26 +41,6 @@ const FOLDER_SORT_OPTIONS = [
   { label: 'Newest First', value: 'createdAt: -1' },
   { label: 'Oldest First', value: 'createdAt: 1' },
 ];
-
-type FoldersListState = {
-  selectedFolder: IFolder | null;
-  adminOrg: string;
-  adminBrand: string;
-  query: IFilters;
-  filters: IFiltersState;
-};
-
-type FoldersListAction =
-  | { type: 'SET_SELECTED_FOLDER'; payload: IFolder | null }
-  | { type: 'SET_ADMIN_ORG'; payload: string }
-  | { type: 'SET_ADMIN_BRAND'; payload: string }
-  | { type: 'SET_ORG_AND_CLEAR_BRAND'; payload: string }
-  | { type: 'SET_QUERY'; payload: IFilters }
-  | { type: 'SET_FILTERS'; payload: IFiltersState }
-  | {
-      type: 'SET_FILTERS_AND_QUERY';
-      payload: { filters: IFiltersState; query: IFilters };
-    };
 
 function foldersListReducer(
   state: FoldersListState,

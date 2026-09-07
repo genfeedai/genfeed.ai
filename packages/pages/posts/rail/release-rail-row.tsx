@@ -42,13 +42,11 @@ export default function ReleaseRailRow({
   registerRow,
 }: ReleaseRailRowProps) {
   const translate = useTranslations('pages.posts.list.rail');
-  const { href } = useOrgUrl();
   const { visible, overflow } = visibleTargets(release.targets);
   const outcome = releaseOutcomeSummary(release);
   const nextInstant = releaseNextInstant(release);
   const thumbnail = release.media?.[0]?.url;
   const tagColor = release.firstTagColor?.trim() || DEFAULT_TAG_COLOR;
-  const primaryTargetId = visible[0]?.id ?? release.id;
 
   return (
     <div
@@ -146,44 +144,56 @@ export default function ReleaseRailRow({
           : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        <Link
-          aria-label={translate('open')}
-          className={buttonVariants({
-            size: ButtonSize.ICON,
-            variant: ButtonVariant.SECONDARY,
-          })}
-          href={href(getPublishingPostHref(primaryTargetId))}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <ExternalLink className="size-4" />
-        </Link>
-        {visible
-          .filter(
-            (target) =>
-              isSourcePostVariationPlatform(target.platform) &&
-              target.executionState === TargetExecutionState.PUBLISHED,
-          )
-          .map((target) => (
-            <Link
-              aria-label={translate('open')}
-              className={buttonVariants({
-                size: ButtonSize.ICON,
-                variant: ButtonVariant.SECONDARY,
-              })}
-              href={href(
-                buildSourcePostVariationsHref({
-                  platform: target.platform,
-                  postId: target.id,
-                }),
-              )}
-              key={target.id}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <Sparkles className="size-4" />
-            </Link>
-          ))}
-      </div>
+      <ReleaseRailActions release={release} />
+    </div>
+  );
+}
+
+export function ReleaseRailActions({
+  release,
+}: Pick<ReleaseRailRowProps, 'release'>) {
+  const translate = useTranslations('pages.posts.list.rail');
+  const { href } = useOrgUrl();
+  const { visible } = visibleTargets(release.targets);
+  const primaryTargetId = visible[0]?.id ?? release.id;
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <Link
+        aria-label={translate('open')}
+        className={buttonVariants({
+          size: ButtonSize.ICON,
+          variant: ButtonVariant.SECONDARY,
+        })}
+        href={href(getPublishingPostHref(primaryTargetId))}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ExternalLink className="size-4" />
+      </Link>
+      {visible
+        .filter(
+          (target) =>
+            isSourcePostVariationPlatform(target.platform) &&
+            target.executionState === TargetExecutionState.PUBLISHED,
+        )
+        .map((target) => (
+          <Link
+            aria-label={translate('open')}
+            className={buttonVariants({
+              size: ButtonSize.ICON,
+              variant: ButtonVariant.SECONDARY,
+            })}
+            href={href(
+              buildSourcePostVariationsHref({
+                platform: target.platform,
+                postId: target.id,
+              }),
+            )}
+            key={target.id}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Sparkles className="size-4" />
+          </Link>
+        ))}
     </div>
   );
 }

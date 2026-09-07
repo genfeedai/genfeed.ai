@@ -1,4 +1,9 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import type {
+  AuthBackLinkProps,
+  AuthCheckEmailProps,
+  AuthFormActionsProps,
+} from '@props/auth/auth-ui.props';
 import { Button } from '@ui/primitives/button';
 import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -40,10 +45,6 @@ export function AuthFooterPrompt({ children }: { children: ReactNode }) {
   );
 }
 
-interface AuthBackLinkProps {
-  href: string;
-}
-
 export function AuthBackLink({ href }: AuthBackLinkProps) {
   return (
     <Button
@@ -59,11 +60,6 @@ export function AuthBackLink({ href }: AuthBackLinkProps) {
   );
 }
 
-interface AuthFormActionsProps {
-  backHref: string;
-  children: ReactNode;
-}
-
 export function AuthFormActions({ backHref, children }: AuthFormActionsProps) {
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -71,10 +67,6 @@ export function AuthFormActions({ backHref, children }: AuthFormActionsProps) {
       {children}
     </div>
   );
-}
-
-interface AuthCheckEmailProps {
-  backHref: string;
 }
 
 export function AuthCheckEmail({ backHref }: AuthCheckEmailProps) {

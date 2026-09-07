@@ -60,7 +60,7 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1063,
+    "actual": 1057,
     "file": "apps/server/api/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/models/services/models.service.ts"
@@ -294,6 +294,12 @@
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"
   },
   {
+    "actual": 155,
+    "file": "apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts",
+    "metric": "method-lines",
+    "symbol": "InstagramController.verify"
+  },
+  {
     "actual": 1049,
     "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts",
     "metric": "file-lines",
@@ -322,6 +328,12 @@
     "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.ts"
+  },
+  {
+    "actual": 156,
+    "file": "apps/server/api/src/services/integrations/twitter/controllers/twitter.controller.ts",
+    "metric": "method-lines",
+    "symbol": "TwitterController.verify"
   },
   {
     "actual": 152,

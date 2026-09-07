@@ -1,13 +1,7 @@
-'use client';
-
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
-import type { IssueComment } from '@services/management/issue-comments.service';
+import type { CommentItemProps } from '@props/tasks/comment-item.props';
 import { Cpu, User } from 'lucide-react';
-
-type CommentItemProps = {
-  comment: IssueComment;
-};
 
 export function CommentItem({ comment }: CommentItemProps) {
   const isAgent = comment.isAgentComment;
