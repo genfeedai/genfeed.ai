@@ -236,18 +236,6 @@ vi.mock('./WorkflowCardPreview', () => ({
 vi.mock('./useWorkflowLibraryPage', () => ({
   useWorkflowLibraryPage: () => ({
     error: null,
-    filteredWorkflows: [
-      {
-        id: 'workflow-1',
-        cloudSync: mocks.cloudSync,
-        createdAt: '2026-07-01T00:00:00.000Z',
-        isScheduleEnabled: true,
-        lifecycle: 'published',
-        label: 'Scheduled workflow',
-        schedule: '0 9 * * 1',
-        updatedAt: '2026-07-02T00:00:00.000Z',
-      },
-    ],
     handleDelete: mocks.handleDelete,
     handleDisableSelected: mocks.handleDisableSelected,
     handleDuplicate: mocks.handleDuplicate,
@@ -276,7 +264,18 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.cloudSync = true;
     mocks.selectedIds = new Set();
     mocks.isLoading = false;
-    mocks.workflows = [{ id: 'workflow-1' }];
+    mocks.workflows = [
+      {
+        id: 'workflow-1',
+        cloudSync: mocks.cloudSync,
+        createdAt: '2026-07-01T00:00:00.000Z',
+        isScheduleEnabled: true,
+        lifecycle: 'published',
+        label: 'Scheduled workflow',
+        schedule: '0 9 * * 1',
+        updatedAt: '2026-07-02T00:00:00.000Z',
+      },
+    ];
   });
 
   it('keeps card navigation separate from schedule and menu actions', () => {

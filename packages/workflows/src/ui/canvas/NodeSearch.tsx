@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { Kbd } from '@genfeedai/ui';
@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
-import { Input } from '@genfeedai/ui/primitives/input';
+import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -132,18 +132,16 @@ export function NodeSearch() {
 
         {/* Content */}
         <div role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              type="text"
-              placeholder="Search nodes by name, type, or comment..."
-              aria-label="Search nodes"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          <FormSearchbar
+            ariaLabel="Search nodes"
+            className="mb-3"
+            inputClassName="bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            inputRef={inputRef}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search nodes by name, type, or comment..."
+            size={ComponentSize.MD}
+            value={search}
+          />
 
           <div
             role="presentation"

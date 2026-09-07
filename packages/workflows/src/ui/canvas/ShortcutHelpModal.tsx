@@ -1,5 +1,7 @@
 'use client';
 
+import { ComponentSize } from '@genfeedai/contracts';
+
 import { Kbd } from '@genfeedai/ui';
 import {
   Dialog,
@@ -7,8 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
-import { Input } from '@genfeedai/ui/primitives/input';
-import { Keyboard, Search } from 'lucide-react';
+import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
+import { Keyboard } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
@@ -146,17 +148,15 @@ export function ShortcutHelpModal() {
         </DialogHeader>
 
         <div>
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search shortcuts..."
-              aria-label="Search shortcuts"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+          <FormSearchbar
+            ariaLabel="Search shortcuts"
+            className="mb-4"
+            inputClassName="bg-secondary border-border outline-none focus:ring-2 focus:ring-ring"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search shortcuts..."
+            size={ComponentSize.MD}
+            value={searchQuery}
+          />
 
           <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
             {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
