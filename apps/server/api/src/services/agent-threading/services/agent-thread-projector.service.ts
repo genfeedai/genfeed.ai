@@ -153,6 +153,12 @@ export class AgentThreadProjectorService {
       };
     }
 
+    return this.clearTerminalDecisions(nextSnapshot);
+  }
+
+  private clearTerminalDecisions(
+    nextSnapshot: MutableSnapshot,
+  ): MutableSnapshot {
     const status = this.asRecord(nextSnapshot.activeRun)?.status;
     if (
       status === 'cancelled' ||
