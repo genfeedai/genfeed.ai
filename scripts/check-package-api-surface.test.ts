@@ -86,6 +86,76 @@ describe('check-package-api-surface', () => {
     ]);
   });
 
+  it('ignores JSDoc-only edits when hashing a module signature', () => {
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Original wording. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const before = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Reworded, same signature. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const after = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    expect(after.modules[0]?.hash).toBe(before.modules[0]?.hash);
+    expect(comparePackageSnapshots([before], [after])).toHaveLength(0);
+  });
+
+  it('still flags a real signature change in the same module', () => {
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Doc. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const before = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Doc. */',
+        'export function f(a: string, b: number): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const after = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    expect(after.modules[0]?.hash).not.toBe(before.modules[0]?.hash);
+    expect(comparePackageSnapshots([before], [after])).toHaveLength(1);
+  });
+
   it('fails public API diffs without a version bump or migration note', () => {
     const baseSnapshots = [
       {

@@ -743,6 +743,10 @@ function createSignature(filePath: string, fileContent: string): string {
         jsx: resolveJsxMode(filePath),
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.Bundler,
+        // A JSDoc edit is not an API surface change. Declaration emit keeps
+        // comments by default, so without this a reworded doc block asks for a
+        // version bump or a changenote and the guard becomes noise.
+        removeComments: true,
         skipLibCheck: true,
         target: ts.ScriptTarget.ES2020,
         verbatimModuleSyntax: true,

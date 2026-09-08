@@ -58,12 +58,14 @@ describe('BaseFactory', () => {
 });
 
 describe('TestIdFactory', () => {
-  it('creates valid ObjectIds and string representations', () => {
-    const objectId = TestIdFactory.create();
+  it('creates opaque, non-empty string ids', () => {
+    const id = TestIdFactory.create();
     const stringId = TestIdFactory.createString();
 
-    expect(TestIdFactory.isValid(objectId)).toBe(true);
+    expect(TestIdFactory.isValid(id)).toBe(true);
     expect(TestIdFactory.isValid(stringId)).toBe(true);
+    expect(id).toMatch(/^test-id-/u);
+    expect(TestIdFactory.create()).not.toBe(id);
   });
 
   it('creates many ids', () => {
@@ -77,7 +79,8 @@ describe('test helpers', () => {
     expect(generateTestEmail('helper')).toContain('helper.');
     expect(generateTestEmail('helper')).toContain('@example.com');
     expect(generateTestUrl('/path')).toBe('https://test.example.com/path');
-    expect(generateTestId()).toHaveLength(24);
+    expect(generateTestId()).toMatch(/^test-id-\w+$/u);
+    expect(generateTestId()).not.toBe(generateTestId());
 
     const before = Date.now();
     await waitFor(5);

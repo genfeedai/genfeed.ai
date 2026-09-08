@@ -299,6 +299,16 @@ jobs:
         if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
         continue-on-error: true
         run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
+      # `.changes/` only means something if something reads it. The guard diffs
+      # each packages/* workspace's exported type surface against the base and
+      # asks for a version bump or a changenote when it moved.
+      - name: Check package API surface
+        run: |
+          if [ "$CI_IS_CHANGE_RUN" = "true" ] && [ -n "$CI_BASE_SHA" ]; then
+            bun run check:package-api-surface --base-ref "$CI_BASE_SHA"
+          else
+            bun run check:package-api-surface --base-ref HEAD~1
+          fi
       - name: Run executable contracts
         run: bun run test:executable-contracts
 
