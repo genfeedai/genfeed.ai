@@ -18,6 +18,7 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
   'link-check.yml',
+  'playwright-coverage-policy.yml',
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
   'server-image-pr.yml',

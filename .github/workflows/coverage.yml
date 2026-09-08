@@ -382,12 +382,11 @@ jobs:
         id: coverage
         # No --reporter override here so the monocart reporter (lcov + v8) from
         # playwright-coverage.config.ts runs in full. --shard splits app-core.
-        # Threshold 0 — this run reports coverage, it does not gate on it.
+        # Shards collect data; the merged report owns threshold enforcement.
         run: bun run test:e2e:coverage -- --shard=${{ matrix.shard }}/4
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
-          E2E_COVERAGE_THRESHOLD: "0"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
@@ -409,6 +408,37 @@ jobs:
             exit 1
           fi
 
+  coverage-e2e-merge:
+    name: Coverage — apps/app E2E (merge)
+    needs: coverage-e2e
+    if: ${{ needs.coverage-e2e.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "24.x"
+          install-command: "bun install --frozen-lockfile"
+      - name: Download all Playwright shard reports
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: e2e-coverage-shard-*
+          path: .e2e-coverage-shards
+      - name: Merge and validate Playwright coverage
+        run: node scripts/ci/playwright-coverage.mjs merge .e2e-coverage-shards playwright-report/merged-coverage
+      - name: Preserve merged baseline evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-coverage-merged
+          path: playwright-report/merged-coverage/
+          if-no-files-found: error
+          retention-days: 90
+
   scheduled-failure-report:
     name: Report or recover scheduled coverage failures
     needs:
@@ -419,6 +449,7 @@ jobs:
       - coverage-api
       - coverage-api-merge
       - coverage-e2e
+      - coverage-e2e-merge
     if: ${{ !cancelled() && github.event_name == 'schedule' }}
     concurrency:
       group: scheduled-coverage-failure-reporter

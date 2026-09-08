@@ -46,9 +46,10 @@ describe('coverage workspaces', () => {
 
     expect(workflowWorkspaces).toEqual([...COVERAGE_WORKSPACES].sort());
     for (const [, days] of workflow.matchAll(/retention-days: (\d+)/g)) {
-      expect(Number(days)).toBe(7);
+      expect([7, 90]).toContain(Number(days));
     }
-    expect(workflow).toMatch(/E2E_COVERAGE_THRESHOLD: "0"/);
+    expect(workflow).not.toMatch(/E2E_COVERAGE_THRESHOLD/);
+    expect(workflow).toContain('playwright-coverage.mjs merge');
     expect(
       validateCoverageWorkspaceScripts(
         repositoryRoot,

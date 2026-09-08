@@ -31,8 +31,6 @@ import baseConfig from './playwright.config';
  * productionBrowserSourceMaps (see apps/app/next.config.ts).
  */
 
-const COVERAGE_THRESHOLD = Number(process.env.E2E_COVERAGE_THRESHOLD ?? '80');
-
 export default defineConfig({
   ...baseConfig,
   // Coverage is a measurement pass, not a flake-gate — e2e.yml is the gate.
@@ -67,15 +65,10 @@ export default defineConfig({
           outputDir: path.join('playwright-report', 'coverage'),
           reports: [
             ['v8'],
+            ['raw'],
             ['console-summary'],
             ['lcovonly', { file: 'lcov.info' }],
           ],
-          // Fail the run if coverage drops below target.
-          thresholds: {
-            bytes: COVERAGE_THRESHOLD,
-            lines: COVERAGE_THRESHOLD,
-            statements: COVERAGE_THRESHOLD,
-          },
         },
         name: 'Genfeed E2E',
         outputFile: path.join('playwright-report', 'coverage', 'index.html'),
