@@ -5,6 +5,8 @@ import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
 const SIDEBAR_TRANSLATIONS: Record<string, string> = {
+  newConversation: 'New Conversation',
+  newConversationAriaLabel: 'Start a new conversation',
   newTask: 'New Task',
   newTaskAriaLabel: 'Open new task modal',
   search: 'Search',
@@ -680,7 +682,9 @@ describe('AppProtectedLayout', () => {
     // Conversations get the same two quick-action rows as every other
     // surface; only the primary action differs. The column itself no longer
     // carries a bare "+", so there is no `New agent thread` link.
-    expect(screen.getByTestId('sidebar-primary-action')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'New Conversation' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'New agent thread' }),
@@ -833,7 +837,11 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByRole('link', { name: 'Back to Workspace' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Conversations')).toBeInTheDocument();
+    // The column renders the thread list itself, with no "Conversations"
+    // title above it: the sidebar section already says where you are, so the
+    // header was redundant chrome.
+    expect(screen.getByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
     ).not.toBeInTheDocument();
