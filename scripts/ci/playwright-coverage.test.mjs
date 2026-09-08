@@ -15,6 +15,7 @@ import {
   loadPolicy,
   METRICS,
   mergeCoverage,
+  readMergedEvidence,
   validatePolicy,
   validateSummary,
 } from './playwright-coverage.mjs';
@@ -228,4 +229,35 @@ test('collection and workflow use merged enforcement and durable single-source p
   assert.match(readiness, /workflow_run:/);
   assert.match(readiness, /types: \[completed\]/);
   assert.match(readiness, /BASE_SHA:/);
+});
+
+test('baseline downloads require the actual LCOV and matching summary, not only a success flag', () => {
+  const directory = mkdtempSync(
+    path.join(tmpdir(), 'playwright-evidence-test-'),
+  );
+  try {
+    writeFileSync(
+      path.join(directory, 'playwright-coverage-report.json'),
+      JSON.stringify(reports()[1]),
+    );
+    writeFileSync(
+      path.join(directory, 'coverage-summary.json'),
+      JSON.stringify({ total: metrics() }),
+    );
+    assert.throws(() => readMergedEvidence(directory), /ENOENT/);
+    writeFileSync(path.join(directory, 'lcov.info'), 'garbage');
+    assert.throws(() => readMergedEvidence(directory), /LCOV/);
+    writeFileSync(
+      path.join(directory, 'lcov.info'),
+      'SF:apps/app/example.ts\nDA:1,1\nend_of_record\n',
+    );
+    assert.equal(readMergedEvidence(directory).runId, 1);
+    writeFileSync(
+      path.join(directory, 'coverage-summary.json'),
+      JSON.stringify({ total: metrics(50) }),
+    );
+    assert.throws(() => readMergedEvidence(directory), /does not match/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

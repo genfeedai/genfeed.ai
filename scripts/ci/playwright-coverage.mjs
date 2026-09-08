@@ -286,6 +286,26 @@ export async function mergeCoverage(
   return report;
 }
 
+export function readMergedEvidence(directory) {
+  const report = readJson(
+    path.join(directory, 'playwright-coverage-report.json'),
+  );
+  const summary = readJson(path.join(directory, 'coverage-summary.json'));
+  const lcov = readFileSync(path.join(directory, 'lcov.info'), 'utf8');
+  if (
+    !/^SF:.+/m.test(lcov) ||
+    !/^DA:\d+,\d+/m.test(lcov) ||
+    !/^end_of_record$/m.test(lcov)
+  )
+    throw new Error('Missing executable LCOV artifact');
+  if (
+    JSON.stringify(validateSummary(summary.total)) !==
+    JSON.stringify(validateSummary(report.metrics))
+  )
+    throw new Error('Merged summary does not match evidence metrics');
+  return report;
+}
+
 async function api(endpoint) {
   const response = await fetch(
     `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/${endpoint}`,
@@ -332,9 +352,7 @@ export async function collectReadiness(outputDir) {
           ],
           { stdio: 'pipe' },
         );
-        reports[run.id] = readJson(
-          path.join(target, 'playwright-coverage-report.json'),
-        );
+        reports[run.id] = readMergedEvidence(target);
       } catch (error) {
         artifactErrors.push(`Run ${run.id}: ${error.message}`);
       }
