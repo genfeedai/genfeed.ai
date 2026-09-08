@@ -214,6 +214,47 @@ describe('SectionTopbar', () => {
     expect(screen.getByText('How this page works.')).toBeInTheDocument();
   });
 
+  it('right-aligns Help when it is the only breadcrumb toolbar control', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+    render(
+      <SectionTopbar
+        title="Overview"
+        help={{ title: 'About Overview', body: 'Workspace guidance.' }}
+      />,
+    );
+
+    const helpSlot = screen.getByTestId('section-topbar-help');
+    expect(helpSlot.parentElement).toHaveClass('justify-end');
+    expect(helpSlot).toHaveClass('shrink-0');
+    expect(helpSlot.parentElement?.lastElementChild).toBe(helpSlot);
+    expect(
+      screen.queryByTestId('section-topbar-actions'),
+    ).not.toBeInTheDocument();
+    expect(helpSlot).toContainElement(
+      screen.getByRole('button', { name: 'About this page' }),
+    );
+  });
+
+  it('keeps Help after both actions and tabs in the breadcrumb toolbar', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+    render(
+      <SectionTopbar
+        title="Content"
+        actions={<button type="button">Refresh</button>}
+        tabs={<a href="/content">All content</a>}
+        help={{ title: 'About Content', body: 'Content guidance.' }}
+      />,
+    );
+
+    const actions = screen.getByTestId('section-topbar-actions');
+    const tabs = screen.getByTestId('section-topbar-tabs');
+    const helpSlot = screen.getByTestId('section-topbar-help');
+    expect(actions.nextElementSibling).toBe(tabs);
+    expect(tabs.nextElementSibling).toBe(helpSlot);
+    expect(helpSlot.parentElement?.lastElementChild).toBe(helpSlot);
+    expect(helpSlot.parentElement).toHaveClass('justify-end');
+  });
+
   it('omits the help trigger when the help prop is not provided', () => {
     render(<SectionTopbar title="Trending Content" />);
 

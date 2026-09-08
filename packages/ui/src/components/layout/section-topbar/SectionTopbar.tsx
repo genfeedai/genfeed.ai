@@ -12,7 +12,7 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - primary tools followed by tabs at the right edge, inside the same bar
+ * - primary tools followed by tabs and Help at the right edge, inside the same bar
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row, then optional tab strip under it
@@ -75,7 +75,7 @@ export default function SectionTopbar({
               {leading}
             </div>
           ) : null}
-          {hasActions ? (
+          {actions ? (
             <div
               data-testid="section-topbar-actions"
               className={cn(
@@ -86,7 +86,6 @@ export default function SectionTopbar({
               )}
             >
               {actions}
-              {helpTrigger}
             </div>
           ) : null}
           {hasTabs ? (
@@ -95,6 +94,14 @@ export default function SectionTopbar({
               className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
             >
               {tabs}
+            </div>
+          ) : null}
+          {helpTrigger ? (
+            <div
+              data-testid="section-topbar-help"
+              className="flex shrink-0 items-center"
+            >
+              {helpTrigger}
             </div>
           ) : null}
         </div>
