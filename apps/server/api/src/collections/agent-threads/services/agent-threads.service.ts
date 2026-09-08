@@ -49,6 +49,7 @@ type ThreadGeneratedAsset = {
 };
 
 type WorkflowExecutionRecord = {
+  createdAt?: Date;
   id: string;
   status: string;
 };
@@ -59,6 +60,7 @@ type WorkflowExecutionRecord = {
  * (written by `AgentOrchestratorService`), so it is projected out in SQL.
  */
 type ThreadExecutionRow = {
+  createdAt?: Date;
   id: string;
   status: string;
   threadId: string;
@@ -321,7 +323,11 @@ export class AgentThreadsService extends BaseService<
     const latestExecutionsByThreadId = new Map<string, WorkflowExecutionRecord>(
       executionRows
         .map(
-          (row) => [row.threadId, { id: row.id, status: row.status }] as const,
+          (row) =>
+            [
+              row.threadId,
+              { createdAt: row.createdAt, id: row.id, status: row.status },
+            ] as const,
         )
         .reverse(),
     );
@@ -419,13 +425,19 @@ export class AgentThreadsService extends BaseService<
     });
 
     if (!snapshot) {
+      const runtimeState = resolveAgentRuntimeState({
+        workflowStatus: latestExecution?.status,
+      });
       return {
-        attentionState: null,
+        attentionState:
+          runtimeState === AgentRuntimeState.RUNNING ? 'running' : null,
         decisionHref: `/agent/${threadId}`,
+        lastActivityAt: latestExecution?.createdAt?.toISOString(),
         lastGeneratedAssetUrl: lastGeneratedAsset?.url,
         pendingInputCount: 0,
-        runStatus: 'idle',
-        runtimeState: AgentRuntimeState.READY,
+        runId: latestExecution?.id,
+        runStatus: this.toLegacyRunStatus(runtimeState),
+        runtimeState,
       };
     }
 
@@ -440,7 +452,12 @@ export class AgentThreadsService extends BaseService<
       pendingApprovals > 0 ||
       Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval);
     const activeRun = this.asRecord(snapshot.activeRun);
-    const rawRunStatus = this.readString(activeRun, 'status');
+    const isLatestRun =
+      !latestExecution ||
+      this.readString(activeRun, 'runId') === latestExecution.id;
+    const rawRunStatus = isLatestRun
+      ? this.readString(activeRun, 'status')
+      : undefined;
     const runtimeState = resolveAgentRuntimeState({
       hasPendingConfirmation,
       pendingInputCount,
@@ -488,11 +505,13 @@ export class AgentThreadsService extends BaseService<
             ? 'running'
             : null,
       decisionHref,
-      lastActivityAt,
+      lastActivityAt: !isLatestRun
+        ? (latestExecution?.createdAt?.toISOString() ?? lastActivityAt)
+        : lastActivityAt,
       lastAssistantPreview: lastAssistantPreview?.slice(0, 280),
       lastGeneratedAssetUrl: lastGeneratedAsset?.url,
       pendingInputCount,
-      runId: this.readString(activeRun, 'runId'),
+      runId: latestExecution?.id ?? this.readString(activeRun, 'runId'),
       runStatus,
       runtimeState,
     };
@@ -515,6 +534,7 @@ export class AgentThreadsService extends BaseService<
     return this.prisma.$queryRaw<ThreadExecutionRow[]>`
       SELECT
         execution.id AS "id",
+        execution."createdAt" AS "createdAt",
         execution.status::text AS "status",
         execution.result -> 'metadata' ->> 'threadId' AS "threadId"
       FROM workflow_executions AS execution

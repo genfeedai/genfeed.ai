@@ -319,4 +319,49 @@ describe('AgentThreadsService Prisma row contract', () => {
       }),
     ]);
   });
+  it('lists an accepted queued execution before a snapshot exists', async () => {
+    delegate.findMany.mockResolvedValue([
+      { id: 'thread-queued', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    queryRaw.mockResolvedValue([
+      {
+        id: 'execution-new',
+        status: 'PENDING',
+        threadId: 'thread-queued',
+        createdAt: new Date(),
+      },
+    ]);
+    const runs = await service.listAgentRuns('user-1', 'org-1');
+    expect(runs).toEqual([
+      expect.objectContaining({
+        id: 'execution-new',
+        threadId: 'thread-queued',
+        runtimeState: 'running',
+      }),
+    ]);
+  });
+
+  it('does not let the previous failed run hide a newer queued execution', async () => {
+    delegate.findMany.mockResolvedValue([
+      { id: 'thread-queued', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        threadId: 'thread-queued',
+        data: { activeRun: { runId: 'execution-old', status: 'failed' } },
+      },
+    ]);
+    queryRaw.mockResolvedValue([
+      {
+        id: 'execution-new',
+        status: 'PENDING',
+        threadId: 'thread-queued',
+        createdAt: new Date(),
+      },
+    ]);
+    const runs = await service.listAgentRuns('user-1', 'org-1');
+    expect(runs).toEqual([
+      expect.objectContaining({ id: 'execution-new', runtimeState: 'running' }),
+    ]);
+  });
 });
