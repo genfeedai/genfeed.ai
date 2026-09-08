@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@eval-actions/*": ["../../packages/actions/src/*"],
+      "@eval-contracts/*": ["../../packages/contracts/src/*"],
+      "@eval-agent/*": ["../../packages/agent/src/*"],
+      "@eval-workflows/*": ["../../packages/workflows/src/*"]
+    }
+  },
+  "include": ["*.ts"]
+}
