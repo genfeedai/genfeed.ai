@@ -36,6 +36,7 @@
  *     bun run scripts/generate-home-video.ts --only formats # carousel clips only
  *     bun run scripts/generate-home-video.ts --regenerate   # ignore the raw cache (spends)
  *     bun run scripts/generate-home-video.ts --upload       # publish to the CDN
+ *     bun run scripts/generate-home-video.ts --backup-masters # archive the raw generations
  *
  * Credentials come from the repo `.env.local` (REPLICATE_KEY, AWS_*); this
  * script never prints them. Requires `ffmpeg`, `ffprobe`, and `cwebp` on PATH.
@@ -550,6 +551,35 @@ const CONTENT_TYPES: Record<string, string> = {
  */
 const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800';
 
+/**
+ * Back the raw generations up to the CDN bucket.
+ *
+ * These are the files exactly as Replicate returned them, before any ffmpeg
+ * touched them, and they are the only part of this pipeline that cannot be
+ * reproduced without paying for it again. Everything else — the montage, the
+ * closed loop, both encodes, the posters — is derived from them locally.
+ *
+ * They sit beside the assets they produce, under a name that says what they
+ * are. Nothing links to them, and no `_masters` path is referenced anywhere in
+ * the site.
+ */
+function uploadMasters(): void {
+  logger.log('backing up raw generations');
+
+  run('aws', [
+    's3',
+    'sync',
+    RAW_DIR,
+    `s3://${CDN_BUCKET}/${CDN_PREFIX}/_masters/`,
+    '--content-type',
+    'video/mp4',
+    '--cache-control',
+    'private, no-store',
+  ]);
+
+  logger.log(`masters backed up to s3://${CDN_BUCKET}/${CDN_PREFIX}/_masters/`);
+}
+
 function upload(artefacts: Artefacts, prefix: string): void {
   for (const file of Object.values(artefacts)) {
     const key = `${CDN_PREFIX}/${prefix}/${path.basename(file)}`;
@@ -646,6 +676,7 @@ async function main(): Promise<void> {
   const isDryRun = args.includes('--dry-run');
   const shouldRegenerate = args.includes('--regenerate');
   const shouldUpload = args.includes('--upload');
+  const shouldBackUpMasters = args.includes('--backup-masters');
   const onlyIndex = args.indexOf('--only');
   const only = onlyIndex === -1 ? undefined : args[onlyIndex + 1];
 
@@ -680,7 +711,7 @@ async function main(): Promise<void> {
   }
 
   for (const binary of ['ffmpeg', 'ffprobe', 'cwebp']) requireBinary(binary);
-  if (shouldUpload) requireBinary('aws');
+  if (shouldUpload || shouldBackUpMasters) requireBinary('aws');
 
   mkdirSync(RAW_DIR, { recursive: true });
   mkdirSync(BUILD_DIR, { recursive: true });
@@ -700,6 +731,8 @@ async function main(): Promise<void> {
       ? Promise.resolve()
       : buildFormats(token, shouldRegenerate, shouldUpload),
   ]);
+
+  if (shouldBackUpMasters) uploadMasters();
 
   logger.log(
     shouldUpload
