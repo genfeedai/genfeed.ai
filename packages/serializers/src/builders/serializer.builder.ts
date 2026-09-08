@@ -6,6 +6,10 @@ import {
 import type { ISerializer } from '@serializers/interfaces';
 
 type SerializerBuilderConfig = ISerializerConfig & {
+  attributeDerivations?: Record<
+    string,
+    (record: Record<string, unknown>) => unknown
+  >;
   attributeTransforms?: Record<
     string,
     (record: Record<string, unknown>) => unknown
@@ -28,8 +32,14 @@ export function buildSerializer(
       `buildSerializer received undefined config for packageType="${packageType}". This is likely a circular import.`,
     );
   }
-  const { type, attributes, attributeTransforms, relationships, ...rest } =
-    config;
+  const {
+    type,
+    attributes,
+    attributeTransforms,
+    attributeDerivations,
+    relationships,
+    ...rest
+  } = config;
   const { relationshipEntries, passthrough } = partitionRelationships(rest);
 
   const serializerConfig: SerializerBuilderConfig = {
@@ -49,7 +59,7 @@ export function buildSerializer(
     .join('');
 
   const serializer = getSerializer(serializerConfig, 'default', { id: 'id' });
-  if (!attributeTransforms) {
+  if (!attributeTransforms && !attributeDerivations) {
     return { [`${typeCapitalized}Serializer`]: serializer };
   }
 
@@ -58,7 +68,11 @@ export function buildSerializer(
     [`${typeCapitalized}Serializer`]: {
       serialize: (payload: unknown) =>
         originalSerialize(
-          transformSerializerPayload(payload, attributeTransforms),
+          transformSerializerPayload(
+            payload,
+            attributeTransforms ?? {},
+            attributeDerivations ?? {},
+          ),
         ),
     },
   };
@@ -170,18 +184,20 @@ function partitionRelationships(entries: Record<string, unknown>): {
 function transformSerializerPayload(
   payload: unknown,
   transforms: Record<string, (record: Record<string, unknown>) => unknown>,
+  derivations: Record<string, (record: Record<string, unknown>) => unknown>,
 ): unknown {
   if (Array.isArray(payload)) {
     return payload.map((record) =>
-      transformSerializerRecord(record, transforms),
+      transformSerializerRecord(record, transforms, derivations),
     );
   }
-  return transformSerializerRecord(payload, transforms);
+  return transformSerializerRecord(payload, transforms, derivations);
 }
 
 function transformSerializerRecord(
   value: unknown,
   transforms: Record<string, (record: Record<string, unknown>) => unknown>,
+  derivations: Record<string, (record: Record<string, unknown>) => unknown>,
 ): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return value;
@@ -193,6 +209,9 @@ function transformSerializerRecord(
     if (attribute in record) {
       transformed[attribute] = transform(transformed);
     }
+  }
+  for (const [attribute, derive] of Object.entries(derivations)) {
+    transformed[attribute] = derive(transformed);
   }
   return transformed;
 }

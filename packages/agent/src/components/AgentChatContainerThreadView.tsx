@@ -4,6 +4,7 @@ import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline
 import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
+import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
 import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
@@ -137,6 +138,7 @@ export function AgentChatContainerThreadView({
       ) : null}
       {pendingInputRequest && shouldShowInputRequestOverlay ? (
         <AgentInputRequestOverlay
+          key={pendingInputRequest.inputRequestId}
           isSubmitting={isSubmittingInputRequest}
           onSubmit={onSubmitInputRequest}
           request={pendingInputRequest}
@@ -169,6 +171,8 @@ export function AgentChatContainerThreadView({
               onCreateFollowUpTasks={onCreateFollowUpTasks}
             />
           ) : null}
+
+          <AgentWorkObjects apiService={apiService} isReadOnly={isReadOnly} />
 
           <AgentChatTimeline
             timeline={timeline}

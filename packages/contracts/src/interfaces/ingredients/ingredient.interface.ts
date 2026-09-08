@@ -1,3 +1,4 @@
+import type { AgentWorkObjectMaterial } from '@genfeedai/contracts/interfaces/ai/agent-work-object.interface';
 import type {
   AssetScope,
   IngredientCategory,
@@ -23,6 +24,7 @@ import type {
 } from '../index';
 
 export interface IIngredient extends IBaseEntity {
+  agentWorkObject?: AgentWorkObjectMaterial;
   userId?: string | null;
   organizationId?: string | null;
   brandId?: string | null;

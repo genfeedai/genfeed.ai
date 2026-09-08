@@ -2,6 +2,9 @@ import { formatEnumLabel } from '@genfeedai/contracts';
 
 export const TOOL_LABELS: Record<string, string> = {
   ai_action: 'AI Action',
+  request_input: 'Choosing the next step',
+  present_work_object: 'Preparing your draft',
+  ingest_source_media: 'Adding source to Library',
   batch_approve_reject: 'Batch Review Action',
   check_onboarding_status: 'Check Onboarding',
   complete_outreach_sequence: 'Complete outreach sequence',

@@ -16,6 +16,7 @@ import {
   isSupportedThreadUiAction,
   resolveThreadUiActionFamily,
 } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-family';
+import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type {
@@ -23,6 +24,7 @@ import type {
   AgentChatResult,
   AgentThreadUiActionRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { withAgentScopeResult } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   AgentRuntimeSessionService,
@@ -52,6 +54,8 @@ export class AgentOrchestratorUiActionService {
     private readonly brandIdentityActions: AgentOrchestratorUiActionBrandIdentityService,
     private readonly confirmedToolActions: AgentOrchestratorUiActionConfirmedToolService,
     private readonly planActions: AgentOrchestratorUiActionPlanService,
+    private readonly workObjects: AgentWorkObjectService,
+    private readonly workFinalizer: AgentOrchestratorUiActionFinalizerService,
     @Optional()
     private readonly agentRuntimeSessionService?: AgentRuntimeSessionService,
   ) {}
@@ -174,6 +178,35 @@ export class AgentOrchestratorUiActionService {
       threadId,
     };
     switch (action) {
+      case 'review_work_object': {
+        const reviewed = await this.workObjects.review(
+          {
+            threadId,
+            organizationId: context.organizationId,
+            userId: context.userId,
+            brandId: scope.brandId,
+          },
+          String(request.payload?.objectId ?? ''),
+          String(request.payload?.reviewToken ?? ''),
+          context.executionId,
+        );
+        if (!reviewed) {
+          throw new BadRequestException(
+            'This draft review is no longer active.',
+          );
+        }
+        return withAgentScopeResult(
+          await this.workFinalizer.finalizeStructuredAssistantTurn({
+            threadId,
+            context,
+            model,
+            content: 'Draft review finished.',
+            result: { success: true, creditsUsed: 0 },
+            toolCalls: [],
+          }),
+          scope,
+        );
+      }
       case 'approve_plan':
       case 'revise_plan':
         return withAgentScopeResult(

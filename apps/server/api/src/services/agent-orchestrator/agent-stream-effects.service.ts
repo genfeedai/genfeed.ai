@@ -451,6 +451,7 @@ export class AgentStreamEffectsService {
   async publishStreamCancelled(
     context: AgentChatContext,
     threadId: string,
+    interrupted = false,
   ): Promise<void> {
     try {
       await this.publishStreamError({
@@ -461,8 +462,8 @@ export class AgentStreamEffectsService {
       });
       await this.publishStreamWorkEvent({
         detail: 'The active run was stopped by the user.',
-        event: 'cancelled',
-        label: 'Agent cancelled',
+        event: interrupted ? 'interrupted' : 'cancelled',
+        label: interrupted ? 'Work interrupted' : 'Agent cancelled',
         runId: context.executionId,
         status: 'cancelled',
         threadId,

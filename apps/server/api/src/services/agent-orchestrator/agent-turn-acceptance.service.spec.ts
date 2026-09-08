@@ -28,16 +28,19 @@ describe('AgentTurnAcceptanceService', () => {
     addMessage: vi.fn(),
   };
 
+  const threadEngine = { getSnapshot: vi.fn(), resolveInputRequest: vi.fn() };
   let service: AgentTurnAcceptanceService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    threadEngine.getSnapshot.mockResolvedValue({ pendingInputRequests: [] });
     service = new AgentTurnAcceptanceService(
       logger as never,
       prisma as never,
       scopeService as never,
       workflowRunner as never,
       agentMessagesService as never,
+      threadEngine as never,
     );
     scopeService.prepareForTurn.mockResolvedValue({
       initialBrandId: 'brand-1',
@@ -70,6 +73,59 @@ describe('AgentTurnAcceptanceService', () => {
     );
     agentMessagesService.addMessage.mockResolvedValue({});
   });
+
+  it.each(['snapshot', 'resolution'])(
+    'accepts a turn when pending input %s fails',
+    async (failure) => {
+      scopeService.prepareForTurn.mockResolvedValue({
+        existingScope: {
+          threadId: 'thread-1',
+          brandId: 'brand-1',
+          contextVersion: 1,
+        },
+      });
+      prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+        id: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+        status: 'active',
+      });
+      if (failure === 'snapshot')
+        threadEngine.getSnapshot.mockRejectedValueOnce(
+          new Error('snapshot conflict'),
+        );
+      else {
+        threadEngine.getSnapshot.mockResolvedValueOnce({
+          pendingInputRequests: [
+            { requestId: 'ask-1', allowFreeText: true, options: [] },
+          ],
+        });
+        threadEngine.resolveInputRequest.mockRejectedValueOnce(
+          new Error('resolution conflict'),
+        );
+      }
+      const result = await service.accept(
+        {
+          brandId: 'brand-1',
+          clientRequestId: 'retry-input',
+          threadId: 'thread-1',
+          content: 'My answer',
+          source: 'agent',
+        },
+        {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          apiKeyContext: { isApiKey: false, scopes: [] },
+        },
+      );
+      expect(result.status).toBe('queued');
+      expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledOnce();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Pending agent input'),
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    },
+  );
 
   it('durably acknowledges a new turn with stable request, execution, thread, and context identity', async () => {
     const acknowledgement = await service.accept(
@@ -224,6 +280,65 @@ describe('AgentTurnAcceptanceService', () => {
         }),
       }),
     );
+  });
+
+  it.each([true, false])(
+    'persists host approval capability %s across the durable turn boundary',
+    async (hostSupportsApproval) => {
+      await service.accept(
+        {
+          clientRequestId: 'approval-capability',
+          content: 'Create a draft',
+          hostSupportsApproval,
+        },
+        { organizationId: 'org-1', userId: 'user-1' },
+      );
+      expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputValues: {
+            request: expect.objectContaining({ hostSupportsApproval }),
+          },
+        }),
+      );
+    },
+  );
+
+  it('resolves a pasted answer on the same accepted turn', async () => {
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        threadId: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+      },
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      id: 'thread-1',
+      brandId: 'brand-1',
+      contextVersion: 1,
+      status: 'active',
+    });
+    threadEngine.getSnapshot.mockResolvedValue({
+      pendingInputRequests: [
+        { requestId: 'ask-source', allowFreeText: true, options: [] },
+      ],
+    });
+    await service.accept(
+      {
+        threadId: 'thread-1',
+        clientRequestId: 'answer-1',
+        content: 'https://youtu.be/source',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    expect(threadEngine.resolveInputRequest).toHaveBeenCalledWith({
+      threadId: 'thread-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      requestId: 'ask-source',
+      brandId: 'brand-1',
+      contextVersion: 1,
+      answer: 'https://youtu.be/source',
+    });
   });
 
   it('propagates an enqueue failure instead of acknowledging the turn', async () => {

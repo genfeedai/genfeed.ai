@@ -37,7 +37,12 @@ export type StreamSubscriptionDeps = {
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
-  clearPendingInputRequest: () => void;
+  clearPendingInputRequest: (inputRequestId?: string) => void;
+  resolvePendingInputRequest: (
+    threadId: string,
+    inputRequestId: string,
+    timestamp: string,
+  ) => boolean;
   completeOnboardingIfNeeded: (
     toolCalls: AgentStreamDonePayload['toolCalls'],
   ) => void | Promise<void>;
@@ -372,6 +377,7 @@ export function attachAgentStreamSubscriptions(
           runStatus: 'waiting_input',
         });
         if (deps.isThreadVisible(payload.threadId)) {
+          deps.setActiveRunStatus('awaiting_input');
           deps.setPendingInputRequest({
             allowFreeText: payload.allowFreeText,
             fieldId: payload.fieldId,
@@ -406,13 +412,12 @@ export function attachAgentStreamSubscriptions(
       filterByThread((data) => {
         const payload = data as AgentInputResolvedPayload;
         deps.touchCompletionWatchdog();
-        deps.markThreadRunning(payload.threadId, {
-          lastActivityAt: payload.timestamp,
-          pendingInputCount: 0,
-          runStatus: 'running',
-        });
-        if (deps.isThreadVisible(payload.threadId)) {
-          deps.clearPendingInputRequest();
+        const resolved = deps.resolvePendingInputRequest(
+          payload.threadId,
+          payload.inputRequestId,
+          payload.timestamp,
+        );
+        if (resolved && deps.isThreadVisible(payload.threadId)) {
           deps.addWorkEvent({
             createdAt: payload.timestamp,
             detail: payload.answer,

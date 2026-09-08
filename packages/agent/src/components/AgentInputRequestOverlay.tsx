@@ -1,15 +1,9 @@
-import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { AgentInputRequestOverlayProps } from '@genfeedai/props/ui/agent/agent-input-request-overlay.props';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useMemo, useState } from 'react';
-
-interface AgentInputRequestOverlayProps {
-  isSubmitting?: boolean;
-  onSubmit: (answer: string) => void | Promise<void>;
-  request: AgentInputRequest;
-  variant?: 'composer' | 'inline' | 'overlay';
-}
+import { useTranslations } from 'next-intl';
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 
 const MAX_PICK_ONE_OPTIONS = 5;
 
@@ -19,6 +13,7 @@ export function AgentInputRequestOverlay({
   request,
   variant = 'overlay',
 }: AgentInputRequestOverlayProps): ReactElement {
+  const translate = useTranslations('agent.inputRequest');
   const recommendedLabel = useMemo(
     () =>
       request.options?.find(
@@ -32,7 +27,40 @@ export function AgentInputRequestOverlay({
   );
   const [freeTextAnswer, setFreeTextAnswer] = useState('');
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const requestIdRef = useRef(request.inputRequestId);
+  requestIdRef.current = request.inputRequestId;
   const isComposer = variant === 'composer';
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A new request resets the answer even when the overlay stays mounted.
+  useEffect(() => {
+    setFreeTextAnswer('');
+    setSelectedOptionId(null);
+    setSubmissionError(null);
+    submittingRef.current = false;
+  }, [request.inputRequestId]);
+
+  async function submitAnswer(
+    answer: string,
+    optionId: string | null = null,
+  ): Promise<void> {
+    if (!answer.trim() || isSubmitting || submittingRef.current) return;
+    const requestId = request.inputRequestId;
+    submittingRef.current = true;
+    setSelectedOptionId(optionId);
+    setSubmissionError(null);
+    try {
+      await onSubmit(answer.trim());
+    } catch {
+      if (requestIdRef.current === requestId) {
+        setSelectedOptionId(null);
+        setSubmissionError(translate('failed'));
+      }
+    } finally {
+      if (requestIdRef.current === requestId) submittingRef.current = false;
+    }
+  }
 
   return (
     <div
@@ -55,7 +83,7 @@ export function AgentInputRequestOverlay({
       >
         <div className={isComposer ? 'mb-3' : 'mb-4'}>
           <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Interaction
+            {translate('interaction')}
           </p>
           <h3
             className={
@@ -78,71 +106,82 @@ export function AgentInputRequestOverlay({
         </div>
 
         <div className="space-y-3">
-          {visibleOptions.map((option, index) => {
-            const isRecommended = option.id === request.recommendedOptionId;
-            const isSelected = selectedOptionId === option.id;
-            return (
-              <Button
-                key={option.id}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                isDisabled={isSubmitting}
-                aria-pressed={isSelected}
-                onClick={() => {
-                  setSelectedOptionId(option.id);
-                  void onSubmit(option.label);
-                }}
-                className={
-                  isComposer
-                    ? `flex w-full items-start gap-3 rounded-lg border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-hover disabled:opacity-50 ${
-                        isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
-                          : 'border-border'
-                      }`
-                    : `flex w-full items-start gap-4 border bg-foreground/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-foreground/[0.04] disabled:opacity-50 ${
-                        isSelected
-                          ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
-                          : 'border-border'
-                      }`
-                }
-              >
-                <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70">
-                  {index + 1}
-                </span>
-                <span className="block">
-                  <span
-                    className={
-                      isComposer
-                        ? 'block text-xs font-medium text-foreground'
-                        : 'block text-lg font-semibold text-foreground'
-                    }
-                  >
-                    {option.label}
-                    {isRecommended ? ' (Recommended)' : ''}
+          {visibleOptions
+            .filter(
+              (option) => !selectedOptionId || option.id === selectedOptionId,
+            )
+            .map((option, index) => {
+              const isRecommended = option.id === request.recommendedOptionId;
+              const isSelected = selectedOptionId === option.id;
+              return (
+                <Button
+                  key={option.id}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  isDisabled={isSubmitting}
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    void submitAnswer(option.label, option.id);
+                  }}
+                  className={
+                    isComposer
+                      ? `flex w-full items-start gap-3 rounded-lg border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-hover disabled:opacity-50 ${
+                          isSelected
+                            ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
+                            : 'border-border'
+                        }`
+                      : `flex w-full items-start gap-4 border bg-foreground/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-foreground/[0.04] disabled:opacity-50 ${
+                          isSelected
+                            ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
+                            : 'border-border'
+                        }`
+                  }
+                >
+                  <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70">
+                    {index + 1}
                   </span>
-                  {option.description ? (
-                    <span className="mt-1 block text-xs text-foreground/55">
-                      {option.description}
+                  <span className="block">
+                    <span
+                      className={
+                        isComposer
+                          ? 'block text-xs font-medium text-foreground'
+                          : 'block text-lg font-semibold text-foreground'
+                      }
+                    >
+                      {option.label}
+                      {isRecommended ? translate('recommended') : ''}
                     </span>
-                  ) : null}
-                </span>
-              </Button>
-            );
-          })}
+                    {option.description ? (
+                      <span className="mt-1 block text-xs text-foreground/55">
+                        {option.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </Button>
+              );
+            })}
         </div>
 
         <div className={isComposer ? 'mt-3' : 'mt-4'}>
           <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Other
+            {translate('other')}
           </p>
+          {submissionError ? (
+            <p role="alert" className="mb-2 text-xs text-destructive">
+              {submissionError}
+            </p>
+          ) : null}
           <Textarea
-            aria-label="Other"
+            disabled={isSubmitting}
+            aria-label={translate('other')}
             value={freeTextAnswer}
             onChange={(event) => setFreeTextAnswer(event.target.value)}
             placeholder={
               recommendedLabel
-                ? `Type your own answer, or leave this blank to use "${recommendedLabel}"`
-                : 'Type your answer'
+                ? translate('placeholderRecommended', {
+                    recommended: recommendedLabel,
+                  })
+                : translate('placeholder')
             }
             className={
               isComposer
@@ -163,7 +202,7 @@ export function AgentInputRequestOverlay({
                 recommendedLabel ||
                 visibleOptions[0]?.label ||
                 freeTextAnswer.trim();
-              void onSubmit(freeTextAnswer.trim() || fallbackAnswer);
+              void submitAnswer(freeTextAnswer.trim() || fallbackAnswer);
             }}
             isDisabled={
               isSubmitting ||
@@ -172,7 +211,7 @@ export function AgentInputRequestOverlay({
                 !visibleOptions.length)
             }
           >
-            {freeTextAnswer.trim() ? 'Use this answer' : 'Submit answers'}
+            {translate(freeTextAnswer.trim() ? 'useAnswer' : 'submit')}
           </Button>
         </div>
       </div>

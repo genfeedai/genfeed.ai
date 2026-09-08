@@ -7,7 +7,9 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -34,6 +36,7 @@ export class AgentThreadRuntimeController {
     private readonly usersService: UsersService,
     private readonly agentOrchestratorService: AgentOrchestratorService,
     private readonly loggerService: LoggerService,
+    private readonly workObjects: AgentWorkObjectService,
   ) {}
 
   @Get(':threadId/snapshot')
@@ -74,6 +77,84 @@ export class AgentThreadRuntimeController {
         'getThreadSnapshot',
       );
     }
+  }
+
+  @Get(':threadId/work-objects')
+  async getWorkObjects(
+    @Param('threadId') threadId: string,
+    @Query('sessionId') sessionId: string,
+    @CurrentUser() user: User,
+  ) {
+    const scope = await this.workScope(threadId, user);
+    return this.workObjects.list(scope, sessionId);
+  }
+
+  @Post(':threadId/work-objects/:objectId/actions')
+  async actOnWorkObject(
+    @Param('threadId') threadId: string,
+    @Param('objectId') objectId: string,
+    @Body() body: AgentWorkObjectActionPayload,
+    @CurrentUser() user: User,
+  ) {
+    const scope = await this.workScope(threadId, user, body);
+    const token = await this.workObjects.action(scope, objectId, body);
+    if (token) {
+      try {
+        const queued = await this.agentOrchestratorService.handleThreadUiAction(
+          {
+            action: 'review_work_object',
+            threadId,
+            brandId: scope.brandId,
+            expectedContextVersion: body.expectedContextVersion,
+            payload: { objectId, reviewToken: token },
+          },
+          { organizationId: scope.organizationId, userId: scope.userId },
+        );
+        await this.workObjects.linkReviewExecution(
+          scope,
+          objectId,
+          token,
+          queued.executionId,
+        );
+      } catch (error) {
+        await this.workObjects.cancelPreparedReview(scope, objectId, token);
+        throw error;
+      }
+    }
+    return this.workObjects.list(scope, body.sessionId);
+  }
+
+  private async workScope(
+    threadId: string,
+    user: User,
+    body?: AgentWorkObjectActionPayload,
+  ) {
+    const organizationId = this.resolveOrganizationId(user);
+    const userId = await this.resolveDatabaseUserId(user);
+    const prepared = await this.agentScopeContextService.prepareForTurn({
+      threadId,
+      organizationId,
+      userId,
+      ...(body
+        ? {
+            expectedContextVersion: body.expectedContextVersion,
+            requestedBrandId: body.brandId,
+          }
+        : {}),
+    });
+    if (!prepared.existingScope)
+      throw new UnauthorizedException('Thread scope is unavailable.');
+    if (body)
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        prepared.existingScope,
+        'tool',
+      );
+    return {
+      threadId,
+      organizationId,
+      userId,
+      brandId: prepared.existingScope.brandId,
+    };
   }
 
   @Get(':threadId/events')
@@ -148,23 +229,39 @@ export class AgentThreadRuntimeController {
       const inputRequest =
         await this.agentThreadEngineService.resolveInputRequest({
           answer: body.answer,
+          brandId: scope.brandId,
+          contextVersion: scope.contextVersion,
           organizationId,
           requestId,
           threadId,
           userId,
         });
 
-      await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
-        answer: body.answer,
-        fieldId:
-          typeof inputRequest.fieldId === 'string'
-            ? inputRequest.fieldId
-            : undefined,
-        organizationId,
-        threadId,
-        userId,
-        scope,
-      });
+      if (requestId.startsWith('recurring-workflow:')) {
+        await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
+          answer: body.answer,
+          fieldId:
+            typeof inputRequest.fieldId === 'string'
+              ? inputRequest.fieldId
+              : undefined,
+          organizationId,
+          threadId,
+          userId,
+          scope,
+        });
+      } else {
+        await this.agentOrchestratorService.acceptChatStream(
+          {
+            threadId,
+            content: body.answer,
+            clientRequestId: `input-response:${requestId}`,
+            brandId: scope.brandId,
+            expectedContextVersion: scope.contextVersion,
+            hostSupportsApproval: true,
+          },
+          { organizationId, userId },
+        );
+      }
 
       return {
         answer: inputRequest.answer ?? null,

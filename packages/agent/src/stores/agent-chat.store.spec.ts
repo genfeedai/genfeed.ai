@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('agent-chat.store finalizeStream', () => {
   beforeEach(() => {
@@ -279,5 +279,90 @@ describe('agent-chat.store updateThread list order', () => {
       runStatus: 'completed',
       updatedAt: '2026-03-26T13:00:00.000Z',
     });
+  });
+});
+
+describe('request-aware input resolution', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-1',
+      activeRunStatus: 'awaiting_input',
+      pendingInputRequest: {
+        threadId: 'thread-1',
+        inputRequestId: 'new-ask',
+        title: 'Choose',
+        prompt: 'Current question',
+      },
+      threads: [
+        {
+          id: 'thread-1',
+          contextVersion: 1,
+          status: AgentThreadStatus.ACTIVE,
+          createdAt: '2026-09-08T10:00:00Z',
+          updatedAt: '2026-09-08T10:00:00Z',
+          attentionState: 'needs-input',
+          pendingInputCount: 1,
+          runStatus: 'waiting_input',
+        },
+      ],
+    });
+  });
+
+  it('atomically resumes the matching visible request and summary', () => {
+    const listener = vi.fn();
+    const unsubscribe = useAgentChatStore.subscribe(listener);
+    expect(
+      useAgentChatStore
+        .getState()
+        .resolvePendingInputRequest(
+          'thread-1',
+          'new-ask',
+          '2026-09-08T12:00:00Z',
+        ),
+    ).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(useAgentChatStore.getState()).toMatchObject({
+      pendingInputRequest: null,
+      activeRunStatus: 'running',
+      threads: [
+        expect.objectContaining({
+          attentionState: 'running',
+          pendingInputCount: 0,
+          runStatus: 'running',
+          lastActivityAt: '2026-09-08T12:00:00Z',
+        }),
+      ],
+    });
+    expect(
+      useAgentChatStore
+        .getState()
+        .resolvePendingInputRequest(
+          'thread-1',
+          'new-ask',
+          '2026-09-08T12:00:01Z',
+        ),
+    ).toBe(false);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
+  it('preserves the newer question and all statuses for stale or unrelated resolutions', () => {
+    const before = useAgentChatStore.getState();
+    expect(
+      before.resolvePendingInputRequest(
+        'thread-1',
+        'old-ask',
+        '2026-09-08T12:00:00Z',
+      ),
+    ).toBe(false);
+    expect(
+      before.resolvePendingInputRequest(
+        'thread-2',
+        'new-ask',
+        '2026-09-08T12:00:00Z',
+      ),
+    ).toBe(false);
+    expect(useAgentChatStore.getState()).toBe(before);
   });
 });

@@ -258,6 +258,7 @@ export function useAgentChatContainer({
   const [isSubmittingInputRequest, setIsSubmittingInputRequest] =
     useState(false);
   const activeUiActionRef = useRef<string | null>(null);
+  const inputSubmissionSequenceRef = useRef(0);
   const submitInputRequestRef = useRef<(answer: string) => Promise<void>>(
     async () => undefined,
   );
@@ -501,14 +502,18 @@ export function useAgentChatContainer({
       const shouldQueueFollowUp =
         Boolean(activeUiActionRef.current) ||
         liveState.isGenerating ||
-        (isStreaming && liveState.stream.isStreaming);
+        (isStreaming &&
+          liveState.stream.isStreaming &&
+          liveState.activeRunStatus !== 'awaiting_input');
 
       const pendingAsk = liveState.pendingInputRequest;
       if (pendingAsk && !shouldQueueFollowUp) {
         const answer = content.trim();
         if (answer) {
           followLatestTurn('smooth');
-          void submitInputRequestRef.current(answer);
+          void Promise.resolve(submitInputRequestRef.current(answer)).catch(
+            () => undefined,
+          );
           return true;
         }
       }
@@ -624,7 +629,10 @@ export function useAgentChatContainer({
         return;
       }
 
+      const submissionSequence = ++inputSubmissionSequenceRef.current;
       setIsSubmittingInputRequest(true);
+      setError(null);
+      clearPendingInputRequest();
       try {
         const workEventId = `input-resolved-${request.inputRequestId}`;
         addWorkEvent({
@@ -651,8 +659,16 @@ export function useAgentChatContainer({
             };
           })(),
         );
-        clearPendingInputRequest();
       } catch {
+        const currentState = useAgentChatStore.getState();
+        if (
+          currentState.activeThreadId === request.threadId &&
+          !currentState.pendingInputRequest
+        ) {
+          currentState.setPendingInputRequest(request);
+        }
+        if (currentState.activeThreadId !== request.threadId)
+          throw new Error('Failed to submit the requested input.');
         addWorkEvent({
           createdAt: new Date().toISOString(),
           detail: normalizedAnswer,
@@ -665,8 +681,10 @@ export function useAgentChatContainer({
           threadId: request.threadId,
         } satisfies AgentWorkEvent);
         setError('Failed to submit the requested input.');
+        throw new Error('Failed to submit the requested input.');
       } finally {
-        setIsSubmittingInputRequest(false);
+        if (submissionSequence === inputSubmissionSequenceRef.current)
+          setIsSubmittingInputRequest(false);
       }
     },
     [
@@ -859,6 +877,8 @@ export function useAgentChatContainer({
 
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
+    inputSubmissionSequenceRef.current += 1;
+    setIsSubmittingInputRequest(false);
     olderMessagesRequestEpochRef.current += 1;
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();

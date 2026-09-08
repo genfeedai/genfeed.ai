@@ -101,6 +101,13 @@ function getRawCutJobId(data: VideoJobData): string | undefined {
   return data.id.startsWith(RAW_CUT_JOB_PREFIX) ? data.id : undefined;
 }
 
+function getAgentSourceJobId(data: VideoJobData): string | undefined {
+  return /^c[a-f0-9]{48}$/.test(data.ingredientId) &&
+    data.id === `agent-source-${data.ingredientId}`
+    ? data.id
+    : undefined;
+}
+
 @Injectable()
 export class VideoQueueService extends BaseQueueService<VideoJobData> {
   protected readonly jobConfigs = VIDEO_JOB_CONFIGS;
@@ -162,12 +169,24 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addVideoToAudioJob(data: VideoJobData): Promise<Job<VideoJobData>> {
+    const sourceJobId = getAgentSourceJobId(data);
+    if (sourceJobId) {
+      const existing = await this.getJob(sourceJobId);
+      if (existing && (await existing.getState()) === 'failed') {
+        try {
+          await existing.retry('failed');
+        } catch (error) {
+          if ((await existing.getState()) === 'failed') throw error;
+        }
+        return existing;
+      }
+    }
     return this.addJob(
       JOB_TYPES.VIDEO_TO_AUDIO,
       data,
       'video-to-audio',
       undefined,
-      getRawCutJobId(data),
+      sourceJobId ?? getRawCutJobId(data),
     );
   }
 

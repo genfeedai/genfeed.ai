@@ -134,6 +134,37 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     return { messages, state };
   }
 
+  it('marks a Stop observed after an awaited tool as interrupted', async () => {
+    const result = await runner.executeToolRound({
+      allowedToolNames: new Set(['start_outreach_sequence']),
+      assistantContent: null,
+      context: {
+        organizationId: 'org-1',
+        userId: 'user-1',
+        executionId: 'run-in-flight',
+      },
+      generationPriority: RouterPriority.BALANCED,
+      messages: [{ role: 'user', content: 'Start the campaign' }],
+      model: 'test-model',
+      policy: { organizationId: 'org-1' } as never,
+      state: createState(),
+      threadId: 'thread-1',
+      strategy: { onAfterTool: async () => 'cancel' },
+      toolCalls: [
+        {
+          id: 'tool-1',
+          type: 'function',
+          function: {
+            name: 'start_outreach_sequence',
+            arguments: JSON.stringify({ campaignId: 'campaign-1' }),
+          },
+        },
+      ],
+    });
+    expect(executeTool).toHaveBeenCalledOnce();
+    expect(result).toEqual({ isCancelled: true, wasInterrupted: true });
+  });
+
   it('strips model-spoofed confirmation proof from an unconfirmed campaign tool call', async () => {
     await executeCampaignRound({
       message: 'Start the campaign.',

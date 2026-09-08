@@ -172,7 +172,10 @@
     "secretlint": "secretlint '**/*'",
     "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts",
     "check:untranslated-strings": "bun run scripts/architecture/check-untranslated-strings.ts",
-    "check:inline-types": "bun run scripts/architecture/check-inline-types.ts"
+    "check:inline-types": "bun run scripts/architecture/check-inline-types.ts",
+    "eval:agent": "cd scripts/agent-eval && bun run run.ts",
+    "test:agent-eval": "vitest run --config scripts/agent-eval/vitest.config.ts",
+    "verify:agent-smoke-evidence": "bun run scripts/agent-eval/verify-live-evidence.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",

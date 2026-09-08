@@ -178,6 +178,26 @@ describe('ModalIngredient', () => {
     expect(detail.parentElement).not.toHaveClass('xl:grid-cols-3');
   });
 
+  it('opens the canonical saved agent script from Library instead of a title-only placeholder', () => {
+    const ingredient = {
+      category: IngredientCategory.TEXT,
+      id: 'script-ingredient',
+      metadata: {},
+      agentWorkObject: {
+        kind: 'script',
+        title: 'Shooting script',
+        body: 'The saved opening line from the conversation.',
+      },
+    } as IIngredient;
+    render(<ModalIngredient {...defaultProps} ingredient={ingredient} />);
+    expect(
+      screen.getByText('The saved opening line from the conversation.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Shooting script' }),
+    ).toBeInTheDocument();
+  });
+
   it('opens a version-pinned contextual Remix for the selected image', () => {
     const ingredient = {
       category: IngredientCategory.IMAGE,

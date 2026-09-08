@@ -25,7 +25,15 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { buildAgentRunFailureCopyText } from './AgentRunFailureCard';
 
 interface AgentComposerStatusStackProps {
@@ -241,7 +249,7 @@ function buildWorkTasks(workEvents: readonly AgentWorkEvent[]): ComposerTask[] {
     });
   }
 
-  return [...tasks.values()].slice(-8);
+  return [...tasks.values()];
 }
 
 export function hasRenderableComposerTasks({
@@ -306,6 +314,7 @@ export function AgentComposerStatusStack({
   socketConnectionState,
   workEvents,
 }: AgentComposerStatusStackProps): ReactElement | null {
+  const translate = useTranslations('agent.workObjects');
   const composerError = error ? splitComposerError(error) : null;
   const [isErrorCopied, setIsErrorCopied] = useState(false);
   const [isProgressExpanded, setIsProgressExpanded] = useState(true);
@@ -340,6 +349,14 @@ export function AgentComposerStatusStack({
     const planTasks = buildPlanTasks(latestProposedPlan, isRunActive);
     return workTasks.length > 0 ? workTasks : planTasks;
   }, [isRunActive, latestProposedPlan, workEvents]);
+  const previousTaskIds = useRef<string[]>([]);
+  const addedTasks =
+    previousTaskIds.current.length > 0
+      ? tasks.filter((task) => !previousTaskIds.current.includes(task.id))
+      : [];
+  useEffect(() => {
+    previousTaskIds.current = isRunActive ? tasks.map((task) => task.id) : [];
+  }, [isRunActive, tasks]);
   const hasUnfinishedTask = tasks.some(
     (task) => task.status !== 'completed' && task.status !== 'cancelled',
   );
@@ -475,6 +492,13 @@ export function AgentComposerStatusStack({
           data-testid="agent-composer-tasks"
           role="region"
         >
+          {addedTasks.length ? (
+            <p role="status" className="sr-only">
+              {translate('addedStage', {
+                stages: addedTasks.map((task) => task.label).join(', '),
+              })}
+            </p>
+          ) : null}
           <div className="flex min-h-8 items-center gap-2 px-2.5 py-1">
             <ListChecks aria-hidden className="size-3.5 text-foreground/55" />
             <span className="text-xs font-medium text-foreground/82">

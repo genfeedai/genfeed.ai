@@ -97,12 +97,14 @@ import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/t
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent-source-ingest.module';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
@@ -120,8 +122,13 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
-  exports: [AgentOrchestratorService, AgentTurnAcceptanceService],
+  exports: [
+    AgentOrchestratorService,
+    AgentTurnAcceptanceService,
+    AgentWorkObjectService,
+  ],
   imports: [
+    AgentSourceIngestModule,
     ContextsModule,
     AgentCampaignsModule,
     AgentGoalsModule,
@@ -229,6 +236,7 @@ import { Module } from '@nestjs/common';
     AgentThreadEventRecorderService,
     AgentTurnAcceptanceService,
     AgentToolExecutorService,
+    AgentWorkObjectService,
     {
       inject: [LoggerService, CacheService],
       provide: AgentToolConfirmationService,

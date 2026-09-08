@@ -1,5 +1,6 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { readThreadWorkflowSnapshot } from '@api/collections/agent-threads/utils/reconcile-thread-workflow-snapshot';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { scopedWhere } from '@api/index';
@@ -17,7 +18,12 @@ import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 export interface AppendAgentThreadEventParams {
   threadId: string;
@@ -33,6 +39,8 @@ export interface AppendAgentThreadEventParams {
 }
 
 export interface ResolveAgentInputRequestParams {
+  brandId?: string;
+  contextVersion?: number;
   threadId: string;
   organizationId: string;
   requestId: string;
@@ -342,7 +350,7 @@ export class AgentThreadEngineService {
       throw new NotFoundException('Thread snapshot');
     }
 
-    return snapshot;
+    return readThreadWorkflowSnapshot(this.prisma, snapshot);
   }
 
   async resolveInputRequest(
@@ -370,31 +378,81 @@ export class AgentThreadEngineService {
       (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? [];
 
     const reqIndex = inputRequests.findIndex(
-      (r) => r.requestId === params.requestId && r.status === 'pending',
+      (r) =>
+        r.requestId === params.requestId &&
+        (r.status === 'pending' || r.status === 'resolved'),
     );
 
     if (reqIndex === -1) {
       throw new NotFoundException('Input request');
     }
 
-    // Update the request in-place
-    inputRequests[reqIndex] = {
-      ...inputRequests[reqIndex],
-      answer: params.answer,
-      resolvedAt: new Date().toISOString(),
-      status: 'resolved',
-    };
+    const request = inputRequests[reqIndex];
+    const metadata =
+      request.metadata && typeof request.metadata === 'object'
+        ? (request.metadata as Record<string, unknown>)
+        : {};
+    if (
+      typeof metadata.brandId === 'string' &&
+      metadata.brandId !== params.brandId
+    )
+      throw new BadRequestException(
+        'This choice belongs to another brand context.',
+      );
+    if (
+      typeof metadata.contextVersion === 'number' &&
+      metadata.contextVersion !== params.contextVersion
+    )
+      throw new BadRequestException(
+        'The thread context changed. Request the choice again.',
+      );
 
-    await this.prisma.agentThreadSnapshot.update({
-      where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
-      data: {
-        data: toPrismaJson({
-          ...snapshotData,
-          inputRequests,
+    const answer =
+      typeof params.answer === 'string' ? params.answer.trim() : '';
+    if (!answer) throw new BadRequestException('An answer is required.');
+    if (request.status === 'resolved' && request.answer !== answer)
+      throw new BadRequestException('This request was already answered.');
+    const options = Array.isArray(request.options)
+      ? (request.options as Record<string, unknown>[])
+      : [];
+    if (
+      request.allowFreeText === false &&
+      !options.some((option) => option.id === answer || option.label === answer)
+    )
+      throw new BadRequestException('Choose one of the available options.');
+    params = { ...params, answer };
+    // Same-answer retries repair event delivery without rewriting snapshot state.
+    if (request.status === 'pending') {
+      const updatedRequests = inputRequests.map((item, index) =>
+        index === reqIndex
+          ? {
+              ...item,
+              answer,
+              resolvedAt: new Date().toISOString(),
+              status: 'resolved',
+            }
+          : item,
+      );
+      const transition = await this.prisma.agentThreadSnapshot.updateMany({
+        where: scopedWhere(params.organizationId, {
+          id: snapshotRow.id,
+          updatedAt: snapshotRow.updatedAt,
+          data: { equals: toPrismaJson(snapshotData) },
         }),
-        updatedAt: new Date(),
-      },
-    });
+        data: {
+          data: toPrismaJson({
+            ...snapshotData,
+            inputRequests: updatedRequests,
+          }),
+          updatedAt: new Date(),
+        },
+      });
+      if (transition.count !== 1)
+        throw new ConflictException(
+          'The thread changed while answering. Reload and retry.',
+        );
+      inputRequests.splice(0, inputRequests.length, ...updatedRequests);
+    }
 
     const inputRequest = findInputRequestInSnapshot(
       {
@@ -620,7 +678,13 @@ export class AgentThreadEngineService {
           (snapshotRow.data as Record<string, unknown>) ?? {};
         const inputRequests = (
           (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
-        ).filter((r) => r.requestId !== requestId);
+        )
+          .filter((r) => r.requestId !== requestId)
+          .map((request) =>
+            request.status === 'pending'
+              ? { ...request, status: 'superseded' }
+              : request,
+          );
 
         inputRequests.push({
           allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),

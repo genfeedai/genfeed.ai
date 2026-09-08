@@ -532,7 +532,6 @@ export class AgentOrchestratorStreamLoopService {
           return;
         }
 
-        // Has tool calls — shared runner (stream strategy: SSE + cancel)
         const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,
@@ -651,9 +650,10 @@ export class AgentOrchestratorStreamLoopService {
           toolCalls,
         });
 
+        const interrupted = toolRoundResult.wasInterrupted;
         if (toolRoundResult.isCancelled) {
           toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-          await this.handleCancelledStream(context, threadId);
+          await this.handleCancelledStream(context, threadId, interrupted);
           return;
         }
         terminalContent = toolRoundResult.terminalContent;
@@ -720,7 +720,12 @@ export class AgentOrchestratorStreamLoopService {
   private async handleCancelledStream(
     context: AgentChatContext,
     threadId: string,
+    interrupted = false,
   ): Promise<void> {
-    await this.streamEffects.publishStreamCancelled(context, threadId);
+    await this.streamEffects.publishStreamCancelled(
+      context,
+      threadId,
+      interrupted,
+    );
   }
 }

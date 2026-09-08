@@ -15,6 +15,10 @@ import {
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
+  AgentWorkObjects: () => null,
+}));
+
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();
 let isStreamingHookActive = false;
@@ -139,12 +143,21 @@ vi.mock('../utils/extract-thread-assets', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: {
     density?: string;
+    placeholder?: string;
+    onSend?: (content: string) => boolean;
     onStop?: () => void | Promise<void>;
     showStop?: boolean;
   }) {
     return (
       <div data-density={props.density} data-testid="chat-input">
         chat-input
+        <input
+          aria-label="Composer paste"
+          placeholder={props.placeholder}
+          onPaste={(event) =>
+            props.onSend?.(event.clipboardData.getData('text'))
+          }
+        />
         {props.showStop ? (
           <button type="button" onClick={props.onStop}>
             Stop agent
@@ -270,6 +283,7 @@ type StoreState = {
   activeRunId: string | null;
   activeRunStatus:
     | 'idle'
+    | 'awaiting_input'
     | 'running'
     | 'cancelling'
     | 'failed'
@@ -651,6 +665,45 @@ describe('AgentChatContainer', () => {
       }),
     );
     expect(storeState.clearPendingInputRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves a pasted URL on the same turn while the agent is waiting for input', async () => {
+    let resolveAnswer: (() => void) | undefined;
+    const apiService = createApiService({
+      respondToInputRequest: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveAnswer = resolve;
+          }),
+      ),
+    });
+    storeState.activeRunStatus = 'awaiting_input';
+    storeState.stream.isStreaming = true;
+    storeState.pendingInputRequest = {
+      allowFreeText: true,
+      inputRequestId: 'source-ask',
+      options: [],
+      prompt: 'Paste a YouTube URL',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      title: 'Source',
+    };
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+    const composer = screen.getByLabelText('Composer paste');
+    expect(composer).toHaveAttribute('placeholder', 'Paste a YouTube URL');
+    fireEvent.paste(composer, {
+      clipboardData: { getData: () => 'https://www.youtube.com/watch?v=demo' },
+    });
+    expect(storeState.clearPendingInputRequest).toHaveBeenCalledTimes(1);
+    expect(apiService.respondToInputRequest).toHaveBeenCalledWith(
+      'thread-1',
+      'source-ask',
+      'https://www.youtube.com/watch?v=demo',
+      undefined,
+      expect.any(Object),
+    );
+    expect(sendStreaming).not.toHaveBeenCalled();
+    await act(async () => resolveAnswer?.());
   });
 
   it('uses the fixed prompt bar shell layout by default', () => {

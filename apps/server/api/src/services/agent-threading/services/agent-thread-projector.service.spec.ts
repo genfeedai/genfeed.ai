@@ -59,6 +59,34 @@ describe('AgentThreadProjectorService', () => {
     expect(afterInputResolved.pendingInputRequests).toEqual([]);
   });
 
+  it('preserves independent pending requests until each is resolved', () => {
+    const first = { requestId: 'input-1', options: [], title: 'First' };
+    const snapshot = { pendingInputRequests: [first] };
+    const requested = service.applyEvent(
+      snapshot as never,
+      {
+        threadId: 'thread-1',
+        sequence: 1,
+        type: 'input.requested',
+        payload: { requestId: 'input-2', title: 'Second', options: [] },
+      } as never,
+    );
+    expect(requested.pendingInputRequests).toEqual([
+      first,
+      expect.objectContaining({ requestId: 'input-2' }),
+    ]);
+    const resolved = service.applyEvent(
+      requested as never,
+      {
+        threadId: 'thread-1',
+        sequence: 2,
+        type: 'input.resolved',
+        payload: { requestId: 'input-2' },
+      } as never,
+    );
+    expect(resolved.pendingInputRequests).toEqual([first]);
+  });
+
   it('stores the final assistant message and run completion state', () => {
     const threadId = 'test-object-id';
 
@@ -234,4 +262,132 @@ describe('AgentThreadProjectorService', () => {
       updatedAt: '2026-03-10T09:00:00.000Z',
     });
   });
+});
+
+describe('AgentThreadProjectorService terminal races', () => {
+  const service = new AgentThreadProjectorService();
+  const event = (type: string, runId = 'run-current', payload = {}) => ({
+    commandId: 'command',
+    eventId: type,
+    occurredAt: '2026-09-08T12:00:00.000Z',
+    payload,
+    runId,
+    sequence: 9,
+    threadId: 'thread',
+    type,
+  });
+
+  it.each([
+    'tool.started',
+    'tool.progress',
+    'tool.completed',
+    'work.started',
+    'work.completed',
+    'run.completed',
+    'run.failed',
+    'input.requested',
+  ])(
+    'retains a stopped run after late %s while retaining event history',
+    (type) => {
+      const projected = service.applyEvent(
+        {
+          activeRun: { runId: 'run-current', status: 'interrupted' },
+          timeline: [],
+        } as never,
+        event(type) as never,
+      );
+      expect(projected.activeRun).toEqual({
+        runId: 'run-current',
+        status: 'interrupted',
+      });
+      expect(projected.lastSequence).toBe(9);
+      expect(projected.timeline).toHaveLength(1);
+      expect(projected.pendingInputRequests).toEqual([]);
+    },
+  );
+
+  it.each([
+    'run.completed',
+    'run.failed',
+    'tool.started',
+    'assistant.finalized',
+    'input.requested',
+  ])('does not replace the current run with an older run %s', (type) => {
+    const projected = service.applyEvent(
+      {
+        activeRun: { runId: 'run-current', status: 'running' },
+      } as never,
+      event(type, 'run-older', {
+        content: 'obsolete',
+        requestId: 'obsolete',
+      }) as never,
+    );
+    expect(projected.activeRun).toEqual({
+      runId: 'run-current',
+      status: 'running',
+    });
+    expect(projected.lastAssistantMessage).toBeUndefined();
+    expect(projected.pendingInputRequests).toEqual([]);
+  });
+
+  it('resets terminal metadata when a new turn is accepted', () => {
+    const projected = service.applyEvent(
+      {
+        activeRun: {
+          runId: 'run-older',
+          status: 'failed',
+          completedAt: 'old',
+          model: 'old',
+        },
+      } as never,
+      event('thread.turn_requested') as never,
+    );
+    expect(projected.activeRun).toEqual({
+      runId: 'run-current',
+      startedAt: '2026-09-08T12:00:00.000Z',
+      status: 'queued',
+    });
+  });
+
+  it('clears pending decisions on stop and permits an interruption refinement', () => {
+    const cancelled = service.applyEvent(
+      {
+        activeRun: { runId: 'run-current', status: 'running' },
+        pendingInputRequests: [{ requestId: 'request' }],
+        pendingApprovals: [{ id: 'approval' }],
+        latestProposedPlan: { awaitingApproval: true },
+      } as never,
+      event('run.cancelled') as never,
+    );
+    expect(cancelled.pendingInputRequests).toEqual([]);
+    expect(cancelled.pendingApprovals).toEqual([]);
+    expect(cancelled.latestProposedPlan).toBeUndefined();
+    const interrupted = service.applyEvent(
+      cancelled as never,
+      event('run.interrupted') as never,
+    );
+    expect(interrupted.activeRun).toMatchObject({ status: 'interrupted' });
+  });
+});
+
+it('keeps a retry question after a recoverable tool error until the run settles', () => {
+  const service = new AgentThreadProjectorService();
+  const projected = service.applyEvent(
+    {
+      activeRun: { runId: 'run', status: 'running' },
+      pendingInputRequests: [
+        { requestId: 'retry', title: 'Source needs attention' },
+      ],
+    } as never,
+    {
+      type: 'tool.completed',
+      runId: 'run',
+      sequence: 2,
+      threadId: 'thread',
+      occurredAt: '2026-09-08T12:00:00.000Z',
+      payload: { status: 'failed', error: 'Import unavailable' },
+    } as never,
+  );
+  expect(projected.activeRun).toMatchObject({ status: 'running' });
+  expect(projected.pendingInputRequests).toHaveLength(1);
 });

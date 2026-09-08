@@ -143,6 +143,9 @@ describe('AgentToolExecutorService mutation policy', () => {
       workflowRunner as never,
       mcpApprovals as never,
     );
+    Object.assign(service, {
+      workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+    });
     service.onModuleInit();
   });
 

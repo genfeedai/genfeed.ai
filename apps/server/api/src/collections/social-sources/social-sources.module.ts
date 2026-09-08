@@ -10,7 +10,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [SocialSourcesController],
-  exports: [SocialSourcesService],
+  exports: [SocialSourcesService, SocialSourceOwnAccountResyncWorkflowService],
   imports: [
     SocialSourceHistoryImportModule,
     SourceCollectorModule,

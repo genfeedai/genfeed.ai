@@ -42,6 +42,9 @@ const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
 ]);
 
 function getTerminalToolContent(toolName: CuratedActionName): string {
+  if (toolName === 'ingest_source_media')
+    return 'Source needs attention. Retry or add another source.';
+  if (toolName === 'request_input') return 'Choose an option to continue.';
   if (toolName === 'suggest_ingredient_alternatives') {
     return 'Here are the ingredient alternatives.';
   }
@@ -160,6 +163,7 @@ export type ExecuteToolRoundParams = {
 
 export type ExecuteToolRoundResult = {
   isCancelled: boolean;
+  wasInterrupted?: boolean;
   terminalContent?: string;
   terminalToolName?: CuratedActionName;
 };
@@ -575,17 +579,13 @@ export class AgentTurnRoundRunnerService {
         terminalToolName = toolName;
       }
 
+      if (result.data?.waitingForInput === true) {
+        terminalToolName = toolName;
+      }
       if (result.requiresConfirmation) {
         state.reviewRequired = true;
       }
-      if (result.riskLevel === 'high') {
-        state.highestRiskLevel = 'high';
-      } else if (
-        result.riskLevel === 'medium' &&
-        state.highestRiskLevel === 'low'
-      ) {
-        state.highestRiskLevel = 'medium';
-      }
+      this.recordRiskLevel(state, result.riskLevel);
 
       // Generation tools may bill themselves (dynamic amount). Do not also
       // deduct the catalog creditCost. Still record result.creditsUsed so the
@@ -627,7 +627,7 @@ export class AgentTurnRoundRunnerService {
       if (strategy.onAfterTool) {
         const action = await strategy.onAfterTool();
         if (action === 'cancel') {
-          return { isCancelled: true };
+          return { isCancelled: true, wasInterrupted: true };
         }
       }
 
@@ -749,5 +749,13 @@ export class AgentTurnRoundRunnerService {
       generationType,
       prompt,
     };
+  }
+  private recordRiskLevel(
+    state: { highestRiskLevel: AgentToolRoundRiskLevel },
+    riskLevel: string | undefined,
+  ): void {
+    if (riskLevel === 'high') state.highestRiskLevel = 'high';
+    else if (riskLevel === 'medium' && state.highestRiskLevel === 'low')
+      state.highestRiskLevel = 'medium';
   }
 }

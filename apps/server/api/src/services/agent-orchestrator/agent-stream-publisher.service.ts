@@ -154,6 +154,7 @@ export class AgentStreamPublisherService {
         | 'work.completed'
         | 'work.started'
         | 'work.updated'
+        | 'run.interrupted'
         | 'run.cancelled'
         | 'run.completed'
         | 'run.failed';
@@ -539,7 +540,8 @@ export class AgentStreamPublisherService {
       | 'input_submitted'
       | 'completed'
       | 'failed'
-      | 'cancelled';
+      | 'cancelled'
+      | 'interrupted';
     inputRequestId?: string;
     label: string;
     parameters?: Record<string, unknown>;
@@ -555,15 +557,17 @@ export class AgentStreamPublisherService {
     userId: string;
   }) {
     const mappedType =
-      data.event === 'started'
-        ? 'work.started'
-        : data.event === 'completed'
-          ? 'work.completed'
-          : data.event === 'failed'
-            ? 'run.failed'
-            : data.event === 'cancelled'
-              ? 'run.cancelled'
-              : 'work.updated';
+      data.event === 'interrupted'
+        ? 'run.interrupted'
+        : data.event === 'started'
+          ? 'work.started'
+          : data.event === 'completed'
+            ? 'work.completed'
+            : data.event === 'failed'
+              ? 'run.failed'
+              : data.event === 'cancelled'
+                ? 'run.cancelled'
+                : 'work.updated';
 
     await this.persistThreadEvent(data.threadId, {
       commandId: `work-event:${data.threadId}:${data.event}:${data.toolCallId ?? data.runId ?? 'stream'}`,

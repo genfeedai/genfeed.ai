@@ -102,7 +102,8 @@ export function useModalIngredient({
     typeof localIngredient?.metadata === 'object' && localIngredient?.metadata
       ? (localIngredient.metadata as IMetadata)
       : null;
-  const metadataLabel = metadata?.label;
+  const metadataLabel =
+    metadata?.label || localIngredient?.agentWorkObject?.title;
   const ingredientTitle = metadataLabel || localIngredient?.id || 'Ingredient';
   const ingredientDescription = localIngredient
     ? `${formatEnumLabel(localIngredient.category) ?? 'Ingredient'} detail opened in context.`

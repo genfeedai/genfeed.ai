@@ -27,10 +27,13 @@ export class AgentThreadProjectorService {
       );
     }
 
+    if (this.isObsoleteRunEvent(nextSnapshot, event)) {
+      return nextSnapshot;
+    }
+
     switch (event.type) {
       case 'thread.turn_requested':
         nextSnapshot.activeRun = {
-          ...(this.asRecord(nextSnapshot.activeRun) ?? {}),
           ...(event.runId ? { runId: event.runId } : {}),
           ...(this.readString(event.payload, 'model')
             ? { model: this.readString(event.payload, 'model') }
@@ -143,14 +146,58 @@ export class AgentThreadProjectorService {
       nextSnapshot.activeRun = {
         ...(this.asRecord(nextSnapshot.activeRun) ?? {}),
         ...(event.runId ? { runId: event.runId } : {}),
-        status:
-          this.readString(event.payload, 'status') === 'failed'
-            ? 'failed'
-            : 'running',
+        status: 'running',
       };
     }
 
+    return this.clearTerminalDecisions(nextSnapshot);
+  }
+
+  private clearTerminalDecisions(
+    nextSnapshot: MutableSnapshot,
+  ): MutableSnapshot {
+    const status = this.asRecord(nextSnapshot.activeRun)?.status;
+    if (
+      status === 'cancelled' ||
+      status === 'interrupted' ||
+      status === 'failed'
+    ) {
+      nextSnapshot.pendingInputRequests = [];
+      nextSnapshot.pendingApprovals = [];
+      nextSnapshot.latestProposedPlan = undefined;
+    }
+
     return nextSnapshot;
+  }
+
+  private isObsoleteRunEvent(
+    snapshot: MutableSnapshot,
+    event: AgentThreadEventDocument,
+  ): boolean {
+    const activeRun = this.asRecord(snapshot.activeRun);
+    if (!activeRun) return false;
+    const differentRun = Boolean(
+      event.runId && activeRun.runId && event.runId !== activeRun.runId,
+    );
+    if (differentRun) return event.type !== 'thread.turn_requested';
+    const terminal = [
+      'cancelled',
+      'completed',
+      'failed',
+      'interrupted',
+    ].includes(String(activeRun.status));
+    if (!terminal) return false;
+    if (activeRun.status === 'cancelled' && event.type === 'run.interrupted')
+      return false;
+    return (
+      event.type.startsWith('run.') ||
+      event.type.startsWith('tool.') ||
+      event.type.startsWith('work.') ||
+      event.type.startsWith('thread.turn_') ||
+      event.type === 'error.raised' ||
+      event.type === 'input.requested' ||
+      event.type === 'plan.upserted'
+    );
   }
 
   private toMutableSnapshot(

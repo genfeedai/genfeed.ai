@@ -80,6 +80,29 @@ describe('AgentStreamPublisherService', () => {
     vi.useRealTimers();
   });
 
+  it('persists interrupted work separately from a clean cancellation', async () => {
+    const organizationId = testId('org');
+    const threadId = testId('thread');
+    const userId = testId('user');
+    mockAgentThreadsService.findOne.mockResolvedValue({ organizationId });
+    await service.publishWorkEvent({
+      event: 'interrupted',
+      label: 'Work interrupted',
+      status: 'cancelled',
+      runId: 'run-in-flight',
+      threadId,
+      userId,
+    });
+    expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'run.interrupted',
+        runId: 'run-in-flight',
+        threadId,
+        organizationId,
+      }),
+    );
+  });
+
   describe('publishStreamStart', () => {
     it('should publish to agent-chat with type agent:stream_start', async () => {
       const data = {
