@@ -117,10 +117,7 @@ export class AgentThreadRuntimeController {
           queued.executionId,
         );
       } catch (error) {
-        await this.workObjects.action(scope, objectId, {
-          ...body,
-          action: 'cancel',
-        });
+        await this.workObjects.cancelPreparedReview(scope, objectId, token);
         throw error;
       }
     }

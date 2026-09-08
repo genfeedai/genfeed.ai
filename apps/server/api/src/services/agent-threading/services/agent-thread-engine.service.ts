@@ -18,7 +18,12 @@ import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 export interface AppendAgentThreadEventParams {
   threadId: string;
@@ -416,25 +421,38 @@ export class AgentThreadEngineService {
     )
       throw new BadRequestException('Choose one of the available options.');
     params = { ...params, answer };
-    // A retry uses the same event command, repairing interruption after persistence.
-    // Update the request in-place
-    inputRequests[reqIndex] = {
-      ...inputRequests[reqIndex],
-      answer: params.answer,
-      resolvedAt: new Date().toISOString(),
-      status: 'resolved',
-    };
-
-    await this.prisma.agentThreadSnapshot.update({
-      where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
-      data: {
-        data: toPrismaJson({
-          ...snapshotData,
-          inputRequests,
+    // Same-answer retries repair event delivery without rewriting snapshot state.
+    if (request.status === 'pending') {
+      const updatedRequests = inputRequests.map((item, index) =>
+        index === reqIndex
+          ? {
+              ...item,
+              answer,
+              resolvedAt: new Date().toISOString(),
+              status: 'resolved',
+            }
+          : item,
+      );
+      const transition = await this.prisma.agentThreadSnapshot.updateMany({
+        where: scopedWhere(params.organizationId, {
+          id: snapshotRow.id,
+          updatedAt: snapshotRow.updatedAt,
+          data: { equals: toPrismaJson(snapshotData) },
         }),
-        updatedAt: new Date(),
-      },
-    });
+        data: {
+          data: toPrismaJson({
+            ...snapshotData,
+            inputRequests: updatedRequests,
+          }),
+          updatedAt: new Date(),
+        },
+      });
+      if (transition.count !== 1)
+        throw new ConflictException(
+          'The thread changed while answering. Reload and retry.',
+        );
+      inputRequests.splice(0, inputRequests.length, ...updatedRequests);
+    }
 
     const inputRequest = findInputRequestInSnapshot(
       {

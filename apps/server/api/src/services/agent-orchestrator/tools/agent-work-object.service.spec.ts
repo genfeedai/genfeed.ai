@@ -27,11 +27,13 @@ describe('AgentWorkObjectService review and scope boundary', () => {
   const context = { ...scope, validatedScope: { ...scope, contextVersion: 1 } };
   const prisma = {
     agentThreadSnapshot: { findFirst: vi.fn() },
+    workflowExecution: { findFirst: vi.fn() },
     agentThread: { findFirst: vi.fn() },
     ingredient: { findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
   };
   const publisher = { publishWorkEvent: vi.fn(), publishInputRequest: vi.fn() };
   const scorer = { scoreText: vi.fn() };
+  const executions = { cancelExecution: vi.fn() };
   let service: AgentWorkObjectService;
   let ingredient: Record<string, unknown>;
   beforeEach(() => {
@@ -61,7 +63,7 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       prisma as never,
       publisher as never,
       scorer as never,
-      { cancelExecution: vi.fn() } as never,
+      executions as never,
       {} as never,
     );
   });
@@ -177,6 +179,180 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     await reviewing;
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
+  it.each(['FAILED', 'CANCELLED'])(
+    'allows retry and edit after the durable review job becomes %s',
+    async (status) => {
+      ingredient.providerData = {
+        agentWorkObject: {
+          threadId: scope.threadId,
+          kind: 'script',
+          title: 'Draft',
+          body: 'Original draft',
+          reviewStatus: 'reviewing',
+          reviewToken: 'old-token',
+          reviewExecutionId: 'old-job',
+          viewedSessionId: 'session-1',
+          viewedRevision: 1,
+        },
+      };
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        id: 'old-job',
+        status,
+      });
+      expect(
+        (await service.list(scope, 'session-1')).workObjects[0].reviewStatus,
+      ).toBe('failed');
+      await expect(
+        service.action(scope, 'work-1', {
+          action: 'review',
+          revision: 1,
+          sessionId: 'session-1',
+        }),
+      ).resolves.toEqual(expect.any(String));
+      const retry =
+        prisma.ingredient.updateMany.mock.calls[0][0].data.providerData
+          .agentWorkObject;
+      expect(retry.reviewStatus).toBe('reviewing');
+      expect(retry.reviewExecutionId).toBeUndefined();
+      await expect(
+        service.action(scope, 'work-1', {
+          action: 'edit',
+          revision: 1,
+          sessionId: 'session-1',
+          body: 'Revised draft',
+        }),
+      ).resolves.toBeUndefined();
+    },
+  );
+
+  it('does not publish a review completion when cancellation wins the final CAS', async () => {
+    ingredient.providerData = {
+      agentWorkObject: {
+        threadId: scope.threadId,
+        kind: 'script',
+        title: 'Draft',
+        body: 'Draft',
+        reviewStatus: 'reviewing',
+        reviewToken: 'token-1',
+      },
+    };
+    scorer.scoreText.mockResolvedValue({ score: 8, suggestions: [] });
+    prisma.ingredient.updateMany.mockResolvedValue({ count: 0 });
+    await service.review(scope, 'work-1', 'token-1', 'review-job');
+    expect(publisher.publishWorkEvent).toHaveBeenCalledOnce();
+    expect(publisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'tool_started', runId: 'review-job' }),
+    );
+  });
+
+  it('merges review completion onto the latest same-token linkage and view state', async () => {
+    const initial = {
+      threadId: scope.threadId,
+      kind: 'script',
+      title: 'Draft',
+      body: 'Draft',
+      reviewStatus: 'reviewing',
+      reviewToken: 'token-1',
+    };
+    ingredient.providerData = { agentWorkObject: initial };
+    scorer.scoreText.mockImplementation(async () => {
+      ingredient.providerData = {
+        agentWorkObject: {
+          ...initial,
+          reviewExecutionId: 'linked-job',
+          viewedSessionId: 'new-tab',
+          viewedRevision: 1,
+        },
+      };
+      return { score: 8, suggestions: [] };
+    });
+    await service.review(scope, 'work-1', 'token-1', 'review-job');
+    const write = prisma.ingredient.updateMany.mock.calls[0][0];
+    expect(write.where.providerData).toEqual({
+      path: ['agentWorkObject', 'reviewToken'],
+      equals: 'token-1',
+    });
+    expect(write.data.providerData.agentWorkObject).toMatchObject({
+      reviewStatus: 'passed',
+      reviewExecutionId: 'linked-job',
+      viewedSessionId: 'new-tab',
+    });
+    expect(write.data.providerData.agentWorkObject.reviewToken).toBeUndefined();
+  });
+
+  it('does not roll back a newer review when an older dispatch fails', async () => {
+    ingredient.providerData = {
+      agentWorkObject: {
+        threadId: scope.threadId,
+        kind: 'script',
+        title: 'Draft',
+        reviewStatus: 'reviewing',
+        reviewToken: 'review-B',
+        reviewExecutionId: 'execution-B',
+      },
+    };
+    await service.cancelPreparedReview(scope, 'work-1', 'review-A');
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(executions.cancelExecution).not.toHaveBeenCalled();
+  });
+
+  it('preserves a replacement review created between the rollback read and write', async () => {
+    ingredient.providerData = {
+      agentWorkObject: {
+        threadId: scope.threadId,
+        kind: 'script',
+        title: 'Draft',
+        reviewStatus: 'reviewing',
+        reviewToken: 'review-A',
+        reviewExecutionId: 'execution-A',
+      },
+    };
+    prisma.ingredient.updateMany.mockResolvedValue({ count: 0 });
+    await service.cancelPreparedReview(scope, 'work-1', 'review-A');
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'work-1',
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          isDeleted: false,
+          version: 1,
+          updatedAt: ingredient.updatedAt,
+          providerData: {
+            path: ['agentWorkObject', 'reviewToken'],
+            equals: 'review-A',
+          },
+        }),
+      }),
+    );
+    expect(executions.cancelExecution).not.toHaveBeenCalled();
+  });
+
+  it('rolls back and cancels only its own prepared review execution', async () => {
+    ingredient.providerData = {
+      agentWorkObject: {
+        threadId: scope.threadId,
+        kind: 'script',
+        title: 'Draft',
+        reviewStatus: 'reviewing',
+        reviewToken: 'review-A',
+        reviewExecutionId: 'execution-A',
+      },
+    };
+    prisma.workflowExecution.findFirst.mockResolvedValue({ id: 'execution-A' });
+    await service.cancelPreparedReview(scope, 'work-1', 'review-A');
+    expect(
+      prisma.ingredient.updateMany.mock.calls[0][0].data.providerData
+        .agentWorkObject,
+    ).toEqual({
+      threadId: scope.threadId,
+      kind: 'script',
+      title: 'Draft',
+      reviewStatus: 'pending',
+    });
+    expect(executions.cancelExecution).toHaveBeenCalledWith('execution-A');
+  });
+
   it('keeps a review that settles before its queue acknowledgement', async () => {
     ingredient.providerData = {
       agentWorkObject: {

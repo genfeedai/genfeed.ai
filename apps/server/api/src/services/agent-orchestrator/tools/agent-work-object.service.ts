@@ -10,6 +10,7 @@ import type {
 import { AgentSourceIngestService } from '@api/services/agent-source-ingest/agent-source-ingest.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type {
   AgentSessionAsset,
@@ -61,14 +62,6 @@ export class AgentWorkObjectService {
     return thread;
   }
 
-  private where(scope: AgentWorkObjectScope) {
-    return {
-      organizationId: scope.organizationId,
-      brandId: scope.brandId ?? null,
-      isDeleted: false,
-    };
-  }
-
   private async members(scope: AgentWorkObjectScope) {
     const thread = await this.thread(scope);
     const ids = record(thread.config).sessionIngredientIds;
@@ -84,7 +77,9 @@ export class AgentWorkObjectService {
           where: {
             id: scope.threadId,
             userId: scope.userId,
-            ...this.where(scope),
+            ...scopedWhere(scope.organizationId, {
+              brandId: scope.brandId ?? null,
+            }),
           },
         });
         if (!thread) throw new NotFoundException('Thread not found.');
@@ -93,7 +88,12 @@ export class AgentWorkObjectService {
           ? config.sessionIngredientIds
           : [];
         await tx.agentThread.update({
-          where: { id: thread.id, ...this.where(scope) },
+          where: {
+            id: thread.id,
+            ...scopedWhere(scope.organizationId, {
+              brandId: scope.brandId ?? null,
+            }),
+          },
           data: {
             config: toPrismaJson({
               ...config,
@@ -112,7 +112,12 @@ export class AgentWorkObjectService {
   ): Promise<AgentWorkObjectCollection> {
     const ids = await this.members(scope);
     const ingredients = await this.prisma.ingredient.findMany({
-      where: { id: { in: ids }, ...this.where(scope) },
+      where: {
+        id: { in: ids },
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
+      },
       include: { metadata: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -120,7 +125,7 @@ export class AgentWorkObjectService {
     const sessionAssets: AgentSessionAsset[] = [];
     for (const ingredient of ingredients) {
       const data = record(ingredient.providerData);
-      const work = record(
+      let work = record(
         data.agentWorkObject,
       ) as unknown as AgentWorkObjectState;
       const href = createLibraryAssetRoute(
@@ -131,26 +136,7 @@ export class AgentWorkObjectService {
         work.threadId === scope.threadId &&
         ['table', 'script', 'brief'].includes(work.kind)
       ) {
-        if (work.reviewStatus === 'reviewing' && work.reviewExecutionId) {
-          const execution = await this.prisma.workflowExecution.findFirst({
-            where: {
-              id: work.reviewExecutionId,
-              organizationId: scope.organizationId,
-              userId: scope.userId,
-              isDeleted: false,
-            },
-          });
-          if (
-            execution &&
-            ['FAILED', 'CANCELLED'].includes(
-              String(execution.status).toUpperCase(),
-            )
-          ) {
-            work.reviewStatus = 'failed';
-            work.reviewError =
-              'The review stopped before finishing. Retry or explicitly skip.';
-          }
-        }
+        work = await this.reconcileReview(scope, work);
         workObjects.push({
           id: ingredient.id,
           kind: work.kind,
@@ -211,7 +197,9 @@ export class AgentWorkObjectService {
     const sourceActionId = requiredString(params.objectKey, 'objectKey');
     const existing = await this.prisma.ingredient.findFirst({
       where: {
-        ...this.where(scope),
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
         sourceActionId: `work:${scope.threadId}:${sourceActionId}`,
       },
     });
@@ -230,11 +218,18 @@ export class AgentWorkObjectService {
       .digest('hex');
     const id = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
     const ingredient = await this.prisma.ingredient.upsert({
-      where: { id, ...this.where(scope) },
+      where: {
+        id,
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
+      },
       update: {},
       create: {
         id,
-        ...this.where(scope),
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
         userId: scope.userId,
         category: 'TEXT',
         status: 'DRAFT',
@@ -459,14 +454,49 @@ export class AgentWorkObjectService {
     if (!(await this.members(scope)).includes(id))
       throw new NotFoundException('Work object is not in this thread.');
     const ingredient = await this.prisma.ingredient.findFirst({
-      where: { id, ...this.where(scope) },
+      where: {
+        id,
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
+      },
     });
     const work = record(
       record(ingredient?.providerData).agentWorkObject,
     ) as unknown as AgentWorkObjectState;
     if (!ingredient || work.threadId !== scope.threadId)
       throw new NotFoundException('Work object not found.');
-    return { ingredient, work };
+    return { ingredient, work: await this.reconcileReview(scope, work) };
+  }
+
+  private async reconcileReview(
+    scope: AgentWorkObjectScope,
+    work: AgentWorkObjectState,
+  ): Promise<AgentWorkObjectState> {
+    if (work.reviewStatus !== 'reviewing' || !work.reviewExecutionId)
+      return work;
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: {
+        id: work.reviewExecutionId,
+        organizationId: scope.organizationId,
+        userId: scope.userId,
+        isDeleted: false,
+      },
+    });
+    if (
+      !execution ||
+      !['FAILED', 'CANCELLED'].includes(String(execution.status).toUpperCase())
+    )
+      return work;
+    const reconciled: AgentWorkObjectState = {
+      ...work,
+      reviewStatus: 'failed',
+      reviewError:
+        'The review stopped before finishing. Retry or explicitly skip.',
+    };
+    delete reconciled.reviewToken;
+    delete reconciled.reviewExecutionId;
+    return reconciled;
   }
 
   async action(
@@ -505,6 +535,7 @@ export class AgentWorkObjectService {
         throw new ConflictException('Review is already running.');
       next.reviewStatus = 'reviewing';
       next.reviewToken = randomUUID();
+      delete next.reviewExecutionId;
       delete next.reviewError;
     } else if (payload.action === 'skip' || payload.action === 'cancel') {
       next.reviewStatus = payload.action === 'skip' ? 'skipped' : 'pending';
@@ -516,7 +547,9 @@ export class AgentWorkObjectService {
         id,
         version: payload.revision,
         updatedAt: ingredient.updatedAt,
-        ...this.where(scope),
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
       },
       data: {
         version: revision,
@@ -538,6 +571,42 @@ export class AgentWorkObjectService {
       await this.cancelReviewExecution(scope, work.reviewExecutionId);
     }
     return payload.action === 'review' ? next.reviewToken : undefined;
+  }
+
+  async cancelPreparedReview(
+    scope: AgentWorkObjectScope,
+    id: string,
+    token: string,
+  ): Promise<void> {
+    const { ingredient, work } = await this.load(scope, id);
+    if (work.reviewToken !== token || work.reviewStatus !== 'reviewing') return;
+    const next: AgentWorkObjectState = { ...work, reviewStatus: 'pending' };
+    delete next.reviewToken;
+    delete next.reviewExecutionId;
+    delete next.reviewError;
+    const result = await this.prisma.ingredient.updateMany({
+      where: {
+        id,
+        version: ingredient.version,
+        updatedAt: ingredient.updatedAt,
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
+        providerData: {
+          path: ['agentWorkObject', 'reviewToken'],
+          equals: token,
+        },
+      },
+      data: {
+        providerData: toPrismaJson({
+          ...record(ingredient.providerData),
+          agentWorkObject: next,
+        }),
+      },
+    });
+    if (result.count === 1 && work.reviewExecutionId) {
+      await this.cancelReviewExecution(scope, work.reviewExecutionId);
+    }
   }
 
   private async cancelReviewExecution(
@@ -574,7 +643,9 @@ export class AgentWorkObjectService {
         id,
         version: ingredient.version,
         updatedAt: ingredient.updatedAt,
-        ...this.where(scope),
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
       },
       data: {
         providerData: toPrismaJson({
@@ -625,21 +696,34 @@ export class AgentWorkObjectService {
       current.work.reviewStatus !== 'reviewing'
     )
       return;
-    delete next.reviewToken;
-    await this.prisma.ingredient.updateMany({
+    const completed: AgentWorkObjectState = {
+      ...current.work,
+      reviewStatus: next.reviewStatus,
+    };
+    if (next.reviewError) completed.reviewError = next.reviewError;
+    else delete completed.reviewError;
+    delete completed.reviewToken;
+    const transition = await this.prisma.ingredient.updateMany({
       where: {
         id,
         version: ingredient.version,
         updatedAt: current.ingredient.updatedAt,
-        ...this.where(scope),
+        ...scopedWhere(scope.organizationId, {
+          brandId: scope.brandId ?? null,
+        }),
+        providerData: {
+          path: ['agentWorkObject', 'reviewToken'],
+          equals: token,
+        },
       },
       data: {
         providerData: toPrismaJson({
           ...record(current.ingredient.providerData),
-          agentWorkObject: next,
+          agentWorkObject: completed,
         }),
       },
     });
+    if (transition.count !== 1) return;
     await this.publisher.publishWorkEvent({
       event: 'tool_completed',
       label:

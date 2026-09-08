@@ -25,6 +25,11 @@ describe('Threading AgentThreadRuntimeController', () => {
     userId: userId,
   } as unknown as User;
 
+  const workObjects = {
+    action: vi.fn(),
+    cancelPreparedReview: vi.fn(),
+    list: vi.fn(),
+  };
   let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
@@ -32,6 +37,7 @@ describe('Threading AgentThreadRuntimeController', () => {
   };
 
   beforeEach(() => {
+    vi.clearAllMocks();
     usersService = {
       findOne: vi.fn().mockResolvedValue({ id: userId }),
     };
@@ -79,7 +85,28 @@ describe('Threading AgentThreadRuntimeController', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as never as LoggerService,
-      {} as never,
+      workObjects as never,
+    );
+  });
+
+  it('binds failed review dispatch cleanup to its prepared token', async () => {
+    workObjects.action.mockResolvedValue('review-A');
+    agentOrchestratorService.handleThreadUiAction.mockRejectedValue(
+      new Error('Dispatch failed late'),
+    );
+    await expect(
+      controller.actOnWorkObject(
+        threadId,
+        'work-1',
+        { action: 'review', revision: 1, sessionId: 'session-A' },
+        mockUser,
+      ),
+    ).rejects.toThrow('Dispatch failed late');
+    expect(workObjects.action).toHaveBeenCalledOnce();
+    expect(workObjects.cancelPreparedReview).toHaveBeenCalledWith(
+      expect.objectContaining({ threadId, organizationId, userId }),
+      'work-1',
+      'review-A',
     );
   });
 

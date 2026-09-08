@@ -85,6 +85,7 @@ describe('AgentThreadEngineService', () => {
     $transaction: ReturnType<typeof vi.fn>;
     agentThreadEvent: MockPrismaModel;
     agentThreadSnapshot: MockPrismaModel;
+    workflowExecution: MockPrismaModel;
   };
   let mockPrisma: MockPrisma;
   let agentThreadsService: vi.Mocked<Pick<AgentThreadsService, 'findOne'>>;
@@ -112,6 +113,7 @@ describe('AgentThreadEngineService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findUnique: vi.fn().mockResolvedValue(mockSnapshotRow),
         update: vi.fn().mockResolvedValue(mockSnapshotRow),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       $transaction: vi.fn(async (callback) => callback(mockPrisma)),
     };
@@ -359,7 +361,81 @@ describe('AgentThreadEngineService', () => {
       expect(result).not.toHaveProperty('_id');
       expect(result).not.toHaveProperty('organization');
       expect(result).not.toHaveProperty('thread');
-      expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalled();
+      expect(mockPrisma.agentThreadSnapshot.updateMany).toHaveBeenCalled();
+    });
+
+    it('claims one answer without overwriting a concurrent answer or newer snapshot', async () => {
+      const row = {
+        ...mockSnapshotRow,
+        data: { ...mockSnapshotRow.data, inputRequests: [pendingRequest] },
+      };
+      mockPrisma.agentThreadSnapshot.findFirst.mockImplementation(async () =>
+        structuredClone(row),
+      );
+      mockPrisma.agentThreadSnapshot.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      const append = vi
+        .spyOn(service, 'appendEvent')
+        .mockResolvedValue(mockEventRow as never);
+      const outcomes = await Promise.allSettled(
+        ['first', 'second'].map((answer) =>
+          service.resolveInputRequest({
+            answer,
+            organizationId: orgId,
+            requestId: 'req-1',
+            threadId,
+            userId,
+          }),
+        ),
+      );
+      expect(outcomes.map((outcome) => outcome.status)).toEqual([
+        'fulfilled',
+        'rejected',
+      ]);
+      expect(append).toHaveBeenCalledOnce();
+      expect(mockPrisma.agentThreadSnapshot.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: row.id,
+            organizationId: orgId,
+            isDeleted: false,
+            updatedAt: row.updatedAt,
+            data: { equals: row.data },
+          }),
+        }),
+      );
+    });
+
+    it('retries an identical resolved answer without rewriting the snapshot', async () => {
+      const resolvedAt = '2026-09-08T10:00:00.000Z';
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue({
+        ...mockSnapshotRow,
+        data: {
+          ...mockSnapshotRow.data,
+          inputRequests: [
+            {
+              ...pendingRequest,
+              status: 'resolved',
+              answer: 'same',
+              resolvedAt,
+            },
+          ],
+        },
+      });
+      const append = vi
+        .spyOn(service, 'appendEvent')
+        .mockResolvedValue(mockEventRow as never);
+      const resolved = await service.resolveInputRequest({
+        answer: 'same',
+        organizationId: orgId,
+        requestId: 'req-1',
+        threadId,
+        userId,
+      });
+      expect(resolved.resolvedAt).toBe(resolvedAt);
+      expect(mockPrisma.agentThreadSnapshot.updateMany).not.toHaveBeenCalled();
+      expect(append).toHaveBeenCalledOnce();
     });
 
     it('throws NotFoundException when snapshot not found', async () => {
