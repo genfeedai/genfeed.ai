@@ -1,6 +1,10 @@
 'use client';
 
-import { ComponentSize, IngredientCategory } from '@genfeedai/contracts';
+import {
+  ComponentSize,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import {
   BG_BLUR,
@@ -9,6 +13,7 @@ import {
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
+import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
 import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
@@ -18,6 +23,40 @@ import IngredientDownloadButton from './IngredientDownloadButton';
 
 export default function IngredientQuickActions(
   props: StudioQuickActionsProps & { isMasonryCompact?: boolean },
+): React.ReactNode {
+  const asset = props.selectedIngredient;
+  const canSave =
+    asset &&
+    Boolean(asset.cdnUrl || asset.ingredientUrl) &&
+    [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT].includes(
+      asset.category,
+    ) &&
+    [
+      IngredientStatus.GENERATED,
+      IngredientStatus.UPLOADED,
+      IngredientStatus.VALIDATED,
+    ].includes(asset.status);
+  if (!canSave) return <IngredientQuickActionsContent {...props} />;
+  return (
+    <SaveAsCharacter
+      assetId={asset.id}
+      imageUrl={asset.cdnUrl || asset.ingredientUrl || ''}
+    >
+      {(characterAction) => (
+        <IngredientQuickActionsContent
+          {...props}
+          characterAction={characterAction}
+        />
+      )}
+    </SaveAsCharacter>
+  );
+}
+
+function IngredientQuickActionsContent(
+  props: StudioQuickActionsProps & {
+    isMasonryCompact?: boolean;
+    characterAction?: IQuickAction;
+  },
 ): React.ReactNode {
   const {
     align = 'end',
@@ -243,7 +282,11 @@ export default function IngredientQuickActions(
   if (!selectedIngredient) {
     return null;
   }
-  if (actions.length === 0 && contextActions.length === 0) {
+  if (
+    actions.length === 0 &&
+    contextActions.length === 0 &&
+    !props.characterAction
+  ) {
     return null;
   }
 
@@ -297,7 +340,10 @@ export default function IngredientQuickActions(
         >
           {downloadControl}
           <QuickActionsMenu
-            actions={visibleActions(actions)}
+            actions={visibleActions([
+              ...actions,
+              ...(props.characterAction ? [props.characterAction] : []),
+            ])}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={setIsMenuOpen}
             size={size}
@@ -339,9 +385,12 @@ export default function IngredientQuickActions(
           />
         ))}
 
-        {menuActions.length > 0 && (
+        {(menuActions.length > 0 || props.characterAction) && (
           <QuickActionsMenu
-            actions={visibleActions(menuActions)}
+            actions={visibleActions([
+              ...menuActions,
+              ...(props.characterAction ? [props.characterAction] : []),
+            ])}
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={setIsMenuOpen}
             size={size}

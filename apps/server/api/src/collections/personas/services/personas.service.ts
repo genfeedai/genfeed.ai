@@ -9,6 +9,8 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import type { PrismaUpdate } from '@api/shared/services/base/base-query-normalization.adapter';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
+  IngredientCategory,
+  IngredientStatus,
   isPersonaHandle,
   normalizePersonaHandle,
   PersonaStatus,
@@ -265,8 +267,34 @@ export class PersonasService extends BaseService<
         params.handle,
       );
     }
+    const image = await this.prisma.ingredient.findFirst({
+      where: {
+        id: params.assetId,
+        organizationId: params.organizationId,
+        brandId: params.brandId,
+        isDeleted: false,
+        category: {
+          in: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
+        },
+        status: {
+          in: [
+            IngredientStatus.GENERATED,
+            IngredientStatus.UPLOADED,
+            IngredientStatus.VALIDATED,
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    if (!image) {
+      throw new ValidationException(
+        'Choose a completed image from this brand',
+        'assetId',
+        params.assetId,
+      );
+    }
     return this.create({
-      avatarIngredientId: params.assetId,
+      avatarIngredientId: image.id,
       brandId: params.brandId,
       handle,
       label: params.label,

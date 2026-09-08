@@ -1,3 +1,4 @@
+import type { SaveAsCharacterProps } from '@genfeedai/props/characters/save-as-character.props';
 import '@agent-tests/media-preview-mocks';
 import { GenerationActionCanvas } from '@genfeedai/agent/components/GenerationActionCanvas';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -9,6 +10,12 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/default/default${path}` }),
+}));
+
+vi.mock('@ui/characters/SaveAsCharacter', () => ({
+  default: ({ assetId }: SaveAsCharacterProps) => (
+    <div data-testid="save-as-character">{assetId}</div>
+  ),
 }));
 
 describe('GenerationActionCanvas', () => {
@@ -49,5 +56,8 @@ describe('GenerationActionCanvas', () => {
       />,
     );
     expect(screen.getByText('Reference').closest('button')).toBeDisabled();
+    expect(screen.getByTestId('save-as-character')).toHaveTextContent(
+      'image-1',
+    );
   });
 });

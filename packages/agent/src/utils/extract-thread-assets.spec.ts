@@ -41,6 +41,12 @@ describe('extractThreadAssets', () => {
     const assets = extractThreadAssets(messages);
 
     expect(assets).toHaveLength(4);
+    expect(
+      assets.find((asset) => asset.url.endsWith('/ingredient.jpg'))?.assetId,
+    ).toBe('ingredient-1');
+    expect(
+      assets.find((asset) => asset.url.endsWith('/a.jpg'))?.assetId,
+    ).toBeUndefined();
     expect(assets.map((asset) => asset.type).sort()).toEqual([
       'audio',
       'image',

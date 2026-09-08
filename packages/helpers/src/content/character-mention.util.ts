@@ -1,3 +1,5 @@
+export const CHARACTERS_CHANGED_EVENT = 'genfeed:characters:changed';
+
 export interface CharacterMentionToken {
   handle: string;
   id: string;

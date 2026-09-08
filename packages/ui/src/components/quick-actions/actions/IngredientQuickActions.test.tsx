@@ -1,7 +1,8 @@
+import type { SaveAsCharacterProps } from '@genfeedai/props/characters/save-as-character.props';
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +70,15 @@ vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
 
 vi.mock('@ui/dropdowns/scope/DropdownScope', () => ({
   default: () => <div data-testid="dropdown-scope" />,
+}));
+
+vi.mock('@ui/characters/SaveAsCharacter', () => ({
+  default: ({ children }: SaveAsCharacterProps) =>
+    children?.({
+      id: 'save-as-character',
+      label: 'Save as character',
+      onClick: vi.fn(),
+    }),
 }));
 
 describe('IngredientQuickActions', () => {
@@ -176,5 +186,24 @@ describe('IngredientQuickActions', () => {
       };
     };
     expect(params.handlers.onUsePrompt).toBe(onReprompt);
+  });
+  it('offers Save as character in the image overflow menu', () => {
+    render(
+      <IngredientQuickActions
+        selectedIngredient={{
+          ...ingredient,
+          status: IngredientStatus.GENERATED,
+          ingredientUrl: 'https://example.com/image.png',
+        }}
+        isMasonryCompact
+      />,
+    );
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    expect(
+      screen.getByRole('menuitem', { name: 'Save as character' }),
+    ).toBeInTheDocument();
   });
 });

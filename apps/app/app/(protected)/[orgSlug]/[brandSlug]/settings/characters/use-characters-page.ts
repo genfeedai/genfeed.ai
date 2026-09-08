@@ -11,6 +11,7 @@ import type {
   BrandCharacterSheetStep,
   IImage,
 } from '@genfeedai/contracts/interfaces';
+import { CHARACTERS_CHANGED_EVENT } from '@genfeedai/helpers/content/character-mention.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { CharactersPageState } from '@props/characters/characters-page.props';
@@ -261,6 +262,7 @@ export function useCharactersPage(): CharactersPageState {
         handle: nextHandle,
         label: nextLabel,
       });
+      window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
       notificationsService.success(translate('success'));
       discardCandidate();
       setDescription('');
