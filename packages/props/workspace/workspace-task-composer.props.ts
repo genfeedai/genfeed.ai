@@ -7,3 +7,20 @@ export interface WorkspaceTaskComposerProps {
   onTaskCreated: (task: Task) => void;
   open: boolean;
 }
+
+export interface FacecamOption {
+  id: string;
+  label: string;
+  preview?: string;
+  provider?: string;
+}
+
+export type UseWorkspaceTaskComposerParams = Pick<
+  WorkspaceTaskComposerProps,
+  'onOpenChange' | 'onTaskCreated'
+>;
+
+export interface WorkspaceBrandMentionMatch {
+  id: string;
+  label: string;
+}

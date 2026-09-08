@@ -18,6 +18,7 @@ import { AgentThreadStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { AgentWorkspaceLayoutClientProps } from '@genfeedai/props/agent/agent-workspace-layout-client.props';
 import {
   getPlaywrightAuthState,
   resolveAuthToken,
@@ -25,14 +26,7 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { UsersService } from '@services/organization/users.service';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import {
-  type PropsWithChildren,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
@@ -82,10 +76,6 @@ function mostRecentAuthorizedThread(
       )[0] ?? null
   );
 }
-
-type AgentWorkspaceLayoutClientProps = PropsWithChildren<{
-  readonly agentApiService?: AgentApiService;
-}>;
 
 function AgentWorkspaceLayoutClientContent({
   agentApiService: providedAgentApiService,

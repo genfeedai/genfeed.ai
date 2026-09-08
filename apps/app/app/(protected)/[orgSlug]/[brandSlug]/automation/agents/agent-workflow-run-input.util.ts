@@ -1,14 +1,14 @@
+import type { AgentWorkflowRunFormState } from '@genfeedai/props/automation/agent-workflow-run-input.props';
+
 import type {
   AgentStrategyWorkflowInputPreview,
   RunAgentStrategyWorkflowInput,
 } from '@services/automation/agent-strategies.service';
 
-export interface WorkflowIngredientSelection {
-  id: string;
-  /** Public or signed URL of the library image. */
-  url: string;
-  label?: string;
-}
+export type {
+  AgentWorkflowRunFormState,
+  WorkflowIngredientSelection,
+} from '@genfeedai/props/automation/agent-workflow-run-input.props';
 
 /** Keys covered by the fixed topic/prompt/cta/image form fields. */
 export const STANDARD_WORKFLOW_SLOT_KEYS = new Set([
@@ -32,17 +32,6 @@ export const STANDARD_WORKFLOW_SLOT_KEYS = new Set([
   'referenceImageId',
   'ingredientId',
 ]);
-
-export interface AgentWorkflowRunFormState {
-  cta?: string;
-  /** Extra slot values keyed by workflow inputVariable key. */
-  extraInputs?: Record<string, string>;
-  prompt?: string;
-  /** Free-text URL fallback when no library ingredient is selected. */
-  referenceImageUrl?: string;
-  selectedIngredient?: WorkflowIngredientSelection | null;
-  topic?: string;
-}
 
 /**
  * Map dialog form state (+ optional library ingredient) into run-workflow body.

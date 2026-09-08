@@ -1,3 +1,5 @@
+import type { UseNewsletterEditorReturn } from '@genfeedai/props/content/artifact-editor.props';
+
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Newsletter } from '@models/content/newsletter.model';
 import type {
@@ -11,23 +13,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
+export type { UseNewsletterEditorReturn } from '@genfeedai/props/content/artifact-editor.props';
+
 /** Newsletters publish to the email/newsletter channel rather than a social platform. */
 const NEWSLETTER_PUBLISH_PLATFORM = 'newsletter';
-
-export interface UseNewsletterEditorReturn {
-  contextPreview: NewsletterContextPreview | null;
-  isEditorDirty: boolean;
-  editorState: NewsletterEditorState;
-  isLoading: boolean;
-  loadingAction: NewsletterEditorLoadingAction;
-  newsletter: Newsletter | null;
-  handleApprove: (id: string) => Promise<void>;
-  handleArchive: (id: string) => Promise<void>;
-  handleEditorChange: (patch: Partial<NewsletterEditorState>) => void;
-  handlePublish: (id: string) => Promise<void>;
-  handleRegenerate: () => Promise<void>;
-  handleSave: () => Promise<void>;
-}
 
 function createEditorState(
   newsletter: Newsletter | null,

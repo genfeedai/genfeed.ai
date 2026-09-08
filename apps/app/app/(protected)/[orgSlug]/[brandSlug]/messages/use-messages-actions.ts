@@ -3,9 +3,8 @@ import type {
   SocialConversationStatus,
   SocialInboxReference,
 } from '@genfeedai/contracts/interfaces';
-import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { SocialMessagesService } from '@services/social/messages.service';
+import type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 import {
   type ChangeEvent,
   useCallback,
@@ -14,7 +13,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { MessagesSurface } from './messages-conversation-sidebar';
 import {
   getMessagesErrorMessage,
   getMessagesSyncFeedback,
@@ -33,17 +31,7 @@ import {
 } from './messages-surface.helpers';
 import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
 
-export interface UseMessagesActionsParams {
-  readonly canAttachReferences: boolean;
-  /** Which inbox surface is open — decides what a sync actually sweeps. */
-  readonly conversationType: MessagesSurface;
-  readonly getMessagesService: () => Promise<SocialMessagesService>;
-  readonly loadConversations: (signal?: AbortSignal) => Promise<void>;
-  readonly onLoadError?: (message: string | null) => void;
-  readonly refreshSelectedThread: () => Promise<void>;
-  readonly selectedConversation: SocialConversationModel | null;
-  readonly selectedId: string | null;
-}
+export type { UseMessagesActionsParams } from '@genfeedai/props/messages/messages-actions.props';
 
 export function useMessagesActions({
   canAttachReferences,

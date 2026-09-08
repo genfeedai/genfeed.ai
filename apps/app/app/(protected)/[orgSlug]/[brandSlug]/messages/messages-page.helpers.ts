@@ -4,6 +4,17 @@ import type {
   SocialAutomationState,
 } from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import type {
+  MessagesSyncFeedback,
+  MessagesSyncJob,
+  MessagesSyncOutcome,
+} from '@genfeedai/props/messages/messages-page-state.props';
+
+export type {
+  MessagesSyncFeedback,
+  MessagesSyncJob,
+  MessagesSyncOutcome,
+} from '@genfeedai/props/messages/messages-page-state.props';
 
 export type MessagesPaginationState = Omit<
   IPaginatedResponse<unknown>,
@@ -95,21 +106,6 @@ export function getMessagesErrorMessage(error: unknown): string {
     ? error.message
     : 'Messages could not be loaded.';
 }
-
-export type MessagesSyncJob = {
-  platform: string;
-  run: () => Promise<unknown>;
-};
-
-export type MessagesSyncOutcome = {
-  failedPlatforms: string[];
-  hasSuccess: boolean;
-};
-
-export type MessagesSyncFeedback = {
-  error: string | null;
-  notice: string | null;
-};
 
 export async function settleMessagesSyncJobs(
   jobs: readonly MessagesSyncJob[],

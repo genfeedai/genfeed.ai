@@ -1,12 +1,8 @@
-import * as Sentry from '@sentry/nextjs';
-import type { MessagesActionKind } from './messages-surface.helpers';
+import type { MessagesSurfaceTelemetryData } from '@genfeedai/props/messages/messages-surface-telemetry.props';
 
-export type MessagesSurfaceTelemetryData = {
-  action: MessagesActionKind | 'attach-reference' | 'realtime-refresh';
-  connectionState?: 'connected' | 'connecting' | 'offline' | 'reconnecting';
-  outcome: 'blocked' | 'failed' | 'started' | 'succeeded';
-  referenceKind?: 'social-conversation' | 'social-message';
-};
+import * as Sentry from '@sentry/nextjs';
+
+export type { MessagesSurfaceTelemetryData } from '@genfeedai/props/messages/messages-surface-telemetry.props';
 
 export function captureMessagesSurfaceEvent(
   data: MessagesSurfaceTelemetryData,

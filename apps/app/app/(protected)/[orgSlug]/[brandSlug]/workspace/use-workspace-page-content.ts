@@ -1,10 +1,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { UseWorkspacePageContentParams } from '@genfeedai/props/workspace/workspace-page.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import * as Sentry from '@sentry/nextjs';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -23,14 +22,13 @@ import { usePlanningConversation } from './use-planning-conversation';
 import {
   applyRealtimeTaskUpdate,
   DEFAULT_REVIEW_INBOX,
-  type InboxView,
   isTaskInInboxQueue,
   isUnreadInboxTask,
-  type ReviewInboxSummary,
   useWorkspaceSectionCopy,
-  type WorkspaceSection,
   type WorkspaceTaskRealtimePayload,
 } from './workspace-task.helpers';
+
+export type { UseWorkspacePageContentParams } from '@genfeedai/props/workspace/workspace-page.props';
 
 const RECENT_INBOX_LIMIT = 5;
 const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
@@ -56,14 +54,6 @@ function addWorkspaceLoadTimeoutBreadcrumb(
     level: 'warning',
     message: 'Workspace overview data load timed out',
   });
-}
-
-export interface UseWorkspacePageContentParams {
-  defaultInboxView?: InboxView;
-  initialAnalytics?: Partial<IAnalytics>;
-  initialReviewInbox?: ReviewInboxSummary;
-  initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
-  section?: WorkspaceSection;
 }
 
 export function useWorkspacePageContent({

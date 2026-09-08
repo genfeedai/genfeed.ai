@@ -54,3 +54,18 @@ export interface NewsletterEditorProps {
 export type NewsletterContextPreview = Awaited<
   ReturnType<NewslettersService['getContext']>
 >;
+
+export interface UseNewsletterEditorReturn {
+  contextPreview: NewsletterContextPreview | null;
+  isEditorDirty: boolean;
+  editorState: NewsletterEditorState;
+  isLoading: boolean;
+  loadingAction: NewsletterEditorLoadingAction;
+  newsletter: Newsletter | null;
+  handleApprove: (id: string) => Promise<void>;
+  handleArchive: (id: string) => Promise<void>;
+  handleEditorChange: (patch: Partial<NewsletterEditorState>) => void;
+  handlePublish: (id: string) => Promise<void>;
+  handleRegenerate: () => Promise<void>;
+  handleSave: () => Promise<void>;
+}

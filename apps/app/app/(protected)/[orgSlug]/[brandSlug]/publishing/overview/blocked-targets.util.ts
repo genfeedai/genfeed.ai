@@ -1,18 +1,13 @@
 import { PostStatus, TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type { BlockedTargetGroup } from '@genfeedai/props/publisher/publishing-overview.props';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { resolveAccountLabel } from './account-label.util';
 
+export type { BlockedTargetGroup } from '@genfeedai/props/publisher/publishing-overview.props';
+
 /** Used when a FAILED target somehow carries no structured error. */
 export const UNKNOWN_ERROR_CODE = 'UNKNOWN';
-
-export interface BlockedTargetGroup {
-  accounts: string[];
-  code: string;
-  count: number;
-  href: string;
-  message: string;
-}
 
 /**
  * Groups every FAILED channel target by its `error.code` so an operator sees

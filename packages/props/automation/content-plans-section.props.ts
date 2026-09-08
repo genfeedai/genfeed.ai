@@ -21,3 +21,9 @@ export interface GeneratePlanDialogProps {
 export interface ContentPlansSectionProps {
   brandId?: string;
 }
+
+export interface UseGeneratePlanDialogOptions {
+  brandId?: string;
+  isOpen: boolean;
+  onSubmit: (form: GeneratePlanFormState) => Promise<void>;
+}

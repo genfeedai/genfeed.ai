@@ -1,27 +1,15 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
-  AccountHealthSummary,
-  IReleaseGroup,
-} from '@genfeedai/contracts/interfaces';
+  CadenceGap,
+  CadenceGapsInput,
+} from '@genfeedai/props/publisher/publishing-overview.props';
+
+export type {
+  CadenceGap,
+  CadenceGapsInput,
+} from '@genfeedai/props/publisher/publishing-overview.props';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-export interface CadenceGap {
-  accountLabel: string;
-  credentialId: string;
-  gapDays: number | null;
-  hasUpcoming: boolean;
-  holdPublishing: boolean;
-  lastPublishedAt: string | null;
-  needsReconnect: boolean;
-  platform: string;
-}
-
-export interface CadenceGapsInput {
-  accountHealth: AccountHealthSummary[];
-  postedReleases: IReleaseGroup[];
-  upcomingReleases: IReleaseGroup[];
-}
 
 /**
  * For every connected account, how long since it last published and whether

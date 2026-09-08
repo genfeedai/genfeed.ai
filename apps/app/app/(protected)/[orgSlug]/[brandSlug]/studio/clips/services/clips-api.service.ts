@@ -1,153 +1,42 @@
 import type {
-  AgentClipRunIdentity,
-  ClipLibraryLinkStatus,
-  ClipProcessingFlow,
   ClipProjectReadResponse,
   ClipReferenceFrameSet,
-  HookClipApprovalAction,
   HookClipApprovalStatus,
 } from '@genfeedai/contracts/interfaces';
 import type {
-  ClipProjectSummary,
-  ClipResult,
-  ClipResultMode,
-  IHighlight,
-} from '@props/studio/clips.props';
+  AnalyzeVideoPayload,
+  AnalyzeVideoResponse,
+  ClipResultRawItem,
+  CreateFromYoutubePayload,
+  CreateFromYoutubeResponse,
+  EditorHandoffResponse,
+  EditorProjectResponse,
+  GenerateClipsPayload,
+  HighlightsResponse,
+  LibraryLinkResponse,
+  PrepareUploadPayload,
+  PrepareUploadResponse,
+  PublishHandoffResponse,
+  RewriteHighlightPayload,
+  RewriteHighlightResponse,
+  SubmitHookApprovalPayload,
+} from '@genfeedai/props/studio/clips-api.props';
+import type { ClipProjectSummary, ClipResult } from '@props/studio/clips.props';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
 import { EnvironmentService } from '@services/core/environment.service';
 
 import { mapClipProjectSummary } from '../utils/map-clip-project-summary';
 
+export type {
+  EditorHandoffResponse,
+  LibraryLinkResponse,
+  PublishHandoffResponse,
+  RewriteHighlightPayload,
+  RewriteHighlightResponse,
+  SubmitHookApprovalPayload,
+} from '@genfeedai/props/studio/clips-api.props';
+
 // ─── API Response Types ───────────────────────────────────────────
-
-interface AnalyzeVideoPayload {
-  brandId?: string;
-  youtubeUrl: string;
-  maxClips: number;
-  minViralityScore: number;
-  language: string;
-}
-
-interface AnalyzeVideoResponse {
-  identity: AgentClipRunIdentity;
-  projectId: string;
-}
-
-interface HighlightsResponse {
-  status: string;
-  highlights?: IHighlight[];
-}
-
-interface GenerateClipsPayload {
-  selectedHighlightIds: string[];
-  editedHighlights: Array<{
-    id: string;
-    title: string;
-    summary: string;
-  }>;
-  avatarId?: string;
-  avatarProvider?: string;
-  mode: ClipResultMode;
-  voiceId?: string;
-}
-
-export interface SubmitHookApprovalPayload {
-  action: HookClipApprovalAction;
-  feedback?: string;
-}
-
-interface CreateFromYoutubePayload {
-  avatarId?: string;
-  avatarProvider?: string;
-  brandId?: string;
-  language: string;
-  maxClips: number;
-  minViralityScore: number;
-  mode: ClipResultMode;
-  voiceId?: string;
-  youtubeUrl: string;
-}
-
-interface CreateFromYoutubeResponse {
-  batchJobId: string;
-  estimatedClips: number;
-  identity?: AgentClipRunIdentity;
-  projectId: string;
-  status: string;
-}
-
-interface PrepareUploadPayload {
-  avatarId?: string;
-  avatarProvider?: string;
-  brandId?: string;
-  contentType: string;
-  filename: string;
-  flow: ClipProcessingFlow;
-  language: string;
-  maxClips: number;
-  minViralityScore: number;
-  mode: ClipResultMode;
-  sizeBytes: number;
-  voiceId?: string;
-}
-
-interface PrepareUploadResponse {
-  expiresIn: number;
-  ingredientId: string;
-  projectId: string;
-  publicUrl: string;
-  uploadUrl: string;
-}
-
-export interface EditorHandoffResponse {
-  editorPath: string;
-  editorProjectId: string;
-  videoUrl: string;
-}
-
-export interface PublishHandoffResponse {
-  payload: {
-    assets: Array<{
-      assetId: string;
-      caption?: string;
-      mediaUrl: string;
-      mimeType: string;
-    }>;
-    metadata?: {
-      clipResultId?: string;
-      ingredientId?: string;
-      summary?: string | null;
-      title?: string | null;
-    };
-  };
-}
-
-export interface LibraryLinkResponse {
-  clipResultId: string;
-  error?: string;
-  ingredientId?: string;
-  status: ClipLibraryLinkStatus;
-}
-
-export interface RewriteHighlightPayload {
-  platform: string;
-  tone: string;
-}
-
-export interface RewriteHighlightResponse {
-  rewrittenScript: string;
-}
-
-interface EditorProjectResponse {
-  data?: {
-    id?: string;
-  };
-}
-
-interface ClipResultRawItem {
-  id: string;
-  attributes?: Record<string, unknown>;
-}
 
 // ─── Service ──────────────────────────────────────────────────────
 

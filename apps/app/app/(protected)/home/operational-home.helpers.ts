@@ -14,25 +14,18 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import type {
+  ConnectGenfeedMetadata,
+  CredentialHealthSummary,
+  OperationalHomeScope,
+  UpcomingScheduleDay,
+} from '@genfeedai/props/home/operational-home.props';
 
-interface ConnectGenfeedMetadata {
-  lastVerifiedAt: string;
-  transport: 'streamable-http';
-}
-
-export interface CredentialHealthSummary {
-  attention: number;
-  healthy: number;
-  total: number;
-  unknown: number;
-}
-
-export interface OperationalHomeScope {
-  brand: IBrand | undefined;
-  brandSlug: string | undefined;
-  organizationId: string;
-  orgSlug: string;
-}
+export type {
+  CredentialHealthSummary,
+  OperationalHomeScope,
+  UpcomingScheduleDay,
+} from '@genfeedai/props/home/operational-home.props';
 
 export function resolveOperationalHomeScope({
   accessOrganizationId,
@@ -206,11 +199,6 @@ export function getActivityBadge(activity: IActivity): {
 
   // Generic log entry — blue info chip so the activity list isn't monochrome.
   return { label: 'Recorded', variant: 'info' };
-}
-
-export interface UpcomingScheduleDay {
-  count: number;
-  date: Date;
 }
 
 /**

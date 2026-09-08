@@ -4,6 +4,11 @@ import type {
   SocialInboxQuery,
   SocialPlatform,
 } from '@genfeedai/contracts/interfaces';
+import type {
+  MessagesInboxFiltersAction,
+  MessagesInboxFiltersState,
+  UseMessagesInboxFiltersParams,
+} from '@genfeedai/props/messages/messages-inbox-filters.props';
 import { useCallback, useMemo, useReducer } from 'react';
 import type {
   MessagesInboxView,
@@ -11,36 +16,7 @@ import type {
 } from './messages-conversation-sidebar';
 import { ALL_BRANDS_FILTER } from './messages-page.helpers';
 
-type MessagesInboxFiltersState = {
-  assignedOwnerId: string;
-  automationState: SocialAutomationState | 'all';
-  brandFilterOverride: string | null;
-  brandFilterRouteKey: string | undefined;
-  conversationPage: number;
-  conversationType: MessagesSurface;
-  credentialId: string;
-  needsReviewOnly: boolean;
-  platform: SocialPlatform | 'all';
-  search: string;
-  status: SocialConversationStatus | 'all';
-  unreadOnly: boolean;
-};
-
-type MessagesInboxFiltersAction =
-  | { type: 'set-assigned-owner-id'; assignedOwnerId: string }
-  | {
-      type: 'set-automation-state';
-      automationState: SocialAutomationState | 'all';
-    }
-  | { type: 'set-brand-filter'; brandFilter: string }
-  | { type: 'set-conversation-page'; page: number }
-  | { type: 'set-conversation-type'; conversationType: MessagesSurface }
-  | { type: 'set-credential-id'; credentialId: string }
-  | { type: 'set-inbox-view'; view: MessagesInboxView }
-  | { type: 'set-platform'; platform: SocialPlatform | 'all' }
-  | { type: 'set-search'; search: string }
-  | { type: 'step-conversation-page'; delta: number }
-  | { type: 'sync-route-brand'; brandSlug: string | undefined };
+export type { UseMessagesInboxFiltersParams } from '@genfeedai/props/messages/messages-inbox-filters.props';
 
 function createInitialFiltersState(
   brandSlug: string | undefined,
@@ -189,11 +165,6 @@ function deriveInboxView(state: MessagesInboxFiltersState): MessagesInboxView {
     default:
       return 'inbox';
   }
-}
-
-export interface UseMessagesInboxFiltersParams {
-  readonly brandSlug: string | undefined;
-  readonly routeBrandId: string | undefined;
 }
 
 export function useMessagesInboxFilters({

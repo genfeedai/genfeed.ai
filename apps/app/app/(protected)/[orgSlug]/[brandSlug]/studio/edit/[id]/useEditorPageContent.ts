@@ -9,6 +9,7 @@ import type {
   IEditorProject,
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
+import type { EditorState } from '@genfeedai/props/studio/editor-page-content.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -27,19 +28,6 @@ import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
 const AUTO_SAVE_INTERVAL = 30000;
-
-interface EditorState {
-  project: IEditorProject | null;
-  isLoading: boolean;
-  isDirty: boolean;
-  lastSavedAt: Date | null;
-  currentFrame: number;
-  isPlaying: boolean;
-  isRendering: boolean;
-  zoom: number;
-  selectedTrackId: string | null;
-  selectedClipId: string | null;
-}
 
 const FORMAT_DIMENSIONS: Record<
   IngredientFormat,

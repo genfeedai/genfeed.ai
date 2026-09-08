@@ -1,27 +1,20 @@
 import { TargetExecutionState } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
+import type {
+  Next24hQueueGroup,
+  Next24hQueueItem,
+} from '@genfeedai/props/publisher/publishing-overview.props';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { resolveAccountLabel } from './account-label.util';
 
+export type {
+  Next24hQueueBucket,
+  Next24hQueueGroup,
+  Next24hQueueItem,
+} from '@genfeedai/props/publisher/publishing-overview.props';
+
 const NEAR_WINDOW_MS = 3 * 60 * 60 * 1000;
 const QUEUE_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-export type Next24hQueueBucket = 'near' | 'later';
-
-export interface Next24hQueueItem {
-  accountLabel: string;
-  href: string;
-  platform: string;
-  releaseId: string;
-  scheduledAt: string;
-  targetId: string;
-  title: string;
-}
-
-export interface Next24hQueueGroup {
-  bucket: Next24hQueueBucket;
-  items: Next24hQueueItem[];
-}
 
 /**
  * Buckets every SCHEDULED channel target whose desired publish time falls in

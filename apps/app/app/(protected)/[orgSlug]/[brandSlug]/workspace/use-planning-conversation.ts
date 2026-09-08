@@ -1,15 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type { UsePlanningConversationParams } from '@genfeedai/props/workspace/workspace-planning-conversation.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
-export interface UsePlanningConversationParams {
-  onError: (message: string) => void;
-  onTaskUpdated: (task: Task) => void;
-  setBusyTaskId: (taskId: string | null) => void;
-}
+export type { UsePlanningConversationParams } from '@genfeedai/props/workspace/workspace-planning-conversation.props';
 
 /**
  * Ensures a task's planning thread exists and navigates to it. Extracted so

@@ -10,6 +10,11 @@ import {
   isClipResultMode,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type {
+  StudioClipIdentityContext,
+  StudioClipIdentityDefaults,
+  StudioClipIdentityField,
+} from '@genfeedai/props/studio/clips.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
@@ -31,30 +36,6 @@ const TERMINAL_PROJECT_STATUSES = new Set([
   'failed',
   'partially-completed',
 ]);
-
-type StudioClipIdentityField = 'avatar' | 'voice';
-type StudioClipIdentitySource =
-  | 'brand'
-  | 'explicit'
-  | 'missing'
-  | 'organization';
-
-interface StudioClipIdentityDefaults {
-  avatarId?: string;
-  avatarProvider: AvatarProvider;
-  isComplete: boolean;
-  missing: StudioClipIdentityField[];
-  source: StudioClipIdentitySource;
-  voiceId?: string;
-}
-
-interface StudioClipIdentityContext {
-  selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
-  settings?: Pick<
-    IOrganizationSetting,
-    'defaultVoiceId' | 'defaultVoiceProvider' | 'defaultVoiceRef'
-  > | null;
-}
 
 function isHeygenProvider(provider?: string | null): boolean {
   return provider?.toLowerCase() === 'heygen';

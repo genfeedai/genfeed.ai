@@ -1,17 +1,11 @@
+import type {
+  PostSignupIntent,
+  ResolvePostSignupIntentInput,
+} from '@genfeedai/props/onboarding/post-signup-routing.props';
+
+export type { PostSignupIntent } from '@genfeedai/props/onboarding/post-signup-routing.props';
+
 export { deriveBrandNameFromDomain } from '@/lib/onboarding/onboarding-access.util';
-
-export type PostSignupIntent =
-  | { kind: 'plan-checkout'; stripePriceId: string }
-  | { kind: 'credits-checkout'; credits: number }
-  | { kind: 'auto-brand'; domain: string }
-  | { kind: 'manual-brand' };
-
-interface ResolvePostSignupIntentInput {
-  personalEmailDomains: readonly string[];
-  primaryEmail?: string | null;
-  selectedCredits?: string | null;
-  selectedPlan?: string | null;
-}
 
 function extractDomain(email?: string | null): string | null {
   if (!email?.includes('@')) {

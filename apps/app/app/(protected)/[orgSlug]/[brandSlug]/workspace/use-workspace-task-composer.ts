@@ -1,6 +1,10 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PromptCategory, SystemPromptKey } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import type {
+  FacecamOption,
+  UseWorkspaceTaskComposerParams,
+} from '@genfeedai/props/workspace/workspace-task-composer.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@models/content/prompt.model';
@@ -8,7 +12,7 @@ import { PromptsService } from '@services/content/prompts.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
-import { type Task, TasksService } from '@services/management/tasks.service';
+import { TasksService } from '@services/management/tasks.service';
 import { BrandsService } from '@services/social/brands.service';
 import type { Editor } from '@tiptap/core';
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention';
@@ -30,18 +34,6 @@ import {
   extractBrandMentionMatch,
   getBrandDisplayLabel,
 } from './workspace-task-composer.helpers';
-
-interface FacecamOption {
-  id: string;
-  label: string;
-  preview?: string;
-  provider?: string;
-}
-
-interface UseWorkspaceTaskComposerParams {
-  onOpenChange: (open: boolean) => void;
-  onTaskCreated: (task: Task) => void;
-}
 
 export function useWorkspaceTaskComposer({
   onOpenChange,

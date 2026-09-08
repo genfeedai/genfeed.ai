@@ -6,8 +6,16 @@ import type {
   AnalyticsQueryReference,
   AnalyticsQuerySelectedResource,
 } from '@genfeedai/contracts/interfaces';
-import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
+import type {
+  AnalyticsSurfaceDescriptor,
+  RestoredAnalyticsSurfaceState,
+} from '@genfeedai/props/analytics/analytics-work-surface-state.props';
 import { getDefaultDateRange } from '@helpers/utils/date-range.util';
+
+export type {
+  AnalyticsSurfaceDescriptor,
+  RestoredAnalyticsSurfaceState,
+} from '@genfeedai/props/analytics/analytics-work-surface-state.props';
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const PLATFORM_PATTERN = /^[a-z0-9_-]{1,32}$/;
@@ -41,28 +49,6 @@ export const ANALYTICS_METRIC_DEFINITIONS = Object.freeze({
   shares: 'Shares recorded across the selected published content.',
   views: 'Platform-reported views for the selected published content.',
 } satisfies Record<AnalyticsQueryMetric, string>);
-
-export interface AnalyticsSurfaceDescriptor {
-  readonly cacheMinutes: number;
-  readonly defaultFilters?: AnalyticsQueryFilters;
-  readonly exportKind?: 'published-posts';
-  readonly filterKeys: readonly AnalyticsQueryFilterKey[];
-  readonly label: string;
-  readonly maxVisibleResults: number;
-  readonly metrics: readonly AnalyticsQueryMetric[];
-  readonly source: AnalyticsQueryReference['provenance']['source'];
-}
-
-export interface RestoredAnalyticsSurfaceState {
-  readonly canonicalSearchParams: URLSearchParams;
-  readonly dateRange: DateRange;
-  readonly dateRangeKeys: AnalyticsQueryDateRange;
-  readonly descriptor: AnalyticsSurfaceDescriptor;
-  readonly filters: AnalyticsQueryFilters;
-  readonly isCanonical: boolean;
-  readonly normalizedRoute: string;
-  readonly selectedResource?: AnalyticsQuerySelectedResource;
-}
 
 const DEFAULT_DESCRIPTOR = Object.freeze({
   cacheMinutes: 15,

@@ -1,6 +1,7 @@
 'use client';
 
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { WorkflowSeed } from '@genfeedai/props/workflows/workflow-new-page.props';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -55,11 +56,6 @@ import { postWorkflowExecution } from '@/lib/api/execution-http-client';
 import { createSettingsSyncService } from '@/lib/api/settings-sync';
 import { applyEditOperations } from '@/lib/chat/editOperations';
 
-type WorkflowStoreState = ReturnType<typeof useWorkflowStore.getState>;
-type WorkflowSeed = Pick<WorkflowStoreState, 'edges' | 'nodes'> & {
-  workflowName: string;
-};
-
 function buildMessagesAutomationSeed(
   searchParams: URLSearchParams,
 ): WorkflowSeed | null {
@@ -97,10 +93,10 @@ function buildMessagesAutomationSeed(
       position: { x: 120, y: 160 },
       type: 'commentTrigger',
     },
-  ] as unknown as WorkflowStoreState['nodes'];
+  ] as unknown as WorkflowSeed['nodes'];
 
   return {
-    edges: [] as unknown as WorkflowStoreState['edges'],
+    edges: [] as unknown as WorkflowSeed['edges'],
     nodes,
     workflowName: 'Social Comment Automation',
   };
