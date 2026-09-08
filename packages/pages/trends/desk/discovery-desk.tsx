@@ -78,6 +78,12 @@ const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'following',
   'owned',
 ];
+const SOURCE_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'trends', label: 'Public trends' },
+  { id: 'owned', label: 'My accounts' },
+];
+
 const SORT_VALUES: readonly DiscoveryDeskSort[] = [
   'velocity',
   'virality',
@@ -345,6 +351,25 @@ export default function DiscoveryDesk() {
     <>
       <Container
         description={translateDesk('subtitle')}
+        headerTabs={
+          !isFollowingView
+            ? {
+                activeTab: sourceParam,
+                ariaLabel: 'Discovery sources',
+                fullWidth: false,
+                onTabChange: (value) => {
+                  if (
+                    value === 'all' ||
+                    value === 'trends' ||
+                    value === 'owned'
+                  ) {
+                    handleSourceChange(value);
+                  }
+                },
+                tabs: SOURCE_TABS,
+              }
+            : undefined
+        }
         icon={TrendingUp}
         label={translateDesk('title')}
         right={
@@ -386,13 +411,6 @@ export default function DiscoveryDesk() {
           </>
         }
       >
-        {!isFollowingView ? (
-          <CorpusHealthPanel
-            health={corpusHealth}
-            isUnavailable={Boolean(healthError)}
-            selectedPlatforms={Array.from(state.filters.platforms)}
-          />
-        ) : null}
         {currentError && !isLoading ? (
           <Alert type={AlertCategory.ERROR}>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -443,7 +461,7 @@ export default function DiscoveryDesk() {
         ) : null}
 
         {!isFollowingView && hasDeskItems ? (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <DeskHeatStrip
               activePlatforms={state.filters.platforms}
               items={items}
@@ -451,18 +469,11 @@ export default function DiscoveryDesk() {
               publishingHref={publishingHref}
               summary={summary}
             />
-          </div>
-        ) : null}
-
-        {!isFollowingView && hasDeskItems ? (
-          <div className="mb-4">
             <DeskFilterRail
               contentType={state.filters.contentType}
               onContentTypeChange={handleContentTypeChange}
               onSort={handleSort}
-              onSourceChange={handleSourceChange}
               sort={state.sort}
-              source={state.filters.source}
             />
           </div>
         ) : null}
@@ -502,6 +513,15 @@ export default function DiscoveryDesk() {
               selection={state.selection}
             />
           )
+        ) : null}
+        {!isFollowingView ? (
+          <div className="mt-6">
+            <CorpusHealthPanel
+              health={corpusHealth}
+              isUnavailable={Boolean(healthError)}
+              selectedPlatforms={Array.from(state.filters.platforms)}
+            />
+          </div>
         ) : null}
       </Container>
 
