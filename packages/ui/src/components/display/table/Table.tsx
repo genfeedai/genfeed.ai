@@ -15,7 +15,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useCallback, useRef } from 'react';
+import { Fragment, useCallback, useRef } from 'react';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -118,6 +118,7 @@ export default function AppTable<T>({
   getItemId,
   getRowLink,
   onRowClick,
+  renderExpandedRow,
   hideHeader = false,
   sortKey,
   sortDirection = 'asc',
@@ -411,133 +412,150 @@ export default function AppTable<T>({
                 const itemId = getItemId ? getItemId(item) : '';
                 const isSelected = selectedIds.includes(itemId);
                 const rowLink = getRowLink?.(item);
+                const rowKey = getRowKey ? getRowKey(item, index) : index;
+                const expandedContent = renderExpandedRow?.(item);
 
                 return (
-                  <tr
-                    key={getRowKey ? getRowKey(item, index) : index}
-                    className={cn(
-                      'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
-                      isSelected && 'bg-accent',
-                      // A linked row positions the overlay anchor below; the
-                      // click affordance comes from the anchor, not the row.
-                      rowLink && 'relative cursor-pointer',
-                      !rowLink &&
-                        onRowClick &&
-                        'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
-                      getRowClassName?.(item),
-                    )}
-                    onClick={
-                      rowLink
-                        ? undefined
-                        : (event) => handleRowClick(item, event)
-                    }
-                    onKeyDown={
-                      !rowLink && onRowClick
-                        ? (event) => handleRowKeyDown(item, event)
-                        : undefined
-                    }
-                    tabIndex={!rowLink && onRowClick ? 0 : undefined}
-                  >
-                    {selectable && (
-                      <td className="relative p-4 w-12 align-middle">
-                        <Checkbox
-                          name={`select-${getItemId ? getItemId(item) : index}`}
-                          aria-label={`Select row ${index + 1}`}
-                          isChecked={isSelected}
-                          onChange={() => handleSelectItem(item)}
-                        />
-                      </td>
-                    )}
-                    {columns.map((column, columnIndex) => (
-                      <td
-                        key={String(column.key)}
-                        className={cn(
-                          'px-4 py-3 align-middle text-foreground/80',
-                          column.className,
-                        )}
-                      >
-                        {rowLink && columnIndex === 0 ? (
-                          <>
-                            {/* The anchor covers the whole row (the `tr` is the
+                  <Fragment key={rowKey}>
+                    <tr
+                      className={cn(
+                        'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
+                        isSelected && 'bg-accent',
+                        // A linked row positions the overlay anchor below; the
+                        // click affordance comes from the anchor, not the row.
+                        rowLink && 'relative cursor-pointer',
+                        !rowLink &&
+                          onRowClick &&
+                          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                        getRowClassName?.(item),
+                      )}
+                      onClick={
+                        rowLink
+                          ? undefined
+                          : (event) => handleRowClick(item, event)
+                      }
+                      onKeyDown={
+                        !rowLink && onRowClick
+                          ? (event) => handleRowKeyDown(item, event)
+                          : undefined
+                      }
+                      tabIndex={!rowLink && onRowClick ? 0 : undefined}
+                    >
+                      {selectable && (
+                        <td className="relative p-4 w-12 align-middle">
+                          <Checkbox
+                            name={`select-${getItemId ? getItemId(item) : index}`}
+                            aria-label={`Select row ${index + 1}`}
+                            isChecked={isSelected}
+                            onChange={() => handleSelectItem(item)}
+                          />
+                        </td>
+                      )}
+                      {columns.map((column, columnIndex) => (
+                        <td
+                          key={String(column.key)}
+                          className={cn(
+                            'px-4 py-3 align-middle text-foreground/80',
+                            column.className,
+                          )}
+                        >
+                          {rowLink && columnIndex === 0 ? (
+                            <>
+                              {/* The anchor covers the whole row (the `tr` is the
                               positioned ancestor), so ordinary cells must stay
                               unpositioned — anything painted above it swallows
                               the click, and a linked row has no `onClick`
                               fallback. Only the checkbox and action cells are
                               raised, and they are positioned on their own `td`. */}
-                            <Link
-                              aria-label={rowLink.label}
-                              className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                              href={rowLink.href}
-                            />
+                              <Link
+                                aria-label={rowLink.label}
+                                className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                                href={rowLink.href}
+                              />
+                              <TableCellContent column={column} item={item} />
+                            </>
+                          ) : (
                             <TableCellContent column={column} item={item} />
-                          </>
-                        ) : (
-                          <TableCellContent column={column} item={item} />
-                        )}
-                      </td>
-                    ))}
+                          )}
+                        </td>
+                      ))}
 
-                    {actions.length > 0 && (
-                      <td className="px-4 py-2 relative align-middle">
-                        <div className="flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:translate-x-2 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100">
-                          <div className="flex items-center gap-1">
-                            {actions.reduce<ReactNode[]>(
-                              (acc, action, actionIndex) => {
-                                // Check if action should be visible for this item
-                                const isVisible = action.isVisible
-                                  ? action.isVisible(item)
-                                  : true;
-                                if (!isVisible) {
+                      {actions.length > 0 && (
+                        <td className="px-4 py-2 relative align-middle">
+                          <div className="flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:translate-x-2 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100">
+                            <div className="flex items-center gap-1">
+                              {actions.reduce<ReactNode[]>(
+                                (acc, action, actionIndex) => {
+                                  // Check if action should be visible for this item
+                                  const isVisible = action.isVisible
+                                    ? action.isVisible(item)
+                                    : true;
+                                  if (!isVisible) {
+                                    return acc;
+                                  }
+                                  const iconContent =
+                                    typeof action.icon === 'function'
+                                      ? action.icon(item)
+                                      : action.icon;
+                                  const tooltipText =
+                                    typeof action.tooltip === 'function'
+                                      ? action.tooltip(item)
+                                      : action.tooltip;
+
+                                  acc.push(
+                                    <Button
+                                      key={actionIndex}
+                                      icon={iconContent}
+                                      ariaLabel={
+                                        typeof tooltipText === 'string'
+                                          ? tooltipText
+                                          : 'Row action'
+                                      }
+                                      onClick={() =>
+                                        handleActionClick(action, item)
+                                      }
+                                      isDisabled={action.isDisabled?.(item)}
+                                      tooltip={tooltipText}
+                                      tooltipPosition={
+                                        action.tooltipPosition || 'left'
+                                      }
+                                      data-testid="action-button"
+                                      variant={ButtonVariant.GHOST}
+                                      size={ButtonSize.ICON}
+                                      className={cn(
+                                        // 44px touch target on small screens; compact
+                                        // icon control on desktop. Cap glyph size so
+                                        // bare lucide icons don't render at 24px.
+                                        'inline-flex size-11 items-center justify-center p-0 lg:size-8 [&_svg]:size-3.5',
+                                        action.className,
+                                        action.getClassName?.(item),
+                                      )}
+                                    />,
+                                  );
                                   return acc;
-                                }
-                                const iconContent =
-                                  typeof action.icon === 'function'
-                                    ? action.icon(item)
-                                    : action.icon;
-                                const tooltipText =
-                                  typeof action.tooltip === 'function'
-                                    ? action.tooltip(item)
-                                    : action.tooltip;
-
-                                acc.push(
-                                  <Button
-                                    key={actionIndex}
-                                    icon={iconContent}
-                                    ariaLabel={
-                                      typeof tooltipText === 'string'
-                                        ? tooltipText
-                                        : 'Row action'
-                                    }
-                                    onClick={() =>
-                                      handleActionClick(action, item)
-                                    }
-                                    isDisabled={action.isDisabled?.(item)}
-                                    tooltip={tooltipText}
-                                    tooltipPosition={
-                                      action.tooltipPosition || 'left'
-                                    }
-                                    data-testid="action-button"
-                                    variant={ButtonVariant.GHOST}
-                                    size={ButtonSize.ICON}
-                                    className={cn(
-                                      // 44px touch target on small screens; compact
-                                      // icon control on desktop. Cap glyph size so
-                                      // bare lucide icons don't render at 24px.
-                                      'inline-flex size-11 items-center justify-center p-0 lg:size-8 [&_svg]:size-3.5',
-                                      action.className,
-                                      action.getClassName?.(item),
-                                    )}
-                                  />,
-                                );
-                                return acc;
-                              },
-                              [],
-                            )}
+                                },
+                                [],
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
+                      )}
+                    </tr>
+                    {expandedContent === undefined ? null : (
+                      <tr className="bg-background-secondary/50">
+                        <td
+                          className="px-4 pb-4 align-top"
+                          colSpan={
+                            columns.length +
+                            (selectable ? 1 : 0) +
+                            (actions.length > 0 ? 1 : 0)
+                          }
+                        >
+                          {expandedContent}
+                        </td>
+                      </tr>
                     )}
-                  </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

@@ -19,28 +19,21 @@ import type {
   TrendItem,
   TrendSourceItem,
 } from '@props/trends/trends-page.props';
+import type { TableColumn } from '@props/ui/display/table.props';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
 import Badge from '@ui/display/badge/Badge';
+import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   buildSourcePostVariationsHref,
@@ -60,7 +53,7 @@ import {
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { type MouseEvent, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 /** Mirrors `following-page.tsx`'s `normalizeTrendContentType` — duplicated
  * here on purpose since that file is scheduled for deletion once the Desk
@@ -194,25 +187,18 @@ function getVideoEmbedUrl(video: ITrendVideo): string | null {
   return null;
 }
 
-interface DeskTableRowProps {
+interface DeskRowActionsProps {
   href: (path: string) => string;
-  isCursored: boolean;
-  isSelected: boolean;
   item: DiscoveryDeskItem;
-  onCursor: (key: string) => void;
   onSelectFinding?: (item: DiscoveryDeskItem) => void;
-  onToggleSelect: (key: string) => void;
 }
 
-function DeskTableRow({
-  href,
-  isCursored,
-  isSelected,
-  item,
-  onCursor,
-  onSelectFinding,
-  onToggleSelect,
-}: DeskTableRowProps) {
+/**
+ * The row's action cluster. It is a component rather than an inline `render`
+ * body so each row owns its own hooks and request state — the pattern
+ * `trend-content-card.tsx` and `SourcePostCard` already use.
+ */
+function DeskRowActions({ href, item, onSelectFinding }: DeskRowActionsProps) {
   const brandId = useBrandId();
   const router = useRouter();
   const remixSurface = useOptionalDiscoveryRemix();
@@ -227,17 +213,11 @@ function DeskTableRow({
     SourcePostsService.getInstance(token),
   );
 
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isSavingBrief, setIsSavingBrief] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const pair = useMemo(() => toTrendSourcePair(item), [item]);
   const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
-  const embedUrl =
-    item.raw.kind === 'viral_video' ? getVideoEmbedUrl(item.raw.video) : null;
-  const previewMediaUrl = getSafeExternalUrl(
-    item.mediaUrl || item.thumbnailUrl,
-  );
   const isTwitterSourcePost =
     item.raw.kind === 'source_post' &&
     item.platform === SocialSourcePlatform.TWITTER;
@@ -345,240 +325,211 @@ function DeskTableRow({
     [brandId, getSourcePostsService, item, notifications],
   );
 
-  const stopRowClick = (event: MouseEvent) => event.stopPropagation();
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {item.remixSelector ? (
+        <Button
+          icon={<Sparkles className="size-3.5" />}
+          label={translateCard('actions.remix')}
+          onClick={handleRemix}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+        />
+      ) : (
+        <SimpleTooltip label={translateCard('actions.remixUnavailable')}>
+          <Button
+            icon={<Sparkles className="size-3.5" />}
+            isDisabled
+            label={translateCard('actions.remix')}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
+        </SimpleTooltip>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ariaLabel="More actions"
+            icon={<MoreHorizontal className="size-4" />}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          {isTwitterSourcePost ? (
+            <>
+              <DropdownMenuItem
+                disabled={busyAction === SourcePostActionType.REPLY}
+                onSelect={() => {
+                  void handleCreateDraft(SourcePostActionType.REPLY);
+                }}
+              >
+                <MessageSquare className="size-4" />
+                {translateFollowing('actions.reply')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busyAction === SourcePostActionType.QUOTE}
+                onSelect={() => {
+                  void handleCreateDraft(SourcePostActionType.QUOTE);
+                }}
+              >
+                <Zap className="size-4" />
+                {translateFollowing('actions.quote')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busyAction === SourcePostActionType.REPOST}
+                onSelect={() => {
+                  void handleCreateDraft(SourcePostActionType.REPOST);
+                }}
+              >
+                <Repeat2 className="size-4" />
+                {translateFollowing('actions.repost')}
+              </DropdownMenuItem>
+            </>
+          ) : null}
+          {item.raw.kind === 'source_post' ? (
+            <DropdownMenuItem
+              disabled={busyAction === SourcePostActionType.DRAFT}
+              onSelect={() => {
+                void handleCreateDraft(SourcePostActionType.DRAFT);
+              }}
+            >
+              <FileText className="size-4" />
+              {translateFollowing('actions.createDraft')}
+            </DropdownMenuItem>
+          ) : null}
+          {item.raw.kind === 'trend' ? (
+            <DropdownMenuItem
+              disabled={isSavingBrief}
+              onSelect={() => {
+                void handleSaveBrief();
+              }}
+            >
+              <FileText className="size-4" />
+              {isSavingBrief ? 'Saving brief…' : 'Save brief'}
+            </DropdownMenuItem>
+          ) : null}
+          {pair ? (
+            <DropdownMenuItem
+              onSelect={() => {
+                void handleCopyPrompt();
+              }}
+            >
+              <Copy className="size-4" />
+              {translateCard('actions.copyPrompt')}
+            </DropdownMenuItem>
+          ) : null}
+          {safeSourceUrl ? (
+            <DropdownMenuItem onSelect={handleOpenSource}>
+              <ExternalLink className="size-4" />
+              {translateCard('actions.openSource')}
+            </DropdownMenuItem>
+          ) : null}
+          {pair ? (
+            <DropdownMenuItem onSelect={handleSendToAgent}>
+              <Zap className="size-4" />
+              {translateCard('actions.sendToAgent')}
+            </DropdownMenuItem>
+          ) : null}
+          {onSelectFinding ? (
+            <DropdownMenuItem onSelect={() => onSelectFinding(item)}>
+              {translateCard('actions.useAsContext')}
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+/** Title cell: the whole label toggles the row's detail panel. */
+function DeskContentCell({
+  isExpanded,
+  item,
+  onToggle,
+}: {
+  isExpanded: boolean;
+  item: DiscoveryDeskItem;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <Button
+      aria-expanded={isExpanded}
+      className="flex items-start gap-2 text-left"
+      onClick={() => onToggle(item.key)}
+      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+    >
+      {item.thumbnailUrl ? (
+        <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
+          <Image
+            alt=""
+            className="object-cover"
+            fill
+            sizes="40px"
+            src={item.thumbnailUrl}
+            unoptimized
+          />
+        </span>
+      ) : null}
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium text-foreground">
+          {item.title || item.text || item.trendTopic || 'Untitled'}
+        </span>
+        {item.text && item.title ? (
+          <span className="block truncate text-xs text-foreground/55">
+            {item.text}
+          </span>
+        ) : null}
+      </span>
+    </Button>
+  );
+}
+
+/** Detail panel shown beneath an expanded row. */
+function DeskExpandedDetail({ item }: { item: DiscoveryDeskItem }) {
+  const embedUrl =
+    item.raw.kind === 'viral_video' ? getVideoEmbedUrl(item.raw.video) : null;
+  const previewMediaUrl = getSafeExternalUrl(
+    item.mediaUrl || item.thumbnailUrl,
+  );
 
   return (
     <>
-      <TableRow
-        className={isCursored ? 'ring-1 ring-inset ring-primary/50' : undefined}
-        data-state={isSelected ? 'selected' : undefined}
-        onClick={() => onCursor(item.key)}
-      >
-        <TableCell onClick={stopRowClick}>
-          <Checkbox
-            aria-label={`Select ${item.title || item.text || item.key}`}
-            isChecked={isSelected}
-            name={`select-${item.key}`}
-            onChange={() => onToggleSelect(item.key)}
+      {embedUrl ? (
+        <iframe
+          allow="autoplay; encrypted-media"
+          className="aspect-video w-full max-w-md rounded-lg"
+          src={embedUrl}
+          title={item.title || 'Video preview'}
+        />
+      ) : previewMediaUrl ? (
+        <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg bg-secondary">
+          <Image
+            alt={item.title || ''}
+            className="object-cover"
+            fill
+            src={previewMediaUrl}
+            unoptimized
           />
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
-            {getPlatformIcon(item.platform, 'size-4')}
-            <span className="truncate text-sm text-foreground/80">
-              {item.authorHandle ? `@${item.authorHandle}` : item.platform}
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="max-w-sm" onClick={stopRowClick}>
-          <Button
-            className="flex items-start gap-2 text-left"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          >
-            {item.thumbnailUrl ? (
-              <span className="relative block size-10 shrink-0 overflow-hidden rounded-md bg-secondary">
-                <Image
-                  alt=""
-                  className="object-cover"
-                  fill
-                  sizes="40px"
-                  src={item.thumbnailUrl}
-                  unoptimized
-                />
-              </span>
-            ) : null}
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-foreground">
-                {item.title || item.text || item.trendTopic || 'Untitled'}
-              </span>
-              {item.text && item.title ? (
-                <span className="block truncate text-xs text-foreground/55">
-                  {item.text}
-                </span>
-              ) : null}
-            </span>
-          </Button>
-        </TableCell>
-        <TableCell>
-          <Badge className="capitalize" variant="ghost">
-            {item.source}
-          </Badge>
-        </TableCell>
-        <TableCell className="text-xs text-foreground/70">
-          {translateCard('velocityPerHour', {
-            value: formatCompactNumber(item.velocity),
-          })}
-        </TableCell>
-        <TableCell className="text-xs text-foreground/70">
-          <span className="inline-flex items-center gap-1">
-            <Zap className="size-3" />
-            {Math.round(item.virality)}
-          </span>
-        </TableCell>
-        <TableCell className="text-xs text-foreground/70">
-          {formatCompactNumber(item.engagement)}
-        </TableCell>
-        <TableCell className="text-xs text-foreground/55">
-          {item.publishedAt ? getRelativeTime(item.publishedAt) : '—'}
-        </TableCell>
-        <TableCell onClick={stopRowClick}>
-          <div className="flex items-center justify-end gap-1">
-            {item.remixSelector ? (
-              <Button
-                icon={<Sparkles className="size-3.5" />}
-                label={translateCard('actions.remix')}
-                onClick={handleRemix}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-              />
-            ) : (
-              <SimpleTooltip label={translateCard('actions.remixUnavailable')}>
-                <Button
-                  icon={<Sparkles className="size-3.5" />}
-                  isDisabled
-                  label={translateCard('actions.remix')}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                />
-              </SimpleTooltip>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  ariaLabel="More actions"
-                  icon={<MoreHorizontal className="size-4" />}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                {isTwitterSourcePost ? (
-                  <>
-                    <DropdownMenuItem
-                      disabled={busyAction === SourcePostActionType.REPLY}
-                      onSelect={() => {
-                        void handleCreateDraft(SourcePostActionType.REPLY);
-                      }}
-                    >
-                      <MessageSquare className="size-4" />
-                      {translateFollowing('actions.reply')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={busyAction === SourcePostActionType.QUOTE}
-                      onSelect={() => {
-                        void handleCreateDraft(SourcePostActionType.QUOTE);
-                      }}
-                    >
-                      <Zap className="size-4" />
-                      {translateFollowing('actions.quote')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      disabled={busyAction === SourcePostActionType.REPOST}
-                      onSelect={() => {
-                        void handleCreateDraft(SourcePostActionType.REPOST);
-                      }}
-                    >
-                      <Repeat2 className="size-4" />
-                      {translateFollowing('actions.repost')}
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-                {item.raw.kind === 'source_post' ? (
-                  <DropdownMenuItem
-                    disabled={busyAction === SourcePostActionType.DRAFT}
-                    onSelect={() => {
-                      void handleCreateDraft(SourcePostActionType.DRAFT);
-                    }}
-                  >
-                    <FileText className="size-4" />
-                    {translateFollowing('actions.createDraft')}
-                  </DropdownMenuItem>
-                ) : null}
-                {item.raw.kind === 'trend' ? (
-                  <DropdownMenuItem
-                    disabled={isSavingBrief}
-                    onSelect={() => {
-                      void handleSaveBrief();
-                    }}
-                  >
-                    <FileText className="size-4" />
-                    {isSavingBrief ? 'Saving brief…' : 'Save brief'}
-                  </DropdownMenuItem>
-                ) : null}
-                {pair ? (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      void handleCopyPrompt();
-                    }}
-                  >
-                    <Copy className="size-4" />
-                    {translateCard('actions.copyPrompt')}
-                  </DropdownMenuItem>
-                ) : null}
-                {safeSourceUrl ? (
-                  <DropdownMenuItem onSelect={handleOpenSource}>
-                    <ExternalLink className="size-4" />
-                    {translateCard('actions.openSource')}
-                  </DropdownMenuItem>
-                ) : null}
-                {pair ? (
-                  <DropdownMenuItem onSelect={handleSendToAgent}>
-                    <Zap className="size-4" />
-                    {translateCard('actions.sendToAgent')}
-                  </DropdownMenuItem>
-                ) : null}
-                {onSelectFinding ? (
-                  <DropdownMenuItem onSelect={() => onSelectFinding(item)}>
-                    {translateCard('actions.useAsContext')}
-                  </DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </TableCell>
-      </TableRow>
-      {isExpanded ? (
-        <TableRow onClick={stopRowClick}>
-          <TableCell className="bg-secondary/30 p-4" colSpan={9}>
-            {embedUrl ? (
-              <iframe
-                allow="autoplay; encrypted-media"
-                className="aspect-video w-full max-w-md rounded-lg"
-                src={embedUrl}
-                title={item.title || 'Video preview'}
-              />
-            ) : previewMediaUrl ? (
-              <div className="relative aspect-video w-full max-w-md overflow-hidden rounded-lg bg-secondary">
-                <Image
-                  alt={item.title || ''}
-                  className="object-cover"
-                  fill
-                  src={previewMediaUrl}
-                  unoptimized
-                />
-              </div>
-            ) : null}
-            {item.text ? (
-              <p className="mt-3 max-w-2xl text-sm text-foreground/70">
-                {item.text}
-              </p>
-            ) : null}
-          </TableCell>
-        </TableRow>
+        </div>
+      ) : null}
+      {item.text ? (
+        <p className="mt-3 max-w-2xl text-sm text-foreground/70">{item.text}</p>
       ) : null}
     </>
   );
 }
 
 /**
- * The Desk's dense, keyboard-navigable table view (Direction A). Row actions
- * are per-item components (not inline handlers in a `.map`) so each row can
- * own its own hooks — mirrors the `trend-content-card.tsx` / `SourcePostCard`
- * pattern from the pages this replaces.
+ * The Desk's dense, keyboard-navigable table view (Direction A).
+ *
+ * It renders through the shared `Table`, like every other table surface, so
+ * selection, the row frame, empty and loading states come from one place
+ * instead of being rebuilt on the raw primitives. Cells that need request
+ * state stay components, so each row still owns its own hooks.
  */
 export default function DeskTableView({
   cursorKey,
@@ -598,42 +549,148 @@ export default function DeskTableView({
   selection: Set<string>;
 }) {
   const translateDesk = useTranslations('common.trends.desk');
+  const translateCard = useTranslations('common.trends.card');
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  const handleToggleExpanded = useCallback((key: string) => {
+    setExpandedKeys((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(key)) {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  // The Desk owns selection as a Set keyed by row, and the shared table
+  // reports the whole selected list. Toggle only what actually changed so a
+  // select-all still arrives as one toggle per row.
+  const handleSelectionChange = useCallback(
+    (selectedIds: string[]) => {
+      const next = new Set(selectedIds);
+      for (const key of next) {
+        if (!selection.has(key)) onToggleSelect(key);
+      }
+      for (const key of selection) {
+        if (!next.has(key)) onToggleSelect(key);
+      }
+    },
+    [onToggleSelect, selection],
+  );
+
+  const columns = useMemo<TableColumn<DiscoveryDeskItem>[]>(
+    () => [
+      {
+        header: translateDesk('tableHeaders.author'),
+        key: 'author',
+        render: (item) => (
+          <div className="flex items-center gap-2">
+            {getPlatformIcon(item.platform, 'size-4')}
+            <span className="truncate text-sm text-foreground/80">
+              {item.authorHandle ? `@${item.authorHandle}` : item.platform}
+            </span>
+          </div>
+        ),
+      },
+      {
+        className: 'max-w-sm',
+        header: translateDesk('tableHeaders.content'),
+        key: 'content',
+        render: (item) => (
+          <DeskContentCell
+            isExpanded={expandedKeys.has(item.key)}
+            item={item}
+            onToggle={handleToggleExpanded}
+          />
+        ),
+      },
+      {
+        header: translateDesk('tableHeaders.source'),
+        key: 'source',
+        render: (item) => (
+          <Badge className="capitalize" variant="ghost">
+            {item.source}
+          </Badge>
+        ),
+      },
+      {
+        className: 'text-xs text-foreground/70',
+        header: translateDesk('tableHeaders.velocity'),
+        key: 'velocity',
+        render: (item) =>
+          translateCard('velocityPerHour', {
+            value: formatCompactNumber(item.velocity),
+          }),
+      },
+      {
+        className: 'text-xs text-foreground/70',
+        header: translateDesk('tableHeaders.virality'),
+        key: 'virality',
+        render: (item) => (
+          <span className="inline-flex items-center gap-1">
+            <Zap className="size-3" />
+            {Math.round(item.virality)}
+          </span>
+        ),
+      },
+      {
+        className: 'text-xs text-foreground/70',
+        header: translateDesk('tableHeaders.engagement'),
+        key: 'engagement',
+        render: (item) => formatCompactNumber(item.engagement),
+      },
+      {
+        className: 'text-xs text-foreground/55',
+        header: translateDesk('tableHeaders.published'),
+        key: 'published',
+        render: (item) =>
+          item.publishedAt ? getRelativeTime(item.publishedAt) : '—',
+      },
+      {
+        className: 'text-right',
+        header: translateDesk('tableHeaders.actions'),
+        key: 'actions',
+        render: (item) => (
+          <DeskRowActions
+            href={href}
+            item={item}
+            onSelectFinding={onSelectFinding}
+          />
+        ),
+      },
+    ],
+    [
+      expandedKeys,
+      handleToggleExpanded,
+      href,
+      onSelectFinding,
+      translateCard,
+      translateDesk,
+    ],
+  );
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-10">
-            <span className="sr-only">
-              {translateDesk('tableHeaders.select')}
-            </span>
-          </TableHead>
-          <TableHead>{translateDesk('tableHeaders.author')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.content')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.source')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.velocity')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.virality')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.engagement')}</TableHead>
-          <TableHead>{translateDesk('tableHeaders.published')}</TableHead>
-          <TableHead className="text-right">
-            {translateDesk('tableHeaders.actions')}
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <DeskTableRow
-            key={item.key}
-            href={href}
-            isCursored={cursorKey === item.key}
-            isSelected={selection.has(item.key)}
-            item={item}
-            onCursor={onCursor}
-            onSelectFinding={onSelectFinding}
-            onToggleSelect={onToggleSelect}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <AppTable
+      ariaLabel={translateDesk('title')}
+      columns={columns}
+      framed={false}
+      getItemId={(item) => item.key}
+      getRowClassName={(item) =>
+        cursorKey === item.key ? 'ring-1 ring-inset ring-primary/50' : ''
+      }
+      getRowKey={(item) => item.key}
+      items={items}
+      onRowClick={(item) => onCursor(item.key)}
+      onSelectionChange={handleSelectionChange}
+      renderExpandedRow={(item) =>
+        expandedKeys.has(item.key) ? (
+          <DeskExpandedDetail item={item} />
+        ) : undefined
+      }
+      selectable
+      selectedIds={Array.from(selection)}
+    />
   );
 }
