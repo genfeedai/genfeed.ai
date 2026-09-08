@@ -177,6 +177,21 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     await reviewing;
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
+  it('keeps a review that settles before its queue acknowledgement', async () => {
+    ingredient.providerData = {
+      agentWorkObject: {
+        threadId: scope.threadId,
+        kind: 'script',
+        title: 'Script',
+        reviewStatus: 'passed',
+      },
+    };
+    await expect(
+      service.linkReviewExecution(scope, 'work-1', 'token-1', 'execution-1'),
+    ).resolves.toBeUndefined();
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+  });
+
   it('caps consequential choices before publishing', async () => {
     await expect(
       service.requestInput(

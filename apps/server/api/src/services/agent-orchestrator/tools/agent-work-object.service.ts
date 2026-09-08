@@ -562,6 +562,9 @@ export class AgentWorkObjectService {
     executionId: string,
   ) {
     const { ingredient, work } = await this.load(scope, id);
+    // A fast review may finish before the enqueue acknowledgement is linked.
+    if (work.reviewStatus === 'passed' || work.reviewStatus === 'failed')
+      return;
     if (work.reviewToken !== token || work.reviewStatus !== 'reviewing') {
       await this.cancelReviewExecution(scope, executionId);
       return;
