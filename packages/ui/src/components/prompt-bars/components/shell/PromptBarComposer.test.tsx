@@ -13,8 +13,14 @@ describe('PromptBarComposer', () => {
     expect(screen.getByTestId('prompt-bar-composer')).toHaveClass(
       'rounded-[var(--radius-workspace-composer)]',
       'bg-background/70',
-      'shadow-composer',
+      'border',
+      'border-border-strong/70',
       'backdrop-blur-xl',
+    );
+    // Every composer is bordered glass; the old drop shadow was Studio-only
+    // once Agent started overriding it locally.
+    expect(screen.getByTestId('prompt-bar-composer')).not.toHaveClass(
+      'shadow-composer',
     );
     expect(screen.getByText('References')).toBeInTheDocument();
     expect(screen.getByTestId('prompt-bar-body')).toHaveTextContent('Editor');
