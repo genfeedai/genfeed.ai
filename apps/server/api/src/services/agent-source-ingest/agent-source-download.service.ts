@@ -288,9 +288,11 @@ export class AgentSourceDownloadService {
         const result = record(job.result ?? job);
         if (
           typeof result.sourceUrl !== 'string' ||
-          typeof result.sourceS3Key !== 'string'
+          !result.sourceUrl.trim() ||
+          typeof result.sourceS3Key !== 'string' ||
+          !result.sourceS3Key.trim()
         )
-          throw new ServiceUnavailableException(
+          throw new SourceExtractionFailedError(
             'Source extraction completed without a durable video.',
           );
         const metadata = await this.files.extractMetadataFromUrl(

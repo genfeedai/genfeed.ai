@@ -328,6 +328,54 @@ describe('AgentSourceDownloadService', () => {
     );
   });
 
+  it.each([
+    {},
+    { sourceUrl: 'https://cdn.example/video' },
+    { sourceS3Key: 'videos/source' },
+    { sourceUrl: '', sourceS3Key: 'videos/source' },
+    { sourceUrl: 'https://cdn.example/video', sourceS3Key: '  ' },
+  ])(
+    'treats completed extraction with an invalid artifact as terminal (%j)',
+    async (result) => {
+      http.post.mockReturnValue(
+        of({ data: { jobId: 'agent-source-source-1' } }),
+      );
+      http.get.mockReturnValue(of({ data: { status: 'COMPLETED', result } }));
+      const download = service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+      );
+      await expect(download).rejects.toThrow(
+        'completed without a durable video',
+      );
+      await expect(download).rejects.not.toBeInstanceOf(
+        AgentSourceImportPendingError,
+      );
+      expect(http.post).toHaveBeenCalledTimes(1);
+      expect(files.extractMetadataFromUrl).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not leave a resumed completed extraction pending when its artifact is missing', async () => {
+    http.get.mockReturnValue(of({ data: { state: 'completed', result: {} } }));
+    const download = service.download(
+      'https://www.youtube.com/watch?v=abcdefghijk',
+      'source-1',
+      'video',
+      context,
+      'existing-job',
+    );
+    await expect(download).rejects.toThrow('completed without a durable video');
+    await expect(download).rejects.not.toBeInstanceOf(
+      AgentSourceImportPendingError,
+    );
+    expect(http.post).not.toHaveBeenCalled();
+    expect(files.extractMetadataFromUrl).not.toHaveBeenCalled();
+  });
+
   it('reports uncertain remote execution separately so retry cannot duplicate it', async () => {
     const cause = new Error('network lost');
     http.get.mockReturnValue(throwError(() => cause));

@@ -13,4 +13,4 @@ Consumers embedding Agent UI should pass the new input-request and work-object
 props and keep client packages aligned with the server endpoints. Existing
 conversations and Library assets without work-object metadata retain their
 current representation. Hosts must preserve the distinction between a pending
-review and a completed review before enabling generation.
+review, a completed review, and an explicit skip before enabling generation.
