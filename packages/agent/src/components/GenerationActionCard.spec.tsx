@@ -8,7 +8,13 @@ import {
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -453,7 +459,12 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.selectionMode = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
     window.localStorage.clear();
-    useGenerationSetupStore.setState({ reasonsByScope: {}, setupByScope: {} });
+    act(() => {
+      useGenerationSetupStore.setState({
+        reasonsByScope: {},
+        setupByScope: {},
+      });
+    });
   });
 
   it('keeps the prompt field compact and opens an editable full prompt', async () => {
