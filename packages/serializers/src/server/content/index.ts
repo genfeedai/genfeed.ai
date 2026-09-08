@@ -64,3 +64,7 @@ export * from '@serializers/server/content/speech-transcription.serializer';
 export * from '@serializers/server/content/studio-look.serializer';
 export * from '@serializers/server/content/template.serializer';
 export * from '@serializers/server/content/workspace-task-realtime.builder';
+
+export * from './remotion-composition.serializer';
+
+export * from './remotion-render.serializer';

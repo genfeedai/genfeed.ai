@@ -38,6 +38,7 @@ export {
   createGenfeedActionNode,
   getActionDefinition,
 } from './registry/action-registry';
+export { REMOTION_COMPOSITION_INPUT_SCHEMA } from './registry/contracts/remotion-action-contracts';
 export type {
   CuratedActionCatalogEntry,
   CuratedActionName,

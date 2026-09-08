@@ -87,6 +87,7 @@ describe('EditorProjectsController', () => {
             create: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
+            findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
           },
         },
@@ -324,6 +325,27 @@ describe('EditorProjectsController', () => {
         controller.remove(makeRequest(), makeUser(), 'bad_id'),
       ).rejects.toThrow(NotFoundException);
     });
+  });
+
+  it('preserves approved composition inputs and lifecycle across generic editor routes', async () => {
+    const project = {
+      ...makeProject(),
+      config: { composition: { id: 'product-story' } },
+    };
+    editorProjectsService.findOne.mockResolvedValue(project as never);
+    editorProjectsService.findForRender.mockResolvedValue(project as never);
+    await expect(
+      controller.update(makeRequest(), makeUser(), String(project.id), {}),
+    ).rejects.toThrow('immutable');
+    await expect(
+      controller.render(makeRequest(), makeUser(), String(project.id)),
+    ).rejects.toThrow('composition retry');
+    await expect(
+      controller.cancelRender(makeRequest(), makeUser(), String(project.id)),
+    ).rejects.toThrow('composition cancel');
+    expect(editorProjectsService.patch).not.toHaveBeenCalled();
+    expect(editorRenderService.render).not.toHaveBeenCalled();
+    expect(editorRenderService.cancel).not.toHaveBeenCalled();
   });
 
   // ── render ────────────────────────────────────────────────────────────────

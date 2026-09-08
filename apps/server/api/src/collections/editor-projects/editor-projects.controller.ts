@@ -37,6 +37,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -248,6 +249,12 @@ export class EditorProjectsController {
       return returnNotFound('Editor project', id);
     }
 
+    if (existing.config?.composition) {
+      throw new ConflictException(
+        'Approved compositions are immutable. Submit updated inputs with a new requestId.',
+      );
+    }
+
     const data: EditorProjectDocument = await this.editorProjectsService.patch(
       id,
       updateDto,
@@ -287,6 +294,14 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
+    const project = await this.editorProjectsService.findForRender(
+      id,
+      user.organizationId,
+    );
+    if (project.config?.composition)
+      throw new ConflictException(
+        'Use the composition retry action to retry this render.',
+      );
     const result = await this.editorRenderService.render(
       id,
       user.organizationId,
@@ -303,6 +318,14 @@ export class EditorProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
+    const project = await this.editorProjectsService.findForRender(
+      id,
+      user.organizationId,
+    );
+    if (project.config?.composition)
+      throw new ConflictException(
+        'Use the composition cancel action to cancel this render.',
+      );
     const result = await this.editorRenderService.cancel(
       id,
       user.organizationId,
