@@ -60,6 +60,56 @@ describe('published releases', () => {
       );
     },
   );
+  it.each([401, 403])(
+    'retries rejected token %s anonymously and stays anonymous on later pages',
+    async (status) => {
+      vi.stubEnv('GITHUB_TOKEN', 'rejected-token');
+      const fetcher = vi
+        .fn()
+        .mockResolvedValueOnce(new Response('', { status }))
+        .mockResolvedValueOnce(
+          new Response('[]', {
+            headers: {
+              link: '<https://api.github.com/releases?page=2>; rel="next"',
+            },
+          }),
+        )
+        .mockResolvedValueOnce(new Response('[]'));
+      vi.stubGlobal('fetch', fetcher);
+      await expect(getPublishedReleases()).resolves.toEqual([]);
+      expect(fetcher).toHaveBeenCalledTimes(3);
+      expect(fetcher.mock.calls[0][1].headers.Authorization).toBe(
+        'Bearer rejected-token',
+      );
+      expect(fetcher.mock.calls[1][0]).toBe(fetcher.mock.calls[0][0]);
+      expect(fetcher.mock.calls[1][1].headers).toEqual({
+        Accept: 'application/vnd.github+json',
+      });
+      expect(fetcher.mock.calls[2][1].headers).toEqual({
+        Accept: 'application/vnd.github+json',
+      });
+      expect(fetcher.mock.calls[2][0]).toContain('page=2');
+    },
+  );
+  it('surfaces anonymous retry failure without retrying indefinitely', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'rejected-token');
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response('', { status: 403 }));
+    vi.stubGlobal('fetch', fetcher);
+    await expect(getPublishedReleases()).rejects.toThrow('403');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it.each([
+    ['', 401],
+    ['valid-token', 503],
+  ])('does not retry unrelated failures (%s, %s)', async (token, status) => {
+    vi.stubEnv('GITHUB_TOKEN', token);
+    const fetcher = vi.fn().mockResolvedValue(new Response('', { status }));
+    vi.stubGlobal('fetch', fetcher);
+    await expect(getPublishedReleases()).rejects.toThrow(String(status));
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('fails loudly on GitHub errors', async () => {
     vi.stubGlobal(
       'fetch',
