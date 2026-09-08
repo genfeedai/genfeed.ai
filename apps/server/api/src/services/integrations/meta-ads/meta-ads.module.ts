@@ -4,7 +4,6 @@ import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-
 import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
 import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
-import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -30,7 +29,6 @@ import { Module } from '@nestjs/common';
     HttpModule,
     LoggerModule,
     AdBulkUploadJobsModule,
-    BrandsCoreModule,
     CredentialsCoreModule,
     QueuesModule,
     AdCreativeMappingsModule,

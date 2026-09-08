@@ -1,5 +1,8 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ActivityKey, IngredientCategory } from '@genfeedai/contracts';
+import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ActivityUpdateService', () => {
@@ -12,16 +15,10 @@ describe('ActivityUpdateService', () => {
   let websocketService: {
     publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
   };
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
 
   const mockObjectId = 'test-object-id';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     activitiesService = {
       create: vi.fn().mockResolvedValue({ id: mockObjectId }),
       findByActionValue: vi.fn(),
@@ -30,18 +27,15 @@ describe('ActivityUpdateService', () => {
     websocketService = {
       publishBackgroundTaskUpdate: vi.fn(),
     };
-    loggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
 
-    service = new ActivityUpdateService(
-      activitiesService,
-      websocketService,
-      loggerService,
-    );
+    const module = await Test.createTestingModule({
+      providers: [
+        ActivityUpdateService,
+        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: NotificationsPublisherService, useValue: websocketService },
+      ],
+    }).compile();
+    service = module.get(ActivityUpdateService);
   });
 
   describe('updateSuccessActivity', () => {

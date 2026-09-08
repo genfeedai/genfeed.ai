@@ -15,7 +15,6 @@ vi.mock('@files/helpers/utils/security/security.util', () => ({
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegTransformService } from '@files/services/ffmpeg/services/ffmpeg-transform.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FFmpegTransformService', () => {
@@ -24,10 +23,6 @@ describe('FFmpegTransformService', () => {
     executeFFmpeg: ReturnType<typeof vi.fn>;
     ensureOutputDir: ReturnType<typeof vi.fn>;
     cleanupTempFiles: ReturnType<typeof vi.fn>;
-  };
-  let mockLoggerService: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -39,16 +34,10 @@ describe('FFmpegTransformService', () => {
       executeFFmpeg: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockLoggerService = {
-      error: vi.fn(),
-      log: vi.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FFmpegTransformService,
         { provide: FFmpegCoreService, useValue: mockCore },
-        { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
 
