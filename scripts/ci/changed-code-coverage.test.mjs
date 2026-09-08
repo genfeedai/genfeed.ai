@@ -901,8 +901,14 @@ test('the report merges blobs and reads each surface as its own shard directory'
 
   // The surface result now comes from the folded changed-test jobs — the
   // same jobs that produced the shards being aggregated.
-  assert.match(job, /APP_RESULT: \$\{\{ needs\.test-app-changed\.result \}\}/);
-  assert.match(job, /API_RESULT: \$\{\{ needs\.test-api-changed\.result \}\}/);
+  assert.match(
+    job,
+    /APP_RESULT: .*needs\.test-app-changed\.result.*needs\.test-app\.result/,
+  );
+  assert.match(
+    job,
+    /API_RESULT: .*needs\.test-api-changed\.result.*needs\.test-api\.result/,
+  );
 
   for (const surface of ['app', 'api']) {
     assert.match(
@@ -1235,4 +1241,26 @@ test('unrelated LCOV distinguishes unchanged surfaces from missing changed cover
   assert.equal(missing.normalized.surfaces[0].status, 'reported');
   assert.equal(missing.normalized.totals.lines.unmeasured, 1);
   assert.equal(missing.normalized.disposition, 'unmeasured');
+});
+
+test('full-tier PR tests emit coverage without launching duplicate suites', () => {
+  for (const surface of ['app', 'api']) {
+    const job = ciJob(`test-${surface}`);
+    assert.match(
+      job,
+      /WITH_COVERAGE: \$\{\{ github\.event_name == 'pull_request' \}\}/,
+    );
+    assert.match(job, /--reporter=default --reporter=blob/);
+    assert.match(job, /--shard=\$\{\{ matrix\.shard \}\}\/4/);
+    assert.match(job, new RegExp(`changed-code-coverage-blob-${surface}-`));
+    assert.match(job, /steps.tests.outcome/);
+    assert.equal((job.match(/bunx vitest run/g) ?? []).length, 1);
+  }
+  const report = ciJob('coverage-changed-report');
+  assert.match(
+    report,
+    /needs: \[trust, test-app-changed, test-api-changed, test-app, test-api\]/,
+  );
+  assert.match(report, /merge_surface app[^\n]+\|\| \{ APP_RESULT=failure/);
+  assert.match(report, /merge_surface api[^\n]+\|\| \{ API_RESULT=failure/);
 });

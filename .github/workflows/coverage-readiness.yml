@@ -1,0 +1,50 @@
+name: Coverage Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: Start of the observation window (ISO date; default last 14 days)
+        required: false
+        type: string
+  schedule:
+    - cron: "30 7 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: coverage-readiness
+  cancel-in-progress: false
+
+jobs:
+  changed-code:
+    name: Assess changed-code coverage evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.x"
+      - name: Collect and assess retained observations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OBSERVATION_SINCE: ${{ inputs.since }}
+        run: |
+          args=()
+          if [ -n "$OBSERVATION_SINCE" ]; then
+            args+=(--since "$OBSERVATION_SINCE")
+          fi
+          node scripts/ci/changed-code-coverage-evidence.mjs "${args[@]}"
+      - name: Preserve readiness evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: changed-coverage-readiness-${{ github.run_id }}
+          path: changed-code-coverage-evidence.json
+          if-no-files-found: error
+          retention-days: 90

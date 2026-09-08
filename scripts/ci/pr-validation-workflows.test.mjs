@@ -365,7 +365,7 @@ test('reaps zombie merge-queue runs after each master push', () => {
   );
 });
 
-test('reusable CI callers grant the merge-queue janitor permission ceiling', () => {
+test('reusable CI callers grant janitor and failure reporter permissions', () => {
   // GitHub validates every called job before evaluating its `if` expression.
   // A caller that omits actions:write therefore startup-fails even when the
   // push-only janitor would be skipped for that caller's event.
@@ -379,6 +379,11 @@ test('reusable CI callers grant the merge-queue janitor permission ceiling', () 
       caller,
       /^ {6}actions: write$/m,
       `${fileName} must let reusable ci.yml grant actions:write to its janitor job`,
+    );
+    assert.match(
+      caller,
+      /^ {6}issues: write$/m,
+      `${fileName} must let reusable ci.yml grant issues:write to its failure reporters`,
     );
   }
 });

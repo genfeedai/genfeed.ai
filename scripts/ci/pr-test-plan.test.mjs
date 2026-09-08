@@ -290,8 +290,8 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
   );
   assert.equal(
     coverageGates?.length ?? 0,
-    2,
-    'both changed-test jobs must gate coverage instrumentation on pull_request',
+    4,
+    'full and changed app/API jobs must gate coverage instrumentation on pull_request',
   );
 });
 

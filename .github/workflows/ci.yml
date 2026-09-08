@@ -717,10 +717,51 @@ jobs:
         uses: ./.github/actions/setup-bun-env
       - name: Build app workspace
         run: bunx turbo run build --filter='@genfeedai/app^...'
+      - name: Mark test start
+        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Run app test shard
-        run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
+        id: tests
+        run: |
+          COVERAGE_ARGS=()
+          if [ "$WITH_COVERAGE" = "true" ]; then
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json)
+          fi
+          cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4 "${COVERAGE_ARGS[@]}"
         env:
           NODE_ENV: test
+          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
+          CHANGED_CODE_COVERAGE: '1'
+      - name: Stage app coverage shard
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p coverage-shard
+          # Seconds cover the shard's full test+coverage wall clock: the
+          # instrumented run is the same run that gates, so there is no
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
+          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
+          shopt -s nullglob
+          reports=(apps/app/.vitest-reports/blob-*.json)
+          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
+            echo "::error::Changed app shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
+            exit 1
+          fi
+          if [ "${#reports[@]}" -gt 0 ]; then
+            cp "${reports[@]}" coverage-shard/
+          fi
+      - name: Upload app coverage blob
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: changed-code-coverage-blob-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: coverage-shard
+          if-no-files-found: warn
+          retention-days: 7
+
 
   # Focused, blocking app tests on master push and every ordinary PR. The
   # planner counts the exact Vitest changed graph and selects one, two, or four
@@ -959,11 +1000,52 @@ jobs:
         uses: ./.github/actions/setup-bun-env
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
+      - name: Mark test start
+        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Run API test shard
-        run: cd apps/server/api && bunx vitest run --config vitest.config.ts --shard=${{ matrix.shard }}/4
+        id: tests
+        run: |
+          COVERAGE_ARGS=()
+          if [ "$WITH_COVERAGE" = "true" ]; then
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob --outputFile.blob=.vitest-reports/blob-${{ matrix.shard }}-4.json)
+          fi
+          cd apps/server/api && bunx vitest run --config vitest.config.ts --maxWorkers=2 --shard=${{ matrix.shard }}/4 "${COVERAGE_ARGS[@]}"
         env:
           NODE_ENV: test
+          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
+          CHANGED_CODE_COVERAGE: '1'
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+      - name: Stage api coverage shard
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p coverage-shard
+          # Seconds cover the shard's full test+coverage wall clock: the
+          # instrumented run is the same run that gates, so there is no
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
+          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
+          shopt -s nullglob
+          reports=(apps/server/api/.vitest-reports/blob-*.json)
+          if [ '${{ steps.tests.outcome }}' = 'success' ] && { [ "${#reports[@]}" -ne 1 ] || [ ! -s "${reports[0]:-}" ]; }; then
+            echo "::error::Changed API shard passed but produced ${#reports[@]} non-empty Vitest blob reports; expected one"
+            exit 1
+          fi
+          if [ "${#reports[@]}" -gt 0 ]; then
+            cp "${reports[@]}" coverage-shard/
+          fi
+      - name: Upload api coverage blob
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: changed-code-coverage-blob-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: coverage-shard
+          if-no-files-found: warn
+          retention-days: 7
+
 
   # OpenAPI documentation gate (#1247). The spec is a generated artifact and is
   # NOT committed (gitignored): this job emits it fresh from the compiled bundle
@@ -1107,16 +1189,14 @@ jobs:
   # Full-repository coverage stays in the weekly Coverage workflow: its matrix
   # costs 21-24 minutes and must never enter pull-request CI.
   #
-  # Two accepted observation gaps come with the fold: a planner escalation to
-  # the full suite (force_full) and a surface whose changed graph selected no
-  # tests both skip the changed jobs, so those PRs report `skipped` surfaces
-  # instead of a standalone measurement. The report already models skipped
-  # surfaces; the ratchet aggregation tolerates them.
+  # Both selected tiers emit blobs on PRs. A force_full escalation reuses its
+  # existing full test matrix rather than dropping the coverage measurement or
+  # launching another suite. A surface with no selected tests remains unmeasured.
   coverage-changed-report:
     name: Changed Coverage Report
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [trust, test-app-changed, test-api-changed]
+    needs: [trust, test-app-changed, test-api-changed, test-app, test-api]
     if: >-
       always() && github.event_name == 'pull_request'
       && needs.trust.outputs.is-trusted == 'true'
@@ -1148,8 +1228,8 @@ jobs:
           # the shards' own staged outcome/seconds — a matrix job's outputs are
           # last-writer-wins, so the job result alone cannot say which shard
           # produced what.
-          APP_RESULT: ${{ needs.test-app-changed.result }}
-          API_RESULT: ${{ needs.test-api-changed.result }}
+          APP_RESULT: ${{ needs.test-app-changed.result != 'skipped' && needs.test-app-changed.result || needs.test-app.result }}
+          API_RESULT: ${{ needs.test-api-changed.result != 'skipped' && needs.test-api-changed.result || needs.test-api.result }}
           CHANGED_CODE_COVERAGE: '1'
           PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: bash
@@ -1173,30 +1253,31 @@ jobs:
 
             local has_changed_code
             has_changed_code=$(node scripts/ci/changed-code-coverage.mjs \
-              --base "$CI_BASE_SHA" --head HEAD --has-changed-code "$surface")
-            mkdir -p "$workspace/.vitest-reports"
-            cp "${reports[@]}" "$workspace/.vitest-reports/"
+              --base "$CI_BASE_SHA" --head HEAD --has-changed-code "$surface") || return 1
+            mkdir -p "$workspace/.vitest-reports" || return 1
+            cp "${reports[@]}" "$workspace/.vitest-reports/" || return 1
             (
-              cd "$workspace"
+              cd "$workspace" || exit 1
               bunx vitest --merge-reports .vitest-reports \
                 --coverage \
                 --coverage.all=false \
                 --coverage.reporter=lcovonly \
                 --config "$config"
-            )
-            cp "$workspace/coverage/lcov.info" ".changed-coverage/$surface/lcov.info"
+            ) || return 1
+            cp "$workspace/coverage/lcov.info" ".changed-coverage/$surface/lcov.info" || return 1
             if [ ! -s ".changed-coverage/$surface/lcov.info" ]; then
               if [ "$has_changed_code" = 'false' ]; then
                 echo "$surface: no changed code on this surface"
                 return
               fi
               echo "::error::$surface changed-code coverage merge produced no LCOV"
-              exit 1
+              return 1
             fi
           }
 
-          merge_surface app apps/app ./vitest.config.mts "$APP_RESULT"
-          merge_surface api apps/server/api vitest.config.ts "$API_RESULT"
+          MERGE_FAILED=false
+          merge_surface app apps/app ./vitest.config.mts "$APP_RESULT" || { APP_RESULT=failure; MERGE_FAILED=true; }
+          merge_surface api apps/server/api vitest.config.ts "$API_RESULT" || { API_RESULT=failure; MERGE_FAILED=true; }
 
           node scripts/ci/changed-code-coverage.mjs \
             --base "$CI_BASE_SHA" \
@@ -1205,6 +1286,7 @@ jobs:
             --surface "api=${API_RESULT}=.changed-coverage/api" \
             --out changed-code-coverage.json \
             --annotate
+          if [ "$MERGE_FAILED" = true ]; then exit 1; fi
       - name: Upload changed-code coverage report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
