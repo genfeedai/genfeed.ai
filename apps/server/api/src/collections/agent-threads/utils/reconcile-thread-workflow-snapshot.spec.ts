@@ -84,6 +84,7 @@ describe('durable workflow snapshot recovery', () => {
         requestId: 'choice',
         title: 'Format',
         prompt: 'Choose',
+        options: [],
         createdAt: createdAt.toISOString(),
       },
     ];
@@ -99,6 +100,7 @@ describe('durable workflow snapshot recovery', () => {
         requestId: 'choice',
         title: 'Format',
         prompt: 'Choose',
+        options: [],
         createdAt: createdAt.toISOString(),
       },
     ];
