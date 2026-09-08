@@ -5,7 +5,7 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@remotion/player": "4.0.521",
+    "@remotion/player": "4.0.522",
     "@tiptap/core": "3.31.3"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
