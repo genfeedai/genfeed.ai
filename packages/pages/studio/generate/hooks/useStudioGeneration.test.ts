@@ -136,7 +136,10 @@ beforeEach(() => {
   mockHeyGenGenerate.mockResolvedValue({
     data: { attributes: {}, id: 'avatar-clip-1', type: 'ingredients' },
   });
-  mockVoicesGenerate.mockResolvedValue({ id: 'voi-1', url: 'https://a/v.mp3' });
+  mockVoicesGenerate.mockResolvedValue({
+    id: 'voi-1',
+    cdnUrl: 'https://a/v.mp3',
+  });
   mockImagesFindOne.mockResolvedValue({ id: 'img-1', url: 'https://a/i.png' });
   mockVideosFindOne.mockResolvedValue({ id: 'vid-1', url: 'https://a/v.mp4' });
 });
@@ -175,6 +178,38 @@ describe('resolveModelKey', () => {
     ).toBe('');
     expect(resolveModelKey(settings, [makeModel('flux-dev')], false)).toBe('');
   });
+});
+
+describe('useStudioGeneration request payloads', () => {
+  it.each(['image', 'video'] as const)(
+    'preserves blacklist entries and tag IDs when submitting %s',
+    async (type) => {
+      const blacklist = ['text, logos', 'watermark'];
+      const tags = ['tag-1', 'tag-2'];
+      const settings = {
+        ...getDefaultStudioGenerateSettings(type),
+        blacklist,
+        tags,
+      };
+      const { result } = renderStudioGeneration({ settings, type });
+
+      await act(async () => {
+        await result.current.submit('A founder at a desk', {
+          imageReferenceIds: ['reference-1'],
+        });
+      });
+
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      expect(post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blacklist,
+          brand: 'brand-1',
+          references: ['reference-1'],
+          tags,
+        }),
+      );
+    },
+  );
 });
 
 describe('useStudioGeneration socket tracking', () => {
@@ -531,7 +566,7 @@ describe('useStudioGeneration inline voice', () => {
     expect(result.current.jobs[0]).toMatchObject({
       id: 'voi-1',
       ingredientId: 'voi-1',
-      ingredient: { id: 'voi-1', url: 'https://a/v.mp3' },
+      ingredient: { id: 'voi-1', cdnUrl: 'https://a/v.mp3' },
       status: IngredientStatus.GENERATED,
       url: 'https://a/v.mp3',
     });

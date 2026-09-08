@@ -1,5 +1,6 @@
 import type { IImage } from '@genfeedai/contracts/interfaces';
 import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
+import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import type { Image } from '@genfeedai/models/ingredients/image.model';
 import type {
   SplitFrameResult,
@@ -28,7 +29,7 @@ export class ImagesService extends IngredientsService<Image> {
     return instance;
   }
 
-  public async post(body: Partial<IImage>) {
+  public async post(body: Partial<IImage> | ImageGenerationPayload) {
     // Use the ImageSerializer to properly serialize the data
     const data = ImageSerializer.serialize(body);
     return await this.instance

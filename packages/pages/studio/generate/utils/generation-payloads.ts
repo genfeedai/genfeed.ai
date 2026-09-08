@@ -43,7 +43,7 @@ export function buildBaseGenerationPayload(
 
   return {
     autoSelectModel: isAutoSelectModel,
-    blacklist: promptData.blacklist?.join(', '),
+    blacklist: promptData.blacklist || [],
     brand: brandId,
     brandingMode,
     camera: promptData.camera?.trim() || undefined,
