@@ -199,41 +199,39 @@ export class AgentSourceDownloadService {
       throw new SourceExtractionFailedError(
         'Source import storage is not configured.',
       );
-    let jobId = pendingJobId;
-    if (!jobId) {
-      const response = await firstValueFrom(
-        this.http.post<unknown>(
-          `${baseUrl}/v1/files/process/video`,
-          {
-            id: `agent-source-${ingredientId}`,
-            ingredientId,
-            organizationId: context.organizationId,
-            userId: context.userId,
-            params: { inputPath: url },
-            type: 'video-to-audio',
-          },
-          { timeout: 30_000 },
-        ),
-      );
-      const payload = record(response.data);
-      const queuedJobId = payload.jobId ?? record(payload.data).jobId;
-      if (typeof queuedJobId !== 'string' || !queuedJobId)
-        throw new ServiceUnavailableException(
-          'Source import did not return a job identifier.',
-        );
-      jobId = queuedJobId;
-      await onJobQueued?.(jobId);
+    const expectedJobId = `agent-source-${ingredientId}`;
+    const jobId = pendingJobId ?? expectedJobId;
+    if (!pendingJobId) {
+      await onJobQueued?.(expectedJobId);
+      await this.enqueueYoutube(url, ingredientId, context, baseUrl);
     }
     const deadline = Date.now() + CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS;
+    let requeuedMissingJob = false;
     while (Date.now() < deadline) {
-      const observation = await firstValueFrom(
-        this.http.get<unknown>(
-          `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
-          { timeout: 30_000 },
-        ),
-      );
-      const envelope = record(observation.data);
-      const job = record(envelope.data ?? envelope);
+      let envelope: Record<string, unknown>;
+      try {
+        const observation = await firstValueFrom(
+          this.http.get<unknown>(
+            `${baseUrl}/v1/files/job/${encodeURIComponent(jobId)}`,
+            { timeout: 30_000 },
+          ),
+        );
+        envelope = record(observation.data);
+      } catch (error) {
+        if (
+          jobId !== expectedJobId ||
+          requeuedMissingJob ||
+          !this.isMissingJob(error)
+        )
+          throw error;
+        requeuedMissingJob = true;
+        await this.enqueueYoutube(url, ingredientId, context, baseUrl);
+        continue;
+      }
+      const job =
+        'state' in envelope || 'status' in envelope
+          ? envelope
+          : record(envelope.data);
       const state = job.status ?? job.state;
       if (state === 'failed' || state === 'FAILED')
         throw new SourceExtractionFailedError('Source extraction failed.');
@@ -267,6 +265,44 @@ export class AgentSourceDownloadService {
     }
     throw new ServiceUnavailableException(
       'Source extraction is still running; reopen this import before retrying.',
+    );
+  }
+  private async enqueueYoutube(
+    url: string,
+    ingredientId: string,
+    context: AgentSourceIngestContext,
+    baseUrl: string,
+  ): Promise<void> {
+    const expectedJobId = `agent-source-${ingredientId}`;
+    const response = await firstValueFrom(
+      this.http.post<unknown>(
+        `${baseUrl}/v1/files/process/video`,
+        {
+          id: expectedJobId,
+          ingredientId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          params: { inputPath: url },
+          type: 'video-to-audio',
+        },
+        { timeout: 30_000 },
+      ),
+    );
+    const payload = record(response.data);
+    const jobId = payload.jobId ?? record(payload.data).jobId;
+    if (jobId !== expectedJobId) {
+      throw new ServiceUnavailableException(
+        'Files did not honor the source extraction job identity.',
+      );
+    }
+  }
+
+  private isMissingJob(error: unknown): boolean {
+    const response = record(record(error).response);
+    if (response.status === 404) return true;
+    return (
+      response.status === 500 &&
+      record(response.data).message === 'Job not found'
     );
   }
 }

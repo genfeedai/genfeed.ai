@@ -175,7 +175,7 @@ describe('AgentSourceDownloadService', () => {
   });
 
   it('queues only deterministic extraction and records the existing source artifact', async () => {
-    http.post.mockReturnValue(of({ data: { jobId: 'source-job' } }));
+    http.post.mockReturnValue(of({ data: { jobId: 'agent-source-source-1' } }));
     http.get.mockReturnValue(
       of({
         data: {
@@ -197,7 +197,10 @@ describe('AgentSourceDownloadService', () => {
       undefined,
       queued,
     );
-    expect(queued).toHaveBeenCalledWith('source-job');
+    expect(queued).toHaveBeenCalledWith('agent-source-source-1');
+    expect(queued.mock.invocationCallOrder[0]).toBeLessThan(
+      http.post.mock.invocationCallOrder[0] ?? 0,
+    );
     expect(http.post).toHaveBeenCalledWith(
       'http://files-service/v1/files/process/video',
       expect.objectContaining({
@@ -253,5 +256,128 @@ describe('AgentSourceDownloadService', () => {
       ),
     ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
     expect(http.post).not.toHaveBeenCalled();
+  });
+  it('persists identity before a lost enqueue response and later observes that job', async () => {
+    const persisted = vi.fn();
+    http.post.mockReturnValue(throwError(() => new Error('response lost')));
+    await expect(
+      service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+        undefined,
+        persisted,
+      ),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(persisted).toHaveBeenCalledWith('agent-source-source-1');
+    http.get.mockReturnValue(
+      of({
+        data: {
+          state: 'completed',
+          data: { id: 'agent-source-source-1', type: 'video-to-audio' },
+          result: {
+            sourceUrl: 'https://cdn.example/video',
+            sourceS3Key: 'videos/source',
+          },
+        },
+      }),
+    );
+    const result = await service.download(
+      'https://www.youtube.com/watch?v=abcdefghijk',
+      'source-1',
+      'video',
+      context,
+      'agent-source-source-1',
+    );
+    expect(result.storageKey).toBe('videos/source');
+    expect(http.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not enqueue if the expected identity cannot be persisted', async () => {
+    const persisted = vi
+      .fn()
+      .mockRejectedValue(new Error('persistence unavailable'));
+    await expect(
+      service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+        undefined,
+        persisted,
+      ),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(http.post).not.toHaveBeenCalled();
+  });
+
+  it.each([404, 500])(
+    're-enqueues the same durable identity when observation explicitly reports missing (%s)',
+    async (status) => {
+      http.get
+        .mockReturnValueOnce(
+          throwError(() => ({
+            response: { status, data: { message: 'Job not found' } },
+          })),
+        )
+        .mockReturnValueOnce(
+          of({
+            data: {
+              state: 'completed',
+              data: { id: 'agent-source-source-1' },
+              result: {
+                sourceUrl: 'https://cdn.example/video',
+                sourceS3Key: 'videos/source',
+              },
+            },
+          }),
+        );
+      http.post.mockReturnValue(
+        of({ data: { jobId: 'agent-source-source-1' } }),
+      );
+      await service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+        'agent-source-source-1',
+      );
+      expect(http.post).toHaveBeenCalledTimes(1);
+      expect(http.post).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ id: 'agent-source-source-1' }),
+        expect.any(Object),
+      );
+    },
+  );
+
+  it('does not retry enqueue repeatedly or on an ambiguous internal failure', async () => {
+    http.get.mockReturnValue(
+      throwError(() => ({
+        response: { status: 500, data: { message: 'Redis unavailable' } },
+      })),
+    );
+    await expect(
+      service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+        'agent-source-source-1',
+      ),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(http.post).not.toHaveBeenCalled();
+    http.get.mockReturnValue(throwError(() => ({ response: { status: 404 } })));
+    http.post.mockReturnValue(of({ data: { jobId: 'agent-source-source-1' } }));
+    await expect(
+      service.download(
+        'https://www.youtube.com/watch?v=abcdefghijk',
+        'source-1',
+        'video',
+        context,
+        'agent-source-source-1',
+      ),
+    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
+    expect(http.post).toHaveBeenCalledTimes(1);
   });
 });

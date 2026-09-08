@@ -17,6 +17,7 @@ describe('VideoQueueService', () => {
   };
 
   beforeEach(async () => {
+    mockQueue.getJob.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VideoQueueService,
@@ -144,5 +145,109 @@ describe('VideoQueueService', () => {
       data,
       expect.objectContaining({ attempts: 2 }),
     );
+  });
+  function sourceData(overrides: Partial<VideoJobData> = {}): VideoJobData {
+    const ingredientId = `c${'a'.repeat(48)}`;
+    return {
+      createdAt: new Date(),
+      id: `agent-source-${ingredientId}`,
+      ingredientId,
+      metadata: { websocketUrl: '' },
+      organizationId: 'org-1',
+      params: { inputPath: 'https://www.youtube.com/watch?v=abcdefghijk' },
+      type: JOB_TYPES.VIDEO_TO_AUDIO,
+      userId: 'user-1',
+      ...overrides,
+    };
+  }
+
+  it('uses the scoped source ingredient identity for deterministic extraction', async () => {
+    const data = sourceData();
+    await service.addVideoToAudioJob(data);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      expect.objectContaining({ jobId: data.id }),
+    );
+  });
+
+  it.each([
+    { id: 'agent-source-arbitrary' },
+    { ingredientId: 'arbitrary', id: 'agent-source-arbitrary' },
+    { id: `agent-source-c${'b'.repeat(48)}` },
+    {
+      ingredientId: `c${'a'.repeat(48)}:foreign`,
+      id: `agent-source-c${'a'.repeat(48)}:foreign`,
+    },
+  ])(
+    'does not grant deterministic source IDs for malformed or mismatched identity',
+    async (overrides) => {
+      const data = sourceData(overrides);
+      await service.addVideoToAudioJob(data);
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        data,
+        expect.not.objectContaining({ jobId: expect.anything() }),
+      );
+    },
+  );
+
+  it('preserves existing raw-cut audio job identities', async () => {
+    const data = sourceData({
+      id: 'raw-cut-audio-source',
+      ingredientId: 'source',
+    });
+    await service.addVideoToAudioJob(data);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      expect.objectContaining({ jobId: data.id }),
+    );
+  });
+
+  it('does not extend source deduplication to other video jobs', async () => {
+    const data = sourceData({ type: JOB_TYPES.ADD_CAPTIONS });
+    await service.addCaptionsJob(data);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.ADD_CAPTIONS,
+      data,
+      expect.not.objectContaining({ jobId: expect.anything() }),
+    );
+  });
+
+  it('retries the original failed extraction without replacing its identity or payload', async () => {
+    const original = {
+      getState: vi.fn().mockResolvedValue('failed'),
+      retry: vi.fn().mockResolvedValue(undefined),
+    };
+    mockQueue.getJob.mockResolvedValue(original);
+    expect(await service.addVideoToAudioJob(sourceData())).toBe(original);
+    expect(original.retry).toHaveBeenCalledWith('failed');
+    expect(mockQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('tolerates a concurrent retry that has already moved the same failed job', async () => {
+    const original = {
+      getState: vi
+        .fn()
+        .mockResolvedValueOnce('failed')
+        .mockResolvedValue('waiting'),
+      retry: vi.fn().mockRejectedValue(new Error('already retried')),
+    };
+    mockQueue.getJob.mockResolvedValue(original);
+    expect(await service.addVideoToAudioJob(sourceData())).toBe(original);
+    expect(mockQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('propagates failed retry infrastructure errors without adding another job', async () => {
+    const original = {
+      getState: vi.fn().mockResolvedValue('failed'),
+      retry: vi.fn().mockRejectedValue(new Error('Redis unavailable')),
+    };
+    mockQueue.getJob.mockResolvedValue(original);
+    await expect(service.addVideoToAudioJob(sourceData())).rejects.toThrow(
+      'Redis unavailable',
+    );
+    expect(mockQueue.add).not.toHaveBeenCalled();
   });
 });

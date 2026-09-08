@@ -125,10 +125,14 @@ export class AgentSourceIngestService {
         context,
         pendingJobId,
         async (jobId) => {
-          await this.prisma.ingredient.updateMany({
+          const persisted = await this.prisma.ingredient.updateMany({
             where: { ...where, status: IngredientStatus.PROCESSING },
             data: { generationStage: `source-job:${jobId}` },
           });
+          if (persisted.count !== 1)
+            throw new ConflictException(
+              'Source import scope changed before extraction.',
+            );
         },
       );
       await this.assertThreadScope(context);
