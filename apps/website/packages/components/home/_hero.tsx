@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
+import MarqueeRail from '@ui/layout/marquee-rail/MarqueeRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {
@@ -25,12 +25,9 @@ export default function HomeHero(): React.ReactElement {
       />
 
       <div className="container relative mx-auto px-6 text-center">
-        <Text className="animate-gen-stagger-in text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
-          Made with Genfeed
-        </Text>
         <Heading
           as="h1"
-          className="animate-gen-stagger-in mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
           Everything your brand can become.
         </Heading>
@@ -76,20 +73,15 @@ export default function HomeHero(): React.ReactElement {
       </div>
 
       {/*
-        The rail breaks the container on purpose: cards run to both edges so the
-        row reads as a strip of output that continues past the viewport rather
-        than a boxed gallery of six. The inset matches the container's gutter at
-        the point the container stops growing, so the first card lines up with
-        the headline above it.
+        The rail moves on its own and never stops, so it reads as output in
+        flight rather than a control to operate. It breaks the container to both
+        edges: the row continues past the viewport, which is the point.
       */}
       <div
         className="animate-gen-rise relative mt-24 w-screen [--gen-stagger-delay:360ms] sm:mt-32 lg:mt-36"
         data-testid="home-hero-output-carousel"
       >
-        <HorizontalCarousel
-          gap="md"
-          itemClassName="snap-x snap-mandatory scroll-px-6 px-6 pb-4 lg:scroll-px-[max(3rem,calc((100vw-90rem)/2))] lg:px-[max(3rem,calc((100vw-90rem)/2))]"
-        >
+        <MarqueeRail>
           {HOME_OUTPUT_CAROUSEL_ASSETS.map((asset, index) => (
             <HomeOutputCard
               asset={asset}
@@ -97,7 +89,7 @@ export default function HomeHero(): React.ReactElement {
               key={asset.format}
             />
           ))}
-        </HorizontalCarousel>
+        </MarqueeRail>
       </div>
     </section>
   );

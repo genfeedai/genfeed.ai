@@ -276,3 +276,29 @@
 .animate-gen-flicker {
   animation: gen-flicker 4s ease-in-out infinite;
 }
+
+/*
+ * One direction, forever. The track holds two copies of its children, so
+ * translating by exactly half its width lands the second copy on the pixels the
+ * first just left — the restart at 100% has nothing to see.
+ *
+ * The speed is set by `--marquee-duration`, which the rail computes from the
+ * measured content width so a longer row travels no faster than a short one.
+ */
+@keyframes marquee-rail {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+.animate-marquee-rail {
+  animation: marquee-rail var(--marquee-duration, 60s) linear infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-rail {
+    animation: none;
+  }
+}

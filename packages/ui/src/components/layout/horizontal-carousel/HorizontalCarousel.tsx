@@ -13,6 +13,12 @@ const GAP_CLASSES = {
   sm: 'gap-3',
 } as const;
 
+const GAP_PIXELS = {
+  lg: 24,
+  md: 16,
+  sm: 12,
+} as const;
+
 /**
  * Sub-pixel slack. Browsers report a scrolled-to-the-end rail as a fraction
  * short of its own maximum, so an exact comparison leaves the arrow enabled on
@@ -70,15 +76,20 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
    * mid-card on any rail whose items are not exactly that wide, which fights
    * scroll-snap instead of cooperating with it.
    */
-  const scrollByCard = useCallback((direction: 1 | -1) => {
-    const rail = scrollContainerRef.current;
-    if (!rail) return;
+  const scrollByCard = useCallback(
+    (direction: 1 | -1) => {
+      const rail = scrollContainerRef.current;
+      if (!rail) return;
 
-    const card = rail.firstElementChild;
-    const step = card ? card.getBoundingClientRect().width : FALLBACK_STEP;
+      const card = rail.firstElementChild;
+      const step = card
+        ? card.getBoundingClientRect().width + GAP_PIXELS[gap]
+        : FALLBACK_STEP;
 
-    rail.scrollBy({ behavior: 'smooth', left: step * direction });
-  }, []);
+      rail.scrollBy({ behavior: 'smooth', left: step * direction });
+    },
+    [gap],
+  );
 
   const navigationClass = cn(
     'absolute top-1/2 z-10 -translate-y-1/2',

@@ -70,7 +70,6 @@ describe('HomeHero', () => {
         name: /everything your brand can become\./i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/made with genfeed/i)).toBeInTheDocument();
     expect(
       screen.getByText(/every format\. one recognisable brand\./i),
     ).toBeInTheDocument();
@@ -85,6 +84,12 @@ describe('HomeHero', () => {
       actions.compareDocumentPosition(carousel) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('drops the eyebrow that told visitors whose site they were on', () => {
+    render(<HomeHero />);
+
+    expect(screen.queryByText(/made with genfeed/i)).not.toBeInTheDocument();
   });
 
   it('states the mechanism instead of an adjective', () => {

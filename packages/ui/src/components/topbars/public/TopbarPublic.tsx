@@ -185,10 +185,21 @@ export default function TopbarPublic({
 
   return (
     <>
+      {/*
+        At the very top the bar is nothing but its own contents. A page that
+        opens on full-bleed media has no seam to cover there, and a tinted,
+        blurred strip across the top of it is a band of haze over the first
+        thing anyone sees. The surface appears the moment the page moves, which
+        is the moment content starts passing underneath and legibility needs it.
+        Opening an overlay brings the surface back early — a mega menu needs a
+        ground of its own whether or not the page has scrolled.
+      */}
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 w-full border-b bg-background/90 backdrop-blur-2xl transition-[border-color,background-color] duration-300',
-          isScrolled ? 'border-edge/10' : 'border-transparent',
+          'fixed inset-x-0 top-0 z-50 w-full border-b transition-[border-color,background-color,backdrop-filter] duration-300',
+          isScrolled || openDropdown
+            ? 'border-edge/10 bg-background/90 backdrop-blur-2xl'
+            : 'border-transparent bg-transparent',
         )}
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">

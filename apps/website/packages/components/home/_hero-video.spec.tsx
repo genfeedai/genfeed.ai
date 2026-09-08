@@ -125,19 +125,13 @@ describe('HomeHeroVideo', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('exposes a pause control only while something is moving', () => {
+  it('puts no controls over the footage', () => {
     stubMedia({});
-    render(<HomeHeroVideo {...ASSETS} />);
-
-    expect(screen.getByTestId('home-hero-video-toggle')).toBeInTheDocument();
-  });
-
-  it('drops the pause control when there is nothing to pause', () => {
-    stubMedia({ isReducedMotion: true });
     render(<HomeHeroVideo {...ASSETS} />);
 
     expect(
       screen.queryByTestId('home-hero-video-toggle'),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

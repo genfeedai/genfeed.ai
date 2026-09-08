@@ -1,11 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
 import type { HeroVideoProps } from '@props/website/home.props';
-import { Button } from '@ui/primitives/button';
-import { Pause, Play } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -42,7 +39,6 @@ export default function HomeHeroVideo({
    * video already shows its last frame.
    */
   const [hasPainted, setHasPainted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -68,19 +64,6 @@ export default function HomeHeroVideo({
       reducedMotion.removeEventListener('change', sync);
       wideEnough.removeEventListener('change', sync);
     };
-  }, []);
-
-  const toggle = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      void video.play();
-      return;
-    }
-
-    video.pause();
-    setIsPlaying(false);
   }, []);
 
   return (
@@ -115,11 +98,7 @@ export default function HomeHeroVideo({
           data-testid="home-hero-video-player"
           loop
           muted
-          onPause={() => setIsPlaying(false)}
-          onPlaying={() => {
-            setHasPainted(true);
-            setIsPlaying(true);
-          }}
+          onPlaying={() => setHasPainted(true)}
           playsInline
           poster={posterSrc}
           preload="auto"
@@ -134,36 +113,20 @@ export default function HomeHeroVideo({
       {/*
         Two overlays, not one. The vertical gradient keeps the headline legible
         against whatever the generated frame happens to be doing, while the flat
-        scrim floors the whole frame so the CTA row at the bottom never lands on
-        a blown highlight.
-      */}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,6,7,0.88)_0%,rgba(5,6,7,0.55)_40%,rgba(5,6,7,0.92)_82%,rgb(5,6,7)_100%)]" />
-      <div className="absolute inset-0 bg-background/30" />
+        scrim floors the whole frame so the CTA row never lands on a blown
+        highlight.
 
-      {/*
-        WCAG 2.2.2: moving content that starts on its own and runs past five
-        seconds needs a way to stop it. The control only exists when the clip
-        does — reduced-motion and small-screen visitors have nothing to pause.
+        Every stop is the page's own background colour, not a hand-picked
+        near-black. The old gradient resolved a shade off it, which put a hard
+        horizontal line across the page exactly where the band ended — the fade
+        has to land on the colour it is fading into.
+
+        The bottom half of the ramp is long and gentle on purpose: the footage
+        has to be gone well before the row of cards begins, or the two read as
+        overlapping layers rather than one surface.
       */}
-      {isVideoEnabled ? (
-        <Button
-          aria-label={
-            isPlaying ? 'Pause background video' : 'Play background video'
-          }
-          className="pointer-events-auto absolute bottom-5 right-5 z-10 grid h-9 w-9 place-items-center rounded-full border border-edge/10 bg-background/60 text-surface/60 backdrop-blur transition-colors hover:text-surface focus-visible:text-surface"
-          data-testid="home-hero-video-toggle"
-          onClick={toggle}
-          textTransform="none"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          {isPlaying ? (
-            <Pause aria-hidden="true" className="h-4 w-4" />
-          ) : (
-            <Play aria-hidden="true" className="h-4 w-4" />
-          )}
-        </Button>
-      ) : null}
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(var(--background)/0.9)_0%,hsl(var(--background)/0.55)_28%,hsl(var(--background)/0.72)_58%,hsl(var(--background)/0.95)_82%,hsl(var(--background))_100%)]" />
+      <div className="absolute inset-0 bg-background/25" />
     </div>
   );
 }

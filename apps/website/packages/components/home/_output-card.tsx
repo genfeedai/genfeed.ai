@@ -78,7 +78,7 @@ export default function HomeOutputCard({
 
   return (
     <figure
-      className="group relative aspect-[9/16] h-[26rem] flex-none snap-center overflow-hidden rounded-3xl bg-card shadow-border-strong sm:h-[32rem] lg:h-[36rem]"
+      className="group relative aspect-[9/16] h-[26rem] flex-none overflow-hidden rounded-3xl bg-card shadow-border-strong sm:h-[32rem] lg:h-[36rem]"
       data-testid="home-hero-output-carousel-item"
       ref={figureRef}
     >
