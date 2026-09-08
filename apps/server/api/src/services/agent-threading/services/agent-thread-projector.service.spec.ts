@@ -235,3 +235,109 @@ describe('AgentThreadProjectorService', () => {
     });
   });
 });
+
+describe('AgentThreadProjectorService terminal races', () => {
+  const service = new AgentThreadProjectorService();
+  const event = (type: string, runId = 'run-current', payload = {}) => ({
+    commandId: 'command',
+    eventId: type,
+    occurredAt: '2026-09-08T12:00:00.000Z',
+    payload,
+    runId,
+    sequence: 9,
+    threadId: 'thread',
+    type,
+  });
+
+  it.each([
+    'tool.started',
+    'tool.progress',
+    'tool.completed',
+    'work.started',
+    'work.completed',
+    'run.completed',
+    'run.failed',
+    'input.requested',
+  ])(
+    'retains a stopped run after late %s while retaining event history',
+    (type) => {
+      const projected = service.applyEvent(
+        {
+          activeRun: { runId: 'run-current', status: 'interrupted' },
+          timeline: [],
+        } as never,
+        event(type) as never,
+      );
+      expect(projected.activeRun).toEqual({
+        runId: 'run-current',
+        status: 'interrupted',
+      });
+      expect(projected.lastSequence).toBe(9);
+      expect(projected.timeline).toHaveLength(1);
+      expect(projected.pendingInputRequests).toEqual([]);
+    },
+  );
+
+  it.each([
+    'run.completed',
+    'run.failed',
+    'tool.started',
+    'assistant.finalized',
+    'input.requested',
+  ])('does not replace the current run with an older run %s', (type) => {
+    const projected = service.applyEvent(
+      {
+        activeRun: { runId: 'run-current', status: 'running' },
+      } as never,
+      event(type, 'run-older', {
+        content: 'obsolete',
+        requestId: 'obsolete',
+      }) as never,
+    );
+    expect(projected.activeRun).toEqual({
+      runId: 'run-current',
+      status: 'running',
+    });
+    expect(projected.lastAssistantMessage).toBeUndefined();
+    expect(projected.pendingInputRequests).toEqual([]);
+  });
+
+  it('resets terminal metadata when a new turn is accepted', () => {
+    const projected = service.applyEvent(
+      {
+        activeRun: {
+          runId: 'run-older',
+          status: 'failed',
+          completedAt: 'old',
+          model: 'old',
+        },
+      } as never,
+      event('thread.turn_requested') as never,
+    );
+    expect(projected.activeRun).toEqual({
+      runId: 'run-current',
+      startedAt: '2026-09-08T12:00:00.000Z',
+      status: 'queued',
+    });
+  });
+
+  it('clears pending decisions on stop and permits an interruption refinement', () => {
+    const cancelled = service.applyEvent(
+      {
+        activeRun: { runId: 'run-current', status: 'running' },
+        pendingInputRequests: [{ requestId: 'request' }],
+        pendingApprovals: [{ id: 'approval' }],
+        latestProposedPlan: { awaitingApproval: true },
+      } as never,
+      event('run.cancelled') as never,
+    );
+    expect(cancelled.pendingInputRequests).toEqual([]);
+    expect(cancelled.pendingApprovals).toEqual([]);
+    expect(cancelled.latestProposedPlan).toBeUndefined();
+    const interrupted = service.applyEvent(
+      cancelled as never,
+      event('run.interrupted') as never,
+    );
+    expect(interrupted.activeRun).toMatchObject({ status: 'interrupted' });
+  });
+});
