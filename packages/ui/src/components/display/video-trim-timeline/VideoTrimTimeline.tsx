@@ -1,20 +1,12 @@
 'use client';
 
 import { AlertCategory, ComponentSize } from '@genfeedai/contracts';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import type { VideoTrimTimelineProps } from '@genfeedai/props/ui/media/video-trim-timeline.props';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Slider } from '@ui/primitives/slider';
 import { useMemo } from 'react';
-
-/**
- * Format time in MM:SS format
- */
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
 
 export default function VideoTrimTimeline({
   videoDuration,
@@ -34,7 +26,7 @@ export default function VideoTrimTimeline({
 
     for (let i = 0; i <= intervals; i++) {
       const time = (videoDuration / intervals) * i;
-      marksObj[time] = formatTime(time);
+      marksObj[time] = formatMinutesSeconds(time);
     }
 
     return marksObj;
@@ -108,13 +100,13 @@ export default function VideoTrimTimeline({
           <div>
             <span className="text-foreground/60">Start:</span>
             <span className="ml-2 font-mono font-semibold tabular-nums">
-              {formatTime(startTime)}
+              {formatMinutesSeconds(startTime)}
             </span>
           </div>
           <div>
             <span className="text-foreground/60">End:</span>
             <span className="ml-2 font-mono font-semibold tabular-nums">
-              {formatTime(endTime)}
+              {formatMinutesSeconds(endTime)}
             </span>
           </div>
         </div>
@@ -127,7 +119,7 @@ export default function VideoTrimTimeline({
                 : 'text-success'
             }`}
           >
-            {formatTime(trimDuration)}
+            {formatMinutesSeconds(trimDuration)}
           </span>
         </div>
       </div>

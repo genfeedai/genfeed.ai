@@ -11,6 +11,7 @@ export * from './content/schema-org.helper';
 export * from './deserializer.helper';
 export * from './email/system-email.helper';
 export * from './formatting/cn/cn.util';
+export * from './formatting/duration/duration.helper';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';
 export * from './integrations/connect-genfeed.helper';

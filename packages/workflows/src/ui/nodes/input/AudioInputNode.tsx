@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { AudioInputNodeData } from '@genfeedai/contracts/types';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import AudioPreviewPlayer from '@genfeedai/ui/components/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
@@ -95,13 +96,6 @@ function AudioInputNodeComponent(props: NodeProps) {
     },
     [handleUrlSubmit, nodeData.url],
   );
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleExpand = useCallback(() => {
     openNodeDetailModal(id, 'preview');
@@ -204,7 +198,8 @@ function AudioInputNodeComponent(props: NodeProps) {
           </div>
           <div className="text-2xs text-muted-foreground truncate">
             {nodeData.filename}
-            {nodeData.duration && ` • ${formatDuration(nodeData.duration)}`}
+            {nodeData.duration &&
+              ` • ${formatMinutesSeconds(nodeData.duration)}`}
           </div>
         </div>
       ) : (

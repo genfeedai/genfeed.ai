@@ -1179,6 +1179,7 @@
         "@dagrejs/dagre": "3.1.1",
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "ajv": "8.20.0",

@@ -105,6 +105,7 @@ describe('ExecutionHistoryPanel', () => {
     mockExecutionsResponse([
       {
         createdAt: '2026-08-07T00:00:00.000Z',
+        durationMs: 59999,
         id: 'execution-2',
         nodeResults: [],
         progress: 100,
@@ -125,6 +126,7 @@ describe('ExecutionHistoryPanel', () => {
     expect(
       screen.queryByRole('button', { name: /cancel/i }),
     ).not.toBeInTheDocument();
+    expect(screen.getByText('Duration: 60.0s')).toBeInTheDocument();
   });
 
   it('cancels with the SCREAMING_SNAKE wire status', async () => {

@@ -1,5 +1,6 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -65,12 +66,6 @@ function ViralityBadge({ score }: ViralityBadgeProps) {
       {score}
     </span>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
 export default function ClipResultCard({
@@ -255,9 +250,10 @@ export default function ClipResultCard({
 
       {/* Metadata */}
       <div className="mb-3 flex items-center gap-3 text-2xs text-muted-foreground/80">
-        <span>{formatDuration(clip.duration)}</span>
+        <span>{formatMinutesSeconds(clip.duration)}</span>
         <span>
-          {formatDuration(clip.startTime)} → {formatDuration(clip.endTime)}
+          {formatMinutesSeconds(clip.startTime)} →{' '}
+          {formatMinutesSeconds(clip.endTime)}
         </span>
       </div>
 
