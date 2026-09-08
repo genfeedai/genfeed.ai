@@ -1,3 +1,7 @@
+import {
+  joinGenerationBriefPromptParts,
+  recordOmittedGenerationBriefSignal,
+} from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
@@ -26,34 +30,6 @@ import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 export interface CompilePrunaaiPVideoGenerationBriefInput {
   brief: VideoGenerationBrief;
   seed?: number;
-}
-
-function joinPromptParts(parts: string[]): string {
-  return parts
-    .map((part) => part.trim().replace(/\.+$/u, ''))
-    .filter((part) => part.length > 0)
-    .join('. ');
-}
-
-function recordOmitted(
-  omitted: VideoGenerationBriefOmittedSignal[],
-  field: string,
-  reason: string,
-  policy: GenerationFidelityPolicy,
-  required: boolean,
-): void {
-  if (!policy.applyConstraints && !required) {
-    return;
-  }
-
-  if (required && policy.unsupportedConstraintBehavior === 'reject') {
-    throw new GenerationBriefCompileError(
-      `PrunaAI P-Video cannot honor required ${field}.`,
-      'unsupported_required_signal',
-    );
-  }
-
-  omitted.push({ field, reason });
 }
 
 function resolveAspectRatio(brief: VideoGenerationBrief): string {
@@ -86,12 +62,13 @@ function resolveFirstFrameAssetId(
       continue;
     }
 
-    recordOmitted(
+    recordOmittedGenerationBriefSignal(
       omitted,
       `references.${reference.role}`,
       'PrunaAI P-Video only accepts a single first_frame reference image.',
       policy,
       required,
+      'PrunaAI P-Video',
     );
   }
 
@@ -145,17 +122,18 @@ function buildPrompt(
         continue;
       }
 
-      recordOmitted(
+      recordOmittedGenerationBriefSignal(
         omitted,
         `constraints.${constraint.kind}`,
         'PrunaAI P-Video has no native negative-prompt field.',
         policy,
         constraint.required,
+        'PrunaAI P-Video',
       );
     }
   }
 
-  const prompt = joinPromptParts(parts);
+  const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
       'PrunaAI P-Video compilation produced an empty prompt.',
