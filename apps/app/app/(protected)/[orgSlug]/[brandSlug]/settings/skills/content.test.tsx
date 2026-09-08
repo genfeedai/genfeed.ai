@@ -55,6 +55,7 @@ vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
     enabledSlugs: [],
     isLoading: false,
     isUsingDefaults: false,
+    pendingSlugs: new Set(),
     setUseDefaults: setUseDefaultsMock,
     toggleSkill: toggleSkillMock,
   }),

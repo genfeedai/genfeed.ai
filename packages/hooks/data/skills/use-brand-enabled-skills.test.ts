@@ -161,7 +161,7 @@ describe('useBrandEnabledSkills', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('ignores a second toggle while the first brand update is pending', async () => {
+  it('queues another skill while only the pending rows are marked busy', async () => {
     let resolveRequest: (() => void) | undefined;
     updateEnabledSkillsMock.mockReturnValue(
       new Promise<void>((resolve) => {
@@ -185,14 +185,25 @@ describe('useBrandEnabledSkills', () => {
       expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
     });
     expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
+    expect([...result.current.pendingSlugs]).toEqual(['skill-b', 'skill-c']);
+    expect(result.current.pendingSlugs.has('skill-a')).toBe(false);
 
     resolveRequest?.();
     await act(async () => {
       await Promise.all([firstToggle, secondToggle]);
     });
 
-    expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
-    expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-b']);
+    expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(2);
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['skill-a', 'skill-b', 'skill-c'],
+      useDefaultSkills: false,
+    });
+    expect(result.current.enabledSlugs).toEqual([
+      'skill-a',
+      'skill-b',
+      'skill-c',
+    ]);
+    expect(result.current.pendingSlugs.size).toBe(0);
   });
 
   it('ignores toggles without a selected brand', async () => {
@@ -350,5 +361,93 @@ describe('useBrandEnabledSkills', () => {
       useDefaultSkills: false,
     });
     expect(result.current.enabledSlugs).toEqual(['content-writing']);
+  });
+  it('rebases the queued toggle after the first write fails', async () => {
+    let rejectFirst!: (reason: Error) => void;
+    updateEnabledSkillsMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectFirst = reject;
+        }),
+    );
+    const { result } = renderHook(() => useBrandEnabledSkills());
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => {
+      first = result.current.toggleSkill('skill-b');
+      second = result.current.toggleSkill('skill-c');
+    });
+    await waitFor(() =>
+      expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1),
+    );
+    await act(async () => {
+      rejectFirst(new Error('write failed'));
+      await Promise.all([first, second]);
+    });
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['skill-a', 'skill-c'],
+      useDefaultSkills: false,
+    });
+    expect(result.current.enabledSlugs).toEqual(['skill-a', 'skill-c']);
+    expect(result.current.pendingSlugs.size).toBe(0);
+  });
+
+  it('discards queued old-brand toggles after the brand changes', async () => {
+    let resolveFirst!: () => void;
+    updateEnabledSkillsMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    const { rerender, result } = renderHook(() => useBrandEnabledSkills());
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    act(() => {
+      first = result.current.toggleSkill('skill-b');
+      second = result.current.toggleSkill('skill-c');
+    });
+    await waitFor(() =>
+      expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1),
+    );
+    setBrand(['skill-d'], { brandId: 'brand-2' });
+    rerender();
+    await act(async () => {
+      resolveFirst();
+      await Promise.all([first, second]);
+    });
+    expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1);
+    expect(result.current.enabledSlugs).toEqual(['skill-d']);
+    expect(result.current.pendingSlugs.size).toBe(0);
+  });
+
+  it('queues a row toggle behind a pending defaults update', async () => {
+    let resolveFirst!: () => void;
+    updateEnabledSkillsMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useBrandEnabledSkills({ defaultSlugs: ['default-skill'] }),
+    );
+    let defaults!: Promise<void>;
+    let toggle!: Promise<void>;
+    act(() => {
+      defaults = result.current.setUseDefaults(true);
+      toggle = result.current.toggleSkill('skill-b');
+    });
+    await waitFor(() =>
+      expect(updateEnabledSkillsMock).toHaveBeenCalledTimes(1),
+    );
+    await act(async () => {
+      resolveFirst();
+      await Promise.all([defaults, toggle]);
+    });
+    expect(updateEnabledSkillsMock).toHaveBeenLastCalledWith('brand-1', {
+      enabledSkills: ['default-skill', 'skill-b'],
+      useDefaultSkills: false,
+    });
   });
 });

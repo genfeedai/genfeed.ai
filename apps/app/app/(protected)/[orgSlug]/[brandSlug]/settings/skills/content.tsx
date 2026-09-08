@@ -160,6 +160,7 @@ export default function BrandSettingsSkillsPage() {
     enabledSlugs,
     isLoading: isTogglingSkill,
     isUsingDefaults,
+    pendingSlugs,
     setUseDefaults,
     toggleSkill,
   } = useBrandEnabledSkills({ defaultSlugs: defaultSkillSlugs });
@@ -429,7 +430,7 @@ export default function BrandSettingsSkillsPage() {
       <SkillsTable
         enabledSlugs={enabledSlugs}
         isLoading={isLoading}
-        isTogglingSkill={isTogglingSkill}
+        pendingSlugs={pendingSlugs}
         onSkillSelect={handleSkillSelect}
         onToggleSkill={(slug) => void toggleSkill(slug)}
         skills={filteredSkills}

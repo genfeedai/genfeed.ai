@@ -75,7 +75,7 @@ export type SkillFiltersProps = {
 export type SkillsTableProps = {
   enabledSlugs: string[];
   isLoading: boolean;
-  isTogglingSkill: boolean;
+  pendingSlugs: ReadonlySet<string>;
   onSkillSelect: (id: string) => void;
   onToggleSkill: (slug: string) => void;
   skills: Skill[];

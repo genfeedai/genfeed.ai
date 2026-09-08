@@ -41,7 +41,7 @@ function getModalityBadgeVariant(
 export default function SkillsTable({
   enabledSlugs,
   isLoading,
-  isTogglingSkill,
+  pendingSlugs,
   onSkillSelect,
   onToggleSkill,
   skills,
@@ -117,7 +117,7 @@ export default function SkillsTable({
                 name: skill.name,
               })}
               checked={enabledSlugs.includes(skill.slug)}
-              isDisabled={isTogglingSkill}
+              isDisabled={pendingSlugs.has(skill.slug)}
               onCheckedChange={() => onToggleSkill(skill.slug)}
             />
           ),
