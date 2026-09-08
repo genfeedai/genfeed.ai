@@ -441,20 +441,29 @@ export class AgentThreadsService extends BaseService<
       };
     }
 
-    const pendingInputRequests = Array.isArray(snapshot.pendingInputRequests)
-      ? snapshot.pendingInputRequests
-      : [];
-    const pendingInputCount = pendingInputRequests.length;
-    const pendingApprovals = Array.isArray(snapshot.pendingApprovals)
-      ? snapshot.pendingApprovals.length
-      : 0;
-    const hasPendingConfirmation =
-      pendingApprovals > 0 ||
-      Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval);
     const activeRun = this.asRecord(snapshot.activeRun);
     const isLatestRun =
       !latestExecution ||
       this.readString(activeRun, 'runId') === latestExecution.id;
+    const decisionsAllowed =
+      isLatestRun &&
+      !['FAILED', 'CANCELLED'].includes(latestExecution?.status ?? '') &&
+      !['failed', 'cancelled', 'interrupted'].includes(
+        this.readString(activeRun, 'status') ?? '',
+      );
+    const pendingInputRequests =
+      decisionsAllowed && Array.isArray(snapshot.pendingInputRequests)
+        ? snapshot.pendingInputRequests
+        : [];
+    const pendingInputCount = pendingInputRequests.length;
+    const pendingApprovals =
+      decisionsAllowed && Array.isArray(snapshot.pendingApprovals)
+        ? snapshot.pendingApprovals.length
+        : 0;
+    const hasPendingConfirmation =
+      decisionsAllowed &&
+      (pendingApprovals > 0 ||
+        Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval));
     const rawRunStatus = isLatestRun
       ? this.readString(activeRun, 'status')
       : undefined;

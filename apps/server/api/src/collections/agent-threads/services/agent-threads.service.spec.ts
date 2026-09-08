@@ -364,4 +364,42 @@ describe('AgentThreadsService Prisma row contract', () => {
       expect.objectContaining({ id: 'execution-new', runtimeState: 'running' }),
     ]);
   });
+  it.each(['FAILED', 'CANCELLED'])(
+    'does not surface stale decisions after durable %s',
+    async (status) => {
+      delegate.findMany.mockResolvedValue([
+        { id: 'thread-stopped', organizationId: 'org-1', userId: 'user-1' },
+      ]);
+      snapshotDelegate.findMany.mockResolvedValue([
+        {
+          threadId: 'thread-stopped',
+          data: {
+            activeRun: { runId: 'execution-stopped', status: 'running' },
+            pendingInputRequests: [
+              { requestId: 'obsolete', title: 'Old question' },
+            ],
+            latestProposedPlan: { awaitingApproval: true },
+          },
+        },
+      ]);
+      queryRaw.mockResolvedValue([
+        {
+          id: 'execution-stopped',
+          status,
+          threadId: 'thread-stopped',
+          createdAt: new Date(),
+        },
+      ]);
+      const threads = await service.getUserThreads(
+        'user-1',
+        'org-1',
+        AgentThreadStatus.ACTIVE,
+      );
+      expect(threads[0]).toMatchObject({
+        runtimeState: status.toLowerCase(),
+        pendingInputCount: 0,
+        attentionState: null,
+      });
+    },
+  );
 });

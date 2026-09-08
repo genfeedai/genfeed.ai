@@ -144,3 +144,12 @@ describe('durable workflow snapshot recovery', () => {
     );
   });
 });
+
+it('preserves a correlated tool interruption over the cancelled workflow status', () => {
+  const current = snapshot();
+  current.activeRun = { runId: 'current-execution', status: 'interrupted' };
+  expect(
+    reconcileThreadWorkflowSnapshot(current, execution('CANCELLED')).activeRun
+      ?.status,
+  ).toBe('interrupted');
+});

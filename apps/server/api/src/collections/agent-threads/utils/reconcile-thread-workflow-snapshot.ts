@@ -23,7 +23,9 @@ export function reconcileThreadWorkflowSnapshot(
   const isCancelled = execution.status === 'CANCELLED';
   const isFailed = execution.status === 'FAILED';
   const status = isCancelled
-    ? AgentRuntimeState.CANCELLED
+    ? snapshotStatus === AgentRuntimeState.INTERRUPTED
+      ? AgentRuntimeState.INTERRUPTED
+      : AgentRuntimeState.CANCELLED
     : isFailed
       ? snapshotStatus === AgentRuntimeState.INTERRUPTED
         ? AgentRuntimeState.INTERRUPTED
