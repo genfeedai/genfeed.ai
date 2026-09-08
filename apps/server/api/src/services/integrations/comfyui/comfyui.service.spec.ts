@@ -1,4 +1,7 @@
-vi.mock('@genfeedai/workflows/generation/comfyui', () => ({
+vi.mock('@genfeedai/workflows/generation/comfyui', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@genfeedai/workflows/generation/comfyui')
+  >()),
   buildFlux2DevPrompt: vi.fn(() => ({ nodes: 'flux2-dev' })),
   buildFlux2DevPulidLoraPrompt: vi.fn(() => ({
     nodes: 'flux2-dev-pulid-lora',
@@ -84,13 +87,16 @@ describe('ComfyUIService', () => {
       expect(result).toBe(false);
     });
 
-    it('should return false on non-200 status', async () => {
-      httpGetMock.mockReturnValue(of({ data: {}, status: 503 }));
+    it.each([201, 204, 503])(
+      'should return false on status %s',
+      async (status) => {
+        httpGetMock.mockReturnValue(of({ data: {}, status }));
 
-      const result = await service.ping();
-      // ping only checks status === 200
-      expect(result).toBe(false);
-    });
+        const result = await service.ping();
+        // ping only checks status === 200
+        expect(result).toBe(false);
+      },
+    );
   });
 
   describe('generateImage', () => {
@@ -145,7 +151,11 @@ describe('ComfyUIService', () => {
       expect(buildFluxDevPrompt).toHaveBeenCalledWith(
         expect.objectContaining({ ...commonImageParams, prompt: 'a cat' }),
       );
-      expect(result.imageBuffer).toBeInstanceOf(Buffer);
+      expect(result.imageBuffer).toEqual(Buffer.from('fake-image-bytes'));
+      expect(httpGetMock).toHaveBeenCalledWith(
+        `${COMFYUI_URL}/view?filename=output_001.png&subfolder=&type=output`,
+        { responseType: 'arraybuffer' },
+      );
     });
 
     it('should queue prompt and poll history', async () => {
@@ -167,45 +177,82 @@ describe('ComfyUIService', () => {
       );
     });
 
-    it('should throw when prompt queue returns non-200', async () => {
-      httpPostMock.mockReturnValueOnce(of({ data: {}, status: 400 }));
+    it.each([201, 400])('should reject queue status %s', async (status) => {
+      httpPostMock.mockReturnValueOnce(of({ data: {}, status }));
 
       await expect(
         service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
           prompt: 'fail',
         }),
-      ).rejects.toThrow('ComfyUI /prompt failed (400)');
+      ).rejects.toThrow(`ComfyUI /prompt failed (${status})`);
     });
 
-    it('should throw when history returns error status_str', async () => {
-      httpPostMock.mockReturnValueOnce(
-        of({
-          data: { node_errors: {}, number: 1, prompt_id: promptId },
-          status: 200,
-        }),
-      );
-      httpGetMock.mockReturnValueOnce(
-        of({
-          data: {
-            [promptId]: {
-              outputs: {},
-              status: {
-                completed: false,
-                messages: ['bad node'],
-                status_str: 'error',
-              },
-            },
-          },
-          status: 200,
-        }),
-      );
+    it.each(['history', 'view'])(
+      'should preserve /%s errors',
+      async (endpoint) => {
+        httpPostMock.mockReturnValueOnce(
+          of({ data: { prompt_id: promptId }, status: 200 }),
+        );
+        if (endpoint === 'view') {
+          httpGetMock.mockReturnValueOnce(
+            of({ data: { [promptId]: historyEntry }, status: 200 }),
+          );
+        }
+        httpGetMock.mockReturnValueOnce(
+          of({ data: 'failure body', status: 201 }),
+        );
+
+        await expect(
+          service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+            prompt: 'fail',
+          }),
+        ).rejects.toThrow(`ComfyUI /${endpoint} failed (201)`);
+      },
+    );
+
+    it('should propagate the original transport error', async () => {
+      const error = new Error('Connection reset');
+      httpPostMock.mockReturnValueOnce(throwError(() => error));
 
       await expect(
         service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
-          prompt: 'err',
+          prompt: 'fail',
         }),
-      ).rejects.toThrow(`ComfyUI prompt ${promptId} failed`);
+      ).rejects.toBe(error);
     });
+
+    it.each([false, true])(
+      'should prioritize error when completed is %s',
+      async (completed) => {
+        httpPostMock.mockReturnValueOnce(
+          of({
+            data: { node_errors: {}, number: 1, prompt_id: promptId },
+            status: 200,
+          }),
+        );
+        httpGetMock.mockReturnValueOnce(
+          of({
+            data: {
+              [promptId]: {
+                outputs: {},
+                status: {
+                  completed,
+                  messages: ['bad node'],
+                  status_str: 'error',
+                },
+              },
+            },
+            status: 200,
+          }),
+        );
+
+        await expect(
+          service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+            prompt: 'err',
+          }),
+        ).rejects.toThrow(`ComfyUI prompt ${promptId} failed`);
+      },
+    );
 
     it('should throw when output has no images', async () => {
       httpPostMock.mockReturnValueOnce(

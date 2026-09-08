@@ -1,4 +1,8 @@
-export type { ComfyUIClientOptions } from './client';
+export type {
+  ComfyUIClientOptions,
+  ComfyUIRequest,
+  ComfyUIRequestOptions,
+} from './client';
 export { ComfyUIClient } from './client';
 export type {
   Flux2DevParams,

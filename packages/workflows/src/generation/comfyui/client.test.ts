@@ -37,26 +37,29 @@ describe('ComfyUIClient', () => {
     vi.restoreAllMocks();
   });
 
-  it('queues a JSON prompt and returns the queue response', async () => {
-    const prompt: ComfyUIPrompt = {
-      '1': { class_type: 'KSampler', inputs: { seed: 42 } },
-    };
-    const queued: ComfyUIQueuePromptResponse = {
-      node_errors: {},
-      number: 7,
-      prompt_id: 'prompt-1',
-    };
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify(queued), { status: 200 }),
-    );
+  it.each([200, 201])(
+    'queues a JSON prompt with successful status %s',
+    async (status) => {
+      const prompt: ComfyUIPrompt = {
+        '1': { class_type: 'KSampler', inputs: { seed: 42 } },
+      };
+      const queued: ComfyUIQueuePromptResponse = {
+        node_errors: {},
+        number: 7,
+        prompt_id: 'prompt-1',
+      };
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify(queued), { status }),
+      );
 
-    await expect(client.queuePrompt(prompt)).resolves.toEqual(queued);
-    expect(fetchMock).toHaveBeenCalledWith('https://comfy.example/prompt', {
-      body: JSON.stringify({ prompt }),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
-  });
+      await expect(client.queuePrompt(prompt)).resolves.toEqual(queued);
+      expect(fetchMock).toHaveBeenCalledWith('https://comfy.example/prompt', {
+        body: JSON.stringify({ prompt }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+    },
+  );
 
   it('surfaces the prompt endpoint status and response body', async () => {
     fetchMock.mockResolvedValueOnce(
@@ -115,14 +118,17 @@ describe('ComfyUIClient', () => {
     );
   });
 
-  it('returns immediately when history reports completion', async () => {
-    const completed = historyEntry();
-    vi.spyOn(client, 'getHistory').mockResolvedValueOnce(completed);
+  it.each(['success', 'error'])(
+    'returns completed history even with status %s',
+    async (status_str) => {
+      const completed = historyEntry({ status_str });
+      vi.spyOn(client, 'getHistory').mockResolvedValueOnce(completed);
 
-    await expect(
-      client.waitForCompletion('prompt-1', { pollMs: 1, timeoutMs: 10 }),
-    ).resolves.toEqual(completed);
-  });
+      await expect(
+        client.waitForCompletion('prompt-1', { pollMs: 1, timeoutMs: 10 }),
+      ).resolves.toEqual(completed);
+    },
+  );
 
   it('surfaces an execution error with the ComfyUI messages', async () => {
     vi.spyOn(client, 'getHistory').mockResolvedValueOnce(
