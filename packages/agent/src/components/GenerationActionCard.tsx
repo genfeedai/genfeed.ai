@@ -76,6 +76,7 @@ export function GenerationActionCard({
     modelsLoading,
     modelsError,
     isAllowlistEmpty,
+    isReviewBlocked,
     retryLoadModels,
     filteredModels,
     autoModelLabel,
@@ -249,7 +250,7 @@ export function GenerationActionCard({
             resolutionOptions={resolutionOptions}
             onResolutionChange={handleResolutionChange}
             isImage={isImage}
-            isPromptEmpty={!prompt.trim()}
+            isPromptEmpty={!prompt.trim() || isReviewBlocked}
             showGenerate={
               (status === 'idle' || status === 'error') &&
               !isPilotCeilingReached

@@ -501,14 +501,18 @@ export function useAgentChatContainer({
       const shouldQueueFollowUp =
         Boolean(activeUiActionRef.current) ||
         liveState.isGenerating ||
-        (isStreaming && liveState.stream.isStreaming);
+        (isStreaming &&
+          liveState.stream.isStreaming &&
+          liveState.activeRunStatus !== 'waiting_input');
 
       const pendingAsk = liveState.pendingInputRequest;
       if (pendingAsk && !shouldQueueFollowUp) {
         const answer = content.trim();
         if (answer) {
           followLatestTurn('smooth');
-          void submitInputRequestRef.current(answer);
+          void Promise.resolve(submitInputRequestRef.current(answer)).catch(
+            () => undefined,
+          );
           return true;
         }
       }
@@ -625,6 +629,8 @@ export function useAgentChatContainer({
       }
 
       setIsSubmittingInputRequest(true);
+      setError(null);
+      clearPendingInputRequest();
       try {
         const workEventId = `input-resolved-${request.inputRequestId}`;
         addWorkEvent({
@@ -651,8 +657,14 @@ export function useAgentChatContainer({
             };
           })(),
         );
-        clearPendingInputRequest();
       } catch {
+        const currentState = useAgentChatStore.getState();
+        if (
+          currentState.activeThreadId === request.threadId &&
+          !currentState.pendingInputRequest
+        ) {
+          currentState.setPendingInputRequest(request);
+        }
         addWorkEvent({
           createdAt: new Date().toISOString(),
           detail: normalizedAnswer,
@@ -665,6 +677,7 @@ export function useAgentChatContainer({
           threadId: request.threadId,
         } satisfies AgentWorkEvent);
         setError('Failed to submit the requested input.');
+        throw new Error('Failed to submit the requested input.');
       } finally {
         setIsSubmittingInputRequest(false);
       }

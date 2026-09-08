@@ -37,7 +37,7 @@ export type StreamSubscriptionDeps = {
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
-  clearPendingInputRequest: () => void;
+  clearPendingInputRequest: (inputRequestId?: string) => void;
   completeOnboardingIfNeeded: (
     toolCalls: AgentStreamDonePayload['toolCalls'],
   ) => void | Promise<void>;
@@ -372,6 +372,7 @@ export function attachAgentStreamSubscriptions(
           runStatus: 'waiting_input',
         });
         if (deps.isThreadVisible(payload.threadId)) {
+          deps.setActiveRunStatus('waiting_input');
           deps.setPendingInputRequest({
             allowFreeText: payload.allowFreeText,
             fieldId: payload.fieldId,
@@ -412,7 +413,7 @@ export function attachAgentStreamSubscriptions(
           runStatus: 'running',
         });
         if (deps.isThreadVisible(payload.threadId)) {
-          deps.clearPendingInputRequest();
+          deps.clearPendingInputRequest(payload.inputRequestId);
           deps.addWorkEvent({
             createdAt: payload.timestamp,
             detail: payload.answer,

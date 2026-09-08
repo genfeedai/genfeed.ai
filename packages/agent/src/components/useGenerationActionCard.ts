@@ -7,6 +7,10 @@ import type {
   GenerationModel,
 } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  isWorkObjectGenerationBlocked,
+  useAgentWorkObjectGateStore,
+} from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
@@ -140,6 +144,9 @@ export function useGenerationActionCard({
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const isReviewBlocked = useAgentWorkObjectGateStore((state) =>
+    isWorkObjectGenerationBlocked(activeThreadId, state),
+  );
   const setupScope = useMemo(
     () => buildAgentGenerationSetupScope(activeThreadId, generationType),
     [activeThreadId, generationType],
@@ -499,6 +506,10 @@ export function useGenerationActionCard({
 
   const handleGenerate = useCallback(async () => {
     if (
+      isWorkObjectGenerationBlocked(
+        activeThreadId,
+        useAgentWorkObjectGateStore.getState(),
+      ) ||
       !prompt.trim() ||
       status === 'generating' ||
       isAllowlistEmpty ||
@@ -921,6 +932,7 @@ export function useGenerationActionCard({
     modelsLoading: pickerLoading,
     modelsError,
     isAllowlistEmpty,
+    isReviewBlocked,
     retryLoadModels,
     filteredModels,
     autoModelLabel,

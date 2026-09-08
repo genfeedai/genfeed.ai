@@ -2,6 +2,7 @@ import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.ex
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
 import * as threadsApi from '@genfeedai/agent/services/agent-api/agent-api.threads';
+import * as workObjectsApi from '@genfeedai/agent/services/agent-api/agent-api.work-objects';
 import * as workflowsApi from '@genfeedai/agent/services/agent-api/agent-api.workflows';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 
@@ -26,6 +27,9 @@ export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.se
  * `services/agent-api/*`.
  */
 export class AgentApiService extends AgentBaseApiService {
+  getWorkObjects = workObjectsApi.getWorkObjects.bind(null, this);
+  actOnWorkObject = workObjectsApi.actOnWorkObject.bind(null, this);
+
   get baseUrl(): string {
     return this.config.baseUrl;
   }
