@@ -1,5 +1,8 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ActivityKey, IngredientCategory } from '@genfeedai/contracts';
+import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ActivityUpdateService', () => {
@@ -15,7 +18,7 @@ describe('ActivityUpdateService', () => {
 
   const mockObjectId = 'test-object-id';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     activitiesService = {
       create: vi.fn().mockResolvedValue({ id: mockObjectId }),
       findByActionValue: vi.fn(),
@@ -25,7 +28,14 @@ describe('ActivityUpdateService', () => {
       publishBackgroundTaskUpdate: vi.fn(),
     };
 
-    service = new ActivityUpdateService(activitiesService, websocketService);
+    const module = await Test.createTestingModule({
+      providers: [
+        ActivityUpdateService,
+        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: NotificationsPublisherService, useValue: websocketService },
+      ],
+    }).compile();
+    service = module.get(ActivityUpdateService);
   });
 
   describe('updateSuccessActivity', () => {
