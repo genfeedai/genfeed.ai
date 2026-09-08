@@ -243,11 +243,7 @@ export async function mergeCoverage(
     sourceFilter: (sourcePath) =>
       /(?:apps\/app\/|packages\/)(?!.*node_modules)/.test(sourcePath) &&
       !sourcePath.includes('.next/'),
-    reports: [
-      ['json-summary'],
-      ['lcovonly', { file: 'lcov.info' }],
-      ['console-summary'],
-    ],
+    reports: [['json-summary'], ['lcovonly', { file: 'lcov.info' }]],
   });
   const generated = await reporter.generate();
   if (!generated) throw new Error('No merged Playwright coverage generated');
@@ -281,6 +277,15 @@ export async function mergeCoverage(
   writeFileSync(
     path.join(outputDir, 'playwright-coverage-report.json'),
     `${JSON.stringify(report, null, 2)}\n`,
+  );
+  console.log('Merged Playwright coverage (Istanbul executable source counts)');
+  console.table(
+    Object.fromEntries(
+      METRICS.map((metric) => [
+        metric,
+        { ...metrics[metric], pct: metrics[metric].pct.toFixed(2) },
+      ]),
+    ),
   );
   enforceCoverage(metrics, policy);
   return report;

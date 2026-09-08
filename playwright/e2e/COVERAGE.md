@@ -45,7 +45,9 @@ The merged `e2e-coverage-merged` artifact lasts 90 days and contains LCOV,
 Istanbul `coverage-summary.json`, and `playwright-coverage-report.json` with
 branch, function, line, and statement counts plus run identity and the largest
 uncovered files. Counts are merged from raw V8 data before calculating metrics;
-shard percentages are never averaged. The denominator is source loaded by the
+shard percentages are never averaged. These are Istanbul executable source
+metrics; the per-shard V8 byte/line console summaries have different denominators
+and must not be used as thresholds. The denominator is source loaded by the
 mocked smoke/core browser suite, not every file in the repository.
 
 ### Baseline readiness and ratchet (#439)
