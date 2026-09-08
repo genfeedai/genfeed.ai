@@ -2001,6 +2001,77 @@
     "discoveryAds": {
       "title": "Ads research",
       "body": "Competitor and category ads collected for inspiration. Filter by platform and format."
+    },
+    "title": "Help & learning",
+    "description": "Get your first result, learn a workflow, or find the right place to ask for help.",
+    "external": "Opens in a new tab",
+    "unavailable": "Destination unavailable",
+    "unavailableGuidance": "Use the steps and answers on this page, or ask your workspace administrator for an available resource.",
+    "about": "About Genfeed",
+    "buildDetails": "Include your app version from About, what you tried, and the error message when asking for help. Remove private content and credentials before sharing.",
+    "learningPath": "Your first workflow",
+    "steps": {
+      "brand": {
+        "title": "1. Give your brand context",
+        "description": "Choose your brand and add its voice, references, and connected accounts in Settings."
+      },
+      "create": {
+        "title": "2. Make a first draft",
+        "description": "Open Studio or the agent, describe one result, and review the generated draft. In Automation → Templates, choose a workflow when you want repeatable steps."
+      },
+      "review": {
+        "title": "3. Review and reuse",
+        "description": "Check the output before publishing. Save useful assets and characters to reuse in your next creation."
+      }
+    },
+    "resources": {
+      "gettingStarted": {
+        "title": "Getting started",
+        "description": "Follow the first-run guide from setup to your first result.",
+        "selfHosted": "Install or configure your local instance, then create a workspace and brand."
+      },
+      "documentation": {
+        "title": "Documentation",
+        "description": "Browse product guides, integration setup, and API reference."
+      },
+      "workflows": {
+        "title": "Workflow learning",
+        "description": "Learn Studio and generation workflows. For ready-made workflows, open Automation → Templates in your brand."
+      },
+      "changelog": {
+        "title": "Changelog",
+        "description": "See shipped changes and release notes. Your installation may be running an earlier version."
+      },
+      "faq": {
+        "title": "Frequently asked questions",
+        "description": "Find answers about setup, generations, accounts, and self-hosting."
+      },
+      "community": {
+        "title": "Community",
+        "description": "Share workflows and ask other users for practical advice."
+      },
+      "support": {
+        "title": "Support",
+        "description": "Contact the Genfeed team about your Cloud account or a product problem.",
+        "selfHosted": "Contact the operator of this installation for access, configuration, or service issues.",
+        "unavailable": "Your installation has not configured a support destination. Ask the person who manages it; community help is also available above."
+      }
+    },
+    "answersTitle": "Creating and reusing characters",
+    "characterLink": "Learn how to create, save, and reuse characters",
+    "answers": {
+      "create": {
+        "question": "How do I create a new character?",
+        "answer": "Open your brand Settings → Characters → New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
+      },
+      "save": {
+        "question": "Can I save an image I already generated?",
+        "answer": "Yes. Open the image actions in Studio or the Library and choose Save as character. Genfeed checks for a face or character and checks whether the image is already saved. Choose a name and handle, then save. The action is hidden when the image is not a character; an existing character is shown instead of creating a duplicate."
+      },
+      "reuse": {
+        "question": "How do I reuse a saved character in a prompt?",
+        "answer": "In Studio or the agent, type @ followed by the saved handle and select the character from the suggestions. Use the same brand where you saved it. Creating an image in a prompt does not automatically save it as a reusable character."
+      }
     }
   },
   "autopilot": {

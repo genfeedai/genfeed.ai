@@ -47,9 +47,8 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
   );
-  const translate = translateFromCatalog('common.settings.characters');
   return {
-    useTranslations: () => translate,
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
   };
 });
 
@@ -151,6 +150,19 @@ describe('BrandSettingsCharactersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Characters')).toBeInTheDocument();
     });
+  });
+
+  it('links to character guidance without adding another creation action', async () => {
+    render(<BrandSettingsCharactersPage />);
+    await screen.findByText('New character');
+    expect(
+      screen.getByRole('link', {
+        name: 'Learn how to create, save, and reuse characters',
+      }),
+    ).toHaveAttribute('href', '/settings/help#characters');
+    expect(
+      screen.getAllByRole('button', { name: 'New character' }),
+    ).toHaveLength(1);
   });
 
   it('opens the create dialog and generates a sheet from the description', async () => {

@@ -208,6 +208,59 @@ export const EnvironmentService = {
     return this.apiEndpoint;
   },
 
+  help: {
+    get documentation(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_DOCUMENTATION_URL ??
+        'https://docs.genfeed.ai'
+      );
+    },
+    get gettingStarted(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_GETTING_STARTED_URL ??
+        'https://docs.genfeed.ai/getting-started'
+      );
+    },
+    get selfHostedGettingStarted(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_SELF_HOSTED_START_URL ??
+        'https://docs.genfeed.ai/guides/self-host-quickstart'
+      );
+    },
+    get workflows(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_WORKFLOWS_URL ??
+        'https://docs.genfeed.ai/cloud/studio'
+      );
+    },
+    get faq(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_FAQ_URL ?? 'https://docs.genfeed.ai/faq'
+      );
+    },
+    get changelog(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_CHANGELOG_URL ??
+        'https://genfeed.ai/changelog'
+      );
+    },
+    get cloudSupport(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_CLOUD_SUPPORT_URL ??
+        'https://genfeed.ai/contact'
+      );
+    },
+    get selfHostedSupport(): string | undefined {
+      return process.env.NEXT_PUBLIC_HELP_SELF_HOSTED_SUPPORT_URL;
+    },
+    get community(): string {
+      return (
+        process.env.NEXT_PUBLIC_HELP_COMMUNITY_URL ??
+        EnvironmentService.social.discord
+      );
+    },
+  },
+
   github: {
     core:
       process.env.NEXT_PUBLIC_GITHUB_CORE ||

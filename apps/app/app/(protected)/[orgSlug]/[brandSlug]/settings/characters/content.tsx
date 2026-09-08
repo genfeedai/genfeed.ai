@@ -6,6 +6,7 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -15,6 +16,7 @@ import { useCharactersPage } from './use-characters-page';
 
 export default function BrandSettingsCharactersPage(): ReactElement {
   const translate = useTranslations('common.settings.characters');
+  const helpTranslate = useTranslations('pages.help');
   const { brandId } = useBrand();
   const {
     approve,
@@ -68,6 +70,12 @@ export default function BrandSettingsCharactersPage(): ReactElement {
           isLoading={isLoading}
           onCreate={openCreateDialog}
         />
+        <Link
+          href="/settings/help#characters"
+          className="text-sm text-muted-foreground underline underline-offset-4"
+        >
+          {helpTranslate('characterLink')}
+        </Link>
       </Container>
 
       <CharacterCreateDialog
