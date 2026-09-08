@@ -55,6 +55,12 @@ export interface WorstPerformersOptions {
 export const DEFAULT_WORST_PERFORMER_MIN_VIEWS = 10;
 
 export interface PerformanceContentItem {
+  /**
+   * Stable identity for this row: the `PostAnalytics` id for Genfeed content,
+   * the `SourcePost` id for imported. `postId` is not one — `PostAnalytics` is
+   * unique on `[postId, platform, date]`, so one post spans several rows.
+   */
+  id: string;
   /** Genfeed post id, or the source post id for imported content. */
   postId: string;
   origin: PerformanceContentOrigin;

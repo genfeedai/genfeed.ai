@@ -677,17 +677,19 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
+    // Conversations get the same two quick-action rows as every other
+    // surface; only the primary action differs. The column itself no longer
+    // carries a bare "+", so there is no `New agent thread` link.
+    expect(screen.getByTestId('sidebar-primary-action')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'New agent thread' }),
-    ).toHaveAttribute('href', '/org-123/brand-123/agent/new');
+      screen.queryByRole('link', { name: 'New agent thread' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Conversation header action' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'New Task' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Search' }),
     ).not.toBeInTheDocument();
 
     const resolveThreadHref = agentThreadListSpy.mock.calls.at(-1)?.[0]
@@ -825,9 +827,9 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(
-      screen.queryByTestId('sidebar-search-trigger'),
-    ).not.toBeInTheDocument();
+    // Search stays: it opens the same command palette here as everywhere
+    // else, rather than the conversation column growing a field of its own.
+    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Back to Workspace' }),
     ).not.toBeInTheDocument();

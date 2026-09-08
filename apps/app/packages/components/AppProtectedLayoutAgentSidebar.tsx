@@ -1,12 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
-import { type ReactNode, useMemo } from 'react';
+import type { ReactNode } from 'react';
 
 type Props = {
   /**
@@ -14,7 +8,7 @@ type Props = {
    * frequently-changing parent state — the nav panel memo only depends on
    * this reference and the route flag.
    */
-  renderConversations: (searchAction?: ReactNode) => ReactNode;
+  renderConversations: () => ReactNode;
 };
 
 /**
@@ -22,31 +16,15 @@ type Props = {
  *
  * Header actions (refresh / archive) live inside `AgentThreadList` itself so
  * we never lift ReactNode state into a parent useMemo that would recreate the
- * nav panel identity and remount the list.
+ * nav panel identity and remount the list. Starting a conversation is a
+ * sidebar row ("New Conversation") next to Search, like every other surface's
+ * quick actions — this column no longer carries a bare "+" of its own.
  */
 export default function AgentSidebarContent({ renderConversations }: Props) {
-  const { activeHref } = useOrgUrl();
-  const newThreadHref = activeHref(APP_ROUTES.AGENT.NEW);
-  const newThreadAction = useMemo(
-    () => (
-      <Button
-        asChild
-        withWrapper={false}
-        variant={ButtonVariant.SECONDARY}
-        size={ButtonSize.ICON}
-      >
-        <Link href={newThreadHref} aria-label="New agent thread">
-          <Plus className="size-4" aria-hidden="true" />
-        </Link>
-      </Button>
-    ),
-    [newThreadHref],
-  );
-
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 flex-1 flex-col pb-2 pt-1">
-        {renderConversations(newThreadAction)}
+        {renderConversations()}
       </div>
     </div>
   );
