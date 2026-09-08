@@ -3673,22 +3673,6 @@
       "workspace": "api"
     },
     {
-      "code": 2349,
-      "count": 1,
-      "file": "apps/server/api/test/factories/user.factory.spec.ts",
-      "fingerprint": "c2c94ec148d2a1012220",
-      "message": "This expression is not callable.   Type 'TestContext' has no call signatures.",
-      "workspace": "api"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/api/test/factories/user.factory.spec.ts",
-      "fingerprint": "64d0ba8ceb2e20985561",
-      "message": "Parameter 'response' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
@@ -4030,14 +4014,6 @@
       "file": "apps/server/api/test/setup.ts",
       "fingerprint": "072da96cb3f70efbe712",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/unit/prompts.controller.spec.ts",
-      "fingerprint": "8df64812d3f7a806b2e1",
-      "message": "Cannot find module '@api/collections/prompts/prompts.controller' or its corresponding type declarations.",
       "workspace": "api"
     },
     {

@@ -86,6 +86,40 @@ describe('check-package-api-surface', () => {
     ]);
   });
 
+  it('resolves the same specifiers whether or not dist/ has been built', () => {
+    const manifest = JSON.stringify({
+      exports: {
+        '.': { default: './src/index.ts', types: './dist/src/index.d.ts' },
+      },
+      name: '@genfeedai/built',
+      version: '1.0.0',
+    });
+
+    writeFixture('packages/built/package.json', manifest);
+    writeFixture('packages/built/src/index.ts', 'export const a: number = 1;');
+
+    const unbuilt = buildPackageSnapshot(
+      'packages/built',
+      createDiskAccessor(testDir),
+    );
+
+    // Exactly what CI sees after `turbo run type-check`, and what a git ref
+    // never sees, since dist/ is gitignored.
+    writeFixture(
+      'packages/built/dist/src/index.d.ts',
+      'export declare const a: number;',
+    );
+
+    const built = buildPackageSnapshot(
+      'packages/built',
+      createDiskAccessor(testDir),
+    );
+
+    expect(built.modules.map((module) => module.specifier)).toEqual(['.']);
+    expect(unbuilt.modules.map((module) => module.specifier)).toEqual(['.']);
+    expect(comparePackageSnapshots([unbuilt], [built])).toHaveLength(0);
+  });
+
   it('ignores JSDoc-only edits when hashing a module signature', () => {
     writeFixture(
       'packages/docs-only/index.ts',

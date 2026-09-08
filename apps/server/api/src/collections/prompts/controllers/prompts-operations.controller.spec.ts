@@ -93,7 +93,12 @@ describe('PromptsOperationsController', () => {
   // observable in the response, and it was uncovered until #4555 — its only
   // test sat in `test/unit/`, which no vitest config included.
   describe('generateTweetReply', () => {
-    const user = { id: 'usr_1', organizationId: 'org_1', userId: 'usr_1' };
+    const user = {
+      brandId: 'brd_1',
+      id: 'usr_1',
+      organizationId: 'org_1',
+      userId: 'usr_1',
+    };
 
     it('prefixes the generated reply with @grok when tagGrok is true', async () => {
       const result = await controller.generateTweetReply(
