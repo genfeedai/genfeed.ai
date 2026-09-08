@@ -1,28 +1,13 @@
-export type OnboardingJourneyMissionId =
-  | 'complete_company_info'
-  | 'connect_social_account'
-  | 'generate_first_image'
-  | 'generate_first_video'
-  | 'publish_first_post';
+import type {
+  IOnboardingJourneyMissionDefinition,
+  OnboardingJourneyMissionId,
+} from '../interfaces/onboarding/onboarding-journey.interface';
 
-export interface IOnboardingJourneyMissionState {
-  id: OnboardingJourneyMissionId;
-  isCompleted: boolean;
-  rewardClaimed: boolean;
-  rewardCredits: number;
-  completedAt?: string | Date | null;
-}
-
-export interface IOnboardingJourneyMissionDefinition {
-  id: OnboardingJourneyMissionId;
-  label: string;
-  description: string;
-  whyItMatters: string;
-  rewardCredits: number;
-  ctaLabel: string;
-  ctaHref: string;
-  selfHostedCtaHref: string;
-}
+export type {
+  IOnboardingJourneyMissionDefinition,
+  IOnboardingJourneyMissionState,
+  OnboardingJourneyMissionId,
+} from '../interfaces/onboarding/onboarding-journey.interface';
 
 export const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
 
