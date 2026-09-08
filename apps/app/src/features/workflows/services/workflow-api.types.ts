@@ -54,6 +54,8 @@ export type WorkflowMetadata = Record<string, unknown> & {
 
 /** Lightweight workflow summary for list views */
 export interface WorkflowSummary {
+  nodes?: Node[];
+  edges?: Edge[];
   id: string;
   label: string;
   description?: string;
@@ -256,6 +258,8 @@ export interface BatchExecutionSummary {
 
 /** System catalog entry from GET /workflows?source=system-catalog (#2176) */
 export interface SystemWorkflowCatalogEntry {
+  nodes?: Node[];
+  edges?: Edge[];
   canonicalId: string;
   category: string;
   changeSummary: string;

@@ -280,6 +280,8 @@ export default function WorkflowLibraryPage() {
                     <WorkflowCardPreview
                       name={workflow.label}
                       thumbnail={workflow.thumbnail}
+                      nodes={workflow.nodes}
+                      edges={workflow.edges}
                     />
                     {workflow.schedule ? (
                       <div className="relative z-20 flex items-center gap-2 text-xs text-foreground/60">

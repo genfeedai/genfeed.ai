@@ -668,6 +668,30 @@ describe('WorkflowApiService', () => {
     expect(mocks.deserializeCollection).not.toHaveBeenCalled();
   });
 
+  it('preserves catalog graph data for thumbnails and discards malformed graph entries', async () => {
+    const node = {
+      id: 'digest',
+      type: 'genfeedAction',
+      position: { x: 0, y: 0 },
+      data: { label: 'Digest' },
+    };
+    const edge = { id: 'connection', source: 'digest', target: 'email' };
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            canonicalId: 'daily-digest',
+            nodes: [node, null, { id: 'invalid' }],
+            edges: [edge, null, { id: 'invalid' }],
+          },
+        ],
+      },
+    });
+    const entries = await service().listSystemCatalog();
+    expect(entries[0].nodes).toEqual([node]);
+    expect(entries[0].edges).toEqual([edge]);
+  });
+
   it('creates service instances with the canonical workflows endpoint', () => {
     const instance = createWorkflowApiService('token-1');
 

@@ -68,6 +68,8 @@ describe('WorkflowTemplatesPage', () => {
     mocks.listSystemCatalog.mockResolvedValue([
       {
         canonicalId: 'system-1',
+        nodes: POST_HARD_CUT_TEMPLATE.nodes,
+        edges: POST_HARD_CUT_TEMPLATE.edges,
         description: 'App-owned automation.',
         family: 'content',
         icon: '',
@@ -114,6 +116,12 @@ describe('WorkflowTemplatesPage', () => {
       expect(screen.getByText('Social blast')).toBeInTheDocument();
     });
     expect(screen.getByText('Daily digest')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Daily digest workflow diagram' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Social blast workflow diagram' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Use Template' })).toHaveAttribute(
       'href',
       '/demo/FUDNEWS/automation/templates?template=tpl-1',
