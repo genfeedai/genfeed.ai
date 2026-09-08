@@ -10,8 +10,8 @@ import {
 } from 'react';
 
 type WorkspaceNavPanelContextValue = {
-  readonly portalTarget: HTMLElement | null;
-  readonly setPortalTarget: (target: HTMLElement | null) => void;
+  readonly portalTargets: readonly HTMLElement[];
+  readonly registerPortalTarget: (target: HTMLElement) => () => void;
 };
 
 const WorkspaceNavPanelContext =
@@ -22,30 +22,27 @@ const WorkspaceNavPanelContext =
  * its routed surface. The sidebar is a sibling of the page canvas, so the
  * target has to live above both.
  *
- * `setPortalTarget` is identity-stable so layout nav-panel memos that only
- * need the setter do not recreate when the DOM node attaches.
+ * Desktop and mobile shells mount separate targets. Track both so a hidden
+ * mobile target cannot steal the visible desktop conversation list.
  */
 export function WorkspaceNavPanelProvider({
   children,
 }: {
   readonly children: ReactNode;
 }) {
-  const [portalTarget, setPortalTargetState] = useState<HTMLElement | null>(
-    null,
-  );
-
-  const setPortalTarget = useCallback((target: HTMLElement | null) => {
-    setPortalTargetState((previous) =>
-      previous === target ? previous : target,
+  const [portalTargets, setPortalTargets] = useState<HTMLElement[]>([]);
+  const registerPortalTarget = useCallback((target: HTMLElement) => {
+    setPortalTargets((previous) =>
+      previous.includes(target) ? previous : [...previous, target],
     );
+    return () =>
+      setPortalTargets((previous) =>
+        previous.filter((entry) => entry !== target),
+      );
   }, []);
-
-  const value = useMemo<WorkspaceNavPanelContextValue>(
-    () => ({
-      portalTarget,
-      setPortalTarget,
-    }),
-    [portalTarget, setPortalTarget],
+  const value = useMemo(
+    () => ({ portalTargets, registerPortalTarget }),
+    [portalTargets, registerPortalTarget],
   );
 
   return (
@@ -57,4 +54,21 @@ export function WorkspaceNavPanelProvider({
 
 export function useWorkspaceNavPanel(): WorkspaceNavPanelContextValue | null {
   return useContext(WorkspaceNavPanelContext);
+}
+
+export function WorkspaceNavPanelTarget() {
+  const register = useWorkspaceNavPanel()?.registerPortalTarget;
+  const ref = useCallback(
+    (target: HTMLDivElement | null) => {
+      if (target && register) return register(target);
+    },
+    [register],
+  );
+  return (
+    <div
+      className="flex h-full min-h-0 flex-col"
+      data-testid="messages-nav-panel"
+      ref={ref}
+    />
+  );
 }

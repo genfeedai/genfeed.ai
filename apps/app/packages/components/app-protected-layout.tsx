@@ -35,8 +35,8 @@ import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizat
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
-  useWorkspaceNavPanel,
   WorkspaceNavPanelProvider,
+  WorkspaceNavPanelTarget,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   isFocusedOnboardingPath,
@@ -126,7 +126,7 @@ function AppLayoutWithDynamicMenu({
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
-  const workspaceNavPanel = useWorkspaceNavPanel();
+  const sidebarPathname = usePathname();
 
   const {
     isAdminRoute,
@@ -276,23 +276,18 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isLibraryRoute],
   );
-  const setMessagesNavPortalTarget = workspaceNavPanel?.setPortalTarget;
-  const messagesNavPanel = useMemo<SidebarNavPanel | null>(() => {
-    if (!isMessagesRoute || !setMessagesNavPortalTarget) {
-      return null;
-    }
-
-    return {
-      render: () => (
-        <div
-          className="flex h-full min-h-0 flex-col"
-          data-testid="messages-nav-panel"
-          ref={setMessagesNavPortalTarget}
-        />
-      ),
-      sectionLabel: 'Messages',
-    };
-  }, [isMessagesRoute, setMessagesNavPortalTarget]);
+  const isMessagesInboxRoute =
+    isMessagesRoute && sidebarPathname.replace(/\/$/, '').endsWith('/messages');
+  const messagesNavPanel = useMemo<SidebarNavPanel | null>(
+    () =>
+      isMessagesInboxRoute
+        ? {
+            render: () => <WorkspaceNavPanelTarget />,
+            sectionLabel: 'Messages',
+          }
+        : null,
+    [isMessagesInboxRoute],
+  );
   const activeNavPanel =
     conversationNavPanel ?? libraryNavPanel ?? messagesNavPanel;
 

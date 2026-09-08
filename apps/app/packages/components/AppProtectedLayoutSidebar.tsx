@@ -71,7 +71,6 @@ type Props = {
    * Supplied by the module that owns the active surface. When present its body
    * replaces that surface's menu items — today the conversation's thread list,
    * later Library → collections and Workflows → runs.
-   * Messages keeps primary destinations visible above the inbox panel body.
    */
   navPanel?: SidebarNavPanel | null;
 };
@@ -166,16 +165,12 @@ export default function AppProtectedLayoutSidebar({
   // A module owns the nav column by handing the shell a panel: the surface
   // keeps its logo, label and switchers, and the panel takes the place of its
   // menu items. Nothing here knows what the panel renders.
-  // Messages is the exception: destinations stay visible above the inbox body
-  // so Outreach / Replies / Reply drip remain reachable from the inbox.
   const navPanelProps = navPanel
     ? {
         collapsedSidebarWidth: 0,
-        items: isMessagesRoute
-          ? messagesMenuItems
-          : ([] satisfies MenuItemConfig[]),
+        items: [] satisfies MenuItemConfig[],
         renderBody: navPanel.render,
-        showPrimaryItems: isMessagesRoute,
+        showPrimaryItems: false,
       }
     : null;
 

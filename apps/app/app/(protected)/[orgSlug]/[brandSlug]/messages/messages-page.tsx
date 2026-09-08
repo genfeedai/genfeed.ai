@@ -561,13 +561,15 @@ export default function MessagesPage() {
       view={filters.inboxView}
     />
   );
-  const isConversationNavProjected = workspaceNavPanel !== null;
+  const isConversationNavProjected = Boolean(
+    workspaceNavPanel?.portalTargets.length,
+  );
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <h1 className="sr-only">{translate('title')}</h1>
-      {workspaceNavPanel?.portalTarget
-        ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
-        : null}
+      {workspaceNavPanel?.portalTargets.map((target, index) =>
+        createPortal(conversationNavPanel, target, `messages-nav-${index}`),
+      )}
       {error ? (
         <div
           className="mx-4 mt-3 shrink-0 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
