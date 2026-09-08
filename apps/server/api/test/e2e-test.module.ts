@@ -386,8 +386,6 @@ export interface E2ETestModuleOptions {
   controllers?: Type<unknown>[];
   /** Additional providers to include */
   providers?: unknown[];
-  /** Legacy Mongoose-era schema registrations. Prisma e2e ignores these. */
-  schemas?: unknown[];
   /** Custom config overrides */
   configOverrides?: Record<string, unknown>;
   /** Whether to use mock guards (default: true) */

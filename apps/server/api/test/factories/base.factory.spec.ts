@@ -1,4 +1,4 @@
-import { BaseFactory, MongoIdFactory } from '@test/factories/base.factory';
+import { BaseFactory, TestIdFactory } from '@test/factories/base.factory';
 import {
   clearAllMocks,
   generateTestEmail,
@@ -57,18 +57,20 @@ describe('BaseFactory', () => {
   });
 });
 
-describe('MongoIdFactory', () => {
-  it('creates valid ObjectIds and string representations', () => {
-    const objectId = MongoIdFactory.create();
-    const stringId = MongoIdFactory.createString();
+describe('TestIdFactory', () => {
+  it('creates opaque, non-empty string ids', () => {
+    const id = TestIdFactory.create();
+    const stringId = TestIdFactory.createString();
 
-    expect(MongoIdFactory.isValid(objectId)).toBe(true);
-    expect(MongoIdFactory.isValid(stringId)).toBe(true);
+    expect(TestIdFactory.isValid(id)).toBe(true);
+    expect(TestIdFactory.isValid(stringId)).toBe(true);
+    expect(id).toMatch(/^test-id-/u);
+    expect(TestIdFactory.create()).not.toBe(id);
   });
 
   it('creates many ids', () => {
-    expect(MongoIdFactory.createMany(2)).toHaveLength(2);
-    expect(MongoIdFactory.createManyStrings(3)).toHaveLength(3);
+    expect(TestIdFactory.createMany(2)).toHaveLength(2);
+    expect(TestIdFactory.createManyStrings(3)).toHaveLength(3);
   });
 });
 
@@ -77,7 +79,8 @@ describe('test helpers', () => {
     expect(generateTestEmail('helper')).toContain('helper.');
     expect(generateTestEmail('helper')).toContain('@example.com');
     expect(generateTestUrl('/path')).toBe('https://test.example.com/path');
-    expect(generateTestId()).toHaveLength(24);
+    expect(generateTestId()).toMatch(/^test-id-\w+$/u);
+    expect(generateTestId()).not.toBe(generateTestId());
 
     const before = Date.now();
     await waitFor(5);

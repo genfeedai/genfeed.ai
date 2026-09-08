@@ -25,24 +25,24 @@ export abstract class BaseFactory<T> {
 }
 
 /**
- * Factory for generating test string IDs (replaces MongoIdFactory).
- * Prisma uses string IDs (cuid/ulid/uuid) — no ObjectId needed.
+ * Factory for generating opaque test string IDs.
+ * Prisma uses string IDs (cuid/ulid/uuid).
  */
-export class MongoIdFactory {
+export class TestIdFactory {
   static create(): string {
     return 'test-id-' + Math.random().toString(36).slice(2, 9);
   }
 
   static createString(): string {
-    return MongoIdFactory.create();
+    return TestIdFactory.create();
   }
 
   static createMany(count: number): string[] {
-    return Array.from({ length: count }, () => MongoIdFactory.create());
+    return Array.from({ length: count }, () => TestIdFactory.create());
   }
 
   static createManyStrings(count: number): string[] {
-    return MongoIdFactory.createMany(count);
+    return TestIdFactory.createMany(count);
   }
 
   static isValid(id: string): boolean {

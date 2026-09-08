@@ -3021,7 +3021,7 @@
       "count": 6,
       "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "5dcc775542a5756d2cbd",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 18 more.",
+      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 19 more.",
       "workspace": "api"
     },
     {
@@ -3053,7 +3053,7 @@
       "count": 6,
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "a9e6dbd7d8d6be9ceec5",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 18 more.",
+      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 19 more.",
       "workspace": "api"
     },
     {
@@ -3612,7 +3612,7 @@
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/factories/base.factory.spec.ts",
-      "fingerprint": "6f698785cb6524ea3cbe",
+      "fingerprint": "e9f24e1c924ee2dfd940",
       "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
       "workspace": "api"
     },
@@ -3665,22 +3665,6 @@
       "workspace": "api"
     },
     {
-      "code": 2349,
-      "count": 1,
-      "file": "apps/server/api/test/factories/user.factory.spec.ts",
-      "fingerprint": "c2c94ec148d2a1012220",
-      "message": "This expression is not callable.   Type 'TestContext' has no call signatures.",
-      "workspace": "api"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/api/test/factories/user.factory.spec.ts",
-      "fingerprint": "64d0ba8ceb2e20985561",
-      "message": "Parameter 'response' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
@@ -3692,16 +3676,16 @@
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "db7c1db59e5101ed3456",
-      "message": "Cannot find module '@customers/services/customers.service' or its corresponding type declarations.",
+      "fingerprint": "c32cc35a9a8a0de498e8",
+      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
       "workspace": "api"
     },
     {
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/payment-processing.integration.spec.ts",
-      "fingerprint": "eb97ee2b8bca7a9bf909",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
+      "fingerprint": "db7c1db59e5101ed3456",
+      "message": "Cannot find module '@customers/services/customers.service' or its corresponding type declarations.",
       "workspace": "api"
     },
     {
@@ -3884,7 +3868,7 @@
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/social-media-publishing.integration.spec.ts",
-      "fingerprint": "eb22e55de0640205aa59",
+      "fingerprint": "bae59b05cf344723d263",
       "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
       "workspace": "api"
     },
@@ -3900,16 +3884,16 @@
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/video-generation.integration.spec.ts",
-      "fingerprint": "8f42bbbb90fcab58f6c3",
-      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
+      "fingerprint": "4634e4e2fe72a8c8d9d6",
+      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
       "workspace": "api"
     },
     {
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/video-generation.integration.spec.ts",
-      "fingerprint": "c5f1e18cccb92d2048e1",
-      "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
+      "fingerprint": "8f42bbbb90fcab58f6c3",
+      "message": "Cannot find module '@test/mocks/service.mocks' or its corresponding type declarations.",
       "workspace": "api"
     },
     {
@@ -4022,14 +4006,6 @@
       "file": "apps/server/api/test/setup.ts",
       "fingerprint": "072da96cb3f70efbe712",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "api"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/test/unit/prompts.controller.spec.ts",
-      "fingerprint": "8df64812d3f7a806b2e1",
-      "message": "Cannot find module '@api/collections/prompts/prompts.controller' or its corresponding type declarations.",
       "workspace": "api"
     },
     {

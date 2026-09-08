@@ -86,6 +86,110 @@ describe('check-package-api-surface', () => {
     ]);
   });
 
+  it('resolves the same specifiers whether or not dist/ has been built', () => {
+    const manifest = JSON.stringify({
+      exports: {
+        '.': { default: './src/index.ts', types: './dist/src/index.d.ts' },
+      },
+      name: '@genfeedai/built',
+      version: '1.0.0',
+    });
+
+    writeFixture('packages/built/package.json', manifest);
+    writeFixture('packages/built/src/index.ts', 'export const a: number = 1;');
+
+    const unbuilt = buildPackageSnapshot(
+      'packages/built',
+      createDiskAccessor(testDir),
+    );
+
+    // Exactly what CI sees after `turbo run type-check`, and what a git ref
+    // never sees, since dist/ is gitignored.
+    writeFixture(
+      'packages/built/dist/src/index.d.ts',
+      'export declare const a: number;',
+    );
+
+    const built = buildPackageSnapshot(
+      'packages/built',
+      createDiskAccessor(testDir),
+    );
+
+    expect(built.modules.map((module) => module.specifier)).toEqual(['.']);
+    expect(unbuilt.modules.map((module) => module.specifier)).toEqual(['.']);
+    expect(comparePackageSnapshots([unbuilt], [built])).toHaveLength(0);
+  });
+
+  it('ignores JSDoc-only edits when hashing a module signature', () => {
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Original wording. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const before = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Reworded, same signature. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const after = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    expect(after.modules[0]?.hash).toBe(before.modules[0]?.hash);
+    expect(comparePackageSnapshots([before], [after])).toHaveLength(0);
+  });
+
+  it('still flags a real signature change in the same module', () => {
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Doc. */',
+        'export function f(a: string): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const before = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    writeFixture(
+      'packages/docs-only/index.ts',
+      [
+        '/** Doc. */',
+        'export function f(a: string, b: number): number {',
+        '  return 1;',
+        '}',
+      ].join('\n'),
+    );
+
+    const after = buildPackageSnapshot(
+      'packages/docs-only',
+      createDiskAccessor(testDir),
+    );
+
+    expect(after.modules[0]?.hash).not.toBe(before.modules[0]?.hash);
+    expect(comparePackageSnapshots([before], [after])).toHaveLength(1);
+  });
+
   it('fails public API diffs without a version bump or migration note', () => {
     const baseSnapshots = [
       {

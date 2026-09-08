@@ -190,7 +190,16 @@ export function buildPackageSnapshot(
   packageDir: string,
   accessor: FileAccessor,
 ): PackageSnapshot {
-  const packageFiles = accessor.listPackageFiles(packageDir);
+  // `dist/` is gitignored, so the base snapshot (read from a git ref) never has
+  // it and the current snapshot (read from the working tree) does as soon as CI
+  // builds. Packages whose export conditions all point into `dist/` would then
+  // resolve their manifest on one side and fall back to walking `src/` on the
+  // other, and every specifier showed up as both removed and added — a failure
+  // on every pull request, independent of the change. Dropping build output
+  // makes both sides describe the same source tree.
+  const packageFiles = accessor
+    .listPackageFiles(packageDir)
+    .filter((filePath) => !filePath.startsWith('dist/'));
   const tree: PackageTree = {
     files: packageFiles,
     readFile: (filePath) =>
@@ -642,7 +651,14 @@ function discoverExplicitModules(
   const exportEntries = normalizeExportEntries(manifest.exports);
 
   for (const [exportKey, exportTarget] of exportEntries) {
-    const targetPath = selectExportTarget(exportTarget);
+    const targetPaths = selectExportTargets(exportTarget);
+    const targetPath =
+      targetPaths.find((candidate) =>
+        resolveManifestTargetFile(tree.files, stripLeadingDotSlash(candidate)),
+      ) ??
+      targetPaths.find((candidate) =>
+        stripLeadingDotSlash(candidate).includes('*'),
+      );
     if (!targetPath) {
       continue;
     }
@@ -743,6 +759,10 @@ function createSignature(filePath: string, fileContent: string): string {
         jsx: resolveJsxMode(filePath),
         module: ts.ModuleKind.ESNext,
         moduleResolution: ts.ModuleResolutionKind.Bundler,
+        // A JSDoc edit is not an API surface change. Declaration emit keeps
+        // comments by default, so without this a reworded doc block asks for a
+        // version bump or a changenote and the guard becomes noise.
+        removeComments: true,
         skipLibCheck: true,
         target: ts.ScriptTarget.ES2020,
         verbatimModuleSyntax: true,
@@ -807,19 +827,30 @@ function normalizeExportEntries(
   return Object.entries(exportsField);
 }
 
-function selectExportTarget(exportTarget: ExportTarget): string | null {
+/**
+ * Ordered target candidates for one export entry, source conditions first.
+ *
+ * `types` usually points into `dist/`, which is gitignored. The base snapshot is
+ * read from a git ref and never has it, while the current snapshot is read from
+ * the working tree and does once CI has built. Preferring `types` therefore made
+ * the two sides disagree about whether a package has explicit exports at all:
+ * the base fell back to walking `src/`, the current resolved the manifest, and
+ * every specifier showed up as both removed and added. Source conditions resolve
+ * identically from git and from disk, so they come first and `types` is the last
+ * resort for a types-only package.
+ */
+function selectExportTargets(exportTarget: ExportTarget): string[] {
   if (typeof exportTarget === 'string') {
-    return exportTarget;
+    return [exportTarget];
   }
 
-  return (
-    exportTarget.types ??
-    exportTarget.default ??
-    exportTarget.import ??
-    exportTarget.require ??
-    exportTarget.bun ??
-    null
-  );
+  return [
+    exportTarget.default,
+    exportTarget.import,
+    exportTarget.bun,
+    exportTarget.require,
+    exportTarget.types,
+  ].filter((target): target is string => typeof target === 'string');
 }
 
 function resolveManifestTargetFile(

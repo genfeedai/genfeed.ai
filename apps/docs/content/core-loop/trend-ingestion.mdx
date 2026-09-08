@@ -132,7 +132,7 @@ Representative write paths are consistent with that contract:
 ```mermaid
 flowchart LR
   A["External platform fetchers"] --> B["TrendFetchService.fetchAndCacheTrends"]
-  B --> C["Mongo trend documents\ncollections/trends"]
+  B --> C["Trend rows (Postgres)\ncollections/trends"]
   C --> D["TrendsService.fetchAndHydrateTrends"]
   D --> E["Source preview hydration"]
   E --> F["TrendReferenceCorpusService.syncTrendReferences"]

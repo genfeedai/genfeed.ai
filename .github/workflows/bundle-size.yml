@@ -80,6 +80,8 @@ jobs:
         uses: ./.github/actions/setup-bun-env
 
       - name: Build ${{ matrix.app }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bunx turbo run build --filter=@genfeedai/${{ matrix.app }}
 
       - name: Collect first-load JS manifest

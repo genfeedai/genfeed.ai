@@ -2,7 +2,7 @@
 
 Framework-agnostic integration core.
 
-This package is for shared integration contracts, normalization helpers, and cross-platform utilities that can be reused by multiple apps without importing NestJS adapters, Mongo services, or app-specific controllers.
+This package is for shared integration contracts, normalization helpers, and cross-platform utilities that can be reused by multiple apps without importing NestJS adapters, persistence services, or app-specific controllers.
 
 ## Scope
 

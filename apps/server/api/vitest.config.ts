@@ -398,9 +398,18 @@ export default defineConfig({
       thresholds: coverageThresholds,
     },
     environment: 'node',
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    // `test/**` holds both lanes. Integration specs and `*.e2e-spec.ts` belong
+    // to `vitest.config.e2e.ts` (they need a real database); everything else
+    // under `test/` — factories, mocks, env, `test/unit` — is a plain unit spec
+    // that ran in neither config until #4555.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'test/integration/**',
+      '**/*.e2e-spec.ts',
+    ],
     globals: true,
-    include: ['src/**/*.spec.ts', 'scripts/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'scripts/**/*.spec.ts', 'test/**/*.spec.ts'],
     name: '@genfeedai/api-unit',
     passWithNoTests: true,
     setupFiles: ['./test/setup-unit.ts'],

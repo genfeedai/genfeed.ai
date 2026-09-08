@@ -1,13 +1,13 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-06-29T00:00:00Z
-version: 1.1
+last_updated: 2026-09-07T00:00:00Z
+version: 1.2
 author: Claude Code PM System
 ---
 
 # Progress — Genfeed.ai
 
-## Current State (2026-06-29)
+## Current State (2026-09-07)
 
 ### Migration Complete
 - Successfully migrated and consolidated from separate `cloud` + `core` repositories into a single `genfeed.ai` monorepo
@@ -39,7 +39,7 @@ author: Claude Code PM System
 
 ## What Works
 
-- Full NestJS backend with 12 services
+- NestJS backend across 8 server workspaces (`api`, `discord`, `files`, `mcp`, `notifications`, `slack`, `telegram`, `workers`)
 - Next.js studio app, docs site, marketing website, desktop, mobile, and extensions surfaces
 - Agent orchestration and workflow builder
 - 48+ platform integrations
@@ -48,8 +48,6 @@ author: Claude Code PM System
 
 ## Known Issues / Debt
 
-- Some legacy naming/comments remain from the pre-migration cloud/core and Mongo stacks; verify against current Prisma/Postgres source before acting.
+- Some legacy naming/comments remain from the pre-migration cloud/core split; verify against current Prisma/Postgres source before acting.
 - Desktop and mobile apps in early stages
 - GPU pipeline services (images, videos, voices) need deployment documentation
-- Full `bun type-check` currently blocked by the existing `@genfeedai/ui` rootDir/file-list issue around `packages/client/src/schemas/*`
-- MCP/notifications Vitest commands currently blocked before test execution because `unplugin-swc` is missing from their Vitest config resolution

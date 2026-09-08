@@ -233,4 +233,4 @@ See `references/full-guide.md` (§ Migration Guide) for before/after examples of
 
 - `tailwind-validator` - Validate Tailwind v4 config
 - `biome-validator` - Validate Biome 2.3+ config
-- `clerk-validator` - Validate Clerk auth setup
+- `bun-validator` - Validate Bun/workspace config

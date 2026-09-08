@@ -262,52 +262,42 @@ describe('Users API (e2e)', () => {
 });
 ```
 
-## MongoDB Testing
+## Database Testing (Prisma / PostgreSQL)
 
-### Test Database Setup
+### Unit tests never touch a database
 
-```typescript
-beforeAll(async () => {
-  await mongoose.connect(process.env.TEST_DB_URI);
-});
-
-afterAll(async () => {
-  await mongoose.connection.close();
-});
-
-beforeEach(async () => {
-  await User.deleteMany({});
-});
-```
-
-### Data Seeding
+`apps/server/api/test/setup-unit.ts` mocks `@genfeedai/prisma` globally with
+`canonicalPrismaMock()` — a schema-derived mock, so enum membership cannot drift from
+the real schema. Mock `PrismaService` in the testing module and assert on the call args:
 
 ```typescript
-async function seedTestData() {
-  await User.create([
-    { email: 'user1@test.com', organization: 'org1' },
-    { email: 'user2@test.com', organization: 'org1' },
-    { email: 'user3@test.com', organization: 'org2' },
-  ]);
-}
-```
-
-### Mocking Database
-
-```typescript
-const mockUserModel = {
-  find: jest.fn(),
-  findOne: jest.fn(),
-  create: jest.fn(),
-  findByIdAndUpdate: jest.fn(),
-  findByIdAndDelete: jest.fn(),
+const prisma = {
+  user: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
 };
 
-// In test
-mockUserModel.find.mockResolvedValue([
-  { _id: '1', email: 'test@example.com', organization: 'org1' }
+prisma.user.findMany.mockResolvedValue([
+  { id: 'usr_1', email: 'test@example.com', organizationId: 'org1', isDeleted: false },
 ]);
+
+expect(prisma.user.findMany).toHaveBeenCalledWith({
+  where: { organizationId: 'org1', isDeleted: false },
+});
 ```
+
+Assert the tenant filter explicitly: every tenant-scoped query must carry
+`organizationId` **and** `isDeleted: false`. Fixtures use scalar foreign keys
+(`organizationId`, `userId`, `brandId`) — never relation-name aliases.
+
+### E2E tests use a real, isolated database
+
+E2E connects Prisma to the configured `DATABASE_URL`; there is no in-memory server.
+`apps/server/api/scripts/assert-isolated-db-url.ts` refuses to run against a
+non-isolated database. Seed through the factories in `apps/server/api/test/factories/`.
 
 ## Testing Best Practices
 

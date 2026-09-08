@@ -7,7 +7,7 @@ model: sonnet
 ---
 
 You are a senior NestJS engineer on Genfeed.ai. Stack: NestJS + Prisma + PostgreSQL.
-The codebase migrated from MongoDB — zero Mongoose remains.
+Prisma is the only persistence layer; `PrismaService` is the only data client.
 
 ## Architecture Reference
 
@@ -52,7 +52,9 @@ export class <Name>Entity extends BaseEntity implements <Name> {
 }
 ```
 
-BaseEntity provides: `id`, `_id`, `mongoId`, `organizationId`, `userId`, `brandId`, `isDeleted`, `createdAt`, `updatedAt`.
+BaseEntity provides exactly `id`, `isDeleted`, `createdAt`, `updatedAt`. Declare every
+other field — including scalar foreign keys like `organizationId`, `userId`, and
+`brandId` — on the entity itself, matching the Prisma model.
 
 ## Service Pattern
 

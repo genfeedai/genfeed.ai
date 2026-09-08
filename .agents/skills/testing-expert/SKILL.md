@@ -98,4 +98,4 @@ it('should return users filtered by organization', async () => {
 
 ---
 
-**For complete React Testing Library examples, hook testing, Next.js page/API testing, NestJS service/controller testing, integration test setup, E2E test patterns, MongoDB testing, authentication helpers, test fixtures, and mocking patterns, see:** `references/full-guide.md`
+**For complete React Testing Library examples, hook testing, Next.js page/API testing, NestJS service/controller testing, integration test setup, E2E test patterns, Prisma/PostgreSQL test setup, authentication helpers, test fixtures, and mocking patterns, see:** `references/full-guide.md`

@@ -32,7 +32,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MongoIdFactory } from '@test/factories/base.factory';
+import { TestIdFactory } from '@test/factories/base.factory';
 import {
   mockCacheService,
   mockConfigService,
@@ -119,7 +119,7 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
 }
 
 describe('Social Media Publishing Integration Tests', () => {
-  // Increase timeout for MongoDB memory server operations
+  // Increase timeout for integration database operations
   // vi timeout configured in vitest.config(30000);
 
   let app: INestApplication;
@@ -260,7 +260,7 @@ describe('Social Media Publishing Integration Tests', () => {
   });
 
   afterAll(async () => {
-    // Ensure proper cleanup order: app -> module -> mongo
+    // Ensure proper cleanup order: app -> module -> database
     try {
       if (app) {
         await app.close();
@@ -290,8 +290,8 @@ describe('Social Media Publishing Integration Tests', () => {
 
   describe('Multi-Platform Publishing Workflow', () => {
     it('should publish content to multiple platforms simultaneously', async () => {
-      const userId = MongoIdFactory.createString();
-      const organizationId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
+      const organizationId = TestIdFactory.createString();
       const content = {
         mediaUrl: 'https://s3.amazonaws.com/bucket/video.mp4',
         text: 'Check out our latest video! #AI #VideoGeneration',
@@ -337,7 +337,7 @@ describe('Social Media Publishing Integration Tests', () => {
         'tiktok',
       ].entries()) {
         (postsService.create as vi.Mock).mockResolvedValue({
-          _id: MongoIdFactory.createString(),
+          _id: TestIdFactory.createString(),
           organization: organizationId,
           platform,
           platformPostId: results[index].id || results[index].share_url,
@@ -595,7 +595,7 @@ describe('Social Media Publishing Integration Tests', () => {
 
   describe('Analytics and Insights', () => {
     it('should fetch analytics for published content', async () => {
-      const postId = MongoIdFactory.createString();
+      const postId = TestIdFactory.createString();
       const platformPostId = 'post_123';
 
       // Mock analytics responses
@@ -643,7 +643,7 @@ describe('Social Media Publishing Integration Tests', () => {
     });
 
     it('should aggregate analytics across platforms', async () => {
-      const userId = MongoIdFactory.createString();
+      const userId = TestIdFactory.createString();
       const dateRange = {
         end: new Date(),
         start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
@@ -673,7 +673,7 @@ describe('Social Media Publishing Integration Tests', () => {
 
   describe('Account Management and Authentication', () => {
     it('should authenticate and refresh tokens for social accounts', async () => {
-      const accountId = MongoIdFactory.createString();
+      const accountId = TestIdFactory.createString();
 
       accountsService.findOne.mockResolvedValue({
         _id: accountId,
@@ -699,7 +699,7 @@ describe('Social Media Publishing Integration Tests', () => {
     });
 
     it('should validate account credentials before publishing', async () => {
-      const accountId = MongoIdFactory.createString();
+      const accountId = TestIdFactory.createString();
 
       accountsService.validateCredentials.mockResolvedValue({
         platform: 'twitter',

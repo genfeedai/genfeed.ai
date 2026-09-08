@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getPublishedReleases } from './releases.data';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 describe('published releases', () => {
   it('paginates, excludes drafts and prereleases, and sorts publication dates', async () => {
     const release = (
@@ -35,6 +38,28 @@ describe('published releases', () => {
     ).toEqual(['v2', 'v1']);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
+  it.each(['test-token', ''])(
+    'uses optional server token %s',
+    async (token) => {
+      vi.stubEnv('GITHUB_TOKEN', token);
+      const fetcher = vi.fn().mockResolvedValue(new Response('[]'));
+      vi.stubGlobal('fetch', fetcher);
+      await getPublishedReleases();
+      expect(fetcher).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'https://api.github.com/repos/genfeedai/genfeed.ai/releases?',
+        ),
+        expect.objectContaining({
+          headers: token
+            ? {
+                Accept: 'application/vnd.github+json',
+                Authorization: `Bearer ${token}`,
+              }
+            : { Accept: 'application/vnd.github+json' },
+        }),
+      );
+    },
+  );
   it('fails loudly on GitHub errors', async () => {
     vi.stubGlobal(
       'fetch',

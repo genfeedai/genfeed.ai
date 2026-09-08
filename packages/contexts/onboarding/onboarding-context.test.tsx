@@ -23,14 +23,14 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
     isSignedIn: true,
     orgId: null,
     sessionId: null,
-    userId: 'mongo_user_123',
+    userId: 'usr_123',
   }),
 }));
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: {
-      id: 'mongo_user_123',
+      id: 'usr_123',
       onboardingStepsCompleted: [],
     },
     isLoading: false,
@@ -112,7 +112,7 @@ describe('OnboardingProvider', () => {
     await waitFor(() => {
       expect(getTokenMock).toHaveBeenCalledWith(undefined);
       expect(getInstanceMock).toHaveBeenCalledWith('session-token');
-      expect(updateOnboardingMock).toHaveBeenCalledWith('mongo_user_123', {
+      expect(updateOnboardingMock).toHaveBeenCalledWith('usr_123', {
         onboardingStepsCompleted: ['brand'],
       });
       expect(refetchUserMock).toHaveBeenCalledTimes(1);

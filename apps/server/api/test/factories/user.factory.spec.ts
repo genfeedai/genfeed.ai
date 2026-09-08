@@ -106,12 +106,16 @@ describe('Service mocks', () => {
     expect(credit.createTransactionEntry).toBeDefined();
   });
 
-  it('mocks HTTP service responses', (done) => {
+  it('mocks HTTP service responses', async () => {
     const http = mockHttpService();
-    http.get?.('/').subscribe((response) => {
-      expect(response.status).toBe(200);
-      done();
-    });
+
+    const response = await new Promise<{ status: number }>(
+      (resolve, reject) => {
+        http.get?.('/').subscribe({ error: reject, next: resolve });
+      },
+    );
+
+    expect(response.status).toBe(200);
   });
 
   it('provides metadata and pagination helpers', () => {

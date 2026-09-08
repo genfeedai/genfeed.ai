@@ -51,9 +51,9 @@
 
 - Indexes on frequently queried fields
 - Compound indexes for multi-field queries
-- Projections to limit fields
+- `select` / `include` narrowed to the columns read
 - Pagination implemented
-- Aggregation pipelines optimized
+- Relation loads batched (no N+1)
 
 **Caching Strategy:**
 
@@ -69,7 +69,7 @@
 - WebSocket for real-time updates
 - No blocking operations in request handlers
 
-### 3. Database Performance (MongoDB)
+### 3. Database Performance (PostgreSQL / Prisma)
 
 **Index Strategy:**
 
@@ -81,19 +81,18 @@
 
 **Query Optimization:**
 
-- Early filtering (`$match` early in aggregation)
-- Projection before expensive operations
-- Limit and skip for pagination
-- Sort with indexes
-- Avoid full collection scans
+- Filter in the query, never in application code after the fetch
+- `select` / `include` narrowed to the columns actually read
+- Cursor pagination (`cursor` + `take`) over `skip` for deep pages
+- Sort on an indexed column
+- Avoid sequential scans and N+1 relation loads (`EXPLAIN ANALYZE` to confirm)
 
-**Aggregation Pipeline:**
+**Grouping and joins:**
 
-- `$match` early in pipeline
-- `$project` before expensive operations
-- Index usage in aggregations
-- Pipeline stages optimized
-- Use `$lookup` efficiently
+- `groupBy` / `_count` / `_sum` in the database, never a fetch-then-reduce in JS
+- Join through Prisma relations or a single `$queryRaw`, not a loop of queries
+- `EXPLAIN ANALYZE` any query that grew a sequential scan
+- Raw SQL stays parameterized (`Prisma.sql`), never string-interpolated
 
 **Connection Management:**
 
@@ -122,7 +121,7 @@
 
 **Database Performance:**
 
-- MongoDB Atlas performance tier appropriate
+- PostgreSQL instance size appropriate for the workload
 - Read replicas configured (if needed)
 - Connection pooling optimized
 - Monitoring enabled
@@ -165,26 +164,22 @@
 
 ```typescript
 // BAD: N+1 queries
-async findAll() {
-  const users = await this.userModel.find({});
+async findAll(organizationId: string) {
+  const users = await this.prisma.user.findMany({
+    where: { organizationId, isDeleted: false },
+  });
   for (const user of users) {
-    user.posts = await this.postModel.find({ userId: user._id });
+    user.posts = await this.prisma.post.findMany({ where: { userId: user.id } });
   }
   return users;
 }
 
-// GOOD: Aggregation pipeline
-async findAll() {
-  return this.userModel.aggregate([
-    {
-      $lookup: {
-        from: 'posts',
-        localField: '_id',
-        foreignField: 'userId',
-        as: 'posts'
-      }
-    }
-  ]);
+// GOOD: one query with the relation included
+async findAll(organizationId: string) {
+  return this.prisma.user.findMany({
+    where: { organizationId, isDeleted: false },
+    include: { posts: { where: { isDeleted: false } } },
+  });
 }
 ```
 
@@ -289,24 +284,24 @@ import Image from 'next/image';
 ### Database Query Optimization
 
 ```typescript
-// Projection
-const users = await this.userModel.find(
-  { organization },
-  { email: 1, name: 1 } // Only needed fields
-);
+// Narrow the columns
+const users = await this.prisma.user.findMany({
+  where: { organizationId, isDeleted: false },
+  select: { email: true, name: true }, // only needed fields
+});
 
-// Pagination
-const posts = await this.postModel.find({})
-  .limit(20)
-  .skip(page * 20)
-  .sort({ createdAt: -1 });
-
-// Indexed query
-const users = await this.userModel.find({
-  organization: orgId,  // Indexed field
-  isDeleted: false
+// Cursor pagination — stable and index-friendly at depth
+const posts = await this.prisma.post.findMany({
+  where: { organizationId, isDeleted: false },
+  orderBy: { createdAt: 'desc' },
+  take: 20,
+  ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
 });
 ```
+
+Every tenant-scoped query filters on the scalar `organizationId` and `isDeleted: false`.
+Never filter on the relation name (`organization`) — `bun run check:relation-alias-reads`
+is a hard ban.
 
 ### Caching Strategy
 
@@ -320,7 +315,9 @@ async findAll(organizationId: string) {
     return JSON.parse(cached);
   }
 
-  const users = await this.userModel.find({ organization: organizationId });
+  const users = await this.prisma.user.findMany({
+    where: { organizationId, isDeleted: false },
+  });
   await this.redis.setex(cacheKey, 3600, JSON.stringify(users));
 
   return users;
@@ -391,9 +388,9 @@ ANALYZE=true npm run build
 
 - [ ] Indexes on frequently queried fields
 - [ ] Compound indexes for multi-field queries
-- [ ] Query projections used
+- [ ] `select` / `include` narrowed to the columns read
 - [ ] Pagination implemented
-- [ ] Aggregation pipelines optimized
+- [ ] Relation loads batched (no N+1)
 - [ ] Connection pooling configured
 - [ ] Read replicas configured (if needed)
 

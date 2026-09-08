@@ -1,8 +1,8 @@
 /**
  * Unit Test Setup - runs before all unit tests
  *
- * This setup is lighter than E2E setup - no MongoDB Memory Server needed
- * since unit tests should mock all database operations.
+ * This setup is lighter than E2E setup - no database is started, since unit
+ * tests mock all database operations.
  */
 import 'reflect-metadata';
 import process from 'node:process';

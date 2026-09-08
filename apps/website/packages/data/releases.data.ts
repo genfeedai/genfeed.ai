@@ -4,11 +4,16 @@ const RELEASES_API =
   'https://api.github.com/repos/genfeedai/genfeed.ai/releases';
 
 export async function getPublishedReleases(): Promise<PublishedRelease[]> {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const releases: PublishedRelease[] = [];
   let page = 1;
   while (true) {
     const response = await fetch(`${RELEASES_API}?per_page=100&page=${page}`, {
-      headers: { Accept: 'application/vnd.github+json' },
+      headers,
       next: { revalidate: 300 },
       signal: AbortSignal.timeout(10_000),
     });

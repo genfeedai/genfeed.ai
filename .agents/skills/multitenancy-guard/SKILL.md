@@ -9,7 +9,7 @@ Use when changing backend data access in `apps/server/*`.
 
 ## When to use
 
-- Any MongoDB query changes
+- Any Prisma query changes
 - Any list/read/update/delete service/controller change
 - Any auth/tenant-scoped endpoint updates
 
@@ -17,8 +17,10 @@ Use when changing backend data access in `apps/server/*`.
 
 - Apply soft-delete guard consistently (`isDeleted: false`) where required by existing patterns.
 - Never allow cross-tenant reads/writes on SaaS multi-tenant code paths.
-- Keep `users._id` as canonical DB user reference; do not use legacy auth provider `user.id` as foreign key.
-- Every tenant-scoped MongoDB query (SaaS multi-tenant) must include an organization guard.
+- Keep `users.id` as the canonical user reference. It is an **opaque string** — production holds
+  both legacy Better Auth base62 ids and UUIDs. Never validate it as a Genfeed entity id.
+- Every tenant-scoped Prisma query (SaaS multi-tenant) must include `{ organizationId, isDeleted: false }`.
+- Filter on scalar foreign keys, never relation-name aliases — `bun run check:relation-alias-reads` is a hard ban.
 - Self-hosted single-tenant deployments: organization guard is optional.
 
 ## Execution checklist
