@@ -234,4 +234,21 @@ describe('SaveAsCharacter', () => {
       ).toBeEnabled();
     },
   );
+  it('shows a safe label for a legacy character without a handle', async () => {
+    mocks.list.mockResolvedValue([
+      {
+        id: 'character-1',
+        avatarIngredientId: 'image-1',
+        handle: null,
+        label: null,
+      },
+    ]);
+    mount();
+    expect(
+      await screen.findByRole('button', {
+        name: 'saveExisting.savedWithoutHandle',
+      }),
+    ).toBeDisabled();
+    expect(mocks.inspect).not.toHaveBeenCalled();
+  });
 });

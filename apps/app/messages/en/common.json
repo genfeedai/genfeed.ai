@@ -209,6 +209,7 @@
         "description": "Use this image as a character reference. Give it a name and a unique @handle to reuse it in Studio and the agent. No new generation is needed.",
         "preview": "Character reference image",
         "saved": "Character: @{handle}",
+        "savedWithoutHandle": "Saved character",
         "success": "Character saved. Use @{handle} in Studio or the agent.",
         "error": "Could not save this character. Check that the handle is unique and try again.",
         "retry": "Retry loading characters",

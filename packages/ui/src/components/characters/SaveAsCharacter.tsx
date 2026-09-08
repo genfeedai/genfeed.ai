@@ -145,9 +145,9 @@ export default function SaveAsCharacter({
   const action: IQuickAction = {
     id: 'save-as-character',
     label: existing
-      ? translate('saveExisting.saved', {
-          handle: existing.handle ?? existing.label,
-        })
+      ? existing.handle
+        ? translate('saveExisting.saved', { handle: existing.handle })
+        : existing.label || translate('saveExisting.savedWithoutHandle')
       : translate(isChecking ? 'saveExisting.checking' : 'saveExisting.action'),
     icon: <UserRound className="size-4" />,
     isDisabled: !brandId || isLoading || isChecking || Boolean(existing),
