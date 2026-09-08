@@ -20,6 +20,13 @@ export interface IPerformanceDataset {
 }
 
 export interface IPerformanceContentItem {
+  /**
+   * Stable identity for this row. `postId` is not one: Genfeed rows come from
+   * `PostAnalytics`, unique on `[postId, platform, date]`, so a post published
+   * to two platforms — or measured on two days of the same window — yields
+   * several rows sharing a `postId`.
+   */
+  id: string;
   /** Genfeed post id, or the source post id for imported content. */
   postId: string;
   origin: PerformanceContentOrigin;
