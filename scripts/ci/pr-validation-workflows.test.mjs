@@ -723,3 +723,23 @@ test('pins mocked core E2E builds to Community mode', () => {
     /name: Build app[\s\S]*?NEXT_PUBLIC_PLAYWRIGHT_TEST: "true"[\s\S]*?NEXT_PUBLIC_GENFEED_CLOUD: "false"[\s\S]*?NEXT_PUBLIC_API_ENDPOINT: https:\/\/api\.genfeed\.ai\/v1/,
   );
 });
+
+test('bundle report publishing isolates write credentials from PR build code', () => {
+  const workflow = readWorkflow('bundle-size.yml');
+  const measure = jobBlock(workflow, 'measure', 'bundle-size.yml');
+  const comment = jobBlock(workflow, 'comment', 'bundle-size.yml');
+  assert.match(measure, /permissions:\n {6}contents: read\n {4}strategy:/);
+  assert.doesNotMatch(measure, /: write/);
+  assert.match(measure, /uses: actions\/upload-artifact@/);
+  assert.match(comment, /needs: measure/);
+  assert.match(
+    comment,
+    /github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository/,
+  );
+  assert.match(comment, /pull-requests: write/);
+  assert.match(comment, /uses: actions\/download-artifact@/);
+  assert.doesNotMatch(comment, /uses: actions\/checkout@|uses: \.\/|\brun:/);
+  for (const job of [measure, comment]) {
+    assert.match(job, /name: bundle-report-\$\{\{ matrix.app \}\}/);
+  }
+});

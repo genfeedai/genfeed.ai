@@ -5,18 +5,27 @@ const RELEASES_API =
 
 export async function getPublishedReleases(): Promise<PublishedRelease[]> {
   const token = process.env.GITHUB_TOKEN?.trim();
-  const headers: Record<string, string> = {
+  let headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   const releases: PublishedRelease[] = [];
   let page = 1;
   while (true) {
-    const response = await fetch(`${RELEASES_API}?per_page=100&page=${page}`, {
-      headers,
-      next: { revalidate: 300 },
-      signal: AbortSignal.timeout(10_000),
-    });
+    const fetchPage = () =>
+      fetch(`${RELEASES_API}?per_page=100&page=${page}`, {
+        headers,
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(10_000),
+      });
+    let response = await fetchPage();
+    if (
+      headers.Authorization &&
+      (response.status === 401 || response.status === 403)
+    ) {
+      headers = { Accept: 'application/vnd.github+json' };
+      response = await fetchPage();
+    }
     if (!response.ok)
       throw new Error(`GitHub releases fetch failed: ${response.status}`);
     const values: unknown = await response.json();
