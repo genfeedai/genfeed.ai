@@ -30,6 +30,7 @@ import DeskFilterRail from '@pages/trends/desk/desk-filter-rail';
 import DeskHeatStrip from '@pages/trends/desk/desk-heat-strip';
 import DeskLightTableView from '@pages/trends/desk/desk-light-table-view';
 import DeskSelectionBar from '@pages/trends/desk/desk-selection-bar';
+import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
 import {
   createInitialDeskState,
   type DiscoveryDeskContentTypeFilter,
@@ -373,6 +374,11 @@ export default function DiscoveryDesk() {
                 size={ComponentSize.SM}
               />
             ) : null}
+            <DeskSourcesMenu
+              brandId={brandId}
+              onSourcesChanged={refresh}
+              sources={sources}
+            />
             <ButtonRefresh
               isRefreshing={isRefreshing}
               onClick={handleRefresh}
@@ -451,15 +457,12 @@ export default function DiscoveryDesk() {
         {!isFollowingView && hasDeskItems ? (
           <div className="mb-4">
             <DeskFilterRail
-              brandId={brandId}
               contentType={state.filters.contentType}
               onContentTypeChange={handleContentTypeChange}
               onSort={handleSort}
               onSourceChange={handleSourceChange}
-              onSourcesChanged={refresh}
               sort={state.sort}
               source={state.filters.source}
-              sources={sources}
             />
           </div>
         ) : null}

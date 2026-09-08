@@ -1,7 +1,5 @@
 'use client';
 
-import type { ISocialSource } from '@genfeedai/contracts/interfaces';
-import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
 import type { DiscoveryDeskContentTypeFilter } from '@pages/trends/desk/desk-state';
 import type {
   DiscoveryDeskSort,
@@ -54,25 +52,19 @@ const SORT_OPTIONS: { label: string; value: DiscoveryDeskSort }[] = [
  * across `trends-list.tsx` and `following-page.tsx`.
  */
 export default function DeskFilterRail({
-  brandId,
   contentType,
   onContentTypeChange,
   onSort,
   onSourceChange,
-  onSourcesChanged,
   sort,
   source,
-  sources,
 }: {
-  brandId: string;
   contentType: DiscoveryDeskContentTypeFilter;
   onContentTypeChange: (value: DiscoveryDeskContentTypeFilter) => void;
   onSort: (value: DiscoveryDeskSort) => void;
   onSourceChange: (value: DiscoveryDeskSource | 'all') => void;
-  onSourcesChanged: () => Promise<void>;
   sort: DiscoveryDeskSort;
   source: DiscoveryDeskSource | 'all';
-  sources: ISocialSource[];
 }) {
   const handleSourceValueChange = useCallback(
     (value: string) => {
@@ -131,12 +123,6 @@ export default function DeskFilterRail({
             ))}
           </SelectContent>
         </Select>
-
-        <DeskSourcesMenu
-          brandId={brandId}
-          onSourcesChanged={onSourcesChanged}
-          sources={sources}
-        />
       </div>
     </div>
   );

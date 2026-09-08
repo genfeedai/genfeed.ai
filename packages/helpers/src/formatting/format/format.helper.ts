@@ -32,7 +32,11 @@ export function formatCompactNumber(
   if (parsedNum >= 1000) {
     return `${(parsedNum / 1000).toFixed(1)}k`;
   }
-  return parsedNum.toString();
+  // A compact number never shows float noise. Sub-1000 values used to fall
+  // through to `toString()`, so a computed rate rendered as
+  // "231.00041557465846/h" on the Discovery desk. Keep one decimal at most,
+  // and drop it when the value is whole so integers stay "999", not "999.0".
+  return `${Math.round(parsedNum * 10) / 10}`;
 }
 
 export function formatNumberWithCommas(
