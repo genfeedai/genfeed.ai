@@ -151,7 +151,7 @@ export default function PricingContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        title={<>Credits for output. Subscriptions for scale.</>}
+        title={<>Pay for output.</>}
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >
         {/*

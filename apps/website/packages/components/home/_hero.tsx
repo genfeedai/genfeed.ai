@@ -16,7 +16,14 @@ const AGENT_HREF = '/agent';
 
 export default function HomeHero(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden border-b border-edge/5 bg-background pb-28 pt-20 sm:pb-36 sm:pt-28 lg:pb-44 lg:pt-36">
+    /*
+      The shell clears the fixed top bar with `pt-20` on <main>, which leaves
+      the strip behind the bar as bare page background — so a transparent bar
+      has nothing to be transparent over. Pulling the section back up by exactly
+      that clearance, and paying it back as padding, runs the footage under the
+      bar without moving a single word on the page.
+    */
+    <section className="relative -mt-20 overflow-hidden border-b border-edge/5 bg-background pb-28 pt-40 sm:pb-36 sm:pt-48 lg:pb-44 lg:pt-56">
       <HomeHeroVideo
         alt={HOME_HERO_VIDEO.alt}
         mp4Src={HOME_HERO_VIDEO.mp4}

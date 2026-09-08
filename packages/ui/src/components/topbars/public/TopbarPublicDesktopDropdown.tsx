@@ -148,9 +148,10 @@ export default function TopbarPublicDesktopDropdown({
       onMouseLeave={onMouseLeaveDropdown}
     >
       {hasGroups ? (
-        // One surface, one hairline under the header. The panel is the elevated
-        // plane; nothing inside it is raised again.
-        <div className="w-screen border-b border-edge/10 bg-popover shadow-dropdown">
+        // The same glass as the bar it hangs from, so the two read as one
+        // surface rather than a solid panel bolted under a translucent strip.
+        // One hairline at the bottom; nothing inside is raised again.
+        <div className="w-screen border-b border-edge/10 bg-background/90 shadow-dropdown backdrop-blur-2xl">
           <div className="container mx-auto grid grid-cols-3 gap-x-10 px-6 py-8">
             {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
               // `items-start` on the column, not `stretch`: groups hold
