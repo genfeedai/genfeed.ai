@@ -11,6 +11,7 @@ export * from '@serializers/attributes/content/campaign-lifecycle.attributes';
 export * from '@serializers/attributes/content/campaign-paid-activation.attributes';
 export * from '@serializers/attributes/content/campaign-performance.attributes';
 export * from '@serializers/attributes/content/channel-target.attributes';
+export * from '@serializers/attributes/content/character-image-inspection.attributes';
 export * from '@serializers/attributes/content/clip-project.attributes';
 export * from '@serializers/attributes/content/clip-result.attributes';
 export * from '@serializers/attributes/content/content-performance.attributes';

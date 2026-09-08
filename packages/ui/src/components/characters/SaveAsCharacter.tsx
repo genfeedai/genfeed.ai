@@ -30,6 +30,7 @@ import { useRef, useState } from 'react';
 
 export default function SaveAsCharacter({
   assetId,
+  active = true,
   imageUrl,
   children,
 }: SaveAsCharacterProps) {
@@ -51,9 +52,36 @@ export default function SaveAsCharacter({
     queryFn: async () => (await getService()).listCharacters(),
     staleTime: 30_000,
   });
-  const existing = characters?.find(
+  const savedReference = characters?.find(
     (character) => character.avatarIngredientId === assetId,
   );
+  const inspection = useQuery({
+    queryKey: ['character-image-inspection', organizationId, brandId, assetId],
+    enabled: Boolean(
+      active && brandId && assetId && !isLoading && !savedReference,
+    ),
+    queryFn: async () => (await getService()).inspectImage(assetId),
+    staleTime: 600_000,
+    retry: false,
+  });
+  const existing =
+    savedReference ??
+    (inspection.data?.characterId
+      ? {
+          id: inspection.data.characterId,
+          handle: inspection.data.handle,
+          label: inspection.data.label,
+        }
+      : undefined);
+  const isChecking = !existing && active && (isLoading || inspection.isLoading);
+  const notCharacter =
+    !existing &&
+    inspection.data?.hasFace === false &&
+    inspection.data?.isCharacter === false;
+  const inspectionUnavailable =
+    !existing &&
+    !isChecking &&
+    (inspection.error || (inspection.data && inspection.data.hasFace === null));
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
@@ -77,7 +105,8 @@ export default function SaveAsCharacter({
       setError(translate('errors.invalidHandle'));
       return;
     }
-    if (inFlight.current || !brandId || existing) return;
+    if (inFlight.current || !brandId || existing || isChecking || notCharacter)
+      return;
     inFlight.current = true;
     setSaving(true);
     setError('');
@@ -90,6 +119,14 @@ export default function SaveAsCharacter({
         label: name.trim(),
       });
       await queryClient.invalidateQueries({ queryKey });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'character-image-inspection',
+          organizationId,
+          brandId,
+          assetId,
+        ],
+      });
       window.dispatchEvent(new Event(CHARACTERS_CHANGED_EVENT));
       if (currentScope.current !== scope) return;
       setOpen(false);
@@ -111,9 +148,9 @@ export default function SaveAsCharacter({
       ? translate('saveExisting.saved', {
           handle: existing.handle ?? existing.label,
         })
-      : translate('saveExisting.action'),
+      : translate(isChecking ? 'saveExisting.checking' : 'saveExisting.action'),
     icon: <UserRound className="size-4" />,
-    isDisabled: !brandId || isLoading || Boolean(existing),
+    isDisabled: !brandId || isLoading || isChecking || Boolean(existing),
     onClick: () => {
       setName('');
       setHandle('');
@@ -126,8 +163,8 @@ export default function SaveAsCharacter({
   return (
     <>
       {children ? (
-        children(action)
-      ) : (
+        children(notCharacter ? null : action)
+      ) : notCharacter ? null : (
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
@@ -177,6 +214,11 @@ export default function SaveAsCharacter({
             disabled={saving}
             onChange={(event) => setHandle(event.target.value)}
           />
+          {inspectionUnavailable ? (
+            <p className="text-sm text-muted-foreground">
+              {translate('saveExisting.inspectionUnavailable')}
+            </p>
+          ) : null}
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -192,7 +234,12 @@ export default function SaveAsCharacter({
           ) : null}
           <Button
             isDisabled={
-              saving || Boolean(loadError) || isLoading || Boolean(existing)
+              saving ||
+              Boolean(loadError) ||
+              isLoading ||
+              isChecking ||
+              notCharacter ||
+              Boolean(existing)
             }
             isLoading={saving}
             onClick={() => void save()}

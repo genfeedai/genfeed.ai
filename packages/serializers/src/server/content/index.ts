@@ -12,6 +12,7 @@ export * from '@serializers/server/content/campaign-lifecycle.serializer';
 export * from '@serializers/server/content/campaign-paid-activation.serializer';
 export * from '@serializers/server/content/campaign-performance.serializer';
 export * from '@serializers/server/content/channel-target.serializer';
+export * from '@serializers/server/content/character-image-inspection.serializer';
 export * from '@serializers/server/content/clip-generation-result.serializer';
 export * from '@serializers/server/content/clip-project.serializer';
 export * from '@serializers/server/content/clip-result.serializer';

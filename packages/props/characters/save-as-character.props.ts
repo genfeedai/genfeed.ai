@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 export interface SaveAsCharacterProps {
   assetId: string;
+  active?: boolean;
   imageUrl: string;
-  children?: (action: IQuickAction) => ReactNode;
+  children?: (action: IQuickAction | null) => ReactNode;
 }

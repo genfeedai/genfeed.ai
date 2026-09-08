@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  inspect: vi.fn(),
   create: vi.fn(),
   success: vi.fn(),
 }));
@@ -21,6 +22,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     listCharacters: mocks.list,
+    inspectImage: mocks.inspect,
     createFromSheet: mocks.create,
   }),
 }));
@@ -31,13 +33,14 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, values?: { handle?: string }) =>
     values?.handle ? `${key} ${values.handle}` : key,
 }));
-function mount() {
+function mount(active = true) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
       <SaveAsCharacter
+        active={active}
         assetId="image-1"
         imageUrl="https://example.com/image.png"
       />
@@ -56,6 +59,14 @@ describe('SaveAsCharacter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.list.mockResolvedValue([]);
+    mocks.inspect.mockResolvedValue({
+      id: 'image-1',
+      hasFace: true,
+      isCharacter: true,
+      characterId: null,
+      handle: null,
+      label: null,
+    });
     mocks.create.mockResolvedValue({ id: 'character-1' });
   });
   it('saves the existing asset without regeneration, labels it, and refreshes mentions', async () => {
@@ -148,4 +159,79 @@ describe('SaveAsCharacter', () => {
     expect(save).toBeDisabled();
     await act(async () => resolve?.());
   });
+  it('does not inspect images while their action menus are closed', async () => {
+    mount(false);
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(1));
+    expect(mocks.inspect).not.toHaveBeenCalled();
+  });
+  it('waits for detection before offering the save action', async () => {
+    let resolve:
+      | ((value: { hasFace: boolean; isCharacter: boolean }) => void)
+      | undefined;
+    mocks.inspect.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    mount();
+    await waitFor(() => expect(mocks.inspect).toHaveBeenCalledWith('image-1'));
+    expect(
+      screen.getByRole('button', { name: 'saveExisting.checking' }),
+    ).toBeDisabled();
+    await act(async () => resolve?.({ hasFace: false, isCharacter: true }));
+    await open();
+    expect(screen.getByRole('dialog')).toBeVisible();
+  });
+  it('hides the action for an image without a face or character', async () => {
+    mocks.inspect.mockResolvedValue({ hasFace: false, isCharacter: false });
+    mount();
+    await waitFor(() => expect(mocks.inspect).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.queryByRole('button')).not.toBeInTheDocument(),
+    );
+  });
+  it('recognizes generated images already linked to a saved character', async () => {
+    mocks.inspect.mockResolvedValue({
+      hasFace: null,
+      isCharacter: null,
+      characterId: 'character-1',
+      handle: 'anna',
+      label: 'Anna',
+    });
+    mount();
+    expect(
+      await screen.findByRole('button', { name: 'saveExisting.saved anna' }),
+    ).toBeDisabled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+  it('skips image detection for a known saved reference', async () => {
+    mocks.list.mockResolvedValue([
+      { id: 'character-1', avatarIngredientId: 'image-1', handle: 'anna' },
+    ]);
+    mount();
+    await screen.findByRole('button', { name: 'saveExisting.saved anna' });
+    expect(mocks.inspect).not.toHaveBeenCalled();
+  });
+  it.each(['unknown', 'error'])(
+    'allows manual saving when detection is %s',
+    async (result) => {
+      if (result === 'error')
+        mocks.inspect.mockRejectedValue(new Error('unavailable'));
+      else
+        mocks.inspect.mockResolvedValue({
+          hasFace: null,
+          isCharacter: null,
+          characterId: null,
+        });
+      mount();
+      await open();
+      expect(
+        screen.getByText('saveExisting.inspectionUnavailable'),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'actions.save' }),
+      ).toBeEnabled();
+    },
+  );
 });

@@ -11,6 +11,7 @@ export * from '@serializers/configs/content/campaign-lifecycle.config';
 export * from '@serializers/configs/content/campaign-paid-activation.config';
 export * from '@serializers/configs/content/campaign-performance.config';
 export * from '@serializers/configs/content/channel-target.config';
+export * from '@serializers/configs/content/character-image-inspection.config';
 export * from '@serializers/configs/content/clip-project.config';
 export * from '@serializers/configs/content/clip-result.config';
 export * from '@serializers/configs/content/content-performance.config';

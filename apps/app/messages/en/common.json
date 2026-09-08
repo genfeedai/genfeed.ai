@@ -211,7 +211,9 @@
         "saved": "Character: @{handle}",
         "success": "Character saved. Use @{handle} in Studio or the agent.",
         "error": "Could not save this character. Check that the handle is unique and try again.",
-        "retry": "Retry loading characters"
+        "retry": "Retry loading characters",
+        "checking": "Checking for a character…",
+        "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
       }
     },
     "profile": {

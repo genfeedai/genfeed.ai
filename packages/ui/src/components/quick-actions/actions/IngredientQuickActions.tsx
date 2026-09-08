@@ -24,6 +24,7 @@ import IngredientDownloadButton from './IngredientDownloadButton';
 export default function IngredientQuickActions(
   props: StudioQuickActionsProps & { isMasonryCompact?: boolean },
 ): React.ReactNode {
+  const [actionsOpen, setActionsOpen] = useState(false);
   const asset = props.selectedIngredient;
   const canSave =
     asset &&
@@ -39,13 +40,15 @@ export default function IngredientQuickActions(
   if (!canSave) return <IngredientQuickActionsContent {...props} />;
   return (
     <SaveAsCharacter
+      active={actionsOpen}
       assetId={asset.id}
       imageUrl={asset.cdnUrl || asset.ingredientUrl || ''}
     >
       {(characterAction) => (
         <IngredientQuickActionsContent
           {...props}
-          characterAction={characterAction}
+          characterAction={characterAction ?? undefined}
+          onMenuOpenChange={setActionsOpen}
         />
       )}
     </SaveAsCharacter>
@@ -56,6 +59,7 @@ function IngredientQuickActionsContent(
   props: StudioQuickActionsProps & {
     isMasonryCompact?: boolean;
     characterAction?: IQuickAction;
+    onMenuOpenChange?: (open: boolean) => void;
   },
 ): React.ReactNode {
   const {
@@ -274,10 +278,14 @@ function IngredientQuickActionsContent(
       selectedIngredient,
     });
 
-  const handleActionClick = useCallback(async (action: IQuickAction) => {
-    await action.onClick();
-    setIsMenuOpen(false);
-  }, []);
+  const handleActionClick = useCallback(
+    async (action: IQuickAction) => {
+      await action.onClick();
+      setIsMenuOpen(false);
+      props.onMenuOpenChange?.(false);
+    },
+    [props.onMenuOpenChange],
+  );
 
   if (!selectedIngredient) {
     return null;
@@ -345,7 +353,10 @@ function IngredientQuickActionsContent(
               ...(props.characterAction ? [props.characterAction] : []),
             ])}
             isMenuOpen={isMenuOpen}
-            setIsMenuOpen={setIsMenuOpen}
+            setIsMenuOpen={(open) => {
+              setIsMenuOpen(open);
+              props.onMenuOpenChange?.(open);
+            }}
             size={size}
             onActionClick={handleActionClick}
             triggerClassName="size-7 rounded-md"
@@ -392,7 +403,10 @@ function IngredientQuickActionsContent(
               ...(props.characterAction ? [props.characterAction] : []),
             ])}
             isMenuOpen={isMenuOpen}
-            setIsMenuOpen={setIsMenuOpen}
+            setIsMenuOpen={(open) => {
+              setIsMenuOpen(open);
+              props.onMenuOpenChange?.(open);
+            }}
             size={size}
             onActionClick={handleActionClick}
           />

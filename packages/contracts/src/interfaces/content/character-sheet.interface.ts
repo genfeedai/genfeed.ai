@@ -33,3 +33,12 @@ export interface GenerateCharacterSheetInput {
   isNonHumanoid: boolean;
   seed?: number;
 }
+
+export interface CharacterImageInspection {
+  id: string;
+  hasFace: boolean | null;
+  isCharacter: boolean | null;
+  characterId: string | null;
+  handle: string | null;
+  label: string | null;
+}
