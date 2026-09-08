@@ -16,9 +16,11 @@ export type ContentLookup = {
  * `/publishing/posts/:id`, so the editor is chosen by **which entity the id
  * actually belongs to**, not by a fragile `?kind=` query param.
  *
- * Lookups run in parallel; the first successful findOne wins. CUID/UUID ids
- * are unique per generation; a collision across tables is treated as
- * "prefer the first success" (stable order: post → article → newsletter).
+ * Lookups run in order — post → article → newsletter — and stop at the first
+ * hit. Probing all three in parallel always spent two requests that could only
+ * 404, and the route is `/publishing/posts/:id`, so a post is the overwhelming
+ * case and now costs one request. A collision across tables keeps resolving to
+ * the earliest kind in that order, exactly as before.
  */
 export async function resolvePublishingContentKindFromId(
   contentId: string,
@@ -38,20 +40,12 @@ export async function resolvePublishingContentKindFromId(
     { kind: 'newsletter', service: services.newsletters },
   ];
 
-  const results = await Promise.all(
-    probes.map(async ({ kind, service }) => {
-      try {
-        await service.findOne(contentId, {}, signal);
-        return kind;
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  for (const kind of results) {
-    if (kind) {
+  for (const { kind, service } of probes) {
+    try {
+      await service.findOne(contentId, {}, signal);
       return kind;
+    } catch {
+      // Not this table. Try the next one.
     }
   }
 
