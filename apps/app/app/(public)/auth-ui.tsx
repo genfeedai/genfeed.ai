@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 
 /**
  * Shared building blocks for the public auth surface (login / sign-up /
- * forgot-password / reset-password). Keeping the heading, divider, footer,
+ * forgot-password / reset-password). Keeping the heading, footer,
  * action row, "check your email" state, and the button/link chrome in one
  * place stops the four screens from drifting apart and matches the reference
  * auth card design.
@@ -28,16 +28,6 @@ export const AUTH_SECONDARY_BUTTON_CLASS_NAME =
 /** Inline accent link (sign-in / sign-up / forgot password). */
 export const AUTH_LINK_CLASS_NAME =
   'font-medium text-foreground transition-colors hover:text-foreground/80';
-
-export function AuthDivider() {
-  return (
-    <div className="flex items-center gap-3" aria-hidden="true">
-      <span className="h-px flex-1 bg-border" />
-      <span className="text-xs font-medium text-muted-foreground">or</span>
-      <span className="h-px flex-1 bg-border" />
-    </div>
-  );
-}
 
 export function AuthFooterPrompt({ children }: { children: ReactNode }) {
   return (

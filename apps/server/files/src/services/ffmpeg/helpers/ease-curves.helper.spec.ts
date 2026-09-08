@@ -13,7 +13,6 @@ vi.mock('@genfeedai/contracts', () => ({
 
 import { VideoEaseCurve } from '@genfeedai/contracts';
 import {
-  getBlendExpression,
   getEaseCurveExpression,
   getPanExpression,
   getZoomExpression,
@@ -155,32 +154,6 @@ describe('ease-curves.helper', () => {
         'n/total',
       );
       expect(result).toContain('n/total');
-    });
-  });
-
-  describe('getBlendExpression', () => {
-    it('should generate blend expression with A and B', () => {
-      const result = getBlendExpression(VideoEaseCurve.EASE_IN_OUT_CUBIC);
-      expect(result).toContain('A*(1-');
-      expect(result).toContain('+B*');
-    });
-
-    it('should default tVariable to t', () => {
-      const result = getBlendExpression(VideoEaseCurve.EASE_IN_OUT_SINE);
-      expect(result).toContain('PI*t');
-    });
-
-    it('should use custom tVariable', () => {
-      const result = getBlendExpression(
-        VideoEaseCurve.EASE_IN_OUT_EXPO,
-        'progress',
-      );
-      expect(result).toContain('progress');
-    });
-
-    it('should use linear for unknown curve', () => {
-      const result = getBlendExpression('unknown' as VideoEaseCurve);
-      expect(result).toContain('A*(1-(t))+B*(t)');
     });
   });
 });

@@ -56,16 +56,6 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
 ];
 
-export function getCoreAppById(id: CoreAppId): CoreAppDefinition {
-  const app = CORE_APPS.find((entry) => entry.id === id);
-
-  if (!app) {
-    throw new Error(`Unknown core app: ${id}`);
-  }
-
-  return app;
-}
-
 export function getCoreAppFeatureFlagFallbacks(): Record<
   CoreAppFeatureFlagKey,
   boolean

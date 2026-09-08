@@ -59,7 +59,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      exclude: ['src/index.ts', 'src/commands/**/*.ts', 'src/utils/helpers.ts'],
+      exclude: ['src/index.ts', 'src/commands/**/*.ts'],
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

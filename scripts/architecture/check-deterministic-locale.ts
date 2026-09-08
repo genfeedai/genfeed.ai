@@ -188,11 +188,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/src/features/workflows/nodes/distribution/CaptionGenNode.tsx',
-    'to-locale-string',
-    3,
-  ),
-  legacyUiAllowance(
     'apps/app/src/features/workflows/workspace/WorkflowSurfaceInspector.tsx',
     'to-locale-string',
     1,

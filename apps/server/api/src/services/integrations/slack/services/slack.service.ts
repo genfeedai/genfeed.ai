@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -22,7 +21,6 @@ export class SlackService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly credentialsService: CredentialsService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
   ) {

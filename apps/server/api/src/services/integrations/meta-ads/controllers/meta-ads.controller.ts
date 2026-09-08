@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -50,7 +49,6 @@ export class MetaAdsController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly metaAdsService: MetaAdsService,

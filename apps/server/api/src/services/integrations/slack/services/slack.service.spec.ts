@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,7 +9,6 @@ import { of, throwError } from 'rxjs';
 describe('SlackService', () => {
   let service: SlackService;
   let httpService: vi.Mocked<HttpService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
 
   const mockClientId = 'slack-client-id';
@@ -34,11 +32,6 @@ describe('SlackService', () => {
       post: vi.fn(),
     };
 
-    const mockCredentialsService = {
-      findOne: vi.fn(),
-      patch: vi.fn(),
-    };
-
     const mockLoggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -51,14 +44,12 @@ describe('SlackService', () => {
         SlackService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
-        { provide: CredentialsService, useValue: mockCredentialsService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     }).compile();
 
     service = module.get<SlackService>(SlackService);
     httpService = module.get(HttpService);
-    credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
   });
 
@@ -95,10 +86,6 @@ describe('SlackService', () => {
           { provide: ConfigService, useValue: brokenConfigService },
           { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
           {
-            provide: CredentialsService,
-            useValue: { findOne: vi.fn(), patch: vi.fn() },
-          },
-          {
             provide: LoggerService,
             useValue: {
               debug: vi.fn(),
@@ -128,10 +115,6 @@ describe('SlackService', () => {
           SlackService,
           { provide: ConfigService, useValue: partialConfigService },
           { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
-          {
-            provide: CredentialsService,
-            useValue: { findOne: vi.fn(), patch: vi.fn() },
-          },
           {
             provide: LoggerService,
             useValue: {
@@ -266,10 +249,6 @@ describe('SlackService', () => {
           SlackService,
           { provide: ConfigService, useValue: brokenConfigService },
           { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
-          {
-            provide: CredentialsService,
-            useValue: { findOne: vi.fn(), patch: vi.fn() },
-          },
           {
             provide: LoggerService,
             useValue: {
