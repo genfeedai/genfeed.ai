@@ -7,13 +7,16 @@ import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 /**
- * Brand Integrations settings — OAuth / connected platform accounts only.
+ * Brand Integrations settings — connected accounts and their history imports.
  * External website links live on Brand Profile via ModalBrandLink.
  */
 export default function BrandSettingsIntegrationsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
+  const translateIntegrations = useTranslations('pages.brandIntegrations');
+  const [activeTab, setActiveTab] = useState('connections');
   const {
     brand,
     brandId,
@@ -41,20 +44,35 @@ export default function BrandSettingsIntegrationsPage() {
   }
 
   return (
-    <Container>
+    <Container
+      label={translateIntegrations('title')}
+      headerTabs={{
+        activeTab,
+        ariaLabel: translateIntegrations('title'),
+        fullWidth: false,
+        onTabChange: setActiveTab,
+        tabs: [
+          { id: 'connections', label: translateIntegrations('connections') },
+          { id: 'imports', label: translateIntegrations('imports') },
+        ],
+      }}
+    >
       <div className="mx-auto flex max-w-5xl flex-col gap-3">
-        <BrandSocialHistoryImportCard
-          brand={brand}
-          brandId={brandId}
-          onRefreshBrand={() => handleRefreshBrand(true)}
-        />
-        <BrandDetailSocialMediaCard
-          brandId={brandId}
-          connections={socialConnections}
-          connectedPlatformsCount={connectedPlatformsCount}
-          onRefresh={() => handleRefreshBrand(true)}
-          variant="page"
-        />
+        {activeTab === 'imports' ? (
+          <BrandSocialHistoryImportCard
+            brand={brand}
+            brandId={brandId}
+            onRefreshBrand={() => handleRefreshBrand(true)}
+          />
+        ) : (
+          <BrandDetailSocialMediaCard
+            brandId={brandId}
+            connections={socialConnections}
+            connectedPlatformsCount={connectedPlatformsCount}
+            onRefresh={() => handleRefreshBrand(true)}
+            variant="page"
+          />
+        )}
       </div>
     </Container>
   );
