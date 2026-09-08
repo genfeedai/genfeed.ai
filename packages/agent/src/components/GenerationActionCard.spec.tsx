@@ -7,8 +7,9 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { copyToClipboard } = vi.hoisted(() => ({
@@ -355,9 +356,21 @@ function createApiServiceMock(options?: {
   };
 }
 
+function renderGenerationActionCard(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { gcTime: 0, retry: false } },
+  });
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
 describe('GenerationActionCard', () => {
   it('can start as a compact inferred-mode strip and reveal settings on demand', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: { prompt: 'A launch-day portrait.' },
@@ -401,7 +414,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('uses the prompt-bar send control and a single unlabeled toolbar row', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -444,7 +457,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('keeps the prompt field compact and opens an editable full prompt', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -510,7 +523,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('hides the prompt preview when the copy already fits two rows', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -532,7 +545,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('formats structured prompts with readable section breaks', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -568,7 +581,7 @@ describe('GenerationActionCard', () => {
   });
 
   it('converts escaped newlines in generated prompts into real line breaks', async () => {
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -602,7 +615,7 @@ describe('GenerationActionCard', () => {
       label: 'Veo 3',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -638,7 +651,7 @@ describe('GenerationActionCard', () => {
   it('uses the outputs dropdown for multiple images, not multi-model checkboxes', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -694,7 +707,7 @@ describe('GenerationActionCard', () => {
       label: 'Nano Banana',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -743,7 +756,7 @@ describe('GenerationActionCard', () => {
     };
     const apiService = createApiServiceMock({ models: [imageModel] });
 
-    const first = render(
+    const first = renderGenerationActionCard(
       <GenerationActionCard action={action} apiService={apiService} />,
     );
 
@@ -762,7 +775,9 @@ describe('GenerationActionCard', () => {
 
     first.unmount();
 
-    render(<GenerationActionCard action={action} apiService={apiService} />);
+    renderGenerationActionCard(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('model-selector-popover')).toHaveTextContent(
@@ -787,7 +802,7 @@ describe('GenerationActionCard', () => {
       threadId: 'thread-1',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -837,7 +852,7 @@ describe('GenerationActionCard', () => {
     };
     const apiService = createApiServiceMock({ models: [imageModel] });
 
-    const first = render(
+    const first = renderGenerationActionCard(
       <GenerationActionCard action={action} apiService={apiService} />,
     );
 
@@ -861,7 +876,9 @@ describe('GenerationActionCard', () => {
 
     first.unmount();
 
-    render(<GenerationActionCard action={action} apiService={apiService} />);
+    renderGenerationActionCard(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
 
     await waitFor(() => {
       expect(capturedModelSelectorPopoverProps.values).toEqual([
@@ -886,7 +903,7 @@ describe('GenerationActionCard', () => {
       threadId: 'thread-1',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -925,7 +942,7 @@ describe('GenerationActionCard', () => {
       label: 'Nano Banana',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -956,7 +973,7 @@ describe('GenerationActionCard', () => {
   it('keeps the generate form open while a run is in flight', async () => {
     const generateIngredient = vi.fn(() => new Promise(() => undefined));
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1006,7 +1023,7 @@ describe('GenerationActionCard', () => {
         url: 'https://cdn.test/image.png',
       });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1072,7 +1089,7 @@ describe('GenerationActionCard', () => {
         url: 'https://cdn.test/image-2.png',
       });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1126,7 +1143,7 @@ describe('GenerationActionCard', () => {
       'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
     const onUiAction = vi.fn().mockResolvedValue(false);
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1177,7 +1194,7 @@ describe('GenerationActionCard', () => {
       'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
     const onUiAction = vi.fn().mockResolvedValue(false);
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1222,7 +1239,7 @@ describe('GenerationActionCard', () => {
   it('routes composer generation through the persisted thread UI action', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1270,7 +1287,7 @@ describe('GenerationActionCard', () => {
         }),
     );
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1321,7 +1338,7 @@ describe('GenerationActionCard', () => {
     brandState.organizationId = 'org_demo';
     brandState.settings = { enabledModelIds: [nanoBanana.key] };
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1349,7 +1366,7 @@ describe('GenerationActionCard', () => {
     brandState.organizationId = 'org_demo';
     brandState.settings = { enabledModelIds: [] };
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1404,7 +1421,7 @@ describe('GenerationActionCard', () => {
         url: 'https://cdn.test/full.mp4',
       });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
@@ -1470,7 +1487,7 @@ describe('GenerationActionCard', () => {
       url: 'https://cdn.test/pilot.mp4',
     });
 
-    render(
+    renderGenerationActionCard(
       <GenerationActionCard
         action={{
           generationParams: {
