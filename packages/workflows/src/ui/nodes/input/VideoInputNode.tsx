@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoInputNodeData } from '@genfeedai/contracts/types';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
@@ -83,13 +84,6 @@ function VideoInputNodeComponent(props: NodeProps) {
     mediaType: 'video',
     nodeId: id,
   });
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleExpand = useCallback(() => {
     openNodeDetailModal(id, 'preview');
@@ -206,7 +200,8 @@ function VideoInputNodeComponent(props: NodeProps) {
           >
             {nodeData.dimensions &&
               `${nodeData.dimensions.width}x${nodeData.dimensions.height}`}
-            {nodeData.duration && ` • ${formatDuration(nodeData.duration)}`}
+            {nodeData.duration &&
+              ` • ${formatMinutesSeconds(nodeData.duration)}`}
           </div>
         </div>
       ) : (

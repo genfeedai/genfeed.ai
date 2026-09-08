@@ -99,7 +99,7 @@ describe('ClipResultCard', () => {
   it('should render clip title and summary', () => {
     render(
       <ClipResultCard
-        clip={makeClip()}
+        clip={makeClip({ duration: 3600, endTime: 3661.9, startTime: 61.9 })}
         clipsService={clipsService as never}
         projectId="project-1"
       />,
@@ -107,6 +107,8 @@ describe('ClipResultCard', () => {
 
     expect(screen.getByText('Test Clip Title')).toBeInTheDocument();
     expect(screen.getByText('A compelling viral moment')).toBeInTheDocument();
+    expect(screen.getByText('60:00')).toBeInTheDocument();
+    expect(screen.getByText('1:01 → 61:01')).toBeInTheDocument();
   });
 
   it('should display the correct status badge', () => {

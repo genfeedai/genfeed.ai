@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { VideoTrimNodeData } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
@@ -20,12 +21,6 @@ import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflow';
 import { BaseNode } from '../BaseNode';
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
 
 function parseTime(timeStr: string): number {
   const [mins, secs] = timeStr.split(':').map(Number);
@@ -105,7 +100,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Duration Info */}
         <div className="text-xs text-muted-foreground">
           {nodeData.duration
-            ? `Source: ${formatTime(nodeData.duration)}`
+            ? `Source: ${formatMinutesSeconds(nodeData.duration)}`
             : 'Connect video to get duration'}
         </div>
 
@@ -115,7 +110,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             htmlFor={`trim-start-${id}`}
             className="text-xs text-muted-foreground"
           >
-            Start: {formatTime(nodeData.startTime)}
+            Start: {formatMinutesSeconds(nodeData.startTime)}
           </label>
           <Slider
             value={[nodeData.startTime]}
@@ -129,7 +124,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             aria-label="Start time"
             id={`trim-start-${id}`}
             type="text"
-            value={formatTime(nodeData.startTime)}
+            value={formatMinutesSeconds(nodeData.startTime)}
             onChange={handleStartTimeChange}
             placeholder="0:00"
             className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
@@ -142,7 +137,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             htmlFor={`trim-end-${id}`}
             className="text-xs text-muted-foreground"
           >
-            End: {formatTime(nodeData.endTime)}
+            End: {formatMinutesSeconds(nodeData.endTime)}
           </label>
           <Slider
             value={[nodeData.endTime]}
@@ -156,7 +151,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             aria-label="End time"
             id={`trim-end-${id}`}
             type="text"
-            value={formatTime(nodeData.endTime)}
+            value={formatMinutesSeconds(nodeData.endTime)}
             onChange={handleEndTimeChange}
             placeholder="1:00"
             className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
@@ -166,7 +161,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Trim Duration Display */}
         <div className="p-2 bg-background border border-border rounded text-center">
           <span className="text-sm font-medium">
-            Clip Length: {formatTime(trimDuration)}
+            Clip Length: {formatMinutesSeconds(trimDuration)}
           </span>
         </div>
 

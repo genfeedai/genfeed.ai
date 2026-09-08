@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-
 import type {
   FrameSelectionMode,
   VideoFrameExtractNodeData,
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Select,
@@ -27,12 +27,6 @@ const SELECTION_MODES: { value: FrameSelectionMode; label: string }[] = [
   { label: 'Last Frame', value: 'last' },
   { label: 'First Frame', value: 'first' },
 ];
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
 
 function VideoFrameExtractNodeComponent(props: NodeProps) {
   const { id, data } = props;
@@ -60,7 +54,7 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
         {/* Duration Info */}
         <div className="text-xs text-muted-foreground">
           {nodeData.videoDuration
-            ? `Source: ${formatTime(nodeData.videoDuration)}`
+            ? `Source: ${formatMinutesSeconds(nodeData.videoDuration)}`
             : 'Connect video to extract frame'}
         </div>
 

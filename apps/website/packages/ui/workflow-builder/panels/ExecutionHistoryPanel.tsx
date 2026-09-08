@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
+import { formatExecutionDuration } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -67,16 +68,6 @@ const STATUS_VARIANTS: Record<string, 'ghost' | 'success' | 'error' | 'info'> =
     running: 'info',
   };
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) {
-    return `${ms}ms`;
-  }
-  if (ms < 60000) {
-    return `${(ms / 1000).toFixed(1)}s`;
-  }
-  return `${(ms / 60000).toFixed(1)}m`;
-}
-
 function ExecutionItem({
   execution,
   onCancel,
@@ -112,7 +103,7 @@ function ExecutionItem({
           </div>
           {execution.durationMs && (
             <span className="text-xs opacity-60">
-              Duration: {formatDuration(execution.durationMs)}
+              Duration: {formatExecutionDuration(execution.durationMs)}
             </span>
           )}
         </div>

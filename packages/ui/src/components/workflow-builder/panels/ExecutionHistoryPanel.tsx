@@ -8,6 +8,7 @@ import {
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { formatExecutionDuration } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
@@ -88,16 +89,6 @@ const STATUS_VARIANTS: Record<
   [WorkflowExecutionStatus.RUNNING]: 'info',
 };
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) {
-    return `${ms}ms`;
-  }
-  if (ms < 60000) {
-    return `${(ms / 1000).toFixed(1)}s`;
-  }
-  return `${(ms / 60000).toFixed(1)}m`;
-}
-
 function ExecutionItem({
   execution,
   onCancel,
@@ -138,7 +129,7 @@ function ExecutionItem({
             </div>
             {execution.durationMs && (
               <span className="text-xs opacity-60">
-                Duration: {formatDuration(execution.durationMs)}
+                Duration: {formatExecutionDuration(execution.durationMs)}
               </span>
             )}
           </div>
