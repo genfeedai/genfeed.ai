@@ -299,7 +299,15 @@ function AnalyticsWorkSurfaceBridge({
       ),
     [pathname, restoredState.canonicalSearchParams],
   );
-  const scopeLabel = `${orgSlug || 'organization'} / ${brandSlug || 'all brands'}`;
+  // `brandSlug` is empty on the org-wide `/~/` routes, but `/analytics/brands/:id`
+  // (and its `/platforms/:platform` child) narrows the query to exactly one
+  // brand. Reading the URL segment alone made those pages claim "all brands"
+  // directly above a Selected resource naming the single brand they show.
+  const isSingleBrandRoute =
+    restoredState.normalizedRoute.startsWith('/analytics/brands/');
+  const brandScopeLabel =
+    brandSlug || (isSingleBrandRoute ? 'selected brand' : 'all brands');
+  const scopeLabel = `${orgSlug || 'organization'} / ${brandScopeLabel}`;
 
   useEffect(() => {
     if (!queryReference) {
