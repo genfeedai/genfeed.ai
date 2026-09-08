@@ -10,7 +10,10 @@ function record(value: unknown): Record<string, unknown> {
 export function serializeAgentWorkObject(
   ingredient: Record<string, unknown>,
 ): AgentWorkObjectMaterial | undefined {
-  const work = record(record(ingredient.providerData).agentWorkObject);
+  const work = record(
+    record(ingredient.providerData).agentWorkObject ??
+      ingredient.agentWorkObject,
+  );
   if (
     !['table', 'script', 'brief'].includes(String(work.kind)) ||
     typeof work.title !== 'string'

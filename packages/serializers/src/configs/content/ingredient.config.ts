@@ -6,7 +6,7 @@ import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
 
 export const ingredientSerializerConfig = {
   attributes: ingredientAttributes,
-  attributeTransforms: { agentWorkObject: serializeAgentWorkObject },
+  attributeDerivations: { agentWorkObject: serializeAgentWorkObject },
   type: 'ingredient',
   ...CONTENT_ENTITY_RELS,
   metadata: rel('metadata', metadataAttributes),
