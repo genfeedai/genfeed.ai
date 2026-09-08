@@ -92,12 +92,17 @@ export default function SiteFooter({
         <div className="mb-14 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)]">
           {/* Brand Column */}
           <div>
+            {/*
+              The mark is square. Declaring 120x20 described a wordmark that is
+              not what `logoURL` serves, so `w-auto` resolved to 20 and Next
+              reported an image whose rendered ratio contradicts its own props.
+            */}
             <Image
-              src={EnvironmentService.logoURL}
               alt="Genfeed"
-              width={120}
+              className="mb-6 size-5 object-contain dark:invert"
               height={20}
-              className="mb-6 h-5 w-auto dark:invert"
+              src={EnvironmentService.logoURL}
+              width={20}
             />
 
             <p className="mb-8 max-w-sm text-sm font-medium leading-6 text-muted-foreground">
