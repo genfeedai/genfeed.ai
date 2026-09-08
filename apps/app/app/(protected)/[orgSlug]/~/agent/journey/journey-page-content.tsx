@@ -12,6 +12,7 @@ import Card from '@ui/card/Card';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 function normalizeJourneyState(
@@ -35,6 +36,7 @@ function normalizeJourneyState(
 
 export default function JourneyPageContent() {
   const { isLoading, refresh, settings } = useOrganization();
+  const translate = useTranslations('pages.onboarding.journey');
 
   useEffect(() => {
     void refresh();
@@ -67,7 +69,7 @@ export default function JourneyPageContent() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="sr-only">Activation Journey</h1>
+          <h1 className="sr-only">{translate('title')}</h1>
           <Button
             asChild
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
@@ -75,7 +77,7 @@ export default function JourneyPageContent() {
             withWrapper={false}
           >
             <Link href={APP_ROUTES.ONBOARDING.PROVIDERS}>
-              Back to onboarding
+              {translate('backToOnboarding')}
             </Link>
           </Button>
         </div>
@@ -83,7 +85,7 @@ export default function JourneyPageContent() {
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Progress
+              {translate('progress')}
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {isLoading ? '-' : `${completionPercent}%`}
@@ -91,7 +93,7 @@ export default function JourneyPageContent() {
           </div>
           <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Available to unlock
+              {translate('availableToUnlock')}
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {isLoading ? '-' : remainingJourneyCredits}
@@ -99,7 +101,7 @@ export default function JourneyPageContent() {
           </div>
           <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Journey unlocked
+              {translate('journeyUnlocked')}
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {isLoading
@@ -109,7 +111,7 @@ export default function JourneyPageContent() {
           </div>
           <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Journey total
+              {translate('journeyTotal')}
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {ONBOARDING_JOURNEY_TOTAL_CREDITS}
@@ -145,16 +147,18 @@ export default function JourneyPageContent() {
                         {mission.label}
                       </h2>
                       <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
-                        +{mission.rewardCredits} credits
+                        {translate('missionReward', {
+                          count: mission.rewardCredits,
+                        })}
                       </span>
                       {isRecommended ? (
                         <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-                          Recommended next
+                          {translate('recommendedNext')}
                         </span>
                       ) : null}
                       {isCompleted ? (
                         <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-                          Completed
+                          {translate('completed')}
                         </span>
                       ) : null}
                     </div>
@@ -167,8 +171,9 @@ export default function JourneyPageContent() {
                     </p>
                     {isRecommended ? (
                       <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-primary/80">
-                        {remainingJourneyCredits} journey credits still
-                        available
+                        {translate('remainingCredits', {
+                          count: remainingJourneyCredits,
+                        })}
                       </p>
                     ) : null}
                   </div>
@@ -180,7 +185,7 @@ export default function JourneyPageContent() {
                     withWrapper={false}
                   >
                     <Link href={mission.ctaHref}>
-                      {isCompleted ? 'Review' : mission.ctaLabel}
+                      {isCompleted ? translate('review') : mission.ctaLabel}
                     </Link>
                   </Button>
                 </div>

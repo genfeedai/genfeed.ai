@@ -148,9 +148,9 @@ export default function AppProtectedLayoutSidebar({
   const renderConversationQuickActions = () => (
     <>
       <SidebarActionTrigger
-        ariaLabel="Start a new conversation"
+        ariaLabel={translate('newConversationAriaLabel')}
         icon={<Plus className="size-4 flex-shrink-0" />}
-        label="New Conversation"
+        label={translate('newConversation')}
         onClick={() => router.push(href(APP_ROUTES.AGENT.NEW))}
         shortcut="⌘⇧N"
         testId="sidebar-primary-action"

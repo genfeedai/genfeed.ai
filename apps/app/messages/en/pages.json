@@ -1229,6 +1229,19 @@
           "professional": "Professional"
         }
       }
+    },
+    "journey": {
+      "availableToUnlock": "Available to unlock",
+      "backToOnboarding": "Back to onboarding",
+      "completed": "Completed",
+      "journeyTotal": "Journey total",
+      "journeyUnlocked": "Journey unlocked",
+      "missionReward": "+{count} credits",
+      "progress": "Progress",
+      "recommendedNext": "Recommended next",
+      "remainingCredits": "{count} journey credits still available",
+      "review": "Review",
+      "title": "Activation Journey"
     }
   },
   "credentialPostingTimes": {
