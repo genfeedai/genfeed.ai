@@ -1,38 +1,49 @@
 'use client';
 
+import { getActionDefinition } from '@genfeedai/actions';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import type { NodeCategory, NodeType } from '@genfeedai/contracts/types';
-import {
-  CONNECTION_RULES,
-  getNodesByCategory,
-} from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import FormSearchbar from '@genfeedai/ui/primitives/searchbar';
 import { useReactFlow } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NODE_DEFINITIONS } from '../../nodes/registry/merged-registry';
+import type { ExtendedNodeCategory } from '../../nodes/types';
+import {
+  isCompatibleWorkflowHandle,
+  resolveWorkflowNodeDefinition,
+} from '../lib/workflowNodeHandles';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
 
-const CATEGORY_LABELS: Record<NodeCategory, string> = {
+const CATEGORY_LABELS: Record<ExtendedNodeCategory, string> = {
   ai: 'AI',
+  automation: 'Automation',
+  distribution: 'Distribution',
+  repurposing: 'Repurposing',
+  saas: 'Workspace',
   composition: 'Composition',
   input: 'Input',
   output: 'Output',
   processing: 'Processing',
 };
 
-const CATEGORY_ORDER: NodeCategory[] = [
+const CATEGORY_ORDER: ExtendedNodeCategory[] = [
   'input',
   'ai',
   'processing',
   'output',
   'composition',
+  'automation',
+  'distribution',
+  'repurposing',
+  'saas',
 ];
 
 function ConnectionDropMenuComponent() {
   const { connectionDropMenu, closeConnectionDropMenu } = useUIStore();
-  const { addNode, findCompatibleHandle, onConnect } = useWorkflowStore();
+  const { addNode, updateNodeData, findCompatibleHandle, onConnect } =
+    useWorkflowStore();
   const reactFlow = useReactFlow();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -46,28 +57,28 @@ function ConnectionDropMenuComponent() {
     if (!connectionDropMenu) return [];
 
     const sourceType = connectionDropMenu.sourceHandleType;
-    const compatibleTargetTypes = new Set(CONNECTION_RULES[sourceType] ?? []);
-
-    const nodesByCategory = getNodesByCategory();
     const result: Array<{
-      type: NodeType;
+      type: string;
       label: string;
-      category: NodeCategory;
+      category: ExtendedNodeCategory;
     }> = [];
 
     for (const category of CATEGORY_ORDER) {
-      const defs = nodesByCategory[category] ?? [];
-      for (const def of defs) {
-        // Check if any of this node's inputs accept a compatible type
-        const hasCompatibleInput = def.inputs.some((input) =>
-          compatibleTargetTypes.has(input.type),
-        );
-        if (hasCompatibleInput) {
-          result.push({
-            category,
-            label: def.label,
-            type: def.type,
-          });
+      for (const [type, registered] of Object.entries(NODE_DEFINITIONS)) {
+        if (registered.category !== category || type === 'genfeedAction')
+          continue;
+        const action = getActionDefinition(type);
+        const definition = action
+          ? resolveWorkflowNodeDefinition('genfeedAction', {
+              actionId: action.id,
+            })
+          : resolveWorkflowNodeDefinition(type);
+        if (
+          definition?.inputs.some((input) =>
+            isCompatibleWorkflowHandle(sourceType, input.type),
+          )
+        ) {
+          result.push({ category, label: registered.label, type });
         }
       }
     }
@@ -88,7 +99,8 @@ function ConnectionDropMenuComponent() {
 
   // Group filtered nodes by category
   const groupedNodes = useMemo(() => {
-    const grouped: Partial<Record<NodeCategory, typeof filteredNodes>> = {};
+    const grouped: Partial<Record<ExtendedNodeCategory, typeof filteredNodes>> =
+      {};
     for (const node of filteredNodes) {
       if (!grouped[node.category]) grouped[node.category] = [];
       grouped[node.category]?.push(node);
@@ -118,7 +130,7 @@ function ConnectionDropMenuComponent() {
   }, [selectedIndex]);
 
   const handleSelect = useCallback(
-    (nodeType: NodeType) => {
+    (nodeType: string) => {
       if (!connectionDropMenu) return;
 
       // Convert screen position to flow position for node placement
@@ -128,7 +140,16 @@ function ConnectionDropMenuComponent() {
       });
 
       // Create the node
-      const newNodeId = addNode(nodeType, position);
+      const action = getActionDefinition(nodeType);
+      const newNodeId = addNode(action ? 'genfeedAction' : nodeType, position);
+      if (!newNodeId) return;
+      if (action) {
+        updateNodeData(newNodeId, {
+          actionId: action.id,
+          label: action.label,
+          parameters: {},
+        });
+      }
 
       // Auto-connect: find compatible handle on the new node
       const compatibleHandle = findCompatibleHandle(
@@ -152,6 +173,7 @@ function ConnectionDropMenuComponent() {
       connectionDropMenu,
       reactFlow,
       addNode,
+      updateNodeData,
       findCompatibleHandle,
       onConnect,
       closeConnectionDropMenu,
@@ -240,7 +262,7 @@ function ConnectionDropMenuComponent() {
               return (
                 <div key={category} className="mb-1">
                   <div className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                    {CATEGORY_LABELS[category as NodeCategory]}
+                    {CATEGORY_LABELS[category as ExtendedNodeCategory]}
                   </div>
                   {nodes.map((node) => {
                     const currentIndex = flatIndex++;
