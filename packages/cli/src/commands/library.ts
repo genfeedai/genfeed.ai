@@ -7,7 +7,7 @@ import { downloadGeneratedFile } from '@/commands/generate/helpers';
 import { readAsset, readAssets } from '@/operations/assets';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
-import { getCommandOptions, parsePositiveInteger, wantsJson } from '@/utils/options';
+import { parsePositiveInteger, wantsJson } from '@/utils/options';
 
 interface AssetListOptions extends Record<string, unknown> {
   json?: boolean;
@@ -73,7 +73,7 @@ libraryCommand.addCommand(
   addListOptions(new Command('list').description('List content assets')).action(
     async (_options: AssetListOptions, command: Command) => {
       try {
-        await runAssetList(getCommandOptions<AssetListOptions>(command));
+        await runAssetList(command.optsWithGlobals<AssetListOptions>());
       } catch (error) {
         handleError(error);
       }

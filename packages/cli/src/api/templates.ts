@@ -60,10 +60,7 @@ export async function getTemplate(id: string): Promise<Template> {
 }
 
 export async function createTemplate(request: CreateTemplateRequest): Promise<Template> {
-  const response = await post<JsonApiSingleResponse>(
-    '/templates',
-    request as unknown as Record<string, unknown>
-  );
+  const response = await post<JsonApiSingleResponse>('/templates', request);
   return flattenSingle<Template>(response);
 }
 
@@ -71,10 +68,7 @@ export async function fillTemplate(
   id: string,
   request: UseTemplateRequest
 ): Promise<{ content: string }> {
-  const response = await post<JsonApiSingleResponse>(
-    `/templates/${id}/use`,
-    request as unknown as Record<string, unknown>
-  );
+  const response = await post<JsonApiSingleResponse>(`/templates/${id}/use`, request);
   return flattenSingle<{ content: string }>(response);
 }
 
