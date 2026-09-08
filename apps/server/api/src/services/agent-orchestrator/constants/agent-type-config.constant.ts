@@ -37,6 +37,9 @@ const WORKFLOW_RUN_TOOLS: CuratedActionName[] = [
 ];
 
 const SHARED_READ_TOOLS: CuratedActionName[] = [
+  'request_input',
+  'present_work_object',
+  'ingest_source_media',
   'get_analytics',
   'get_credits_balance',
   'get_dashboard_layout',

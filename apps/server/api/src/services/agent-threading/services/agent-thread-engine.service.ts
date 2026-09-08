@@ -1,5 +1,6 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { readThreadWorkflowSnapshot } from '@api/collections/agent-threads/utils/reconcile-thread-workflow-snapshot';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { scopedWhere } from '@api/index';
@@ -33,6 +34,8 @@ export interface AppendAgentThreadEventParams {
 }
 
 export interface ResolveAgentInputRequestParams {
+  brandId?: string;
+  contextVersion?: number;
   threadId: string;
   organizationId: string;
   requestId: string;
@@ -342,7 +345,7 @@ export class AgentThreadEngineService {
       throw new NotFoundException('Thread snapshot');
     }
 
-    return snapshot;
+    return readThreadWorkflowSnapshot(this.prisma, snapshot);
   }
 
   async resolveInputRequest(
@@ -370,13 +373,50 @@ export class AgentThreadEngineService {
       (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? [];
 
     const reqIndex = inputRequests.findIndex(
-      (r) => r.requestId === params.requestId && r.status === 'pending',
+      (r) =>
+        r.requestId === params.requestId &&
+        (r.status === 'pending' || r.status === 'resolved'),
     );
 
     if (reqIndex === -1) {
       throw new NotFoundException('Input request');
     }
 
+    const request = inputRequests[reqIndex];
+    const metadata =
+      request.metadata && typeof request.metadata === 'object'
+        ? (request.metadata as Record<string, unknown>)
+        : {};
+    if (
+      typeof metadata.brandId === 'string' &&
+      metadata.brandId !== params.brandId
+    )
+      throw new BadRequestException(
+        'This choice belongs to another brand context.',
+      );
+    if (
+      typeof metadata.contextVersion === 'number' &&
+      metadata.contextVersion !== params.contextVersion
+    )
+      throw new BadRequestException(
+        'The thread context changed. Request the choice again.',
+      );
+
+    const answer =
+      typeof params.answer === 'string' ? params.answer.trim() : '';
+    if (!answer) throw new BadRequestException('An answer is required.');
+    if (request.status === 'resolved' && request.answer !== answer)
+      throw new BadRequestException('This request was already answered.');
+    const options = Array.isArray(request.options)
+      ? (request.options as Record<string, unknown>[])
+      : [];
+    if (
+      request.allowFreeText === false &&
+      !options.some((option) => option.id === answer || option.label === answer)
+    )
+      throw new BadRequestException('Choose one of the available options.');
+    params = { ...params, answer };
+    // A retry uses the same event command, repairing interruption after persistence.
     // Update the request in-place
     inputRequests[reqIndex] = {
       ...inputRequests[reqIndex],
@@ -620,7 +660,13 @@ export class AgentThreadEngineService {
           (snapshotRow.data as Record<string, unknown>) ?? {};
         const inputRequests = (
           (snapshotData.inputRequests as Array<Record<string, unknown>>) ?? []
-        ).filter((r) => r.requestId !== requestId);
+        )
+          .filter((r) => r.requestId !== requestId)
+          .map((request) =>
+            request.status === 'pending'
+              ? { ...request, status: 'superseded' }
+              : request,
+          );
 
         inputRequests.push({
           allowFreeText: this.readBoolean(event.payload, 'allowFreeText'),

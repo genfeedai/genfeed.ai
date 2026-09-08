@@ -144,6 +144,16 @@ export class ContentQualityScorerService {
   /**
    * Score content quality by ID and type.
    */
+  async scoreText(
+    text: string,
+    contentType: string,
+  ): Promise<ContentQualityResult> {
+    const result = await this.callTextModel(
+      `${TEXT_SCORING_PROMPT}\n\nContent:\n${text}`,
+    );
+    return this.buildResult(result, contentType);
+  }
+
   async scoreContent(
     contentId: string,
     contentType: string,

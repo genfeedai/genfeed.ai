@@ -7,6 +7,7 @@ import type {
   AgentChatRequest,
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
@@ -55,6 +56,7 @@ export class AgentTurnAcceptanceService {
     private readonly scopeService: AgentScopeContextService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly agentMessagesService: AgentMessagesService,
+    private readonly threadEngine: AgentThreadEngineService,
   ) {}
 
   async accept(
@@ -70,12 +72,7 @@ export class AgentTurnAcceptanceService {
     });
     const threadId =
       preparedScope.existingScope?.threadId ??
-      stableUuid(
-        'agent-turn-thread',
-        context.organizationId,
-        context.userId,
-        request.clientRequestId,
-      );
+      this.newThreadId(context, request.clientRequestId);
     const existingScope = preparedScope.existingScope;
     const thread = existingScope
       ? await this.loadThread(threadId, context)
@@ -89,6 +86,11 @@ export class AgentTurnAcceptanceService {
         threadId,
         userId: context.userId,
       }));
+    if (existingScope)
+      await this.resolveActiveInput(threadId, request.content, {
+        ...context,
+        scope,
+      });
     const contextId = `${threadId}:v${contextVersion}`;
     const queuedAt = new Date().toISOString();
     const { executionId } = await this.workflowRunner.enqueueWorkflow({
@@ -102,6 +104,7 @@ export class AgentTurnAcceptanceService {
       inputValues: {
         request: {
           content: request.content,
+          hostSupportsApproval: request.hostSupportsApproval === true,
           clientRequestId: request.clientRequestId,
           threadId,
           ...(request.agentType ? { agentType: request.agentType } : {}),
@@ -205,6 +208,51 @@ export class AgentTurnAcceptanceService {
       status: 'queued',
       threadId,
     };
+  }
+
+  private newThreadId(context: AgentChatContext, clientRequestId: string) {
+    return stableUuid(
+      'agent-turn-thread',
+      context.organizationId,
+      context.userId,
+      clientRequestId,
+    );
+  }
+
+  private async resolveActiveInput(
+    threadId: string,
+    contentValue: string,
+    context: AgentChatContext,
+  ): Promise<void> {
+    const snapshot = await this.threadEngine.getSnapshot(
+      threadId,
+      context.organizationId,
+      context.userId,
+    );
+    const pending = snapshot.pendingInputRequests?.at(-1);
+    if (pending && typeof contentValue === 'string' && contentValue.trim()) {
+      const content = contentValue.trim();
+      const matchingOption = pending.options.find(
+        (option) =>
+          option.id === content ||
+          option.label.toLowerCase() === content.toLowerCase(),
+      );
+      if (pending.allowFreeText !== false || matchingOption) {
+        await this.threadEngine.resolveInputRequest({
+          threadId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          ...(context.scope
+            ? {
+                brandId: context.scope.brandId,
+                contextVersion: context.scope.contextVersion,
+              }
+            : {}),
+          requestId: pending.requestId,
+          answer: matchingOption?.id ?? content,
+        });
+      }
+    }
   }
 
   private async loadThread(

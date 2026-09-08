@@ -1108,6 +1108,9 @@ describe('AgentToolExecutorService', () => {
       systemWorkflowRunner as never,
       approvals as never,
     );
+    Object.assign(service, {
+      workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+    });
     service.onModuleInit();
 
     const executeApprovedTool = (
@@ -5550,6 +5553,9 @@ describe('AgentToolExecutorService', () => {
       undefined,
       systemWorkflowRunner as never,
     );
+    Object.assign(serviceWithoutScorer, {
+      workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+    });
     serviceWithoutScorer.onModuleInit();
 
     const result = await serviceWithoutScorer.executeTool(

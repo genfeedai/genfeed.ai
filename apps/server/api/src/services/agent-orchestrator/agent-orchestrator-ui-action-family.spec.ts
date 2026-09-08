@@ -5,6 +5,7 @@ import type {
 import { resolveThreadUiActionFamily } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-family';
 
 const EXPECTED_ACTION_FAMILIES = {
+  review_work_object: 'confirmed-tool',
   confirm_mutation: 'confirmed-tool',
   decline_mutation: 'confirmed-tool',
   approve_plan: 'plan',

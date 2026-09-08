@@ -79,6 +79,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as never as LoggerService,
+      {} as never,
     );
   });
 

@@ -47,6 +47,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-tool-workflow-definition';
 import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
@@ -71,7 +72,12 @@ import type {
 
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export interface ToolExecutionContext {
@@ -154,6 +160,9 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'list_workflows',
   'present_payment_options',
   'render_dashboard',
+  'request_input',
+  'present_work_object',
+  'ingest_source_media',
   'resolve_handle',
   'suggest_next_steps',
   'transfer_agent_conversation',
@@ -165,6 +174,9 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
 @Injectable()
 export class AgentToolExecutorService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
+
+  @Inject(AgentWorkObjectService)
+  private readonly workObjects!: AgentWorkObjectService;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -324,6 +336,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         this.assertToolBrandScope(toolName, parameters, context);
       }
 
+      await this.workObjects.assertReady(context, toolName);
       const policyResult = await this.applyMutationPolicy(
         toolName,
         parameters,
@@ -342,7 +355,13 @@ export class AgentToolExecutorService implements OnModuleInit {
           )
         : this.xActionsHandler.handles(toolName)
           ? await this.xActionsHandler.execute(toolName, parameters, context)
-          : await this.dispatch(toolName, parameters, context);
+          : [
+                'request_input',
+                'present_work_object',
+                'ingest_source_media',
+              ].includes(toolName)
+            ? await this.workObjects.execute(toolName, parameters, context)
+            : await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,

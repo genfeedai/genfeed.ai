@@ -101,6 +101,7 @@ describe('AgentThreadEngineService', () => {
 
   beforeEach(async () => {
     mockPrisma = {
+      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
       agentThreadEvent: {
         create: vi.fn().mockResolvedValue(mockEventRow),
         findFirst: vi.fn().mockResolvedValue(null),
