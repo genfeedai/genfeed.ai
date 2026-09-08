@@ -12,6 +12,20 @@ export interface ComfyUIClientOptions {
   timeoutMs?: number;
 }
 
+export interface ComfyUIRequestOptions {
+  body?: { prompt: ComfyUIPrompt };
+  responseType?: 'arraybuffer' | 'none';
+}
+
+/**
+ * Transports own status/error policy and reject failed requests. Return parsed
+ * JSON by default, ArrayBuffer or Buffer for arraybuffer; none ignores the body.
+ */
+export type ComfyUIRequest = (
+  path: string,
+  options?: ComfyUIRequestOptions,
+) => Promise<unknown>;
+
 const DEFAULT_POLL_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
 
@@ -25,7 +39,15 @@ const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
  *   GET  /system_stats    — health check
  */
 export class ComfyUIClient {
-  constructor(private readonly baseUrl: string) {}
+  private readonly request: ComfyUIRequest;
+
+  constructor(
+    private readonly baseUrl: string,
+    request?: ComfyUIRequest,
+  ) {
+    this.request =
+      request ?? ((path, options) => this.fetchRequest(path, options));
+  }
 
   /**
    * Queue a prompt for execution on ComfyUI.
@@ -33,32 +55,18 @@ export class ComfyUIClient {
   async queuePrompt(
     prompt: ComfyUIPrompt,
   ): Promise<ComfyUIQueuePromptResponse> {
-    const response = await fetch(`${this.baseUrl}/prompt`, {
-      body: JSON.stringify({ prompt }),
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`ComfyUI /prompt failed (${response.status}): ${text}`);
-    }
-
-    return response.json() as Promise<ComfyUIQueuePromptResponse>;
+    return (await this.request('/prompt', {
+      body: { prompt },
+    })) as ComfyUIQueuePromptResponse;
   }
 
   /**
    * Get history for a specific prompt execution.
    */
   async getHistory(promptId: string): Promise<ComfyUIHistoryEntry | undefined> {
-    const response = await fetch(`${this.baseUrl}/history/${promptId}`);
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`ComfyUI /history failed (${response.status}): ${text}`);
-    }
-
-    const data = (await response.json()) as ComfyUIHistoryResponse;
+    const data = (await this.request(
+      `/history/${promptId}`,
+    )) as ComfyUIHistoryResponse;
     return data[promptId];
   }
 
@@ -67,13 +75,10 @@ export class ComfyUIClient {
    */
   async getOutput(filename: string, subfolder: string): Promise<Buffer> {
     const params = new URLSearchParams({ filename, subfolder, type: 'output' });
-    const response = await fetch(`${this.baseUrl}/view?${params.toString()}`);
-
-    if (!response.ok) {
-      throw new Error(`ComfyUI /view failed (${response.status})`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
+    // Select Buffer.from's ArrayBuffer overload; Axios Buffer values also work.
+    const arrayBuffer = (await this.request(`/view?${params.toString()}`, {
+      responseType: 'arraybuffer',
+    })) as ArrayBuffer;
     return Buffer.from(arrayBuffer);
   }
 
@@ -115,11 +120,37 @@ export class ComfyUIClient {
    */
   async ping(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/system_stats`);
-      return response.ok;
+      await this.request('/system_stats', { responseType: 'none' });
+      return true;
     } catch {
       return false;
     }
+  }
+
+  private async fetchRequest(
+    path: string,
+    options?: ComfyUIRequestOptions,
+  ): Promise<unknown> {
+    const url = `${this.baseUrl}${path}`;
+    const response = options?.body
+      ? await fetch(url, {
+          body: JSON.stringify(options.body),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        })
+      : await fetch(url);
+
+    if (!response.ok) {
+      const detail = options?.responseType ? '' : `: ${await response.text()}`;
+      const endpoint = path.split(/[/?]/)[1];
+      throw new Error(
+        `ComfyUI /${endpoint} failed (${response.status})${detail}`,
+      );
+    }
+
+    if (options?.responseType === 'none') return;
+    if (options?.responseType === 'arraybuffer') return response.arrayBuffer();
+    return response.json();
   }
 
   private sleep(ms: number): Promise<void> {

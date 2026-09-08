@@ -3,10 +3,8 @@ import { PollUntilService } from '@api/shared/services/poll-until/poll-until.ser
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   ComfyUIHistoryEntry,
-  ComfyUIHistoryResponse,
   ComfyUIOutputFile,
   ComfyUIPrompt,
-  ComfyUIQueuePromptResponse,
 } from '@genfeedai/contracts/types';
 import {
   buildFlux2DevPrompt,
@@ -18,13 +16,16 @@ import {
   buildPulidFluxPrompt,
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
+  ComfyUIClient,
+  type ComfyUIRequestOptions,
 } from '@genfeedai/workflows/generation/comfyui';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import type { AxiosResponse } from 'axios';
+import { firstValueFrom, type Observable } from 'rxjs';
 
 const DEFAULT_POLL_MS = 2000;
 const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
@@ -33,6 +34,7 @@ const DEFAULT_TIMEOUT_MS = 300_000; // 5 minutes
 export class ComfyUIService {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly comfyuiUrl: string;
+  private readonly client: ComfyUIClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -41,6 +43,9 @@ export class ComfyUIService {
     private readonly pollUntilService: PollUntilService,
   ) {
     this.comfyuiUrl = this.configService.get('FLEET_COMFYUI_URL') ?? '';
+    this.client = new ComfyUIClient(this.comfyuiUrl, (path, options) =>
+      this.request(path, options),
+    );
   }
 
   /**
@@ -60,7 +65,7 @@ export class ComfyUIService {
       const prompt = this.buildPrompt(model, params);
 
       // 2. Queue the prompt on ComfyUI
-      const queueResult = await this.queuePrompt(prompt);
+      const queueResult = await this.client.queuePrompt(prompt);
 
       // 3. Wait for completion
       const history = await this.waitForCompletion(queueResult.prompt_id);
@@ -74,7 +79,7 @@ export class ComfyUIService {
       }
 
       // 5. Download the output image
-      const imageBuffer = await this.getOutput(
+      const imageBuffer = await this.client.getOutput(
         outputFile.filename,
         outputFile.subfolder,
       );
@@ -92,74 +97,33 @@ export class ComfyUIService {
    * Health check — pings the ComfyUI instance.
    */
   public async ping(): Promise<boolean> {
-    try {
-      const res = await firstValueFrom(
-        this.httpService.get(`${this.comfyuiUrl}/system_stats`),
-      );
-      return res.status === 200;
-    } catch {
-      return false;
-    }
+    return this.client.ping();
   }
 
-  /**
-   * Queue a prompt for execution on ComfyUI.
-   */
-  private async queuePrompt(
-    prompt: ComfyUIPrompt,
-  ): Promise<ComfyUIQueuePromptResponse> {
-    const res = await firstValueFrom(
-      this.httpService.post(
-        `${this.comfyuiUrl}/prompt`,
-        { prompt },
-        { headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
-
-    if (res.status !== 200) {
-      throw new Error(`ComfyUI /prompt failed (${res.status})`);
-    }
-
-    return res.data as ComfyUIQueuePromptResponse;
-  }
-
-  /**
-   * Get history for a specific prompt execution.
-   */
-  private async getHistory(
-    promptId: string,
-  ): Promise<ComfyUIHistoryEntry | undefined> {
-    const res = await firstValueFrom(
-      this.httpService.get(`${this.comfyuiUrl}/history/${promptId}`),
-    );
-
-    if (res.status !== 200) {
-      throw new Error(`ComfyUI /history failed (${res.status})`);
-    }
-
-    const data = res.data as ComfyUIHistoryResponse;
-    return data[promptId];
-  }
-
-  /**
-   * Download an output file from ComfyUI.
-   */
-  private async getOutput(
-    filename: string,
-    subfolder: string,
-  ): Promise<Buffer> {
-    const params = new URLSearchParams({ filename, subfolder, type: 'output' });
-    const res = await firstValueFrom(
-      this.httpService.get(`${this.comfyuiUrl}/view?${params.toString()}`, {
+  private async request(
+    path: string,
+    options?: ComfyUIRequestOptions,
+  ): Promise<unknown> {
+    const url = `${this.comfyuiUrl}${path}`;
+    let request: Observable<AxiosResponse<unknown>>;
+    if (options?.body) {
+      request = this.httpService.post<unknown>(url, options.body, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (options?.responseType === 'arraybuffer') {
+      request = this.httpService.get<unknown>(url, {
         responseType: 'arraybuffer',
-      }),
-    );
-
-    if (res.status !== 200) {
-      throw new Error(`ComfyUI /view failed (${res.status})`);
+      });
+    } else {
+      request = this.httpService.get<unknown>(url);
     }
 
-    return Buffer.from(res.data);
+    const res = await firstValueFrom(request);
+    if (res.status !== 200) {
+      const endpoint = path.split(/[/?]/)[1];
+      throw new Error(`ComfyUI /${endpoint} failed (${res.status})`);
+    }
+    return res.data;
   }
 
   /**
@@ -172,7 +136,7 @@ export class ComfyUIService {
   ): Promise<ComfyUIHistoryEntry> {
     try {
       const { value } = await this.pollUntilService.poll(
-        () => this.getHistory(promptId),
+        () => this.client.getHistory(promptId),
         (history) => {
           if (history?.status?.status_str === 'error') {
             throw new Error(
