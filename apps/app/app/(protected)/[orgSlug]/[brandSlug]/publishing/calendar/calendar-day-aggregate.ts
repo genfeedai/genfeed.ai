@@ -1,19 +1,11 @@
 import { CalendarSlotState } from '@genfeedai/contracts';
 import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
+import type {
+  CalendarDayAggregate,
+  CalendarDensitySource,
+} from '@genfeedai/props/publishing/calendar-day-aggregate.props';
 
-export type CalendarDayAggregate = {
-  dayKey: string;
-  filledCount: number;
-  instant: string;
-  missingCount: number;
-  missingIdentityKeys: string[];
-};
-
-type CalendarDensitySource = {
-  identityKey?: string;
-  instant: string;
-  kind: 'filled' | 'missing';
-};
+export type { CalendarDayAggregate } from '@genfeedai/props/publishing/calendar-day-aggregate.props';
 
 export function isUnfilledCalendarSlot(slot: ICalendarSlot): boolean {
   return (

@@ -28,13 +28,14 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -52,6 +53,12 @@ export class KnowledgeSourcesController {
    * version 1 and starts the canonical ingestion workflow.
    */
   @Post()
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description:
+      'Stable capture identity reused for retries; changing its payload returns 409.',
+  })
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -64,10 +71,12 @@ export class KnowledgeSourcesController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateKnowledgeSourceDto,
     @Query('brandId') brandId?: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     const result = await this.capture.capture(
       resolveKnowledgeActor(user, brandId),
       dto,
+      idempotencyKey,
     );
     return {
       ...serializeSingle(request, KnowledgeSourceSerializer, result.source),

@@ -60,7 +60,7 @@ describe('buildSettingsMenuItems', () => {
         'Models',
         'Agents',
         'Credits',
-        'Cost & Usage',
+        'Usage',
         'API Keys',
         'Integrations',
         'Webhooks',
@@ -81,7 +81,7 @@ describe('buildSettingsMenuItems', () => {
         'Agents',
         'Credits',
         'Subscription',
-        'Cost & Usage',
+        'Usage',
         'API Keys',
         'Integrations',
         'Webhooks',
@@ -100,7 +100,7 @@ describe('buildSettingsMenuItems', () => {
         ['Models', 'Organization'],
         ['Agents', 'Organization'],
         ['Credits', 'Billing'],
-        ['Cost & Usage', 'Billing'],
+        ['Usage', 'Billing'],
         ['API Keys', 'Developer'],
         ['Integrations', 'Developer'],
         ['Webhooks', 'Developer'],
@@ -121,13 +121,13 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('hides Credits when the wallet is unavailable but keeps provider cost reporting', () => {
+    it('hides Credits when the wallet is unavailable but preserves usage history', () => {
       const items = buildSettingsMenuItems({
         scope: SettingsSurface.ORGANIZATION,
         showCredits: false,
       });
       expect(items.find((i) => i.label === 'Credits')).toBeUndefined();
-      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
+      expect(items.find((i) => i.label === 'Usage')?.href).toBe(
         APP_ROUTES.SETTINGS.USAGE,
       );
       expect(items.find((i) => i.label === 'Subscription')).toBeUndefined();
@@ -136,14 +136,14 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('points Credits, Brands and Models at their hubs (prefix-active, not exact)', () => {
+    it('keeps Credits and Usage separate and points Brands and Models at their hubs', () => {
       const items = buildSettingsMenuItems({
         scope: SettingsSurface.ORGANIZATION,
       });
       expect(items.find((i) => i.label === 'Credits')?.href).toBe(
         '/settings/credits',
       );
-      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
+      expect(items.find((i) => i.label === 'Usage')?.href).toBe(
         '/settings/usage',
       );
       expect(items.find((i) => i.label === 'Brands')?.href).toBe(
@@ -180,7 +180,7 @@ describe('buildSettingsMenuItems', () => {
         'Publishing',
         'Agent Defaults',
         'Skills',
-        'Cost & Usage',
+        'Usage',
       ]);
     });
 
@@ -206,7 +206,7 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Skills')?.href).toBe(
         APP_ROUTES.SETTINGS.SKILLS,
       );
-      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
+      expect(items.find((i) => i.label === 'Usage')?.href).toBe(
         APP_ROUTES.SETTINGS.USAGE,
       );
     });
@@ -223,7 +223,7 @@ describe('buildSettingsMenuItems', () => {
         ['Publishing', 'Automation'],
         ['Agent Defaults', 'Automation'],
         ['Skills', 'Automation'],
-        ['Cost & Usage', 'Billing'],
+        ['Usage', 'Billing'],
       ]);
     });
   });

@@ -14,12 +14,14 @@ const mockUpdateNodeInternals = vi.fn();
 
 vi.mock('@xyflow/react', () => ({
   Handle: ({
+    title,
     className,
     id,
     isConnectableEnd,
     style,
     type,
   }: {
+    title?: string;
     className?: string;
     id: string;
     isConnectableEnd?: boolean;
@@ -27,6 +29,7 @@ vi.mock('@xyflow/react', () => ({
     type: string;
   }) => (
     <div
+      title={title}
       className={className}
       data-connectable-end={String(isConnectableEnd)}
       data-testid={`handle-${type}-${id}`}
@@ -336,6 +339,52 @@ describe('BaseNode', () => {
           width: '260px',
         },
       );
+    });
+
+    it('names ports and preserves output type colors for connection discovery', () => {
+      render(<BaseNode {...defaultProps} type="imageGen" />);
+      expect(screen.getByTestId('handle-target-prompt')).toHaveAttribute(
+        'title',
+        'prompt · text',
+      );
+      expect(screen.getByTestId('handle-source-image')).toHaveAttribute(
+        'title',
+        'image · image',
+      );
+      expect(screen.getByTestId('handle-source-image')).toHaveStyle({
+        background: 'var(--handle-image)',
+      });
+    });
+
+    it('reserves vertical space for many ports even when a node is resized shorter', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          height={80}
+          nodeDefinition={
+            {
+              category: 'input',
+              icon: 'MessageSquare',
+              inputs: [],
+              outputs: Array.from({ length: 8 }, (_, index) => ({
+                id: `field-${index}`,
+                label: `Field ${index}`,
+                type: 'text',
+              })),
+            } as never
+          }
+        />,
+      );
+      expect(
+        screen.getByText('Test Node').closest('.workflow-node'),
+      ).toHaveStyle({
+        minHeight: '216px',
+      });
+      expect(screen.getByTestId('node-resizer')).toHaveAttribute(
+        'data-min-height',
+        '216',
+      );
+      expect(screen.getAllByTestId(/^handle-source-field-/)).toHaveLength(8);
     });
 
     it('generates schema handles for a selected model', () => {

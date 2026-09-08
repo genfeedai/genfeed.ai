@@ -14,6 +14,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import { Button } from '@ui/primitives/button';
 import {
   Check,
@@ -92,12 +93,17 @@ export function GenerationActionCanvas({
         asset.id === currentResult.id || asset.url === currentResult.url,
     );
     if (alreadyPresent) {
-      return fromThread;
+      return fromThread.map((asset) =>
+        asset.id === currentResult.id || asset.url === currentResult.url
+          ? { ...asset, assetId: currentResult.id }
+          : asset,
+      );
     }
 
     return [
       {
         id: currentResult.id,
+        assetId: currentResult.id,
         messageId: 'current',
         title: translate('latestGeneration'),
         type: generationType,
@@ -190,6 +196,9 @@ export function GenerationActionCanvas({
                 {resolvedSelectionLabel}
               </Button>
 
+              {asset.type === 'image' && asset.assetId ? (
+                <SaveAsCharacter assetId={asset.assetId} imageUrl={asset.url} />
+              ) : null}
               <div className="flex border-t border-border">
                 <Link
                   href={href(libraryHref(asset.type, asset.id))}

@@ -7,10 +7,14 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonasService', () => {
   let service: PersonasService;
-  let prisma: { persona: { create: ReturnType<typeof vi.fn> } };
+  let prisma: {
+    persona: { create: ReturnType<typeof vi.fn> };
+    ingredient: { findFirst: ReturnType<typeof vi.fn> };
+  };
 
   beforeEach(async () => {
     prisma = {
+      ingredient: { findFirst: vi.fn() },
       persona: {
         create: vi.fn(),
       },
@@ -65,5 +69,54 @@ describe('PersonasService', () => {
         userId: testId('user'),
       }),
     ).rejects.toBeInstanceOf(ValidationException);
+  });
+  it('reuses a completed brand image as the character reference', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({ id: 'image-1' });
+    const create = vi
+      .spyOn(service, 'create')
+      .mockResolvedValue({ id: 'persona-1' } as Awaited<
+        ReturnType<PersonasService['create']>
+      >);
+    await service.createFromApprovedSheet({
+      assetId: 'image-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      handle: 'anna',
+      label: 'Anna',
+    });
+    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'image-1',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+          category: { in: ['IMAGE', 'IMAGE_EDIT'] },
+          status: { in: ['GENERATED', 'UPLOADED', 'VALIDATED'] },
+        }),
+      }),
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarIngredientId: 'image-1',
+        handle: 'anna',
+      }),
+    );
+  });
+  it('rejects missing, deleted, foreign-brand or unfinished source images before saving', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue(null);
+    const create = vi.spyOn(service, 'create');
+    await expect(
+      service.createFromApprovedSheet({
+        assetId: 'foreign-image',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        handle: 'anna',
+        label: 'Anna',
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(create).not.toHaveBeenCalled();
   });
 });

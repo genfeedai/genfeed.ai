@@ -1,8 +1,5 @@
-import {
-  BookmarkCategory,
-  BookmarkPlatform,
-  IngredientStatus,
-} from '@genfeedai/contracts';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { CaptureMode } from '~models/knowledge-capture.model';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
 // Source of truth: environment.service.ts (PLASMO_PUBLIC_* config boundary)
@@ -12,7 +9,24 @@ import {
   isGenfeedAuthUrl,
 } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
+import {
+  discardKnowledgeCapture,
+  enqueueKnowledgeCapture,
+  getCaptureBrand,
+  importLegacyCaptures,
+  legacyCaptureCount,
+  listCaptureSpaces,
+  listKnowledgeCaptures,
+  retryKnowledgeCapture,
+  setCaptureBrand,
+} from '~services/knowledge-capture.service';
 import type { ExtensionMessage } from '~types/extension';
+import {
+  extractKnowledgeSnapshot,
+  prepareKnowledgeSnapshot,
+  sanitizeCaptureText,
+  sanitizeCaptureUrl,
+} from '~utils/knowledge-snapshot.util';
 import { logger } from '~utils/logger.util';
 
 // Type for Chrome extension sendResponse callback
@@ -43,9 +57,9 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 
     chrome.contextMenus.create({
-      contexts: ['selection'],
+      contexts: ['selection', 'page', 'link'],
       id: CONTEXT_MENU_IDEA,
-      title: 'Save as Idea — GenFeed',
+      title: 'Save to Genfeed',
     });
   });
 });
@@ -55,8 +69,11 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     return;
   }
 
-  const content = info.selectionText ?? info.linkUrl ?? '';
-  const url = info.pageUrl ?? tab.url ?? '';
+  const content =
+    info.menuItemId === CONTEXT_MENU_IDEA
+      ? ''
+      : (info.selectionText ?? info.linkUrl ?? '');
+  const url = info.linkUrl ?? info.pageUrl ?? tab.url ?? '';
 
   let messageType: ExtensionMessage['type'] | null = null;
 
@@ -70,7 +87,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     return;
   }
 
-  const payload: ExtensionMessage = { content, type: messageType, url };
+  const payload: ExtensionMessage = {
+    content,
+    type: messageType,
+    url,
+    captureMode: info.selectionText
+      ? 'selection'
+      : info.linkUrl
+        ? 'link'
+        : 'page',
+  };
 
   // Open side panel then forward the message
   chrome.sidePanel
@@ -184,6 +210,29 @@ async function executeAuthenticatedRequest<T>(
 // Listen for messages from content scripts and popup
 // Returning true keeps Chrome's response channel open for asynchronous handlers.
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  const captureHandlers: Record<string, () => Promise<unknown>> = {
+    captureBrand: () => getCaptureBrand(),
+    captureSetBrand: () => setCaptureBrand(request.brandId),
+    captureLegacyCount: () => legacyCaptureCount(),
+    captureImportLegacy: () => importLegacyCaptures(request.brandId),
+    captureSave: () => enqueueKnowledgeCapture(request.payload),
+    captureList: () => listKnowledgeCaptures(),
+    captureRetry: () => retryKnowledgeCapture(request.id),
+    captureDiscard: () => discardKnowledgeCapture(request.id),
+    captureSpaces: () => listCaptureSpaces(request.brandId),
+    captureSnapshot: () => captureCurrentTab(request.mode, request.url),
+  };
+  const captureHandler = Object.hasOwn(captureHandlers, request.event)
+    ? captureHandlers[request.event]
+    : undefined;
+  if (captureHandler) {
+    captureHandler()
+      .then((data) => sendResponse({ success: true, data }))
+      .catch((error) =>
+        sendError(sendResponse, 'Could not capture this source', error),
+      );
+    return true;
+  }
   switch (request.event) {
     case 'checkAuth':
       checkAuthentication(sendResponse);
@@ -196,11 +245,15 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         sendResponse,
         request.platform || 'twitter',
         request.brandId,
+      ).catch((error) =>
+        sendError(sendResponse, 'Could not open this capture', error),
       );
       return true;
 
     case 'saveBookmark':
-      saveBookmark(request.data, sendResponse);
+      saveBookmark(request.data, sendResponse).catch((error) =>
+        sendError(sendResponse, 'Could not open this capture', error),
+      );
       return true;
 
     case 'generateReply':
@@ -314,7 +367,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 async function handleShortcutMode(
   type: ExtensionMessage['type'],
-  payload: { content?: string; url?: string; platform?: string } | undefined,
+  payload:
+    | {
+        content?: string;
+        url?: string;
+        platform?: string;
+        captureMode?: CaptureMode;
+      }
+    | undefined,
   sendResponse: SendResponse,
 ): Promise<void> {
   try {
@@ -331,6 +391,7 @@ async function handleShortcutMode(
     const message: ExtensionMessage = {
       content: payload?.content ?? '',
       platform: payload?.platform,
+      captureMode: payload?.captureMode,
       type,
       url: payload?.url ?? tab.url ?? '',
     };
@@ -368,59 +429,67 @@ async function checkAuthentication(sendResponse: SendResponse): Promise<void> {
   }
 }
 
-/**
- * Every capture enters Knowledge through the canonical ingestion workflow.
- * A brand id scopes the source to that brand; without one it stays personal.
- */
-function knowledgeCapturePath(brandId?: string): string {
-  return brandId
-    ? `/knowledge-sources?brandId=${encodeURIComponent(brandId)}`
-    : '/knowledge-sources';
-}
-
-function knowledgeCaptureTitle(
-  title: string | undefined,
-  url: string,
-  platform: string,
-): string {
-  const trimmed = title?.trim();
-  if (trimmed) {
-    return trimmed.slice(0, 500);
+async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id || !tab.url) throw new Error('Open a page before capturing.');
+  sanitizeCaptureUrl(tab.url);
+  const targetUrl = url
+    ? sanitizeCaptureUrl(url)
+    : mode === 'social'
+      ? sanitizeCaptureUrl(tab.url)
+      : undefined;
+  if (
+    targetUrl &&
+    (mode === 'page' || mode === 'selection') &&
+    targetUrl !== sanitizeCaptureUrl(tab.url)
+  ) {
+    throw new Error(
+      'The active page changed. Return to the source page or save its link.',
+    );
   }
-  try {
-    return `${platform} · ${new URL(url).hostname}`;
-  } catch {
-    return `${platform} capture`;
+  if (targetUrl && mode === 'social') {
+    const host = (value: string) =>
+      new URL(value).hostname
+        .replace(/^www\./, '')
+        .replace('twitter.com', 'x.com');
+    if (host(targetUrl) !== host(tab.url))
+      throw new Error('Return to the social post before capturing it.');
   }
+  if (mode === 'link')
+    return prepareKnowledgeSnapshot({
+      mode,
+      title: targetUrl ? new URL(targetUrl).hostname : (tab.title ?? ''),
+      url: targetUrl ?? tab.url,
+      text: '',
+    });
+  const result = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: extractKnowledgeSnapshot,
+    args: [mode, targetUrl],
+  });
+  if (!result[0]?.result)
+    throw new Error(
+      'This page does not allow capture. Save its link or select another page.',
+    );
+  return prepareKnowledgeSnapshot(result[0].result);
 }
 
 async function savePostToGenfeed(
-  postId: string,
+  _postId: string,
   url: string,
   sendResponse: SendResponse,
-  platform: string = 'twitter',
-  brandId?: string,
+  platform = 'twitter',
+  _brandId?: string,
 ): Promise<void> {
-  await executeAuthenticatedRequest(
-    knowledgeCapturePath(brandId),
+  await handleShortcutMode(
+    'IDEA',
     {
-      body: JSON.stringify({
-        kind: 'URL',
-        provenance: {
-          ...getBookmarkSource(platform),
-          capturedBy: 'extension',
-          postId,
-        },
-        purpose: 'INSPIRATION',
-        referenceUrl: url,
-        scope: brandId ? 'brand' : 'personal',
-        title: knowledgeCaptureTitle(undefined, url, platform),
-      }),
-      method: 'POST',
+      content: '',
+      url: sanitizeCaptureUrl(url),
+      platform,
+      captureMode: 'social',
     },
     sendResponse,
-    (data) => sendResponse({ data, success: true }),
-    `save ${platform} post`,
   );
 }
 
@@ -580,67 +649,19 @@ async function processWithAutoModel(
   }
 }
 
-function getBookmarkSource(platform?: string) {
-  switch (platform?.toLowerCase()) {
-    case 'twitter':
-      return {
-        category: BookmarkCategory.TWEET,
-        platform: BookmarkPlatform.TWITTER,
-      };
-    case 'instagram':
-      return {
-        category: BookmarkCategory.INSTAGRAM,
-        platform: BookmarkPlatform.INSTAGRAM,
-      };
-    case 'tiktok':
-      return {
-        category: BookmarkCategory.TIKTOK,
-        platform: BookmarkPlatform.TIKTOK,
-      };
-    case 'youtube':
-      return {
-        category: BookmarkCategory.YOUTUBE,
-        platform: BookmarkPlatform.YOUTUBE,
-      };
-    default:
-      return { category: BookmarkCategory.URL, platform: BookmarkPlatform.WEB };
-  }
-}
-
 async function saveBookmark(
   data: BookmarkData,
   sendResponse: SendResponse,
 ): Promise<void> {
-  const url = data.url ?? '';
-  const platform = data.platform || 'twitter';
-  const content = data.content?.trim();
-  const body = JSON.stringify({
-    kind: 'URL',
-    provenance: {
-      author: data.author,
-      authorHandle: data.authorHandle,
-      capturedBy: 'extension',
-      description: data.description,
-      intent: data.intent?.toUpperCase(),
-      mediaUrls: data.mediaUrls || [],
-      ...getBookmarkSource(platform),
-      platformData: data.platformData || {},
-      thumbnailUrl: data.thumbnailUrl,
+  await handleShortcutMode(
+    'IDEA',
+    {
+      content: sanitizeCaptureText(data.content ?? ''),
+      url: data.url ? sanitizeCaptureUrl(data.url) : '',
+      platform: data.platform,
+      captureMode: data.content ? 'selection' : 'link',
     },
-    purpose:
-      data.intent?.toUpperCase() === 'REPLY' ? 'RESEARCH' : 'INSPIRATION',
-    referenceUrl: url,
-    scope: data.brandId ? 'brand' : 'personal',
-    ...(content ? { text: content } : {}),
-    title: knowledgeCaptureTitle(data.title, url, platform),
-  });
-
-  await executeAuthenticatedRequest(
-    knowledgeCapturePath(data.brandId),
-    { body, method: 'POST' },
     sendResponse,
-    (result) => sendResponse({ data: result, success: true }),
-    'save bookmark',
   );
 }
 
@@ -1311,7 +1332,7 @@ async function handleStartOAuth(
     // Listen for the OAuth callback
     const callbackListener = (
       tabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
+      changeInfo: chrome.tabs.OnUpdatedInfo,
       updatedTab: chrome.tabs.Tab,
     ) => {
       if (

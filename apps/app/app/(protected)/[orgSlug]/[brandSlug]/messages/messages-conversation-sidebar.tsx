@@ -47,6 +47,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import MessageAutomationsMenu from '@/components/messages/MessageAutomationsMenu';
 
 export type { MessagesInboxView, MessagesSurface };
 
@@ -451,11 +452,14 @@ export function MessagesConversationSidebar({
         <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
           {translate('sidebar.title')}
         </span>
-        {pagination.total > 0 ? (
-          <span className="text-2xs tabular-nums text-foreground/28">
-            {pagination.total}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {pagination.total > 0 ? (
+            <span className="text-2xs tabular-nums text-foreground/28">
+              {pagination.total}
+            </span>
+          ) : null}
+          <MessageAutomationsMenu />
+        </div>
       </div>
       <ConversationSidebarSearch
         action={filterAction}

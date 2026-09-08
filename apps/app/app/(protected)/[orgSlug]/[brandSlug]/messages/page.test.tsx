@@ -52,8 +52,8 @@ const mocks = vi.hoisted(() => ({
   syncXDms: vi.fn(),
   syncYoutube: vi.fn(),
   workspaceNavPanel: null as {
-    portalTarget: HTMLElement | null;
-    setPortalTarget: ReturnType<typeof vi.fn>;
+    portalTargets: HTMLElement[];
+    registerPortalTarget: ReturnType<typeof vi.fn>;
   } | null,
 }));
 
@@ -542,8 +542,8 @@ describe('SocialMessagesPage', () => {
     const portalTarget = document.createElement('div');
     document.body.append(portalTarget);
     mocks.workspaceNavPanel = {
-      portalTarget,
-      setPortalTarget: vi.fn(),
+      portalTargets: [portalTarget],
+      registerPortalTarget: vi.fn(),
     };
 
     render(<SocialMessagesPage />);

@@ -1,4 +1,13 @@
 import { ArticleStatus } from '@genfeedai/contracts';
+import type {
+  CalendarTagColorSource,
+  ContentCalendarColorItem,
+} from '@genfeedai/props/publishing/calendar-item-color.props';
+
+export type {
+  CalendarTagColorSource,
+  ContentCalendarColorItem,
+} from '@genfeedai/props/publishing/calendar-item-color.props';
 
 export const CALENDAR_DEFAULT_EVENT_COLOR = '#8b5cf6';
 export const CALENDAR_SLOT_EVENT_COLOR = '#64748b';
@@ -7,18 +16,6 @@ const ARTICLE_STATUS_COLORS: Record<string, string> = {
   [ArticleStatus.ARCHIVED]: '#ef4444',
   [ArticleStatus.DRAFT]: '#6b7280',
   [ArticleStatus.PUBLISHED]: '#10b981',
-};
-
-export type CalendarTagColorSource = {
-  backgroundColor?: string | null;
-  isDeleted?: boolean;
-};
-
-export type ContentCalendarColorItem = {
-  article?: { tags?: readonly CalendarTagColorSource[] | null };
-  itemType: 'article' | 'release' | 'slot';
-  release?: { firstTagColor?: string | null };
-  status: string;
 };
 
 export function firstTagBackgroundColor(

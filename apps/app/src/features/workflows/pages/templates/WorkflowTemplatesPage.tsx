@@ -15,6 +15,8 @@ import {
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
 
+import WorkflowCardPreview from '../library/WorkflowCardPreview';
+
 const TEMPLATE_CATEGORIES = [
   { id: 'all', label: 'All Templates' },
   { id: 'system', label: 'System' },
@@ -390,11 +392,11 @@ function WorkflowTemplatesPageContent() {
                       key={entry.canonicalId}
                       className="group relative overflow-hidden bg-card shadow-border"
                     >
-                      <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                        <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                          {entry.icon || '⚙'}
-                        </div>
-                      </div>
+                      <WorkflowCardPreview
+                        name={entry.label}
+                        nodes={entry.nodes}
+                        edges={entry.edges}
+                      />
                       <div className="p-4">
                         <div className="mb-1 flex items-center gap-2">
                           <h3 className="font-semibold">{entry.label}</h3>
@@ -481,11 +483,11 @@ function WorkflowTemplatesPageContent() {
                     key={template.id}
                     className="group relative overflow-hidden bg-card shadow-border"
                   >
-                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                      <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                        {template.icon || ''}
-                      </div>
-                    </div>
+                    <WorkflowCardPreview
+                      name={template.name}
+                      nodes={template.nodes}
+                      edges={template.edges}
+                    />
                     <div className="p-4">
                       <h3 className="mb-1 font-semibold">{template.name}</h3>
                       <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">

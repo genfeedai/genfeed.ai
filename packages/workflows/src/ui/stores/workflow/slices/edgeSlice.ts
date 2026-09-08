@@ -1,10 +1,8 @@
 import type {
   EdgeStyle,
-  NodeType,
   WorkflowEdge,
   WorkflowNode,
 } from '@genfeedai/contracts/types';
-import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
 import {
   applyEdgeChanges,
@@ -12,7 +10,11 @@ import {
   addEdge as rfAddEdge,
 } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
-import { createIdMap, createTargetMap } from '../../../lib';
+import { createIdMap } from '../../../lib';
+import {
+  isCompatibleWorkflowHandle,
+  resolveWorkflowNodeDefinition,
+} from '../../../lib/workflowNodeHandles';
 import { generateId, getHandleType } from '../helpers/nodeHelpers';
 import type { WorkflowStore } from '../types';
 
@@ -36,71 +38,86 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
   get,
 ) => ({
   findCompatibleHandle: (sourceNodeId, sourceHandleId, targetNodeId) => {
-    const { nodes, edges } = get();
-    const nodeMap = createIdMap(nodes);
-    const edgesByTarget = createTargetMap(edges);
-
-    const sourceNode = nodeMap.get(sourceNodeId);
-    const targetNode = nodeMap.get(targetNodeId);
-
-    if (!sourceNode || !targetNode) return null;
-
-    const sourceType = getHandleType(
-      sourceNode.type as NodeType,
-      sourceHandleId,
-      'source',
+    const { nodes, isValidConnection } = get();
+    const targetNode = nodes.find((node) => node.id === targetNodeId);
+    if (!targetNode) return null;
+    const definition = resolveWorkflowNodeDefinition(
+      targetNode.type,
+      targetNode.data,
     );
-
-    if (!sourceType) return null;
-
-    const targetDef = NODE_DEFINITIONS[targetNode.type as NodeType];
-    if (!targetDef) return null;
-
-    const existingTargetHandles = new Set(
-      (edgesByTarget.get(targetNodeId) ?? []).map((edge) => edge.targetHandle),
-    );
-    const compatibleTargetTypes = new Set(CONNECTION_RULES[sourceType] ?? []);
-
-    for (const input of targetDef.inputs) {
-      // Skip handles that already have connections, unless they support multiple connections
-      const hasExistingConnection = existingTargetHandles.has(input.id);
-      if (hasExistingConnection && !input.multiple) continue;
-
-      if (compatibleTargetTypes.has(input.type)) {
+    for (const input of definition?.inputs ?? []) {
+      if (
+        isValidConnection({
+          source: sourceNodeId,
+          sourceHandle: sourceHandleId,
+          target: targetNodeId,
+          targetHandle: input.id,
+        })
+      )
         return input.id;
-      }
     }
-
     return null;
   },
 
   isValidConnection: (connection) => {
-    const { nodes } = get();
+    const { nodes, edges } = get();
+    if (connection.source === connection.target) return false;
     const nodeMap = createIdMap(nodes);
-
-    const sourceNode = connection.source
-      ? nodeMap.get(connection.source)
-      : undefined;
-    const targetNode = connection.target
-      ? nodeMap.get(connection.target)
-      : undefined;
-
+    const sourceNode = nodeMap.get(connection.source);
+    const targetNode = nodeMap.get(connection.target);
     if (!sourceNode || !targetNode) return false;
 
     const sourceType = getHandleType(
-      sourceNode.type as NodeType,
+      sourceNode.type,
       connection.sourceHandle ?? null,
       'source',
+      sourceNode.data,
     );
-    const targetType = getHandleType(
-      targetNode.type as NodeType,
-      connection.targetHandle ?? null,
-      'target',
+    const targetDefinition = resolveWorkflowNodeDefinition(
+      targetNode.type,
+      targetNode.data,
     );
+    const targetHandle = targetDefinition?.inputs.find(
+      (handle) => handle.id === connection.targetHandle,
+    );
+    if (
+      !sourceType ||
+      !targetHandle ||
+      !isCompatibleWorkflowHandle(sourceType, targetHandle.type)
+    )
+      return false;
 
-    if (!sourceType || !targetType) return false;
+    const existingInputs = edges.filter(
+      (edge) =>
+        edge.target === targetNode.id &&
+        edge.targetHandle === connection.targetHandle,
+    );
+    if (
+      existingInputs.some(
+        (edge) =>
+          edge.source === sourceNode.id &&
+          edge.sourceHandle === connection.sourceHandle,
+      )
+    )
+      return false;
+    if (existingInputs.length > 0 && !targetHandle.multiple) return false;
 
-    return CONNECTION_RULES[sourceType]?.includes(targetType) ?? false;
+    const downstream = new Map<string, string[]>();
+    for (const edge of edges) {
+      const targets = downstream.get(edge.source) ?? [];
+      targets.push(edge.target);
+      downstream.set(edge.source, targets);
+    }
+    const pending = [targetNode.id];
+    const visited = new Set<string>();
+    while (pending.length > 0) {
+      const nodeId = pending.pop();
+      if (!nodeId || visited.has(nodeId)) continue;
+      if (nodeId === sourceNode.id) return false;
+      visited.add(nodeId);
+      pending.push(...(downstream.get(nodeId) ?? []));
+    }
+    return true;
   },
 
   onConnect: (connection) => {

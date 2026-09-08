@@ -12,6 +12,7 @@ import { SettingsPanel } from '~components/settings/SettingsPanel';
 import { LoadingSpinner } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
+import type { CaptureMode } from '~models/knowledge-capture.model';
 import { authService, getJWTToken } from '~services/auth.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
@@ -31,6 +32,7 @@ interface PanelState {
   pendingAuthor: string;
   pendingContent: string;
   pendingUrl: string;
+  captureMode?: CaptureMode;
 }
 
 type PanelAction =
@@ -56,6 +58,7 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
         activeTab: activeTabByMessage[type],
         pendingContent: content ?? '',
         pendingUrl: url ?? '',
+        captureMode: action.payload.captureMode,
       };
     }
     case 'setActiveTab':
@@ -70,6 +73,7 @@ function SidePanelRoute({
   pendingAuthor,
   pendingContent,
   pendingUrl,
+  captureMode,
   onActiveTabChange,
 }: PanelState & {
   onActiveTabChange: (activeTab: ActiveTab) => void;
@@ -92,6 +96,7 @@ function SidePanelRoute({
     case 'idea':
       return (
         <IdeaDraftPage
+          initialMode={captureMode}
           initialContent={pendingContent}
           initialUrl={pendingUrl}
         />

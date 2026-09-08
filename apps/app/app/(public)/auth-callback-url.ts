@@ -2,6 +2,7 @@ import {
   buildBrowserAuthCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
+import type { AuthCallbackURLOptions } from '@genfeedai/props/auth/auth-callback-url.props';
 import {
   extractBrandDomain,
   parseReferralCode,
@@ -12,11 +13,6 @@ const ROOT_CALLBACK_URL = '/';
 const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
 const BRAND_OS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
-
-type AuthCallbackURLOptions = {
-  defaultCallbackURL?: string;
-  includeOnboardingHandoffParams?: boolean;
-};
 
 function getExplicitAuthCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,

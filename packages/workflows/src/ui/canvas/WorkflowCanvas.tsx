@@ -23,14 +23,12 @@ import '@xyflow/react/dist/style.css';
 
 import { getActionDefinition } from '@genfeedai/actions';
 import type {
-  HandleType,
   ImageGenNodeData,
   NodeType,
   VideoGenNodeData,
   WorkflowEdge,
   WorkflowNode,
 } from '@genfeedai/contracts/types';
-import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { CostModal } from '../components/CostModal';
 import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
@@ -43,6 +41,7 @@ import {
   decodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
 } from '../lib/paletteTransfer';
+import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
 import { useExecutionStore } from '../stores/execution';
@@ -89,11 +88,14 @@ function supportsImageInput(
 function getEdgeDataType(
   edge: WorkflowEdge,
   nodeMap: Map<string, WorkflowNode>,
-): HandleType | null {
+): string | null {
   const sourceNode = nodeMap.get(edge.source);
   if (!sourceNode) return null;
 
-  const nodeDef = NODE_DEFINITIONS[sourceNode.type as NodeType];
+  const nodeDef = resolveWorkflowNodeDefinition(
+    sourceNode.type,
+    sourceNode.data,
+  );
   if (!nodeDef) return null;
 
   const sourceHandle = nodeDef.outputs.find((h) => h.id === edge.sourceHandle);
@@ -587,6 +589,7 @@ function useWorkflowCanvasHandlers({
           sourceNode.type as NodeType,
           sourceHandleId,
           'source',
+          sourceNode.data,
         );
         if (!sourceHandleType) return;
 
@@ -863,10 +866,10 @@ export function WorkflowCanvas({
       >
         <GroupOverlay />
         <Background
-          variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          color="hsl(var(--foreground) / 0.08)"
+          variant={BackgroundVariant.Lines}
+          gap={24}
+          lineWidth={1}
+          color="hsl(var(--foreground) / 0.1)"
         />
         <Controls />
         {showMinimap && (

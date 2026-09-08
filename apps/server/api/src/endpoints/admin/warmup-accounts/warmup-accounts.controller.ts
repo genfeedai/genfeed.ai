@@ -2,7 +2,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
+import { PrepareWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/prepare-warmup-account.dto';
 import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
+import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
@@ -33,6 +35,7 @@ export class WarmupAccountsController {
   constructor(
     private readonly warmupAccountsService: AdminWarmupAccountsService,
     private readonly loggerService: LoggerService,
+    private readonly preparationService: WarmupPreparationService,
   ) {}
 
   @Post()
@@ -159,6 +162,29 @@ export class WarmupAccountsController {
         this.loggerService,
         'revokeWarmupInvitation',
       );
+    }
+  }
+
+  @Post(':id/prepare')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Repair, fund, prepare or archive a warm-up workspace',
+  })
+  async prepare(
+    @Param('id') id: string,
+    @Body() dto: PrepareWarmupAccountDto,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const account = await this.preparationService.prepare(
+        id,
+        this.getActorUserId(user),
+        dto,
+      );
+      return serializeSingle(request, WarmupAccountSerializer, account);
+    } catch (error) {
+      return ErrorResponse.handle(error, this.loggerService, 'prepareWarmup');
     }
   }
 

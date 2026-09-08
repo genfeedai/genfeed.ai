@@ -155,6 +155,7 @@ export * from './core/sort.interface';
 export * from './creative/creative-pattern.interface';
 export * from './editor/editor-export-contract.interface';
 export * from './editor/editor-project.interface';
+export * from './editor/remotion-composition.interface';
 export * from './elements/asset.interface';
 export * from './elements/blacklist.interface';
 export * from './elements/camera.interface';

@@ -3,6 +3,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { CostReportingService } from '@api/endpoints/cost-reporting/cost-reporting.service';
 import {
   buildCostReportCsv,
+  buildUsageReportCsv,
   buildWorkflowCostCsv,
 } from '@api/endpoints/cost-reporting/cost-reporting-export.util';
 import {
@@ -138,6 +139,29 @@ export class CostReportingController {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Cost-Export-Limit', '10000');
     response.send(buildCostReportCsv(entries));
+  }
+
+  @Get('usage/export')
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  async exportUsageCsv(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Query() query: CostReportQueryDto,
+    @Res() response: Response,
+  ): Promise<void> {
+    const entries = await this.costReportingService.getExportEntries(
+      this.organizationId(request, user),
+      query,
+    );
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="generation-credits.csv"',
+    );
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Cost-Export-Limit', '10000');
+    response.send(buildUsageReportCsv(entries));
   }
 
   private organizationId(request: RequestWithContext, user: User): string {

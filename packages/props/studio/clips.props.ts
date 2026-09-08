@@ -10,6 +10,8 @@ import type {
   ClipSourceContract,
   ClipSourceKind,
   HookClipApprovalStatus,
+  IBrand,
+  IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
 
@@ -192,4 +194,29 @@ export interface HighlightReviewCardProps {
   onScriptEdit: (text: string) => void;
   projectId?: string;
   clipsService?: ClipsApiClient;
+}
+
+export type StudioClipIdentityField = 'avatar' | 'voice';
+
+export type StudioClipIdentitySource =
+  | 'brand'
+  | 'explicit'
+  | 'missing'
+  | 'organization';
+
+export interface StudioClipIdentityDefaults {
+  avatarId?: string;
+  avatarProvider: AvatarProvider;
+  isComplete: boolean;
+  missing: StudioClipIdentityField[];
+  source: StudioClipIdentitySource;
+  voiceId?: string;
+}
+
+export interface StudioClipIdentityContext {
+  selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
+  settings?: Pick<
+    IOrganizationSetting,
+    'defaultVoiceId' | 'defaultVoiceProvider' | 'defaultVoiceRef'
+  > | null;
 }

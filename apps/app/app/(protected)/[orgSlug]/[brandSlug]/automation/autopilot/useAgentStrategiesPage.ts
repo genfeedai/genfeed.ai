@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentStrategyPayload } from '@genfeedai/props/automation/agent-strategies-page.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
@@ -12,16 +13,11 @@ import type { AgentStrategyFormState } from '@props/automation/agent-strategies-
 import {
   AgentStrategiesService,
   type AgentStrategy,
-  type CreateAgentStrategyInput,
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-
-type AgentStrategyPayload = CreateAgentStrategyInput & {
-  isEnabled: boolean;
-};
 
 function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
   const preferredWorkflowTemplateId = preferredWorkflowTemplateIdForAgentType(

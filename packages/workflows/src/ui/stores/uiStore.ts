@@ -1,4 +1,3 @@
-import type { HandleType } from '@genfeedai/contracts/types';
 import { create } from 'zustand';
 
 export type ModalType =
@@ -20,7 +19,7 @@ export interface ConnectionDropMenuState {
   screenPosition: { x: number; y: number };
   sourceNodeId: string;
   sourceHandleId: string;
-  sourceHandleType: HandleType;
+  sourceHandleType: string;
 }
 
 interface UIStore {

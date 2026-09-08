@@ -4,6 +4,7 @@ import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outp
 export type ThreadAssetType = 'audio' | 'image' | 'video';
 
 export interface ThreadAsset {
+  assetId?: string;
   id: string;
   messageId: string;
   sourceActionId?: string;
@@ -15,8 +16,11 @@ export interface ThreadAsset {
 
 function addAsset(map: Map<string, ThreadAsset>, asset: ThreadAsset): void {
   const dedupeKey = `${asset.type}:${asset.url}`;
-  if (!map.has(dedupeKey)) {
+  const existing = map.get(dedupeKey);
+  if (!existing) {
     map.set(dedupeKey, asset);
+  } else if (!existing.assetId && asset.assetId) {
+    map.set(dedupeKey, { ...existing, assetId: asset.assetId });
   }
 }
 
@@ -33,6 +37,7 @@ export function extractThreadAssets(
 
       addAsset(assetsMap, {
         id: variant.id,
+        assetId: variant.assetId,
         messageId: group.messageId,
         sourceActionId: group.sourceActionId,
         thumbnailUrl: variant.thumbnailUrl,

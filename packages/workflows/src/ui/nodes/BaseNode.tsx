@@ -3,15 +3,13 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 
 import type {
-  HandleDefinition,
   NodeStatus,
   NodeType,
-  SelectedModel,
   VisualHandleDefinition,
   VisualNodeDefinition,
   WorkflowNodeData,
 } from '@genfeedai/contracts/types';
-import { NODE_DEFINITIONS, NodeStatusEnum } from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import {
   Handle,
@@ -97,7 +95,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { generateHandlesFromSchema } from '../lib/schemaHandles';
+import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { useExecutionStore } from '../stores/execution';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
@@ -214,10 +212,12 @@ const NODE_MIN_HEIGHT = 100;
 
 function BaseNodeResizer({
   color,
+  minHeight,
   state,
   type,
 }: {
   color: string;
+  minHeight: number;
   state: { isLocked: boolean; isSelected: boolean };
   type: string;
 }) {
@@ -225,9 +225,7 @@ function BaseNodeResizer({
     <NodeResizer
       isVisible={state.isSelected && !state.isLocked}
       minWidth={type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH}
-      minHeight={
-        type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT
-      }
+      minHeight={minHeight}
       maxWidth={NODE_RESIZER_MAX_WIDTH}
       lineClassName="!border-transparent"
       handleClassName="!w-2.5 !h-2.5 !border-0"
@@ -255,8 +253,9 @@ function BaseNodeHandles({
             type="target"
             position={Position.Left}
             id={input.id}
+            title={`${input.label ?? input.id} · ${input.type}${isDisabled ? ' · Unavailable for this model' : ''}`}
             isConnectableEnd={!isDisabled}
-            className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
+            className={clsx('!size-4', isDisabled && 'opacity-30')}
             style={{
               background: HANDLE_COLORS[input.type] ?? HANDLE_COLORS.text,
               top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,
@@ -271,8 +270,10 @@ function BaseNodeHandles({
           type="source"
           position={Position.Right}
           id={output.id}
-          className="!w-3 !h-3 handle-output"
+          className="!size-4 handle-output"
+          title={`${output.label ?? output.id} · ${output.type}`}
           style={{
+            background: HANDLE_COLORS[output.type] ?? 'var(--handle-output)',
             top: `${((index + 1) / (outputs.length + 1)) * 100}%`,
           }}
         />
@@ -318,9 +319,9 @@ function BaseNodeHeader({
 
   return (
     <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-      <Icon className="size-4 text-foreground" />
+      <Icon className="workflow-node-icon size-4 shrink-0" />
       {titleElement ?? (
-        <span className="flex-1 truncate text-sm font-medium text-left text-foreground">
+        <span className="min-w-0 flex-1 text-sm font-medium text-left text-foreground">
           {title ?? nodeLabel}
         </span>
       )}
@@ -470,7 +471,10 @@ function BaseNodeComponent({
     (state) => state.stopNodeExecution,
   );
   const updateNodeInternals = useUpdateNodeInternals();
-  const nodeDef = nodeDefinition ?? NODE_DEFINITIONS[type as NodeType];
+  const nodeDef = useMemo(
+    () => resolveWorkflowNodeDefinition(type, data, nodeDefinition),
+    [type, data, nodeDefinition],
+  );
   const nodeData = data as WorkflowNodeData;
 
   // Hover preview tooltip state
@@ -479,18 +483,7 @@ function BaseNodeComponent({
   const [showTooltip, setShowTooltip] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
-  // Generate dynamic handles from model schema (for AI nodes like imageGen, videoGen)
-  // Falls back to static handles from NODE_DEFINITIONS if no schema present
-  const selectedModel = (nodeData as { selectedModel?: SelectedModel })
-    .selectedModel;
-  const sortedInputs = useMemo(() => {
-    const staticInputs = nodeDef?.inputs ?? [];
-    if (!selectedModel?.inputSchema) return staticInputs;
-    return generateHandlesFromSchema(
-      selectedModel.inputSchema,
-      staticInputs as HandleDefinition[],
-    ) as VisualHandleDefinition[];
-  }, [nodeDef?.inputs, selectedModel?.inputSchema]);
+  const sortedInputs = nodeDef?.inputs ?? [];
 
   const _disabledInputsKey = disabledInputs?.join(',') ?? '';
   const handlesKey = useMemo(() => {
@@ -647,22 +640,27 @@ function BaseNodeComponent({
   const effectiveColor = customColor || categoryColor;
 
   const isProcessing = nodeData.status === 'processing';
+  const minNodeHeight = Math.max(
+    type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT,
+    (Math.max(sortedInputs.length, nodeDef.outputs.length) + 1) * 24,
+  );
 
   return (
     <>
       <BaseNodeResizer
         color={effectiveColor}
+        minHeight={minNodeHeight}
         state={{ isLocked, isSelected }}
         type={type}
       />
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col bg-card shadow-border hover:shadow-border-strong transition-all duration-200',
+          'workflow-node relative flex flex-col bg-card shadow-border hover:shadow-border-strong transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',
-          !isResized && type !== 'download' && 'min-w-[220px] max-w-[320px]',
+          !isResized && type !== 'download' && 'min-w-[280px] max-w-[360px]',
           isSelected && 'ring-1',
           isLocked && 'opacity-60',
           !isHighlighted && !isSelected && 'opacity-40',
@@ -677,6 +675,7 @@ function BaseNodeComponent({
             ...(isSelected && { '--tw-ring-color': effectiveColor }),
             // Node identity color on the border (custom color takes precedence)
             borderColor: customColor || effectiveColor,
+            minHeight: minNodeHeight,
             // When resized, use explicit dimensions
             ...(isResized && {
               height: height ? `${height}px` : undefined,
@@ -783,6 +782,9 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
   // Shallow compare data object - check key properties that affect rendering
   const prevData = prev.data as Record<string, unknown>;
   const nextData = next.data as Record<string, unknown>;
+
+  if (prevData.actionId !== nextData.actionId) return false;
+  if (prevData.selectedModel !== nextData.selectedModel) return false;
 
   // Status affects StatusIndicator and header stop/retry controls
   if (prevData.status !== nextData.status) return false;

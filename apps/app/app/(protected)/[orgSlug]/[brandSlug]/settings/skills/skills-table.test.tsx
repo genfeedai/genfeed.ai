@@ -40,7 +40,7 @@ describe('SkillsTable', () => {
       <SkillsTable
         enabledSlugs={['youtube-script-setup']}
         isLoading={false}
-        isTogglingSkill={false}
+        pendingSlugs={new Set()}
         onSkillSelect={vi.fn()}
         onToggleSkill={vi.fn()}
         skills={skillsFixture}
@@ -61,7 +61,7 @@ describe('SkillsTable', () => {
       <SkillsTable
         enabledSlugs={[]}
         isLoading={false}
-        isTogglingSkill={false}
+        pendingSlugs={new Set()}
         onSkillSelect={onSkillSelect}
         onToggleSkill={vi.fn()}
         skills={skillsFixture}
@@ -80,7 +80,7 @@ describe('SkillsTable', () => {
       <SkillsTable
         enabledSlugs={[]}
         isLoading={false}
-        isTogglingSkill={false}
+        pendingSlugs={new Set()}
         onSkillSelect={onSkillSelect}
         onToggleSkill={onToggleSkill}
         skills={skillsFixture}

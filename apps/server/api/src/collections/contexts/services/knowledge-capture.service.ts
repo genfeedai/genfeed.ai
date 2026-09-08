@@ -82,10 +82,48 @@ export class KnowledgeCaptureService {
   async capture(
     actor: KnowledgeActor,
     dto: CreateKnowledgeSourceDto,
+    idempotencyKey?: string,
   ): Promise<KnowledgeCaptureResult> {
     const hasPayload = Boolean(dto.text || dto.referenceUrl);
     if (hasPayload) {
       this.assertCapturable(dto.kind, dto);
+    }
+    if (idempotencyKey !== undefined) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(idempotencyKey)) {
+        throw new BadRequestException(
+          'Idempotency-Key must contain 8–128 letters, digits, dots, colons, underscores or hyphens',
+        );
+      }
+      if (!hasPayload)
+        throw new BadRequestException(
+          'Idempotent capture requires text or a reference URL',
+        );
+      const requestHash = hashKnowledgeContent(
+        JSON.stringify({
+          scope: dto.scope,
+          title: dto.title,
+          kind: dto.kind,
+          purpose: dto.purpose,
+          text: dto.text ?? null,
+          referenceUrl: dto.referenceUrl ?? null,
+          provenance: dto.provenance ?? null,
+        }),
+      );
+      const result = await this.records.createIdempotentCapture(
+        actor,
+        dto,
+        buildCaptureVersion(dto),
+        idempotencyKey,
+        requestHash,
+      );
+      if (result.version.processingState !== KnowledgeProcessingState.QUEUED)
+        return result;
+      const jobId = await this.ingestWorkflow.enqueueIngest({
+        organizationId: actor.organizationId,
+        sourceId: result.source.id,
+        versionId: result.version.id,
+      });
+      return { ...result, jobId };
     }
     const source = await this.records.createSource(actor, dto);
     if (!hasPayload) {

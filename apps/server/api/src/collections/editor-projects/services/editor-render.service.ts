@@ -169,7 +169,12 @@ export class EditorRenderService {
     return result;
   }
 
-  async render(id: string, orgId: string, user: User): Promise<RenderResult> {
+  async render(
+    id: string,
+    orgId: string,
+    user: User,
+    allowedStatuses?: EditorProjectStatus[],
+  ): Promise<RenderResult> {
     const projectForValidation = await this.editorProjectsService.findForRender(
       id,
       orgId,
@@ -193,14 +198,22 @@ export class EditorRenderService {
     const { brandId, contract } = await this.authorizeAndTrustAssets(
       validatedContract,
       orgId,
+      projectForValidation.config?.composition
+        ? (projectForValidation.brandId ?? undefined)
+        : undefined,
     );
 
     const jobId = randomUUID();
     const room = getUserRoomName(user.id);
-    await this.editorProjectsService.markAsRendering(id, orgId, {
-      ...contract,
-      queuedAt: new Date().toISOString(),
-    });
+    await this.editorProjectsService.markAsRendering(
+      id,
+      orgId,
+      {
+        ...contract,
+        queuedAt: new Date().toISOString(),
+      },
+      ...(allowedStatuses ? [allowedStatuses] : []),
+    );
 
     let outputIngredientId: string | undefined;
     let renderJob: IEditorRenderCorrelation | undefined;
@@ -208,7 +221,7 @@ export class EditorRenderService {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
-          brandId: brandId,
+          brandId: projectForValidation.brandId ?? brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: contract.snapshot.settings.height,
@@ -222,6 +235,18 @@ export class EditorRenderService {
 
       const ingredientId = ingredientData.id.toString();
       outputIngredientId = ingredientId;
+      const composition = projectForValidation.config?.composition
+        ? this.editorProjectsService.readProjectConfig(
+            projectForValidation.config.composition,
+          )
+        : {};
+      if (composition.id === 'product-story' && composition.version === '1') {
+        await this.ingredientsService.patch(ingredientId, {
+          generationSource: `remotion:${composition.id}@${composition.version}`,
+          modelUsed: contract.rendererVersion,
+          sourceActionId: 'remotion.composition.render',
+        });
+      }
       renderJob = {
         ingredientId,
         jobId,
@@ -279,6 +304,7 @@ export class EditorRenderService {
   private async authorizeAndTrustAssets(
     validatedContract: IValidatedEditorExportContract,
     organizationId: string,
+    requiredBrandId?: string,
   ): Promise<TrustedRenderContract> {
     const assetIds = Array.from(
       new Set(
@@ -291,6 +317,7 @@ export class EditorRenderService {
           id: { in: assetIds },
           isDeleted: false,
           organizationId: organizationId,
+          ...(requiredBrandId ? { brandId: requiredBrandId } : {}),
         },
       },
       { pagination: false },

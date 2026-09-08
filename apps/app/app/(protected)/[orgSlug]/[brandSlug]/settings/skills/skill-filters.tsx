@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { SkillFiltersProps } from '@props/settings/skills.props';
 import { Button } from '@ui/primitives/button';
-import { ghostSelectTriggerClassName } from '@ui/primitives/field-control';
+import { fieldControlClassName } from '@ui/primitives/field-control';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -39,7 +39,7 @@ export default function SkillFilters({
       <FormSearchbar
         ariaLabel={translate('filters.search.label')}
         className="w-48"
-        inputClassName="rounded-md border-0 bg-transparent text-xs shadow-none hover:bg-hover focus-visible:bg-hover"
+        inputClassName={`${fieldControlClassName} pl-10 pr-8`}
         onChange={(event) => onSearchQueryChange(event.target.value)}
         placeholder={translate('filters.search.placeholder')}
         size={ComponentSize.SM}
@@ -49,7 +49,7 @@ export default function SkillFilters({
       <Select onValueChange={onSourceFilterChange} value={sourceFilter}>
         <SelectTrigger
           aria-label={translate('filters.source.label')}
-          className={ghostSelectTriggerClassName}
+          className="h-8 w-32"
         >
           <SelectValue />
         </SelectTrigger>
@@ -65,7 +65,7 @@ export default function SkillFilters({
       <Select onValueChange={onModalityFilterChange} value={modalityFilter}>
         <SelectTrigger
           aria-label={translate('filters.modality.label')}
-          className={ghostSelectTriggerClassName}
+          className="h-8 w-32"
         >
           <SelectValue />
         </SelectTrigger>
@@ -81,7 +81,7 @@ export default function SkillFilters({
       <Select onValueChange={onStageFilterChange} value={stageFilter}>
         <SelectTrigger
           aria-label={translate('filters.stage.label')}
-          className={ghostSelectTriggerClassName}
+          className="h-8 w-32"
         >
           <SelectValue />
         </SelectTrigger>

@@ -29,7 +29,7 @@ import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 export interface UserSetupProfile {
   email?: string | null;
@@ -219,6 +219,23 @@ export class UserSetupService {
     });
 
     if (existing) {
+      if (existing.isProactiveOnboarding) {
+        const pendingHandoff = await this.organizationsService.findOne({
+          id: existing.id,
+          isDeleted: false,
+          warmupAccounts: {
+            some: {
+              customerUserId: userId,
+              isDeleted: false,
+              status: { not: 'CLAIMED' },
+            },
+          },
+        });
+        if (pendingHandoff)
+          throw new ForbiddenException(
+            'Accept the prepared workspace invitation before continuing',
+          );
+      }
       this.logger.warn(
         `Organization already exists for user ${userId}`,
         this.context,

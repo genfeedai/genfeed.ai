@@ -85,7 +85,7 @@ export class ArticlesController extends BaseCRUDController<
         brandId: scope.brandId ?? user.brandId,
         isDeleted: query.isDeleted ?? false,
         organizationId: scope.organizationId ?? user.organizationId,
-        userId: user.userId ?? user.id,
+        OR: [{ userId: user.userId ?? user.id }, { scope: 'ORGANIZATION' }],
       },
     );
   }
@@ -112,6 +112,8 @@ export class ArticlesController extends BaseCRUDController<
         isDeleted: false,
         ...(!isSuperAdmin && {
           organizationId: user.organizationId.toString(),
+          ...(user.brandId ? { brandId: user.brandId } : {}),
+          OR: [{ userId: user.userId ?? user.id }, { scope: 'ORGANIZATION' }],
         }),
       },
     };

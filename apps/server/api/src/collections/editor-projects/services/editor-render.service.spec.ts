@@ -93,6 +93,7 @@ describe('EditorRenderService', () => {
     markAsRendering: ReturnType<typeof vi.fn>;
     readRenderProvenance: ReturnType<typeof vi.fn>;
     readStatus: ReturnType<typeof vi.fn>;
+    readProjectConfig: ReturnType<typeof vi.fn>;
   };
   let fileQueueService: {
     cancelEditorRender: ReturnType<typeof vi.fn>;
@@ -122,6 +123,7 @@ describe('EditorRenderService', () => {
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
       readRenderProvenance: vi.fn(),
       readStatus: vi.fn(),
+      readProjectConfig: vi.fn((value) => value ?? {}),
     };
     fileQueueService = {
       cancelEditorRender: vi.fn().mockResolvedValue({
@@ -224,6 +226,36 @@ describe('EditorRenderService', () => {
         }),
         type: 'render-editor-composition',
       }),
+    );
+  });
+
+  it('rechecks composition asset brand before enqueueing and records output provenance', async () => {
+    editorProjectsService.findForRender.mockResolvedValue({
+      ...makeProject([makeTrack(EditorTrackType.VIDEO)]),
+      brandId: 'brand-123',
+      config: { composition: { id: 'product-story', version: '1' } },
+    });
+    await service.render(projectId, organizationId, user);
+    expect(ingredientsService.findAll).toHaveBeenCalledWith(
+      {
+        where: {
+          id: { in: [videoIngredientId] },
+          isDeleted: false,
+          organizationId,
+          brandId: 'brand-123',
+        },
+      },
+      { pagination: false },
+      false,
+    );
+    expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
+      generationSource: 'remotion:product-story@1',
+      modelUsed: EDITOR_RENDERER_VERSION,
+      sourceActionId: 'remotion.composition.render',
+    });
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      user,
+      expect.objectContaining({ brandId: 'brand-123' }),
     );
   });
 

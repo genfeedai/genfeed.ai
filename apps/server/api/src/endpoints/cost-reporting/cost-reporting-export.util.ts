@@ -102,3 +102,29 @@ export function buildWorkflowCostCsv(
     ),
   ].join('\n');
 }
+
+export function buildUsageReportCsv(entries: ICostReportEntry[]): string {
+  const headers = [
+    'created_at',
+    'entry_type',
+    'brand',
+    'model',
+    'credits_used',
+  ];
+  return [
+    headers.join(','),
+    ...entries.map((entry) =>
+      [
+        entry.createdAt,
+        entry.entryType,
+        entry.brandLabel,
+        entry.model?.split('/').filter(Boolean).at(-1) ?? null,
+        entry.entryType === 'credit' || entry.creditsUsed > 0
+          ? entry.creditsUsed
+          : null,
+      ]
+        .map(csvCell)
+        .join(','),
+    ),
+  ].join('\n');
+}

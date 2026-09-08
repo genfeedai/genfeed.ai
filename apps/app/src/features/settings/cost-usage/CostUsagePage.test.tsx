@@ -7,10 +7,13 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { mockExportCsv, mockUseQuery } = vi.hoisted(() => ({
-  mockExportCsv: vi.fn(),
-  mockUseQuery: vi.fn(),
-}));
+const { mockExportUsageCsv, mockGetEntriesPage, mockUseQuery } = vi.hoisted(
+  () => ({
+    mockExportUsageCsv: vi.fn(),
+    mockGetEntriesPage: vi.fn(),
+    mockUseQuery: vi.fn(),
+  }),
+);
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -24,7 +27,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    exportCsv: mockExportCsv,
+    exportUsageCsv: mockExportUsageCsv,
+    getEntriesPage: mockGetEntriesPage,
   }),
 }));
 
@@ -45,7 +49,7 @@ vi.mock('@services/core/notifications.service', () => ({
 describe('CostUsagePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockExportCsv.mockResolvedValue(new ArrayBuffer(4));
+    mockExportUsageCsv.mockResolvedValue(new ArrayBuffer(4));
     mockUseQuery.mockImplementation((options: { queryKey: unknown[] }) => {
       if (String(options.queryKey[0]).includes('summary')) {
         return {
@@ -84,23 +88,31 @@ describe('CostUsagePage', () => {
       }
 
       return {
-        data: [
-          {
-            brandId: 'brand-1',
-            brandLabel: 'Demo',
-            category: 'image',
-            createdAt: '2026-08-20T10:00:00.000Z',
-            creditsUsed: 0,
-            entryType: 'media',
-            id: 'media-1',
-            isByok: false,
-            model: 'flux-schnell',
-            provider: 'replicate',
-            providerCostMicros: 125_000,
-            providerCostUsd: 0.125,
-            referenceId: 'ingredient-1',
-          },
-        ],
+        data:
+          options.queryKey[0] === 'settings-workflow-costs'
+            ? []
+            : {
+                total: 53,
+                limit: 25,
+                skip: 0,
+                docs: [
+                  {
+                    brandId: 'brand-1',
+                    brandLabel: 'Demo',
+                    category: 'image',
+                    createdAt: '2026-08-20T10:00:00.000Z',
+                    creditsUsed: 0,
+                    entryType: 'media',
+                    id: 'media-1',
+                    isByok: false,
+                    model: 'black-forest-labs/flux-schnell',
+                    provider: 'replicate',
+                    providerCostMicros: 125_000,
+                    providerCostUsd: 0.125,
+                    referenceId: 'ingredient-1',
+                  },
+                ],
+              },
         error: null,
         isFetching: false,
         isLoading: false,
@@ -109,43 +121,63 @@ describe('CostUsagePage', () => {
     });
   });
 
-  it('shows organization cost, credits, per-brand split, and ledger', () => {
+  it('shows credit usage and charts without vendor accounting', () => {
     render(<CostUsagePage />);
-
+    expect(screen.getByRole('heading', { name: 'Usage' })).toBeInTheDocument();
+    expect(screen.getAllByText('18.5 GEN').length).toBeGreaterThan(0);
     expect(
-      screen.getByRole('heading', { name: 'Cost & Usage' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('Provider cost').length).toBeGreaterThan(0);
-    expect(screen.getByText('$2.75', { selector: 'p' })).toBeInTheDocument();
-    expect(screen.getByText('$2.75', { selector: 'td' })).toBeInTheDocument();
-    expect(screen.getAllByText('Credits used').length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('heading', { name: 'Cost split by brand' }),
+      screen.getByRole('heading', { name: 'Daily credit burn (GEN)' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Generation ledger' }),
+      screen.getByRole('heading', { name: 'Daily generations' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText('Showing up to the newest 100 entries.'),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/provider|\$2.75|BYOK/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('flux-schnell')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Brand')).toBeInTheDocument();
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryKey: [
-          'settings-cost-summary',
-          'organization-1',
-          expect.any(Object),
-        ],
-      }),
+  });
+
+  it('paginates the ledger and resets the page when the brand changes', async () => {
+    const { rerender } = render(<CostUsagePage lockedBrandId="brand-1" />);
+    fireEvent.mouseDown(
+      screen.getByRole('tab', { name: 'Generations', exact: true }),
+      { button: 0, ctrlKey: false },
     );
+    expect(screen.getByText('flux-schnell')).toBeInTheDocument();
+    expect(screen.getByText('Not recorded')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/replicate|black-forest-labs|\$0.125/i),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: /next page/i }));
     expect(mockUseQuery).toHaveBeenCalledWith(
       expect.objectContaining({
         queryKey: [
           'settings-cost-entries',
           'organization-1',
           expect.any(Object),
+          2,
         ],
       }),
+    );
+    const pageQuery = mockUseQuery.mock.calls.findLast(
+      ([options]) => options.queryKey[0] === 'settings-cost-entries',
+    )?.[0];
+    await pageQuery.queryFn();
+    expect(mockGetEntriesPage).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1', limit: 25, skip: 25 }),
+    );
+    mockUseQuery.mockClear();
+    rerender(<CostUsagePage lockedBrandId="brand-2" />);
+    await waitFor(() =>
+      expect(mockUseQuery).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: [
+            'settings-cost-entries',
+            'organization-1',
+            expect.objectContaining({ brandId: 'brand-2' }),
+            1,
+          ],
+        }),
+      ),
     );
   });
 
@@ -164,12 +196,12 @@ describe('CostUsagePage', () => {
     render(<CostUsagePage lockedBrandId="brand-1" />);
 
     expect(screen.queryByLabelText('Brand')).not.toBeInTheDocument();
-    expect(screen.getByText('Demo brand costs')).toBeInTheDocument();
+    expect(screen.queryByText('Provider cost')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: /Export credits/i }));
 
     await waitFor(() => {
-      expect(mockExportCsv).toHaveBeenCalledWith(
+      expect(mockExportUsageCsv).toHaveBeenCalledWith(
         expect.objectContaining({ brandId: 'brand-1' }),
       );
     });

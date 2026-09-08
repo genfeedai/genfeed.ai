@@ -1124,28 +1124,14 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',
-        items: expect.arrayContaining([
-          expect.objectContaining({ href: '/messages', label: 'Inbox' }),
-          expect.objectContaining({
-            href: '/messages/outreach',
-            label: 'Outreach sequences',
-          }),
-          expect.objectContaining({
-            href: '/messages/replies',
-            label: 'Replies',
-          }),
-          expect.objectContaining({
-            href: '/messages/reply-drip',
-            label: 'Reply drip',
-          }),
-        ]),
+        items: [],
         sectionLabel: 'Messages',
       }),
     );
     expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
         renderBody: expect.any(Function),
-        showPrimaryItems: true,
+        showPrimaryItems: false,
       }),
     );
     expect(

@@ -70,4 +70,31 @@ describe('CostReportingController', () => {
       expect.stringContaining('created_at,entry_type'),
     );
   });
+  it('scopes the customer export and sends only credit fields', async () => {
+    costReportingService.getExportEntries.mockResolvedValue([]);
+    const response = {
+      send: vi.fn(),
+      setHeader: vi.fn(),
+    } as unknown as Response;
+    await controller.exportUsageCsv(
+      {
+        context: { organizationId: 'org-from-context' },
+        originalUrl: '/costs/usage/export',
+      } as RequestWithContext,
+      user,
+      { brandId: 'brand-2', from: '2026-09-01', to: '2026-09-08' },
+      response,
+    );
+    expect(costReportingService.getExportEntries).toHaveBeenCalledWith(
+      'org-from-context',
+      { brandId: 'brand-2', from: '2026-09-01', to: '2026-09-08' },
+    );
+    expect(response.setHeader).toHaveBeenCalledWith(
+      'X-Cost-Export-Limit',
+      '10000',
+    );
+    expect(response.send).toHaveBeenCalledWith(
+      'created_at,entry_type,brand,model,credits_used',
+    );
+  });
 });

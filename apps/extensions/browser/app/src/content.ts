@@ -349,10 +349,13 @@ document.addEventListener('keydown', (event: KeyboardEvent) => {
 
   if (key === 'i') {
     event.preventDefault();
-    const content = getSelectedText() || document.title;
     chrome.runtime.sendMessage({
       event: 'SHORTCUT_IDEA',
-      payload: { content, url: window.location.href },
+      payload: {
+        content: '',
+        url: window.location.href,
+        captureMode: getSelectedText() ? 'selection' : 'page',
+      },
     });
   }
 });

@@ -1,6 +1,8 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "@genfeedai/ui/web-tokens.css";
 @import "./styles/theme.css";
+
+@source "./";
 
 /* Theme preferences are explicit extension state, so dark utilities must
    follow the resolved data-theme instead of the host operating-system media. */

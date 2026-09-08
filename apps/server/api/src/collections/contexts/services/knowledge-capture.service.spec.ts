@@ -21,6 +21,7 @@ const base = {
 
 function buildService() {
   const records = {
+    createIdempotentCapture: vi.fn(),
     createSource: vi.fn().mockResolvedValue({ id: 'source-1' }),
     createVersion: vi.fn().mockResolvedValue({ id: 'version-1', version: 1 }),
     getCurrentVersion: vi.fn(),
@@ -79,6 +80,59 @@ describe('KnowledgeCaptureService', () => {
       source: { id: 'source-1' },
       version: { id: 'version-1', version: 1 },
     });
+  });
+
+  it('uses an atomic capture receipt and requeues the same queued version after a lost response', async () => {
+    const { service, records, workflow } = buildService();
+    records.createIdempotentCapture.mockResolvedValue({
+      source: { id: 'source-1' },
+      version: { id: 'version-1', processingState: 'QUEUED' },
+    });
+    const dto = { ...base, text: 'Evidence' };
+    await service.capture(actor, dto, 'capture-key-123');
+    await service.capture(actor, dto, 'capture-key-123');
+    expect(records.createSource).not.toHaveBeenCalled();
+    expect(records.createVersion).not.toHaveBeenCalled();
+    expect(records.createIdempotentCapture).toHaveBeenCalledWith(
+      actor,
+      dto,
+      expect.any(Object),
+      'capture-key-123',
+      expect.stringMatching(/^sha256:/),
+    );
+    expect(workflow.enqueueIngest).toHaveBeenNthCalledWith(2, {
+      organizationId: 'org-1',
+      sourceId: 'source-1',
+      versionId: 'version-1',
+    });
+  });
+
+  it('does not restart processing or completed captures when the receipt is retried', async () => {
+    const { service, records, workflow } = buildService();
+    for (const processingState of ['PROCESSING', 'READY', 'FAILED']) {
+      records.createIdempotentCapture.mockResolvedValue({
+        source: { id: 'source-1' },
+        version: { id: 'version-1', processingState },
+      });
+      await service.capture(
+        actor,
+        { ...base, text: 'Evidence' },
+        'capture-key-123',
+      );
+    }
+    expect(workflow.enqueueIngest).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed capture keys and metadata-only idempotency before writing', async () => {
+    const { service, records } = buildService();
+    await expect(
+      service.capture(actor, { ...base, text: 'Evidence' }, 'bad key'),
+    ).rejects.toThrow('Idempotency-Key');
+    await expect(
+      service.capture(actor, base, 'capture-key-123'),
+    ).rejects.toThrow('requires text');
+    expect(records.createSource).not.toHaveBeenCalled();
+    expect(records.createIdempotentCapture).not.toHaveBeenCalled();
   });
 
   it('creates a metadata-only source when nothing is captured', async () => {

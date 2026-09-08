@@ -22,6 +22,9 @@ export function BrandSelector(): ReactElement {
 
   function handleChange(value: string) {
     setActiveBrand(value || null);
+    void chrome.runtime
+      .sendMessage({ event: 'captureSetBrand', brandId: value })
+      .catch(() => undefined);
   }
 
   if (brands.length === 0) {

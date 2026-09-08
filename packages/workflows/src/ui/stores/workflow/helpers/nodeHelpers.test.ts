@@ -25,8 +25,9 @@ describe('generateId', () => {
 });
 
 describe('getHandleType', () => {
-  it('returns correct type for known source handle (imageGen → imageUrl)', () => {
-    expect(getHandleType('imageGen', 'imageUrl', 'source')).toBe('image');
+  it('returns correct type for the rendered core imageGen image output', () => {
+    expect(getHandleType('imageGen', 'image', 'source')).toBe('image');
+    expect(getHandleType('imageGen', 'imageUrl', 'source')).toBeNull();
   });
 
   it('returns correct type for known target handle (imageGen → prompt)', () => {
@@ -49,5 +50,50 @@ describe('getHandleType', () => {
 
   it('returns text type for llm node text output', () => {
     expect(getHandleType('llm', 'text', 'source')).toBe('text');
+  });
+
+  it('resolves the actual action handles instead of generic action ports', () => {
+    const data = { actionId: 'remotion.composition.status' };
+    expect(getHandleType('genfeedAction', 'projectId', 'target', data)).toBe(
+      'text',
+    );
+    expect(getHandleType('genfeedAction', 'progress', 'source', data)).toBe(
+      'number',
+    );
+    expect(getHandleType('genfeedAction', 'input', 'target', data)).toBeNull();
+    expect(getHandleType('genfeedAction', 'output', 'source', data)).toBeNull();
+  });
+
+  it('resolves registered trigger handles and rejects unknown actions', () => {
+    expect(getHandleType('keywordTrigger', 'text', 'source')).toBe('text');
+    expect(
+      getHandleType('genfeedAction', 'input', 'target', {
+        actionId: 'missing',
+      }),
+    ).toBeNull();
+  });
+
+  it('resolves additional visible model inputs while preserving action field types', () => {
+    const data = {
+      actionId: 'remotion.composition.status',
+      selectedModel: {
+        inputSchema: {
+          properties: {
+            image: { type: 'string' },
+            projectId: { type: 'number' },
+            arbitraryField: { type: 'string' },
+          },
+        },
+      },
+    };
+    expect(getHandleType('genfeedAction', 'image', 'target', data)).toBe(
+      'image',
+    );
+    expect(getHandleType('genfeedAction', 'projectId', 'target', data)).toBe(
+      'text',
+    );
+    expect(
+      getHandleType('genfeedAction', 'arbitraryField', 'target', data),
+    ).toBeNull();
   });
 });

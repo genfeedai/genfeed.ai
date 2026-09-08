@@ -12,15 +12,16 @@ import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { CostsService } from '@services/billing/costs.service';
-import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import AppTable from '@ui/display/table/Table';
+import Container from '@ui/layout/container/Container';
+import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
-import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -30,48 +31,61 @@ import {
 } from '@ui/primitives/select';
 import { Text } from '@ui/typography/text';
 import { Download, RefreshCw } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  buildUsageRowsCsv,
+  usageDailySeries,
+  usageModelLabel,
+} from '@/features/settings/cost-usage/usage-report.util';
 
+const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
+  ssr: false,
+});
+const Area = dynamic(() => import('recharts').then((m) => m.Area), {
+  ssr: false,
+});
+const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), {
+  ssr: false,
+});
+const Bar = dynamic(() => import('recharts').then((m) => m.Bar), {
+  ssr: false,
+});
+const CartesianGrid = dynamic(
+  () => import('recharts').then((m) => m.CartesianGrid),
+  { ssr: false },
+);
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), {
+  ssr: false,
+});
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), {
+  ssr: false,
+});
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
+  ssr: false,
+});
+
+const PAGE_SIZE = 25;
 const ALL_BRANDS_VALUE = '__all_brands__';
-const DEFAULT_RANGE_DAYS = 30;
 
 interface CostUsagePageProps {
   lockedBrandId?: string;
 }
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat(undefined, {
-    currency: 'USD',
-    maximumFractionDigits: 6,
-    minimumFractionDigits: 2,
-    style: 'currency',
-  }).format(value);
-}
-
 function formatCredits(value: number): string {
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2,
-  }).format(value);
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
-function buildDateQuery(days: number): Pick<ICostReportQuery, 'from' | 'to'> {
-  const to = new Date();
-  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function downloadCsv(data: ArrayBuffer): void {
+function downloadCsv(csv: string | ArrayBuffer, filename: string): void {
   const url = window.URL.createObjectURL(
-    new Blob([data], { type: 'text/csv;charset=utf-8' }),
+    new Blob([csv], { type: 'text/csv;charset=utf-8' }),
   );
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'generation-costs.csv';
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -80,396 +94,406 @@ function downloadCsv(data: ArrayBuffer): void {
 
 export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const translate = useTranslations('pages.costUsage');
-  const { brands, isReady, organizationId, selectedBrand } = useBrand();
+  const { brands, isReady, organizationId } = useBrand();
   const [selectedBrandId, setSelectedBrandId] = useState('');
-  const [rangeDays, setRangeDays] = useState(DEFAULT_RANGE_DAYS);
+  const [rangeDays, setRangeDays] = useState(30);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [pageState, setPageState] = useState({ scope: '', page: 1 });
   const [isExporting, setIsExporting] = useState(false);
   const effectiveBrandId = lockedBrandId ?? selectedBrandId;
-  const dateQuery = useMemo(() => buildDateQuery(rangeDays), [rangeDays]);
-  const reportQuery = useMemo<ICostReportQuery>(
-    () => ({
-      ...dateQuery,
+  const reportQuery = useMemo<ICostReportQuery>(() => {
+    const to = new Date();
+    return {
+      from: new Date(to.getTime() - rangeDays * 86_400_000).toISOString(),
+      to: to.toISOString(),
       ...(effectiveBrandId ? { brandId: effectiveBrandId } : {}),
-    }),
-    [dateQuery, effectiveBrandId],
-  );
-  const lockedBrand =
-    selectedBrand?.id === lockedBrandId
-      ? selectedBrand
-      : brands.find((brand) => brand.id === lockedBrandId);
-
+    };
+  }, [rangeDays, effectiveBrandId]);
+  const scope = `${organizationId}:${effectiveBrandId}:${rangeDays}`;
+  const page = pageState.scope === scope ? pageState.page : 1;
+  useEffect(() => setPageState({ scope, page: 1 }), [scope]);
   const getCostsService = useAuthedService(
     useCallback((token: string) => CostsService.getInstance(token), []),
   );
   const canLoad = isReady && (!lockedBrandId || Boolean(effectiveBrandId));
-
   const summaryQuery = useQuery({
     enabled: canLoad,
-    queryFn: async () => {
-      const service = await getCostsService();
-      return service.getSummary(reportQuery);
-    },
     queryKey: ['settings-cost-summary', organizationId, reportQuery],
+    queryFn: async () => (await getCostsService()).getSummary(reportQuery),
   });
   const entriesQuery = useQuery({
-    enabled: canLoad,
-    queryFn: async () => {
-      const service = await getCostsService();
-      return service.getEntries({ ...reportQuery, limit: 100, skip: 0 });
-    },
-    queryKey: ['settings-cost-entries', organizationId, reportQuery],
+    enabled: canLoad && activeTab === 'generations',
+    queryKey: ['settings-cost-entries', organizationId, reportQuery, page],
+    queryFn: async () =>
+      (await getCostsService()).getEntriesPage({
+        ...reportQuery,
+        limit: PAGE_SIZE,
+        skip: (page - 1) * PAGE_SIZE,
+      }),
   });
-
   const workflowsQuery = useQuery({
-    enabled: canLoad,
+    enabled: canLoad && activeTab === 'workflows',
     queryKey: ['settings-workflow-costs', organizationId, reportQuery],
     queryFn: async () => (await getCostsService()).getWorkflows(reportQuery),
   });
-  const workflowColumns: TableColumn<WorkflowCostReportExecution>[] = [
-    {
-      header: translate('workflowAccounting.providerCost'),
-      key: 'actualProviderCostMicros',
-      render: (row) =>
-        row.accounting?.actualProviderCostMicros == null
-          ? translate('workflowAccounting.unavailable')
-          : `$${(row.accounting.actualProviderCostMicros / 1_000_000).toFixed(6)}`,
-    },
-    { header: translate('workflowAccounting.execution'), key: 'id' },
-    {
-      header: translate('workflowAccounting.estimatedCredits'),
-      key: 'estimatedCredits',
-      render: (row) =>
-        row.accounting?.estimatedCredits ??
-        translate('workflowAccounting.unavailable'),
-    },
-    {
-      header: translate('workflowAccounting.actualCredits'),
-      key: 'actualCredits',
-      render: (row) =>
-        row.accounting?.actualCredits ??
-        (row.accounting
-          ? translate('workflowAccounting.known', {
-              value: row.accounting.knownActualCredits,
-            })
-          : translate('workflowAccounting.unavailable')),
-    },
-    {
-      header: translate('workflowAccounting.variance'),
-      key: 'varianceCredits',
-      render: (row) =>
-        row.accounting?.varianceCredits ??
-        translate('workflowAccounting.unavailable'),
-    },
-  ];
-  const exportWorkflows = async () => {
+  const summary = summaryQuery.data;
+  const daily = useMemo(
+    () =>
+      summary ? usageDailySeries(summary.daily, summary.from, summary.to) : [],
+    [summary],
+  );
+  const activeQuery =
+    activeTab === 'generations'
+      ? entriesQuery
+      : activeTab === 'workflows'
+        ? workflowsQuery
+        : summaryQuery;
+  const loadError = activeQuery.error;
+  const refresh = () => {
+    void summaryQuery.refetch();
+    if (activeTab === 'generations') void entriesQuery.refetch();
+    if (activeTab === 'workflows') void workflowsQuery.refetch();
+  };
+  const exportReport = async () => {
+    setIsExporting(true);
     try {
-      downloadCsv(await (await getCostsService()).exportWorkflows(reportQuery));
-    } catch (error) {
-      NotificationsService.getInstance().error(
-        errorMessage(error, 'Workflow export failed'),
+      const service = await getCostsService();
+      if (activeTab === 'workflows') {
+        const rows = await service.getWorkflows(reportQuery);
+        downloadCsv(
+          buildUsageRowsCsv([
+            ['Execution', 'Credits used'],
+            ...rows.map((row) => [row.id, row.accounting?.actualCredits ?? '']),
+          ]),
+          'workflow-credits.csv',
+        );
+      } else {
+        downloadCsv(
+          await service.exportUsageCsv(reportQuery),
+          'generation-credits.csv',
+        );
+      }
+      NotificationsService.getInstance().success(
+        translate('notifications.exported'),
       );
+    } catch {
+      NotificationsService.getInstance().error(translate('errors.export'));
+    } finally {
+      setIsExporting(false);
     }
   };
-  const summary = summaryQuery.data;
-  const isLoading = summaryQuery.isLoading || entriesQuery.isLoading;
-  const isRefreshing =
-    (summaryQuery.isFetching || entriesQuery.isFetching) && !isLoading;
-  const loadError =
-    summaryQuery.error ?? entriesQuery.error ?? workflowsQuery.error;
-
-  const brandColumns: TableColumn<ICostReportBrandTotals>[] = [
-    { header: translate('tables.headers.brand'), key: 'brandLabel' },
-    {
-      header: translate('tables.headers.providerCost'),
-      key: 'providerCostUsd',
-      render: (row) => formatCurrency(row.providerCostUsd),
-    },
-    {
-      header: translate('tables.headers.creditsUsed'),
-      key: 'creditsUsed',
-      render: (row) => formatCredits(row.creditsUsed),
-    },
-    {
-      header: translate('tables.headers.generations'),
-      key: 'generationCount',
-      render: (row) => row.generationCount.toLocaleString(),
-    },
-    {
-      header: translate('tables.headers.byok'),
-      key: 'byokCount',
-      render: (row) => row.byokCount.toLocaleString(),
-    },
-  ];
-
+  const creditValue = (row: ICostReportEntry) =>
+    row.entryType === 'credit' || row.creditsUsed > 0
+      ? `${formatCredits(row.creditsUsed)} GEN`
+      : translate('notRecorded');
   const entryColumns: TableColumn<ICostReportEntry>[] = [
     {
       header: translate('tables.headers.when'),
       key: 'createdAt',
       render: (row) => formatDate(new Date(row.createdAt)),
     },
-    { header: translate('tables.headers.type'), key: 'entryType' },
-    { header: translate('tables.headers.brand'), key: 'brandLabel' },
     {
-      header: translate('tables.headers.providerModel'),
-      key: 'provider',
-      render: (row) =>
-        [row.provider, row.model].filter(Boolean).join(' / ') || '—',
+      header: translate('tables.headers.type'),
+      key: 'entryType',
+      render: (row) => translate(`entryTypes.${row.entryType}`),
+    },
+    ...(!lockedBrandId
+      ? [{ header: translate('tables.headers.brand'), key: 'brandLabel' }]
+      : []),
+    {
+      header: translate('tables.headers.model'),
+      key: 'model',
+      render: (row) => usageModelLabel(row.model),
     },
     {
-      header: translate('tables.headers.providerCost'),
-      key: 'providerCostUsd',
-      render: (row) =>
-        row.providerCostMicros > 0 ? formatCurrency(row.providerCostUsd) : '—',
-    },
-    {
-      header: translate('tables.headers.credits'),
+      header: translate('tables.headers.creditsUsed'),
       key: 'creditsUsed',
-      render: (row) =>
-        row.creditsUsed > 0 ? formatCredits(row.creditsUsed) : '—',
-    },
-    {
-      header: translate('tables.headers.byok'),
-      key: 'isByok',
-      render: (row) => (row.isByok ? translate('yes') : '—'),
+      render: creditValue,
     },
   ];
-
-  const refresh = () => {
-    void summaryQuery.refetch();
-    void entriesQuery.refetch();
-    void workflowsQuery.refetch();
-  };
-
-  const exportReport = async () => {
-    setIsExporting(true);
-    try {
-      const service = await getCostsService();
-      downloadCsv(await service.exportCsv(reportQuery));
-      NotificationsService.getInstance().success(
-        translate('notifications.exported'),
-      );
-    } catch (error) {
-      logger.error('Failed to export cost report', {
-        error,
-        message: errorMessage(error, translate('errors.unknown')),
-      });
-      NotificationsService.getInstance().error(translate('errors.export'));
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!loadError) return;
-    logger.error('Failed to load cost report', {
-      error: loadError,
-      message: errorMessage(loadError, translate('errors.unknown')),
-    });
-    NotificationsService.getInstance().error(translate('errors.load'));
-  }, [loadError, translate]);
+  const brandColumns: TableColumn<ICostReportBrandTotals>[] = [
+    { header: translate('tables.headers.brand'), key: 'brandLabel' },
+    {
+      header: translate('tables.headers.creditsUsed'),
+      key: 'creditsUsed',
+      render: (row) => `${formatCredits(row.creditsUsed)} GEN`,
+    },
+    { header: translate('tables.headers.generations'), key: 'generationCount' },
+  ];
+  const workflowColumns: TableColumn<WorkflowCostReportExecution>[] = [
+    { header: translate('workflowAccounting.execution'), key: 'id' },
+    {
+      header: translate('tables.headers.creditsUsed'),
+      key: 'actualCredits',
+      render: (row) =>
+        row.accounting?.actualCredits == null
+          ? translate('notRecorded')
+          : `${formatCredits(row.accounting.actualCredits)} GEN`,
+    },
+  ];
+  const totalEntries = entriesQuery.data?.total ?? 0;
 
   return (
-    <div className="flex flex-col gap-4 pb-10">
-      <h1 className="sr-only">{translate('title')}</h1>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Text as="h2" size="lg" weight="semibold">
-            {lockedBrandId
-              ? translate('brandTitle', {
-                  brand: lockedBrand?.label ?? translate('brandFallback'),
-                })
-              : translate('organizationTitle')}
-          </Text>
-          <Text size="sm" color="muted">
-            {translate('description')}
-          </Text>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="min-w-36">
-            <Label htmlFor="cost-filter-range" className="sr-only">
-              {translate('filters.dateRange')}
-            </Label>
+    <Container
+      label={translate('title')}
+      titleVisibility="sr-only"
+      headerTabs={{
+        activeTab,
+        onTabChange: setActiveTab,
+        fullWidth: false,
+        tabs: ['overview', 'generations', 'workflows'].map((id) => ({
+          id,
+          label: translate(`tabs.${id}`),
+        })),
+      }}
+      right={
+        <>
+          <Select
+            value={String(rangeDays)}
+            onValueChange={(value) => setRangeDays(Number(value))}
+          >
+            <SelectTrigger
+              className="h-8 w-36"
+              aria-label={translate('filters.dateRange')}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[7, 30, 90, 366].map((days) => (
+                <SelectItem key={days} value={String(days)}>
+                  {translate('filters.lastDays', { days })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!lockedBrandId ? (
             <Select
-              value={String(rangeDays)}
-              onValueChange={(value) => setRangeDays(Number(value))}
+              value={selectedBrandId || ALL_BRANDS_VALUE}
+              onValueChange={(value) =>
+                setSelectedBrandId(value === ALL_BRANDS_VALUE ? '' : value)
+              }
             >
               <SelectTrigger
-                id="cost-filter-range"
-                className="h-9 min-w-36"
-                aria-label={translate('filters.dateRange')}
+                className="h-8 w-40"
+                aria-label={translate('filters.brand')}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7">
-                  {translate('filters.lastDays', { days: 7 })}
+                <SelectItem value={ALL_BRANDS_VALUE}>
+                  {translate('filters.allBrands')}
                 </SelectItem>
-                <SelectItem value="30">
-                  {translate('filters.lastDays', { days: 30 })}
-                </SelectItem>
-                <SelectItem value="90">
-                  {translate('filters.lastDays', { days: 90 })}
-                </SelectItem>
-                <SelectItem value="366">
-                  {translate('filters.lastDays', { days: 366 })}
-                </SelectItem>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.label || brand.slug || brand.id}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {!lockedBrandId ? (
-            <div className="min-w-40">
-              <Label htmlFor="cost-filter-brand" className="sr-only">
-                {translate('filters.brand')}
-              </Label>
-              <Select
-                value={selectedBrandId || ALL_BRANDS_VALUE}
-                onValueChange={(value) =>
-                  setSelectedBrandId(value === ALL_BRANDS_VALUE ? '' : value)
-                }
-              >
-                <SelectTrigger
-                  id="cost-filter-brand"
-                  className="h-9 min-w-40"
-                  aria-label={translate('filters.brand')}
-                >
-                  <SelectValue placeholder={translate('filters.allBrands')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_BRANDS_VALUE}>
-                    {translate('filters.allBrands')}
-                  </SelectItem>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.label || brand.slug || brand.id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           ) : null}
-
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="h-9"
             onClick={() => void exportReport()}
-            isDisabled={isExporting}
+            isDisabled={!canLoad || isExporting}
           >
-            <Download className="mr-2 size-4" aria-hidden />
+            <Download className="size-4" aria-hidden />
             {translate('actions.exportCsv')}
           </Button>
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            className="h-9"
             onClick={refresh}
-            isDisabled={isRefreshing}
+            isDisabled={activeQuery.isFetching}
           >
-            <RefreshCw
-              className={`mr-2 size-4 ${isRefreshing ? 'animate-spin' : ''}`}
-              aria-hidden
-            />
+            <RefreshCw className="size-4" aria-hidden />
             {translate('actions.refresh')}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-6 pb-6">
+        {loadError ? (
+          <Card>
+            <Text color="muted">{translate('errors.loadTitle')}</Text>
+          </Card>
+        ) : null}
+        {activeTab === 'overview' ? (
+          <>
+            <MetricCardGrid columns={3}>
+              <MetricCard
+                label={translate('metrics.creditsUsed.label')}
+                value={
+                  summary
+                    ? `${formatCredits(summary.total.creditsUsed)} GEN`
+                    : '—'
+                }
+                description={translate('metrics.creditsUsed.description')}
+                isLoading={summaryQuery.isLoading}
+              />
+              <MetricCard
+                label={translate('metrics.generations.label')}
+                value={summary?.total.generationCount.toLocaleString() ?? '—'}
+                description={
+                  summary
+                    ? translate('metrics.generations.description', {
+                        llm: summary.total.llmCount,
+                        media: summary.total.mediaCount,
+                      })
+                    : undefined
+                }
+                isLoading={summaryQuery.isLoading}
+              />
+              <MetricCard
+                label={translate('metrics.activeDays.label')}
+                value={
+                  summary
+                    ? String(
+                        summary.daily.filter(
+                          (day) =>
+                            day.generationCount > 0 || day.creditsUsed > 0,
+                        ).length,
+                      )
+                    : '—'
+                }
+                description={translate('metrics.activeDays.description')}
+                isLoading={summaryQuery.isLoading}
+              />
+            </MetricCardGrid>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {(['creditsUsed', 'generationCount'] as const).map((metric) => (
+                <Card key={metric}>
+                  <Text as="h2" weight="semibold">
+                    {translate(`charts.${metric}`)}
+                  </Text>
+                  {summaryQuery.isLoading ? (
+                    <Text color="muted">{translate('charts.loading')}</Text>
+                  ) : !summary ||
+                    (summary.total.generationCount === 0 &&
+                      summary.total.creditsUsed === 0) ? (
+                    <Text color="muted">{translate('tables.emptyLabel')}</Text>
+                  ) : (
+                    <ChartContainer
+                      className="rounded-none border-0 bg-transparent p-0 shadow-none"
+                      height={240}
+                      config={{
+                        [metric]: {
+                          label: translate(`charts.${metric}`),
+                          color: 'hsl(var(--foreground))',
+                        },
+                      }}
+                      aria-label={translate(`charts.${metric}`)}
+                    >
+                      {metric === 'creditsUsed' ? (
+                        <AreaChart data={daily}>
+                          <CartesianGrid
+                            vertical={false}
+                            stroke="hsl(var(--border))"
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                            tickFormatter={(date: string) => date.slice(5)}
+                            minTickGap={30}
+                          />
+                          <YAxis
+                            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                            width={45}
+                            tickFormatter={formatCredits}
+                          />
+                          <Tooltip content={<ChartTooltipContent />} />
+                          <Area
+                            dataKey={metric}
+                            type="monotone"
+                            stroke="hsl(var(--foreground))"
+                            fill="hsl(var(--foreground))"
+                            fillOpacity={0.12}
+                          />
+                        </AreaChart>
+                      ) : (
+                        <BarChart data={daily}>
+                          <CartesianGrid
+                            vertical={false}
+                            stroke="hsl(var(--border))"
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                            tickFormatter={(date: string) => date.slice(5)}
+                            minTickGap={30}
+                          />
+                          <YAxis
+                            tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                            width={45}
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<ChartTooltipContent />} />
+                          <Bar
+                            dataKey={metric}
+                            fill="hsl(var(--foreground))"
+                            fillOpacity={0.6}
+                            radius={[3, 3, 0, 0]}
+                          />
+                        </BarChart>
+                      )}
+                    </ChartContainer>
+                  )}
+                </Card>
+              ))}
+            </div>
+            {!lockedBrandId ? (
+              <AppTable
+                label={translate('tables.brandSplit.label')}
+                columns={brandColumns}
+                items={summary?.byBrand ?? []}
+                isLoading={summaryQuery.isLoading}
+                getRowKey={(row) => row.brandId ?? '__unattributed__'}
+                emptyLabel={translate('tables.emptyLabel')}
+              />
+            ) : null}
+          </>
+        ) : null}
+        {activeTab === 'generations' ? (
+          <>
+            <AppTable
+              label={translate('tables.ledger.label')}
+              columns={entryColumns}
+              items={entriesQuery.data?.docs ?? []}
+              isLoading={entriesQuery.isLoading}
+              getRowKey={(row) => `${row.entryType}:${row.id}`}
+              emptyLabel={translate('tables.emptyLabel')}
+              emptyDescription={translate('tables.ledger.emptyDescription')}
+            />
+            <Pagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(totalEntries / PAGE_SIZE))}
+              totalItems={totalEntries}
+              totalLabel={translate('tables.ledger.entries')}
+              onPageChange={(nextPage) =>
+                setPageState({ scope, page: nextPage })
+              }
+            />
+            <Text size="xs" color="muted">
+              {translate('tables.ledger.creditNotice')}
+            </Text>
+          </>
+        ) : null}
+        {activeTab === 'workflows' ? (
+          <>
+            <AppTable
+              label={translate('workflowAccounting.title')}
+              columns={workflowColumns}
+              items={workflowsQuery.data ?? []}
+              isLoading={workflowsQuery.isLoading}
+              getRowKey={(row) => row.id}
+              emptyLabel={translate('workflowAccounting.empty')}
+            />
+            <Text size="xs" color="muted">
+              {translate('workflowAccounting.limit')}
+            </Text>
+          </>
+        ) : null}
       </div>
-
-      {loadError ? (
-        <Card
-          className="border-destructive/40 bg-destructive/5"
-          bodyClassName="gap-3 p-4"
-        >
-          <Text size="sm" weight="medium">
-            {translate('errors.loadTitle')}
-          </Text>
-          <Text size="sm" color="muted">
-            {translate('errors.tryRefresh', {
-              message: errorMessage(loadError, translate('errors.unknown')),
-            })}
-          </Text>
-        </Card>
-      ) : null}
-
-      <div className="space-y-2">
-        <AppTable
-          label={translate('workflowAccounting.title')}
-          columns={workflowColumns}
-          items={workflowsQuery.data ?? []}
-          isLoading={workflowsQuery.isLoading}
-          getRowKey={(row) => row.id}
-          emptyLabel={translate('workflowAccounting.empty')}
-        />
-        <Text size="xs" color="muted">
-          {translate('workflowAccounting.limit')}
-        </Text>
-        <Button variant={ButtonVariant.SECONDARY} onClick={exportWorkflows}>
-          {translate('workflowAccounting.export')}
-        </Button>
-      </div>
-
-      <MetricCardGrid columns={4}>
-        <MetricCard
-          label={translate('metrics.providerCost.label')}
-          value={summary ? formatCurrency(summary.total.providerCostUsd) : '—'}
-          description={translate('metrics.providerCost.description')}
-          isLoading={summaryQuery.isLoading}
-        />
-        <MetricCard
-          label={translate('metrics.creditsUsed.label')}
-          value={summary ? formatCredits(summary.total.creditsUsed) : '—'}
-          description={translate('metrics.creditsUsed.description')}
-          isLoading={summaryQuery.isLoading}
-        />
-        <MetricCard
-          label={translate('metrics.generations.label')}
-          value={summary?.total.generationCount.toLocaleString() ?? '—'}
-          description={
-            summary
-              ? translate('metrics.generations.description', {
-                  llm: summary.total.llmCount,
-                  media: summary.total.mediaCount,
-                })
-              : undefined
-          }
-          isLoading={summaryQuery.isLoading}
-        />
-        <MetricCard
-          label={translate('metrics.byok.label')}
-          value={summary?.total.byokCount.toLocaleString() ?? '—'}
-          description={translate('metrics.byok.description')}
-          isLoading={summaryQuery.isLoading}
-        />
-      </MetricCardGrid>
-
-      {!lockedBrandId ? (
-        <AppTable
-          label={translate('tables.brandSplit.label')}
-          columns={brandColumns}
-          items={summary?.byBrand ?? []}
-          isLoading={summaryQuery.isLoading}
-          getRowKey={(row) => row.brandId ?? '__unattributed__'}
-          emptyLabel={translate('tables.emptyLabel')}
-          emptyDescription={translate('tables.brandSplit.emptyDescription')}
-        />
-      ) : null}
-
-      <div className="space-y-2">
-        <AppTable
-          label={translate('tables.ledger.label')}
-          columns={entryColumns}
-          items={entriesQuery.data ?? []}
-          isLoading={isLoading}
-          getRowKey={(row) => `${row.entryType}:${row.id}`}
-          emptyLabel={translate('tables.emptyLabel')}
-          emptyDescription={translate('tables.ledger.emptyDescription')}
-        />
-        <Text size="xs" color="muted">
-          {translate('tables.ledger.limitNotice', { limit: 100 })}
-        </Text>
-      </div>
-    </div>
+    </Container>
   );
 }

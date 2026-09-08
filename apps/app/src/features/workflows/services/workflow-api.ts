@@ -29,6 +29,10 @@ import type {
   WorkflowSummary,
   WorkflowTemplate,
 } from './workflow-api.types';
+import {
+  isWorkflowGraphEdge,
+  isWorkflowGraphNode,
+} from './workflow-graph-guards';
 
 export type * from './workflow-api.types';
 
@@ -655,6 +659,12 @@ export class WorkflowApiService extends HTTPBaseService {
       return [
         {
           canonicalId,
+          ...(Array.isArray(record.nodes)
+            ? { nodes: record.nodes.filter(isWorkflowGraphNode) }
+            : {}),
+          ...(Array.isArray(record.edges)
+            ? { edges: record.edges.filter(isWorkflowGraphEdge) }
+            : {}),
           category:
             typeof record.category === 'string' ? record.category : 'system',
           changeSummary:

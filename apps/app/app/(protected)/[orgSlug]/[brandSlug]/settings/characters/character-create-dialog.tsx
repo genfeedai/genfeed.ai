@@ -168,7 +168,7 @@ export default function CharacterCreateDialog({
                 label={
                   isCreating
                     ? translate('actions.creating')
-                    : translate('actions.approve')
+                    : translate('actions.save')
                 }
                 onClick={() => {
                   void createCharacter();

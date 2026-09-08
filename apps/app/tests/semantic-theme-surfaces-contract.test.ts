@@ -143,7 +143,7 @@ describe('semantic theme surface contracts', () => {
 
     expect(source).not.toContain('rgba(255, 255, 255, 0.08)');
     expect(source).not.toContain('rgba(0, 0, 0, 0.8)');
-    expect(source).toContain('hsl(var(--foreground) / 0.08)');
+    expect(source).toContain('hsl(var(--foreground) / 0.1)');
     expect(source).toContain('hsl(var(--background) / 0.8)');
   });
 

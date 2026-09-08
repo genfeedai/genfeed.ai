@@ -1,14 +1,9 @@
 import type { ArtifactEditorType } from '@genfeedai/contracts/constants';
+import type { ContentLookup } from '@genfeedai/props/publishing/publishing-content-editor-page.props';
+
+export type { ContentLookup } from '@genfeedai/props/publishing/publishing-content-editor-page.props';
 
 export type PublishingContentKind = ArtifactEditorType;
-
-export type ContentLookup = {
-  findOne: (
-    id: string,
-    query?: Record<string, unknown>,
-    signal?: AbortSignal,
-  ) => Promise<unknown>;
-};
 
 /**
  * Posts, articles, and newsletters are separate tables — there is no shared

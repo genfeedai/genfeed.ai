@@ -16,7 +16,11 @@ export function useBrandVoice(): UseBrandVoiceReturn {
   const fetchBrands = useCallback(() => {
     chrome.runtime.sendMessage({ event: 'getBrands' }, (response) => {
       if (response?.success && response.brands) {
-        setBrands(response.brands as BrandListItem[]);
+        const brands = response.brands as BrandListItem[];
+        setBrands(brands);
+        const selected = useBrandStore.getState().activeBrandId;
+        if (selected && !brands.some((brand) => brand.id === selected))
+          useBrandStore.getState().setActiveBrand(null);
       } else {
         logger.error('Failed to fetch brands', response?.error);
       }

@@ -32,11 +32,18 @@ export class EditorProjectsService extends BaseService<
     super(prisma, 'editorProject', logger);
   }
 
+  protected override normalizeDocument(
+    document: unknown,
+  ): EditorProjectDocument {
+    const record = super.normalizeDocument(document);
+    return { ...this.readProjectConfig(record.config), ...record };
+  }
+
   private isProjectObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
-  private readProjectConfig(value: unknown): Record<string, unknown> {
+  readProjectConfig(value: unknown): Record<string, unknown> {
     return this.isProjectObject(value) ? value : {};
   }
 
@@ -94,6 +101,7 @@ export class EditorProjectsService extends BaseService<
     id: string,
     organizationId: string,
     renderExport: IEditorRenderProvenance,
+    allowedStatuses?: EditorProjectStatus[],
   ): Promise<EditorProjectDocument> {
     // Verify the project exists and belongs to this organisation first so we
     // can return a meaningful NotFoundException vs. a generic ConflictException.
@@ -119,6 +127,13 @@ export class EditorProjectsService extends BaseService<
       },
       where: scopedWhere(organizationId, {
         id,
+        ...(allowedStatuses
+          ? {
+              OR: allowedStatuses.map((status) => ({
+                config: { path: ['status'], equals: status },
+              })),
+            }
+          : {}),
         // The JSON path filter below prevents the update when the embedded
         // config.status is already RENDERING.  Prisma exposes JSON-path
         // filtering via `path`+`equals` on JsonFilter.

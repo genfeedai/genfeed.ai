@@ -2,10 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -15,6 +17,7 @@ import { useCharactersPage } from './use-characters-page';
 
 export default function BrandSettingsCharactersPage(): ReactElement {
   const translate = useTranslations('common.settings.characters');
+  const helpTranslate = useTranslations('pages.help');
   const { brandId } = useBrand();
   const {
     approve,
@@ -52,13 +55,15 @@ export default function BrandSettingsCharactersPage(): ReactElement {
         description={translate('subtitle')}
         label={translate('title')}
         right={
-          <Button
-            onClick={openCreateDialog}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <Plus /> {translate('create.title')}
-          </Button>
+          !isLoading && characters.length > 0 ? (
+            <Button
+              onClick={openCreateDialog}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              <Plus /> {translate('create.title')}
+            </Button>
+          ) : undefined
         }
       >
         <CharactersTable
@@ -66,6 +71,12 @@ export default function BrandSettingsCharactersPage(): ReactElement {
           isLoading={isLoading}
           onCreate={openCreateDialog}
         />
+        <Link
+          href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
+          className="text-sm text-muted-foreground underline underline-offset-4"
+        >
+          {helpTranslate('characterLink')}
+        </Link>
       </Container>
 
       <CharacterCreateDialog

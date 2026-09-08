@@ -168,24 +168,25 @@
         "discard": "Discard",
         "generate": "Generate sheet",
         "generating": "Generating…",
-        "regenerate": "Regenerate"
+        "regenerate": "Regenerate",
+        "save": "Save character"
       },
       "candidate": {
         "alt": "Generated character sheet",
         "title": "Candidate sheet"
       },
       "create": {
-        "description": "Describe the character. We generate a canonical sheet, then you approve a name and handle.",
+        "description": "Describe your character, generate and approve its reference sheet, then choose a name and @handle to save it.",
         "title": "New character"
       },
-      "empty": "No characters yet. Generate a sheet to create the first one.",
+      "empty": "Create a character here, then reuse it with @handle in Studio or the agent.",
       "errors": {
         "approveFailed": "Could not create the character from this sheet.",
         "brandUnavailable": "The selected brand is unavailable for this settings route.",
         "generateFailed": "Could not generate a character sheet.",
         "invalidHandle": "Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores.",
         "loadFailed": "Could not load characters.",
-        "missingName": "Name and handle are required to approve a character."
+        "missingName": "Name and handle are required to save a character."
       },
       "fields": {
         "description": "Description",
@@ -202,7 +203,19 @@
       },
       "subtitle": "Named characters for Studio and Agent @-mentions.",
       "success": "Character created.",
-      "title": "Characters"
+      "title": "Characters",
+      "saveExisting": {
+        "action": "Save as character",
+        "description": "Use this image as a character reference. Give it a name and a unique @handle to reuse it in Studio and the agent. No new generation is needed.",
+        "preview": "Character reference image",
+        "saved": "Character: @{handle}",
+        "savedWithoutHandle": "Saved character",
+        "success": "Character saved. Use @{handle} in Studio or the agent.",
+        "error": "Could not save this character. Check that the handle is unique and try again.",
+        "retry": "Retry loading characters",
+        "checking": "Checking for a character…",
+        "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
+      }
     },
     "profile": {
       "fields": {
@@ -1151,6 +1164,12 @@
         "remix": "Remix",
         "imported": "Imported",
         "video": "Video"
+      },
+      "sourcesLabel": "Discovery sources",
+      "sourceTabs": {
+        "all": "All",
+        "trends": "Public trends",
+        "owned": "My accounts"
       }
     }
   },

@@ -22,6 +22,7 @@ export interface UseBrandEnabledSkillsReturn {
   /** True while the brand runs on the first-party default set. */
   isUsingDefaults: boolean;
   isLoading: boolean;
+  pendingSlugs: ReadonlySet<string>;
   setUseDefaults: (isUsingDefaults: boolean) => Promise<void>;
   toggleSkill: (slug: string) => Promise<void>;
 }
@@ -61,6 +62,12 @@ export function useBrandEnabledSkills({
   const selectionRef = useRef<IBrandSkillSelection>(selection);
   const isLoadingRef = useRef(false);
   const mutationIdRef = useRef(0);
+  const scopeVersionRef = useRef(0);
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSlugsRef = useRef(new Set<string>());
+  const [pendingSlugs, setPendingSlugs] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
 
   const selectedBrandId = selectedBrand?.id ?? null;
   const persistedSelection = useMemo(
@@ -79,6 +86,10 @@ export function useBrandEnabledSkills({
 
   useEffect(() => {
     mutationIdRef.current += 1;
+    scopeVersionRef.current += 1;
+    queueRef.current = Promise.resolve();
+    pendingSlugsRef.current = new Set();
+    setPendingSlugs(new Set());
     activeBrandIdRef.current = selectedBrandId;
     isLoadingRef.current = false;
     setIsLoading(false);
@@ -173,23 +184,44 @@ export function useBrandEnabledSkills({
 
   const toggleSkill = useCallback(
     async (slug: string) => {
-      const current = selectionRef.current;
-      // Changing one switch while defaults apply turns the brand into an
-      // explicit selection that starts from the default set.
-      const baseSlugs = current.useDefaultSkills
-        ? defaultSlugsRef.current
-        : current.enabledSkills;
-      const enabledSkills = baseSlugs.includes(slug)
-        ? baseSlugs.filter((s) => s !== slug)
-        : [...baseSlugs, slug];
+      if (!isReady || !selectedBrandId || pendingSlugsRef.current.has(slug)) {
+        return;
+      }
 
-      await persistSelection({ enabledSkills, useDefaultSkills: false });
+      const scopeVersion = scopeVersionRef.current;
+      pendingSlugsRef.current.add(slug);
+      setPendingSlugs(new Set(pendingSlugsRef.current));
+
+      const operation = queueRef.current.then(async () => {
+        if (scopeVersionRef.current !== scopeVersion) return;
+
+        const current = selectionRef.current;
+        const baseSlugs = current.useDefaultSkills
+          ? defaultSlugsRef.current
+          : current.enabledSkills;
+        const enabledSkills = baseSlugs.includes(slug)
+          ? baseSlugs.filter((value) => value !== slug)
+          : [...baseSlugs, slug];
+
+        await persistSelection({ enabledSkills, useDefaultSkills: false });
+      });
+      queueRef.current = operation;
+
+      try {
+        await operation;
+      } finally {
+        if (scopeVersionRef.current === scopeVersion) {
+          pendingSlugsRef.current.delete(slug);
+          setPendingSlugs(new Set(pendingSlugsRef.current));
+        }
+      }
     },
-    [persistSelection],
+    [isReady, persistSelection, selectedBrandId],
   );
 
   const setUseDefaults = useCallback(
     async (useDefaultSkills: boolean) => {
+      if (pendingSlugsRef.current.size > 0) return;
       const current = selectionRef.current;
       if (current.useDefaultSkills === useDefaultSkills) return;
 
@@ -201,7 +233,9 @@ export function useBrandEnabledSkills({
           ? current.enabledSkills
           : [...defaultSlugsRef.current];
 
-      await persistSelection({ enabledSkills, useDefaultSkills });
+      const operation = persistSelection({ enabledSkills, useDefaultSkills });
+      queueRef.current = operation;
+      await operation;
     },
     [persistSelection],
   );
@@ -213,7 +247,8 @@ export function useBrandEnabledSkills({
 
   return {
     enabledSlugs,
-    isLoading,
+    isLoading: isLoading || pendingSlugs.size > 0,
+    pendingSlugs,
     isUsingDefaults: selection.useDefaultSkills,
     setUseDefaults,
     toggleSkill,

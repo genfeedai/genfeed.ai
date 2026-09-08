@@ -17,6 +17,7 @@ const memberId = 'member_123';
 type MockFn = ReturnType<typeof vi.fn>;
 
 interface MockPrisma {
+  warmupAccount: { findFirst: MockFn };
   $transaction: MockFn;
   invitation: {
     create: MockFn;
@@ -140,6 +141,7 @@ function makeMember(overrides: Partial<MemberRow> = {}): MemberRow {
 
 function buildPrisma(): MockPrisma {
   const prisma: MockPrisma = {
+    warmupAccount: { findFirst: vi.fn().mockResolvedValue(null) },
     $transaction: vi.fn(),
     invitation: {
       create: vi.fn(),

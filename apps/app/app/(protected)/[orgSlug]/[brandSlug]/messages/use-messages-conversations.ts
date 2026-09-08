@@ -1,10 +1,7 @@
-import type {
-  IPaginatedResponse,
-  SocialInboxQuery,
-} from '@genfeedai/contracts/interfaces';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { SocialMessagesService } from '@services/social/messages.service';
+import type { UseMessagesConversationsParams } from '@genfeedai/props/messages/messages-conversations.props';
 import {
   startTransition,
   useCallback,
@@ -20,13 +17,7 @@ import {
 } from './messages-page.helpers';
 import { useMessagesRealtime } from './use-messages-realtime';
 
-export interface UseMessagesConversationsParams {
-  readonly getMessagesService: () => Promise<SocialMessagesService>;
-  readonly onClearSelectedConversationParam: () => void;
-  readonly query: SocialInboxQuery;
-  readonly requestedConversationId: string | null;
-  readonly scopedOrganizationId?: string;
-}
+export type { UseMessagesConversationsParams } from '@genfeedai/props/messages/messages-conversations.props';
 
 export function useMessagesConversations({
   getMessagesService,

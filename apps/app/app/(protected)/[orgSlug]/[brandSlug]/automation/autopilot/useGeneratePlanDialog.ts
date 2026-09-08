@@ -3,6 +3,7 @@ import type {
   IContentPlanSeedPreview,
   IWeeklyPerformanceSummary,
 } from '@genfeedai/contracts/interfaces';
+import type { UseGeneratePlanDialogOptions } from '@genfeedai/props/automation/content-plans-section.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { GeneratePlanFormState } from '@props/automation/content-plans-section.props';
 import { ContentPerformanceService } from '@services/analytics/content-performance.service';
@@ -10,6 +11,8 @@ import { ContentPlansService } from '@services/content/content-plans.service';
 import { logger } from '@services/core/logger.service';
 import { addDays, format } from 'date-fns';
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+
+export type { UseGeneratePlanDialogOptions } from '@genfeedai/props/automation/content-plans-section.props';
 
 function buildDefaultFormState(): GeneratePlanFormState {
   const today = new Date();
@@ -24,12 +27,6 @@ function buildDefaultFormState(): GeneratePlanFormState {
     sourceIds: [],
     topics: '',
   };
-}
-
-export interface UseGeneratePlanDialogOptions {
-  brandId?: string;
-  isOpen: boolean;
-  onSubmit: (form: GeneratePlanFormState) => Promise<void>;
 }
 
 export function useGeneratePlanDialog({

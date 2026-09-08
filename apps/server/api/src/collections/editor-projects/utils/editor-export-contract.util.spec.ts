@@ -136,6 +136,22 @@ describe('buildValidatedEditorExportContract', () => {
     ]);
   });
 
+  it('accepts text-only visual compositions and rejects audio-only exports', () => {
+    const textOnly = tracks.filter(
+      (track) => track.type === EditorTrackType.TEXT,
+    );
+    expect(
+      buildValidatedEditorExportContract({ ...project, tracks: textOnly })
+        .assetManifest,
+    ).toEqual([]);
+    expect(() =>
+      buildValidatedEditorExportContract({
+        ...project,
+        tracks: tracks.filter((track) => track.type === EditorTrackType.AUDIO),
+      }),
+    ).toThrow('video or text clip');
+  });
+
   it('accepts percentage boundary values', () => {
     const boundaryTracks = structuredClone(tracks);
     boundaryTracks[0].clips[0].volume = 0;

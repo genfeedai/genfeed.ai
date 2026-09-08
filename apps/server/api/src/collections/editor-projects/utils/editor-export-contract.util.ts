@@ -743,15 +743,18 @@ export function buildValidatedEditorExportContract(
         .filter((track): track is IEditorTrack => track !== null)
     : [];
 
-  const hasVideoClip = tracks.some(
-    (track) => track.type === EditorTrackType.VIDEO && track.clips.length > 0,
+  const hasVisualClip = tracks.some(
+    (track) =>
+      (track.type === EditorTrackType.VIDEO ||
+        track.type === EditorTrackType.TEXT) &&
+      track.clips.length > 0,
   );
-  if (!hasVideoClip) {
+  if (!hasVisualClip) {
     addViolation(
       violations,
       'tracks',
-      'editor_export_video_required',
-      'Editor export requires at least one video clip.',
+      'editor_export_visual_required',
+      'Editor export requires at least one video or text clip.',
     );
   }
 

@@ -2,9 +2,9 @@
  * Inline type ratchet for app route files.
  *
  * CLAUDE.md: "No inline interfaces — use packages/props/ or
- * packages/contracts/src/interfaces/". This scans every production .tsx file
- * under apps/app/app and fails when a module declares a top-level `interface`
- * or an object-literal `type X = { ... }` alias. Move the declaration into
+ * packages/contracts/src/interfaces/". This scans production .ts and .tsx
+ * files under apps/app/app for top-level interfaces and type aliases containing
+ * object literals, including unions and wrappers. Move those declarations into
  * packages/props (props, state, action unions) or packages/contracts
  * (domain shapes) and import it back with `import type`.
  *
@@ -19,13 +19,14 @@ import { globSync } from 'glob';
 import * as ts from 'typescript';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
-const INCLUDE_GLOBS = ['apps/app/app/**/*.tsx'];
+const INCLUDE_GLOBS = ['apps/app/app/**/*.{ts,tsx}'];
 const IGNORE_GLOBS = [
   '**/node_modules/**',
   '**/.next/**',
-  '**/*.spec.tsx',
-  '**/*.test.tsx',
-  '**/*.stories.tsx',
+  '**/*.spec.{ts,tsx}',
+  '**/*.test.{ts,tsx}',
+  '**/*.stories.{ts,tsx}',
+  '**/*.d.ts',
   '**/__tests__/**',
   '**/__fixtures__/**',
 ];
@@ -36,8 +37,11 @@ interface InlineTypeFinding {
   readonly name: string;
 }
 
-function isObjectLiteralAlias(node: ts.TypeAliasDeclaration): boolean {
-  return ts.isTypeLiteralNode(node.type);
+function containsObjectLiteral(node: ts.Node): boolean {
+  return (
+    ts.isTypeLiteralNode(node) ||
+    ts.forEachChild(node, containsObjectLiteral) === true
+  );
 }
 
 export function findInlineTypes(
@@ -49,13 +53,14 @@ export function findInlineTypes(
     source,
     ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TSX,
+    file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
   const findings: InlineTypeFinding[] = [];
   for (const statement of sourceFile.statements) {
     const isInterface = ts.isInterfaceDeclaration(statement);
     const isObjectAlias =
-      ts.isTypeAliasDeclaration(statement) && isObjectLiteralAlias(statement);
+      ts.isTypeAliasDeclaration(statement) &&
+      containsObjectLiteral(statement.type);
     if (!isInterface && !isObjectAlias) continue;
     const { line } = sourceFile.getLineAndCharacterOfPosition(
       statement.getStart(sourceFile),
@@ -65,12 +70,16 @@ export function findInlineTypes(
   return findings;
 }
 
-function main(): void {
-  const files = globSync(INCLUDE_GLOBS, {
-    cwd: ROOT,
+export function listInlineTypeFiles(root = ROOT): string[] {
+  return globSync(INCLUDE_GLOBS, {
+    cwd: root,
     ignore: IGNORE_GLOBS,
     nodir: true,
   }).sort();
+}
+
+function main(): void {
+  const files = listInlineTypeFiles();
   const findings = files.flatMap((file) =>
     findInlineTypes(file, readFileSync(path.join(ROOT, file), 'utf8')),
   );

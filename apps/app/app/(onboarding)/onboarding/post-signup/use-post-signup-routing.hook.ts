@@ -19,6 +19,7 @@ import {
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
+import type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-signup-routing.props';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -44,11 +45,7 @@ import {
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
-export type PostSignupRoutingState = {
-  showFallback: boolean;
-  resolveOnboardingHref: () => Promise<string>;
-  retryBrandOsHandoff?: (() => void) | undefined;
-};
+export type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-signup-routing.props';
 
 const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 

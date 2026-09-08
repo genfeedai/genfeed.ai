@@ -1,11 +1,16 @@
 import type {
   BrandCharacterListItem,
+  CharacterImageInspection,
   ComposeCharacterSheetPromptInput,
   ComposeCharacterSheetPromptResult,
   CreatePersonaFromSheetInput,
 } from '@genfeedai/contracts/interfaces';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
+import {
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 export class Persona {
   avatarIngredientId?: string | null;
@@ -43,6 +48,14 @@ export class PersonasService extends BaseService<
       id: row.id,
       label: row.label,
     }));
+  }
+
+  async inspectImage(assetId: string): Promise<CharacterImageInspection> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/inspect-image',
+      { assetId },
+    );
+    return deserializeResource<CharacterImageInspection>(response.data);
   }
 
   async composeSheetPrompt(

@@ -8,6 +8,7 @@ import type {
 export type ThreadOutputKind = 'audio' | 'image' | 'text' | 'video';
 
 export interface ThreadOutputVariant {
+  assetId?: string;
   ctas?: AgentUiActionCta[];
   id: string;
   kind: ThreadOutputKind;
@@ -129,6 +130,9 @@ function buildMediaVariants(
     variants.push({
       ctas: action.ctas,
       id: `${messageId}:${action.id}:image:${index}`,
+      assetId:
+        action.ingredients?.find((ingredient) => ingredient.url === url)?.id ??
+        (action.images?.length === 1 ? action.assetId : undefined),
       kind: 'image',
       messageId,
       title: action.title,
@@ -174,6 +178,7 @@ function buildMediaVariants(
     variants.push({
       ctas: action.ctas,
       id: `${messageId}:${action.id}:ingredient:${index}`,
+      assetId: ingredient.id,
       kind: inferIngredientType(ingredient),
       messageId,
       thumbnailUrl: ingredient.thumbnailUrl,

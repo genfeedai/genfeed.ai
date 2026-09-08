@@ -22,6 +22,7 @@ import { getLifecycleEmailActionContract } from './lifecycle-email-action-contra
 import { getMaintenanceActionContract } from './maintenance-action-contracts';
 import { getNewsletterActionContract } from './newsletter-action-contracts';
 import { getPatternExtractionActionContract } from './pattern-extraction-action-contracts';
+import { getRemotionActionContract } from './remotion-action-contracts';
 import { getReplyBotActionContract } from './reply-bot-action-contracts';
 import { getScheduledPostActionContract } from './scheduled-post-action-contracts';
 import { materializeJsonDocumentSchema } from './schema-builders';
@@ -37,6 +38,7 @@ import { getWorkspaceTaskActionContract } from './workspace-task-action-contract
 import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
 
 const CONTRACT_RESOLVERS = [
+  getRemotionActionContract,
   getDailyPublishingActionContract,
   getCriticalActionContract,
   getAdsActionContract,

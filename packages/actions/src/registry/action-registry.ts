@@ -1120,6 +1120,62 @@ const BRAND_REMIX_ACTION_DEFINITIONS = BRAND_REMIX_ACTIONS.map(
 );
 
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
+  internalAction(
+    'remotion.composition.catalog',
+    'List Remotion Compositions',
+    'Lists approved video compositions, pinned versions and structured input schemas.',
+    {
+      authorization: 'user',
+      visibility: 'workflow',
+      workflowCategory: 'composition',
+      workflowIcon: 'Clapperboard',
+    },
+  ),
+  internalAction(
+    'remotion.composition.render',
+    'Render Remotion Composition',
+    'Submits a branded product story to the video render queue. Use render status to await the completed asset.',
+    {
+      authorization: 'user',
+      visibility: 'workflow',
+      workflowCategory: 'composition',
+      workflowIcon: 'Clapperboard',
+    },
+  ),
+  internalAction(
+    'remotion.composition.status',
+    'Get Remotion Render Status',
+    'Reads the tracked render state, progress and completed video asset.',
+    {
+      authorization: 'user',
+      visibility: 'workflow',
+      workflowCategory: 'composition',
+      workflowIcon: 'Clapperboard',
+    },
+  ),
+  internalAction(
+    'remotion.composition.cancel',
+    'Cancel Remotion Render',
+    'Cancels an active composition render without deleting completed assets.',
+    {
+      authorization: 'user',
+      visibility: 'workflow',
+      workflowCategory: 'composition',
+      workflowIcon: 'Clapperboard',
+    },
+  ),
+  internalAction(
+    'remotion.composition.retry',
+    'Retry Remotion Render',
+    'Retries a failed or cancelled composition render with the original approved inputs.',
+    {
+      authorization: 'user',
+      visibility: 'workflow',
+      workflowCategory: 'composition',
+      workflowIcon: 'Clapperboard',
+    },
+  ),
+
   ...WORKFLOW_ACTION_DEFINITIONS,
   ...AUTOMATION_ACTION_DEFINITIONS,
   ...SYSTEM_MAINTENANCE_ACTION_DEFINITIONS,

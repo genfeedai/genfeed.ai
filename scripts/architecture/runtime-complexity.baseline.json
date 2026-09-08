@@ -12,7 +12,7 @@
     "symbol": "AgentTransfersService.create"
   },
   {
-    "actual": 1387,
+    "actual": 1215,
     "file": "apps/server/api/src/collections/articles/services/articles.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/articles/services/articles.service.ts"

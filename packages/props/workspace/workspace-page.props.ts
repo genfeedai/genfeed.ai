@@ -13,3 +13,5 @@ export interface WorkspacePageContentProps {
   initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
   section?: WorkspaceSection;
 }
+
+export type UseWorkspacePageContentParams = WorkspacePageContentProps;

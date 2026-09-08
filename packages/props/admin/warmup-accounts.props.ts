@@ -40,6 +40,7 @@ export interface WarmupAccountsPageState {
   isLoading: boolean;
   isSubmitting: boolean;
   loadTrigger: number;
+  loadError?: string;
   selectedAccountId?: string;
 }
 
@@ -56,6 +57,7 @@ export type WarmupActiveInvitationRequest = WarmupPendingInvitationAction & {
 export type WarmupAccountsPageAction =
   | { type: 'SET_TAB'; tab: 'accounts' | 'create' }
   | { type: 'SET_LOADING'; isLoading: boolean }
+  | { type: 'SET_LOAD_ERROR'; message: string }
   | { type: 'SET_SUBMITTING'; isSubmitting: boolean }
   | { type: 'SET_ACCOUNTS'; accounts: IWarmupAccount[] }
   | {
@@ -68,3 +70,8 @@ export type WarmupAccountsPageAction =
   | { type: 'CLEAR_INVITATION_ACTION'; requestId: number }
   | { type: 'UPSERT_ACCOUNT'; account: IWarmupAccount }
   | { type: 'CREATE_SUCCESS'; account: IWarmupAccount };
+
+export interface WarmupPreparationPanelProps {
+  account: IWarmupAccount;
+  onUpdated: (account: IWarmupAccount) => void;
+}

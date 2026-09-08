@@ -12,7 +12,8 @@
       "@genfeedai/utils/*": ["../../../../packages/utils/*"],
       "@ui/*": ["../../../../packages/ui/src/*"],
       "~*": ["./src/*"]
-    }
+    },
+    "moduleResolution": "bundler"
   },
   "exclude": ["node_modules"],
   "extends": "plasmo/templates/tsconfig.base",

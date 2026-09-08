@@ -3,7 +3,10 @@ import type {
   AgentRunFrequency,
   AgentType,
 } from '@genfeedai/contracts';
-import type { AgentStrategy } from '@genfeedai/services/automation/agent-strategies.service';
+import type {
+  AgentStrategy,
+  CreateAgentStrategyInput,
+} from '@genfeedai/services/automation/agent-strategies.service';
 
 export interface AgentStrategyFormState {
   agentType: AgentType;
@@ -38,3 +41,7 @@ export interface AgentStrategyDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   onSubmit: (form: AgentStrategyFormState) => Promise<void>;
 }
+
+export type AgentStrategyPayload = CreateAgentStrategyInput & {
+  isEnabled: boolean;
+};

@@ -514,6 +514,98 @@
       "statusExpired": "Expired",
       "statusPending": "Pending",
       "statusRevoked": "Revoked"
+    },
+    "createTab": "Create",
+    "accountsTab": "Accounts",
+    "status": {
+      "archived": "Archived",
+      "claimed": "Claimed",
+      "draft": "Draft",
+      "failed": "Failed",
+      "invited": "Invited",
+      "provisioned": "Provisioned",
+      "provisioning": "Provisioning"
+    },
+    "title": "Warm-up accounts",
+    "description": "Provision lead accounts for operator-prepared customer demos",
+    "leadEmail": "Lead email",
+    "emailPlaceholder": "founder@example.com",
+    "website": "Website",
+    "websitePlaceholder": "https://example.com",
+    "firstName": "First name",
+    "firstNamePlaceholder": "Ada",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Lovelace",
+    "organization": "Organization",
+    "organizationPlaceholder": "Acme Growth",
+    "firstBrand": "First brand",
+    "brandPlaceholder": "Acme",
+    "guidance": "Operator guidance",
+    "guidancePlaceholder": "Context to preserve for the operator before starter content is prepared",
+    "loadErrorTitle": "Unable to load warm-up accounts",
+    "retryAccounts": "Retry loading accounts",
+    "empty": "No warm-up accounts yet",
+    "selectAccount": "Select a warm-up account",
+    "lead": "Lead",
+    "organizationId": "Organization ID",
+    "brandId": "Brand ID",
+    "invitationId": "Invitation ID",
+    "operatorId": "Operator ID",
+    "diagnostics": "Diagnostics",
+    "noDiagnostics": "No diagnostic events recorded.",
+    "provisioning": "Provisioning",
+    "provision": "Provision warm-up account",
+    "loadError": "Unable to load warm-up accounts. Check your administrator access and allowed IP address, then retry.",
+    "deliveryError": "Invitation email could not be delivered",
+    "invitationSent": "Invitation sent",
+    "invitationResent": "Invitation resent",
+    "invitationRevoked": "Invitation revoked",
+    "inspectError": "Failed to inspect invitation",
+    "sendError": "Failed to send invitation",
+    "resendError": "Failed to resend invitation",
+    "revokeError": "Failed to revoke invitation",
+    "emailRequired": "Lead email is required",
+    "namesRequired": "Organization and brand are required",
+    "needsAttention": "Warm-up account needs attention",
+    "provisioned": "Warm-up account provisioned",
+    "createError": "Failed to create warm-up account",
+    "preparation": {
+      "title": "Workspace preparation",
+      "claimed": "Customer owns the workspace. Operator preparation access has ended. The customer must connect their own social accounts before publishing.",
+      "openWorkspace": "Open prepared workspace as yourself",
+      "grantAmount": "Promotional handoff credits",
+      "grantReason": "Grant reason",
+      "grantTerms": "Promotional handoff credits do not expire.",
+      "grant": "Grant credits",
+      "website": "Public brand website",
+      "profile": "Public LinkedIn or X profile (optional)",
+      "contextNotice": "Import public company information only. Review extracted fields before applying them.",
+      "importContext": "Import context for review",
+      "reviewContext": "Review brand context",
+      "apply": "Apply selected fields",
+      "starterTitle": "Private starter content",
+      "starterNotice": "Select the brand asset to import. Genfeed will also generate one LinkedIn article draft using the reviewed brand context. Nothing is published.",
+      "starterAsset": "Starter brand asset",
+      "prepare": "Prepare starter asset and article",
+      "existingTitle": "Use existing prepared content",
+      "existingNotice": "Use a private brand asset and LinkedIn article draft prepared by you in this workspace.",
+      "assetId": "Brand asset ID",
+      "articleId": "LinkedIn draft ID",
+      "attach": "Attach prepared content",
+      "archive": "Archive preparation and revoke invitation",
+      "defaultReason": "Promotional customer evaluation",
+      "error": "Preparation failed. Your completed work has been preserved.",
+      "handoff": "Handoff",
+      "ready": "Ready to invite",
+      "prepareHandoff": "Prepare for handoff",
+      "repairing": "Repairing…",
+      "repair": "Repair and refresh readiness",
+      "availableCredits": "{amount} spendable credits",
+      "promisedCredits": " · {amount} promised at handoff",
+      "reimbursedCredits": "{amount} preparation credits reimbursed",
+      "applyField": "Apply {field}",
+      "confidence": "Confidence {percent}%",
+      "generationStatus": "Starter generation: {status}. Use repair to reconcile completed outputs and preparation credits."
     }
   },
   "brandSocialMedia": {
@@ -1256,18 +1348,12 @@
   },
   "costUsage": {
     "actions": {
-      "exportCsv": "Export CSV",
+      "exportCsv": "Export credits",
       "refresh": "Refresh"
     },
-    "brandFallback": "Brand",
-    "brandTitle": "{brand} brand costs",
-    "description": "Actual provider cost and customer-facing credits are reported separately.",
     "errors": {
-      "export": "Failed to export cost report",
-      "load": "Failed to load cost report",
-      "loadTitle": "Could not load cost data",
-      "tryRefresh": "{message}. Try Refresh.",
-      "unknown": "Unknown error"
+      "export": "Could not export usage. Try again.",
+      "loadTitle": "Could not load usage. Try refreshing."
     },
     "filters": {
       "allBrands": "All brands",
@@ -1276,64 +1362,64 @@
       "lastDays": "Last {days} days"
     },
     "metrics": {
-      "byok": {
-        "description": "Tracked at zero platform vendor cost",
-        "label": "BYOK generations"
-      },
       "creditsUsed": {
-        "description": "Customer-facing usage meter",
+        "description": "Recorded credit burn in this period",
         "label": "Credits used"
       },
       "generations": {
-        "description": "{llm} LLM · {media} media",
+        "description": "{llm} text · {media} media",
         "label": "Generations"
       },
-      "providerCost": {
-        "description": "Actual platform vendor spend",
-        "label": "Provider cost"
+      "activeDays": {
+        "description": "Days with generation or credit activity",
+        "label": "Active days"
       }
     },
     "notifications": {
-      "exported": "Cost report exported"
+      "exported": "Credit report exported"
     },
-    "organizationTitle": "Organization generation costs",
+    "title": "Usage",
+    "tabs": {
+      "overview": "Overview",
+      "generations": "Generations",
+      "workflows": "Workflows"
+    },
+    "notRecorded": "Not recorded",
+    "entryTypes": {
+      "llm": "Text generation",
+      "media": "Media generation",
+      "credit": "Credit charge"
+    },
+    "charts": {
+      "creditsUsed": "Daily credit burn (GEN)",
+      "generationCount": "Daily generations",
+      "loading": "Loading chart…"
+    },
     "tables": {
       "brandSplit": {
-        "emptyDescription": "Brand-attributed provider cost and credits will appear here.",
-        "label": "Cost split by brand"
+        "label": "Usage by brand"
       },
-      "emptyLabel": "No generation costs yet",
+      "emptyLabel": "No usage in this period",
       "headers": {
         "brand": "Brand",
-        "byok": "BYOK",
-        "credits": "Credits",
         "creditsUsed": "Credits used",
         "generations": "Generations",
-        "providerCost": "Provider cost",
-        "providerModel": "Provider / model",
+        "model": "Model",
         "type": "Type",
         "when": "When"
       },
       "ledger": {
-        "emptyDescription": "Provider cost and credit events in this scope will appear here.",
-        "label": "Generation ledger",
-        "limitNotice": "Showing up to the newest {limit} entries."
+        "label": "Generation history",
+        "emptyDescription": "Generations and credit charges will appear here.",
+        "entries": "entries",
+        "creditNotice": "Credit charges are recorded separately. “Not recorded” means a generation has no linked credit amount. Exports include up to 10,000 entries."
       }
     },
-    "title": "Cost & Usage",
-    "yes": "Yes",
     "workflowAccounting": {
-      "providerCost": "Provider cost (USD)",
       "execution": "Execution",
-      "estimatedCredits": "Estimated credits",
-      "actualCredits": "Actual credits",
-      "variance": "Variance",
-      "unavailable": "Unavailable",
-      "title": "Workflow accounting",
-      "empty": "No executions",
-      "export": "Export workflow costs",
-      "limit": "Latest 100 executions in this period. Workflow totals are a separate view of the ledger.",
-      "known": "Unavailable (known {value})"
+      "title": "Workflow usage",
+      "empty": "No workflows in this period",
+      "limit": "Latest 100 workflows in this period. These totals are a separate view of usage; do not add them to generation totals."
     }
   },
   "organizationRouting": {
@@ -1790,6 +1876,11 @@
       "descriptionPlaceholder": "Optional description"
     }
   },
+  "brandIntegrations": {
+    "title": "Integrations",
+    "connections": "Connections",
+    "imports": "Imports"
+  },
   "brandSocialHistoryImport": {
     "title": "Import existing posts",
     "description": "When you connect an account, Genfeed imports what it already published over the last 90 days so it can learn what works for this brand. Imported posts are yours, not generated by Genfeed, and appear under My accounts in Discovery.",
@@ -1797,7 +1888,7 @@
     "toggleDescription": "Turn this off before connecting to skip the import. You can run it later from this page.",
     "auditTitle": "Import history",
     "loading": "Loading connected accounts…",
-    "empty": "No connected account has been imported yet. Connect an account below to start.",
+    "empty": "No account history has been imported yet. Open the Connections tab to connect an account.",
     "notGenerated": "Imported · not generated by Genfeed",
     "importNow": "Import now",
     "completedSummary": "Imported {count, plural, one {# post} other {# posts}} from the last {windowDays} days on {date}.",
@@ -2002,6 +2093,77 @@
     "discoveryAds": {
       "title": "Ads research",
       "body": "Competitor and category ads collected for inspiration. Filter by platform and format."
+    },
+    "title": "Help & learning",
+    "description": "Get your first result, learn a workflow, or find the right place to ask for help.",
+    "external": "Opens in a new tab",
+    "unavailable": "Destination unavailable",
+    "unavailableGuidance": "Use the steps and answers on this page, or ask your workspace administrator for an available resource.",
+    "about": "About Genfeed",
+    "buildDetails": "Include your app version from About, what you tried, and the error message when asking for help. Remove private content and credentials before sharing.",
+    "learningPath": "Your first workflow",
+    "steps": {
+      "brand": {
+        "title": "1. Give your brand context",
+        "description": "Choose your brand and add its voice, references, and connected accounts in Settings."
+      },
+      "create": {
+        "title": "2. Make a first draft",
+        "description": "Open Studio or the agent, describe one result, and review the generated draft. In Automation → Templates, choose a workflow when you want repeatable steps."
+      },
+      "review": {
+        "title": "3. Review and reuse",
+        "description": "Check the output before publishing. Save useful assets and characters to reuse in your next creation."
+      }
+    },
+    "resources": {
+      "gettingStarted": {
+        "title": "Getting started",
+        "description": "Follow the first-run guide from setup to your first result.",
+        "selfHosted": "Install or configure your local instance, then create a workspace and brand."
+      },
+      "documentation": {
+        "title": "Documentation",
+        "description": "Browse product guides, integration setup, and API reference."
+      },
+      "workflows": {
+        "title": "Workflow learning",
+        "description": "Learn Studio and generation workflows. For ready-made workflows, open Automation → Templates in your brand."
+      },
+      "changelog": {
+        "title": "Changelog",
+        "description": "See shipped changes and release notes. Your installation may be running an earlier version."
+      },
+      "faq": {
+        "title": "Frequently asked questions",
+        "description": "Find answers about setup, generations, accounts, and self-hosting."
+      },
+      "community": {
+        "title": "Community",
+        "description": "Share workflows and ask other users for practical advice."
+      },
+      "support": {
+        "title": "Support",
+        "description": "Contact the Genfeed team about your Cloud account or a product problem.",
+        "selfHosted": "Contact the operator of this installation for access, configuration, or service issues.",
+        "unavailable": "Your installation has not configured a support destination. Ask the person who manages it; community help is also available above."
+      }
+    },
+    "answersTitle": "Creating and reusing characters",
+    "characterLink": "Learn how to create, save, and reuse characters",
+    "answers": {
+      "create": {
+        "question": "How do I create a new character?",
+        "answer": "Open your brand Settings → Characters → New Character. Describe the character, generate a sheet, approve the result, then choose a name and unique handle to save it."
+      },
+      "save": {
+        "question": "Can I save an image I already generated?",
+        "answer": "Yes. Open the image actions in Studio or the Library and choose Save as character. Genfeed checks for a face or character and checks whether the image is already saved. Choose a name and handle, then save. The action is hidden when the image is not a character; an existing character is shown instead of creating a duplicate."
+      },
+      "reuse": {
+        "question": "How do I reuse a saved character in a prompt?",
+        "answer": "In Studio or the agent, type @ followed by the saved handle and select the character from the suggestions. Use the same brand where you saved it. Creating an image in a prompt does not automatically save it as a reusable character."
+      }
     }
   },
   "autopilot": {
@@ -2009,5 +2171,8 @@
       "connected": "{platform}: posts as @{handle}",
       "notConnected": "{platform}: no account connected yet"
     }
+  },
+  "messageAutomations": {
+    "title": "Message automations"
   }
 }

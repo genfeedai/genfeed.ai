@@ -1,33 +1,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
+import type { UseConnectGenfeedStatusResult } from '@genfeedai/props/home/connect-genfeed-status.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { getVerifiedMcpConnection } from './operational-home.helpers';
 
-export type UseConnectGenfeedStatusResult =
-  | {
-      error: null;
-      key: ApiKey;
-      refresh: () => Promise<void>;
-      status: 'configured';
-      verifiedAt: string;
-    }
-  | {
-      error: Error;
-      key: null;
-      refresh: () => Promise<void>;
-      status: 'error';
-      verifiedAt: null;
-    }
-  | {
-      error: null;
-      key: null;
-      refresh: () => Promise<void>;
-      status: 'loading' | 'unconfigured';
-      verifiedAt: null;
-    };
+export type { UseConnectGenfeedStatusResult } from '@genfeedai/props/home/connect-genfeed-status.props';
 
 export function useConnectGenfeedStatus(
   organizationId: string,

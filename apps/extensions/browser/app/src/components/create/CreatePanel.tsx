@@ -620,7 +620,7 @@ function useCreatePanelController(onStartChat: () => void) {
               platform,
               status: 'draft',
               timestamp: new Date().toISOString(),
-            },
+            } satisfies PostResultEntry,
             ...previous,
           ].slice(0, 12),
         );

@@ -28,6 +28,24 @@ export interface PlatformConfig {
   injectButtons?: (postId: string, container: Element) => void;
 }
 
+function parseTwitterPostUrl(value: string) {
+  try {
+    const url = new URL(value, 'https://x.com');
+    if (
+      !['x.com', 'twitter.com', 'www.x.com', 'www.twitter.com'].includes(
+        url.hostname,
+      )
+    )
+      return null;
+    const match = url.pathname.match(/^\/([^/]+)\/status\/(\d+)(?:\/|$)/);
+    return match
+      ? { tweetId: match[2], username: match[1] === 'i' ? undefined : match[1] }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export const platforms: Record<string, PlatformConfig> = {
   facebook: {
     constructPostUrl: (postId: string) =>
@@ -259,7 +277,7 @@ export const platforms: Record<string, PlatformConfig> = {
   twitter: {
     constructPostUrl: (postId: string) => {
       // Extract username from current URL if available
-      const currentUrl = SocialUrlHelper.parseTwitterUrl(window.location.href);
+      const currentUrl = parseTwitterPostUrl(window.location.href);
       if (currentUrl?.username) {
         return SocialUrlHelper.buildTwitterUrl(postId, currentUrl.username);
       }
@@ -268,7 +286,7 @@ export const platforms: Record<string, PlatformConfig> = {
     },
     extractPostId: (element) => {
       // Try to parse from URL using shared helper
-      const urlData = SocialUrlHelper.parseTwitterUrl(window.location.href);
+      const urlData = parseTwitterPostUrl(window.location.href);
       if (urlData?.tweetId) {
         return urlData.tweetId;
       }
@@ -283,7 +301,7 @@ export const platforms: Record<string, PlatformConfig> = {
         if (statusLink) {
           const href = statusLink.getAttribute('href');
           if (href) {
-            const parsed = SocialUrlHelper.parseTwitterUrl(href);
+            const parsed = parseTwitterPostUrl(href);
             if (parsed?.tweetId) {
               return parsed.tweetId;
             }

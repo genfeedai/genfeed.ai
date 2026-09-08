@@ -1,3 +1,8 @@
+import type {
+  AccountHealthSummary,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
+
 import type { AsyncState } from '../shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
@@ -72,3 +77,19 @@ export interface PublishingOverviewHealthSectionProps {
   onRetry: () => void;
   state: AsyncState<PublishingOverviewHealthRow[]>;
 }
+
+export type BlockedTargetGroup = PublishingOverviewBlockedGroup;
+
+export type CadenceGap = PublishingOverviewCadenceGap;
+
+export interface CadenceGapsInput {
+  accountHealth: AccountHealthSummary[];
+  postedReleases: IReleaseGroup[];
+  upcomingReleases: IReleaseGroup[];
+}
+
+export type Next24hQueueBucket = 'near' | 'later';
+
+export type Next24hQueueItem = PublishingOverviewQueueItem;
+
+export type Next24hQueueGroup = PublishingOverviewQueueGroup;

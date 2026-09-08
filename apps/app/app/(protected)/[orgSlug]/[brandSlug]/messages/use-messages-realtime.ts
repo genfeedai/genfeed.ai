@@ -1,4 +1,5 @@
 import type { SocialInboxRealtimeEvent } from '@genfeedai/contracts/interfaces';
+import type { UseMessagesRealtimeParams } from '@genfeedai/props/messages/messages-realtime.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef } from 'react';
@@ -9,11 +10,6 @@ type MessagesConnectionState =
   | 'connecting'
   | 'offline'
   | 'reconnecting';
-
-interface UseMessagesRealtimeParams {
-  readonly onRefresh: () => void | Promise<void>;
-  readonly organizationId?: string;
-}
 
 export function useMessagesRealtime({
   onRefresh,

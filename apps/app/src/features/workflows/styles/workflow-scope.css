@@ -172,3 +172,36 @@
     );
   }
 }
+
+/* Raised node surfaces retain category identity against the canvas grid. */
+.workflow-scope .workflow-node {
+  background-color: hsl(var(--background-secondary));
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.08);
+}
+
+.workflow-scope .workflow-node-icon {
+  color: var(--node-color);
+}
+
+/* Keep semantic edge colors above the host's generic React Flow adapter. */
+.workflow-scope .react-flow__edge.edge-image .react-flow__edge-path {
+  stroke: var(--handle-image);
+}
+.workflow-scope .react-flow__edge.edge-video .react-flow__edge-path {
+  stroke: var(--handle-video);
+}
+.workflow-scope .react-flow__edge.edge-text .react-flow__edge-path,
+.workflow-scope .react-flow__edge.edge-text\[\] .react-flow__edge-path {
+  stroke: var(--handle-text);
+}
+.workflow-scope .react-flow__edge.edge-number .react-flow__edge-path {
+  stroke: var(--handle-number);
+}
+.workflow-scope .react-flow__edge.edge-audio .react-flow__edge-path {
+  stroke: var(--handle-audio);
+}
+.workflow-scope .react-flow__edge.edge-any .react-flow__edge-path,
+.workflow-scope .react-flow__edge.edge-object .react-flow__edge-path,
+.workflow-scope .react-flow__edge.edge-brand .react-flow__edge-path {
+  stroke: var(--handle-output);
+}
