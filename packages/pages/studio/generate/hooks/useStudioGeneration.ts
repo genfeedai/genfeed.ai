@@ -1,7 +1,7 @@
 'use client';
 
 import { IngredientStatus } from '@genfeedai/contracts';
-import type { IImage, IModel, IVideo } from '@genfeedai/contracts/interfaces';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationResponse,
   SocketResult,
@@ -421,10 +421,7 @@ export function useStudioGeneration({
               buildBaseGenerationPayload(promptData, modelKey, brandId),
               promptData,
             );
-            const data = (await service.post({
-              ...payload,
-              blacklist: settings.blacklist,
-            } as unknown as Partial<IImage>)) as GenerationResponse;
+            const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             break;
           }
@@ -440,10 +437,7 @@ export function useStudioGeneration({
               buildBaseGenerationPayload(videoPromptData, modelKey, brandId),
               videoPromptData,
             );
-            const data = (await service.post({
-              ...payload,
-              blacklist: settings.blacklist,
-            } as unknown as Partial<IVideo>)) as GenerationResponse;
+            const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
             break;
           }

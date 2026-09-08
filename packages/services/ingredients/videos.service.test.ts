@@ -1,3 +1,5 @@
+import { IngredientFormat } from '@genfeedai/contracts';
+import type { VideoGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import {
   axiosResponse,
@@ -44,6 +46,31 @@ describe('VideosService', () => {
       { signal: controller.signal },
     );
     expect(result.id).toBe('video_1');
+  });
+
+  it('preserves generation blacklist entries, tag IDs, and the abort signal', async () => {
+    mockVideoResponse();
+    const controller = new AbortController();
+    const payload: VideoGenerationPayload = {
+      blacklist: ['text, logos', 'watermark'],
+      brand: 'brand-1',
+      format: IngredientFormat.PORTRAIT,
+      height: 1920,
+      isAudioEnabled: false,
+      isBrandingEnabled: false,
+      outputs: 1,
+      references: ['reference-1'],
+      sounds: [],
+      tags: ['tag-1'],
+      text: 'A founder at a desk',
+      width: 1080,
+    };
+
+    await service.post(payload, controller.signal);
+
+    expect(http.post).toHaveBeenCalledWith('', payload, {
+      signal: controller.signal,
+    });
   });
 
   it('findVideoAllPosts GETs the posts for a video', async () => {

@@ -78,21 +78,24 @@ vi.mock('@services/core/socket-manager.service', () => ({
   ) => ({ onSuccess, onFailed }),
 }));
 
-const mockBuildAvatarPayload = vi.fn(
-  (_promptData: unknown, photoUrl?: string) => ({
+const { mockBuildAvatarPayload } = vi.hoisted(() => ({
+  mockBuildAvatarPayload: vi.fn((_promptData: unknown, photoUrl?: string) => ({
     photoUrl,
     text: 'test',
     speech: '',
     voiceId: 'voice-1',
+  })),
+}));
+
+vi.mock(
+  '@pages/studio/generate/utils/generation-payloads',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@pages/studio/generate/utils/generation-payloads')
+    >()),
+    buildAvatarPayload: mockBuildAvatarPayload,
   }),
 );
-
-vi.mock('@pages/studio/generate/utils/generation-payloads', () => ({
-  buildBaseGenerationPayload: vi.fn(() => ({})),
-  buildImagePayload: vi.fn(() => ({})),
-  buildVideoPayload: vi.fn(() => ({})),
-  buildAvatarPayload: mockBuildAvatarPayload,
-}));
 
 vi.mock('@utils/network/generation.util', () => ({
   resolvePendingIds: (response: unknown) => {
@@ -177,6 +180,17 @@ describe('useFastlaneGeneration', () => {
 
     expect(mockImagesPost).toHaveBeenCalledTimes(1);
     expect(mockVideosPost).toHaveBeenCalledTimes(1);
+    for (const post of [mockImagesPost, mockVideosPost]) {
+      expect(post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          blacklist: [],
+          brand: 'brand-1',
+          references: [],
+          tags: [],
+          text: 'A beautiful scene',
+        }),
+      );
+    }
     expect(mockHeyGenGenerate).toHaveBeenCalledTimes(1);
   });
 

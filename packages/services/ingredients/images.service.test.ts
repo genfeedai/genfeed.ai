@@ -1,3 +1,5 @@
+import { IngredientFormat } from '@genfeedai/contracts';
+import type { ImageGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import { ImagesService } from '@services/ingredients/images.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -167,6 +169,26 @@ describe('ImagesService', () => {
       await service.post(imageData);
 
       expect(mockPost).toHaveBeenCalledWith('', imageData);
+    });
+
+    it('passes generation blacklist entries and tag IDs to POST', async () => {
+      const payload: ImageGenerationPayload = {
+        blacklist: ['text, logos', 'watermark'],
+        brand: 'brand-1',
+        format: IngredientFormat.PORTRAIT,
+        height: 1920,
+        isBrandingEnabled: false,
+        outputs: 1,
+        references: ['reference-1'],
+        tags: ['tag-1'],
+        text: 'A founder at a desk',
+        width: 1080,
+      };
+      mockPost.mockResolvedValue({ data: { data: { id: 'img-1' } } });
+
+      await service.post(payload);
+
+      expect(mockPost).toHaveBeenCalledWith('', payload);
     });
 
     it('returns mapped image result', async () => {

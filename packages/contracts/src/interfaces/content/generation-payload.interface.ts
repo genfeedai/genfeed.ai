@@ -9,7 +9,7 @@ export interface BaseGenerationPayload {
   brand?: string;
   references: string[];
   outputs: number;
-  blacklist: string;
+  blacklist: string[];
   tags: string[];
   width: number;
   height: number;

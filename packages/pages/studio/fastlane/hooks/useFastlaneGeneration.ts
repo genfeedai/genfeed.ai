@@ -5,8 +5,6 @@ import { IngredientFormat } from '@genfeedai/contracts';
 import type {
   FastlaneAssetItem,
   FastlaneIdea,
-  IImage,
-  IVideo,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -251,25 +249,12 @@ export function useFastlaneGeneration({
           const service = await getImagesService();
           const base = buildBaseGenerationPayload(promptData, '', brandId);
           const imagePayload = buildImagePayload(base, promptData);
-          // Mirror useSocketGeneration: re-apply blacklist as string[] and cast
-          const servicePayload = {
-            ...imagePayload,
-            blacklist: promptData.blacklist || [],
-          };
-          response = await service.post(
-            servicePayload as unknown as Partial<IImage>,
-          );
+          response = await service.post(imagePayload);
         } else if (idea.format === 'video') {
           const service = await getVideosService();
           const base = buildBaseGenerationPayload(promptData, '', brandId);
           const videoPayload = buildVideoPayload(base, promptData);
-          const servicePayload = {
-            ...videoPayload,
-            blacklist: promptData.blacklist || [],
-          };
-          response = await service.post(
-            servicePayload as unknown as Partial<IVideo>,
-          );
+          response = await service.post(videoPayload);
         } else {
           // avatar
           if (!avatarIngredientId) {

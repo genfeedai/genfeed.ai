@@ -11,6 +11,7 @@ import type {
   IVideoResizeParams,
   IVideoTextOverlayParams,
 } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
+import type { VideoGenerationPayload } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
@@ -49,7 +50,9 @@ export class VideosService extends IngredientsService<Video> {
    * reading its result.
    */
   public async post(
-    body: Partial<IVideo> & { useTemplate?: boolean },
+    body:
+      | (Partial<IVideo> & { useTemplate?: boolean })
+      | VideoGenerationPayload,
     signal?: AbortSignal,
   ) {
     const data = VideoSerializer.serialize(body);

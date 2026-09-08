@@ -36,6 +36,7 @@ describe('buildBaseGenerationPayload', () => {
 
     expect(payload).toMatchObject({
       autoSelectModel: false,
+      blacklist: [],
       brand: 'brand-1',
       brandingMode: 'off',
       height: 1920,
@@ -56,7 +57,7 @@ describe('buildBaseGenerationPayload', () => {
     const payload = buildBaseGenerationPayload(
       makePromptData({
         autoSelectModel: true,
-        blacklist: ['nsfw', 'logos'],
+        blacklist: ['text, logos', 'watermark'],
         camera: ' 35mm ',
         isBrandingEnabled: true,
         outputs: 3,
@@ -69,7 +70,7 @@ describe('buildBaseGenerationPayload', () => {
     expect(payload.model).toBeUndefined();
     expect(payload.brandingMode).toBe('brand');
     expect(payload.isBrandingEnabled).toBe(true);
-    expect(payload.blacklist).toBe('nsfw, logos');
+    expect(payload.blacklist).toEqual(['text, logos', 'watermark']);
     expect(payload.camera).toBe('35mm');
     expect(payload.outputs).toBe(3);
   });
