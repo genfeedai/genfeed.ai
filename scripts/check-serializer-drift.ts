@@ -235,6 +235,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'voice',
   ],
   'image:Ingredient': [
+    'agentWorkObject',
     'blacklist',
     'blacklists',
     'camera',
@@ -272,6 +273,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'width',
   ],
   'ingredient:Ingredient': [
+    'agentWorkObject',
     'blacklists',
     'camera',
     'enhanceModel',
@@ -404,6 +406,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'trend:Trend': ['growthRate', 'mentions', 'metadata'],
   'voice:Ingredient': [
+    'agentWorkObject',
     'accent',
     'blacklists',
     'camera',
@@ -570,6 +573,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'workflow-execution:WorkflowExecution': [],
   'api-key:ApiKey': [],
   'avatar:Ingredient': [
+    'agentWorkObject',
     'age',
     'blacklists',
     'camera',
@@ -618,6 +622,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'social-conversation:SocialConversation': [],
   'social-message:SocialMessage': [],
   'video:Ingredient': [
+    'agentWorkObject',
     'backgroundMusic',
     'bitrate',
     'blacklist',

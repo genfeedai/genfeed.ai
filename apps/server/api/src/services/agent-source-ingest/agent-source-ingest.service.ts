@@ -72,7 +72,13 @@ export class AgentSourceIngestService {
         : undefined;
     if (existing && !pendingJobId) {
       const claim = await this.prisma.ingredient.updateMany({
-        where: { ...where, status: IngredientStatus.FAILED },
+        where: {
+          id: ingredientId,
+          organizationId: context.organizationId,
+          brandId: context.brandId ?? null,
+          isDeleted: false,
+          status: IngredientStatus.FAILED,
+        },
         data: {
           status: IngredientStatus.PROCESSING,
           generationError: null,
@@ -126,7 +132,13 @@ export class AgentSourceIngestService {
         pendingJobId,
         async (jobId) => {
           const persisted = await this.prisma.ingredient.updateMany({
-            where: { ...where, status: IngredientStatus.PROCESSING },
+            where: {
+              id: ingredientId,
+              organizationId: context.organizationId,
+              brandId: context.brandId ?? null,
+              isDeleted: false,
+              status: IngredientStatus.PROCESSING,
+            },
             data: { generationStage: `source-job:${jobId}` },
           });
           if (persisted.count !== 1)
@@ -161,7 +173,13 @@ export class AgentSourceIngestService {
     } catch (error) {
       if (error instanceof AgentSourceImportPendingError) throw error;
       await this.prisma.ingredient.updateMany({
-        where: { ...where, status: IngredientStatus.PROCESSING },
+        where: {
+          id: ingredientId,
+          organizationId: context.organizationId,
+          brandId: context.brandId ?? null,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         data: {
           status: IngredientStatus.FAILED,
           generationError:
