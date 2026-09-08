@@ -5,7 +5,7 @@
     "gf": "dist/index.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "8.7.1",
+    "@inquirer/prompts": "8.7.2",
     "chalk": "6.0.0",
     "commander": "15.0.0",
     "ink": "7.1.1",
@@ -23,7 +23,7 @@
     "@genfeedai/errors": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
-    "@types/bun": "1.4.1",
+    "@types/bun": "1.4.2",
     "@types/node": "22.20.1",
     "@types/react": "19.2.18",
     "@typescript/native": "npm:typescript@7.0.2",

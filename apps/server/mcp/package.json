@@ -5,8 +5,8 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/ui": "workspace:*",
-    "@posthog/mcp": "0.13.0",
-    "posthog-node": "5.51.6",
+    "@posthog/mcp": "0.13.1",
+    "posthog-node": "5.51.7",
     "tsconfig-paths": "4.2.0",
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/agent": "workspace:*"
