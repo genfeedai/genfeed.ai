@@ -301,6 +301,11 @@ jobs:
         run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
       - name: Run executable contracts
         run: bun run test:executable-contracts
+      # Repo-wide UI guards. lint-staged runs the raw-control scanner on staged
+      # files pre-commit, but that is skipped by --no-verify and never sees code
+      # arriving via merge, rebase or a web edit, so the guards had no gate.
+      - name: Run UI guards
+        run: bun run check:ui-guards
 
   # The Typecheck job above cannot see spec files: every backend workspace's
   # tsconfig.typecheck.json excludes them, and no vitest config enables
