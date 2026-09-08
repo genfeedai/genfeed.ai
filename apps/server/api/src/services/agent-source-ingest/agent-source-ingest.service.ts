@@ -90,38 +90,7 @@ export class AgentSourceIngestService {
           'This source import is already in progress. Reopen it instead of creating another import.',
         );
     } else if (!existing) {
-      try {
-        await this.prisma.ingredient.create({
-          data: {
-            id: ingredientId,
-            organization: { connect: { id: context.organizationId } },
-            ...(context.brandId
-              ? { brand: { connect: { id: context.brandId } } }
-              : {}),
-            user: { connect: { id: context.userId } },
-            isDeleted: false,
-            category: this.category(input.kind ?? 'video'),
-            status: IngredientStatus.PROCESSING,
-            sourceActionId: `agent-source:${digest}`,
-            metadata: {
-              create: {
-                label: input.title?.trim().slice(0, 200) || 'Imported source',
-                extension: MetadataExtension.MP4,
-                isDeleted: false,
-              },
-            },
-          },
-        });
-      } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        )
-          throw new ConflictException(
-            'This source import already exists. Reopen it before retrying.',
-          );
-        throw error;
-      }
+      await this.createSourceIngredient(input, context, ingredientId, digest);
     }
     try {
       const artifact = await this.downloader.download(
@@ -186,6 +155,46 @@ export class AgentSourceIngestService {
             'Source import failed. Retry this source from the same thread.',
         },
       });
+      throw error;
+    }
+  }
+
+  private async createSourceIngredient(
+    input: AgentSourceIngestInput,
+    context: AgentSourceIngestContext,
+    ingredientId: string,
+    digest: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.ingredient.create({
+        data: {
+          id: ingredientId,
+          organization: { connect: { id: context.organizationId } },
+          ...(context.brandId
+            ? { brand: { connect: { id: context.brandId } } }
+            : {}),
+          user: { connect: { id: context.userId } },
+          isDeleted: false,
+          category: this.category(input.kind ?? 'video'),
+          status: IngredientStatus.PROCESSING,
+          sourceActionId: `agent-source:${digest}`,
+          metadata: {
+            create: {
+              label: input.title?.trim().slice(0, 200) || 'Imported source',
+              extension: MetadataExtension.MP4,
+              isDeleted: false,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      )
+        throw new ConflictException(
+          'This source import already exists. Reopen it before retrying.',
+        );
       throw error;
     }
   }
