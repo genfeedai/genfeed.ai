@@ -1,5 +1,5 @@
 import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface UseAnimatedCounterOptions {
   end: number;
@@ -25,6 +25,12 @@ export function useAnimatedCounter({
   decimals = 0,
 }: UseAnimatedCounterOptions): UseAnimatedCounterReturn {
   const [count, setCount] = useState(0);
+  // The count-up is decoration; `end` is data. If the observer never fires --
+  // which happens wherever the card sits in a layout the viewport root cannot
+  // see -- the counter would sit on its initial 0 forever and the card would
+  // report a confident wrong number. Track whether the animation ever ran so
+  // the value can fall back to the truth.
+  const hasAnimatedRef = useRef(false);
   const { ref, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
     threshold: 0.3,
     triggerOnce: true,
@@ -52,10 +58,13 @@ export function useAnimatedCounter({
       }
     };
 
+    hasAnimatedRef.current = true;
     rafId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafId);
   }, [isIntersecting, end, duration, decimals]);
 
-  const formattedValue = decimals > 0 ? count.toFixed(decimals) : String(count);
+  const displayed = hasAnimatedRef.current ? count : end;
+  const formattedValue =
+    decimals > 0 ? displayed.toFixed(decimals) : String(displayed);
   return { ref, value: `${formattedValue}${suffix}` };
 }
