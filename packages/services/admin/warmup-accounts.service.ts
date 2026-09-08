@@ -1,6 +1,7 @@
 import type {
   IWarmupAccount,
   IWarmupAccountCreateRequest,
+  IWarmupPrepareRequest,
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -27,6 +28,17 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
   ): Promise<IWarmupAccount> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       '',
+      data,
+    );
+    return deserializeResource<IWarmupAccount>(response.data);
+  }
+
+  async prepareWarmupAccount(
+    id: string,
+    data: IWarmupPrepareRequest,
+  ): Promise<IWarmupAccount> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/prepare`,
       data,
     );
     return deserializeResource<IWarmupAccount>(response.data);

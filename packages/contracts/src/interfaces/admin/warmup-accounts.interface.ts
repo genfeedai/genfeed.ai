@@ -1,3 +1,7 @@
+import type {
+  BrandKitFieldKey,
+  IBrandKitDraft,
+} from '../organization/brand-kit.interface';
 export type IWarmupAccountStatus =
   | 'DRAFT'
   | 'PROVISIONING'
@@ -15,6 +19,7 @@ export interface IWarmupAccountDiagnosticStep {
 
 export interface IWarmupAccountDiagnostics {
   error?: string;
+  preparation?: IWarmupPreparation;
   steps: IWarmupAccountDiagnosticStep[];
 }
 
@@ -73,7 +78,71 @@ export interface IWarmupAccount {
   invitationId?: string;
   invitation?: IWarmupInvitation;
   diagnostics: IWarmupAccountDiagnostics;
+  readiness?: IWarmupReadiness;
   auditEvents: IWarmupAccountAuditEvent[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface IWarmupReadiness {
+  ready: boolean;
+  blockers: string[];
+  availableCredits: number;
+  workspacePath?: string;
+}
+
+export interface IWarmupPreparation {
+  grant?: {
+    amount: number;
+    transactionId: string;
+    actorUserId: string;
+    reason: string;
+    grantedAt: string;
+  };
+  context?: IBrandKitDraft;
+  contextReviewedAt?: string;
+  contextReviewedBy?: string;
+  assetId?: string;
+  articleId?: string;
+  generation?: {
+    status: 'running' | 'completed' | 'failed';
+    key: string;
+    startedAt: string;
+    workflowExecutionId?: string;
+    assetCandidateId?: string;
+    prompt?: string;
+  };
+  claimedAt?: string;
+  preparationCredits?: number;
+  invitationReadiness?: IWarmupReadiness;
+}
+
+export interface IWarmupPrepareRequest {
+  action:
+    | 'repair'
+    | 'fund'
+    | 'preview-context'
+    | 'apply-context'
+    | 'starter-content'
+    | 'attach-starters'
+    | 'archive';
+  amount?: number;
+  reason?: string;
+  sourceUrl?: string;
+  publicProfileUrl?: string;
+  description?: string;
+  label?: string;
+  assetId?: string;
+  articleId?: string;
+  prompt?: string;
+  contextDecisions?: {
+    draftId?: string;
+    fields: Partial<
+      Record<
+        BrandKitFieldKey,
+        { action: 'accept' | 'reject' | 'preserve'; value?: unknown }
+      >
+    >;
+  };
+  assetCandidateId?: string;
 }

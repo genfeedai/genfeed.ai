@@ -557,7 +557,11 @@ export class ArticlesService
     assertArticleOwnershipIds(userId, organizationId, brandId);
 
     const result = await super.findOne(
-      scopedWhere(organizationId, { id, brandId, userId }),
+      scopedWhere(organizationId, {
+        id,
+        brandId,
+        OR: [{ userId }, { scope: 'ORGANIZATION' }],
+      }),
     );
 
     if (!result) {
@@ -580,7 +584,11 @@ export class ArticlesService
     const article = await findOrThrow(
       this.delegate,
       {
-        where: scopedWhere(organizationId, { brandId, slug, userId }),
+        where: scopedWhere(organizationId, {
+          brandId,
+          slug,
+          OR: [{ userId }, { scope: 'ORGANIZATION' }],
+        }),
       },
       'Article',
     );
@@ -602,6 +610,14 @@ export class ArticlesService
       });
 
       assertArticleOwnershipIds(userId, organizationId, brandId);
+      const accessible = await this.delegate.findFirst({
+        where: scopedWhere(organizationId, {
+          id,
+          brandId,
+          OR: [{ userId }, { scope: 'ORGANIZATION' }],
+        }),
+      });
+      if (!accessible) throw new NotFoundException('Article', id);
 
       const updateData = ArticleFilterUtil.toArticlePersistenceData({
         ...updateArticleDto,

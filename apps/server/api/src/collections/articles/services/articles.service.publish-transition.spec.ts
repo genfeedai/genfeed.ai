@@ -217,4 +217,68 @@ describe('ArticlesService publish-state transition', () => {
     expect(data.publishedAt).toBeUndefined();
     expect(notificationsService.sendArticleNotification).not.toHaveBeenCalled();
   });
+  it('allows editing an organization-shared draft without changing its operator author', async () => {
+    const { delegate, service } = buildService();
+    delegate.findFirst.mockResolvedValue({
+      id: articleId,
+      organizationId,
+      userId: 'operator',
+      publishedAt: null,
+    });
+    delegate.update.mockResolvedValue({
+      id: articleId,
+      organizationId,
+      userId: 'operator',
+      isDeleted: false,
+      label: 'Prepared draft',
+      slug: 'prepared',
+    });
+    const result = await service.update(
+      articleId,
+      { label: 'Reviewed draft' } as UpdateArticleDto,
+      userId,
+      organizationId,
+      brandId,
+    );
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: articleId,
+        brandId,
+        organizationId,
+        isDeleted: false,
+        OR: [{ userId }, { scope: 'ORGANIZATION' }],
+      },
+    });
+    expect(result.userId).toBe('operator');
+    expect(readPatchedData(delegate)).not.toHaveProperty('userId');
+  });
+
+  it.each([
+    'another organization',
+    'another brand',
+    'another user private USER scope',
+  ])('rejects %s before any article mutation', async () => {
+    const { delegate, service, notificationsService } = buildService();
+    delegate.findFirst.mockResolvedValue(null as never);
+    await expect(
+      service.update(
+        articleId,
+        { status: ArticleStatus.PUBLISHED } as UpdateArticleDto,
+        userId,
+        organizationId,
+        brandId,
+      ),
+    ).rejects.toThrow('Article');
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: articleId,
+        brandId,
+        organizationId,
+        isDeleted: false,
+        OR: [{ userId }, { scope: 'ORGANIZATION' }],
+      },
+    });
+    expect(delegate.update).not.toHaveBeenCalled();
+    expect(notificationsService.sendArticleNotification).not.toHaveBeenCalled();
+  });
 });

@@ -1,5 +1,6 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RequestMethod } from '@nestjs/common';
 import {
@@ -92,6 +93,7 @@ describe('WarmupAccountsController', () => {
           useValue: warmupAccountsService,
         },
         { provide: LoggerService, useValue: loggerService },
+        { provide: WarmupPreparationService, useValue: { prepare: vi.fn() } },
       ],
     })
       .overrideGuard(IpWhitelistGuard)

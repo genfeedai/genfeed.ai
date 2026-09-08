@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { claimWarmupWorkspace } from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -429,6 +430,13 @@ export class InvitationService {
         user.id,
       );
 
+      const warmupDestination = await claimWarmupWorkspace(
+        tx,
+        invitation.id,
+        invitation.organizationId,
+        user.id,
+      );
+
       const acceptedInvitation = await tx.invitation.update({
         data: { acceptedByUserId: user.id },
         where: { id: invitation.id },
@@ -438,10 +446,19 @@ export class InvitationService {
         invitation: toInvitationView(acceptedInvitation),
         memberId: member.id,
         organizationId: invitation.organizationId,
-        redirectUrl: this.resolveRedirectUrl(invitation),
+        redirectUrl: warmupDestination
+          ? this.buildWarmupRedirect(warmupDestination)
+          : this.resolveRedirectUrl(invitation),
         userId: user.id,
       };
     });
+  }
+
+  private buildWarmupRedirect(destination: string): string {
+    const url = new URL('/login', this.getAppBaseUrl());
+    url.searchParams.set('invitation', 'accepted');
+    url.searchParams.set('callbackUrl', destination);
+    return url.toString();
   }
 
   buildAcceptUrl(token: string): string {

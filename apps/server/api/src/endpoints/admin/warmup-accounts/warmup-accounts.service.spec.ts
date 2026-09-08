@@ -3,11 +3,28 @@ import {
   AdminWarmupAccountsService,
   createSlugSeed,
 } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
+import {
+  lockWarmup,
+  reconcileWarmupWorkspace,
+  warmupReadiness,
+} from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WarmupAccountStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, GoneException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@api/endpoints/admin/warmup-accounts/warmup-workspace',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@api/endpoints/admin/warmup-accounts/warmup-workspace')
+    >()),
+    lockWarmup: vi.fn(),
+    reconcileWarmupWorkspace: vi.fn(),
+    warmupReadiness: vi.fn(),
+  }),
+);
 
 const createdAt = new Date('2026-06-29T10:00:00.000Z');
 const updatedAt = new Date('2026-06-29T10:01:00.000Z');
@@ -105,6 +122,7 @@ describe('AdminWarmupAccountsService', () => {
       findFirst: ReturnType<typeof vi.fn>;
     };
     warmupAccount: {
+      findFirst: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
     };
   };
@@ -128,6 +146,12 @@ describe('AdminWarmupAccountsService', () => {
   };
 
   beforeEach(() => {
+    vi.mocked(reconcileWarmupWorkspace).mockResolvedValue({} as never);
+    vi.mocked(warmupReadiness).mockResolvedValue({
+      ready: true,
+      blockers: [],
+      availableCredits: 500,
+    });
     tx = {
       brand: {
         create: vi.fn().mockResolvedValue({ id: 'brand_1' }),
@@ -155,6 +179,7 @@ describe('AdminWarmupAccountsService', () => {
           .mockResolvedValueOnce(null),
       },
       warmupAccount: {
+        findFirst: vi.fn().mockResolvedValue(null),
         create: vi
           .fn()
           .mockResolvedValue(makeWarmupAccount({ status: 'PROVISIONED' })),
@@ -195,6 +220,7 @@ describe('AdminWarmupAccountsService', () => {
       error: vi.fn(),
     };
 
+    prisma.warmupAccount.findFirst.mockResolvedValue(makeWarmupAccount());
     service = new AdminWarmupAccountsService(
       prisma as unknown as PrismaService,
       invitationService as unknown as InvitationService,
@@ -203,18 +229,18 @@ describe('AdminWarmupAccountsService', () => {
   });
 
   it('returns an existing active warm-up account for duplicate lead email', async () => {
-    prisma.warmupAccount.findFirst.mockResolvedValue(
+    tx.warmupAccount.findFirst.mockResolvedValue(
       makeWarmupAccount({ status: WarmupAccountStatus.INVITED }),
     );
 
-    const result = await service.create('operator_1', dto);
+    await service.create('operator_1', dto);
 
-    expect(result.status).toBe('INVITED');
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(reconcileWarmupWorkspace).toHaveBeenCalled();
     expect(invitationService.createInvitation).not.toHaveBeenCalled();
   });
 
-  it('provisions the account resources and creates a pending invitation', async () => {
+  it('provisions resources without sending or creating an invitation', async () => {
     const result = await service.create('operator_1', dto);
 
     expect(tx.organization.create).toHaveBeenCalledWith(
@@ -243,43 +269,22 @@ describe('AdminWarmupAccountsService', () => {
         }),
       }),
     );
-    expect(invitationService.createInvitation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: 'lead@example.com',
-        invitedByUserId: 'operator_1',
-        organizationId: 'org_1',
-        sendEmail: false,
-      }),
-    );
-    expect(result.status).toBe('INVITED');
-    expect(result.invitationId).toBe('invite_1');
+    expect(invitationService.createInvitation).not.toHaveBeenCalled();
+    expect(reconcileWarmupWorkspace).toHaveBeenCalled();
+    expect(result.status).toBe('PROVISIONED');
   });
 
-  it('records a failed status with diagnostics when invitation creation fails', async () => {
-    invitationService.createInvitation.mockRejectedValue(
-      new Error('Invitation disabled'),
-    );
-    prisma.warmupAccount.update.mockResolvedValue(
-      makeWarmupAccount({
-        diagnostics: {
-          error: 'Invitation disabled',
-          steps: [
-            {
-              message: 'Failed to create pending customer invitation.',
-              status: 'failed',
-              timestamp: '2026-06-29T10:02:00.000Z',
-            },
-          ],
-        },
-        status: WarmupAccountStatus.FAILED,
-      }),
-    );
-
-    const result = await service.create('operator_1', dto);
-
-    expect(logger.error).toHaveBeenCalled();
-    expect(result.status).toBe('FAILED');
-    expect(result.diagnostics.error).toBe('Invitation disabled');
+  it('blocks sending when readiness has missing prerequisites', async () => {
+    vi.mocked(warmupReadiness).mockResolvedValue({
+      ready: false,
+      availableCredits: 0,
+      blockers: ['Configure the promotional handoff grant'],
+    });
+    await expect(
+      service.sendInvitation('warmup_1', 'operator_1'),
+    ).rejects.toThrow('Warm-up account is not ready to invite');
+    expect(invitationService.createInvitation).not.toHaveBeenCalled();
+    expect(invitationService.resendInvitation).not.toHaveBeenCalled();
   });
 
   it('inspects invitation lifecycle state without token material', async () => {
@@ -384,12 +389,21 @@ describe('AdminWarmupAccountsService', () => {
       }),
     );
 
+    invitationService.resendInvitation.mockImplementation(async () => {
+      expect(prisma.warmupAccount.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ invitationId: 'invite_1' }),
+        }),
+      );
+      return makeInvitationView({ status: 'delivered' });
+    });
     const result = await service.sendInvitation('warmup_1', 'operator_1');
 
+    expect(lockWarmup).toHaveBeenCalledWith(expect.anything(), 'warmup_1');
     expect(invitationService.createInvitation).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'lead@example.com',
-        sendEmail: true,
+        sendEmail: false,
       }),
     );
     expect(result.status).toBe('INVITED');

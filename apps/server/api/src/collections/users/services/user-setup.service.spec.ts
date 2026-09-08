@@ -149,6 +149,22 @@ describe('UserSetupService', () => {
       mockMembersService.create.mockResolvedValue(mockMember);
     });
 
+    it('does not create customer membership or a fallback workspace before warm-up invitation acceptance', async () => {
+      mockMembersService.findOne.mockResolvedValue(null);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        ...mockOrg,
+        isProactiveOnboarding: true,
+      });
+      await expect(service.initializeUserResources(userId)).rejects.toThrow(
+        'Accept the prepared workspace invitation',
+      );
+      expect(mockOrganizationsService.create).not.toHaveBeenCalled();
+      expect(mockMembersService.create).not.toHaveBeenCalled();
+      expect(
+        mockBillingAccountsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should create all resources and return UserSetupResult', async () => {
       const result = await service.initializeUserResources(userId);
 

@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import WarmupPreparationPanel from './warmup-preparation-panel';
 
 const TABS = [
   { id: 'create', label: 'Create' },
@@ -95,10 +96,13 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         selectedAccountId: action.account.id,
       };
     }
+    case 'SET_LOAD_ERROR':
+      return { ...state, loadError: action.message };
     case 'SET_ACCOUNTS':
       return {
         ...state,
         accounts: action.accounts,
+        loadError: undefined,
         selectedAccountId:
           state.selectedAccountId ?? action.accounts[0]?.id ?? undefined,
       };
@@ -110,7 +114,11 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'SET_INVITATION_ACTION':
       return { ...state, invitationAction: action.request };
     case 'SET_LOADING':
-      return { ...state, isLoading: action.isLoading };
+      return {
+        ...state,
+        isLoading: action.isLoading,
+        ...(action.isLoading ? { loadError: undefined } : {}),
+      };
     case 'SET_SELECTED':
       return { ...state, selectedAccountId: action.accountId };
     case 'SET_SUBMITTING':
@@ -133,6 +141,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return {
         ...state,
         activeTab: action.tab,
+        loadError: undefined,
         isLoading: action.tab === 'accounts' ? true : state.isLoading,
         loadTrigger:
           action.tab === 'accounts' ? state.loadTrigger + 1 : state.loadTrigger,
@@ -157,7 +166,11 @@ function getStatusMeta(status: IWarmupAccountStatus) {
 }
 
 function canSendInvitation(account: IWarmupAccount): boolean {
-  if (account.status === 'CLAIMED' || account.status === 'ARCHIVED') {
+  if (
+    !account.readiness?.ready ||
+    account.status === 'CLAIMED' ||
+    account.status === 'ARCHIVED'
+  ) {
     return false;
   }
 
@@ -174,6 +187,12 @@ function canSendInvitation(account: IWarmupAccount): boolean {
 
 function canResendInvitation(account: IWarmupAccount): boolean {
   const status = account.invitation?.status;
+  if (
+    !account.readiness?.ready ||
+    account.status === 'CLAIMED' ||
+    account.status === 'ARCHIVED'
+  )
+    return false;
   return (
     status === 'pending' ||
     status === 'delivered' ||
@@ -261,14 +280,18 @@ export default function WarmupAccountsPage({
           return;
         }
         logger.error('Failed to load warm-up accounts', error);
-        notificationsService.error('Failed to load warm-up accounts');
+        dispatch({
+          type: 'SET_LOAD_ERROR',
+          message:
+            'Unable to load warm-up accounts. Check your administrator access and allowed IP address, then retry.',
+        });
       } finally {
         if (!signal.aborted) {
           dispatch({ type: 'SET_LOADING', isLoading: false });
         }
       }
     },
-    [getWarmupAccountsService, notificationsService],
+    [getWarmupAccountsService],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadTrigger is an intentional re-fire signal incremented on every accounts-tab selection, including re-selections of the already-active tab
@@ -567,7 +590,18 @@ export default function WarmupAccountsPage({
         </form>
       )}
 
-      {activeTab === 'accounts' && (
+      {activeTab === 'accounts' && state.loadError && (
+        <div role="alert" className="gen-card space-y-3 p-5">
+          <p className="font-medium">Unable to load warm-up accounts</p>
+          <p className="text-sm text-muted-foreground">{state.loadError}</p>
+          <Button
+            onClick={() => dispatch({ type: 'SET_TAB', tab: 'accounts' })}
+          >
+            Retry loading accounts
+          </Button>
+        </div>
+      )}
+      {activeTab === 'accounts' && !state.loadError && (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]">
           <WarmupAccountList
             accounts={accounts}
@@ -580,35 +614,46 @@ export default function WarmupAccountsPage({
               dispatch({ type: 'SET_SELECTED', accountId });
             }}
           />
-          <WarmupAccountDetail
-            account={selectedAccount}
-            invitationAction={
-              invitationAction &&
-              invitationAction.accountId === selectedAccount?.id
-                ? invitationAction.action
-                : null
-            }
-            onInspect={() => {
-              if (selectedAccount) {
-                void runInvitationAction('inspect', selectedAccount.id);
+          <div className="space-y-5">
+            {selectedAccount && (
+              <WarmupPreparationPanel
+                key={selectedAccount.id}
+                account={selectedAccount}
+                onUpdated={(account) =>
+                  dispatch({ type: 'UPSERT_ACCOUNT', account })
+                }
+              />
+            )}
+            <WarmupAccountDetail
+              account={selectedAccount}
+              invitationAction={
+                invitationAction &&
+                invitationAction.accountId === selectedAccount?.id
+                  ? invitationAction.action
+                  : null
               }
-            }}
-            onResend={() => {
-              if (selectedAccount) {
-                void runInvitationAction('resend', selectedAccount.id);
-              }
-            }}
-            onRevoke={() => {
-              if (selectedAccount) {
-                void runInvitationAction('revoke', selectedAccount.id);
-              }
-            }}
-            onSend={() => {
-              if (selectedAccount) {
-                void runInvitationAction('send', selectedAccount.id);
-              }
-            }}
-          />
+              onInspect={() => {
+                if (selectedAccount) {
+                  void runInvitationAction('inspect', selectedAccount.id);
+                }
+              }}
+              onResend={() => {
+                if (selectedAccount) {
+                  void runInvitationAction('resend', selectedAccount.id);
+                }
+              }}
+              onRevoke={() => {
+                if (selectedAccount) {
+                  void runInvitationAction('revoke', selectedAccount.id);
+                }
+              }}
+              onSend={() => {
+                if (selectedAccount) {
+                  void runInvitationAction('send', selectedAccount.id);
+                }
+              }}
+            />
+          </div>
         </div>
       )}
     </Container>

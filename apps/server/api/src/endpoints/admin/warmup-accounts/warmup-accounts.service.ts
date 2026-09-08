@@ -4,6 +4,12 @@ import {
   type InvitationView,
 } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
+import {
+  assertWarmupMutable,
+  lockWarmup,
+  reconcileWarmupWorkspace,
+  warmupReadiness,
+} from '@api/endpoints/admin/warmup-accounts/warmup-workspace';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -29,7 +35,12 @@ import {
 } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  GoneException,
+  Injectable,
+} from '@nestjs/common';
 
 type WarmupAccountView = IWarmupAccount;
 type WarmupTransaction = Prisma.TransactionClient;
@@ -37,6 +48,7 @@ type RoleAssignment = Pick<Role, 'id' | 'key'>;
 type CustomerUser = Pick<User, 'id'>;
 
 const ACTIVE_WARMUP_STATUSES: WarmupAccountStatus[] = [
+  WarmupAccountStatus.FAILED,
   WarmupAccountStatus.DRAFT,
   WarmupAccountStatus.PROVISIONING,
   WarmupAccountStatus.PROVISIONED,
@@ -130,24 +142,23 @@ export class AdminWarmupAccountsService {
     dto: CreateWarmupAccountDto,
   ): Promise<WarmupAccountView> {
     const leadEmail = normalizeEmail(dto.leadEmail);
-    const existing = await this.prisma.warmupAccount.findFirst({
-      orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        leadEmail,
-        status: { in: ACTIVE_WARMUP_STATUSES },
-      },
+    const account = await this.prisma.$transaction(async (tx) => {
+      await lockWarmup(tx, leadEmail);
+      const existing = await tx.warmupAccount.findFirst({
+        orderBy: { createdAt: 'desc' },
+        where: {
+          isDeleted: false,
+          leadEmail,
+          status: { in: ACTIVE_WARMUP_STATUSES },
+        },
+      });
+      const account =
+        existing ??
+        (await this.provisionWarmupAccount(tx, operatorUserId, leadEmail, dto));
+      await reconcileWarmupWorkspace(tx, account);
+      return account;
     });
-
-    if (existing) {
-      return this.toView(existing);
-    }
-
-    const provisioned = await this.prisma.$transaction((tx) =>
-      this.provisionWarmupAccount(tx, operatorUserId, leadEmail, dto),
-    );
-
-    return this.createInvitation(provisioned, operatorUserId);
+    return this.inspectInvitation(account.id);
   }
 
   async get(id: string): Promise<WarmupAccountView> {
@@ -158,16 +169,34 @@ export class AdminWarmupAccountsService {
     const account = await this.getAccount(id);
     const invitation = await this.loadInvitation(account);
 
-    return this.toView(account, invitation);
+    return {
+      ...this.toView(account, invitation),
+      readiness: await warmupReadiness(this.prisma, account),
+    };
   }
 
   async sendInvitation(
     id: string,
     actorUserId: string,
   ): Promise<WarmupAccountView> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockWarmup(tx, id);
+        return this.sendInvitationLocked(id, actorUserId);
+      },
+      { timeout: 120000 },
+    );
+  }
+
+  private async sendInvitationLocked(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
     const account = await this.getAccount(id);
     const organizationId = this.assertOrganizationId(account);
     const existing = await this.loadInvitation(account);
+    this.assertInvitationMutable(existing);
+    await this.assertReadyToInvite(account, actorUserId);
 
     if (existing?.status === 'delivered') {
       const updated = await this.persistInvitationTransition(account, {
@@ -195,9 +224,24 @@ export class AdminWarmupAccountsService {
     id: string,
     actorUserId: string,
   ): Promise<WarmupAccountView> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockWarmup(tx, id);
+        return this.resendInvitationLocked(id, actorUserId);
+      },
+      { timeout: 120000 },
+    );
+  }
+
+  private async resendInvitationLocked(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
     const account = await this.getAccount(id);
     const organizationId = this.assertOrganizationId(account);
     const existing = await this.requireInvitation(account);
+    this.assertInvitationMutable(existing);
+    await this.assertReadyToInvite(account, actorUserId);
 
     const invitation = await this.invitationService.resendInvitation({
       invitationId: existing.id,
@@ -214,6 +258,19 @@ export class AdminWarmupAccountsService {
   }
 
   async revokeInvitation(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockWarmup(tx, id);
+        return this.revokeInvitationLocked(id, actorUserId);
+      },
+      { timeout: 120000 },
+    );
+  }
+
+  private async revokeInvitationLocked(
     id: string,
     actorUserId: string,
   ): Promise<WarmupAccountView> {
@@ -242,7 +299,12 @@ export class AdminWarmupAccountsService {
       where: { isDeleted: false },
     });
 
-    return accounts.map((account) => this.toView(account));
+    return Promise.all(
+      accounts.map(async (account) => ({
+        ...this.toView(account),
+        readiness: await warmupReadiness(this.prisma, account),
+      })),
+    );
   }
 
   private async provisionWarmupAccount(
@@ -258,6 +320,10 @@ export class AdminWarmupAccountsService {
       leadEmail,
       dto,
     );
+    if (customerUser.id === operatorUserId)
+      throw new BadRequestException(
+        'The customer must be different from the preparation operator',
+      );
     const organizationSlug = await this.createUniqueOrganizationSlug(
       tx,
       dto.organizationName,
@@ -327,72 +393,46 @@ export class AdminWarmupAccountsService {
     });
   }
 
-  private async createInvitation(
+  private assertInvitationMutable(invitation?: InvitationView): void {
+    if (invitation?.status === 'accepted')
+      throw new ConflictException('Invitation has already been accepted');
+    if (invitation?.status === 'revoked')
+      throw new GoneException('Invitation has already been revoked');
+  }
+
+  private async assertReadyToInvite(
     account: WarmupAccount,
-    operatorUserId: string,
-  ): Promise<WarmupAccountView> {
-    if (!account.organizationId) {
-      throw new BadRequestException('Warm-up organization is missing');
-    }
-
-    try {
-      const invitation = await this.invitationService.createInvitation({
-        defaultRoleKey: 'member',
-        email: account.leadEmail,
-        firstName: account.leadFirstName ?? undefined,
-        invitedByUserId: operatorUserId,
-        lastName: account.leadLastName ?? undefined,
+    actorUserId: string,
+  ): Promise<void> {
+    assertWarmupMutable(account);
+    const readiness = await warmupReadiness(this.prisma, account);
+    if (!readiness.ready)
+      throw new BadRequestException({
+        message: 'Warm-up account is not ready to invite',
+        blockers: readiness.blockers,
+      });
+    await this.prisma.warmupAccount.update({
+      where: {
+        id: account.id,
         organizationId: account.organizationId,
-        redirectUrl: `/login?warmupAccountId=${account.id}`,
-        sendEmail: false,
-      });
-
-      const updated = await this.prisma.warmupAccount.update({
-        data: {
-          auditEvents: this.appendAuditEvent(
-            account,
-            operatorUserId,
-            `Created pending invitation ${invitation.id}.`,
-          ) as unknown as Prisma.InputJsonValue,
-          diagnostics: this.appendDiagnosticStep(
-            account,
-            'done',
-            'Created pending customer invitation.',
-          ) as unknown as Prisma.InputJsonValue,
-          invitationId: invitation.id,
-          status: WarmupAccountStatus.INVITED,
-        },
-        where: { id: account.id },
-      });
-
-      return this.toView(updated, invitation);
-    } catch (error) {
-      this.logger.error('Warm-up invitation provisioning failed', {
-        ...this.context,
-        error: getErrorMessage(error),
-        warmupAccountId: account.id,
-      });
-
-      const failed = await this.prisma.warmupAccount.update({
-        data: {
-          auditEvents: this.appendAuditEvent(
-            account,
-            operatorUserId,
-            'Invitation provisioning failed.',
-          ) as unknown as Prisma.InputJsonValue,
-          diagnostics: this.appendDiagnosticStep(
-            account,
-            'failed',
-            'Failed to create pending customer invitation.',
-            error,
-          ) as unknown as Prisma.InputJsonValue,
-          status: WarmupAccountStatus.FAILED,
-        },
-        where: { id: account.id },
-      });
-
-      return this.toView(failed);
-    }
+        isDeleted: false,
+      },
+      data: {
+        diagnostics: {
+          ...(account.diagnostics as Prisma.JsonObject),
+          preparation: {
+            ...(account.diagnostics as unknown as IWarmupAccountDiagnostics)
+              .preparation,
+            invitationReadiness: readiness,
+          },
+        } as unknown as Prisma.InputJsonValue,
+        auditEvents: this.appendAuditEvent(
+          account,
+          actorUserId,
+          'Verified readiness before explicit invitation dispatch.',
+        ) as unknown as Prisma.InputJsonValue,
+      },
+    });
   }
 
   private async getAccount(id: string): Promise<WarmupAccount> {
@@ -450,7 +490,7 @@ export class AdminWarmupAccountsService {
   ): Promise<InvitationView> {
     const organizationId = this.assertOrganizationId(account);
 
-    return this.invitationService.createInvitation({
+    const invitation = await this.invitationService.createInvitation({
       defaultRoleKey: 'member',
       email: account.leadEmail,
       firstName: account.leadFirstName ?? undefined,
@@ -458,7 +498,19 @@ export class AdminWarmupAccountsService {
       lastName: account.leadLastName ?? undefined,
       organizationId,
       redirectUrl: `/login?warmupAccountId=${account.id}`,
-      sendEmail: true,
+      sendEmail: false,
+    });
+    await this.persistInvitationTransition(account, {
+      actorUserId,
+      invitationId: invitation.id,
+      auditMessage: 'Linked the claim invitation before email delivery.',
+      diagnosticMessage: 'Invitation created; delivery pending.',
+      diagnosticStatus: 'done',
+    });
+    return this.invitationService.resendInvitation({
+      invitationId: invitation.id,
+      invitedByUserId: actorUserId,
+      organizationId,
     });
   }
 
@@ -514,15 +566,17 @@ export class AdminWarmupAccountsService {
   ): Promise<WarmupAccount> {
     const organizationId = this.assertOrganizationId(account);
 
+    const current = await this.getAccount(account.id);
+    assertWarmupMutable(current);
     return this.prisma.warmupAccount.update({
       data: {
         auditEvents: this.appendAuditEvent(
-          account,
+          current,
           input.actorUserId,
           input.auditMessage,
         ) as unknown as Prisma.InputJsonValue,
         diagnostics: this.appendDiagnosticStep(
-          account,
+          current,
           input.diagnosticStatus,
           input.diagnosticMessage,
           input.error,

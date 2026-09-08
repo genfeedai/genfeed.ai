@@ -17,6 +17,7 @@ import WarmupAccountsPage from './warmup-accounts-page';
 
 const mocks = vi.hoisted(() => ({
   createWarmupAccount: vi.fn(),
+  prepareWarmupAccount: vi.fn(),
   getAuthedService: vi.fn(),
   getWarmupAccounts: vi.fn(),
   inspectInvitation: vi.fn(),
@@ -46,6 +47,7 @@ vi.mock('@services/admin/warmup-accounts.service', () => ({
   AdminWarmupAccountsService: {
     getInstance: () => ({
       createWarmupAccount: mocks.createWarmupAccount,
+      prepareWarmupAccount: mocks.prepareWarmupAccount,
       getWarmupAccounts: mocks.getWarmupAccounts,
       inspectInvitation: mocks.inspectInvitation,
       resendInvitation: mocks.resendInvitation,
@@ -116,6 +118,7 @@ const pendingInvitation: IWarmupInvitation = {
 };
 
 const account: IWarmupAccount = {
+  readiness: { ready: true, blockers: [], availableCredits: 500 },
   auditEvents: [],
   brandId: 'brand_1',
   brandName: 'Acme',
@@ -181,16 +184,34 @@ async function findEnabledButton(name: RegExp | string): Promise<HTMLElement> {
 }
 
 describe('WarmupAccountsPage', () => {
+  it('shows a persistent load failure rather than an empty account list and allows retry', async () => {
+    mocks.getWarmupAccounts.mockRejectedValueOnce(new Error('forbidden'));
+    render(<WarmupAccountsPage defaultTab="accounts" />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load warm-up accounts',
+    );
+    expect(screen.queryByText('No warm-up accounts yet')).toBeNull();
+    expect(screen.queryByText('Select a warm-up account')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Retry loading accounts' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(mocks.getWarmupAccounts).toHaveBeenCalledTimes(2);
+    expect(mocks.notifications.error).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAuthedService.mockResolvedValue({
       createWarmupAccount: mocks.createWarmupAccount,
+      prepareWarmupAccount: mocks.prepareWarmupAccount,
       getWarmupAccounts: mocks.getWarmupAccounts,
       inspectInvitation: mocks.inspectInvitation,
       resendInvitation: mocks.resendInvitation,
       revokeInvitation: mocks.revokeInvitation,
       sendInvitation: mocks.sendInvitation,
     });
+    mocks.prepareWarmupAccount.mockResolvedValue(account);
     mocks.getWarmupAccounts.mockResolvedValue([account]);
     mocks.createWarmupAccount.mockResolvedValue(account);
     mocks.inspectInvitation.mockResolvedValue(account);
@@ -551,11 +572,11 @@ describe('WarmupAccountsPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /Revoke invitation/i }),
+        screen.getByRole('button', { name: /^Revoke invitation$/i }),
       ).toBeDefined();
     });
 
-    fireEvent.click(await findEnabledButton(/Revoke invitation/i));
+    fireEvent.click(await findEnabledButton(/^Revoke invitation$/i));
 
     await waitFor(() => {
       expect(mocks.revokeInvitation).toHaveBeenCalledWith(
@@ -572,7 +593,58 @@ describe('WarmupAccountsPage', () => {
       screen.queryByRole('button', { name: /Send invitation/i }),
     ).toBeNull();
     expect(
-      screen.queryByRole('button', { name: /Revoke invitation/i }),
+      screen.queryByRole('button', { name: /^Revoke invitation$/i }),
     ).toBeNull();
+  });
+  it('shows readiness blockers and prevents invitation dispatch until preparation is complete', async () => {
+    const blocked = makeAccount({
+      readiness: {
+        ready: false,
+        availableCredits: 0,
+        blockers: ['Review and apply brand context'],
+      },
+      invitation: undefined,
+    });
+    mocks.getWarmupAccounts.mockResolvedValue([blocked]);
+    mocks.inspectInvitation.mockResolvedValue(blocked);
+    render(<WarmupAccountsPage defaultTab="accounts" />);
+    expect(
+      await screen.findByText('Review and apply brand context'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Send invitation$/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Repair and refresh readiness' }),
+    ).toBeEnabled();
+  });
+
+  it('grants the explicit 500-credit handoff balance and does not offer unsupported expiration', async () => {
+    render(<WarmupAccountsPage defaultTab="accounts" />);
+    fireEvent.click(await findEnabledButton('Grant credits'));
+    await waitFor(() =>
+      expect(mocks.prepareWarmupAccount).toHaveBeenCalledWith('warmup_1', {
+        action: 'fund',
+        amount: 500,
+        reason: 'Promotional customer evaluation',
+      }),
+    );
+    expect(
+      screen.getByText('Promotional handoff credits do not expire.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Expiration/)).not.toBeInTheDocument();
+  });
+
+  it('shows ended operator access for claimed customers instead of preparation actions', async () => {
+    const claimed = makeAccount({ status: 'CLAIMED' });
+    mocks.getWarmupAccounts.mockResolvedValue([claimed]);
+    mocks.inspectInvitation.mockResolvedValue(claimed);
+    render(<WarmupAccountsPage defaultTab="accounts" />);
+    expect(
+      await screen.findByText(/Operator preparation access has ended/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Grant credits' }),
+    ).not.toBeInTheDocument();
   });
 });

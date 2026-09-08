@@ -141,6 +141,11 @@ describe('ArticlesController', () => {
             id: articleId,
             isDeleted: false,
             organizationId: mockPublicMetadata.organization,
+            brandId: mockPublicMetadata.brand,
+            OR: [
+              { userId: mockPublicMetadata.user },
+              { scope: 'ORGANIZATION' },
+            ],
           },
         },
         { pagination: false },
