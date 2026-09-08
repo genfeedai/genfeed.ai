@@ -65,30 +65,30 @@ vi.mock('next/link', () => ({
 }));
 
 describe('AgentSidebarContent', () => {
-  it('renders semantic links for overview and new thread', () => {
+  it('renders a semantic link back to overview', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(
       screen.getByRole('link', { name: 'Back to overview' }),
     ).toHaveAttribute('href', '/test-org/test-brand/overview');
-    expect(
-      screen.getByRole('link', { name: 'New agent thread' }),
-    ).toHaveAttribute('href', '/test-org/test-brand/agent/new');
   });
 
-  it('uses a compact new-thread action beside the conversation controls', () => {
+  // Starting a conversation is a sidebar row ("New Conversation") beside
+  // Search, the same shape every other surface uses, so the panel no longer
+  // carries a compact "+" of its own.
+  it('does not carry its own new-thread action', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(
-      screen.getByRole('link', { name: 'New agent thread' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('link', { name: 'New agent thread' }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the sidebar focused on agent actions and threads', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
     expect(
-      screen.getByRole('link', { name: 'New agent thread' }),
+      screen.getByRole('link', { name: 'Back to overview' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Thread list')).toBeInTheDocument();
   });

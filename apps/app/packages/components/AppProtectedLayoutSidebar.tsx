@@ -4,8 +4,9 @@ import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { SettingsSurface } from '@genfeedai/contracts';
-import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
+import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
   MenuSharedProps,
   SidebarNavPanel,
@@ -16,6 +17,7 @@ import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarAction
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
@@ -108,6 +110,8 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const { settings } = useBrand();
   const translate = useTranslations('common.sidebar');
+  const router = useRouter();
+  const { href } = useOrgUrl();
   // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher is ALWAYS
   // visible because it is the entry point to org-scoped surfaces (settings,
   // brands, credits). Single-tenant modes still have exactly one org that a
@@ -131,6 +135,23 @@ export default function AppProtectedLayoutSidebar({
         icon={<Plus className="size-4 flex-shrink-0" />}
         label={translate('newTask')}
         onClick={dispatchOpenTaskComposer}
+        shortcut="⌘⇧N"
+        testId="sidebar-primary-action"
+      />
+      <SidebarSearchTrigger label={translate('search')} />
+    </>
+  );
+
+  // Agent routes get the same two rows as every other surface, so the
+  // conversation panel needs no search field or bare "+" of its own. Only the
+  // primary action differs: a new conversation rather than a new task.
+  const renderConversationQuickActions = () => (
+    <>
+      <SidebarActionTrigger
+        ariaLabel="Start a new conversation"
+        icon={<Plus className="size-4 flex-shrink-0" />}
+        label="New Conversation"
+        onClick={() => router.push(href(APP_ROUTES.AGENT.NEW))}
         shortcut="⌘⇧N"
         testId="sidebar-primary-action"
       />
@@ -255,7 +276,7 @@ export default function AppProtectedLayoutSidebar({
           isSettingsRoute
             ? () => <SettingsSearch scope={settingsScope} />
             : isConversationRoute
-              ? undefined
+              ? renderConversationQuickActions
               : renderQuickActions
         }
       />

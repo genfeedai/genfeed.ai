@@ -30,14 +30,7 @@ import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import {
-  type ReactNode,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
@@ -230,14 +223,13 @@ function AppLayoutWithDynamicMenu({
   );
 
   const renderConversations = useCallback(
-    (searchAction?: ReactNode) =>
+    () =>
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
           brandId={brandId || null}
           onNavigate={handleNavigate}
           resolveThreadHref={resolveAgentThreadHref}
-          searchAction={searchAction}
         />
       ) : null,
     [agentApiService, brandId, handleNavigate, resolveAgentThreadHref],
@@ -256,8 +248,7 @@ function AppLayoutWithDynamicMenu({
     // Stable identity for the factory passed into AgentSidebarContent — if
     // this were an inline arrow recreated inside render(), every shell
     // re-render would look like a prop change on the sidebar body.
-    const stableRenderConversations = (searchAction?: ReactNode) =>
-      renderConversationsRef.current(searchAction);
+    const stableRenderConversations = () => renderConversationsRef.current();
 
     return {
       render: () => (

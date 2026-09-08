@@ -1,10 +1,7 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import {
-  ConversationSidebarSearch,
-  ConversationSidebarSection,
-} from '@genfeedai/ui';
-import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
+import { ConversationSidebarSection } from '@genfeedai/ui';
+import { type ReactElement, useMemo } from 'react';
 import { AgentThreadListEmptyState } from './AgentThreadListEmptyState';
 import { AgentThreadListErrorBanner } from './AgentThreadListErrorBanner';
 import { AgentThreadListHeaderActions } from './AgentThreadListHeaderActions';
@@ -28,7 +25,6 @@ export type AgentThreadListProps = {
   onNavigate?: (path: string) => void;
   /** Resolve the final app-scoped route without a proxy redirect. */
   resolveThreadHref?: (thread: AgentThread) => string;
-  searchAction?: ReactNode;
   /** When true, render the Conversations label above search. */
   showTitle?: boolean;
 };
@@ -39,12 +35,10 @@ export function AgentThreadList({
   brandId = null,
   onNavigate,
   resolveThreadHref,
-  searchAction,
   showTitle = false,
 }: AgentThreadListProps): ReactElement {
   // Filter chips removed — grouping sections are the filter surface.
   const filter: AgentThreadListFilter = 'all';
-  const [searchQuery, setSearchQuery] = useState('');
   const {
     threads,
     activeThreadId,
@@ -98,16 +92,15 @@ export function AgentThreadList({
         activeThreadId,
         filter,
         isStreaming,
-        searchQuery,
+        // Filtering moved to the command palette; the grouping helpers still
+        // take a query, so pass an explicit empty one rather than undefined.
+        searchQuery: '',
       }),
-    [activeRunStatus, activeThreadId, isStreaming, searchQuery, threads],
+    [activeRunStatus, activeThreadId, isStreaming, threads],
   );
   const brandGroups = useMemo(
-    () =>
-      groupAgentThreadsByBrand(threads, {
-        searchQuery,
-      }),
-    [searchQuery, threads],
+    () => groupAgentThreadsByBrand(threads, { searchQuery: '' }),
+    [threads],
   );
   const isBrandScoped = Boolean(brandId);
   const shouldGroupByBrand = !isArchivedView && !isBrandScoped;
@@ -173,27 +166,38 @@ export function AgentThreadList({
     />
   );
 
-  // Without the title there is nothing to anchor a header strip to, so the
-  // list actions ride in the search row beside the new-thread button rather
-  // than floating alone on their own line.
-  const composedSearchAction = shouldShowHeader ? (
-    <div className="flex items-center gap-0.5">
-      <AgentThreadListHeaderActions
-        viewStatus={viewStatus}
-        threadCount={threads.length}
-        onArchiveAll={() => {
-          handleArchiveAllThreads().catch(() => undefined);
-        }}
-        onRefresh={() => {
-          handleRefresh().catch(() => undefined);
-        }}
-        onToggleView={handleToggleView}
-      />
-      {searchAction}
-    </div>
-  ) : (
-    searchAction
-  );
+  // New Conversation and Search are sidebar rows on every surface now, so the
+  // panel carries no field or "+" of its own — the list actions hang off the
+  // section header they act on.
+  const listActions = shouldShowHeader ? (
+    <AgentThreadListHeaderActions
+      viewStatus={viewStatus}
+      threadCount={threads.length}
+      onArchiveAll={() => {
+        handleArchiveAllThreads().catch(() => undefined);
+      }}
+      onRefresh={() => {
+        handleRefresh().catch(() => undefined);
+      }}
+      onToggleView={handleToggleView}
+    />
+  ) : null;
+
+  // The actions hang off a section header rather than a bar of their own, so
+  // they ride the first section that actually renders. Pinning them to Recent
+  // alone would strand archive-all and the archived toggle in the archived and
+  // brand-grouped views, which have no Recent section.
+  const actionsSectionId = isArchivedView
+    ? 'archived'
+    : shouldGroupByBrand
+      ? (brandGroups[0]?.brandId ?? 'organization')
+      : groups.needsYou.length > 0
+        ? 'needsYou'
+        : groups.working.length > 0
+          ? 'working'
+          : groups.pinned.length > 0
+            ? 'pinned'
+            : 'recent';
 
   return (
     <div
@@ -215,20 +219,13 @@ export function AgentThreadList({
         </div>
       ) : null}
 
-      <ConversationSidebarSearch
-        action={composedSearchAction}
-        ariaLabel="Search agent conversations"
-        placeholder="Search conversations"
-        value={searchQuery}
-        onChange={setSearchQuery}
-      />
-
       <div
         data-testid="agent-thread-list-scroll"
         className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
       >
         {showEmptyOrLoadStates ? (
           <AgentThreadListEmptyState
+            actions={listActions}
             isLoading={isLoading && threads.length === 0}
             shouldShowLoadFailureState={shouldShowLoadFailureState}
             shouldShowEmptyState={shouldShowEmptyState}
@@ -250,6 +247,7 @@ export function AgentThreadList({
           >
             {isArchivedView ? (
               <ConversationSidebarSection
+                actions={actionsSectionId === 'archived' ? listActions : null}
                 count={visibleThreadCount}
                 label="Archived"
               >
@@ -265,6 +263,11 @@ export function AgentThreadList({
               ? brandGroups.map((group) => (
                   <ConversationSidebarSection
                     key={group.brandId ?? 'organization'}
+                    actions={
+                      actionsSectionId === (group.brandId ?? 'organization')
+                        ? listActions
+                        : null
+                    }
                     count={group.threads.length}
                     label={group.label}
                   >
@@ -276,6 +279,7 @@ export function AgentThreadList({
             !shouldGroupByBrand &&
             groups.needsYou.length > 0 ? (
               <ConversationSidebarSection
+                actions={actionsSectionId === 'needsYou' ? listActions : null}
                 count={groups.needsYou.length}
                 label="Needs you"
               >
@@ -286,6 +290,7 @@ export function AgentThreadList({
             !shouldGroupByBrand &&
             groups.working.length > 0 ? (
               <ConversationSidebarSection
+                actions={actionsSectionId === 'working' ? listActions : null}
                 count={groups.working.length}
                 label="Working"
               >
@@ -296,6 +301,7 @@ export function AgentThreadList({
             !shouldGroupByBrand &&
             groups.pinned.length > 0 ? (
               <ConversationSidebarSection
+                actions={actionsSectionId === 'pinned' ? listActions : null}
                 count={groups.pinned.length}
                 label="Pinned"
               >
@@ -306,6 +312,7 @@ export function AgentThreadList({
             !shouldGroupByBrand &&
             groups.recent.length > 0 ? (
               <ConversationSidebarSection
+                actions={actionsSectionId === 'recent' ? listActions : null}
                 count={groups.recent.length}
                 label="Recent"
               >
