@@ -52,13 +52,15 @@ export default function BrandSettingsCharactersPage(): ReactElement {
         description={translate('subtitle')}
         label={translate('title')}
         right={
-          <Button
-            onClick={openCreateDialog}
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          >
-            <Plus /> {translate('create.title')}
-          </Button>
+          !isLoading && characters.length > 0 ? (
+            <Button
+              onClick={openCreateDialog}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              <Plus /> {translate('create.title')}
+            </Button>
+          ) : undefined
         }
       >
         <CharactersTable

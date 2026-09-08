@@ -156,7 +156,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('opens the create dialog and generates a sheet from the description', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    fireEvent.click(screen.getByText('New character'));
+    fireEvent.click(await screen.findByText('New character'));
 
     await screen.findByTestId('character-description');
     fireEvent.change(screen.getByTestId('character-description'), {
@@ -182,7 +182,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('does not create a persona when the candidate is discarded', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    fireEvent.click(screen.getByText('New character'));
+    fireEvent.click(await screen.findByText('New character'));
     await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
@@ -201,7 +201,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('creates a persona from the approved sheet', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    fireEvent.click(screen.getByText('New character'));
+    fireEvent.click(await screen.findByText('New character'));
     await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
