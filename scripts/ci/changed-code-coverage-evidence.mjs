@@ -116,9 +116,9 @@ export function assessObservations(
 ) {
   const errors = [];
   const unique = new Map();
-  for (const entry of entries) {
+  for (const [index, entry] of entries.entries()) {
     const key =
-      entry?.artifact?.id ?? `missing-${entry?.run?.id ?? errors.length}`;
+      entry?.artifact?.id ?? `missing-${entry?.run?.id ?? `entry-${index}`}`;
     if (unique.has(key)) continue;
     unique.set(key, entry);
   }

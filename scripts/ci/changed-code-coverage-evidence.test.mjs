@@ -77,6 +77,19 @@ test('reruns and duplicate artifact listings cannot manufacture twenty PRs', () 
   assert.equal(r.representativePullRequests, 1);
   assert.equal(r.evidenceEligible, false);
 });
+test('counts each unidentified malformed entry while deduplicating known identities', () => {
+  const valid = entry();
+  const missing = { run: { id: 0 }, error: 'missing report' };
+  const r = assessObservations(
+    [null, {}, { report: null }, valid, valid, missing, missing],
+    baseline,
+    options,
+  );
+  assert.equal(r.fetchedReports, 5);
+  assert.equal(r.validReports, 1);
+  assert.equal(r.errors.length, 4);
+  assert.equal(r.evidenceEligible, false);
+});
 test('latest failed PR head cannot borrow an older successful observation', () => {
   const rows = twenty();
   const failed = entry(1, { disposition: 'infrastructure-failed' });
