@@ -36,13 +36,14 @@ export default function HomeHero(): React.ReactElement {
           as="h1"
           className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          Everything your brand can become.
+          Your brand. Everywhere.
         </Heading>
         <Text
           as="p"
-          className="animate-gen-stagger-in mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Every format. One recognisable brand.
+          Brief it once: Genfeed makes the video, images, ads and posts, on
+          brand and ready to publish.
         </Text>
 
         <div

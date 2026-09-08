@@ -79,11 +79,11 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /everything your brand can become\./i,
+        name: /your brand\. everywhere\./i,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/every format\. one recognisable brand\./i),
+      screen.getByText(/brief it once: genfeed makes the video/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),

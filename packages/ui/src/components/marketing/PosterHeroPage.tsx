@@ -30,7 +30,13 @@ export default function PosterHeroPage({
         a visitor had to scroll before seeing a price. The hero still breathes;
         it just stops charging twice for the same air.
       */}
-      <section className="relative overflow-hidden border-b border-[var(--gen-accent-border)] pb-8">
+      {/*
+        No rule under the hero. It sat a long way above the first section, so it
+        read as a stray line drawn across the page rather than a boundary
+        between two things. Space separates them, which is what the gap above
+        was already doing on its own.
+      */}
+      <section className="relative overflow-hidden pb-8">
         <div className="container mx-auto px-6">
           <div
             className={[
