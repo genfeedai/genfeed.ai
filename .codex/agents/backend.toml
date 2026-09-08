@@ -57,12 +57,11 @@ import type { <Name> } from '@genfeedai/prisma';
 export type { <Name> } from '@genfeedai/prisma';
 
 export interface <Name>Document extends <Name> {
-  _id?: string;
   [key: string]: unknown;
 }
 ```
 
-The Document interface extends the Prisma type with legacy fields needed by serializers.
+The Document interface extends the Prisma type. Use its canonical `id`; do not add legacy persistence identifiers.
 
 ## Entity File
 
