@@ -82,6 +82,14 @@ describe('Playwright API mocks', () => {
     ).toEqual([]);
   });
 
+  it('matches the conversation work collection response', () => {
+    expect(
+      buildUnhandledApiMockBody(
+        'https://api.genfeed.ai/v1/agent/threads/thread-1/work-objects?sessionId=session-1',
+      ),
+    ).toEqual({ workObjects: [], sessionAssets: [] });
+  });
+
   it('keeps the JSON:API collection fallback for unknown collections', () => {
     expect(
       buildUnhandledApiMockBody('https://api.genfeed.ai/v1/batches'),

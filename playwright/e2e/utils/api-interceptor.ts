@@ -1508,6 +1508,10 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return { mode: 'development' };
   }
 
+  if (/\/agent\/threads\/[^/?]+\/work-objects(?:\?|$)/.test(url)) {
+    return { workObjects: [], sessionAssets: [] };
+  }
+
   if (url.includes('/mentions')) {
     return { mentions: [] };
   }
