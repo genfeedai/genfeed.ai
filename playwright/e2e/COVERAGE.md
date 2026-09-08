@@ -7,7 +7,7 @@ Two complementary coverage signals back the Playwright suite:
 2. **Route coverage** — % of Next.js App Router pages that have a dedicated spec
    navigating to them.
 
-Both target **≥ 80%**.
+Code coverage has a long-term **80%** target. Route references are an inventory, not a percentage gate.
 
 ---
 
@@ -32,10 +32,46 @@ Outputs under `playwright-report/coverage/`:
 
 - `index.html` — interactive V8 report (source-mapped to TypeScript)
 - `lcov.info` — for CI artifacts
+- `raw/` — source data for merging all four CI shards
 - console summary with line / statement %
 
-The run **fails** if coverage drops below the threshold. Override with
-`E2E_COVERAGE_THRESHOLD=85 bun run test:e2e:coverage`.
+Shards collect coverage without enforcing thresholds. CI merges all four shards
+before validating the report and applying the policy in
+`scripts/ci/playwright-coverage.baseline.json`. This is the only threshold source;
+there is no environment override. Observation mode records valid metrics without
+failing for a percentage. Missing or malformed data always fails validation.
+
+The merged `e2e-coverage-merged` artifact lasts 90 days and contains LCOV,
+Istanbul `coverage-summary.json`, and `playwright-coverage-report.json` with
+branch, function, line, and statement counts plus run identity and the largest
+uncovered files. Counts are merged from raw V8 data before calculating metrics;
+shard percentages are never averaged. These are Istanbul executable source
+metrics; the per-shard V8 byte/line console summaries have different denominators
+and must not be used as thresholds. The denominator is source loaded by the
+mocked smoke/core browser suite, not every file in the repository.
+
+### Baseline readiness and ratchet (#439)
+
+After every completed master Coverage run, **Playwright Coverage Policy** reads
+the latest two scheduled master Coverage runs and downloads their merged evidence.
+Its readiness artifact and job summary name each blocker. Manual runs cannot
+satisfy the scheduled evidence requirement. A failed scheduled run resets the
+streak. #1829 must also be closed. A missing/expired artifact is missing evidence,
+never a passing measurement.
+
+Once ready, open a reviewed change setting `mode` to `enforcement`, copying
+`runs`, `reports`, and `prerequisiteState` from the readiness artifact into
+`baseline`, and applying its `proposedThresholds`. Each initial threshold is the
+lower percentage across both runs minus 0.5 percentage points, rounded down to
+two decimal places (minimum zero). The PR policy check verifies live evidence.
+Enforcement compares exact merged percentages against those four thresholds.
+
+Raise thresholds incrementally after targeted tests improve the measured report;
+link follow-up issues for the largest uncovered critical files from the artifact.
+Do not jump directly to 80%. Threshold decreases or disabling enforcement require
+an explicit positive `exceptionIssue` and review. The policy comparison checks the
+base revision, so rewriting history cannot silently lower a threshold. Readiness
+never edits policy, closes issues, or enables enforcement automatically.
 
 ### Source maps
 

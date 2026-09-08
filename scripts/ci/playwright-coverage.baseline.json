@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": 439,
+  "mode": "observation",
+  "thresholds": {
+    "branches": null,
+    "functions": null,
+    "lines": null,
+    "statements": null
+  },
+  "roundingMarginPercentagePoints": 0.5,
+  "baseline": null,
+  "exceptionIssue": null,
+  "readiness": {
+    "requiredScheduledRuns": 2,
+    "prerequisiteIssue": 1829,
+    "artifactName": "e2e-coverage-merged",
+    "retentionDays": 90
+  },
+  "note": "Promote only after two consecutive successful scheduled master Coverage runs with valid merged reports. Set initial thresholds to the lower measured percentage across both runs minus the rounding margin, rounded down to two decimals. Threshold reductions require an explicit exceptionIssue and review."
+}
