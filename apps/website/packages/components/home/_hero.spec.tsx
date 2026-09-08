@@ -59,6 +59,18 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
+/**
+ * The marquee renders every card twice so the row can loop without a visible
+ * restart. Only the first copy is content; the second is decorative and hidden
+ * from assistive technology, so assertions about *what the page says* have to
+ * ignore it.
+ */
+function announcedCards(): HTMLElement[] {
+  return screen
+    .getAllByTestId('home-hero-output-carousel-item')
+    .filter((card) => !card.closest('[aria-hidden="true"]'));
+}
+
 describe('HomeHero', () => {
   it('leads with generated output and preserves the CTA hierarchy', () => {
     render(<HomeHero />);
@@ -112,12 +124,12 @@ describe('HomeHero', () => {
     );
   });
 
-  it('preloads only the first card in the rail', () => {
+  it('preloads only the first card of the announced row', () => {
     render(<HomeHero />);
 
-    const preloaded = screen
-      .getAllByTestId('home-hero-output-carousel-item')
-      .filter((card) => card.getAttribute('data-preloaded') === 'true');
+    const preloaded = announcedCards().filter(
+      (card) => card.getAttribute('data-preloaded') === 'true',
+    );
 
     expect(preloaded).toHaveLength(1);
     expect(preloaded[0]).toHaveAttribute(
@@ -176,12 +188,12 @@ describe('HomeHero', () => {
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
-  it('renders a CDN-backed generated output carousel', () => {
+  it('renders a CDN-backed generated output rail', () => {
     render(<HomeHero />);
 
     expect(screen.getByTestId('home-hero-output-carousel')).toBeInTheDocument();
 
-    const cards = screen.getAllByTestId('home-hero-output-carousel-item');
+    const cards = announcedCards();
 
     expect(cards).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
     expect(cards.map((card) => card.getAttribute('data-poster'))).toEqual(
@@ -191,5 +203,24 @@ describe('HomeHero', () => {
       screen.queryByTestId('home-hero-output-wall'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
+  });
+
+  it('duplicates the row for the marquee without announcing it twice', () => {
+    render(<HomeHero />);
+
+    // Every card is on the page twice — that duplicate is what lets the row
+    // loop without a visible restart — but only one copy is real content.
+    expect(
+      screen.getAllByTestId('home-hero-output-carousel-item'),
+    ).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length * 2);
+    expect(announcedCards()).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
+  });
+
+  it('gives the rail nothing to operate', () => {
+    render(<HomeHero />);
+
+    expect(
+      screen.queryByRole('button', { name: /scroll/i }),
+    ).not.toBeInTheDocument();
   });
 });
