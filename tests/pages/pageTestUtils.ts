@@ -14,11 +14,6 @@ export function runPageModuleTests(
       expect(typeof pageModule.default).toBe('function');
     });
 
-    it('default export is a valid React component (function)', () => {
-      const Component = pageModule.default as (...args: never) => unknown;
-      expect(Component.name || Component.displayName || true).toBeTruthy();
-    });
-
     if ('generateMetadata' in pageModule) {
       it('exports generateMetadata as a function', () => {
         expect(typeof pageModule.generateMetadata).toBe('function');

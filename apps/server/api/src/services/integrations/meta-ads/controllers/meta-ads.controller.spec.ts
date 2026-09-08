@@ -3,7 +3,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -86,7 +85,6 @@ describe('MetaAdsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MetaAdsController,
-        { provide: BrandsService, useValue: {} },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: loggerService },
         { provide: MetaAdsService, useValue: metaAdsService },

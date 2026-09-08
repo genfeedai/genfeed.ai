@@ -77,19 +77,3 @@ export function getPanExpression(
   // Convert normalized position (0-1) to pixel position
   return `${dimensionSize}*(${startPos}+${posDiff}*(${easeExpr}))`;
 }
-
-/**
- * Generate blend expression for transitions with ease curve
- * @param easeCurve The ease curve to apply
- * @param tVariable The variable name representing normalized time (0-1)
- * @returns FFmpeg expression for blending with easing
- */
-export function getBlendExpression(
-  easeCurve: VideoEaseCurve,
-  tVariable: string = 't',
-): string {
-  const easeExpr = getEaseCurveExpression(easeCurve, tVariable);
-  // A is first video, B is second video
-  // Blend: A*(1-ease) + B*ease
-  return `A*(1-(${easeExpr}))+B*(${easeExpr})`;
-}

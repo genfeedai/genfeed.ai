@@ -44,18 +44,4 @@ describe('PromptsService', () => {
       expect(typeof service.delete).toBe('function');
     });
   });
-
-  describe('prompt library features', () => {
-    it('supports prompt templates', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('supports prompt versioning', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('supports prompt sharing', () => {
-      expect(service).toBeDefined();
-    });
-  });
 });
