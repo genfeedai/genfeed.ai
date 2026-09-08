@@ -3,7 +3,6 @@ import type { TrainingDocument } from '@api/collections/trainings/schemas/traini
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
-import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
@@ -36,7 +35,6 @@ export class ReplicateWebhookController {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
-    readonly _replicateWebhookService: ReplicateWebhookService,
     private readonly trainingsService: TrainingsService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly modelRegistrationService: ModelRegistrationService,
