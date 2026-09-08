@@ -228,7 +228,7 @@ export default function StudioContent({ models }: StudioContentProps) {
                 }`}
               >
                 <Image
-                  src={output.src}
+                  src={output.poster}
                   alt={output.alt}
                   fill
                   sizes={

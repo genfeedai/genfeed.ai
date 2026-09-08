@@ -50,8 +50,11 @@ describe('PageLayout Component', () => {
   it('keeps breathing room between the hero divider and page content', () => {
     renderPageLayout({ variant: 'poster' });
 
+    // Narrower than it was on purpose. The section, the hero grid and this
+    // wrapper each contributed their own padding, and the sum pushed a page's
+    // first real content most of a screen below its title.
     const pageBody = screen.getByText('Page Body');
-    expect(pageBody.parentElement).toHaveClass('pt-16', 'sm:pt-24');
+    expect(pageBody.parentElement).toHaveClass('pt-10', 'sm:pt-14');
   });
 
   it('applies compact density to proof hero layouts', () => {

@@ -1,33 +1,49 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
+import MarqueeRail from '@ui/layout/marquee-rail/MarqueeRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
-import Image from 'next/image';
+import {
+  HOME_HERO_VIDEO,
+  HOME_OUTPUT_CAROUSEL_ASSETS,
+} from '@web-components/home/_assets';
+import HomeHeroVideo from '@web-components/home/_hero-video';
+import HomeOutputCard from '@web-components/home/_output-card';
 import Link from 'next/link';
 
 const AGENT_HREF = '/agent';
 
 export default function HomeHero(): React.ReactElement {
   return (
-    <section className="overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
-      <div className="container mx-auto px-6 text-center">
-        <Text className="animate-gen-stagger-in text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
-          Made with Genfeed
-        </Text>
+    /*
+      The shell clears the fixed top bar with `pt-20` on <main>, which leaves
+      the strip behind the bar as bare page background — so a transparent bar
+      has nothing to be transparent over. Pulling the section back up by exactly
+      that clearance, and paying it back as padding, runs the footage under the
+      bar without moving a single word on the page.
+    */
+    <section className="relative -mt-20 overflow-hidden border-b border-edge/5 bg-background pb-28 pt-40 sm:pb-36 sm:pt-48 lg:pb-44 lg:pt-56">
+      <HomeHeroVideo
+        alt={HOME_HERO_VIDEO.alt}
+        mp4Src={HOME_HERO_VIDEO.mp4}
+        posterSrc={HOME_HERO_VIDEO.poster}
+        webmSrc={HOME_HERO_VIDEO.webm}
+      />
+
+      <div className="container relative mx-auto px-6 text-center">
         <Heading
           as="h1"
-          className="animate-gen-stagger-in mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+          className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          Everything your brand can become.
+          Your brand. Everywhere.
         </Heading>
         <Text
           as="p"
-          className="animate-gen-stagger-in mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
+          className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Every format. One recognisable brand.
+          Brief it once: Genfeed makes the video, images, ads and posts, on
+          brand and ready to publish.
         </Text>
 
         <div
@@ -64,56 +80,24 @@ export default function HomeHero(): React.ReactElement {
         </div>
       </div>
 
+      {/*
+        The rail moves on its own and never stops, so it reads as output in
+        flight rather than a control to operate. It breaks the container to both
+        edges: the row continues past the viewport, which is the point.
+      */}
       <div
-        className="animate-gen-rise mt-20 w-screen px-6 [--gen-stagger-delay:360ms] sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="animate-gen-rise relative mt-24 w-screen [--gen-stagger-delay:360ms] sm:mt-32 lg:mt-36"
         data-testid="home-hero-output-carousel"
       >
-        <HorizontalCarousel
-          className="mx-auto"
-          gap="sm"
-          itemClassName="snap-x snap-mandatory pb-3"
-        >
-          {HOME_OUTPUT_CAROUSEL_ASSETS.map((item, index) => {
-            const isFeatured = index === 0;
-
-            return (
-              <figure
-                key={item.alt}
-                className={`group relative flex-none snap-center overflow-hidden rounded-xl bg-card shadow-border-strong ${
-                  isFeatured
-                    ? 'h-[32rem] w-[78vw] max-w-[31rem] sm:h-[38rem]'
-                    : 'h-[28rem] w-[68vw] max-w-[22rem] sm:h-[34rem]'
-                }`}
-                data-testid="home-hero-output-carousel-item"
-              >
-                <Image
-                  alt={item.alt}
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"
-                  fill
-                  priority={isFeatured}
-                  sizes={
-                    isFeatured
-                      ? '(max-width: 640px) 78vw, 496px'
-                      : '(max-width: 640px) 68vw, 352px'
-                  }
-                  src={item.src}
-                />
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(5,6,7,0.94))]" />
-                <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
-                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/65">
-                    {item.format}
-                  </Text>
-                  <Heading
-                    as="h2"
-                    className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl"
-                  >
-                    {item.title}
-                  </Heading>
-                </figcaption>
-              </figure>
-            );
-          })}
-        </HorizontalCarousel>
+        <MarqueeRail>
+          {HOME_OUTPUT_CAROUSEL_ASSETS.map((asset, index) => (
+            <HomeOutputCard
+              asset={asset}
+              isPreloaded={index === 0}
+              key={asset.format}
+            />
+          ))}
+        </MarqueeRail>
       </div>
     </section>
   );

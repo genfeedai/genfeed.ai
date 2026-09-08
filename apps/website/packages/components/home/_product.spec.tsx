@@ -37,6 +37,8 @@ describe('HomeProduct', () => {
     expect(screen.getAllByRole('img')).toHaveLength(5);
     expect(
       screen.getAllByRole('img').map((image) => image.getAttribute('data-src')),
-    ).toEqual(HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 5).map(({ src }) => src));
+    ).toEqual(
+      HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 5).map(({ poster }) => poster),
+    );
   });
 });

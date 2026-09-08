@@ -42,6 +42,9 @@ type TopbarPublicDesktopDropdownProps = {
   onItemClick: () => void;
 };
 
+/** Height of the public top bar (`h-20`), which the mega panel sits directly under. */
+const HEADER_HEIGHT_PX = 80;
+
 function isLinkActive(pathname: string | null, href: string): boolean {
   if (!pathname) {
     return false;
@@ -86,6 +89,15 @@ export default function TopbarPublicDesktopDropdown({
 
   const hasGroups = currentDropdown.items.some((item) => Boolean(item.group));
 
+  /**
+   * A menu row, not a card.
+   *
+   * Every item used to be a bordered, filled tile sitting inside a bordered,
+   * filled group panel — a card inside a card, which the design system bans and
+   * which is most of why the menu read as unfinished. A row carries its own
+   * hover fill and nothing else, so the eye follows the labels down the column
+   * instead of counting boxes.
+   */
   function renderItem(item: DropdownItem): React.ReactElement {
     const Icon = item.icon;
     const isActive = isLinkActive(pathname, item.href);
@@ -93,28 +105,28 @@ export default function TopbarPublicDesktopDropdown({
     return (
       <li key={item.href}>
         <Link
-          href={item.href}
           className={cn(
-            'group flex min-h-20 items-start gap-3 rounded-lg border px-4 py-3.5 transition-[background-color,border-color,color]',
+            'group flex items-start gap-3 rounded-md px-3 py-3 transition-colors',
             isActive
-              ? 'border-foreground/20 bg-foreground/[0.1] text-foreground'
-              : 'border-edge/10 bg-foreground/[0.025] text-foreground/90 hover:border-foreground/15 hover:bg-foreground/[0.07] hover:text-foreground',
+              ? 'bg-foreground/[0.08] text-foreground'
+              : 'text-foreground/90 hover:bg-foreground/[0.06] hover:text-foreground',
           )}
+          href={item.href}
           onClick={onItemClick}
         >
           {Icon && (
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-edge/15 bg-background/85">
-              <Icon className="size-4 text-foreground/75 transition-colors group-hover:text-foreground" />
-            </span>
+            <Icon className="mt-0.5 size-4 shrink-0 text-foreground/50 transition-colors group-hover:text-foreground" />
           )}
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">{item.label}</span>
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold leading-5">
+              {item.label}
+            </span>
             {item.description && (
-              <span className="mt-1 text-xs leading-5 text-foreground/60">
+              <span className="mt-0.5 text-xs leading-5 text-foreground/55">
                 {item.description}
               </span>
             )}
-          </div>
+          </span>
         </Link>
       </li>
     );
@@ -127,30 +139,37 @@ export default function TopbarPublicDesktopDropdown({
         isolation: 'isolate',
         left: hasGroups ? 0 : dropdownPosition.left,
         paddingTop: hasGroups ? 0 : 8,
-        top: hasGroups ? 80 : dropdownPosition.top - 8,
+        // The mega panel hangs off the bar itself, so it tracks the bar's real
+        // height rather than a copy of it that drifts the day the bar changes.
+        top: hasGroups ? HEADER_HEIGHT_PX : dropdownPosition.top - 8,
         zIndex: 50,
       }}
       onMouseEnter={onMouseEnterDropdown}
       onMouseLeave={onMouseLeaveDropdown}
     >
       {hasGroups ? (
-        <div className="w-screen border-y border-edge/15 bg-[#0d0d0e]/98 shadow-[0_28px_80px_rgba(0,0,0,0.46)] backdrop-blur-2xl">
-          <div className="container mx-auto grid grid-cols-3 gap-7 px-6 py-6">
+        // The same glass as the bar it hangs from, so the two read as one
+        // surface rather than a solid panel bolted under a translucent strip.
+        // One hairline at the bottom; nothing inside is raised again.
+        <div className="w-screen border-b border-edge/10 bg-background/90 shadow-dropdown backdrop-blur-2xl">
+          <div className="container mx-auto grid grid-cols-3 gap-x-10 px-6 py-8">
             {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
-              <div
-                className="min-w-0 rounded-xl border border-edge/10 bg-foreground/[0.018] p-2"
-                key={groupLabel}
-              >
+              // `items-start` on the column, not `stretch`: groups hold
+              // different numbers of links, and equal-height panels left the
+              // shortest column as a tall empty box.
+              <div className="min-w-0 self-start" key={groupLabel}>
                 {groupLabel && (
-                  <div className="px-3 pb-2 pt-1 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+                  <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/45">
                     {groupLabel}
                   </div>
                 )}
-                <ul>{items.map(renderItem)}</ul>
+                <ul className="flex flex-col gap-0.5">
+                  {items.map(renderItem)}
+                </ul>
               </div>
             ))}
             {megaMenuFooter ? (
-              <div className="col-span-3 flex items-center justify-between border-t border-edge/15 px-4 pt-5">
+              <div className="col-span-3 mt-7 flex items-center justify-between border-t border-edge/10 px-3 pt-5">
                 <p className="text-xs text-foreground/55">
                   {megaMenuFooter.description}
                 </p>

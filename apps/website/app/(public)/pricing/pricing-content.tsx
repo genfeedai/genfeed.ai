@@ -151,28 +151,22 @@ export default function PricingContent() {
   return (
     <div ref={containerRef}>
       <PageLayout
-        title={<>Credits for output. Subscriptions for scale.</>}
+        title={<>Pay for output.</>}
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >
-        <WebSection maxWidth="lg" py="md">
-          <div className="grid gap-px bg-edge/5 md:grid-cols-4">
-            {PRICING_RULES.map((rule) => (
-              <div key={rule} className="bg-background px-5 py-4">
-                <div className="flex items-center gap-2 text-sm text-surface/65">
-                  <CircleCheck className="size-4 text-success" />
-                  {rule}
-                </div>
-              </div>
-            ))}
-          </div>
-        </WebSection>
+        {/*
+          The plans lead. A visitor who opened a pricing page came for a
+          number, and everything that used to sit above the table — a strip of
+          reassurances, then a 5xl heading restating the one directly above it —
+          put the first price most of a second screen down.
 
-        <WebSection maxWidth="full" py="md">
-          <SectionHeader
-            title="Start free. Subscribe when volume makes it cheaper."
-            description={`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
-            className="[&_h2]:text-5xl mb-4"
-          />
+          The heading is gone; its description survives as the one line that
+          actually helps choose a column.
+        */}
+        <WebSection maxWidth="full" py="sm">
+          <p className="mb-8 max-w-3xl text-base leading-relaxed text-surface/65">
+            {`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
+          </p>
           <NeuralGrid columns={3} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
               const isFeatured = plan.tier === FEATURED_TIER;
@@ -323,6 +317,19 @@ export default function PricingContent() {
         </WebSection>
 
         <ProofTestimonials context="pricing" />
+
+        <WebSection maxWidth="lg" py="md">
+          <div className="grid gap-px bg-edge/5 md:grid-cols-4">
+            {PRICING_RULES.map((rule) => (
+              <div key={rule} className="bg-background px-5 py-4">
+                <div className="flex items-center gap-2 text-sm text-surface/65">
+                  <CircleCheck className="size-4 text-success" />
+                  {rule}
+                </div>
+              </div>
+            ))}
+          </div>
+        </WebSection>
 
         <WebSection maxWidth="lg" py="md">
           <SectionHeader

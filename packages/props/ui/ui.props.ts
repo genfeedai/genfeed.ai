@@ -114,6 +114,17 @@ export interface DashboardGridProps {
   children: ReactNode;
 }
 
+export interface MarqueeRailProps {
+  children: ReactNode;
+  className?: string;
+  /**
+   * Space between items, in pixels. Applied inside each copy of the row rather
+   * than as a class, because the seam only lands exactly when the gap is part
+   * of a copy's own width.
+   */
+  gapPx?: number;
+}
+
 export interface HorizontalCarouselProps {
   gap?: 'sm' | 'md' | 'lg';
   showNavigation?: boolean;

@@ -97,6 +97,9 @@ const bgClasses = {
 const pyClasses = {
   lg: 'py-32',
   md: 'py-20',
+  // For a section that has to sit high on the page — a pricing table a visitor
+  // came to read, not a chapter break.
+  sm: 'py-10',
   xl: 'py-40',
 } as const;
 

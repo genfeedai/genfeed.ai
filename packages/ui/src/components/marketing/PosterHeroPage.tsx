@@ -23,13 +23,26 @@ export default function PosterHeroPage({
 }: PosterHeroPageProps): React.ReactElement {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-[var(--gen-accent-border)] pb-12">
+      {/*
+        Three paddings used to stack here — the section's, the grid's, and the
+        body's — for around 180px of nothing between a page's title and the
+        first thing it has to say. On a pricing page that was most of the reason
+        a visitor had to scroll before seeing a price. The hero still breathes;
+        it just stops charging twice for the same air.
+      */}
+      {/*
+        No rule under the hero. It sat a long way above the first section, so it
+        read as a stray line drawn across the page rather than a boundary
+        between two things. Space separates them, which is what the gap above
+        was already doing on its own.
+      */}
+      <section className="relative overflow-hidden pb-8">
         <div className="container mx-auto px-6">
           <div
             className={[
               compact
-                ? 'grid items-start gap-10 pt-16 pb-4 lg:gap-14'
-                : 'grid items-start gap-10 pt-16 pb-8 lg:gap-14 lg:pt-20',
+                ? 'grid items-start gap-10 pt-16 pb-2 lg:gap-14'
+                : 'grid items-start gap-10 pt-16 pb-4 lg:gap-14 lg:pt-20',
               heroVisual
                 ? 'lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'
                 : 'lg:grid-cols-1',
@@ -66,7 +79,7 @@ export default function PosterHeroPage({
         </div>
       </section>
 
-      <div className="relative pt-16 sm:pt-24">{children}</div>
+      <div className="relative pt-10 sm:pt-14">{children}</div>
     </>
   );
 }

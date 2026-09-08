@@ -8,13 +8,7 @@ import { ChevronDown, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useMounted } from '../../../lib/hooks';
 import TopbarPublicDesktopDropdown, {
@@ -66,17 +60,58 @@ function isLinkActive(pathname: string | null, href: string): boolean {
   return pathname.startsWith(href);
 }
 
-function getScrolledSnapshot(): boolean {
-  return typeof window !== 'undefined' && window.scrollY > 20;
-}
+/** Blur the bar reaches once its surface is fully in. */
+const SURFACE_BLUR_PX = 24;
 
-function subscribeScroll(onStoreChange: () => void): () => void {
-  if (typeof window === 'undefined') {
-    return () => {};
-  }
+/**
+ * Distance over which the bar's surface fades in, in pixels.
+ *
+ * The surface used to snap on at a fixed threshold, which is a hard cut in the
+ * corner of the eye on a page that opens on full-bleed video. Ramping it over
+ * the first part of a scroll means the glass arrives at the rate the content
+ * arrives underneath it — the bar stops being a thing that changes state and
+ * becomes a thing that responds.
+ */
+const SURFACE_RAMP_PX = 160;
 
-  window.addEventListener('scroll', onStoreChange, { passive: true });
-  return () => window.removeEventListener('scroll', onStoreChange);
+/**
+ * Drive the bar's surface straight from scroll position.
+ *
+ * Deliberately not React state: this runs on every scroll event, and a
+ * re-render per frame to move one number is work the compositor will not thank
+ * us for. The progress lands on a custom property and CSS does the rest.
+ *
+ * Also deliberately not throttled through requestAnimationFrame. Writing a
+ * custom property reads no layout, so there is nothing to batch — and a frame
+ * callback never fires at all while the tab is hidden, which leaves the bar
+ * stuck at whatever it last painted.
+ */
+function useSurfaceProgress(
+  headerRef: React.RefObject<HTMLElement | null>,
+  isForcedOpaque: boolean,
+): void {
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const apply = () => {
+      const progress = isForcedOpaque
+        ? 1
+        : Math.min(window.scrollY / SURFACE_RAMP_PX, 1);
+
+      header.style.setProperty('--topbar-surface', progress.toFixed(3));
+      // The tint reads this custom property straight from CSS, but
+      // `backdrop-filter` will not take a calc() over one — the declaration
+      // resolves to the fallback and the blur never arrives. Setting the blur
+      // outright is the only thing that actually works here.
+      header.style.backdropFilter = `blur(${(progress * SURFACE_BLUR_PX).toFixed(1)}px)`;
+    };
+
+    apply();
+    window.addEventListener('scroll', apply, { passive: true });
+
+    return () => window.removeEventListener('scroll', apply);
+  }, [headerRef, isForcedOpaque]);
 }
 
 export default function TopbarPublic({
@@ -95,17 +130,15 @@ export default function TopbarPublic({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useMounted();
-  const isScrolled = useSyncExternalStore(
-    subscribeScroll,
-    getScrolledSnapshot,
-    () => false,
-  );
+  const headerRef = useRef<HTMLElement>(null);
   const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
   const _megaMenuRef = useRef<HTMLDivElement>(null);
   if (triggerRefs.current === null) {
     triggerRefs.current = new Map<string, HTMLButtonElement>();
   }
   const triggerRefsMap = triggerRefs.current;
+
+  useSurfaceProgress(headerRef, Boolean(openDropdown));
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -185,11 +218,19 @@ export default function TopbarPublic({
 
   return (
     <>
+      {/*
+        At the very top the bar is nothing but its own contents. A page that
+        opens on full-bleed media has no seam to cover there, and a tinted,
+        blurred strip across the top of it is a band of haze over the first
+        thing anyone sees. The surface ramps in with the scroll — at the rate
+        content actually starts passing underneath — rather than switching on at
+        a threshold. Opening an overlay takes it to full immediately: a mega
+        menu needs a ground of its own whether or not the page has moved, and
+        that one *is* a state change, so it keeps its transition.
+      */}
       <header
-        className={cn(
-          'fixed inset-x-0 top-0 z-50 w-full border-b bg-background/90 backdrop-blur-2xl transition-[border-color,background-color] duration-300',
-          isScrolled ? 'border-edge/10' : 'border-transparent',
-        )}
+        className="fixed inset-x-0 top-0 z-50 w-full border-b border-[rgb(var(--edge)/calc(var(--topbar-surface,0)*0.12))] bg-[hsl(var(--background)/calc(var(--topbar-surface,0)*0.92))]"
+        ref={headerRef}
       >
         <div className="container mx-auto flex items-center justify-between h-20 px-6">
           {/* Left: Logo + Nav */}
