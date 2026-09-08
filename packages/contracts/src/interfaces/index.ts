@@ -14,6 +14,7 @@ export * from './ai/agent-transfer.interface';
 export * from './ai/agent-ui-action.interface';
 export * from './ai/agent-ui-block.interface';
 export * from './ai/agent-wizard.interface';
+export * from './ai/agent-work-object.interface';
 export * from './ai/ai-actions.interface';
 export * from './ai/harness-pack-registry.interface';
 export * from './ai/harness-profile.interface';
@@ -324,5 +325,3 @@ export * from './utils/error.interface';
 export * from './utils/filters.interface';
 export * from './utils/http-interceptor-error.interface';
 export * from './utils/query.interface';
-
-export * from './ai/agent-work-object.interface';
