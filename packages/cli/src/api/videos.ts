@@ -38,10 +38,9 @@ export async function createVideo(
   request: CreateVideoRequest,
   signal?: AbortSignal
 ): Promise<Video> {
-  const body = request as unknown as Record<string, unknown>;
   const response = signal
-    ? await post<JsonApiSingleResponse>('/videos', body, { signal })
-    : await post<JsonApiSingleResponse>('/videos', body);
+    ? await post<JsonApiSingleResponse>('/videos', request, { signal })
+    : await post<JsonApiSingleResponse>('/videos', request);
   return flattenSingle<Video>(response);
 }
 

@@ -615,6 +615,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/models": "workspace:*",
@@ -956,6 +957,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
         "@genfeedai/contracts": "workspace:*",
         "@tanstack/react-query": "5.102.8",
         "@tiptap/core": "3.31.3",

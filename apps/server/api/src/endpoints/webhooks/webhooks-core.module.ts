@@ -34,7 +34,6 @@ import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kl
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
-import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
@@ -80,7 +79,6 @@ import { Module } from '@nestjs/common';
     NotificationsPublisherModule,
     OpusProWebhookService,
     ReplicateGenerationWebhookHandler,
-    ReplicateWebhookService,
     ReplicateWebhookVerificationService,
     TrainingsModule,
     VercelWebhookService,
@@ -142,7 +140,6 @@ import { Module } from '@nestjs/common';
     OpusProWebhookService,
     PostProcessingOrchestratorService,
     ReplicateGenerationWebhookHandler,
-    ReplicateWebhookService,
     // Framework-agnostic construction: factory injects deps without relying on
     // decorator metadata for this verification service (#2738).
     {

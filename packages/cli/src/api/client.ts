@@ -1,11 +1,6 @@
-import { ofetch } from 'ofetch';
+import { type FetchOptions, ofetch } from 'ofetch';
 import { getApiKey, getApiUrl } from '@/config/store';
 import { ApiError, AuthError } from '@/utils/errors';
-
-export interface ApiResponse<T> {
-  data: T;
-  meta?: Record<string, unknown>;
-}
 
 export interface ApiErrorResponse {
   error: string;
@@ -28,7 +23,6 @@ async function createClient() {
     },
     async onRequest({ options }) {
       if (apiKey) {
-        options.headers = new Headers(options.headers as unknown as Record<string, string>);
         options.headers.set('Authorization', `Bearer ${apiKey}`);
       }
     },
@@ -65,7 +59,7 @@ export async function get<T>(path: string, options: ApiRequestOptions = {}): Pro
 
 export async function post<T>(
   path: string,
-  body?: Record<string, unknown>,
+  body?: FetchOptions['body'],
   options: ApiRequestOptions = {}
 ): Promise<T> {
   const client = await createClient();
@@ -78,7 +72,7 @@ export async function post<T>(
 
 export async function patch<T>(
   path: string,
-  body?: Record<string, unknown>,
+  body?: FetchOptions['body'],
   options: ApiRequestOptions = {}
 ): Promise<T> {
   const client = await createClient();

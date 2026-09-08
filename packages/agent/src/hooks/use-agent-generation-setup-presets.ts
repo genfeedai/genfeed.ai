@@ -3,6 +3,7 @@ import type { AgentGenerationType } from '@genfeedai/agent/utils/agent-generatio
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import { buildStudioLookPayload } from '@genfeedai/helpers/studio-look.helper';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { StudioLooksService } from '@services/content/studio-looks.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,91 +20,7 @@ export interface UseAgentGenerationSetupPresetsReturn {
   ) => Promise<boolean>;
 }
 
-/**
- * Builds the full widened `StudioLookPayload`. Reimplemented from
- * `packages/pages/studio/generate/hooks/useStudioLooks.ts` — cross-package
- * imports from `packages/pages` are not permitted, and the body is small
- * enough that duplicating it beats introducing a shared dependency for one
- * function.
- */
-function buildAgentStudioLookPayload(
-  label: string,
-  type: AgentGenerationType,
-  values: GenerationSetupValues,
-) {
-  const isVideo = type === 'video';
-
-  return {
-    aspectRatio: values.aspectRatio,
-    assetType: type,
-    brandingMode: values.brandingMode,
-    camera: values.camera ?? '',
-    cameraMovement: isVideo ? (values.cameraMovement ?? '') : null,
-    duration: isVideo ? (values.duration ?? null) : null,
-    isPromptEnhanceEnabled: values.isPromptEnhanceEnabled,
-    label: label.trim(),
-    lens: values.lens ?? '',
-    lighting: values.lighting ?? '',
-    modelKey: values.modelKey || null,
-    mood: values.mood ?? '',
-    outputs: values.outputs,
-    prioritize: values.prioritize,
-    promptTemplate: values.promptTemplate ?? '',
-    resolution: values.resolution ?? null,
-    scene: values.scene ?? '',
-    style: values.style ?? '',
-  };
-}
-
-/**
- * Projects a persisted preset back onto the shared generation-setup store's
- * values, for `onApplyPreset`. Reimplemented from `useStudioLooks.ts` for the
- * same cross-package reason as `buildAgentStudioLookPayload`.
- */
-export function agentPresetToGenerationSetupValues(
-  preset: IStudioLook,
-): Partial<GenerationSetupValues> {
-  const isVideo = preset.assetType === 'video';
-  const patch: Partial<GenerationSetupValues> = {
-    camera: preset.camera || undefined,
-    lens: preset.lens || undefined,
-    lighting: preset.lighting || undefined,
-    mood: preset.mood || undefined,
-    promptTemplate: preset.promptTemplate || undefined,
-    scene: preset.scene || undefined,
-    style: preset.style || undefined,
-  };
-
-  if (isVideo && preset.cameraMovement) {
-    patch.cameraMovement = preset.cameraMovement;
-  }
-  if (isVideo && preset.duration != null) {
-    patch.duration = preset.duration;
-  }
-  if (preset.aspectRatio) {
-    patch.aspectRatio = preset.aspectRatio;
-  }
-  if (preset.brandingMode) {
-    patch.brandingMode = preset.brandingMode;
-  }
-  if (preset.isPromptEnhanceEnabled != null) {
-    patch.isPromptEnhanceEnabled = preset.isPromptEnhanceEnabled;
-  }
-  if (preset.modelKey) {
-    patch.modelKey = preset.modelKey;
-  }
-  if (preset.outputs != null) {
-    patch.outputs = preset.outputs;
-  }
-  if (preset.prioritize) {
-    patch.prioritize = preset.prioritize;
-  }
-  if (preset.resolution) {
-    patch.resolution = preset.resolution;
-  }
-
-  return patch;
-}
+export { presetToGenerationSetupValues as agentPresetToGenerationSetupValues } from '@genfeedai/helpers/studio-look.helper';
 
 /**
  * Lazily loads Studio Looks (org + brand scoped) for the agent composer's
@@ -189,7 +106,7 @@ export function useAgentGenerationSetupPresets(
         }
 
         const created = await StudioLooksService.getInstance(token).post(
-          buildAgentStudioLookPayload(label, type, values),
+          buildStudioLookPayload(label, type, values),
         );
         setPresets((current) => [created, ...current]);
         return true;

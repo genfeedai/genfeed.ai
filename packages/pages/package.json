@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
     "@tanstack/react-query": "5.102.8",
     "@tiptap/core": "3.31.3",
     "lucide-react": "1.41.0",
