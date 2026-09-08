@@ -95,6 +95,12 @@ describe('ComfyUIService', () => {
 
   describe('generateImage', () => {
     const promptId = 'prompt_abc123';
+    const commonImageParams = {
+      height: 512,
+      seed: 0,
+      steps: 8,
+      width: 512,
+    };
     const historyEntry = {
       outputs: {
         '10': {
@@ -130,15 +136,14 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX_DEV,
         {
-          height: 512,
+          ...commonImageParams,
           prompt: 'a cat',
-          width: 512,
         },
       );
 
       expect(result.filename).toBe('output_001.png');
       expect(buildFluxDevPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: 'a cat' }),
+        expect.objectContaining({ ...commonImageParams, prompt: 'a cat' }),
       );
       expect(result.imageBuffer).toBeInstanceOf(Buffer);
     });
@@ -230,7 +235,11 @@ describe('ComfyUIService', () => {
 
     it('should throw for unknown model key', async () => {
       await expect(
-        service.generateImage('unknown-model-xyz', { prompt: 'test' }),
+        service.generateImage('unknown-model-xyz', {
+          get prompt() {
+            throw new Error('Unknown model parameters must not be read');
+          },
+        }),
       ).rejects.toThrow('Unknown self-hosted model: unknown-model-xyz');
     });
 
@@ -240,13 +249,14 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
         {
+          ...commonImageParams,
           guidance: 3.5,
           prompt: 'a portrait',
         },
       );
       expect(result.filename).toBe('output_001.png');
       expect(buildFlux2DevPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: 'a portrait' }),
+        expect.objectContaining({ ...commonImageParams, prompt: 'a portrait' }),
       );
     });
 
@@ -256,13 +266,18 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
         {
+          ...commonImageParams,
           loraPath: 'my_lora.safetensors',
           prompt: 'lora test',
         },
       );
       expect(result.filename).toBe('output_001.png');
       expect(buildZImageTurboLoraPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ loraPath: 'my_lora.safetensors' }),
+        expect.objectContaining({
+          ...commonImageParams,
+          loraPath: 'my_lora.safetensors',
+          prompt: 'lora test',
+        }),
       );
     });
 
@@ -274,6 +289,7 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID,
         {
+          ...commonImageParams,
           faceImage: 'face.png',
           guidance: 4.0,
           prompt: 'portrait photo',
@@ -283,6 +299,7 @@ describe('ComfyUIService', () => {
       expect(result.filename).toBe('output_001.png');
       expect(buildFlux2DevPulidPrompt).toHaveBeenCalledWith(
         expect.objectContaining({
+          ...commonImageParams,
           faceImage: 'face.png',
           prompt: 'portrait photo',
         }),
@@ -295,6 +312,7 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE,
         {
+          ...commonImageParams,
           faceImage: 'face.png',
           guidance: 3.5,
           height: 1216,
@@ -309,8 +327,13 @@ describe('ComfyUIService', () => {
       expect(result.imageBuffer).toBeInstanceOf(Buffer);
       expect(buildFlux2DevPulidUpscalePrompt).toHaveBeenCalledWith(
         expect.objectContaining({
+          ...commonImageParams,
           faceImage: 'face.png',
+          height: 1216,
+          prompt: 'studio headshot',
+          seed: 42,
           upscaleModel: '4x-UltraSharp.pth',
+          width: 832,
         }),
       );
     });
@@ -321,6 +344,7 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
         {
+          ...commonImageParams,
           faceImage: 'face.png',
           loraPath: 'my_style.safetensors',
           loraStrength: 0.7,
@@ -331,8 +355,10 @@ describe('ComfyUIService', () => {
       expect(result.filename).toBe('output_001.png');
       expect(buildFlux2DevPulidLoraPrompt).toHaveBeenCalledWith(
         expect.objectContaining({
+          ...commonImageParams,
           faceImage: 'face.png',
           loraPath: 'my_style.safetensors',
+          prompt: 'lora portrait',
         }),
       );
     });
@@ -343,13 +369,18 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN,
         {
+          ...commonImageParams,
           prompt: 'quick test',
           steps: 6,
         },
       );
       expect(result.filename).toBe('output_001.png');
       expect(buildFlux2KleinPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: 'quick test' }),
+        expect.objectContaining({
+          ...commonImageParams,
+          prompt: 'quick test',
+          steps: 6,
+        }),
       );
     });
 
@@ -359,13 +390,18 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID,
         {
+          ...commonImageParams,
           faceImage: 'face.png',
           prompt: 'legacy pulid test',
         },
       );
       expect(result.filename).toBe('output_001.png');
       expect(buildPulidFluxPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ faceImage: 'face.png' }),
+        expect.objectContaining({
+          ...commonImageParams,
+          faceImage: 'face.png',
+          prompt: 'legacy pulid test',
+        }),
       );
     });
 
@@ -375,13 +411,18 @@ describe('ComfyUIService', () => {
       const result = await service.generateImage(
         MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
         {
+          ...commonImageParams,
           prompt: 'fast test',
           steps: 4,
         },
       );
       expect(result.filename).toBe('output_001.png');
       expect(buildZImageTurboPrompt).toHaveBeenCalledWith(
-        expect.objectContaining({ prompt: 'fast test' }),
+        expect.objectContaining({
+          ...commonImageParams,
+          prompt: 'fast test',
+          steps: 4,
+        }),
       );
     });
 
