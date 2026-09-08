@@ -2,6 +2,15 @@
   "$schema": "https://v2-9-12.turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
+    // `$TURBO_DEFAULT$` hashes git-tracked files, and `generated/` is
+    // gitignored (.gitignore) because the Prisma client is a build artifact.
+    // Without naming it here, `db:generate` cannot invalidate this build:
+    // turbo replays a `dist` compiled against the previous client, so a schema
+    // field added since the last cached build is missing from the emitted
+    // types and every consumer type-checks against a stale API.
+    "build": {
+      "inputs": ["$TURBO_DEFAULT$", "generated/**", "prisma/schema.prisma"]
+    },
     "test": {
       "cache": false,
       "passThroughEnv": ["KNOWLEDGE_TEST_DATABASE_URL"]
