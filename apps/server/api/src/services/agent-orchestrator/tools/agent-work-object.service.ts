@@ -485,7 +485,9 @@ export class AgentWorkObjectService {
     });
     if (
       !execution ||
-      !['FAILED', 'CANCELLED'].includes(String(execution.status).toUpperCase())
+      !['FAILED', 'CANCELLED', 'COMPLETED'].includes(
+        String(execution.status).toUpperCase(),
+      )
     )
       return work;
     const reconciled: AgentWorkObjectState = {

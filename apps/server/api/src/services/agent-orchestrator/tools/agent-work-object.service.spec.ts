@@ -179,7 +179,7 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     await reviewing;
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
-  it.each(['FAILED', 'CANCELLED'])(
+  it.each(['FAILED', 'CANCELLED', 'COMPLETED'])(
     'allows retry and edit after the durable review job becomes %s',
     async (status) => {
       ingredient.providerData = {
@@ -222,6 +222,30 @@ describe('AgentWorkObjectService review and scope boundary', () => {
           body: 'Revised draft',
         }),
       ).resolves.toBeUndefined();
+    },
+  );
+
+  it.each(['passed', 'failed'])(
+    'preserves a persisted %s result when its review workflow completed',
+    async (reviewStatus) => {
+      ingredient.providerData = {
+        agentWorkObject: {
+          threadId: scope.threadId,
+          kind: 'script',
+          title: 'Draft',
+          body: 'Draft',
+          reviewStatus,
+          reviewExecutionId: 'completed-job',
+        },
+      };
+      prisma.workflowExecution.findFirst.mockResolvedValue({
+        id: 'completed-job',
+        status: 'COMPLETED',
+      });
+      expect(
+        (await service.list(scope, 'session-1')).workObjects[0].reviewStatus,
+      ).toBe(reviewStatus);
+      expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
     },
   );
 
