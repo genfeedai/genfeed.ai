@@ -129,11 +129,19 @@ describe('warm-up preparation orchestration', () => {
   });
 
   it('requires an explicit reviewed context decision rather than automatic apply', async () => {
-    const { service, brands } = fixture();
+    const { service, brands, tx } = fixture();
     await expect(
       service.prepare('warmup-1', 'operator-1', { action: 'apply-context' }),
     ).rejects.toThrow('Select the imported context fields');
     expect(brands.applyBrandKitDraft).not.toHaveBeenCalled();
+    expect(tx.warmupAccount.findFirst).toHaveBeenLastCalledWith({
+      where: { id: 'warmup-1', organizationId: 'org-1', isDeleted: false },
+    });
+    expect(tx.warmupAccount.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'warmup-1', organizationId: 'org-1', isDeleted: false },
+      }),
+    );
   });
 
   it('rejects replacing an existing promised grant with a different amount', async () => {

@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -71,7 +72,7 @@ export default function BrandSettingsCharactersPage(): ReactElement {
           onCreate={openCreateDialog}
         />
         <Link
-          href="/settings/help#characters"
+          href={`${APP_ROUTES.SETTINGS.HELP}#characters`}
           className="text-sm text-muted-foreground underline underline-offset-4"
         >
           {helpTranslate('characterLink')}

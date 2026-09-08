@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MessageAutomationsMenu from './MessageAutomationsMenu';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const scope = vi.hoisted(() => ({ brandSlug: 'brand' }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({

@@ -1164,6 +1164,12 @@
         "remix": "Remix",
         "imported": "Imported",
         "video": "Video"
+      },
+      "sourcesLabel": "Discovery sources",
+      "sourceTabs": {
+        "all": "All",
+        "trends": "Public trends",
+        "owned": "My accounts"
       }
     }
   },

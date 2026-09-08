@@ -39,11 +39,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import WarmupPreparationPanel from './warmup-preparation-panel';
 
-const TABS = [
-  { id: 'create', label: 'Create' },
-  { id: 'accounts', label: 'Accounts' },
-];
-
 const INITIAL_FORM: WarmupAccountFormState = {
   brandName: '',
   guidance: '',
@@ -63,17 +58,16 @@ const WARMUP_SKELETON_KEYS = [
 const STATUS_META: Record<
   IWarmupAccountStatus,
   {
-    label: string;
     variant: 'error' | 'ghost' | 'info' | 'outline' | 'success' | 'warning';
   }
 > = {
-  ARCHIVED: { label: 'Archived', variant: 'ghost' },
-  CLAIMED: { label: 'Claimed', variant: 'success' },
-  DRAFT: { label: 'Draft', variant: 'outline' },
-  FAILED: { label: 'Failed', variant: 'error' },
-  INVITED: { label: 'Invited', variant: 'success' },
-  PROVISIONED: { label: 'Provisioned', variant: 'info' },
-  PROVISIONING: { label: 'Provisioning', variant: 'warning' },
+  ARCHIVED: { variant: 'ghost' },
+  CLAIMED: { variant: 'success' },
+  DRAFT: { variant: 'outline' },
+  FAILED: { variant: 'error' },
+  INVITED: { variant: 'success' },
+  PROVISIONED: { variant: 'info' },
+  PROVISIONING: { variant: 'warning' },
 };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
@@ -161,8 +155,14 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getStatusMeta(status: IWarmupAccountStatus) {
-  return STATUS_META[status] ?? { label: status, variant: 'outline' as const };
+function getStatusMeta(
+  status: IWarmupAccountStatus,
+  translate: (key: string) => string,
+) {
+  return {
+    ...STATUS_META[status],
+    label: translate(`status.${status.toLowerCase()}`),
+  };
 }
 
 function canSendInvitation(account: IWarmupAccount): boolean {
@@ -229,6 +229,7 @@ function formatInvitationStatus(
 export default function WarmupAccountsPage({
   defaultTab = 'create',
 }: WarmupAccountsPageProps) {
+  const translate = useTranslations('pages.warmupAccounts');
   const [state, dispatch] = useReducer(pageReducer, {
     accounts: [],
     activeTab: defaultTab,
@@ -282,8 +283,7 @@ export default function WarmupAccountsPage({
         logger.error('Failed to load warm-up accounts', error);
         dispatch({
           type: 'SET_LOAD_ERROR',
-          message:
-            'Unable to load warm-up accounts. Check your administrator access and allowed IP address, then retry.',
+          message: translate('loadError'),
         });
       } finally {
         if (!signal.aborted) {
@@ -291,7 +291,7 @@ export default function WarmupAccountsPage({
         }
       }
     },
-    [getWarmupAccountsService],
+    [getWarmupAccountsService, translate],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadTrigger is an intentional re-fire signal incremented on every accounts-tab selection, including re-selections of the already-active tab
@@ -351,23 +351,21 @@ export default function WarmupAccountsPage({
           }
 
           if (account.invitation?.status === 'delivery-failed') {
-            notificationsService.warning(
-              'Invitation email could not be delivered',
-            );
+            notificationsService.warning(translate('deliveryError'));
             return;
           }
 
           if (action === 'send') {
-            notificationsService.success('Invitation sent');
+            notificationsService.success(translate('invitationSent'));
             return;
           }
 
           if (action === 'resend') {
-            notificationsService.success('Invitation resent');
+            notificationsService.success(translate('invitationResent'));
             return;
           }
 
-          notificationsService.success('Invitation revoked');
+          notificationsService.success(translate('invitationRevoked'));
         } catch (error) {
           if (!isCurrentRequest()) {
             return;
@@ -376,12 +374,12 @@ export default function WarmupAccountsPage({
           logger.error(`Warm-up invitation ${action} failed`, error);
           notificationsService.error(
             action === 'inspect'
-              ? 'Failed to inspect invitation'
+              ? translate('inspectError')
               : action === 'send'
-                ? 'Failed to send invitation'
+                ? translate('sendError')
                 : action === 'resend'
-                  ? 'Failed to resend invitation'
-                  : 'Failed to revoke invitation',
+                  ? translate('resendError')
+                  : translate('revokeError'),
           );
         } finally {
           dispatch({ type: 'CLEAR_INVITATION_ACTION', requestId });
@@ -393,7 +391,7 @@ export default function WarmupAccountsPage({
 
       return controller;
     },
-    [getWarmupAccountsService, notificationsService],
+    [getWarmupAccountsService, notificationsService, translate],
   );
 
   useEffect(
@@ -424,12 +422,12 @@ export default function WarmupAccountsPage({
     event.preventDefault();
 
     if (!form.leadEmail.trim()) {
-      notificationsService.warning('Lead email is required');
+      notificationsService.warning(translate('emailRequired'));
       return;
     }
 
     if (!form.organizationName.trim() || !form.brandName.trim()) {
-      notificationsService.warning('Organization and brand are required');
+      notificationsService.warning(translate('namesRequired'));
       return;
     }
 
@@ -450,13 +448,13 @@ export default function WarmupAccountsPage({
       dispatch({ type: 'CREATE_SUCCESS', account });
 
       if (account.status === 'FAILED') {
-        notificationsService.warning('Warm-up account needs attention');
+        notificationsService.warning(translate('needsAttention'));
       } else {
-        notificationsService.success('Warm-up account provisioned');
+        notificationsService.success(translate('provisioned'));
       }
     } catch (error) {
       logger.error('Failed to create warm-up account', error);
-      notificationsService.error('Failed to create warm-up account');
+      notificationsService.error(translate('createError'));
     } finally {
       dispatch({ type: 'SET_SUBMITTING', isSubmitting: false });
     }
@@ -464,8 +462,8 @@ export default function WarmupAccountsPage({
 
   return (
     <Container
-      label="Warm-up accounts"
-      description="Provision lead accounts for operator-prepared customer demos"
+      label={translate('title')}
+      description={translate('description')}
       icon={Rocket}
       headerTabs={{
         activeTab,
@@ -474,13 +472,20 @@ export default function WarmupAccountsPage({
           activeInvitationRequestRef.current?.controller.abort();
           dispatch({ type: 'SET_TAB', tab: tab as 'accounts' | 'create' });
         },
-        tabs: TABS,
+        tabs: [
+          { id: 'create', label: translate('createTab') },
+          { id: 'accounts', label: translate('accountsTab') },
+        ],
       }}
     >
       {activeTab === 'create' && (
         <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Lead email" required htmlFor="warmup-lead-email">
+            <Field
+              label={translate('leadEmail')}
+              required
+              htmlFor="warmup-lead-email"
+            >
               <Input
                 id="warmup-lead-email"
                 type="email"
@@ -489,12 +494,12 @@ export default function WarmupAccountsPage({
                   handleFieldChange('leadEmail', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="founder@example.com"
+                placeholder={translate('emailPlaceholder')}
                 required
               />
             </Field>
 
-            <Field label="Website" htmlFor="warmup-website-url">
+            <Field label={translate('website')} htmlFor="warmup-website-url">
               <Input
                 id="warmup-website-url"
                 type="url"
@@ -503,11 +508,14 @@ export default function WarmupAccountsPage({
                   handleFieldChange('websiteUrl', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="https://example.com"
+                placeholder={translate('websitePlaceholder')}
               />
             </Field>
 
-            <Field label="First name" htmlFor="warmup-lead-first-name">
+            <Field
+              label={translate('firstName')}
+              htmlFor="warmup-lead-first-name"
+            >
               <Input
                 id="warmup-lead-first-name"
                 value={form.leadFirstName}
@@ -515,11 +523,14 @@ export default function WarmupAccountsPage({
                   handleFieldChange('leadFirstName', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="Ada"
+                placeholder={translate('firstNamePlaceholder')}
               />
             </Field>
 
-            <Field label="Last name" htmlFor="warmup-lead-last-name">
+            <Field
+              label={translate('lastName')}
+              htmlFor="warmup-lead-last-name"
+            >
               <Input
                 id="warmup-lead-last-name"
                 value={form.leadLastName}
@@ -527,12 +538,12 @@ export default function WarmupAccountsPage({
                   handleFieldChange('leadLastName', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="Lovelace"
+                placeholder={translate('lastNamePlaceholder')}
               />
             </Field>
 
             <Field
-              label="Organization"
+              label={translate('organization')}
               required
               htmlFor="warmup-organization-name"
             >
@@ -543,12 +554,16 @@ export default function WarmupAccountsPage({
                   handleFieldChange('organizationName', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="Acme Growth"
+                placeholder={translate('organizationPlaceholder')}
                 required
               />
             </Field>
 
-            <Field label="First brand" required htmlFor="warmup-brand-name">
+            <Field
+              label={translate('firstBrand')}
+              required
+              htmlFor="warmup-brand-name"
+            >
               <Input
                 id="warmup-brand-name"
                 value={form.brandName}
@@ -556,13 +571,13 @@ export default function WarmupAccountsPage({
                   handleFieldChange('brandName', event.target.value)
                 }
                 disabled={isSubmitting}
-                placeholder="Acme"
+                placeholder={translate('brandPlaceholder')}
                 required
               />
             </Field>
           </div>
 
-          <Field label="Operator guidance" htmlFor="warmup-guidance">
+          <Field label={translate('guidance')} htmlFor="warmup-guidance">
             <Textarea
               id="warmup-guidance"
               className="min-h-[140px]"
@@ -571,7 +586,7 @@ export default function WarmupAccountsPage({
                 handleFieldChange('guidance', event.target.value)
               }
               disabled={isSubmitting}
-              placeholder="Context to preserve for the operator before starter content is prepared"
+              placeholder={translate('guidancePlaceholder')}
             />
           </Field>
 
@@ -585,19 +600,19 @@ export default function WarmupAccountsPage({
             ) : (
               <CircleCheck className="size-4" />
             )}
-            {isSubmitting ? 'Provisioning' : 'Provision warm-up account'}
+            {isSubmitting ? translate('provisioning') : translate('provision')}
           </Button>
         </form>
       )}
 
       {activeTab === 'accounts' && state.loadError && (
         <div role="alert" className="gen-card space-y-3 p-5">
-          <p className="font-medium">Unable to load warm-up accounts</p>
+          <p className="font-medium">{translate('loadErrorTitle')}</p>
           <p className="text-sm text-muted-foreground">{state.loadError}</p>
           <Button
             onClick={() => dispatch({ type: 'SET_TAB', tab: 'accounts' })}
           >
-            Retry loading accounts
+            {translate('retryAccounts')}
           </Button>
         </div>
       )}
@@ -693,6 +708,7 @@ function WarmupAccountList({
   onSelectAccount: (accountId: string) => void;
   selectedAccountId?: string;
 }) {
+  const translate = useTranslations('pages.warmupAccounts');
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -704,13 +720,13 @@ function WarmupAccountList({
   }
 
   if (accounts.length === 0) {
-    return <CardEmpty label="No warm-up accounts yet" />;
+    return <CardEmpty label={translate('empty')} />;
   }
 
   return (
     <div className="space-y-3">
       {accounts.map((account) => {
-        const status = getStatusMeta(account.status);
+        const status = getStatusMeta(account.status, translate);
         const isSelected = selectedAccountId === account.id;
 
         return (
@@ -761,12 +777,12 @@ function WarmupAccountDetail({
   if (!account) {
     return (
       <div className="shadow-border bg-card p-5">
-        <CardEmpty label="Select a warm-up account" />
+        <CardEmpty label={translate('selectAccount')} />
       </div>
     );
   }
 
-  const status = getStatusMeta(account.status);
+  const status = getStatusMeta(account.status, translate);
   const diagnostics = account.diagnostics?.steps ?? [];
   const invitation = account.invitation;
   const isActionPending = invitationAction !== null;
@@ -790,11 +806,20 @@ function WarmupAccountDetail({
       </div>
 
       <dl className="mt-5 grid gap-3 text-sm">
-        <DetailRow label="Lead" value={account.leadEmail} />
-        <DetailRow label="Organization ID" value={account.organizationId} />
-        <DetailRow label="Brand ID" value={account.brandId} />
-        <DetailRow label="Invitation ID" value={account.invitationId} />
-        <DetailRow label="Operator ID" value={account.operatorUserId} />
+        <DetailRow label={translate('lead')} value={account.leadEmail} />
+        <DetailRow
+          label={translate('organizationId')}
+          value={account.organizationId}
+        />
+        <DetailRow label={translate('brandId')} value={account.brandId} />
+        <DetailRow
+          label={translate('invitationId')}
+          value={account.invitationId}
+        />
+        <DetailRow
+          label={translate('operatorId')}
+          value={account.operatorUserId}
+        />
       </dl>
 
       <div className="mt-6 border-t border-border pt-5">
@@ -880,10 +905,12 @@ function WarmupAccountDetail({
       </div>
 
       <div className="mt-6 border-t border-border pt-5">
-        <h3 className="text-sm font-semibold text-foreground">Diagnostics</h3>
+        <h3 className="text-sm font-semibold text-foreground">
+          {translate('diagnostics')}
+        </h3>
         {diagnostics.length === 0 ? (
           <p className="mt-2 text-sm text-foreground/50">
-            No diagnostic events recorded.
+            {translate('noDiagnostics')}
           </p>
         ) : (
           <ol className="mt-3 space-y-3">

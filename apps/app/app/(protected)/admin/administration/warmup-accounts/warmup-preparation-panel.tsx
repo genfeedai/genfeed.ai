@@ -14,16 +14,18 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 export default function WarmupPreparationPanel({
   account,
   onUpdated,
 }: WarmupPreparationPanelProps) {
+  const translate = useTranslations('pages.warmupAccounts.preparation');
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState('500');
-  const [reason, setReason] = useState('Promotional customer evaluation');
+  const [reason, setReason] = useState(translate('defaultReason'));
   const [sourceUrl, setSourceUrl] = useState(account.websiteUrl ?? '');
   const [publicProfileUrl, setPublicProfileUrl] = useState('');
   const [accepted, setAccepted] = useState<BrandKitFieldKey[]>([]);
@@ -44,11 +46,7 @@ export default function WarmupPreparationPanel({
       const service = await getService();
       onUpdated(await service.prepareWarmupAccount(account.id, request));
     } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : 'Preparation failed. Your completed work has been preserved.',
-      );
+      setError(failure instanceof Error ? failure.message : translate('error'));
     } finally {
       setPending(null);
     }
@@ -57,26 +55,30 @@ export default function WarmupPreparationPanel({
   return (
     <section
       className="space-y-5 border-t border-border pt-5"
-      aria-label="Workspace preparation"
+      aria-label={translate('title')}
       aria-busy={disabled}
     >
       <div>
         <h3 className="text-sm font-semibold">
           {closed
-            ? 'Handoff'
+            ? translate('handoff')
             : account.readiness?.ready
-              ? 'Ready to invite'
-              : 'Prepare for handoff'}
+              ? translate('ready')
+              : translate('prepareHandoff')}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {account.readiness?.availableCredits ?? 0} spendable credits
+          {translate('availableCredits', {
+            amount: account.readiness?.availableCredits ?? 0,
+          })}
           {preparation?.grant
-            ? ` · ${preparation.grant.amount} promised at handoff`
+            ? translate('promisedCredits', { amount: preparation.grant.amount })
             : ''}
         </p>
         {preparation?.preparationCredits ? (
           <p className="text-sm text-muted-foreground">
-            {preparation.preparationCredits} preparation credits reimbursed
+            {translate('reimbursedCredits', {
+              amount: preparation.preparationCredits,
+            })}
           </p>
         ) : null}
         {!closed && account.readiness?.blockers.length ? (
@@ -88,9 +90,7 @@ export default function WarmupPreparationPanel({
         ) : null}
         {account.status === 'CLAIMED' && (
           <p className="mt-2 text-sm text-muted-foreground">
-            Customer owns the workspace. Operator preparation access has ended.
-            The customer must connect their own social accounts before
-            publishing.
+            {translate('claimed')}
           </p>
         )}
         {!closed && account.readiness?.workspacePath && (
@@ -98,7 +98,7 @@ export default function WarmupPreparationPanel({
             className="mt-3 inline-block text-sm underline"
             href={account.readiness.workspacePath}
           >
-            Open prepared workspace as yourself
+            {translate('openWorkspace')}
           </Link>
         )}
       </div>
@@ -112,8 +112,8 @@ export default function WarmupPreparationPanel({
           <Button
             label={
               pending === 'repair'
-                ? 'Repairing…'
-                : 'Repair and refresh readiness'
+                ? translate('repairing')
+                : translate('repair')
             }
             variant={ButtonVariant.SECONDARY}
             isDisabled={disabled}
@@ -131,9 +131,9 @@ export default function WarmupPreparationPanel({
                 });
               }}
             >
-              <Field label="Promotional handoff credits">
+              <Field label={translate('grantAmount')}>
                 <Input
-                  aria-label="Promotional handoff credits"
+                  aria-label={translate('grantAmount')}
                   type="number"
                   min={1}
                   max={100000}
@@ -142,20 +142,20 @@ export default function WarmupPreparationPanel({
                   onChange={(event) => setAmount(event.target.value)}
                 />
               </Field>
-              <Field label="Grant reason">
+              <Field label={translate('grantReason')}>
                 <Input
-                  aria-label="Grant reason"
+                  aria-label={translate('grantReason')}
                   required
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                 />
               </Field>
               <p className="text-xs text-muted-foreground">
-                Promotional handoff credits do not expire.
+                {translate('grantTerms')}
               </p>
               <Button
                 type="submit"
-                label="Grant credits"
+                label={translate('grant')}
                 isDisabled={disabled}
               />
             </form>
@@ -172,30 +172,29 @@ export default function WarmupPreparationPanel({
               });
             }}
           >
-            <Field label="Public brand website">
+            <Field label={translate('website')}>
               <Input
-                aria-label="Public brand website"
+                aria-label={translate('website')}
                 type="url"
                 required
                 value={sourceUrl}
                 onChange={(event) => setSourceUrl(event.target.value)}
               />
             </Field>
-            <Field label="Public LinkedIn or X profile (optional)">
+            <Field label={translate('profile')}>
               <Input
-                aria-label="Public LinkedIn or X profile (optional)"
+                aria-label={translate('profile')}
                 type="url"
                 value={publicProfileUrl}
                 onChange={(event) => setPublicProfileUrl(event.target.value)}
               />
             </Field>
             <p className="text-xs text-muted-foreground">
-              Import public company information only. Review extracted fields
-              before applying them.
+              {translate('contextNotice')}
             </p>
             <Button
               type="submit"
-              label="Import context for review"
+              label={translate('importContext')}
               variant={ButtonVariant.SECONDARY}
               isDisabled={disabled}
             />
@@ -203,7 +202,7 @@ export default function WarmupPreparationPanel({
           {preparation?.context && (
             <fieldset className="space-y-3">
               <legend className="text-sm font-semibold">
-                Review brand context
+                {translate('reviewContext')}
               </legend>
               {Object.values(preparation.context.fields).map((field) =>
                 field && field.proposedValue !== undefined ? (
@@ -213,7 +212,9 @@ export default function WarmupPreparationPanel({
                   >
                     <Checkbox
                       className="mt-1 size-4"
-                      aria-label={`Apply ${field.label}`}
+                      aria-label={translate('applyField', {
+                        field: field.label,
+                      })}
                       isChecked={accepted.includes(field.key)}
                       onCheckedChange={(checked) =>
                         setAccepted((current) =>
@@ -232,7 +233,9 @@ export default function WarmupPreparationPanel({
                       </span>
                       {field.confidence !== undefined && (
                         <span className="block text-xs text-muted-foreground">
-                          Confidence {Math.round(field.confidence * 100)}%
+                          {translate('confidence', {
+                            percent: Math.round(field.confidence * 100),
+                          })}
                         </span>
                       )}
                     </span>
@@ -240,7 +243,7 @@ export default function WarmupPreparationPanel({
                 ) : null,
               )}
               <Button
-                label="Apply selected fields"
+                label={translate('apply')}
                 isDisabled={disabled || accepted.length === 0}
                 onClick={() => {
                   const fields: NonNullable<
@@ -273,15 +276,13 @@ export default function WarmupPreparationPanel({
           {preparation?.contextReviewedAt && !preparation.generation && (
             <fieldset className="space-y-3">
               <legend className="text-sm font-semibold">
-                Private starter content
+                {translate('starterTitle')}
               </legend>
               <p className="text-sm text-muted-foreground">
-                Select the brand asset to import. Genfeed will also generate one
-                LinkedIn article draft using the reviewed brand context. Nothing
-                is published.
+                {translate('starterNotice')}
               </p>
               <RadioGroup
-                aria-label="Starter brand asset"
+                aria-label={translate('starterAsset')}
                 value={assetCandidateId}
                 onValueChange={setAssetCandidateId}
               >
@@ -306,7 +307,7 @@ export default function WarmupPreparationPanel({
                   ))}
               </RadioGroup>
               <Button
-                label="Prepare starter asset and article"
+                label={translate('prepare')}
                 isDisabled={
                   disabled ||
                   !preparation.grant ||
@@ -320,34 +321,34 @@ export default function WarmupPreparationPanel({
           )}
           {preparation?.generation && (
             <p role="status" className="text-sm text-muted-foreground">
-              Starter generation: {preparation.generation.status}. Use repair to
-              reconcile completed outputs and preparation credits.
+              {translate('generationStatus', {
+                status: preparation.generation.status,
+              })}
             </p>
           )}
           <details className="space-y-3 text-sm">
             <summary className="cursor-pointer font-medium">
-              Use existing prepared content
+              {translate('existingTitle')}
             </summary>
             <p className="text-muted-foreground">
-              Use a private brand asset and LinkedIn article draft prepared by
-              you in this workspace.
+              {translate('existingNotice')}
             </p>
-            <Field label="Brand asset ID">
+            <Field label={translate('assetId')}>
               <Input
-                aria-label="Brand asset ID"
+                aria-label={translate('assetId')}
                 value={assetId}
                 onChange={(event) => setAssetId(event.target.value)}
               />
             </Field>
-            <Field label="LinkedIn draft ID">
+            <Field label={translate('articleId')}>
               <Input
-                aria-label="LinkedIn draft ID"
+                aria-label={translate('articleId')}
                 value={articleId}
                 onChange={(event) => setArticleId(event.target.value)}
               />
             </Field>
             <Button
-              label="Attach prepared content"
+              label={translate('attach')}
               variant={ButtonVariant.SECONDARY}
               isDisabled={disabled || !assetId || !articleId}
               onClick={() =>
@@ -356,7 +357,7 @@ export default function WarmupPreparationPanel({
             />
           </details>
           <Button
-            label="Archive preparation and revoke invitation"
+            label={translate('archive')}
             variant={ButtonVariant.DESTRUCTIVE}
             isDisabled={
               disabled || preparation?.generation?.status === 'running'

@@ -1843,48 +1843,8 @@
     {
       "delegate": "warmupAccount",
       "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "c1e238666112ca95d038",
-      "method": "findFirst",
-      "model": "WarmupAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
       "fingerprint": "3001d3fe967441a4dff5",
       "method": "findMany",
-      "model": "WarmupAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "0f5bd148bdb6c19bad63",
-      "method": "update",
-      "model": "WarmupAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "e9302850ac76ffc8ac77",
-      "method": "update",
-      "model": "WarmupAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "425647b0ce340ec6bdfa",
-      "method": "update",
-      "model": "WarmupAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "warmupAccount",
-      "file": "apps/server/api/src/endpoints/admin/warmup-accounts/warmup-accounts.service.ts",
-      "fingerprint": "dab3079d5ef3ebcd7514",
-      "method": "update",
       "model": "WarmupAccount",
       "reason": "missing-organization-id"
     },

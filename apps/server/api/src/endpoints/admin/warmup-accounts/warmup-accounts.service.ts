@@ -144,6 +144,7 @@ export class AdminWarmupAccountsService {
     const leadEmail = normalizeEmail(dto.leadEmail);
     const account = await this.prisma.$transaction(async (tx) => {
       await lockWarmup(tx, leadEmail);
+      // tenant-scope-ignore: SuperAdminGuard and IpWhitelistGuard protect cross-workspace lead provisioning; global active-email deduplication must precede target organization creation.
       const existing = await tx.warmupAccount.findFirst({
         orderBy: { createdAt: 'desc' },
         where: {

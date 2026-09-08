@@ -40,7 +40,17 @@ vi.mock('next-intl', async () => {
     '../../../../../tests/next-intl.stub'
   );
 
-  return { useTranslations: translateFromCatalog };
+  const translations = new Map<
+    string,
+    ReturnType<typeof translateFromCatalog>
+  >();
+  return {
+    useTranslations: (namespace: string) => {
+      if (!translations.has(namespace))
+        translations.set(namespace, translateFromCatalog(namespace));
+      return translations.get(namespace);
+    },
+  };
 });
 
 vi.mock('@services/admin/warmup-accounts.service', () => ({

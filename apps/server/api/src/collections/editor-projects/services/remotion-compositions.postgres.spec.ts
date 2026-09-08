@@ -99,6 +99,7 @@ describePostgres('Remotion durable submission with PostgreSQL', () => {
           {
             ...buildValidatedEditorExportContract(project),
             rendererVersion: EDITOR_RENDERER_VERSION,
+            queuedAt: new Date().toISOString(),
           },
           allowedStatuses,
         );

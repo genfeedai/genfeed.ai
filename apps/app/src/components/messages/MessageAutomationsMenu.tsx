@@ -13,8 +13,10 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Zap } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function MessageAutomationsMenu() {
+  const translate = useTranslations('pages.messageAutomations');
   const { brandSlug, href } = useOrgUrl();
   const items = getMessagesMenuItemsForScope(brandSlug).filter(
     (item) => item.hrefScope === 'brand',
@@ -25,8 +27,8 @@ export default function MessageAutomationsMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label="Message automations"
-          title="Message automations"
+          aria-label={translate('title')}
+          title={translate('title')}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
           className="size-7"
@@ -35,7 +37,7 @@ export default function MessageAutomationsMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Message automations</DropdownMenuLabel>
+        <DropdownMenuLabel>{translate('title')}</DropdownMenuLabel>
         {items.map((item) =>
           item.href ? (
             <DropdownMenuItem key={item.href} asChild>

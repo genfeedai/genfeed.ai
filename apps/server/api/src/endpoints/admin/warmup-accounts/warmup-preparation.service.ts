@@ -37,279 +37,308 @@ export class WarmupPreparationService {
   ) {}
 
   async prepare(id: string, actorUserId: string, dto: PrepareWarmupAccountDto) {
+    // tenant-scope-ignore: Platform-wide lookup is gated by WarmupAccountsController SuperAdminGuard and IpWhitelistGuard; the returned account supplies the target organization for all preparation writes.
     const account = await this.prisma.warmupAccount.findFirst({
       where: { id, isDeleted: false },
     });
     if (!account) throw new NotFoundException('Warm-up account not found');
     assertWarmupMutable(account);
-    const scope = warmupScope(account);
+    warmupScope(account);
     // Preparation always uses the recorded operator, never the customer's identity.
     if (actorUserId !== account.operatorUserId)
       throw new BadRequestException(
         'Only the recorded preparation operator may author this workspace',
       );
     try {
-      if (dto.action === 'repair') {
-        const generation = warmupDiagnostics(account).preparation?.generation;
-        if (generation) {
-          const execution = await this.prisma.workflowExecution.findFirst({
-            where: {
-              organizationId: scope.organizationId,
-              userId: actorUserId,
-              idempotencyKey: generation.key,
-              isDeleted: false,
-            },
-          });
-          if (
-            !execution &&
-            Date.now() - new Date(generation.startedAt).getTime() > 120000
-          ) {
-            await this.dispatchStarterContent(account, actorUserId, {
-              action: 'starter-content',
-              assetCandidateId: generation.assetCandidateId,
-              prompt: generation.prompt,
-            });
-          }
-          if (execution?.status === 'FAILED' && execution.failedNodeId) {
-            await this.moduleRef
-              .get(WorkflowExecutorService, { strict: false })
-              .continueExistingExecution(execution.id, {
-                organizationId: scope.organizationId,
-                userId: actorUserId,
-                platform: 'manual',
-                type: 'resume',
-                data: {},
-              });
-          }
-        }
-      }
       if (dto.action === 'preview-context') {
-        const url = dto.sourceUrl ?? account.websiteUrl;
-        if (!url)
-          throw new BadRequestException('A public website URL is required');
-        const context = await this.brands.crawlWebsiteBrandKitDraft(
-          scope.brandId,
-          scope.organizationId,
-          { url },
-        );
-        if (dto.publicProfileUrl) {
-          const profile = this.scraper.detectUrlType(dto.publicProfileUrl);
-          if (!profile.linkedinUrl && !profile.xProfileUrl)
-            throw new BadRequestException(
-              'Use a public LinkedIn or X profile URL',
-            );
-          const brand = await this.brands.findOne({
-            id: scope.brandId,
-            organizationId: scope.organizationId,
-            isDeleted: false,
-          });
-          if (!brand)
-            throw new BadRequestException('Prepared brand is unavailable');
-          const merged = await this.scraper.scrapeAllSources({
-            websiteUrl: url,
-            linkedinUrl: profile.linkedinUrl,
-            xProfileUrl: profile.xProfileUrl,
-          });
-          const combined = buildBrandKitDraftFromWebsiteScrape(
-            brand as unknown as BrandKitSourceBrand,
-            this.brandDataMapper.mapMergedSources(merged, url),
-          );
-          Object.assign(context, combined);
-          context.evidence.push({
-            sourceType: 'website',
-            label:
-              'Public profile source; verify extracted fields before applying',
-            url: dto.publicProfileUrl,
-          });
-        }
-        if (context.diagnostics.some((item) => item.severity === 'error'))
-          throw new BadRequestException(
-            'Public context import failed; review the source and retry',
-          );
-        await this.update(
-          account,
-          actorUserId,
-          {
-            context,
-            contextReviewedAt: undefined,
-            contextReviewedBy: undefined,
-          },
-          'Imported public brand context for review.',
-        );
+        await this.previewContext(account, actorUserId, dto);
       } else if (dto.action === 'apply-context') {
-        const decisions = dto.contextDecisions;
-        if (!decisions)
-          throw new BadRequestException(
-            'Select the imported context fields to apply',
-          );
-        await this.prisma.$transaction(async (tx) => {
-          await lockWarmup(tx, id);
-          const current = await tx.warmupAccount.findFirstOrThrow({
-            where: {
-              id,
-              organizationId: scope.organizationId,
-              isDeleted: false,
-            },
-          });
-          assertWarmupMutable(current);
-          if (!warmupDiagnostics(current).preparation?.context)
-            throw new BadRequestException('Import context before applying it');
-          const result = await this.brands.applyBrandKitDraft(
-            scope.brandId,
-            scope.organizationId,
-            decisions,
-          );
-          if (!result.appliedFields.length || result.status === 'blocked')
-            throw new BadRequestException(
-              'No accepted brand context was applied',
-            );
-          await this.persist(
-            tx,
-            current,
-            actorUserId,
-            {
-              ...warmupDiagnostics(current).preparation,
-              contextReviewedAt: new Date().toISOString(),
-              contextReviewedBy: actorUserId,
-            },
-            `Applied reviewed brand fields: ${result.appliedFields.join(', ')}.`,
-          );
-        });
+        await this.applyContext(account, actorUserId, dto);
       } else if (dto.action === 'starter-content') {
         await this.startContent(account, actorUserId, dto);
       } else {
-        await this.prisma.$transaction(async (tx) => {
-          await lockWarmup(tx, id);
-          const current = await tx.warmupAccount.findFirstOrThrow({
-            where: {
-              id,
-              organizationId: scope.organizationId,
-              isDeleted: false,
-            },
-          });
-          assertWarmupMutable(current);
-          await reconcileWarmupWorkspace(tx, current);
-          let preparation = warmupDiagnostics(current).preparation ?? {};
-          if (dto.action === 'fund') {
-            if (!dto.amount || !dto.reason?.trim())
-              throw new BadRequestException(
-                'A handoff amount and grant reason are required',
-              );
-            if (preparation.grant && preparation.grant.amount !== dto.amount)
-              throw new BadRequestException(
-                'The handoff grant is already configured; it cannot be silently replaced',
-              );
-            const transaction = await creditWarmupWallet(
-              tx,
-              current,
-              actorUserId,
-              dto.amount,
-              `warmup:${id}:grant`,
-              dto.reason.trim(),
-            );
-            preparation = {
-              ...preparation,
-              grant: preparation.grant ?? {
-                amount: dto.amount,
-                reason: dto.reason.trim(),
-                transactionId: transaction.id,
-                actorUserId,
-                grantedAt: transaction.createdAt.toISOString(),
-              },
-            };
-          }
-          if (dto.action === 'attach-starters') {
-            if (!dto.assetId || !dto.articleId)
-              throw new BadRequestException(
-                'Select both a private brand asset and article draft',
-              );
-            const [asset, article] = await Promise.all([
-              tx.asset.findFirst({
-                where: {
-                  id: dto.assetId,
-                  parentOrgId: scope.organizationId,
-                  parentBrandId: scope.brandId,
-                  isDeleted: false,
-                  userId: actorUserId,
-                  cloudObjectKey: { not: null },
-                },
-              }),
-              tx.article.findFirst({
-                where: {
-                  id: dto.articleId,
-                  organizationId: scope.organizationId,
-                  brandId: scope.brandId,
-                  userId: actorUserId,
-                  isDeleted: false,
-                  status: 'DRAFT',
-                  publishedAt: null,
-                  category: 'linkedin-article',
-                },
-              }),
-            ]);
-            if (!asset || !article)
-              throw new BadRequestException(
-                'Starter content must belong to this operator and prepared brand and remain unpublished',
-              );
-            await tx.article.update({
-              where: {
-                id: article.id,
-                organizationId: scope.organizationId,
-                isDeleted: false,
-              },
-              data: { scope: 'ORGANIZATION' },
-            });
-            preparation = {
-              ...preparation,
-              assetId: asset.id,
-              articleId: article.id,
-            };
-          }
-          if (dto.action === 'repair')
-            preparation = await this.reconcilePreparation(
-              tx,
-              current,
-              preparation,
-              actorUserId,
-            );
-          if (dto.action === 'archive') {
-            if (preparation.generation?.status === 'running')
-              throw new BadRequestException(
-                'Wait for generation before archiving',
-              );
-            await tx.invitation.updateMany({
-              where: {
-                id: current.invitationId ?? '',
-                organizationId: scope.organizationId,
-                isDeleted: false,
-                acceptedAt: null,
-              },
-              data: { revokedAt: new Date(), status: 'revoked' },
-            });
-            await tx.member.updateMany({
-              where: {
-                organizationId: scope.organizationId,
-                userId: current.operatorUserId,
-                isDeleted: false,
-              },
-              data: { isActive: false },
-            });
-          }
-          await this.persist(
-            tx,
-            current,
-            actorUserId,
-            preparation,
-            `Warm-up ${dto.action} completed.`,
-            dto.action === 'archive' ? 'ARCHIVED' : undefined,
-          );
-        });
+        if (dto.action === 'repair')
+          await this.resumeStarterGeneration(account, actorUserId);
+        await this.prepareResources(account, actorUserId, dto);
       }
     } catch (error) {
-      await this.recordFailure(id, actorUserId, dto.action);
+      await this.recordFailure(account, actorUserId, dto.action);
       throw error;
     }
     return this.accounts.get(id);
+  }
+
+  private async resumeStarterGeneration(
+    account: WarmupAccount,
+    actorUserId: string,
+  ): Promise<void> {
+    const scope = warmupScope(account);
+    const generation = warmupDiagnostics(account).preparation?.generation;
+    if (generation) {
+      const execution = await this.prisma.workflowExecution.findFirst({
+        where: {
+          organizationId: scope.organizationId,
+          userId: actorUserId,
+          idempotencyKey: generation.key,
+          isDeleted: false,
+        },
+      });
+      if (
+        !execution &&
+        Date.now() - new Date(generation.startedAt).getTime() > 120000
+      ) {
+        await this.dispatchStarterContent(account, actorUserId, {
+          action: 'starter-content',
+          assetCandidateId: generation.assetCandidateId,
+          prompt: generation.prompt,
+        });
+      }
+      if (execution?.status === 'FAILED' && execution.failedNodeId) {
+        await this.moduleRef
+          .get(WorkflowExecutorService, { strict: false })
+          .continueExistingExecution(execution.id, {
+            organizationId: scope.organizationId,
+            userId: actorUserId,
+            platform: 'manual',
+            type: 'resume',
+            data: {},
+          });
+      }
+    }
+  }
+
+  private async previewContext(
+    account: WarmupAccount,
+    actorUserId: string,
+    dto: PrepareWarmupAccountDto,
+  ): Promise<void> {
+    const scope = warmupScope(account);
+    const url = dto.sourceUrl ?? account.websiteUrl;
+    if (!url) throw new BadRequestException('A public website URL is required');
+    const context = await this.brands.crawlWebsiteBrandKitDraft(
+      scope.brandId,
+      scope.organizationId,
+      { url },
+    );
+    if (dto.publicProfileUrl) {
+      const profile = this.scraper.detectUrlType(dto.publicProfileUrl);
+      if (!profile.linkedinUrl && !profile.xProfileUrl)
+        throw new BadRequestException('Use a public LinkedIn or X profile URL');
+      const brand = await this.brands.findOne({
+        id: scope.brandId,
+        organizationId: scope.organizationId,
+        isDeleted: false,
+      });
+      if (!brand)
+        throw new BadRequestException('Prepared brand is unavailable');
+      const merged = await this.scraper.scrapeAllSources({
+        websiteUrl: url,
+        linkedinUrl: profile.linkedinUrl,
+        xProfileUrl: profile.xProfileUrl,
+      });
+      const combined = buildBrandKitDraftFromWebsiteScrape(
+        brand as unknown as BrandKitSourceBrand,
+        this.brandDataMapper.mapMergedSources(merged, url),
+      );
+      Object.assign(context, combined);
+      context.evidence.push({
+        sourceType: 'website',
+        label: 'Public profile source; verify extracted fields before applying',
+        url: dto.publicProfileUrl,
+      });
+    }
+    if (context.diagnostics.some((item) => item.severity === 'error'))
+      throw new BadRequestException(
+        'Public context import failed; review the source and retry',
+      );
+    await this.update(
+      account,
+      actorUserId,
+      {
+        context,
+        contextReviewedAt: undefined,
+        contextReviewedBy: undefined,
+      },
+      'Imported public brand context for review.',
+    );
+  }
+
+  private async applyContext(
+    account: WarmupAccount,
+    actorUserId: string,
+    dto: PrepareWarmupAccountDto,
+  ): Promise<void> {
+    const scope = warmupScope(account);
+    const id = account.id;
+    const decisions = dto.contextDecisions;
+    if (!decisions)
+      throw new BadRequestException(
+        'Select the imported context fields to apply',
+      );
+    await this.prisma.$transaction(async (tx) => {
+      await lockWarmup(tx, id);
+      const current = await tx.warmupAccount.findFirstOrThrow({
+        where: {
+          id,
+          organizationId: scope.organizationId,
+          isDeleted: false,
+        },
+      });
+      assertWarmupMutable(current);
+      if (!warmupDiagnostics(current).preparation?.context)
+        throw new BadRequestException('Import context before applying it');
+      const result = await this.brands.applyBrandKitDraft(
+        scope.brandId,
+        scope.organizationId,
+        decisions,
+      );
+      if (!result.appliedFields.length || result.status === 'blocked')
+        throw new BadRequestException('No accepted brand context was applied');
+      await this.persist(
+        tx,
+        current,
+        actorUserId,
+        {
+          ...warmupDiagnostics(current).preparation,
+          contextReviewedAt: new Date().toISOString(),
+          contextReviewedBy: actorUserId,
+        },
+        `Applied reviewed brand fields: ${result.appliedFields.join(', ')}.`,
+      );
+    });
+  }
+
+  private async prepareResources(
+    account: WarmupAccount,
+    actorUserId: string,
+    dto: PrepareWarmupAccountDto,
+  ): Promise<void> {
+    const scope = warmupScope(account);
+    const id = account.id;
+    await this.prisma.$transaction(async (tx) => {
+      await lockWarmup(tx, id);
+      const current = await tx.warmupAccount.findFirstOrThrow({
+        where: {
+          id,
+          organizationId: scope.organizationId,
+          isDeleted: false,
+        },
+      });
+      assertWarmupMutable(current);
+      await reconcileWarmupWorkspace(tx, current);
+      let preparation = warmupDiagnostics(current).preparation ?? {};
+      if (dto.action === 'fund') {
+        if (!dto.amount || !dto.reason?.trim())
+          throw new BadRequestException(
+            'A handoff amount and grant reason are required',
+          );
+        if (preparation.grant && preparation.grant.amount !== dto.amount)
+          throw new BadRequestException(
+            'The handoff grant is already configured; it cannot be silently replaced',
+          );
+        const transaction = await creditWarmupWallet(
+          tx,
+          current,
+          actorUserId,
+          dto.amount,
+          `warmup:${id}:grant`,
+          dto.reason.trim(),
+        );
+        preparation = {
+          ...preparation,
+          grant: preparation.grant ?? {
+            amount: dto.amount,
+            reason: dto.reason.trim(),
+            transactionId: transaction.id,
+            actorUserId,
+            grantedAt: transaction.createdAt.toISOString(),
+          },
+        };
+      }
+      if (dto.action === 'attach-starters') {
+        if (!dto.assetId || !dto.articleId)
+          throw new BadRequestException(
+            'Select both a private brand asset and article draft',
+          );
+        const [asset, article] = await Promise.all([
+          tx.asset.findFirst({
+            where: {
+              id: dto.assetId,
+              parentOrgId: scope.organizationId,
+              parentBrandId: scope.brandId,
+              isDeleted: false,
+              userId: actorUserId,
+              cloudObjectKey: { not: null },
+            },
+          }),
+          tx.article.findFirst({
+            where: {
+              id: dto.articleId,
+              organizationId: scope.organizationId,
+              brandId: scope.brandId,
+              userId: actorUserId,
+              isDeleted: false,
+              status: 'DRAFT',
+              publishedAt: null,
+              category: 'linkedin-article',
+            },
+          }),
+        ]);
+        if (!asset || !article)
+          throw new BadRequestException(
+            'Starter content must belong to this operator and prepared brand and remain unpublished',
+          );
+        await tx.article.update({
+          where: {
+            id: article.id,
+            organizationId: scope.organizationId,
+            isDeleted: false,
+          },
+          data: { scope: 'ORGANIZATION' },
+        });
+        preparation = {
+          ...preparation,
+          assetId: asset.id,
+          articleId: article.id,
+        };
+      }
+      if (dto.action === 'repair')
+        preparation = await this.reconcilePreparation(
+          tx,
+          current,
+          preparation,
+          actorUserId,
+        );
+      if (dto.action === 'archive') {
+        if (preparation.generation?.status === 'running')
+          throw new BadRequestException('Wait for generation before archiving');
+        await tx.invitation.updateMany({
+          where: {
+            id: current.invitationId ?? '',
+            organizationId: scope.organizationId,
+            isDeleted: false,
+            acceptedAt: null,
+          },
+          data: { revokedAt: new Date(), status: 'revoked' },
+        });
+        await tx.member.updateMany({
+          where: {
+            organizationId: scope.organizationId,
+            userId: current.operatorUserId,
+            isDeleted: false,
+          },
+          data: { isActive: false },
+        });
+      }
+      await this.persist(
+        tx,
+        current,
+        actorUserId,
+        preparation,
+        `Warm-up ${dto.action} completed.`,
+        dto.action === 'archive' ? 'ARCHIVED' : undefined,
+      );
+    });
   }
 
   private async startContent(
@@ -635,14 +664,16 @@ export class WarmupPreparationService {
   }
 
   private async recordFailure(
-    id: string,
+    account: WarmupAccount,
     actorUserId: string,
     action: string,
   ): Promise<void> {
+    const { organizationId } = warmupScope(account);
+    const id = account.id;
     await this.prisma.$transaction(async (tx) => {
       await lockWarmup(tx, id);
       const current = await tx.warmupAccount.findFirst({
-        where: { id, isDeleted: false },
+        where: { id, organizationId, isDeleted: false },
       });
       if (
         !current ||

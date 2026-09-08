@@ -78,11 +78,6 @@ const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'following',
   'owned',
 ];
-const SOURCE_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'trends', label: 'Public trends' },
-  { id: 'owned', label: 'My accounts' },
-];
 
 const SORT_VALUES: readonly DiscoveryDeskSort[] = [
   'velocity',
@@ -355,7 +350,7 @@ export default function DiscoveryDesk() {
           !isFollowingView
             ? {
                 activeTab: sourceParam,
-                ariaLabel: 'Discovery sources',
+                ariaLabel: translateDesk('sourcesLabel'),
                 fullWidth: false,
                 onTabChange: (value) => {
                   if (
@@ -366,7 +361,11 @@ export default function DiscoveryDesk() {
                     handleSourceChange(value);
                   }
                 },
-                tabs: SOURCE_TABS,
+                tabs: [
+                  { id: 'all', label: translateDesk('sourceTabs.all') },
+                  { id: 'trends', label: translateDesk('sourceTabs.trends') },
+                  { id: 'owned', label: translateDesk('sourceTabs.owned') },
+                ],
               }
             : undefined
         }
