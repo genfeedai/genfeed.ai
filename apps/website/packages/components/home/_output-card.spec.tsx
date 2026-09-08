@@ -40,9 +40,11 @@ let intersect: ((entries: { isIntersecting: boolean }[]) => void) | undefined;
 
 function stubEnvironment({
   isReducedMotion = false,
+  isMobile = false,
   isSavingData = false,
 }: {
   isReducedMotion?: boolean;
+  isMobile?: boolean;
   isSavingData?: boolean;
 } = {}): void {
   intersect = undefined;
@@ -65,9 +67,9 @@ function stubEnvironment({
     },
   );
 
-  vi.stubGlobal('matchMedia', () => ({
+  vi.stubGlobal('matchMedia', (query: string) => ({
     addEventListener: vi.fn(),
-    matches: isReducedMotion,
+    matches: query === '(min-width: 768px)' ? !isMobile : isReducedMotion,
     removeEventListener: vi.fn(),
   }));
 
@@ -117,6 +119,16 @@ describe('HomeOutputCard', () => {
         source.getAttribute('type'),
       ),
     ).toEqual(['video/webm', 'video/mp4']);
+  });
+
+  it('never fetches the clip on mobile', () => {
+    stubEnvironment({ isMobile: true });
+    render(<HomeOutputCard asset={ASSET} isPreloaded={false} />);
+
+    expect(intersect).toBeUndefined();
+    expect(
+      screen.queryByTestId('home-hero-output-carousel-video'),
+    ).not.toBeInTheDocument();
   });
 
   it('never fetches the clip when motion is reduced', () => {

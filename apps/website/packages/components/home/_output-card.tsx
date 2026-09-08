@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const VIDEO_MIN_WIDTH_QUERY = '(min-width: 768px)';
 
 /**
  * How much of a card has to be on screen before its clip is worth fetching.
@@ -46,7 +47,11 @@ export default function HomeOutputCard({
       (navigator as Navigator & { connection?: { saveData?: boolean } })
         .connection?.saveData === true;
 
-    if (window.matchMedia(REDUCED_MOTION_QUERY).matches || isSavingData) {
+    if (
+      window.matchMedia(REDUCED_MOTION_QUERY).matches ||
+      !window.matchMedia(VIDEO_MIN_WIDTH_QUERY).matches ||
+      isSavingData
+    ) {
       return;
     }
 
