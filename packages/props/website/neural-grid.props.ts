@@ -6,7 +6,7 @@ export interface WebSectionProps extends HTMLAttributes<HTMLElement> {
   /** Background variant */
   bg?: 'default' | 'subtle' | 'bordered';
   /** Vertical padding */
-  py?: 'md' | 'lg' | 'xl';
+  py?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export interface CtaSectionProps
