@@ -23,7 +23,6 @@ import {
   IngredientCategory,
   MetadataExtension,
 } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
@@ -32,7 +31,6 @@ export class ActivityUpdateService {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly websocketService: NotificationsPublisherService,
-    readonly _loggerService: LoggerService,
   ) {}
 
   /**

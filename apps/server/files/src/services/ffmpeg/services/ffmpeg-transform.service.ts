@@ -1,7 +1,6 @@
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -10,10 +9,7 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class FFmpegTransformService {
-  constructor(
-    private readonly core: FFmpegCoreService,
-    readonly _loggerService: LoggerService,
-  ) {}
+  constructor(private readonly core: FFmpegCoreService) {}
 
   /**
    * Resize video to specified dimensions

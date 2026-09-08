@@ -12,12 +12,6 @@ describe('ActivityUpdateService', () => {
   let websocketService: {
     publishBackgroundTaskUpdate: ReturnType<typeof vi.fn>;
   };
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
 
   const mockObjectId = 'test-object-id';
 
@@ -30,18 +24,8 @@ describe('ActivityUpdateService', () => {
     websocketService = {
       publishBackgroundTaskUpdate: vi.fn(),
     };
-    loggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
 
-    service = new ActivityUpdateService(
-      activitiesService,
-      websocketService,
-      loggerService,
-    );
+    service = new ActivityUpdateService(activitiesService, websocketService);
   });
 
   describe('updateSuccessActivity', () => {
