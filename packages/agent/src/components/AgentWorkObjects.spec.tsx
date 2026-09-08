@@ -2,7 +2,11 @@ import { AgentWorkObjects } from '@genfeedai/agent/components/AgentWorkObjects';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
-import type { AgentWorkObjectCollection } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentWorkObject,
+  AgentWorkObjectActionPayload,
+  AgentWorkObjectCollection,
+} from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,
@@ -115,6 +119,93 @@ describe('session work context', () => {
       getWorkObjects.mock.calls[1]?.[1],
     );
   });
+});
+
+it('refetches after concurrent view and edit finish, ignoring stale poll and mutation responses', async () => {
+  const first: AgentWorkObject = {
+    id: 'first',
+    kind: 'script',
+    title: 'Brief',
+    body: 'Brief text',
+    rowCount: 0,
+    revision: 1,
+    viewedInSession: false,
+    reviewStatus: 'pending',
+    href: '/library?asset=first',
+    reference: {
+      kind: 'ingredient',
+      serializer: 'ingredient',
+      recordId: 'first',
+      organizationId: 'org-1',
+    },
+  };
+  const second: AgentWorkObject = {
+    ...first,
+    id: 'second',
+    title: 'Script',
+    body: 'Initial script',
+  };
+  const initial: AgentWorkObjectCollection = {
+    sessionAssets: [],
+    workObjects: [first, second],
+  };
+  const saved: AgentWorkObjectCollection = {
+    sessionAssets: [],
+    workObjects: [
+      { ...first, viewedInSession: true },
+      { ...second, body: 'Saved script', revision: 2 },
+    ],
+  };
+  let resolveView: ((value: AgentWorkObjectCollection) => void) | undefined;
+  let resolveEdit: ((value: AgentWorkObjectCollection) => void) | undefined;
+  const getWorkObjects = vi
+    .fn()
+    .mockResolvedValueOnce(initial)
+    .mockResolvedValue(saved);
+  const actOnWorkObject = vi.fn(
+    (
+      _threadId: string,
+      _objectId: string,
+      payload: AgentWorkObjectActionPayload,
+    ) =>
+      new Promise<AgentWorkObjectCollection>((resolve) => {
+        if (payload.action === 'view') resolveView = resolve;
+        if (payload.action === 'edit') resolveEdit = resolve;
+      }),
+  );
+  render(
+    <AgentWorkObjects
+      apiService={
+        { getWorkObjects, actOnWorkObject } as unknown as AgentApiService
+      }
+    />,
+  );
+  await screen.findByLabelText('Script');
+  fireEvent.click(
+    screen.getAllByRole('button', { name: 'I have viewed this draft' })[0],
+  );
+  fireEvent.change(screen.getByLabelText('Script'), {
+    target: { value: 'Saved script' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  await act(async () =>
+    useAgentChatStore.setState({
+      messages: [
+        {
+          id: 'new-message',
+          threadId: 'thread-1',
+          role: 'user',
+          content: 'Follow-up',
+          createdAt: '2026-09-08T12:00:00Z',
+        },
+      ],
+    }),
+  );
+  expect(getWorkObjects).toHaveBeenCalledTimes(1);
+  await act(async () => resolveEdit?.(saved));
+  await act(async () => resolveView?.(initial));
+  await waitFor(() => expect(getWorkObjects).toHaveBeenCalledTimes(2));
+  expect(screen.getByLabelText('Script')).toHaveValue('Saved script');
 });
 
 describe('ask identity isolation', () => {

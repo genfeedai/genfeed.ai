@@ -11,6 +11,7 @@ export interface AgentWorkObjectsProps {
 
 export interface AgentWorkObjectEditorProps {
   object: AgentWorkObject;
+  libraryHref?: string;
   threadId?: string;
   isReadOnly?: boolean;
   onAction: (

@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
+import IngredientWorkObjectContent from '@ui/modals/ingredients/ingredient/IngredientWorkObjectContent';
 import type { RefObject } from 'react';
 
 type Props = {
@@ -129,6 +130,10 @@ export default function IngredientOverlayMediaContent({
             onUpdateSharing={onUpdateSharing}
             onScopeChange={onScopeChange}
             onUsePrompt={onUsePrompt}
+          />
+        ) : localIngredient.agentWorkObject ? (
+          <IngredientWorkObjectContent
+            material={localIngredient.agentWorkObject}
           />
         ) : (
           <div className="col-span-full text-center">

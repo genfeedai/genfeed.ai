@@ -258,6 +258,7 @@ export function useAgentChatContainer({
   const [isSubmittingInputRequest, setIsSubmittingInputRequest] =
     useState(false);
   const activeUiActionRef = useRef<string | null>(null);
+  const inputSubmissionSequenceRef = useRef(0);
   const submitInputRequestRef = useRef<(answer: string) => Promise<void>>(
     async () => undefined,
   );
@@ -628,6 +629,7 @@ export function useAgentChatContainer({
         return;
       }
 
+      const submissionSequence = ++inputSubmissionSequenceRef.current;
       setIsSubmittingInputRequest(true);
       setError(null);
       clearPendingInputRequest();
@@ -665,6 +667,8 @@ export function useAgentChatContainer({
         ) {
           currentState.setPendingInputRequest(request);
         }
+        if (currentState.activeThreadId !== request.threadId)
+          throw new Error('Failed to submit the requested input.');
         addWorkEvent({
           createdAt: new Date().toISOString(),
           detail: normalizedAnswer,
@@ -679,7 +683,8 @@ export function useAgentChatContainer({
         setError('Failed to submit the requested input.');
         throw new Error('Failed to submit the requested input.');
       } finally {
-        setIsSubmittingInputRequest(false);
+        if (submissionSequence === inputSubmissionSequenceRef.current)
+          setIsSubmittingInputRequest(false);
       }
     },
     [
@@ -872,6 +877,8 @@ export function useAgentChatContainer({
 
   useEffect(() => {
     activeThreadIdRef.current = activeThreadId;
+    inputSubmissionSequenceRef.current += 1;
+    setIsSubmittingInputRequest(false);
     olderMessagesRequestEpochRef.current += 1;
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();

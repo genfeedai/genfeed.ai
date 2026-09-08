@@ -4,7 +4,6 @@ import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
 import type { AgentWorkObjectEditorProps } from '@genfeedai/props/ui/agent/agent-work-objects.props';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -24,10 +23,10 @@ export function AgentWorkObjectEditor({
   object,
   threadId,
   isReadOnly = false,
+  libraryHref,
   onAction,
 }: AgentWorkObjectEditorProps) {
   const translate = useTranslations('agent.workObjects');
-  const { href } = useOrgUrl();
   const [body, setBody] = useState(object.body ?? '');
   const [rows, setRows] = useState(object.rows ?? []);
   const [pending, setPending] = useState<
@@ -135,7 +134,7 @@ export function AgentWorkObjectEditor({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-foreground">{object.title}</p>
         <Link
-          href={href(object.href)}
+          href={libraryHref ?? object.href}
           className="text-xs text-primary underline"
         >
           {translate('openLibrary')}

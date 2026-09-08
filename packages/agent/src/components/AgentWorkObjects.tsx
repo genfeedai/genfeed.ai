@@ -38,6 +38,8 @@ export function AgentWorkObjects({
   const activeThreadRef = useRef(threadId);
   activeThreadRef.current = threadId;
   const sequenceRef = useRef(0);
+  const mutationCountsRef = useRef(new Map<string, number>());
+  const loadedThreadRef = useRef<string | null>(null);
 
   const getSessionId = useCallback(function getSessionId(id: string) {
     if (sessionRef.current.threadId !== id) {
@@ -56,6 +58,7 @@ export function AgentWorkObjects({
   }, []);
 
   useEffect(() => {
+    loadedThreadRef.current = null;
     setCollection(null);
     if (threadId)
       useAgentWorkObjectGateStore.getState().setObjects(threadId, null);
@@ -72,7 +75,8 @@ export function AgentWorkObjects({
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function refresh() {
-      if (!threadId) return;
+      if (!threadId || (mutationCountsRef.current.get(threadId) ?? 0) > 0)
+        return;
       const sequence = ++sequenceRef.current;
       try {
         const result = await apiService.getWorkObjects(
@@ -81,6 +85,7 @@ export function AgentWorkObjects({
           controller.signal,
         );
         if (!controller.signal.aborted && sequence === sequenceRef.current) {
+          loadedThreadRef.current = threadId;
           setCollection(result);
           useAgentWorkObjectGateStore
             .getState()
@@ -116,23 +121,38 @@ export function AgentWorkObjects({
       changes?: Pick<AgentWorkObjectActionPayload, 'body' | 'rows'>,
     ) {
       if (!threadId || isReadOnly) return;
+      mutationCountsRef.current.set(
+        threadId,
+        (mutationCountsRef.current.get(threadId) ?? 0) + 1,
+      );
       const sequence = ++sequenceRef.current;
-      const result = await apiService.actOnWorkObject(threadId, object.id, {
-        action,
-        revision: object.revision,
-        sessionId: getSessionId(threadId),
-        brandId: thread?.brandId ?? undefined,
-        expectedContextVersion: thread?.contextVersion,
-        ...changes,
-      });
-      if (
-        activeThreadRef.current === threadId &&
-        sequence === sequenceRef.current
-      ) {
-        setCollection(result);
-        useAgentWorkObjectGateStore
-          .getState()
-          .setObjects(threadId, result.workObjects);
+      try {
+        const result = await apiService.actOnWorkObject(threadId, object.id, {
+          action,
+          revision: object.revision,
+          sessionId: getSessionId(threadId),
+          brandId: thread?.brandId ?? undefined,
+          expectedContextVersion: thread?.contextVersion,
+          ...changes,
+        });
+        if (
+          activeThreadRef.current === threadId &&
+          sequence === sequenceRef.current
+        ) {
+          loadedThreadRef.current = threadId;
+          setCollection(result);
+          useAgentWorkObjectGateStore
+            .getState()
+            .setObjects(threadId, result.workObjects);
+        }
+      } finally {
+        const remaining = Math.max(
+          0,
+          (mutationCountsRef.current.get(threadId) ?? 1) - 1,
+        );
+        mutationCountsRef.current.set(threadId, remaining);
+        if (activeThreadRef.current === threadId && remaining === 0)
+          setRetry((current) => current + 1);
       }
     },
     [
@@ -151,7 +171,7 @@ export function AgentWorkObjects({
         {translate('retryLoad')}
       </Button>
     );
-  if (!collection) return null;
+  if (!collection || loadedThreadRef.current !== threadId) return null;
 
   return (
     <>
@@ -182,6 +202,7 @@ export function AgentWorkObjects({
           key={object.id}
           threadId={threadId ?? undefined}
           object={object}
+          libraryHref={href(object.href)}
           isReadOnly={isReadOnly}
           onAction={onAction}
         />
