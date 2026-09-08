@@ -341,3 +341,25 @@ describe('AgentThreadProjectorService terminal races', () => {
     expect(interrupted.activeRun).toMatchObject({ status: 'interrupted' });
   });
 });
+
+it('keeps a retry question after a recoverable tool error until the run settles', () => {
+  const service = new AgentThreadProjectorService();
+  const projected = service.applyEvent(
+    {
+      activeRun: { runId: 'run', status: 'running' },
+      pendingInputRequests: [
+        { requestId: 'retry', title: 'Source needs attention' },
+      ],
+    } as never,
+    {
+      type: 'tool.completed',
+      runId: 'run',
+      sequence: 2,
+      threadId: 'thread',
+      occurredAt: '2026-09-08T12:00:00.000Z',
+      payload: { status: 'failed', error: 'Import unavailable' },
+    } as never,
+  );
+  expect(projected.activeRun).toMatchObject({ status: 'running' });
+  expect(projected.pendingInputRequests).toHaveLength(1);
+});

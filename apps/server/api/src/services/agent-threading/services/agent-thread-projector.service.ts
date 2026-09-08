@@ -146,10 +146,7 @@ export class AgentThreadProjectorService {
       nextSnapshot.activeRun = {
         ...(this.asRecord(nextSnapshot.activeRun) ?? {}),
         ...(event.runId ? { runId: event.runId } : {}),
-        status:
-          this.readString(event.payload, 'status') === 'failed'
-            ? 'failed'
-            : 'running',
+        status: 'running',
       };
     }
 
