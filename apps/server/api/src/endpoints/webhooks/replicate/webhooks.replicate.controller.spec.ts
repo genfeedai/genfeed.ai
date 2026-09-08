@@ -4,7 +4,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
-import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -26,7 +25,6 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 
 describe('ReplicateWebhookController', () => {
   let controller: ReplicateWebhookController;
-  let _replicateWebhookService: vi.Mocked<ReplicateWebhookService>;
   let loggerService: vi.Mocked<LoggerService>;
   let generationWebhookHandler: {
     handleCompleted: vi.Mock;
@@ -65,12 +63,6 @@ describe('ReplicateWebhookController', () => {
             // Signing secret required — endpoint fails closed without it.
             get: vi.fn().mockReturnValue('test-replicate-signing-secret'),
             isProduction: false,
-          },
-        },
-        {
-          provide: ReplicateWebhookService,
-          useValue: {
-            handleCallback: vi.fn(),
           },
         },
         {
@@ -142,7 +134,6 @@ describe('ReplicateWebhookController', () => {
     controller = module.get<ReplicateWebhookController>(
       ReplicateWebhookController,
     );
-    _replicateWebhookService = module.get(ReplicateWebhookService);
     loggerService = module.get(LoggerService);
     generationWebhookHandler = module.get(ReplicateGenerationWebhookHandler);
     trainingsService = module.get(TrainingsService);

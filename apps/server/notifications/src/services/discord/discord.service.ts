@@ -13,6 +13,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  type WebhookClient,
   type WebhookMessageCreateOptions,
 } from 'discord.js';
 
@@ -39,81 +40,60 @@ export class DiscordService {
     ingredient: IIngredientNotificationData,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getIngredientsWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getIngredientsWebhook(),
+      url,
+      async (webhookClient) => {
+        const embedColor = this.getIngredientEmbedColor(category);
 
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
+        const categoryString =
+          category.charAt(0).toUpperCase() + category.slice(1);
 
-    try {
-      const embedColor = this.getIngredientEmbedColor(category);
+        const embedTitle = `New ${categoryString} Generated`;
 
-      const categoryString =
-        category.charAt(0).toUpperCase() + category.slice(1);
+        const fields = this.buildIngredientFields(ingredient);
 
-      const embedTitle = `New ${categoryString} Generated`;
+        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const ingredientManagerUrl = managerUrl
+          ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
+          : null;
 
-      const fields = this.buildIngredientFields(ingredient);
+        const buttons = this.buildIngredientButtons(
+          category,
+          cdnUrl,
+          ingredientManagerUrl,
+        );
 
-      const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-      const ingredientManagerUrl = managerUrl
-        ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
-        : null;
-
-      const buttons = this.buildIngredientButtons(
-        category,
-        cdnUrl,
-        ingredientManagerUrl,
-      );
-
-      const embed: IDiscordEmbed = {
-        color: embedColor,
-        timestamp: new Date().toISOString(),
-        title: embedTitle,
-        url: ingredientManagerUrl || cdnUrl,
-      };
-
-      if (fields.length > 0) {
-        embed.fields = fields;
-      }
-
-      if (category === IngredientCategory.IMAGE) {
-        embed.image = { url: cdnUrl };
-      } else if (category === IngredientCategory.VIDEO) {
-        if (ingredient.thumbnailUrl) {
-          embed.image = { url: ingredient.thumbnailUrl };
-        }
-      }
-
-      const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
-
-      // For videos: post video URL first (allows Discord auto-embed), then details
-      if (category === IngredientCategory.VIDEO) {
-        // First message: just the video URL for Discord to auto-embed
-        await webhookClient.send({
-          avatarURL: avatarUrl,
-          content: cdnUrl,
-          username: 'Genfeed.ai',
-        });
-
-        // Second message: embed with details and buttons
-        const detailsPayload: WebhookMessageCreateOptions = {
-          avatarURL: avatarUrl,
-          embeds: [embed],
-          username: 'Genfeed.ai',
+        const embed: IDiscordEmbed = {
+          color: embedColor,
+          timestamp: new Date().toISOString(),
+          title: embedTitle,
+          url: ingredientManagerUrl || cdnUrl,
         };
 
-        if (buttons.length > 0) {
-          const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            ...buttons,
-          );
-          detailsPayload.components = [actionRow];
+        if (fields.length > 0) {
+          embed.fields = fields;
         }
 
-        await webhookClient.send(detailsPayload);
-      } else {
-        // For images: single message with embed
+        if (category === IngredientCategory.IMAGE) {
+          embed.image = { url: cdnUrl };
+        } else if (category === IngredientCategory.VIDEO) {
+          if (ingredient.thumbnailUrl) {
+            embed.image = { url: ingredient.thumbnailUrl };
+          }
+        }
+
+        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
+
+        // A separate video URL message lets Discord embed the video before its details.
+        if (category === IngredientCategory.VIDEO) {
+          await webhookClient.send({
+            avatarURL: avatarUrl,
+            content: cdnUrl,
+            username: 'Genfeed.ai',
+          });
+        }
+
         const messagePayload: WebhookMessageCreateOptions = {
           avatarURL: avatarUrl,
           embeds: [embed],
@@ -128,16 +108,14 @@ export class DiscordService {
         }
 
         await webhookClient.send(messagePayload);
-      }
 
-      this.loggerService.log(`${url} succeeded`, {
-        category,
-        cdnUrl,
-        ingredientId: ingredient.id,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+        this.loggerService.log(`${url} succeeded`, {
+          category,
+          cdnUrl,
+          ingredientId: ingredient.id,
+        });
+      },
+    );
   }
 
   async sendPostCard(post: {
@@ -288,22 +266,17 @@ export class DiscordService {
 
   async sendVercelNotification(embed: IDiscordEmbed): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getDeploymentsWebhook();
-
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
-
-    try {
-      await webhookClient.send({
-        avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
-        embeds: [embed],
-        username: 'Genfeed.ai Deployments',
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+    return this.withWebhook(
+      await this.discordBotService.getDeploymentsWebhook(),
+      url,
+      async (webhookClient) => {
+        await webhookClient.send({
+          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          embeds: [embed],
+          username: 'Genfeed.ai Deployments',
+        });
+      },
+    );
   }
 
   async sendChromaticNotification(_embed: unknown): Promise<void> {
@@ -316,28 +289,40 @@ export class DiscordService {
     color?: number;
   }): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getPostsWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getPostsWebhook(),
+      url,
+      async (webhookClient) => {
+        await webhookClient.send({
+          avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
+          embeds: [
+            {
+              color: input.color ?? 0xf97316,
+              description: input.description,
+              timestamp: new Date().toISOString(),
+              title: input.title,
+            },
+          ],
+          username: 'Genfeed.ai',
+        });
+      },
+    );
+  }
 
+  private async withWebhook(
+    webhookClient: WebhookClient | null,
+    context: string,
+    send: (client: WebhookClient) => Promise<void>,
+  ): Promise<void> {
     if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
+      this.loggerService.log(`${context} skipped - webhook not available`);
       return;
     }
 
     try {
-      await webhookClient.send({
-        avatarURL: this.configService.get('DISCORD_BOT_AVATAR_URL'),
-        embeds: [
-          {
-            color: input.color ?? 0xf97316,
-            description: input.description,
-            timestamp: new Date().toISOString(),
-            title: input.title,
-          },
-        ],
-        username: 'Genfeed.ai',
-      });
+      await send(webhookClient);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${context} failed`, error);
     }
   }
 
@@ -483,79 +468,80 @@ export class DiscordService {
     speedTier?: string;
   }): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getModelsWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getModelsWebhook(),
+      url,
+      async (webhookClient) => {
+        const providerColors: Record<string, number> = {
+          fal: 0x7c3aed,
+          replicate: 0x2563eb,
+        };
 
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
+        const providerName =
+          payload.provider === 'fal' ? 'fal.ai' : 'Replicate';
+        const embedColor = providerColors[payload.provider] || 0x5865f2;
+        const margin =
+          payload.providerCostUsd > 0
+            ? Math.round(
+                (1 - payload.providerCostUsd / (payload.estimatedCost * 0.01)) *
+                  100,
+              )
+            : 0;
 
-    try {
-      const providerColors: Record<string, number> = {
-        fal: 0x7c3aed,
-        replicate: 0x2563eb,
-      };
+        const fields: Array<{ name: string; value: string; inline: boolean }> =
+          [
+            { inline: true, name: 'Category', value: payload.category },
+            { inline: true, name: 'Provider', value: providerName },
+            {
+              inline: true,
+              name: 'Credits',
+              value: `${payload.estimatedCost} ($${(payload.estimatedCost * 0.01).toFixed(2)})`,
+            },
+            {
+              inline: true,
+              name: 'Provider Cost',
+              value: `$${payload.providerCostUsd.toFixed(4)}`,
+            },
+            { inline: true, name: 'Margin', value: `${margin}%` },
+          ];
 
-      const providerName = payload.provider === 'fal' ? 'fal.ai' : 'Replicate';
-      const embedColor = providerColors[payload.provider] || 0x5865f2;
-      const margin =
-        payload.providerCostUsd > 0
-          ? Math.round(
-              (1 - payload.providerCostUsd / (payload.estimatedCost * 0.01)) *
-                100,
-            )
-          : 0;
+        if (payload.qualityTier) {
+          fields.push({
+            inline: true,
+            name: 'Quality',
+            value: payload.qualityTier,
+          });
+        }
+        if (payload.speedTier) {
+          fields.push({
+            inline: true,
+            name: 'Speed',
+            value: payload.speedTier,
+          });
+        }
 
-      const fields: Array<{ name: string; value: string; inline: boolean }> = [
-        { inline: true, name: 'Category', value: payload.category },
-        { inline: true, name: 'Provider', value: providerName },
-        {
-          inline: true,
-          name: 'Credits',
-          value: `${payload.estimatedCost} ($${(payload.estimatedCost * 0.01).toFixed(2)})`,
-        },
-        {
-          inline: true,
-          name: 'Provider Cost',
-          value: `$${payload.providerCostUsd.toFixed(4)}`,
-        },
-        { inline: true, name: 'Margin', value: `${margin}%` },
-      ];
+        const embed: Record<string, unknown> = {
+          color: embedColor,
+          fields,
+          footer: { text: 'Draft created — activate in admin panel' },
+          timestamp: new Date().toISOString(),
+          title: `New Model Discovered: ${payload.modelKey}`,
+        };
 
-      if (payload.qualityTier) {
-        fields.push({
-          inline: true,
-          name: 'Quality',
-          value: payload.qualityTier,
+        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
+
+        await webhookClient.send({
+          avatarURL: avatarUrl,
+          embeds: [embed],
+          username: 'Genfeed.ai',
         });
-      }
-      if (payload.speedTier) {
-        fields.push({ inline: true, name: 'Speed', value: payload.speedTier });
-      }
 
-      const embed: Record<string, unknown> = {
-        color: embedColor,
-        fields,
-        footer: { text: 'Draft created — activate in admin panel' },
-        timestamp: new Date().toISOString(),
-        title: `New Model Discovered: ${payload.modelKey}`,
-      };
-
-      const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
-
-      await webhookClient.send({
-        avatarURL: avatarUrl,
-        embeds: [embed],
-        username: 'Genfeed.ai',
-      });
-
-      this.loggerService.log(`${url} succeeded`, {
-        modelKey: payload.modelKey,
-        provider: payload.provider,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+        this.loggerService.log(`${url} succeeded`, {
+          modelKey: payload.modelKey,
+          provider: payload.provider,
+        });
+      },
+    );
   }
 
   async sendArticleNotification(article: {
@@ -567,57 +553,52 @@ export class DiscordService {
     thumbnailUrl?: string;
   }): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getPostsWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getPostsWebhook(),
+      url,
+      async (webhookClient) => {
+        const articleUrl =
+          article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
 
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
+        const embed: IDiscordEmbed = {
+          color: 0xff6b00, // Orange for articles
+          timestamp: new Date().toISOString(),
+          title: article.label,
+          url: articleUrl,
+        };
 
-    try {
-      const articleUrl =
-        article.publicUrl || `https://genfeed.ai/articles/${article.slug}`;
+        if (article.summary) {
+          embed.description = article.summary.substring(0, 300);
+        }
 
-      const embed: IDiscordEmbed = {
-        color: 0xff6b00, // Orange for articles
-        timestamp: new Date().toISOString(),
-        title: article.label,
-        url: articleUrl,
-      };
+        if (article.category) {
+          embed.footer = { text: article.category };
+        }
 
-      if (article.summary) {
-        embed.description = article.summary.substring(0, 300);
-      }
+        if (article.thumbnailUrl) {
+          embed.image = { url: article.thumbnailUrl };
+        }
 
-      if (article.category) {
-        embed.footer = { text: article.category };
-      }
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('Read Article')
+            .setStyle(ButtonStyle.Link)
+            .setURL(articleUrl),
+        );
 
-      if (article.thumbnailUrl) {
-        embed.image = { url: article.thumbnailUrl };
-      }
+        const messagePayload: WebhookMessageCreateOptions = {
+          components: [actionRow],
+          embeds: [embed],
+        };
 
-      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel('Read Article')
-          .setStyle(ButtonStyle.Link)
-          .setURL(articleUrl),
-      );
+        await webhookClient.send(messagePayload);
 
-      const messagePayload: WebhookMessageCreateOptions = {
-        components: [actionRow],
-        embeds: [embed],
-      };
-
-      await webhookClient.send(messagePayload);
-
-      this.loggerService.log(`${url} succeeded`, {
-        articleSlug: article.slug,
-        articleUrl,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+        this.loggerService.log(`${url} succeeded`, {
+          articleSlug: article.slug,
+          articleUrl,
+        });
+      },
+    );
   }
 
   async sendLowCreditsAlert(payload: {
@@ -625,133 +606,123 @@ export class DiscordService {
     balance: number;
   }): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getUsersWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getUsersWebhook(),
+      url,
+      async (webhookClient) => {
+        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const billingUrl = managerUrl
+          ? `${managerUrl}/settings/subscription`
+          : 'https://app.genfeed.ai/settings/subscription';
 
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
+        const isCritical = payload.balance === 0;
 
-    try {
-      const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-      const billingUrl = managerUrl
-        ? `${managerUrl}/settings/subscription`
-        : 'https://app.genfeed.ai/settings/subscription';
+        const embed: Record<string, unknown> = {
+          color: isCritical ? 0xff0000 : 0xffa500,
+          description: isCritical
+            ? 'An organization has run out of credits.'
+            : `An organization is running low on credits (**${payload.balance}** remaining).`,
+          fields: [
+            {
+              inline: true,
+              name: 'Organization',
+              value: payload.organizationId,
+            },
+            {
+              inline: true,
+              name: 'Balance',
+              value: `${payload.balance} credits`,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+          title: isCritical ? 'Credits Depleted' : 'Low Credits Alert',
+        };
 
-      const isCritical = payload.balance === 0;
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('Top Up')
+            .setStyle(ButtonStyle.Link)
+            .setURL(billingUrl),
+        );
 
-      const embed: Record<string, unknown> = {
-        color: isCritical ? 0xff0000 : 0xffa500,
-        description: isCritical
-          ? 'An organization has run out of credits.'
-          : `An organization is running low on credits (**${payload.balance}** remaining).`,
-        fields: [
-          {
-            inline: true,
-            name: 'Organization',
-            value: payload.organizationId,
-          },
-          {
-            inline: true,
-            name: 'Balance',
-            value: `${payload.balance} credits`,
-          },
-        ],
-        timestamp: new Date().toISOString(),
-        title: isCritical ? 'Credits Depleted' : 'Low Credits Alert',
-      };
+        const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
 
-      const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setLabel('Top Up')
-          .setStyle(ButtonStyle.Link)
-          .setURL(billingUrl),
-      );
+        await webhookClient.send({
+          avatarURL: avatarUrl,
+          components: [actionRow],
+          embeds: [embed],
+          username: 'Genfeed.ai',
+        });
 
-      const avatarUrl = this.configService.get('DISCORD_BOT_AVATAR_URL');
-
-      await webhookClient.send({
-        avatarURL: avatarUrl,
-        components: [actionRow],
-        embeds: [embed],
-        username: 'Genfeed.ai',
-      });
-
-      this.loggerService.log(`${url} succeeded`, {
-        balance: payload.balance,
-        organizationId: payload.organizationId,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+        this.loggerService.log(`${url} succeeded`, {
+          balance: payload.balance,
+          organizationId: payload.organizationId,
+        });
+      },
+    );
   }
 
   async sendUserCreatedNotification(user: IUserCreatedPayload): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const webhookClient = await this.discordBotService.getUsersWebhook();
+    return this.withWebhook(
+      await this.discordBotService.getUsersWebhook(),
+      url,
+      async (webhookClient) => {
+        const displayName =
+          [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+          user.email ||
+          'New User';
 
-    if (!webhookClient) {
-      this.loggerService.log(`${url} skipped - webhook not available`);
-      return;
-    }
+        const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
+        const userManagerUrl = managerUrl
+          ? `${managerUrl}/admin/users/${user.id}`
+          : null;
 
-    try {
-      const displayName =
-        [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-        user.email ||
-        'New User';
+        const embed: IDiscordEmbed = {
+          color: user.isInvited ? 0x5865f2 : 0x00ff00,
+          description: `**${displayName}**${user.email ? `\n${user.email}` : ''}`,
+          timestamp: new Date().toISOString(),
+          title: user.isInvited ? 'Member Joined' : 'New User Signed Up',
+        };
 
-      const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
-      const userManagerUrl = managerUrl
-        ? `${managerUrl}/admin/users/${user.id}`
-        : null;
+        if (user.avatar) {
+          embed.thumbnail = { url: user.avatar };
+        }
 
-      const embed: IDiscordEmbed = {
-        color: user.isInvited ? 0x5865f2 : 0x00ff00,
-        description: `**${displayName}**${user.email ? `\n${user.email}` : ''}`,
-        timestamp: new Date().toISOString(),
-        title: user.isInvited ? 'Member Joined' : 'New User Signed Up',
-      };
+        if (userManagerUrl) {
+          embed.url = userManagerUrl;
+        }
 
-      if (user.avatar) {
-        embed.thumbnail = { url: user.avatar };
-      }
+        const buttons: ButtonBuilder[] = [];
 
-      if (userManagerUrl) {
-        embed.url = userManagerUrl;
-      }
+        if (userManagerUrl) {
+          buttons.push(
+            new ButtonBuilder()
+              .setLabel('View in Admin')
+              .setStyle(ButtonStyle.Link)
+              .setURL(userManagerUrl),
+          );
+        }
 
-      const buttons: ButtonBuilder[] = [];
+        const messagePayload: WebhookMessageCreateOptions = {
+          embeds: [embed],
+        };
 
-      if (userManagerUrl) {
-        buttons.push(
-          new ButtonBuilder()
-            .setLabel('View in Admin')
-            .setStyle(ButtonStyle.Link)
-            .setURL(userManagerUrl),
-        );
-      }
+        if (buttons.length > 0) {
+          const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            ...buttons,
+          );
+          messagePayload.components = [actionRow];
+        }
 
-      const messagePayload: WebhookMessageCreateOptions = {
-        embeds: [embed],
-      };
+        await webhookClient.send(messagePayload);
 
-      if (buttons.length > 0) {
-        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          ...buttons,
-        );
-        messagePayload.components = [actionRow];
-      }
-
-      await webhookClient.send(messagePayload);
-
-      this.loggerService.log(`${url} succeeded`, {
-        email: user.email,
-        isInvited: user.isInvited,
-        userId: user.id,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-    }
+        this.loggerService.log(`${url} succeeded`, {
+          email: user.email,
+          isInvited: user.isInvited,
+          userId: user.id,
+        });
+      },
+    );
   }
 }

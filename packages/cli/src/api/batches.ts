@@ -57,10 +57,7 @@ export interface BatchActionRequest {
 }
 
 export async function createBatch(request: CreateBatchRequest): Promise<Batch> {
-  const response = await post<JsonApiSingleResponse>(
-    '/batches',
-    request as unknown as Record<string, unknown>
-  );
+  const response = await post<JsonApiSingleResponse>('/batches', request);
   return flattenSingle<Batch>(response);
 }
 
@@ -83,10 +80,7 @@ export async function getBatch(id: string): Promise<BatchDetail> {
 }
 
 export async function batchItemAction(batchId: string, request: BatchActionRequest): Promise<void> {
-  await post<JsonApiSingleResponse>(
-    `/batches/${batchId}/items/action`,
-    request as unknown as Record<string, unknown>
-  );
+  await post<JsonApiSingleResponse>(`/batches/${batchId}/items/action`, request);
 }
 
 export async function cancelBatch(batchId: string): Promise<void> {

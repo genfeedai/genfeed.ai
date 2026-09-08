@@ -1,33 +1,13 @@
-import { ConfigService } from '@libs/config/config.service';
-
-// ComfyUI types (not yet exported from cloud-types)
-interface ComfyUIOutputFile {
-  filename: string;
-  subfolder: string;
-  type: string;
-}
-
-interface ComfyUIHistoryEntry {
-  outputs: Record<
-    string,
-    { images?: ComfyUIOutputFile[]; gifs?: ComfyUIOutputFile[] }
-  >;
-  status: { completed: boolean; status_str: string };
-}
-
-type ComfyUIHistoryResponse = Record<string, ComfyUIHistoryEntry>;
-
-type ComfyUIPrompt = Record<string, unknown>;
-
-interface ComfyUIQueuePromptResponse {
-  prompt_id: string;
-  number: number;
-  node_errors: Record<string, unknown>;
-}
-
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type {
+  ComfyUIHistoryEntry,
+  ComfyUIHistoryResponse,
+  ComfyUIOutputFile,
+  ComfyUIPrompt,
+  ComfyUIQueuePromptResponse,
+} from '@genfeedai/contracts/types';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,
@@ -39,6 +19,7 @@ import {
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
 } from '@genfeedai/workflows/generation/comfyui';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -195,7 +176,6 @@ export class ComfyUIService {
         (history) => {
           if (history?.status?.status_str === 'error') {
             throw new Error(
-              // @ts-expect-error TS2339
               `ComfyUI prompt ${promptId} failed: ${JSON.stringify(history.status?.messages)}`,
             );
           }
@@ -224,111 +204,79 @@ export class ComfyUIService {
     model: string,
     params: Record<string, unknown>,
   ): ComfyUIPrompt {
+    const getCommonParams = () => ({
+      height: params.height as number | undefined,
+      prompt: String(params.prompt ?? ''),
+      seed: params.seed as number | undefined,
+      steps: params.steps as number | undefined,
+      width: params.width as number | undefined,
+    });
+
     switch (model) {
       case MODEL_KEYS.GENFEED_AI_FLUX_DEV:
         return buildFluxDevPrompt({
+          ...getCommonParams(),
           cfg: params.cfg as number | undefined,
-          height: params.height as number | undefined,
           negativePrompt: params.negativePrompt as string | undefined,
-          prompt: String(params.prompt ?? ''),
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID:
         return buildPulidFluxPrompt({
+          ...getCommonParams(),
           cfg: params.cfg as number | undefined,
           faceImage: String(params.faceImage ?? ''),
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
           pulidStrength: params.pulidStrength as number | undefined,
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO:
-        return buildZImageTurboPrompt({
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
-        });
+        return buildZImageTurboPrompt(getCommonParams());
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_DEV:
         return buildFlux2DevPrompt({
+          ...getCommonParams(),
           guidance: params.guidance as number | undefined,
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID:
         return buildFlux2DevPulidPrompt({
+          ...getCommonParams(),
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
           pulidStrength: params.pulidStrength as number | undefined,
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE:
         return buildFlux2DevPulidUpscalePrompt({
+          ...getCommonParams(),
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
           pulidStrength: params.pulidStrength as number | undefined,
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
           upscaleModel: params.upscaleModel as string | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA:
         return buildFlux2DevPulidLoraPrompt({
+          ...getCommonParams(),
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
-          height: params.height as number | undefined,
           loraPath: String(params.loraPath ?? ''),
           loraStrength: params.loraStrength as number | undefined,
-          prompt: String(params.prompt ?? ''),
           pulidStrength: params.pulidStrength as number | undefined,
           realismLora: params.realismLora as string | undefined,
           realismLoraStrength: params.realismLoraStrength as number | undefined,
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN:
-        return buildFlux2KleinPrompt({
-          height: params.height as number | undefined,
-          prompt: String(params.prompt ?? ''),
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
-          width: params.width as number | undefined,
-        });
+        return buildFlux2KleinPrompt(getCommonParams());
 
       case MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA:
         return buildZImageTurboLoraPrompt({
-          height: params.height as number | undefined,
+          ...getCommonParams(),
           loraPath: String(
             params.loraPath ?? 'itshaylamoore_z_image_turbo.safetensors',
           ),
           loraStrength: params.loraStrength as number | undefined,
-          prompt: String(params.prompt ?? ''),
-          seed: params.seed as number | undefined,
-          steps: params.steps as number | undefined,
           upscaleModel: params.upscaleModel as string | undefined,
-          width: params.width as number | undefined,
         });
 
       default:

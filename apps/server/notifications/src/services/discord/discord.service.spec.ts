@@ -101,6 +101,25 @@ describe('DiscordService', () => {
   });
 
   describe('sendIngredientNotification', () => {
+    it('should propagate webhook lookup errors before delivery handling', async () => {
+      const lookupError = new Error('webhook lookup failed');
+      mockDiscordBotService.getIngredientsWebhook.mockRejectedValueOnce(
+        lookupError,
+      );
+      const { service } = await createService();
+
+      await expect(
+        service.sendIngredientNotification(
+          IngredientCategory.IMAGE,
+          'https://cdn/img.png',
+          { id: 'ing-1' },
+        ),
+      ).rejects.toBe(lookupError);
+
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
     it('should skip when webhook is unavailable', async () => {
       mockDiscordBotService.getIngredientsWebhook.mockResolvedValue(null);
       const { service } = await createService();
@@ -201,6 +220,8 @@ describe('DiscordService', () => {
       const firstPayload = mockSend.mock
         .calls[0][0] as WebhookMessageCreateOptions;
       expect(firstPayload.content).toBe('https://cdn/vid.mp4');
+      expect(firstPayload.embeds).toBeUndefined();
+      expect(lastSendPayload().content).toBeUndefined();
 
       const embed = lastSendPayload().embeds?.[0] as {
         color: number;
