@@ -17,11 +17,17 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
 import { useCallback } from 'react';
 
+/**
+ * `following` is deliberately absent. It is a Discovery sidebar destination
+ * (`discovery-menu-items.config.ts` matches it on `?source=following`), not a
+ * filter: choosing it swaps the desk table for the per-platform Following deck
+ * and unmounts this rail, so the control that set it disappears and only the
+ * sidebar can undo it. The remaining values narrow the desk in place.
+ */
 const SOURCE_OPTIONS: { label: string; value: DiscoveryDeskSource | 'all' }[] =
   [
     { label: 'All', value: 'all' },
     { label: 'Public trends', value: 'trends' },
-    { label: 'Creators I follow', value: 'following' },
     { label: 'My accounts', value: 'owned' },
   ];
 
