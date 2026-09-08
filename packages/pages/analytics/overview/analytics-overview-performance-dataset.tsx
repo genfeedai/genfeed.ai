@@ -105,7 +105,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
           {topPerformers.map((item: IPerformanceContentItem) =>
             item.origin === 'imported' ? (
               <ListRow
-                key={`${item.origin}-${item.sourcePostId ?? item.postId}`}
+                key={item.id}
                 density="compact"
                 title={item.title || item.description}
                 trailing={
@@ -116,7 +116,7 @@ export default function AnalyticsOverviewPerformanceDataset() {
               />
             ) : (
               <ListRow
-                key={`${item.origin}-${item.postId}`}
+                key={item.id}
                 density="compact"
                 href={href(`${APP_ROUTES.PUBLISHING.POSTS}/${item.postId}`)}
                 title={item.title || item.description}

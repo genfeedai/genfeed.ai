@@ -7,6 +7,7 @@ import {
 function makeAnalytics(overrides: Record<string, unknown> = {}) {
   return {
     engagementRate: 5,
+    id: 'analytics-1',
     platform: 'instagram',
     postId: 'post-1',
     totalComments: 5,
@@ -95,6 +96,7 @@ describe('PerformanceSummaryService', () => {
         comments: 5,
         description: 'A great description. Second sentence.',
         engagementRate: 5,
+        id: 'analytics-1',
         likes: 10,
         origin: 'genfeed',
         platform: 'instagram',

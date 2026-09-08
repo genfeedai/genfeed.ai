@@ -84,12 +84,12 @@ export default function DeskHeatStrip({
               label="Connect this platform to add signal"
             >
               <Link
+                aria-label={platform}
                 className="gen-glass-subtle flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs text-foreground/50 transition hover:text-foreground/75"
                 href={publishingHref}
               >
                 <Lock className="size-3" />
                 {getPlatformIcon(platform, 'size-3.5 opacity-60')}
-                <span className="capitalize">{platform}</span>
               </Link>
             </SimpleTooltip>
           );
@@ -98,6 +98,7 @@ export default function DeskHeatStrip({
         const isActive = activePlatforms.has(platform);
         return (
           <Button
+            aria-label={platform}
             key={platform}
             className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
               isActive
@@ -110,7 +111,6 @@ export default function DeskHeatStrip({
             withWrapper={false}
           >
             {getPlatformIcon(platform, 'size-3.5')}
-            <span className="capitalize">{platform}</span>
             <span className="text-foreground/45">{count}</span>
             {topVelocity > 0 ? (
               <span className="text-foreground/45">

@@ -81,16 +81,16 @@ export function AgentRunFailureCard({
             <p className="text-sm font-medium text-destructive">
               {formatted.title}
             </p>
-            <p className="text-xs leading-snug text-foreground/80">
+            <p className="text-xs leading-snug text-destructive/90">
               {formatted.summary}
             </p>
             {formatted.detail ? (
-              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-snug text-foreground/65">
+              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-snug text-destructive/70">
                 {formatted.detail}
               </p>
             ) : null}
             {formatted.recovery ? (
-              <p className="text-2xs leading-snug text-muted-foreground">
+              <p className="text-2xs leading-snug text-destructive/70">
                 {formatted.recovery}
               </p>
             ) : null}

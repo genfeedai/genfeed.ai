@@ -74,6 +74,14 @@ export interface TableProps<T> {
   // Row click handler
   onRowClick?: (item: T) => void;
 
+  /**
+   * Detail panel for a row, rendered as a full-width row directly beneath it.
+   * Return `undefined` for a row that is not expanded — the extra row is only
+   * emitted when this returns content, so a table that never expands is
+   * unchanged.
+   */
+  renderExpandedRow?: (item: T) => ReactNode | undefined;
+
   // Visually hide column headers (sr-only for accessibility)
   hideHeader?: boolean;
 

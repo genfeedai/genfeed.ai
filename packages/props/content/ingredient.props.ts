@@ -56,6 +56,7 @@ export interface IngredientListProps<T extends IIngredient = IIngredient> {
 
 export interface IngredientsMediaGridProps {
   emptyLabel: string;
+  emptyDescription?: string;
   items: IIngredient[];
   isLoading: boolean;
   isActionsEnabled: boolean;

@@ -25,6 +25,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   LIBRARY_RECENT_SORT,
   LIBRARY_SORT_OPTIONS,
+  LIBRARY_TYPE_PRESETS,
 } from './library-browser.config';
 
 /**
@@ -89,6 +90,25 @@ export function useLibraryBrowser({
     () => (hasCategoryParam ? urlCategories : [...(seededCategories ?? [])]),
     [hasCategoryParam, urlCategories, seededCategories],
   );
+
+  // Type is a filter rather than a destination, so the noun an empty list uses
+  // has to follow the chips the operator can clear, not the route they entered
+  // by. Exactly one preset's chip set matching means the list is that type;
+  // anything else is a mixed or unfiltered view, which is "assets".
+  const activeTypeLabel = useMemo(() => {
+    if (categories.length === 0) {
+      return undefined;
+    }
+
+    const selected = new Set(categories);
+    const match = Object.values(LIBRARY_TYPE_PRESETS).find(
+      (preset) =>
+        preset.categories.length === selected.size &&
+        preset.categories.every((category) => selected.has(category)),
+    );
+
+    return match?.label;
+  }, [categories]);
 
   const folderId = searchParams?.get(LIBRARY_QUERY_KEYS.FOLDER) ?? '';
   const search = searchParams?.get(LIBRARY_QUERY_KEYS.SEARCH) ?? '';
@@ -283,6 +303,7 @@ export function useLibraryBrowser({
 
   const contextValue: IIngredientsContextValue = useMemo(
     () => ({
+      activeTypeLabel,
       filters,
       ingredientType: LIBRARY_INGREDIENT_TYPE,
       isRefreshing,
@@ -297,7 +318,7 @@ export function useLibraryBrowser({
       // context's setters are inert by design — every mutation goes through
       // `pushAxes` and comes back as a re-render from `useSearchParams`.
     }),
-    [filters, isRefreshing, query, registerRefresh, viewMode],
+    [activeTypeLabel, filters, isRefreshing, query, registerRefresh, viewMode],
   );
 
   return {

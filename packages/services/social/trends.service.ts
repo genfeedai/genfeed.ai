@@ -108,7 +108,7 @@ export class TrendsService extends BaseService<Trend> {
    * @returns List of trending hashtags sorted by virality score
    */
   async getTrendingHashtags(
-    options: ITrendingHashtagOptions = {},
+    options: ITrendingHashtagOptions & { signal?: AbortSignal } = {},
   ): Promise<ITrendHashtag[]> {
     const params: Record<string, string | number> = {};
     if (options.platform) {
@@ -120,7 +120,7 @@ export class TrendsService extends BaseService<Trend> {
 
     const response = await this.instance.get<{ hashtags?: ITrendHashtag[] }>(
       '/hashtags',
-      { params },
+      { params, signal: options.signal },
     );
     return response.data?.hashtags || [];
   }
@@ -131,7 +131,7 @@ export class TrendsService extends BaseService<Trend> {
    * @returns List of trending sounds sorted by usage count
    */
   async getTrendingSounds(
-    options: ITrendingSoundOptions = {},
+    options: ITrendingSoundOptions & { signal?: AbortSignal } = {},
   ): Promise<ITrendSound[]> {
     const params: Record<string, string | number> = {};
     if (options.limit) {
@@ -140,7 +140,7 @@ export class TrendsService extends BaseService<Trend> {
 
     const response = await this.instance.get<{ sounds?: ITrendSound[] }>(
       '/sounds',
-      { params },
+      { params, signal: options.signal },
     );
     return response.data?.sounds || [];
   }
@@ -151,6 +151,7 @@ export class TrendsService extends BaseService<Trend> {
    */
   async getTrendsDiscovery(options?: {
     platform?: string;
+    signal?: AbortSignal;
   }): Promise<TrendsResponse> {
     const params: Record<string, string> = {};
     if (options?.platform) {
@@ -159,6 +160,7 @@ export class TrendsService extends BaseService<Trend> {
 
     const response = await this.instance.get<TrendsResponse>('/discovery', {
       params,
+      signal: options?.signal,
     });
     return (
       response.data || {

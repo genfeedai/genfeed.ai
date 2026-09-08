@@ -7,8 +7,15 @@ import type { HTMLAttributes, ReactNode } from 'react';
  * Shared surface chrome for Studio generate + Agent chat composers.
  * Keep visual tokens here so both bars stay cousins, not look-alikes by accident.
  */
+/**
+ * The one composer surface. Agent used to add `border border-border-strong/70
+ * !shadow-none` on top of a shadow-only surface, so Agent read as bordered
+ * glass while Studio, the base PromptBar, the image-to-video modal and the
+ * website preview kept the borderless drop shadow. The border lives here now
+ * so every composer matches.
+ */
 export const PROMPT_BAR_SURFACE_CLASS =
-  'overflow-hidden rounded-[var(--radius-workspace-composer)] bg-background/70 shadow-composer backdrop-blur-xl backdrop-saturate-150 transition-[background-color,box-shadow] focus-within:bg-background/80 focus-within:shadow-composer-strong';
+  'overflow-hidden rounded-[var(--radius-workspace-composer)] border border-border-strong/70 bg-background/70 backdrop-blur-xl backdrop-saturate-150 transition-[background-color,box-shadow] focus-within:bg-background/80';
 
 export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   /**

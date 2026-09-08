@@ -120,7 +120,7 @@ export function ConversationSidebarSection({
 }: ConversationSidebarSectionProps) {
   return (
     <section aria-label={label}>
-      <div className="flex h-7 items-center gap-2 px-3 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
+      <div className="flex items-center gap-2 px-3 pb-1.5 pt-3 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
         <span>{label}</span>
         {typeof count === 'number' ? (
           <span className="font-mono font-medium tracking-normal text-foreground/22">

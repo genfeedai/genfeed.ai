@@ -147,6 +147,8 @@
     "merge": "Merge"
   },
   "sidebar": {
+    "newConversation": "New Conversation",
+    "newConversationAriaLabel": "Start a new conversation",
     "newTask": "New Task",
     "newTaskAriaLabel": "Open new task modal",
     "search": "Search",

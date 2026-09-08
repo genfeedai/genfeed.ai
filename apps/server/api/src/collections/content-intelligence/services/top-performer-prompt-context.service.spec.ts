@@ -16,6 +16,7 @@ const makePerformanceItem = (
   comments: 0,
   description: '',
   engagementRate: 0,
+  id: 'analytics-1',
   likes: 0,
   origin: 'genfeed',
   platform: 'linkedin',

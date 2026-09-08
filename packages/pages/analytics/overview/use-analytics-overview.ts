@@ -30,17 +30,6 @@ import type {
 } from '@services/analytics/analytics.service';
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
-import {
-  ChartColumn,
-  CreditCard,
-  Eye,
-  Film,
-  Globe,
-  Image,
-  Newspaper,
-  Sparkles,
-  Users,
-} from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
@@ -218,37 +207,31 @@ export function useAnalyticsOverview({
       return [
         {
           description: 'Active platform subscriptions',
-          icon: CreditCard,
           label: 'Total Subscriptions',
           value: analytics?.totalSubscriptions || 0,
         },
         {
           description: 'Registered users',
-          icon: Users,
           label: 'Total Users',
           value: analytics?.totalUsers || 0,
         },
         {
           description: 'Video ingredients created',
-          icon: Film,
           label: 'Total Videos',
           value: analytics?.totalVideos || 0,
         },
         {
           description: 'Image ingredients created',
-          icon: Image,
           label: 'Total Images',
           value: analytics?.totalImages || 0,
         },
         {
           description: 'Published posts',
-          icon: Newspaper,
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
         {
           description: 'Social brands',
-          icon: Sparkles,
           label: 'Total Brands',
           value: analytics?.totalBrands || 0,
         },
@@ -258,19 +241,16 @@ export function useAnalyticsOverview({
     return [
       {
         description: 'Connected social accounts with analytics',
-        icon: CreditCard,
         label: 'Connected Accounts',
         value: analytics?.totalCredentialsConnected || 0,
       },
       {
         description: 'Published posts in the selected range',
-        icon: Newspaper,
         label: 'Total Posts',
         value: analytics?.totalPosts || 0,
       },
       {
         description: 'Tracked views in the selected range',
-        icon: Eye,
         label: 'Total Views',
         trend:
           analytics?.totalViews && analytics?.viewsGrowth
@@ -281,7 +261,6 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Likes, comments, shares, and saves combined',
-        icon: Sparkles,
         label: 'Total Engagement',
         trend:
           analytics?.totalEngagement && analytics?.engagementGrowth
@@ -292,14 +271,12 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Average engagement rate across tracked posts',
-        icon: ChartColumn,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
         valueClassName: 'text-4xl',
       },
       {
         description: 'Platforms with tracked analytics in range',
-        icon: Globe,
         label: 'Active Platforms',
         value: analytics?.activePlatforms?.length || 0,
       },

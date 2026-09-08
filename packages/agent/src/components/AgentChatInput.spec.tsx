@@ -144,13 +144,11 @@ describe('AgentChatInput', () => {
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell).toHaveClass(
-      'bg-background/70',
-      'backdrop-blur-xl',
-      '!shadow-none',
-      'focus-within:!shadow-none',
-    );
+    expect(shell).toHaveClass('bg-background/70', 'backdrop-blur-xl');
     expect(shell).toHaveClass('border', 'border-border-strong/70');
+    // The border and the absent shadow now come from the shared composer
+    // surface, so Agent no longer needs a local `!shadow-none` override.
+    expect(shell).not.toHaveClass('shadow-composer');
   });
 
   it('renders the generation setup chip in the leading toolbar slot', () => {

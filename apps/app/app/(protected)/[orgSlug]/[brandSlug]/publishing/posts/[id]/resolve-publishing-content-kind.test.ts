@@ -52,6 +52,20 @@ describe('resolvePublishingContentKindFromId', () => {
     expect(kind).toBe('post');
   });
 
+  it('stops at the first hit instead of probing the other tables', async () => {
+    const articles = mockLookup('miss');
+    const newsletters = mockLookup('miss');
+
+    await resolvePublishingContentKindFromId('post-1', {
+      articles,
+      newsletters,
+      posts: mockLookup('ok'),
+    });
+
+    expect(articles.findOne).not.toHaveBeenCalled();
+    expect(newsletters.findOne).not.toHaveBeenCalled();
+  });
+
   it('returns null when nothing matches', async () => {
     const kind = await resolvePublishingContentKindFromId('missing', {
       articles: mockLookup('miss'),

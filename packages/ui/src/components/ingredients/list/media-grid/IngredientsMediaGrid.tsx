@@ -9,6 +9,7 @@ import type {
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import {
   LazyMasonryImage,
@@ -86,6 +87,7 @@ function IngredientsMediaGridSkeleton({
 
 export default function IngredientsMediaGrid({
   emptyLabel,
+  emptyDescription,
   items,
   isLoading,
   isActionsEnabled,
@@ -120,7 +122,13 @@ export default function IngredientsMediaGrid({
   }
 
   if (items.length === 0) {
-    return <p className="text-sm text-foreground/45">{emptyLabel}</p>;
+    return (
+      <CardEmptyContent
+        label={emptyLabel}
+        description={emptyDescription}
+        className="w-full"
+      />
+    );
   }
 
   const renderIngredient = (ingredient: IIngredient) => {

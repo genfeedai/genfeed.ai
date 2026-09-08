@@ -1,18 +1,8 @@
-'use client';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import StylesPageContent from './styles-page-content';
 
-import { PageScope } from '@genfeedai/contracts';
-import { useElementsContext } from '@providers/elements/elements.context';
-import StylesList from './styles-list';
+export const generateMetadata = createPageMetadata('Styles');
 
 export default function StylesPage() {
-  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
-
-  return (
-    <StylesList
-      filters={filters}
-      scope={PageScope.SUPERADMIN}
-      onRefresh={onRefresh}
-      onRefreshingChange={setIsRefreshing}
-    />
-  );
+  return <StylesPageContent />;
 }

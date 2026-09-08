@@ -1,7 +1,5 @@
 'use client';
 
-import type { ISocialSource } from '@genfeedai/contracts/interfaces';
-import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
 import type { DiscoveryDeskContentTypeFilter } from '@pages/trends/desk/desk-state';
 import type {
   DiscoveryDeskSort,
@@ -17,11 +15,17 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@ui/primitives/toggle-group';
 import { useCallback } from 'react';
 
+/**
+ * `following` is deliberately absent. It is a Discovery sidebar destination
+ * (`discovery-menu-items.config.ts` matches it on `?source=following`), not a
+ * filter: choosing it swaps the desk table for the per-platform Following deck
+ * and unmounts this rail, so the control that set it disappears and only the
+ * sidebar can undo it. The remaining values narrow the desk in place.
+ */
 const SOURCE_OPTIONS: { label: string; value: DiscoveryDeskSource | 'all' }[] =
   [
     { label: 'All', value: 'all' },
     { label: 'Public trends', value: 'trends' },
-    { label: 'Creators I follow', value: 'following' },
     { label: 'My accounts', value: 'owned' },
   ];
 
@@ -48,25 +52,19 @@ const SORT_OPTIONS: { label: string; value: DiscoveryDeskSort }[] = [
  * across `trends-list.tsx` and `following-page.tsx`.
  */
 export default function DeskFilterRail({
-  brandId,
   contentType,
   onContentTypeChange,
   onSort,
   onSourceChange,
-  onSourcesChanged,
   sort,
   source,
-  sources,
 }: {
-  brandId: string;
   contentType: DiscoveryDeskContentTypeFilter;
   onContentTypeChange: (value: DiscoveryDeskContentTypeFilter) => void;
   onSort: (value: DiscoveryDeskSort) => void;
   onSourceChange: (value: DiscoveryDeskSource | 'all') => void;
-  onSourcesChanged: () => Promise<void>;
   sort: DiscoveryDeskSort;
   source: DiscoveryDeskSource | 'all';
-  sources: ISocialSource[];
 }) {
   const handleSourceValueChange = useCallback(
     (value: string) => {
@@ -125,12 +123,6 @@ export default function DeskFilterRail({
             ))}
           </SelectContent>
         </Select>
-
-        <DeskSourcesMenu
-          brandId={brandId}
-          onSourcesChanged={onSourcesChanged}
-          sources={sources}
-        />
       </div>
     </div>
   );

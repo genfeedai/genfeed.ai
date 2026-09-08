@@ -5,6 +5,7 @@ import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   formatCompactNumberIntl,
+  formatPercentage,
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
@@ -76,7 +77,7 @@ function formatGrowthAccent(
     return fallback;
   }
 
-  return `${growth > 0 ? '+' : ''}${growth}% from last period`;
+  return `${formatPercentage(growth)} from last period`;
 }
 
 function OrganizationMetricStrip({

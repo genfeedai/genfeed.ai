@@ -178,16 +178,11 @@ export default function CorpusHealthPanel({
                 key={platform}
                 role="group"
               >
-                <div className="flex w-full items-center gap-2 md:w-36 md:shrink-0">
+                {/* The icon identifies the platform; repeating the name beside
+                    it is noise. The row keeps `aria-label` so assistive tech
+                    still hears which platform this status belongs to. */}
+                <div className="flex w-full items-center gap-2 md:w-10 md:shrink-0">
                   {getPlatformIcon(platform, 'size-4 shrink-0')}
-                  <Text
-                    as="p"
-                    className="min-w-0 truncate"
-                    size="sm"
-                    weight="semibold"
-                  >
-                    {label}
-                  </Text>
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">

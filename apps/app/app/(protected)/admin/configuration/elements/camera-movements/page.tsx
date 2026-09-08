@@ -1,18 +1,8 @@
-'use client';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import CameraMovementsPageContent from './camera-movements-page-content';
 
-import { PageScope } from '@genfeedai/contracts';
-import { useElementsContext } from '@providers/elements/elements.context';
-import CameraMovementsList from './camera-movements-list';
+export const generateMetadata = createPageMetadata('Camera Movements');
 
 export default function CameraMovementsPage() {
-  const { filters, onRefresh, setIsRefreshing } = useElementsContext();
-
-  return (
-    <CameraMovementsList
-      filters={filters}
-      scope={PageScope.SUPERADMIN}
-      onRefresh={onRefresh}
-      onRefreshingChange={setIsRefreshing}
-    />
-  );
+  return <CameraMovementsPageContent />;
 }

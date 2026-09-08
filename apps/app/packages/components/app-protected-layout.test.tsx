@@ -5,6 +5,8 @@ import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
 const SIDEBAR_TRANSLATIONS: Record<string, string> = {
+  newConversation: 'New Conversation',
+  newConversationAriaLabel: 'Start a new conversation',
   newTask: 'New Task',
   newTaskAriaLabel: 'Open new task modal',
   search: 'Search',
@@ -677,17 +679,21 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
+    // Conversations get the same two quick-action rows as every other
+    // surface; only the primary action differs. The column itself no longer
+    // carries a bare "+", so there is no `New agent thread` link.
     expect(
-      screen.getByRole('link', { name: 'New agent thread' }),
-    ).toHaveAttribute('href', '/org-123/brand-123/agent/new');
+      screen.getByRole('button', { name: 'New Conversation' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'New agent thread' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Conversation header action' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'New Task' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Search' }),
     ).not.toBeInTheDocument();
 
     const resolveThreadHref = agentThreadListSpy.mock.calls.at(-1)?.[0]
@@ -825,13 +831,17 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(
-      screen.queryByTestId('sidebar-search-trigger'),
-    ).not.toBeInTheDocument();
+    // Search stays: it opens the same command palette here as everywhere
+    // else, rather than the conversation column growing a field of its own.
+    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Back to Workspace' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Conversations')).toBeInTheDocument();
+    // The column renders the thread list itself, with no "Conversations"
+    // title above it: the sidebar section already says where you are, so the
+    // header was redundant chrome.
+    expect(screen.getByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByText('Conversations')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
     ).not.toBeInTheDocument();

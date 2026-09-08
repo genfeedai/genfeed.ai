@@ -47,6 +47,11 @@ const checks = [
     required: true,
   },
   {
+    command: ['bun', 'run', 'scripts/check-composer-surface-styling.ts'],
+    name: 'Composer surface styling (border/shadow/radius live in PROMPT_BAR_SURFACE_CLASS)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-hardcoded-app-routes.ts'],
     name: 'Hardcoded app routes (nav sinks must use APP_ROUTES / route builders)',
     required: true,

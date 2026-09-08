@@ -94,6 +94,7 @@ describe('PlanPerformanceContextService', () => {
             comments: 1,
             description: 'Imported caption',
             engagementRate: 3.5,
+            id: 'sp-1',
             likes: 10,
             origin: 'imported',
             platform: 'instagram',

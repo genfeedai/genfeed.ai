@@ -1,9 +1,11 @@
 'use client';
 
 import type { IAnalytics } from '@genfeedai/contracts/interfaces';
-import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
+import {
+  formatCompactNumberIntl,
+  formatPercentage,
+} from '@helpers/formatting/format/format.helper';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { ChartColumn, Eye, Flame, Globe, Heart, Video } from 'lucide-react';
 
 type BrandKPISectionProps = {
   analytics: IAnalytics | null;
@@ -25,33 +27,25 @@ export default function BrandKPISection({
       items={[
         {
           description: 'Published content',
-          icon: Video,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
         {
           description: analytics?.viewsGrowth
-            ? `${analytics.viewsGrowth > 0 ? '+' : ''}${analytics.viewsGrowth}% from last period`
+            ? `${formatPercentage(analytics.viewsGrowth)} from last period`
             : 'Total views',
-          icon: Eye,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Views',
           value: analytics?.totalViews || 0,
         },
         {
           description: analytics?.engagementGrowth
-            ? `${analytics.engagementGrowth > 0 ? '+' : ''}${analytics.engagementGrowth}% from last period`
+            ? `${formatPercentage(analytics.engagementGrowth)} from last period`
             : 'Total engagement',
-          icon: Heart,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Engagement',
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {
           description: 'Average engagement rate',
-          icon: Flame,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Engagement Rate',
           value: analytics?.avgEngagementRate
             ? `${analytics.avgEngagementRate.toFixed(2)}%`
@@ -59,15 +53,11 @@ export default function BrandKPISection({
         },
         {
           description: 'Publishing channels',
-          icon: Globe,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Active Platforms',
           value: platformCount,
         },
         {
           description: 'Per content piece',
-          icon: ChartColumn,
-          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Avg Views/Post',
           value:
             analytics?.totalPosts && analytics?.totalViews

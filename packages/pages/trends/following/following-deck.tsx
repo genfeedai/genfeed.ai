@@ -9,7 +9,6 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
-import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
 import FollowSourceModal from '@pages/trends/following/FollowSourceModal';
 import { getSafeExternalUrl } from '@pages/trends/shared/safe-external-url';
 import type { DiscoveryDeskItem } from '@props/trends/discovery-desk.props';
@@ -352,9 +351,6 @@ function FollowingDeckColumnView({
     >
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         {getPlatformIcon(column.platform, 'size-4 shrink-0')}
-        <Text as="h2" className="truncate" size="sm" weight="semibold">
-          {label}
-        </Text>
         <Text as="p" className="ml-auto shrink-0" color="subtle-60" size="xs">
           {translate('columnSources', { count: creatorSources.length })}
           {' · '}
@@ -450,16 +446,6 @@ export default function FollowingDeck({
       className="flex min-h-0 flex-1 flex-col gap-3"
       data-testid="following-deck"
     >
-      <div className="flex items-center justify-between gap-3">
-        <Text as="p" color="subtle-60" size="sm">
-          {translate('subtitle')}
-        </Text>
-        <DeskSourcesMenu
-          brandId={brandId}
-          onSourcesChanged={onSourcesChanged}
-          sources={sources}
-        />
-      </div>
       <div className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto pb-2">
         {columns.map((column) => (
           <FollowingDeckColumnView

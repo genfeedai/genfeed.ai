@@ -144,7 +144,7 @@ describe('AnalyticsOrganizationOverview', () => {
   it('renders the view growth accent when growth is known', () => {
     render(<AnalyticsOrganizationOverview />);
 
-    expect(screen.getByText('+12% from last period')).toBeInTheDocument();
+    expect(screen.getByText('+12.0% from last period')).toBeInTheDocument();
   });
 
   it('falls back to a neutral accent when growth is unknown', () => {

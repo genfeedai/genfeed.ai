@@ -7,6 +7,17 @@ import { pathToFileURL } from 'node:url';
 const OUTPUT_FILE = /(?:\.[cm]?js|\.d\.[cm]?ts)$/;
 const OUTPUT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
 
+/**
+ * The compiler API this module actually uses. A resolution that answers with
+ * anything less is not a usable TypeScript.
+ */
+function isUsableTypeScript(candidate) {
+  return (
+    typeof candidate?.createSourceFile === 'function' &&
+    candidate.ScriptTarget !== undefined
+  );
+}
+
 function loadTypeScript(projectPath) {
   const resolutionBases = projectPath
     ? [path.join(path.dirname(projectPath), 'package.json'), import.meta.url]
@@ -15,13 +26,24 @@ function loadTypeScript(projectPath) {
 
   for (const base of resolutionBases) {
     try {
-      return createRequire(base)('typescript');
+      // Node throws MODULE_NOT_FOUND when a base cannot see typescript, which
+      // is what makes the next base a fallback. Bun does not: resolving from a
+      // base outside the repository hands back a stub carrying only `version`,
+      // so a truthy result is not by itself a resolution. Check the API.
+      const candidate = createRequire(base)('typescript');
+      if (isUsableTypeScript(candidate)) return candidate;
+      if (isUsableTypeScript(candidate?.default)) return candidate.default;
     } catch (error) {
       resolutionError = error;
     }
   }
 
-  throw resolutionError;
+  throw (
+    resolutionError ??
+    new Error(
+      `Could not resolve the TypeScript compiler API from: ${resolutionBases.join(', ')}`,
+    )
+  );
 }
 
 function isPathInside(parentPath, childPath) {

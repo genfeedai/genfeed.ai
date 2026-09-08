@@ -193,30 +193,47 @@ export function useAnalyticsTrends() {
 
   // Fetch trending topics from our TrendsService
   useEffect(() => {
+    // getTrendsService is re-memoised while sessionId/userId/orgId hydrate, so
+    // an ungated effect re-fired on every identity step and refetched the same
+    // data several times per load. Wait for the scope, as the videos query above
+    // already does with `enabled: isBrandReady`.
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchTrendingTopics = async () => {
       setIsLoadingTrends(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
-        const data = await service.getTrendsDiscovery();
+        controller.signal.throwIfAborted();
+        const data = await service.getTrendsDiscovery({
+          signal: controller.signal,
+        });
+        controller.signal.throwIfAborted();
         setTrendingTopics(data.trends || []);
         logger.info('Fetched trending topics', {
           count: data.trends?.length ?? 0,
         });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        // Superseded fetches reject with whatever the transport throws, so the
+        // signal is the reliable check — not the error's name.
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending topics', { error });
       } finally {
-        setIsLoadingTrends(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingTrends(false);
+        }
       }
     };
 
     fetchTrendingTopics();
     return () => controller.abort();
-  }, [getTrendsService]);
+  }, [getTrendsService, isBrandReady]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -284,16 +301,24 @@ export function useAnalyticsTrends() {
 
   // Fetch trending hashtags from backend
   useEffect(() => {
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchHashtags = async () => {
       setIsLoadingHashtags(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
+        controller.signal.throwIfAborted();
         const hashtags = await service.getTrendingHashtags({
           limit: 12,
           platform: hashtagPlatform || undefined,
+          signal: controller.signal,
         });
+        controller.signal.throwIfAborted();
         setTrendingHashtags(hashtags);
         trendsCache.set(
           `hashtags:${brandId}:${hashtagPlatform}`,
@@ -302,7 +327,7 @@ export function useAnalyticsTrends() {
         );
         logger.info('Fetched trending hashtags', { count: hashtags.length });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending hashtags', { error });
@@ -313,28 +338,40 @@ export function useAnalyticsTrends() {
           setTrendingHashtags(ch);
         }
       } finally {
-        setIsLoadingHashtags(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingHashtags(false);
+        }
       }
     };
 
     fetchHashtags();
     return () => controller.abort();
-  }, [brandId, getTrendsService, hashtagPlatform]);
+  }, [brandId, getTrendsService, hashtagPlatform, isBrandReady]);
 
   // Fetch trending sounds from backend
   useEffect(() => {
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchSounds = async () => {
       setIsLoadingSounds(true);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
-        const sounds = await service.getTrendingSounds({ limit: 12 });
+        controller.signal.throwIfAborted();
+        const sounds = await service.getTrendingSounds({
+          limit: 12,
+          signal: controller.signal,
+        });
+        controller.signal.throwIfAborted();
         setTrendingSounds(sounds);
         trendsCache.set(`sounds:${brandId}`, sounds, TRENDS_CACHE_TTL);
         logger.info('Fetched trending sounds', { count: sounds.length });
       } catch (error) {
-        if ((error as Error).name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to fetch trending sounds', { error });
@@ -343,13 +380,15 @@ export function useAnalyticsTrends() {
           setTrendingSounds(cs);
         }
       } finally {
-        setIsLoadingSounds(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingSounds(false);
+        }
       }
     };
 
     fetchSounds();
     return () => controller.abort();
-  }, [brandId, getTrendsService]);
+  }, [brandId, getTrendsService, isBrandReady]);
 
   // Handle video click - open the hook remix modal so creators can remix
   // the viral clip. Falls back to opening the video URL for videos that
