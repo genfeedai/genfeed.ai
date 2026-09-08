@@ -298,11 +298,12 @@ export class AgentWorkObjectService {
         })
       : [];
     if (
+      options.length === 0 ||
       options.length > 5 ||
       new Set(options.map((option) => option.id)).size !== options.length
     )
       throw new BadRequestException(
-        'Use at most five uniquely identified choices.',
+        'Use one to five uniquely identified choices.',
       );
     const recommendedOptionId =
       typeof params.recommendedOptionId === 'string'
@@ -665,9 +666,10 @@ export class AgentWorkObjectService {
     id: string,
     token: string,
     runId?: string,
-  ) {
+  ): Promise<boolean> {
     const { ingredient, work } = await this.load(scope, id);
-    if (work.reviewStatus !== 'reviewing' || work.reviewToken !== token) return;
+    if (work.reviewStatus !== 'reviewing' || work.reviewToken !== token)
+      return false;
     await this.publisher.publishWorkEvent({
       event: 'tool_started',
       label: 'Reviewing your draft',
@@ -697,7 +699,7 @@ export class AgentWorkObjectService {
       current.work.reviewToken !== token ||
       current.work.reviewStatus !== 'reviewing'
     )
-      return;
+      return false;
     const completed: AgentWorkObjectState = {
       ...current.work,
       reviewStatus: next.reviewStatus,
@@ -725,7 +727,7 @@ export class AgentWorkObjectService {
         }),
       },
     });
-    if (transition.count !== 1) return;
+    if (transition.count !== 1) return false;
     await this.publisher.publishWorkEvent({
       event: 'tool_completed',
       label:
@@ -737,6 +739,7 @@ export class AgentWorkObjectService {
       threadId: scope.threadId,
       userId: scope.userId,
     });
+    return true;
   }
 
   async assertReady(

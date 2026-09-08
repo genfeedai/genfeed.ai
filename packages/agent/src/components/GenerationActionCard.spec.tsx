@@ -1,13 +1,20 @@
 import '@agent-tests/media-preview-mocks';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { useAgentWorkObjectGateStore } from '@genfeedai/agent/stores/agent-work-object-gate.store';
 import {
   ModelCategory,
   ModelProvider,
   RouterPriority,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -356,6 +363,34 @@ function createApiServiceMock(options?: {
 }
 
 describe('GenerationActionCard', () => {
+  it('blocks generation before work objects load and enables it after an empty result', async () => {
+    useAgentWorkObjectGateStore.setState({ threads: {} });
+    const apiService = createApiServiceMock();
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait.' },
+          generationType: 'image',
+          id: 'gated-action',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={apiService}
+      />,
+    );
+    const generate = await screen.findByRole('button', {
+      name: /generate image/i,
+    });
+    expect(generate).toBeDisabled();
+    fireEvent.click(generate);
+    expect(apiService.createPrompt).not.toHaveBeenCalled();
+    expect(apiService.generateIngredient).not.toHaveBeenCalled();
+    await act(async () =>
+      useAgentWorkObjectGateStore.getState().setObjects('thread-1', []),
+    );
+    expect(generate).toBeEnabled();
+  });
+
   it('can start as a compact inferred-mode strip and reveal settings on demand', async () => {
     render(
       <GenerationActionCard
@@ -429,6 +464,8 @@ describe('GenerationActionCard', () => {
     brandState.settings = null;
     brandState.settingsLoading = false;
     storeState.activeThreadId = 'thread-1';
+    useAgentWorkObjectGateStore.setState({ threads: {} });
+    useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
     storeState.error = null;
     storeState.setError.mockReset();
     storeState.setThreadUiBusy.mockReset();

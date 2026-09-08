@@ -47,5 +47,5 @@ export function isWorkObjectGenerationBlocked(
 ): boolean {
   if (!threadId) return false;
   const gate = state.threads[threadId];
-  return Boolean(gate && (gate.blocked || gate.dirtyIds.length));
+  return !gate || gate.blocked || gate.dirtyIds.length > 0;
 }

@@ -76,7 +76,7 @@ export class AgentThreadProjectorService {
         break;
       case 'input.requested':
         nextSnapshot.pendingInputRequests = this.upsertPendingInputRequest(
-          [],
+          nextSnapshot.pendingInputRequests,
           event,
         );
         break;

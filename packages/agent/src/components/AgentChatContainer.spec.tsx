@@ -1,7 +1,3 @@
-vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
-  AgentWorkObjects: () => null,
-}));
-
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   type AgentChatMessage as AgentChatMessageType,
@@ -18,6 +14,10 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
+  AgentWorkObjects: () => null,
+}));
 
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();

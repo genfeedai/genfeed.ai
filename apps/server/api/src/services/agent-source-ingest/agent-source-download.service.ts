@@ -7,6 +7,7 @@ import type {
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   resolveSafeDestination,
   safeFetch,
@@ -22,6 +23,8 @@ import { firstValueFrom } from 'rxjs';
 export class AgentSourceImportPendingError extends ServiceUnavailableException {}
 class SourceExtractionFailedError extends ServiceUnavailableException {}
 
+const SOURCE_HEADERS_TIMEOUT_MS = 60_000;
+const SOURCE_BODY_TIMEOUT_MS = 300_000;
 const MAX_SOURCE_BYTES = 200 * 1024 * 1024;
 const MIME_TYPES: Readonly<
   Record<string, Pick<AgentSourceArtifact, 'kind' | 'extension'>>
@@ -48,12 +51,21 @@ function record(value: unknown): Record<string, unknown> {
     ? (value as Record<string, unknown>)
     : {};
 }
-async function* boundedBody(body: ReadableStream<Uint8Array>) {
+async function* boundedBody(
+  body: ReadableStream<Uint8Array>,
+  signal: AbortSignal,
+) {
   const reader = body.getReader();
+  const cancel = () => {
+    void reader.cancel(signal.reason).catch(() => undefined);
+  };
+  signal.addEventListener('abort', cancel, { once: true });
   let bytes = 0;
   try {
     while (true) {
+      signal.throwIfAborted();
       const result = await reader.read();
+      signal.throwIfAborted();
       if (result.done) return;
       bytes += result.value.byteLength;
       if (bytes > MAX_SOURCE_BYTES)
@@ -63,6 +75,7 @@ async function* boundedBody(body: ReadableStream<Uint8Array>) {
       yield result.value;
     }
   } finally {
+    signal.removeEventListener('abort', cancel);
     await reader.cancel();
     reader.releaseLock();
   }
@@ -74,6 +87,7 @@ export class AgentSourceDownloadService {
     private readonly files: FilesClientService,
     private readonly http: HttpService,
     private readonly config: ConfigService,
+    private readonly logger: LoggerService,
   ) {}
 
   async normalizeUrl(raw: string): Promise<string> {
@@ -115,26 +129,50 @@ export class AgentSourceDownloadService {
         throw new BadRequestException(
           'YouTube sources must be imported as video.',
         );
+      let extractionMayExist = Boolean(pendingJobId);
       try {
         return await this.downloadYoutube(
           url,
           ingredientId,
           context,
           pendingJobId,
-          onJobQueued,
+          async (jobId) => {
+            await onJobQueued?.(jobId);
+            extractionMayExist = true;
+          },
         );
       } catch (error) {
-        if (error instanceof SourceExtractionFailedError) throw error;
+        if (!extractionMayExist || error instanceof SourceExtractionFailedError)
+          throw error;
+        this.logger.error('Source extraction could not be observed', error, {
+          service: AgentSourceDownloadService.name,
+          ingredientId,
+          organizationId: context.organizationId,
+        });
         throw new AgentSourceImportPendingError(
           'Source extraction may still be running. Reopen this import to observe its existing job.',
+          { cause: error },
         );
       }
     }
-    const response = await safeFetch(url, {
-      signal: AbortSignal.timeout(60_000),
-    });
-    if (!response.ok || !response.body)
+    const request = new AbortController();
+    const headersTimer = setTimeout(
+      () =>
+        request.abort(
+          new ServiceUnavailableException('Source response headers timed out.'),
+        ),
+      SOURCE_HEADERS_TIMEOUT_MS,
+    );
+    let response: Response;
+    try {
+      response = await safeFetch(url, { signal: request.signal });
+    } finally {
+      clearTimeout(headersTimer);
+    }
+    if (!response.ok || !response.body) {
+      await response.body?.cancel();
       throw new BadRequestException('The source could not be downloaded.');
+    }
     const contentType =
       response.headers
         .get('content-type')
@@ -153,7 +191,16 @@ export class AgentSourceDownloadService {
       await response.body.cancel();
       throw new BadRequestException('Source exceeds the 200 MB import limit.');
     }
-    const stream = Readable.from(boundedBody(response.body));
+    const bodyTimer = setTimeout(
+      () =>
+        request.abort(
+          new ServiceUnavailableException(
+            'Source download exceeded the five-minute transfer limit.',
+          ),
+        ),
+      SOURCE_BODY_TIMEOUT_MS,
+    );
+    const stream = Readable.from(boundedBody(response.body, request.signal));
     try {
       const uploaded = await this.files.uploadStreamToS3(
         ingredientId,
@@ -183,7 +230,9 @@ export class AgentSourceDownloadService {
         hasAudio: uploaded.hasAudio === true,
       };
     } finally {
+      clearTimeout(bodyTimer);
       stream.destroy();
+      request.abort();
     }
   }
 

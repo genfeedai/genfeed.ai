@@ -1,6 +1,12 @@
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -162,4 +168,36 @@ describe('ask transitions', () => {
     fireEvent.click(screen.getByText('Hybrid (Recommended)'));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
+});
+
+it('ignores a rejected answer belonging to the previous ask', async () => {
+  let rejectOld: ((reason: Error) => void) | undefined;
+  const onSubmit = vi
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectOld = reject;
+        }),
+    )
+    .mockImplementation(() => new Promise<void>(() => undefined));
+  const { rerender } = render(
+    <AgentInputRequestOverlay request={makeRequest()} onSubmit={onSubmit} />,
+  );
+  fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+  rerender(
+    <AgentInputRequestOverlay
+      request={makeRequest({ inputRequestId: 'new-ask' })}
+      onSubmit={onSubmit}
+    />,
+  );
+  fireEvent.click(screen.getByText('Dropzone only'));
+  await act(async () => rejectOld?.(new Error('Late rejection')));
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Dropzone only/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  fireEvent.click(screen.getByText('Dropzone only'));
+  expect(onSubmit).toHaveBeenCalledTimes(2);
 });

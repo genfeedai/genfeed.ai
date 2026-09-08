@@ -39,6 +39,8 @@ const READ_ONLY_PREFIXES = [
   'verify_',
 ] as const;
 
+const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
+
 const READ_ONLY_NAMES = new Set<string>([
   'analyze_performance',
   'read_knowledge_source',
@@ -145,6 +147,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
 };
 
 export function isReadOnlyToolName(name: string): boolean {
+  if (WRITE_NAMES_WITH_READ_PREFIX.has(name)) return false;
   if (READ_ONLY_NAMES.has(name)) {
     return true;
   }

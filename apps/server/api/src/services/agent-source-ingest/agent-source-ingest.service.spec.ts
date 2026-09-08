@@ -166,6 +166,27 @@ describe('AgentSourceIngestService', () => {
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
 
+  it('marks an import failed when its pre-enqueue identity persistence fails', async () => {
+    const failure = new Error('scope persistence failed');
+    prisma.ingredient.updateMany.mockRejectedValueOnce(failure);
+    downloader.download.mockImplementation(
+      async (_url, _id, _kind, _context, _pending, persist) => {
+        await persist('source-job');
+      },
+    );
+    await expect(
+      service.ingest({ url: 'https://media.example/video.mp4' }, context),
+    ).rejects.toBe(failure);
+    expect(prisma.ingredient.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: IngredientStatus.FAILED,
+          generationError: expect.any(String),
+        }),
+      }),
+    );
+  });
+
   it('records a failed upload and atomically claims a retry on the same ingredient', async () => {
     downloader.download.mockRejectedValueOnce(
       new Error('download unavailable'),
@@ -245,6 +266,24 @@ describe('AgentSourceIngestService', () => {
     });
     expect(downloader.download).not.toHaveBeenCalled();
   });
+
+  it.each(['AUDIO', 'VOICE', 'MUSIC'])(
+    'reuses an existing %s ingredient when the declared kind is audio',
+    async (category) => {
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'audio-source',
+        category,
+        s3Key: 'audios/source',
+      });
+      await expect(
+        service.ingest(
+          { ingredientId: 'audio-source', kind: 'audio' },
+          context,
+        ),
+      ).resolves.toEqual({ ingredientId: 'audio-source' });
+      expect(downloader.download).not.toHaveBeenCalled();
+    },
+  );
 
   it('denies unavailable, unfinished and incompatible Library sources', async () => {
     await expect(

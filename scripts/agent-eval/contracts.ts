@@ -78,3 +78,8 @@ export interface EvaluationResult {
   actual: unknown;
   durationMs: number;
 }
+
+export interface EvidenceValidation {
+  complete: boolean;
+  errors: string[];
+}

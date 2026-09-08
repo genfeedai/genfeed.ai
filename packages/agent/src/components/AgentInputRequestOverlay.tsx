@@ -30,10 +30,11 @@ export function AgentInputRequestOverlay({
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const requestIdRef = useRef(request.inputRequestId);
+  requestIdRef.current = request.inputRequestId;
   const isComposer = variant === 'composer';
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A new request resets the answer even when the overlay stays mounted.
   useEffect(() => {
-    requestIdRef.current = request.inputRequestId;
     setFreeTextAnswer('');
     setSelectedOptionId(null);
     setSubmissionError(null);

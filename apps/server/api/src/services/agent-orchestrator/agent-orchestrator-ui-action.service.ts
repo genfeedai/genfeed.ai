@@ -178,8 +178,8 @@ export class AgentOrchestratorUiActionService {
       threadId,
     };
     switch (action) {
-      case 'review_work_object':
-        await this.workObjects.review(
+      case 'review_work_object': {
+        const reviewed = await this.workObjects.review(
           {
             threadId,
             organizationId: context.organizationId,
@@ -190,6 +190,11 @@ export class AgentOrchestratorUiActionService {
           String(request.payload?.reviewToken ?? ''),
           context.executionId,
         );
+        if (!reviewed) {
+          throw new BadRequestException(
+            'This draft review is no longer active.',
+          );
+        }
         return withAgentScopeResult(
           await this.workFinalizer.finalizeStructuredAssistantTurn({
             threadId,
@@ -201,7 +206,7 @@ export class AgentOrchestratorUiActionService {
           }),
           scope,
         );
-
+      }
       case 'approve_plan':
       case 'revise_plan':
         return withAgentScopeResult(

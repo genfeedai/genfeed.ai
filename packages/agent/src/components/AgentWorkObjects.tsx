@@ -40,6 +40,7 @@ export function AgentWorkObjects({
   const sequenceRef = useRef(0);
   const mutationCountsRef = useRef(new Map<string, number>());
   const loadedThreadRef = useRef<string | null>(null);
+  const pollFailuresRef = useRef(0);
 
   const getSessionId = useCallback(function getSessionId(id: string) {
     if (sessionRef.current.threadId !== id) {
@@ -59,6 +60,7 @@ export function AgentWorkObjects({
 
   useEffect(() => {
     loadedThreadRef.current = null;
+    pollFailuresRef.current = 0;
     setCollection(null);
     if (threadId)
       useAgentWorkObjectGateStore.getState().setObjects(threadId, null);
@@ -91,13 +93,20 @@ export function AgentWorkObjects({
             .getState()
             .setObjects(threadId, result.workObjects);
           setError(false);
+          pollFailuresRef.current = 0;
         }
       } catch (caught) {
         if (caught instanceof Error && caught.name === 'AbortError') return;
-        if (!controller.signal.aborted) setError(true);
+        if (!controller.signal.aborted && sequence === sequenceRef.current) {
+          pollFailuresRef.current += 1;
+          setError(true);
+        }
       }
       if (reviewing && !controller.signal.aborted)
-        timer = setTimeout(refresh, 1500);
+        timer = setTimeout(
+          refresh,
+          Math.min(30_000, 1500 * 2 ** Math.min(pollFailuresRef.current, 5)),
+        );
     }
     void refresh();
     return function cleanup() {

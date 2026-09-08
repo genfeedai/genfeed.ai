@@ -196,15 +196,22 @@ export class AgentSourceIngestService {
       },
       select: { id: true, category: true, cdnUrl: true, s3Key: true },
     });
-    const categories = kind
-      ? [this.category(kind)]
-      : [
-          IngredientCategory.IMAGE,
-          IngredientCategory.VIDEO,
-          IngredientCategory.AUDIO,
-          IngredientCategory.VOICE,
-          IngredientCategory.MUSIC,
-        ];
+    const categories =
+      kind === 'audio'
+        ? [
+            IngredientCategory.AUDIO,
+            IngredientCategory.VOICE,
+            IngredientCategory.MUSIC,
+          ]
+        : kind
+          ? [this.category(kind)]
+          : [
+              IngredientCategory.IMAGE,
+              IngredientCategory.VIDEO,
+              IngredientCategory.AUDIO,
+              IngredientCategory.VOICE,
+              IngredientCategory.MUSIC,
+            ];
     if (
       !source ||
       !categories.includes(source.category) ||

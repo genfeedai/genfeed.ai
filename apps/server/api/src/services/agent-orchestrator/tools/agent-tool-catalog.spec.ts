@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXECUTOR_PATH = resolve(HERE, 'agent-tool-executor.service.ts');
+const WORK_OBJECT_HANDLER_PATH = resolve(HERE, 'agent-work-object.service.ts');
 const INSTAGRAM_HANDLER_PATH = resolve(
   HERE,
   'agent-instagram-inspiration-tool-handler.service.ts',
@@ -71,6 +72,7 @@ describe('curated Agent action catalog', () => {
   it('maps every Agent action to a concrete execution route', () => {
     const memberNames = new Set([
       ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
+      ...collectRouteCaseMembers(WORK_OBJECT_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
     ]);

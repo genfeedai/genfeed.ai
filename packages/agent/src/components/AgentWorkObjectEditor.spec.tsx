@@ -208,6 +208,22 @@ describe('durable inline work object', () => {
         'other-thread',
         useAgentWorkObjectGateStore.getState(),
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
+});
+
+it('blocks uninitialized or failed collections until an empty collection is confirmed', () => {
+  const blocked = () =>
+    isWorkObjectGenerationBlocked(
+      'thread-1',
+      useAgentWorkObjectGateStore.getState(),
+    );
+  expect(blocked()).toBe(true);
+  useAgentWorkObjectGateStore.getState().setObjects('thread-1', null);
+  expect(blocked()).toBe(true);
+  useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
+  expect(blocked()).toBe(false);
+  expect(
+    isWorkObjectGenerationBlocked(null, useAgentWorkObjectGateStore.getState()),
+  ).toBe(false);
 });

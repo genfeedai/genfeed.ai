@@ -224,3 +224,100 @@ describe('ask identity isolation', () => {
     expect(useAgentChatStore.getState().pendingInputRequest).toBeNull();
   });
 });
+
+function reviewingCollection(): AgentWorkObjectCollection {
+  return {
+    sessionAssets: [],
+    workObjects: [
+      {
+        id: 'review-1',
+        kind: 'script',
+        title: 'Draft',
+        body: 'Text',
+        rowCount: 0,
+        revision: 1,
+        viewedInSession: true,
+        reviewStatus: 'reviewing',
+        href: '/library?asset=review-1',
+        reference: {
+          kind: 'ingredient',
+          serializer: 'ingredient',
+          recordId: 'review-1',
+          organizationId: 'org-1',
+        },
+      },
+    ],
+  };
+}
+
+it('backs off failed reviews to a bounded delay without abandoning polling and cleans up', async () => {
+  vi.useFakeTimers();
+  const getWorkObjects = vi
+    .fn()
+    .mockResolvedValueOnce(reviewingCollection())
+    .mockRejectedValue(new Error('offline'));
+  const view = render(
+    <AgentWorkObjects
+      apiService={{ getWorkObjects } as unknown as AgentApiService}
+    />,
+  );
+  try {
+    await act(async () => undefined);
+    expect(getWorkObjects).toHaveBeenCalledTimes(2);
+    for (const delay of [3000, 6000, 12000, 24000, 30000, 30000, 30000]) {
+      const calls = getWorkObjects.mock.calls.length;
+      await act(async () => vi.advanceTimersByTimeAsync(delay - 1));
+      expect(getWorkObjects).toHaveBeenCalledTimes(calls);
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(getWorkObjects).toHaveBeenCalledTimes(calls + 1);
+    }
+    const signal = getWorkObjects.mock.calls.at(-1)?.[2] as AbortSignal;
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+    const calls = getWorkObjects.mock.calls.length;
+    await act(async () => vi.advanceTimersByTimeAsync(60000));
+    expect(getWorkObjects).toHaveBeenCalledTimes(calls);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});
+
+it('resets review polling delay after success and when switching threads', async () => {
+  vi.useFakeTimers();
+  const result = reviewingCollection();
+  const getWorkObjects = vi
+    .fn()
+    .mockResolvedValueOnce(result)
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValue(result);
+  const view = render(
+    <AgentWorkObjects
+      apiService={{ getWorkObjects } as unknown as AgentApiService}
+    />,
+  );
+  try {
+    await act(async () => undefined);
+    await act(async () => vi.advanceTimersByTimeAsync(3000));
+    expect(getWorkObjects).toHaveBeenCalledTimes(3);
+    await act(async () => vi.advanceTimersByTimeAsync(6000));
+    expect(getWorkObjects).toHaveBeenCalledTimes(4);
+    await act(async () => vi.advanceTimersByTimeAsync(1500));
+    expect(getWorkObjects).toHaveBeenCalledTimes(5);
+    getWorkObjects.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => vi.advanceTimersByTimeAsync(1500));
+    await act(async () =>
+      useAgentChatStore.setState({ activeThreadId: 'thread-2' }),
+    );
+    const calls = getWorkObjects.mock.calls.length;
+    expect(getWorkObjects.mock.calls.at(-1)?.[0]).toBe('thread-2');
+    await act(async () => vi.advanceTimersByTimeAsync(1499));
+    expect(getWorkObjects).toHaveBeenCalledTimes(calls);
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(getWorkObjects).toHaveBeenCalledTimes(calls + 1);
+  } finally {
+    view.unmount();
+    vi.useRealTimers();
+  }
+});

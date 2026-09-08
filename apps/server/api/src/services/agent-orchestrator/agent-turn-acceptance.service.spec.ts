@@ -32,7 +32,7 @@ describe('AgentTurnAcceptanceService', () => {
   let service: AgentTurnAcceptanceService;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     threadEngine.getSnapshot.mockResolvedValue({ pendingInputRequests: [] });
     service = new AgentTurnAcceptanceService(
       logger as never,
@@ -73,6 +73,59 @@ describe('AgentTurnAcceptanceService', () => {
     );
     agentMessagesService.addMessage.mockResolvedValue({});
   });
+
+  it.each(['snapshot', 'resolution'])(
+    'accepts a turn when pending input %s fails',
+    async (failure) => {
+      scopeService.prepareForTurn.mockResolvedValue({
+        existingScope: {
+          threadId: 'thread-1',
+          brandId: 'brand-1',
+          contextVersion: 1,
+        },
+      });
+      prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+        id: 'thread-1',
+        brandId: 'brand-1',
+        contextVersion: 1,
+        status: 'active',
+      });
+      if (failure === 'snapshot')
+        threadEngine.getSnapshot.mockRejectedValueOnce(
+          new Error('snapshot conflict'),
+        );
+      else {
+        threadEngine.getSnapshot.mockResolvedValueOnce({
+          pendingInputRequests: [
+            { requestId: 'ask-1', allowFreeText: true, options: [] },
+          ],
+        });
+        threadEngine.resolveInputRequest.mockRejectedValueOnce(
+          new Error('resolution conflict'),
+        );
+      }
+      const result = await service.accept(
+        {
+          brandId: 'brand-1',
+          clientRequestId: 'retry-input',
+          threadId: 'thread-1',
+          content: 'My answer',
+          source: 'agent',
+        },
+        {
+          organizationId: 'org-1',
+          userId: 'user-1',
+          apiKeyContext: { isApiKey: false, scopes: [] },
+        },
+      );
+      expect(result.status).toBe('queued');
+      expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledOnce();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Pending agent input'),
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+    },
+  );
 
   it('durably acknowledges a new turn with stable request, execution, thread, and context identity', async () => {
     const acknowledgement = await service.accept(

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { EvidenceValidation } from './contracts';
 
 export const SMOKE_CRITERIA = [
   'new-thread',
@@ -72,11 +73,6 @@ export const liveEvidenceSchema = z
     journeys: z.array(journeySchema).length(5),
   })
   .strict();
-
-export interface EvidenceValidation {
-  complete: boolean;
-  errors: string[];
-}
 
 export function validateLiveEvidence(input: unknown): EvidenceValidation {
   const parsed = liveEvidenceSchema.safeParse(input);

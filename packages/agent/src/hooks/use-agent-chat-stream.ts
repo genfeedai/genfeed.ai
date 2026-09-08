@@ -81,6 +81,9 @@ export function useAgentChatStream(
   const clearPendingInputRequest = useAgentChatStore(
     (s) => s.clearPendingInputRequest,
   );
+  const resolvePendingInputRequest = useAgentChatStore(
+    (s) => s.resolvePendingInputRequest,
+  );
   const setRunStartedAt = useAgentChatStore((s) => s.setRunStartedAt);
   const setSocketConnectionState = useAgentChatStore(
     (s) => s.setSocketConnectionState,
@@ -385,6 +388,7 @@ export function useAgentChatStream(
         cleanupSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
+        resolvePendingInputRequest,
         completeOnboardingIfNeeded,
         finalizeStream,
         isThreadVisible,
@@ -412,6 +416,7 @@ export function useAgentChatStream(
     cleanupSubscriptions,
     clearCompletionWatchdog,
     clearPendingInputRequest,
+    resolvePendingInputRequest,
     completeOnboardingIfNeeded,
     finalizeStream,
     isThreadVisible,

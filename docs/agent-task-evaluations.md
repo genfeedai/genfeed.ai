@@ -13,8 +13,8 @@ bunx tsc -p scripts/agent-eval/tsconfig.json
 (cd scripts/agent-eval && bun run run.ts) > /path/to/private/agent-contract-report.json
 ```
 
-The existing root Vitest project glob discovers this suite. No new CI guard is
-required. The report records source revision, fixture/rubric versions, elapsed
+The existing root Vitest project glob discovers this suite. This is a manual
+Studio verification suite; CI does not currently invoke it. The report records source revision, fixture/rubric versions, elapsed
 time per case, expected and observed values, and a 100% exact-match threshold.
 Any mismatch returns a nonzero exit code. A thrown production-contract error
 also fails the command. Provider and model are explicitly `none`, with versions

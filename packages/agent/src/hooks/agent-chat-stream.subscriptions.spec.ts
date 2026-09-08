@@ -26,6 +26,7 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
     cleanupSubscriptions: vi.fn(),
     clearCompletionWatchdog: vi.fn(),
     clearPendingInputRequest: vi.fn(),
+    resolvePendingInputRequest: vi.fn(() => true),
     completeOnboardingIfNeeded: vi.fn(),
     finalizeStream: vi.fn(),
     isThreadVisible: vi.fn(() => true),
@@ -378,12 +379,13 @@ describe('attachAgentStreamSubscriptions', () => {
       timestamp: '2026-03-26T10:00:05.000Z',
     });
 
-    expect(deps.markThreadRunning).toHaveBeenCalledWith('thread-1', {
-      lastActivityAt: '2026-03-26T10:00:05.000Z',
-      pendingInputCount: 0,
-      runStatus: 'running',
-    });
-    expect(deps.clearPendingInputRequest).toHaveBeenCalled();
+    expect(deps.resolvePendingInputRequest).toHaveBeenCalledWith(
+      'thread-1',
+      'req-1',
+      '2026-03-26T10:00:05.000Z',
+    );
+    expect(deps.markThreadRunning).not.toHaveBeenCalled();
+    expect(deps.clearPendingInputRequest).not.toHaveBeenCalled();
     expect(deps.addWorkEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         event: AgentWorkEventType.INPUT_SUBMITTED,
@@ -392,4 +394,22 @@ describe('attachAgentStreamSubscriptions', () => {
       }),
     );
   });
+});
+
+it('does not announce or mutate status for a stale input resolution', () => {
+  const { deps, emit } = makeDeps({
+    resolvePendingInputRequest: vi.fn(() => false),
+  });
+  attachAgentStreamSubscriptions(deps);
+  emit('agent:input_resolved', {
+    answer: 'Old answer',
+    inputRequestId: 'old-ask',
+    threadId: 'thread-1',
+    timestamp: '2026-09-08T12:00:00Z',
+  });
+  expect(deps.resolvePendingInputRequest).toHaveBeenCalled();
+  expect(deps.addWorkEvent).not.toHaveBeenCalled();
+  expect(deps.markThreadRunning).not.toHaveBeenCalled();
+  expect(deps.clearPendingInputRequest).not.toHaveBeenCalled();
+  expect(deps.setActiveRunStatus).not.toHaveBeenCalled();
 });

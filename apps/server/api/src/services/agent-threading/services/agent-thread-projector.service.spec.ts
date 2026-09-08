@@ -59,6 +59,34 @@ describe('AgentThreadProjectorService', () => {
     expect(afterInputResolved.pendingInputRequests).toEqual([]);
   });
 
+  it('preserves independent pending requests until each is resolved', () => {
+    const first = { requestId: 'input-1', options: [], title: 'First' };
+    const snapshot = { pendingInputRequests: [first] };
+    const requested = service.applyEvent(
+      snapshot as never,
+      {
+        threadId: 'thread-1',
+        sequence: 1,
+        type: 'input.requested',
+        payload: { requestId: 'input-2', title: 'Second', options: [] },
+      } as never,
+    );
+    expect(requested.pendingInputRequests).toEqual([
+      first,
+      expect.objectContaining({ requestId: 'input-2' }),
+    ]);
+    const resolved = service.applyEvent(
+      requested as never,
+      {
+        threadId: 'thread-1',
+        sequence: 2,
+        type: 'input.resolved',
+        payload: { requestId: 'input-2' },
+      } as never,
+    );
+    expect(resolved.pendingInputRequests).toEqual([first]);
+  });
+
   it('stores the final assistant message and run completion state', () => {
     const threadId = 'test-object-id';
 

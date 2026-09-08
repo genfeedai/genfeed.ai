@@ -35,6 +35,15 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('classifies durable work-object presentation as a write without changing payment presentation', () => {
+    expect(toolRequiresMutationPolicy('present_work_object')).toBe(true);
+    expect(getToolByName('present_work_object')?.mutationPolicy).toBe('direct');
+    expect(toolRequiresMutationPolicy('present_payment_options')).toBe(false);
+    expect(
+      getToolByName('present_payment_options')?.mutationPolicy,
+    ).toBeUndefined();
+  });
+
   it('declares a policy for every canonical write tool', () => {
     const missing = ALL_TOOLS.filter(
       (tool) =>

@@ -224,34 +224,45 @@ export class AgentTurnAcceptanceService {
     contentValue: string,
     context: AgentChatContext,
   ): Promise<void> {
-    const snapshot = await this.threadEngine.getSnapshot(
-      threadId,
-      context.organizationId,
-      context.userId,
-    );
-    const pending = snapshot.pendingInputRequests?.at(-1);
-    if (pending && typeof contentValue === 'string' && contentValue.trim()) {
-      const content = contentValue.trim();
-      const matchingOption = pending.options.find(
-        (option) =>
-          option.id === content ||
-          option.label.toLowerCase() === content.toLowerCase(),
+    try {
+      const snapshot = await this.threadEngine.getSnapshot(
+        threadId,
+        context.organizationId,
+        context.userId,
       );
-      if (pending.allowFreeText !== false || matchingOption) {
-        await this.threadEngine.resolveInputRequest({
+      const pending = snapshot.pendingInputRequests?.at(-1);
+      if (pending && typeof contentValue === 'string' && contentValue.trim()) {
+        const content = contentValue.trim();
+        const matchingOption = pending.options.find(
+          (option) =>
+            option.id === content ||
+            option.label.toLowerCase() === content.toLowerCase(),
+        );
+        if (pending.allowFreeText !== false || matchingOption) {
+          await this.threadEngine.resolveInputRequest({
+            threadId,
+            organizationId: context.organizationId,
+            userId: context.userId,
+            ...(context.scope
+              ? {
+                  brandId: context.scope.brandId,
+                  contextVersion: context.scope.contextVersion,
+                }
+              : {}),
+            requestId: pending.requestId,
+            answer: matchingOption?.id ?? content,
+          });
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Pending agent input could not be resolved before accepting the turn',
+        {
           threadId,
           organizationId: context.organizationId,
-          userId: context.userId,
-          ...(context.scope
-            ? {
-                brandId: context.scope.brandId,
-                contextVersion: context.scope.contextVersion,
-              }
-            : {}),
-          requestId: pending.requestId,
-          answer: matchingOption?.id ?? content,
-        });
-      }
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
   }
 

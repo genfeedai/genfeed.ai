@@ -15,6 +15,7 @@ import { AGENT_OTHER_TOOLS } from './other.tools';
 import { AGENT_PROACTIVE_TOOLS } from './proactive.tools';
 import { AGENT_SOCIAL_TOOLS } from './social.tools';
 import { AGENT_UI_TOOLS } from './ui.tools';
+import { AGENT_WORK_OBJECT_TOOLS } from './work-objects.tools';
 import { AGENT_WORKFLOW_TOOLS } from './workflow.tools';
 
 export const AGENT_ONLY_TOOLS: SourceTool[] = [
@@ -29,6 +30,7 @@ export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_ONBOARDING_TOOLS,
   ...AGENT_PROACTIVE_TOOLS,
   ...AGENT_IDENTITY_TOOLS,
+  ...AGENT_WORK_OBJECT_TOOLS,
   ...AGENT_UI_TOOLS,
   ...AGENT_DASHBOARD_LAYOUT_TOOLS,
   ...AGENT_AGENT_CONTROL_TOOLS,

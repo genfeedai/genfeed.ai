@@ -312,6 +312,11 @@ interface AgentChatActions {
   setUiActionStatus: (actionId: string, status: string) => void;
   clearStaleActiveRun: () => void;
   clearPendingInputRequest: (inputRequestId?: string) => void;
+  resolvePendingInputRequest: (
+    threadId: string,
+    inputRequestId: string,
+    timestamp: string,
+  ) => boolean;
   setMessages: (messages: AgentChatMessage[]) => void;
   setMessagesPage: (page: AgentMessagesPage) => void;
   prependOlderMessages: (page: AgentMessagesPage) => void;
@@ -759,6 +764,34 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         ? { pendingInputRequest: null }
         : {},
     ),
+  resolvePendingInputRequest: (threadId, inputRequestId, timestamp) => {
+    let resolved = false;
+    set((state) => {
+      if (
+        state.activeThreadId !== threadId ||
+        state.pendingInputRequest?.threadId !== threadId ||
+        state.pendingInputRequest.inputRequestId !== inputRequestId
+      )
+        return state;
+      resolved = true;
+      return {
+        pendingInputRequest: null,
+        activeRunStatus: 'running',
+        threads: state.threads.map((thread) =>
+          thread.id === threadId
+            ? {
+                ...thread,
+                attentionState: 'running',
+                lastActivityAt: timestamp,
+                pendingInputCount: 0,
+                runStatus: 'running',
+              }
+            : thread,
+        ),
+      };
+    });
+    return resolved;
+  },
   clearThreadAttention: (threadId) =>
     set((state) => ({
       threads: state.threads.map((thread) =>

@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
+  '@api/collections/workflow-executions/services/workflow-executions.service',
+  () => ({ WorkflowExecutionsService: class {} }),
+);
+
+vi.mock(
   '@api/services/agent-source-ingest/agent-source-ingest.service',
   () => ({ AgentSourceIngestService: class {} }),
 );
@@ -147,6 +152,38 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       ).resolves.toBeUndefined();
     }
   });
+  it('returns false for a stale review before scoring', async () => {
+    await expect(service.review(scope, 'work-1', 'old-token')).resolves.toBe(
+      false,
+    );
+    expect(scorer.scoreText).not.toHaveBeenCalled();
+  });
+  it.each([0, 1])(
+    'reports whether review completion won the compare-and-swap (%i)',
+    async (count) => {
+      ingredient.providerData = {
+        agentWorkObject: {
+          threadId: scope.threadId,
+          kind: 'script',
+          title: 'Script',
+          body: 'Draft',
+          reviewStatus: 'reviewing',
+          reviewToken: 'token-1',
+        },
+      };
+      scorer.scoreText.mockResolvedValue({ score: 8 });
+      prisma.ingredient.updateMany.mockResolvedValue({ count });
+      await expect(service.review(scope, 'work-1', 'token-1')).resolves.toBe(
+        count === 1,
+      );
+      expect(
+        publisher.publishWorkEvent.mock.calls.filter(
+          ([event]) => event.event === 'tool_completed',
+        ),
+      ).toHaveLength(count);
+    },
+  );
+
   it('keeps cancelled reviews from recording a late pass', async () => {
     let finish: (value: { score: number }) => void = () => {};
     scorer.scoreText.mockImplementation(
@@ -176,7 +213,7 @@ describe('AgentWorkObjectService review and scope boundary', () => {
       },
     };
     finish({ score: 8 });
-    await reviewing;
+    await expect(reviewing).resolves.toBe(false);
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
   it.each(['FAILED', 'CANCELLED', 'COMPLETED'])(
@@ -392,14 +429,14 @@ describe('AgentWorkObjectService review and scope boundary', () => {
     expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
   });
 
-  it('caps consequential choices before publishing', async () => {
+  it.each([0, 6])('rejects %i choices before publishing', async (count) => {
     await expect(
       service.requestInput(
         {
           requestId: 'ask-1',
           title: 'Format',
           prompt: 'Pick a format',
-          options: Array.from({ length: 6 }, (_, index) => ({
+          options: Array.from({ length: count }, (_, index) => ({
             id: String(index),
             label: String(index),
           })),
