@@ -193,6 +193,14 @@ export function useAnalyticsTrends() {
 
   // Fetch trending topics from our TrendsService
   useEffect(() => {
+    // getTrendsService is re-memoised while sessionId/userId/orgId hydrate, so
+    // an ungated effect re-fired on every identity step and refetched the same
+    // data several times per load. Wait for the scope, as the videos query above
+    // already does with `enabled: isBrandReady`.
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchTrendingTopics = async () => {
@@ -225,7 +233,7 @@ export function useAnalyticsTrends() {
 
     fetchTrendingTopics();
     return () => controller.abort();
-  }, [getTrendsService]);
+  }, [getTrendsService, isBrandReady]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -293,6 +301,10 @@ export function useAnalyticsTrends() {
 
   // Fetch trending hashtags from backend
   useEffect(() => {
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchHashtags = async () => {
@@ -334,10 +346,14 @@ export function useAnalyticsTrends() {
 
     fetchHashtags();
     return () => controller.abort();
-  }, [brandId, getTrendsService, hashtagPlatform]);
+  }, [brandId, getTrendsService, hashtagPlatform, isBrandReady]);
 
   // Fetch trending sounds from backend
   useEffect(() => {
+    if (!isBrandReady) {
+      return;
+    }
+
     const controller = new AbortController();
 
     const fetchSounds = async () => {
@@ -372,7 +388,7 @@ export function useAnalyticsTrends() {
 
     fetchSounds();
     return () => controller.abort();
-  }, [brandId, getTrendsService]);
+  }, [brandId, getTrendsService, isBrandReady]);
 
   // Handle video click - open the hook remix modal so creators can remix
   // the viral clip. Falls back to opening the video URL for videos that
