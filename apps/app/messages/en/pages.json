@@ -1256,18 +1256,12 @@
   },
   "costUsage": {
     "actions": {
-      "exportCsv": "Export CSV",
+      "exportCsv": "Export credits",
       "refresh": "Refresh"
     },
-    "brandFallback": "Brand",
-    "brandTitle": "{brand} brand costs",
-    "description": "Actual provider cost and customer-facing credits are reported separately.",
     "errors": {
-      "export": "Failed to export cost report",
-      "load": "Failed to load cost report",
-      "loadTitle": "Could not load cost data",
-      "tryRefresh": "{message}. Try Refresh.",
-      "unknown": "Unknown error"
+      "export": "Could not export usage. Try again.",
+      "loadTitle": "Could not load usage. Try refreshing."
     },
     "filters": {
       "allBrands": "All brands",
@@ -1276,64 +1270,64 @@
       "lastDays": "Last {days} days"
     },
     "metrics": {
-      "byok": {
-        "description": "Tracked at zero platform vendor cost",
-        "label": "BYOK generations"
-      },
       "creditsUsed": {
-        "description": "Customer-facing usage meter",
+        "description": "Recorded credit burn in this period",
         "label": "Credits used"
       },
       "generations": {
-        "description": "{llm} LLM · {media} media",
+        "description": "{llm} text · {media} media",
         "label": "Generations"
       },
-      "providerCost": {
-        "description": "Actual platform vendor spend",
-        "label": "Provider cost"
+      "activeDays": {
+        "description": "Days with generation or credit activity",
+        "label": "Active days"
       }
     },
     "notifications": {
-      "exported": "Cost report exported"
+      "exported": "Credit report exported"
     },
-    "organizationTitle": "Organization generation costs",
+    "title": "Usage",
+    "tabs": {
+      "overview": "Overview",
+      "generations": "Generations",
+      "workflows": "Workflows"
+    },
+    "notRecorded": "Not recorded",
+    "entryTypes": {
+      "llm": "Text generation",
+      "media": "Media generation",
+      "credit": "Credit charge"
+    },
+    "charts": {
+      "creditsUsed": "Daily credit burn (GEN)",
+      "generationCount": "Daily generations",
+      "loading": "Loading chart…"
+    },
     "tables": {
       "brandSplit": {
-        "emptyDescription": "Brand-attributed provider cost and credits will appear here.",
-        "label": "Cost split by brand"
+        "label": "Usage by brand"
       },
-      "emptyLabel": "No generation costs yet",
+      "emptyLabel": "No usage in this period",
       "headers": {
         "brand": "Brand",
-        "byok": "BYOK",
-        "credits": "Credits",
         "creditsUsed": "Credits used",
         "generations": "Generations",
-        "providerCost": "Provider cost",
-        "providerModel": "Provider / model",
+        "model": "Model",
         "type": "Type",
         "when": "When"
       },
       "ledger": {
-        "emptyDescription": "Provider cost and credit events in this scope will appear here.",
-        "label": "Generation ledger",
-        "limitNotice": "Showing up to the newest {limit} entries."
+        "label": "Generation history",
+        "emptyDescription": "Generations and credit charges will appear here.",
+        "entries": "entries",
+        "creditNotice": "Credit charges are recorded separately. “Not recorded” means a generation has no linked credit amount. Exports include up to 10,000 entries."
       }
     },
-    "title": "Cost & Usage",
-    "yes": "Yes",
     "workflowAccounting": {
-      "providerCost": "Provider cost (USD)",
       "execution": "Execution",
-      "estimatedCredits": "Estimated credits",
-      "actualCredits": "Actual credits",
-      "variance": "Variance",
-      "unavailable": "Unavailable",
-      "title": "Workflow accounting",
-      "empty": "No executions",
-      "export": "Export workflow costs",
-      "limit": "Latest 100 executions in this period. Workflow totals are a separate view of the ledger.",
-      "known": "Unavailable (known {value})"
+      "title": "Workflow usage",
+      "empty": "No workflows in this period",
+      "limit": "Latest 100 workflows in this period. These totals are a separate view of usage; do not add them to generation totals."
     }
   },
   "organizationRouting": {

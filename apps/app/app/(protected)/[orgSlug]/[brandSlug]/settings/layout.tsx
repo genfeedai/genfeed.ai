@@ -11,7 +11,7 @@ import { useSelectedLayoutSegment } from 'next/navigation';
 export default function BrandSettingsLayout({ children }: LayoutProps) {
   const segment = useSelectedLayoutSegment();
 
-  if (segment === 'integrations') {
+  if (segment === 'integrations' || segment === 'usage') {
     return children;
   }
 

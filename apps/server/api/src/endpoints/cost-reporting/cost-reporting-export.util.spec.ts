@@ -1,5 +1,8 @@
 import type { ICostReportEntry } from '@genfeedai/contracts/interfaces/billing';
-import { buildCostReportCsv } from './cost-reporting-export.util';
+import {
+  buildCostReportCsv,
+  buildUsageReportCsv,
+} from './cost-reporting-export.util';
 
 describe('buildCostReportCsv', () => {
   it('exports the normalized ledger and neutralizes spreadsheet formulas', () => {
@@ -72,5 +75,48 @@ describe('buildCostReportCsv', () => {
     const csv = buildCostReportCsv([entry]);
     expect(csv).toContain(",'-2.75");
     expect(csv).toContain(',0,0,-2.75,false');
+  });
+});
+
+describe('buildUsageReportCsv', () => {
+  const entry: ICostReportEntry = {
+    id: 'media-1',
+    createdAt: '2026-09-08',
+    entryType: 'media',
+    brandId: 'brand-1',
+    brandLabel: 'Demo',
+    category: 'image',
+    referenceId: 'ingredient-1',
+    provider: 'replicate',
+    model: 'black-forest-labs/flux-schnell',
+    creditsUsed: 0,
+    providerCostMicros: 125000,
+    providerCostUsd: 0.125,
+    isByok: false,
+  };
+  it('exports only customer fields and leaves unlinked credits blank', () => {
+    expect(buildUsageReportCsv([entry])).toBe(
+      'created_at,entry_type,brand,model,credits_used\n2026-09-08,media,Demo,flux-schnell,',
+    );
+  });
+  it('preserves real credit charges including zero and refunds', () => {
+    const csv = buildUsageReportCsv(
+      [0, 3.5, -2].map((creditsUsed) => ({
+        ...entry,
+        entryType: 'credit',
+        model: null,
+        creditsUsed,
+      })),
+    );
+    expect(csv).toContain('Demo,,0');
+    expect(csv).toContain('Demo,,3.5');
+    expect(csv).toContain('Demo,,-2');
+  });
+  it('neutralizes formulas in customer exports', () => {
+    expect(
+      buildUsageReportCsv([
+        { ...entry, brandLabel: ' =SUM(1)', model: 'provider/+danger' },
+      ]),
+    ).toContain("' =SUM(1),'+danger,");
   });
 });
