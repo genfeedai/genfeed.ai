@@ -173,6 +173,28 @@ export function AgentThreadList({
     />
   );
 
+  // Without the title there is nothing to anchor a header strip to, so the
+  // list actions ride in the search row beside the new-thread button rather
+  // than floating alone on their own line.
+  const composedSearchAction = shouldShowHeader ? (
+    <div className="flex items-center gap-0.5">
+      <AgentThreadListHeaderActions
+        viewStatus={viewStatus}
+        threadCount={threads.length}
+        onArchiveAll={() => {
+          handleArchiveAllThreads().catch(() => undefined);
+        }}
+        onRefresh={() => {
+          handleRefresh().catch(() => undefined);
+        }}
+        onToggleView={handleToggleView}
+      />
+      {searchAction}
+    </div>
+  ) : (
+    searchAction
+  );
+
   return (
     <div
       className="flex h-full min-h-0 flex-col"
@@ -185,33 +207,16 @@ export function AgentThreadList({
         onRetry={handleRetryLoad}
       />
 
-      {showTitle || shouldShowHeader ? (
+      {showTitle ? (
         <div className="flex w-full items-center gap-2 px-3 py-1.5">
-          {showTitle ? (
-            <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
-              Conversations
-            </span>
-          ) : null}
-          {shouldShowHeader ? (
-            <div className="ml-auto flex items-center gap-0.5">
-              <AgentThreadListHeaderActions
-                viewStatus={viewStatus}
-                threadCount={threads.length}
-                onArchiveAll={() => {
-                  handleArchiveAllThreads().catch(() => undefined);
-                }}
-                onRefresh={() => {
-                  handleRefresh().catch(() => undefined);
-                }}
-                onToggleView={handleToggleView}
-              />
-            </div>
-          ) : null}
+          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
+            Conversations
+          </span>
         </div>
       ) : null}
 
       <ConversationSidebarSearch
-        action={searchAction}
+        action={composedSearchAction}
         ariaLabel="Search agent conversations"
         placeholder="Search conversations"
         value={searchQuery}
