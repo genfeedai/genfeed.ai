@@ -1,3 +1,7 @@
+import {
+  joinGenerationBriefPromptParts,
+  recordOmittedGenerationBriefSignal,
+} from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
@@ -28,34 +32,6 @@ export interface CompileFluxSchnellGenerationBriefInput {
   brief: ImageGenerationBrief;
   outputFormat?: string;
   seed?: number;
-}
-
-function joinPromptParts(parts: string[]): string {
-  return parts
-    .map((part) => part.trim().replace(/\.+$/u, ''))
-    .filter((part) => part.length > 0)
-    .join('. ');
-}
-
-function recordOmitted(
-  omitted: GenerationBriefOmittedSignal[],
-  field: string,
-  reason: string,
-  policy: GenerationFidelityPolicy,
-  required: boolean,
-): void {
-  if (!policy.applyConstraints && !required) {
-    return;
-  }
-
-  if (required && policy.unsupportedConstraintBehavior === 'reject') {
-    throw new GenerationBriefCompileError(
-      `FLUX Schnell cannot honor required ${field}.`,
-      'unsupported_required_signal',
-    );
-  }
-
-  omitted.push({ field, reason });
 }
 
 function resolveAspectRatio(brief: ImageGenerationBrief): string {
@@ -104,17 +80,18 @@ function buildPrompt(
         continue;
       }
 
-      recordOmitted(
+      recordOmittedGenerationBriefSignal(
         omitted,
         `constraints.${constraint.kind}`,
         'FLUX Schnell has no native negative-prompt field.',
         policy,
         constraint.required,
+        'FLUX Schnell',
       );
     }
   }
 
-  const prompt = joinPromptParts(parts);
+  const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
       'FLUX Schnell compilation produced an empty prompt.',
@@ -147,12 +124,13 @@ export function compileFluxSchnellGenerationBrief(
 
   if (input.brief.references.length > 0) {
     const hasRequiredReference = input.brief.fidelityMode === 'strict';
-    recordOmitted(
+    recordOmittedGenerationBriefSignal(
       omitted,
       'references',
       'FLUX Schnell has no native reference-image field.',
       policy,
       hasRequiredReference,
+      'FLUX Schnell',
     );
   }
 

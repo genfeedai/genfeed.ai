@@ -1,3 +1,7 @@
+import {
+  joinGenerationBriefPromptParts,
+  recordOmittedGenerationBriefSignal,
+} from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
@@ -33,34 +37,6 @@ interface ResolvedMinimaxH3References {
   lastFrameAssetId?: string;
   referenceImageAssetIds: string[];
   referenceVideoAssetIds: string[];
-}
-
-function joinPromptParts(parts: string[]): string {
-  return parts
-    .map((part) => part.trim().replace(/\.+$/u, ''))
-    .filter((part) => part.length > 0)
-    .join('. ');
-}
-
-function recordOmitted(
-  omitted: VideoGenerationBriefOmittedSignal[],
-  field: string,
-  reason: string,
-  policy: GenerationFidelityPolicy,
-  required: boolean,
-): void {
-  if (!policy.applyConstraints && !required) {
-    return;
-  }
-
-  if (required && policy.unsupportedConstraintBehavior === 'reject') {
-    throw new GenerationBriefCompileError(
-      `MiniMax H3 cannot honor required ${field}.`,
-      'unsupported_required_signal',
-    );
-  }
-
-  omitted.push({ field, reason });
 }
 
 function resolveAspectRatio(brief: VideoGenerationBrief): string {
@@ -113,12 +89,13 @@ function resolveReferences(
       continue;
     }
 
-    recordOmitted(
+    recordOmittedGenerationBriefSignal(
       omitted,
       `references.${reference.role}`,
       'MiniMax H3 supports at most one first frame, one last frame, and nine additional reference images.',
       policy,
       required,
+      'MiniMax H3',
     );
   }
 
@@ -177,17 +154,18 @@ function buildPrompt(
         continue;
       }
 
-      recordOmitted(
+      recordOmittedGenerationBriefSignal(
         omitted,
         `constraints.${constraint.kind}`,
         'MiniMax H3 has no native negative-prompt field.',
         policy,
         constraint.required,
+        'MiniMax H3',
       );
     }
   }
 
-  const prompt = joinPromptParts(parts);
+  const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
       'MiniMax H3 compilation produced an empty prompt.',
@@ -244,12 +222,13 @@ export function compileMinimaxH3GenerationBrief(
   }
 
   if (input.seed !== undefined) {
-    recordOmitted(
+    recordOmittedGenerationBriefSignal(
       omitted,
       'seed',
       'MiniMax H3 has no native seed field.',
       policy,
       false,
+      'MiniMax H3',
     );
   }
 
