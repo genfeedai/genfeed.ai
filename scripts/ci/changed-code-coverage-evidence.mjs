@@ -23,11 +23,17 @@ const finite = (n) => typeof n === 'number' && Number.isFinite(n);
 const count = (n) => Number.isSafeInteger(n) && n >= 0;
 
 export function validateObservation(entry, repository, minimumVersion) {
+  if (!entry || typeof entry !== 'object') return 'Invalid report entry';
   const { artifact, report } = entry;
   if (entry.error) return entry.error;
-  const name = artifact?.name?.match(REPORT_NAME);
+  const name =
+    typeof artifact?.name === 'string'
+      ? artifact.name.match(REPORT_NAME)
+      : null;
   if (!name || artifact.expired)
     return 'Missing, expired, or unexpected artifact identity';
+  if (!Number.isFinite(Date.parse(artifact.created_at)))
+    return 'Invalid artifact timestamp';
   if (!Number.isInteger(report?.version) || report.version < minimumVersion)
     return 'Unsupported report version';
   const { normalized: n, telemetry: t } = report;
@@ -57,6 +63,19 @@ export function validateObservation(entry, repository, minimumVersion) {
   if (
     !Array.isArray(n.surfaces) ||
     n.surfaces.length !== 2 ||
+    n.surfaces.some(
+      (s) =>
+        !s ||
+        typeof s !== 'object' ||
+        !['success', 'failure', 'cancelled', 'skipped'].includes(s.result) ||
+        ![
+          'reported',
+          'no-coverage',
+          'no-changed-code',
+          'not-applicable',
+          'infrastructure-failed',
+        ].includes(s.status),
+    ) ||
     new Set(n.surfaces.map((s) => s.name)).size !== 2 ||
     n.surfaces.some((s) => !['app', 'api'].includes(s.name))
   )
@@ -99,7 +118,7 @@ export function assessObservations(
   const unique = new Map();
   for (const entry of entries) {
     const key =
-      entry.artifact?.id ?? `missing-${entry.run?.id ?? errors.length}`;
+      entry?.artifact?.id ?? `missing-${entry?.run?.id ?? errors.length}`;
     if (unique.has(key)) continue;
     unique.set(key, entry);
   }
@@ -112,8 +131,8 @@ export function assessObservations(
     );
     if (reason)
       errors.push({
-        artifactId: entry.artifact?.id ?? null,
-        runId: entry.run?.id ?? entry.artifact?.workflow_run?.id ?? null,
+        artifactId: entry?.artifact?.id ?? null,
+        runId: entry?.run?.id ?? entry?.artifact?.workflow_run?.id ?? null,
         reason,
       });
     else valid.push(entry);
@@ -362,7 +381,11 @@ export async function collectReports({
   );
   // Artifact-only scans omit runs cancelled before upload. Keep those absences
   // visible instead of inflating the success rate using surviving artifacts.
-  const ids = new Set(artifacts.map((a) => String(a.workflow_run?.id)));
+  const ids = new Set(
+    artifacts.map(
+      (a) => `${a.workflow_run?.id}:${a.name.match(REPORT_NAME)?.[2]}`,
+    ),
+  );
   if (new Set(artifacts.map((a) => a.id)).size !== artifacts.length)
     complete = false;
   const seenRuns = new Set();
@@ -375,7 +398,10 @@ export async function collectReports({
     for (const run of response.workflow_runs) {
       if (seenRuns.has(run.id)) complete = false;
       seenRuns.add(run.id);
-      if (run.status === 'completed' && !ids.has(String(run.id)))
+      if (
+        run.status === 'completed' &&
+        !ids.has(`${run.id}:${run.run_attempt ?? 1}`)
+      )
         entries.push({
           run,
           error:

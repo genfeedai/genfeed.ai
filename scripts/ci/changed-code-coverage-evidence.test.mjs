@@ -218,3 +218,29 @@ test('healthy unmeasured runs are evidence gaps, not infrastructure failures', (
   assert.equal(r.infrastructureSuccessRate, 1);
   assert.equal(r.usableReportRate, 20 / 21);
 });
+
+test('malformed artifacts are individual findings instead of aborting the audit', () => {
+  const malformed = entry();
+  malformed.report.normalized.surfaces[0] = null;
+  const r = assessObservations([malformed, null], baseline, options);
+  assert.equal(r.errors.length, 2);
+  assert.equal(r.evidenceEligible, false);
+});
+test('a missing latest run attempt cannot borrow an earlier attempt artifact', async () => {
+  const e = entry();
+  const r = await collectReports({
+    repository,
+    since: '2026-09-01',
+    readApi: async (endpoint) =>
+      endpoint.includes('/artifacts?')
+        ? { artifacts: [e.artifact] }
+        : { workflow_runs: [{ id: 101, run_attempt: 2, status: 'completed' }] },
+    readReport: async () => e.report,
+  });
+  assert.equal(r.entries.length, 2);
+  assert.equal(r.entries[1].run.run_attempt, 2);
+  assert.equal(
+    assessObservations(r.entries, baseline, options).evidenceEligible,
+    false,
+  );
+});
