@@ -325,7 +325,6 @@
     "packages/agent/src/components/AgentFullPageOnboardingChrome.tsx": 4,
     "packages/agent/src/components/AgentGeneratedTextCard.tsx": 6,
     "packages/agent/src/components/AgentIconStrip.tsx": 1,
-    "packages/agent/src/components/AgentInputRequestOverlay.tsx": 3,
     "packages/agent/src/components/AgentOAuthConnectMenu.tsx": 3,
     "packages/agent/src/components/AgentOnboardingChecklist.tsx": 7,
     "packages/agent/src/components/AgentOutputsPanel.tsx": 8,
