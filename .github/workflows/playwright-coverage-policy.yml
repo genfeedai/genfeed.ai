@@ -1,0 +1,67 @@
+name: Playwright Coverage Policy
+
+on:
+  pull_request:
+    paths:
+      - scripts/ci/playwright-coverage*
+      - playwright/configs/playwright-coverage.config.ts
+      - .github/workflows/coverage.yml
+      - .github/workflows/playwright-coverage-policy.yml
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Coverage]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+
+jobs:
+  policy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.x"
+      - name: Validate policy against the base revision
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          policy=scripts/ci/playwright-coverage.baseline.json
+          if git cat-file -e "$BASE_SHA:$policy"; then
+            git show "$BASE_SHA:$policy" > "$RUNNER_TEMP/previous-playwright-policy.json"
+          fi
+          node scripts/ci/playwright-coverage.mjs validate "$RUNNER_TEMP/previous-playwright-policy.json"
+          node --test scripts/ci/playwright-coverage.test.mjs
+
+  readiness:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.x"
+      - name: Assess completed scheduled baseline evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/playwright-coverage.mjs readiness playwright-coverage-readiness
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-coverage-readiness
+          path: playwright-coverage-readiness/
+          if-no-files-found: error
+          retention-days: 90
