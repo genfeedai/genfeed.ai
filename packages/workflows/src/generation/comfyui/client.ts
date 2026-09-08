@@ -17,6 +17,10 @@ export interface ComfyUIRequestOptions {
   responseType?: 'arraybuffer' | 'none';
 }
 
+/**
+ * Transports own status/error policy and reject failed requests. Return parsed
+ * JSON by default, ArrayBuffer or Buffer for arraybuffer; none ignores the body.
+ */
 export type ComfyUIRequest = (
   path: string,
   options?: ComfyUIRequestOptions,
@@ -71,6 +75,7 @@ export class ComfyUIClient {
    */
   async getOutput(filename: string, subfolder: string): Promise<Buffer> {
     const params = new URLSearchParams({ filename, subfolder, type: 'output' });
+    // Select Buffer.from's ArrayBuffer overload; Axios Buffer values also work.
     const arrayBuffer = (await this.request(`/view?${params.toString()}`, {
       responseType: 'arraybuffer',
     })) as ArrayBuffer;

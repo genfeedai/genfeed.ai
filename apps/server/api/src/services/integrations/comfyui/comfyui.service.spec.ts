@@ -206,7 +206,7 @@ describe('ComfyUIService', () => {
           service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
             prompt: 'fail',
           }),
-        ).rejects.toThrow(`ComfyUI /${endpoint} failed (201)`);
+        ).rejects.toThrow(new Error(`ComfyUI /${endpoint} failed (201)`));
       },
     );
 
