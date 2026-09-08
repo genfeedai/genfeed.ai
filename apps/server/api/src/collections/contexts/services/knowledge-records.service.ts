@@ -15,7 +15,11 @@ import {
   KnowledgeRetrievalState,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class KnowledgeRecordsService {
@@ -118,26 +122,129 @@ export class KnowledgeRecordsService {
   }
 
   createSource(actor: KnowledgeActor, dto: CreateKnowledgeSourceDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const ownership = await this.creationScope(tx, actor, dto.scope);
-      const source = await tx.knowledgeSource.create({
-        data: {
-          ...ownership,
-          title: dto.title,
-          kind: dto.kind,
-          purpose: dto.purpose,
-        },
-      });
-      const inbox = await this.inbox(tx, actor, dto.scope);
-      await tx.knowledgeSpaceMembership.create({
-        data: {
-          organizationId: actor.organizationId,
-          sourceId: source.id,
-          spaceId: inbox.id,
-        },
-      });
-      return source;
+    return this.prisma.$transaction((tx) =>
+      this.createSourceInTransaction(tx, actor, dto),
+    );
+  }
+
+  private async createSourceInTransaction(
+    tx: Prisma.TransactionClient,
+    actor: KnowledgeActor,
+    dto: CreateKnowledgeSourceDto,
+    id?: string,
+  ) {
+    const ownership = await this.creationScope(tx, actor, dto.scope);
+    const source = await tx.knowledgeSource.create({
+      data: {
+        ...ownership,
+        ...(id ? { id } : {}),
+        title: dto.title,
+        kind: dto.kind,
+        purpose: dto.purpose,
+      },
     });
+    const inbox = await this.inbox(tx, actor, dto.scope);
+    await tx.knowledgeSpaceMembership.create({
+      data: {
+        organizationId: actor.organizationId,
+        sourceId: source.id,
+        spaceId: inbox.id,
+      },
+    });
+    return source;
+  }
+
+  /** Persist the source and first version atomically before dispatching ingestion. */
+  createIdempotentCapture(
+    actor: KnowledgeActor,
+    dto: CreateKnowledgeSourceDto,
+    versionDto: CreateKnowledgeVersionDto,
+    key: string,
+    requestHash: string,
+  ) {
+    const lockKey = JSON.stringify([
+      'knowledge-capture',
+      actor.organizationId,
+      actor.userId,
+      actor.brandId ?? null,
+      key,
+    ]);
+    const hash = createHash('sha256')
+      .update(lockKey)
+      .digest('hex')
+      .slice(0, 32);
+    const sourceId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`;
+    return this.prisma
+      .$transaction(async (tx) => {
+        await this.creationScope(tx, actor, dto.scope);
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
+        const existing = await tx.knowledgeSource.findFirst({
+          where: {
+            ...this.ownership(actor),
+            organizationId: actor.organizationId,
+            userId: actor.userId,
+            isDeleted: false,
+            id: sourceId,
+          },
+        });
+        if (existing) {
+          const version = await tx.knowledgeSourceVersion.findFirst({
+            where: {
+              organizationId: actor.organizationId,
+              isDeleted: false,
+              sourceId,
+              version: 1,
+              source: { is: this.ownership(actor) },
+            },
+          });
+          const provenance = version?.provenance;
+          if (
+            !version ||
+            !provenance ||
+            typeof provenance !== 'object' ||
+            Array.isArray(provenance) ||
+            provenance.captureRequestHash !== requestHash
+          ) {
+            throw new ConflictException(
+              'This capture key was already used for different or purged content. Start a new capture.',
+            );
+          }
+          return { source: existing, version };
+        }
+        const source = await this.createSourceInTransaction(
+          tx,
+          actor,
+          dto,
+          sourceId,
+        );
+        const version = await tx.knowledgeSourceVersion.create({
+          data: {
+            sourceId,
+            organizationId: actor.organizationId,
+            version: 1,
+            contentHash: versionDto.contentHash,
+            provenance: {
+              ...versionDto.provenance,
+              captureRequestHash: requestHash,
+            },
+            payload: versionDto.payload,
+            observedAt: new Date(versionDto.observedAt),
+            retentionPolicy: KnowledgeRetentionPolicy.KEEP,
+          },
+        });
+        return { source, version };
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          throw new ConflictException(
+            'This capture key belongs to a removed source. Start a new capture.',
+          );
+        }
+        throw error;
+      });
   }
 
   createSpace(actor: KnowledgeActor, dto: CreateKnowledgeSpaceDto) {

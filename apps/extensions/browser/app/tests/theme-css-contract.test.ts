@@ -68,10 +68,9 @@ describe('browser extension theme CSS contract', () => {
 
     expect(styles).toContain('@theme inline');
     expect(styles).toContain('@custom-variant dark');
-    expect(runtimeStyles).toContain('@custom-variant dark');
-    expect(runtimeStyles).toContain(
-      '@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *))',
-    );
+    expect(runtimeStyles).toContain('@import "./style.generated.css"');
+    expect(styles).toContain('@import "tailwindcss" source(none)');
+    expect(styles).toContain('@source "./"');
     expect(styles).toContain(
       '@source "../../../../../packages/ui/src/primitives"',
     );

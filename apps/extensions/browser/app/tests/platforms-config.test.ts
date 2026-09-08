@@ -22,14 +22,6 @@ vi.mock('@genfeedai/helpers', () => ({
         : `https://x.com/i/status/${postId}`,
     buildYoutubeUrl: (postId: string) =>
       `https://www.youtube.com/watch?v=${postId}`,
-    parseTwitterUrl: (href: string) => {
-      const match = href.match(/status\/(\d+)/);
-      if (!match) {
-        return null;
-      }
-      const username = href.match(/x\.com\/([^/]+)\//)?.[1];
-      return { tweetId: match[1], username };
-    },
   },
 }));
 

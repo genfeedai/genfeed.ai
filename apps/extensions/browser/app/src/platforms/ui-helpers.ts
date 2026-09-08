@@ -863,7 +863,7 @@ export function createSaveButton(
 
       if (response?.success) {
         button.innerHTML = icons.check;
-        button.title = 'Saved to Genfeed!';
+        button.title = 'Review this capture in the Genfeed panel';
         setTimeout(() => {
           button.innerHTML = originalContent;
           button.title = 'Save to Genfeed';

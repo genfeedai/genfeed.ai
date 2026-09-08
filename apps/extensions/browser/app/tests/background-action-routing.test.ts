@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getToken: vi.fn(),
   fetch: vi.fn(),
   addListener: vi.fn(),
+  openPanel: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('~services/auth.service', () => ({
   authService: { getToken: mocks.getToken },
@@ -20,18 +21,35 @@ vi.mock('~services/agent-tools.service', () => ({
   },
 }));
 
+let backgroundListener: (
+  request: Record<string, unknown>,
+  sender: object,
+  respond: (data: unknown) => void,
+) => boolean | undefined;
+
 beforeAll(async () => {
   vi.stubGlobal('fetch', mocks.fetch);
   Object.assign(chrome, {
-    sidePanel: { setPanelBehavior: vi.fn().mockResolvedValue(undefined) },
+    sidePanel: {
+      setPanelBehavior: vi.fn().mockResolvedValue(undefined),
+      open: mocks.openPanel,
+    },
     runtime: {
       onInstalled: { addListener: vi.fn() },
       onMessage: { addListener: mocks.addListener },
+      sendMessage: vi.fn().mockResolvedValue(undefined),
     },
     contextMenus: { onClicked: { addListener: vi.fn() } },
-    tabs: { onUpdated: { addListener: vi.fn() } },
+    tabs: {
+      onUpdated: { addListener: vi.fn() },
+      query: vi
+        .fn()
+        .mockResolvedValue([{ id: 1, url: 'https://x.com/author/status/123' }]),
+    },
   });
   await import('../src/background');
+  backgroundListener = mocks.addListener.mock.calls[0]?.[0];
+  expect(backgroundListener).toBeTypeOf('function');
 });
 
 beforeEach(() => {
@@ -49,8 +67,7 @@ beforeEach(() => {
 
 async function dispatch(request: Record<string, unknown>) {
   const respond = vi.fn();
-  const listener = mocks.addListener.mock.calls[0][0];
-  expect(listener(request, {}, respond)).toBe(true);
+  expect(backgroundListener(request, {}, respond)).toBe(true);
   await vi.waitFor(() => expect(respond).toHaveBeenCalled());
   return respond.mock.calls[0][0];
 }
@@ -89,56 +106,60 @@ describe('background user action routing', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('captures saved posts as personal Knowledge through the canonical ingestion path', async () => {
-    await dispatch({
+  it('opens social capture review before writing authenticated content', async () => {
+    const result = await dispatch({
       event: 'savePost',
       platform: 'twitter',
       postId: 'post-id',
       url: 'https://x.com/author/status/123',
     });
-    expect(mocks.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/knowledge-sources$/),
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          kind: 'URL',
-          provenance: {
-            category: 'TWEET',
-            platform: 'TWITTER',
-            capturedBy: 'extension',
-            postId: 'post-id',
-          },
-          purpose: 'INSPIRATION',
-          referenceUrl: 'https://x.com/author/status/123',
-          scope: 'personal',
-          title: 'twitter · x.com',
-        }),
-      }),
-    );
+    expect(result.success).toBe(true);
+    expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 1 });
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('scopes a bookmark capture to the selected brand and keeps the captured text', async () => {
-    await dispatch({
+  it('routes legacy bookmark capture into the same review flow', async () => {
+    const result = await dispatch({
+      event: 'saveBookmark',
       data: {
         brandId: 'brand-1',
-        content: 'Hook worth stealing',
-        intent: 'reply',
-        platform: 'twitter',
-        title: 'Great thread',
+        content: 'A passage',
         url: 'https://x.com/author/status/456',
       },
-      event: 'saveBookmark',
     });
-    const [path, init] = mocks.fetch.mock.calls.at(-1) as [string, RequestInit];
-    expect(path).toMatch(/\/knowledge-sources\?brandId=brand-1$/);
-    expect(JSON.parse(String(init.body))).toMatchObject({
-      kind: 'URL',
-      purpose: 'RESEARCH',
-      referenceUrl: 'https://x.com/author/status/456',
-      scope: 'brand',
-      text: 'Hook worth stealing',
-      title: 'Great thread',
+    expect(result.success).toBe(true);
+    expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 1 });
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does not capture a different active page under the original source URL', async () => {
+    vi.mocked(chrome.tabs.query).mockResolvedValueOnce([
+      {
+        id: 2,
+        groupId: -1,
+        discarded: false,
+        autoDiscardable: true,
+        url: 'https://private.example/account',
+        active: true,
+        index: 0,
+        pinned: false,
+        highlighted: true,
+        incognito: false,
+        selected: true,
+        windowId: 1,
+      },
+    ]);
+    const result = await dispatch({
+      event: 'captureSnapshot',
+      mode: 'page',
+      url: 'https://x.com/author/status/123',
     });
+    expect(result).toEqual({
+      success: false,
+      error:
+        'The active page changed. Return to the source page or save its link.',
+    });
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
   it('sends a turn and maps the assistant response rather than echoing a saved user message', async () => {

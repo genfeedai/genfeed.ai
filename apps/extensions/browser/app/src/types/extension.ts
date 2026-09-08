@@ -1,3 +1,5 @@
+import type { CaptureMode } from '~models/knowledge-capture.model';
+
 // Extension message types for Remix / Reply / Idea flows
 
 export type ExtensionMessageType = 'REMIX' | 'REPLY' | 'IDEA';
@@ -7,6 +9,7 @@ export interface ExtensionMessage {
   content: string;
   url: string;
   platform?: string;
+  captureMode?: CaptureMode;
 }
 
 export type SocialPlatform =

@@ -173,7 +173,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: <ChatIcon />, id: 'chat', label: 'Chat' },
   { icon: <RemixIcon />, id: 'remix', label: 'Remix' },
   { icon: <ReplyIcon />, id: 'reply', label: 'Reply' },
-  { icon: <IdeaIcon />, id: 'idea', label: 'Idea' },
+  { icon: <IdeaIcon />, id: 'idea', label: 'Save to Genfeed' },
   { icon: <HistoryIcon />, id: 'history', label: 'History' },
   { icon: <CreateIcon />, id: 'create', label: 'Create' },
   { icon: <SettingsIcon />, id: 'settings', label: 'Settings' },

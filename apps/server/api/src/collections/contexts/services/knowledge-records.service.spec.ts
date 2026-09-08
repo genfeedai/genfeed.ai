@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
-import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
+import {
+  buildCaptureVersion,
+  KnowledgeCaptureService,
+} from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -182,6 +185,68 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     );
     const shared = await createSource(KnowledgeMemoryScope.ORG);
     expect((await records.getSource(orgActor, shared.id)).id).toBe(shared.id);
+  });
+
+  it('atomically deduplicates concurrent extension retries and conflicts on changed requests', async () => {
+    const dto = {
+      scope: KnowledgeMemoryScope.BRAND,
+      kind: KnowledgeSourceKind.TEXT,
+      purpose: KnowledgeSourcePurpose.RESEARCH,
+      title: 'Extension capture',
+      text: 'Visible evidence',
+    };
+    const version = buildCaptureVersion(dto);
+    const captures = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        records.createIdempotentCapture(
+          actor,
+          dto,
+          version,
+          'capture-key-123',
+          'request-a',
+        ),
+      ),
+    );
+    expect(new Set(captures.map((item) => item.source.id)).size).toBe(1);
+    expect(new Set(captures.map((item) => item.version.id)).size).toBe(1);
+    expect((await records.listSources(actor)).docs).toHaveLength(1);
+    await expect(
+      records.createIdempotentCapture(
+        actor,
+        { ...dto, text: 'Changed' },
+        version,
+        'capture-key-123',
+        'request-b',
+      ),
+    ).rejects.toThrow('different or purged content');
+    const other = await records.createIdempotentCapture(
+      otherBrand,
+      dto,
+      version,
+      'capture-key-123',
+      'request-a',
+    );
+    expect(other.source.id).not.toBe(captures[0]?.source.id);
+    const otherUserCapture = await records.createIdempotentCapture(
+      anotherUser,
+      dto,
+      version,
+      'capture-key-123',
+      'request-a',
+    );
+    expect(otherUserCapture.source.id).not.toBe(captures[0]?.source.id);
+    const firstCapture = captures[0];
+    if (!firstCapture) throw new Error('Expected an initial capture');
+    await records.deleteSource(actor, firstCapture.source.id);
+    await expect(
+      records.createIdempotentCapture(
+        actor,
+        dto,
+        version,
+        'capture-key-123',
+        'request-a',
+      ),
+    ).rejects.toThrow('removed source');
   });
 
   it('creates one Inbox under concurrent first captures and keeps memberships idempotent', async () => {

@@ -59,6 +59,7 @@
     ],
     "permissions": [
       "cookies",
+      "contextMenus",
       "storage",
       "tabs",
       "scripting",
