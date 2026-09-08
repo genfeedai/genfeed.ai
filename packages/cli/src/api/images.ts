@@ -59,10 +59,9 @@ export async function createImage(
   request: CreateImageRequest,
   signal?: AbortSignal
 ): Promise<Image> {
-  const body = request as unknown as Record<string, unknown>;
   const response = signal
-    ? await post<JsonApiSingleResponse>('/images', body, { signal })
-    : await post<JsonApiSingleResponse>('/images', body);
+    ? await post<JsonApiSingleResponse>('/images', request, { signal })
+    : await post<JsonApiSingleResponse>('/images', request);
   return flattenSingle<Image>(response);
 }
 

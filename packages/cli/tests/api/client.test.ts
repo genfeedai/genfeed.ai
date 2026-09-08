@@ -3,7 +3,7 @@ import { del, get, patch, post, requireAuth } from '../../src/api/client';
 import { ApiError, AuthError } from '../../src/utils/errors';
 
 interface CapturedRequestContext {
-  options: { headers?: unknown };
+  options: { headers: Headers };
 }
 
 interface CapturedResponseErrorContext {
@@ -152,16 +152,25 @@ describe('api/client', () => {
       expect(lastClientOptions().baseURL).toBe('https://api.genfeed.ai/v1');
     });
 
-    it('attaches a bearer Authorization header when an API key is set', async () => {
+    it('adds bearer authorization while preserving existing headers', async () => {
       mockApiKey.mockReturnValue('secret-key');
       mockFetch.mockResolvedValue({});
       await get('/anything');
 
-      const context: CapturedRequestContext = { options: { headers: {} } };
+      const context: CapturedRequestContext = {
+        options: {
+          headers: new Headers({
+            'Content-Type': 'application/json',
+            'X-Request-Id': 'request-1',
+          }),
+        },
+      };
       await lastClientOptions().onRequest?.(context);
 
-      const headers = context.options.headers as Headers;
+      const { headers } = context.options;
       expect(headers.get('Authorization')).toBe('Bearer secret-key');
+      expect(headers.get('Content-Type')).toBe('application/json');
+      expect(headers.get('X-Request-Id')).toBe('request-1');
     });
 
     it('leaves headers untouched without an API key', async () => {
@@ -169,7 +178,7 @@ describe('api/client', () => {
       mockFetch.mockResolvedValue({});
       await get('/anything');
 
-      const originalHeaders = {};
+      const originalHeaders = new Headers();
       const context: CapturedRequestContext = { options: { headers: originalHeaders } };
       await lastClientOptions().onRequest?.(context);
 
