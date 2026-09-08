@@ -238,7 +238,6 @@ function AppLayoutWithDynamicMenu({
           onNavigate={handleNavigate}
           resolveThreadHref={resolveAgentThreadHref}
           searchAction={searchAction}
-          showTitle
         />
       ) : null,
     [agentApiService, brandId, handleNavigate, resolveAgentThreadHref],

@@ -88,7 +88,6 @@ export function AgentSidebarContent({
           apiService={apiService}
           onNavigate={onNavigate}
           searchAction={newThreadAction}
-          showTitle
         />
       )}
     </div>

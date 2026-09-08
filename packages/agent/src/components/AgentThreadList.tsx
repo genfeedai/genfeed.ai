@@ -40,7 +40,7 @@ export function AgentThreadList({
   onNavigate,
   resolveThreadHref,
   searchAction,
-  showTitle = true,
+  showTitle = false,
 }: AgentThreadListProps): ReactElement {
   // Filter chips removed — grouping sections are the filter surface.
   const filter: AgentThreadListFilter = 'all';

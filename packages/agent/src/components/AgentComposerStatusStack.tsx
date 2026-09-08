@@ -401,16 +401,16 @@ export function AgentComposerStatusStack({
             <p className="font-medium text-sm leading-5 text-destructive">
               {composerError.title}
             </p>
-            <p className="text-xs leading-5 text-foreground/80">
+            <p className="text-xs leading-5 text-destructive/90">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-foreground/65">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-destructive/70">
                 {composerError.detail}
               </p>
             ) : null}
             {composerError.recovery ? (
-              <p className="text-2xs leading-5 text-muted-foreground">
+              <p className="text-2xs leading-5 text-destructive/70">
                 {composerError.recovery}
               </p>
             ) : null}
