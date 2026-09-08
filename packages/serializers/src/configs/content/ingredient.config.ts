@@ -1,10 +1,12 @@
 import { ingredientAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { rel, simpleConfig } from '@serializers/builders';
+import { serializeAgentWorkObject } from '@serializers/helpers/agent-work-object.helper';
 import { CONTENT_ENTITY_RELS } from '@serializers/relationships';
 
 export const ingredientSerializerConfig = {
   attributes: ingredientAttributes,
+  attributeTransforms: { agentWorkObject: serializeAgentWorkObject },
   type: 'ingredient',
   ...CONTENT_ENTITY_RELS,
   metadata: rel('metadata', metadataAttributes),

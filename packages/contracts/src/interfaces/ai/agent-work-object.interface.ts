@@ -1,12 +1,15 @@
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces/ai/agent-artifact-reference.interface';
 
-export interface AgentWorkObject {
-  id: string;
+export interface AgentWorkObjectMaterial {
   kind: 'table' | 'script' | 'brief';
   title: string;
   body?: string;
   columns?: Array<{ key: string; label: string }>;
   rows?: Record<string, string>[];
+}
+
+export interface AgentWorkObject extends AgentWorkObjectMaterial {
+  id: string;
   rowCount: number;
   revision: number;
   viewedInSession: boolean;
