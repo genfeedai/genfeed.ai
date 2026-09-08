@@ -354,6 +354,7 @@ describe('attachAgentStreamSubscriptions', () => {
         runStatus: 'waiting_input',
       }),
     );
+    expect(deps.setActiveRunStatus).toHaveBeenCalledWith('awaiting_input');
     expect(deps.setPendingInputRequest).toHaveBeenCalledWith(
       expect.objectContaining({ inputRequestId: 'req-1', title: 'Choose' }),
     );

@@ -504,7 +504,7 @@ export function useAgentChatContainer({
         liveState.isGenerating ||
         (isStreaming &&
           liveState.stream.isStreaming &&
-          liveState.activeRunStatus !== 'waiting_input');
+          liveState.activeRunStatus !== 'awaiting_input');
 
       const pendingAsk = liveState.pendingInputRequest;
       if (pendingAsk && !shouldQueueFollowUp) {

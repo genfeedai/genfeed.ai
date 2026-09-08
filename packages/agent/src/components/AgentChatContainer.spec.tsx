@@ -283,7 +283,7 @@ type StoreState = {
   activeRunId: string | null;
   activeRunStatus:
     | 'idle'
-    | 'waiting_input'
+    | 'awaiting_input'
     | 'running'
     | 'cancelling'
     | 'failed'
@@ -677,7 +677,7 @@ describe('AgentChatContainer', () => {
           }),
       ),
     });
-    storeState.activeRunStatus = 'waiting_input';
+    storeState.activeRunStatus = 'awaiting_input';
     storeState.stream.isStreaming = true;
     storeState.pendingInputRequest = {
       allowFreeText: true,

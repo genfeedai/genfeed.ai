@@ -372,7 +372,7 @@ export function attachAgentStreamSubscriptions(
           runStatus: 'waiting_input',
         });
         if (deps.isThreadVisible(payload.threadId)) {
-          deps.setActiveRunStatus('waiting_input');
+          deps.setActiveRunStatus('awaiting_input');
           deps.setPendingInputRequest({
             allowFreeText: payload.allowFreeText,
             fieldId: payload.fieldId,
