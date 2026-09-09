@@ -20,8 +20,16 @@ export const neuralGridVariants = cva('grid gap-px bg-edge/5', {
   },
 });
 
+/**
+ * A column, not a block. Grid children already stretch to the row's height, so
+ * a card whose body is shorter than its neighbour's used to leave the gap
+ * *under* its last element — which is why three pricing columns with different
+ * feature counts put their CTAs at three different heights. Laying the item out
+ * as a flex column lets `mb-auto` on the body push a trailing CTA to the floor
+ * of the card, where the eye expects to find it in every column.
+ */
 export const neuralGridItemVariants = cva(
-  'group bg-background transition-colors hover:bg-fill/[0.02]',
+  'group flex flex-col bg-background transition-colors hover:bg-fill/[0.02]',
   {
     defaultVariants: {
       align: 'left',

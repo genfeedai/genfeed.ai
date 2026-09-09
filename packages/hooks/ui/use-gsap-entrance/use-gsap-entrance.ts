@@ -155,13 +155,23 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
             }
 
             if (anim.scrollTrigger) {
+              // Resolve the trigger here rather than handing ScrollTrigger a
+              // selector it may not find. An unresolvable trigger parks the
+              // tween on its `from` state — `opacity: 0` — so one missing
+              // marker class hides a whole section of a live page and says
+              // nothing but a console warning. Falling back to the first
+              // animated element keeps the reveal tied to the content.
+              const triggerSelector =
+                anim.scrollTrigger.trigger ?? anim.selector;
               toVars.scrollTrigger = {
                 start,
-                trigger: anim.scrollTrigger.trigger ?? anim.selector,
+                trigger:
+                  containerRef.current?.querySelector(triggerSelector) ??
+                  elements[0],
               };
             }
 
-            gsap.fromTo(anim.selector, fromVars, toVars);
+            gsap.fromTo(elements, fromVars, toVars);
           }
         }, containerRef);
       } catch {

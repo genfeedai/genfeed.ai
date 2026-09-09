@@ -52,12 +52,72 @@ describe('WebsiteTopbar', () => {
       'href',
       '/pricing',
     );
-    expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute(
-      'href',
-      'https://docs.genfeed.ai',
-    );
+    // Docs and the changelog live in the footer: the bar sells the product,
+    // it is not the site index.
     expect(
-      screen.queryByRole('button', { name: /use cases/i }),
+      screen.queryByRole('link', { name: 'Docs' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /changelog/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('leads with the audience question, then what it is and how to buy it', () => {
+    render(<WebsiteTopbar />);
+
+    const menus = screen
+      .getAllByRole('button', { expanded: false })
+      .map((trigger) => trigger.textContent?.trim());
+
+    expect(menus).toEqual(['Use Cases', 'Product', 'Solutions']);
+  });
+
+  it('groups delivery shapes under solutions', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /solutions/i }));
+
+    for (const group of ['Self-serve', 'Automated', 'Managed']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+
+    for (const [label, href] of [
+      ['Teams', '/cloud'],
+      ['Hire Agents', '/hire-agents'],
+      ['Done For You', '/done-for-you'],
+      ['Services', '/services'],
+    ]) {
+      expect(
+        screen.getByRole('link', { name: new RegExp(label, 'i') }),
+      ).toHaveAttribute('href', href);
+    }
+  });
+
+  it('lists audiences under use cases without leaking the self-host story', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /use cases/i }));
+
+    for (const group of ['Solo', 'Teams', 'Commerce']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+
+    for (const [label, href] of [
+      ['Creators', '/use-cases/creators'],
+      ['Founders', '/use-cases/founders'],
+      ['AI Influencers', '/use-cases/ai-influencers'],
+      ['Agencies', '/use-cases/agencies'],
+      ['Marketers', '/use-cases/marketers'],
+      ['E-Commerce', '/use-cases/ecommerce'],
+      ['Browse all use cases', '/use-cases'],
+    ]) {
+      expect(
+        screen.getByRole('link', { name: new RegExp(label, 'i') }),
+      ).toHaveAttribute('href', href);
+    }
+
+    expect(
+      screen.queryByRole('link', { name: /self-host|open source/i }),
     ).not.toBeInTheDocument();
   });
 
