@@ -266,11 +266,13 @@ describe('EmailPerformanceService attribution', () => {
         isDeleted: false,
         occurredAt: { gte: new Date('2026-09-01T12:00:00Z'), lte: occurredAt },
         message: {
-          organizationId: 'org-1',
-          userId: 'user-1',
-          goal: 'publish_content',
-          isDeleted: false,
-          acceptedAt: { not: null },
+          is: {
+            organizationId: 'org-1',
+            userId: 'user-1',
+            goal: 'publish_content',
+            isDeleted: false,
+            acceptedAt: { not: null },
+          },
         },
       },
       orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
