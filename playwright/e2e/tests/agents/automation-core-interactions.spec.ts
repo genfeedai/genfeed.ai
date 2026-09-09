@@ -9,7 +9,7 @@ import {
  * Deep interaction coverage for the core Automation surface.
  *
  * Targets render + interaction code paths across overview, Programs,
- * the agent library, runs, analytics, autopilot, agent settings,
+ * the agent library, runs, analytics, agent settings,
  * the agent detail route, and content-run detail. All API + Better Auth traffic is
  * mocked by the auth fixture; unknown local API routes auto-return empty
  * collections so every page renders without bespoke mocks.
@@ -30,7 +30,7 @@ test.describe('Automation — Core Interactions', () => {
 
     await tryClick(authenticatedPage, 'a:has-text("Open Runs")');
     await tryClick(authenticatedPage, 'a:has-text("Open Library")');
-    await tryClick(authenticatedPage, 'a:has-text("Open Autopilot")');
+    await tryClick(authenticatedPage, 'a:has-text("Open Agents")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -119,23 +119,6 @@ test.describe('Automation — Core Interactions', () => {
     await tryClick(authenticatedPage, 'button[role="tab"]');
     await tryClick(authenticatedPage, 'button:has-text("30d")');
     await tryClick(authenticatedPage, 'button:has-text("7d")');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('autopilot delegates agent creation to the Agents library', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/autopilot`);
-
-    await authenticatedPage
-      .getByTestId('container-header-actions')
-      .getByRole('link', { name: 'Add agent' })
-      .click();
-    await expect(authenticatedPage).toHaveURL(
-      /\/automation\/agents\?add=library$/,
-    );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

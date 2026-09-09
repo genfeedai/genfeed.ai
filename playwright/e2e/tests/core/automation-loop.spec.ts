@@ -63,8 +63,8 @@ test.describe('Core Automation Loop', () => {
       automationPage.getByRole('link', { name: 'Templates' }).first(),
     ).toBeVisible();
     await expect(
-      automationPage.getByRole('link', { name: 'Autopilot' }).first(),
-    ).toHaveAttribute('href', /\/automation\/autopilot$/);
+      automationPage.getByRole('link', { name: 'Agents' }).first(),
+    ).toHaveAttribute('href', /\/automation\/agents$/);
   });
 
   test('template install flows into the editor bootstrap path', async ({

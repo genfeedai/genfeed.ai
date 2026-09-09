@@ -975,7 +975,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automation',
       '/:orgSlug/:brandSlug/automation/agents/:agentId',
       '/:orgSlug/:brandSlug/automation/overview',
-      '/:orgSlug/:brandSlug/automation/autopilot',
       '/:orgSlug/:brandSlug/automation/runs',
       '/:orgSlug/:brandSlug/automation/runs/:id',
       '/:orgSlug/:brandSlug/automation/campaigns',

@@ -35,8 +35,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
     shortLabel: APP_DISPLAY_LABELS.agent,
   },
   {
-    description:
-      'Workflows, autopilot, skills, and your automated content team.',
+    description: 'Workflows, agents, and your automated content team.',
     href: APP_ROUTES.AUTOMATION.ROOT,
     id: 'automation',
     label: APP_DISPLAY_LABELS.automation,

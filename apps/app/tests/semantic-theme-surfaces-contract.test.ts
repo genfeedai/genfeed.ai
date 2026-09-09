@@ -196,16 +196,6 @@ describe('semantic theme surface contracts', () => {
     },
   );
 
-  it('uses shared empty content for the autopilot empty state', () => {
-    const source = readSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategiesEmptyState.tsx',
-    );
-    expect(source).toContain(
-      "import { CardEmptyContent } from '@ui/card/empty/CardEmpty'",
-    );
-    expect(source).toContain('<CardEmptyContent');
-  });
-
   it.each(OVERLAY_MENU_SOURCES)(
     'uses the secondary overlay plane and dropdown elevation in %s',
     (relativePath) => {

@@ -15,7 +15,7 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
  *
  * Covers: /automation/campaigns (Programs), /automation/campaigns/new,
  *         /messages/outreach, /messages/outreach/new, /automation/runs,
- *         /automation/autopilot, /automation/workflows, /automation/workflows/new, /automation/templates
+ *         /automation/workflows, /automation/workflows/new, /automation/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -88,20 +88,6 @@ test.describe('Agents — Sub-Sections', () => {
     // Mission control / runs page
     await expect(
       authenticatedPage.getByText(/run|mission|history|control/i).first(),
-    ).toBeVisible();
-  });
-
-  test('autopilot page is the strategies desk', async ({
-    authenticatedPage,
-  }) => {
-    await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.AUTOPILOT), {
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(authenticatedPage).toHaveURL(/\/automation\/autopilot/);
-    await expect(
-      authenticatedPage.getByText(/autopilot/i).first(),
     ).toBeVisible();
   });
 

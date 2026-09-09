@@ -283,7 +283,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/org/acme/brand/demo/automation/autopilot',
+  usePathname: () => '/org/acme/brand/demo/automation/overview',
 }));
 
 vi.mock('next-intl', async () => {

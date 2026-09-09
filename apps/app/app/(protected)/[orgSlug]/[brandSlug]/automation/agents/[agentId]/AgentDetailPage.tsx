@@ -52,7 +52,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import AgentStrategyDialog from '../../autopilot/AgentStrategyDialog';
-import { buildPayload } from '../../autopilot/useAgentStrategiesPage';
+import { buildPayload } from '../../autopilot/build-agent-strategy-payload';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';

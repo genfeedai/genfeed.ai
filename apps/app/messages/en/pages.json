@@ -1965,11 +1965,7 @@
     },
     "automationAgents": {
       "title": "Agents",
-      "body": "Agent roles you can enable for content, engagement, and support. Add one to make it available to autopilot policies."
-    },
-    "automationAutopilot": {
-      "title": "Autopilot policies",
-      "body": "A policy decides when an agent runs, its budget, and its direction. Use autopilot when the agent should adapt each run; use Workflows for fixed step-by-step graphs."
+      "body": "Agent roles you can enable for content, engagement, and support. Open an agent to set its schedule, budget, and autonomy."
     },
     "automationPrograms": {
       "title": "Programs",

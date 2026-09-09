@@ -14,7 +14,7 @@ import {
  *
  * - Home: Overview
  * - Workflows: pipelines + templates + run history
- * - Agents: roster and programs. Schedule/autonomy live on the agent.
+ * - Agents: roster and programs. Schedule and autonomy live on the agent.
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publishing (P1).
@@ -65,7 +65,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Agents',
     href: APP_ROUTES.AUTOMATION.AGENTS,
     label: 'Agents',
-    matchPaths: [APP_ROUTES.AUTOMATION.AGENTS, APP_ROUTES.AUTOMATION.AUTOPILOT],
+    matchPaths: [APP_ROUTES.AUTOMATION.AGENTS],
     outline: Users,
     solid: Users,
   },

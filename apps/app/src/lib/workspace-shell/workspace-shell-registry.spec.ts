@@ -237,7 +237,7 @@ describe('workspace shell trusted registry', () => {
   it('keeps current surfaces and removes deprecated aliases', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'automation' });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/strategies'),
     ).toBeNull();
@@ -342,10 +342,9 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
-    // Autopilot URL stays registered and redirects to Agents.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
-    ).toMatchObject({ productClass: 'control-plane' });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/strategies'),
     ).toBeNull();

@@ -73,7 +73,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('folds Autopilot into Agents instead of a second nav desk', () => {
+  it('does not keep an Autopilot nav row or path alias', () => {
     const agents = AUTOMATION_MENU_ITEMS.find(
       (item) => item.label === 'Agents',
     );
@@ -81,9 +81,12 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     expect(
       AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Autopilot'),
     ).toBe(false);
-    expect(agents?.matchPaths).toEqual(
-      expect.arrayContaining(['/automation/agents', '/automation/autopilot']),
-    );
+    expect(agents?.matchPaths).toEqual(['/automation/agents']);
+    expect(
+      AUTOMATION_MENU_ITEMS.some((item) =>
+        item.matchPaths?.includes('/automation/autopilot'),
+      ),
+    ).toBe(false);
     expect(
       AUTOMATION_MENU_ITEMS.some(
         (item) =>
@@ -119,7 +122,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     '/automation/content-runs',
     '/automation/templates',
     '/automation/workflows/new',
-    '/automation/autopilot',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATION_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),

@@ -97,7 +97,6 @@ export const APP_ROUTES = {
     ONBOARDING: '/agent/onboarding',
   },
   AUTOMATION: {
-    AUTOPILOT: '/automation/autopilot',
     /** Content-run history: briefs handed off from Discovery through publish. */
     CONTENT_RUNS: '/automation/content-runs',
     /**

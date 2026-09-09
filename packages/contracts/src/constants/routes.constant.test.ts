@@ -93,9 +93,9 @@ describe('routes.constant', () => {
     );
   });
 
-  it('does not keep a /automation/strategies route', () => {
+  it('does not keep retired Autopilot or Strategies routes', () => {
     expect('STRATEGIES' in APP_ROUTES.AUTOMATION).toBe(false);
-    expect(APP_ROUTES.AUTOMATION.AUTOPILOT).toBe('/automation/autopilot');
+    expect('AUTOPILOT' in APP_ROUTES.AUTOMATION).toBe(false);
   });
 
   it('removes deprecated aliases from the public route contract', () => {
@@ -106,6 +106,7 @@ describe('routes.constant', () => {
       'LIBRARY',
       'NEW',
       'ORCHESTRATOR',
+      'AUTOPILOT',
       'SKILLS',
       'OUTREACH_CAMPAIGNS',
       'OUTREACH_CAMPAIGNS_NEW',
