@@ -22,15 +22,23 @@ describe('CloudNodePalette', () => {
 
     const props = nodePaletteSpy.mock.lastCall?.[0] as {
       additionalNodes: Array<{
-        actionId: string;
+        actionId?: string;
         category: string;
         icon: string;
+        label?: string;
+        type: string;
       }>;
       baseNodeTypes: readonly string[];
     };
 
     expect(props.baseNodeTypes).toEqual(['workflowInput']);
     expect(props.additionalNodes.length).toBeGreaterThan(0);
+    expect(
+      props.additionalNodes.find((node) => node.type === 'input-image'),
+    ).toMatchObject({ category: 'input', icon: 'Image', label: 'Image Input' });
+    expect(
+      props.additionalNodes.find((node) => node.type === 'input-video'),
+    ).toMatchObject({ category: 'input', icon: 'Video', label: 'Video Input' });
     expect(new Set(props.additionalNodes.map((node) => node.category))).toEqual(
       new Set(['input', 'ai', 'processing', 'composition', 'output']),
     );

@@ -21,15 +21,17 @@ describe(relativePath, () => {
     expect(source).not.toContain('execution._id');
   });
 
-  it('separates module actions from graph authoring chrome', () => {
+  it('keeps module and graph authoring chrome in one section topbar', () => {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 
     expect(source).toContain('<WorkflowEditorSectionTopbar');
+    expect(source).toContain('graphChrome=');
     expect(source).toContain('<ActionNodeInspector />');
     expect(source).toContain(
       'workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden',
     );
     expect(source).not.toContain('WorkflowEditorToolbarNavigation');
+    expect(source).not.toContain('toolbar={');
     expect(source).not.toContain('rightContent=');
   });
 

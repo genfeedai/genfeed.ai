@@ -7,6 +7,8 @@ describe('ENGINE_NATIVE_NODE_DEFINITIONS', () => {
       'commentTrigger',
       'engagementTrigger',
       'genfeedAction',
+      'input-image',
+      'input-video',
       'keywordTrigger',
     ]);
   });

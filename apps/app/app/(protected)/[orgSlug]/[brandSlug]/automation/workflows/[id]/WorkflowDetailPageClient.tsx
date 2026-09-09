@@ -286,6 +286,13 @@ export default function WorkflowDetailPageClient({
         <div className="workflow-scope workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
           <WorkflowEditorSectionTopbar
             estimateLabel={workflowEstimateLabel}
+            graphChrome={
+              <CloudWorkflowToolbar
+                isSaving={isSaving}
+                middleContent={<CloudCreditsIndicator />}
+                onRename={handleRename}
+              />
+            }
             isRunning={isRunning}
             lifecycle={lifecycle}
             onArchive={handleArchive}
@@ -329,13 +336,6 @@ export default function WorkflowDetailPageClient({
                 ) : (
                   <ActionNodeInspector />
                 )
-              }
-              toolbar={
-                <CloudWorkflowToolbar
-                  isSaving={isSaving}
-                  middleContent={<CloudCreditsIndicator />}
-                  onRename={handleRename}
-                />
               }
             />
           )}

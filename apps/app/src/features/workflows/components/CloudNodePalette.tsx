@@ -9,30 +9,49 @@ import { useMemo } from 'react';
 
 const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 
+const CLOUD_NATIVE_PALETTE_NODES: PaletteNodeDefinition[] = [
+  {
+    category: 'input',
+    description: 'Upload or pick an image from the library',
+    icon: 'Image',
+    label: 'Image Input',
+    type: 'input-image',
+  },
+  {
+    category: 'input',
+    description: 'Upload or pick a video from the library',
+    icon: 'Video',
+    label: 'Video Input',
+    type: 'input-video',
+  },
+];
+
 /**
  * Cloud workflow palette: engine primitives plus catalog-generated action
  * entries. Product actions all create the same `genfeedAction` node shape.
  */
 export function CloudNodePalette() {
   const additionalNodes = useMemo((): PaletteNodeDefinition[] => {
-    return ALL_ACTIONS.filter((action) => action.visibility === 'workflow').map(
-      (action) => {
-        if (!action.workflowCategory || !action.workflowIcon) {
-          throw new Error(
-            `Workflow action ${action.id} is missing presentation metadata`,
-          );
-        }
+    const actionNodes = ALL_ACTIONS.filter(
+      (action) => action.visibility === 'workflow',
+    ).map((action) => {
+      if (!action.workflowCategory || !action.workflowIcon) {
+        throw new Error(
+          `Workflow action ${action.id} is missing presentation metadata`,
+        );
+      }
 
-        return {
-          actionId: action.id,
-          category: action.workflowCategory,
-          description: action.description,
-          icon: action.workflowIcon,
-          label: action.label,
-          type: 'genfeedAction',
-        };
-      },
-    );
+      return {
+        actionId: action.id,
+        category: action.workflowCategory,
+        description: action.description,
+        icon: action.workflowIcon,
+        label: action.label,
+        type: 'genfeedAction',
+      };
+    });
+
+    return [...CLOUD_NATIVE_PALETTE_NODES, ...actionNodes];
   }, []);
 
   return (

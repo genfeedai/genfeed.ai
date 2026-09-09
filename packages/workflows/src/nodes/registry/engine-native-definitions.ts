@@ -51,6 +51,40 @@ export const ENGINE_NATIVE_NODE_DEFINITIONS: Record<
     ],
     type: 'engagementTrigger',
   },
+  'input-image': {
+    category: 'input',
+    defaultData: {
+      config: {
+        itemCategory: 'image',
+        source: 'library',
+      },
+      label: 'Image Input',
+      status: 'idle',
+    },
+    description: 'Upload or pick an image from the library',
+    icon: 'Image',
+    inputs: [],
+    label: 'Image Input',
+    outputs: [{ id: 'image', label: 'Image', type: 'image' }],
+    type: 'input-image',
+  },
+  'input-video': {
+    category: 'input',
+    defaultData: {
+      config: {
+        itemCategory: 'video',
+        source: 'library',
+      },
+      label: 'Video Input',
+      status: 'idle',
+    },
+    description: 'Upload or pick a video from the library',
+    icon: 'Video',
+    inputs: [],
+    label: 'Video Input',
+    outputs: [{ id: 'video', label: 'Video', type: 'video' }],
+    type: 'input-video',
+  },
   genfeedAction: {
     category: 'automation',
     defaultData: DEFAULT_GENFEED_ACTION_DATA as Record<string, unknown>,
