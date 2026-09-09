@@ -74,7 +74,7 @@ describe('platform token pipeline', () => {
 describe('packages/ui design-system guards', () => {
   it('flags undersized control heights and names the control token', () => {
     const findings = findPackageUiGuardFindings(
-      '<Button className="h-6 px-2" />\n<input className="h-7" />',
+      '<><Button className="h-6 px-2" />\n<input className="h-7" /></>',
       'packages/ui/src/example.tsx',
     );
 
@@ -110,7 +110,7 @@ describe('packages/ui design-system guards', () => {
   it('does not treat non-control geometry as a control-height violation', () => {
     expect(
       findPackageUiGuardFindings(
-        '<div className="h-6" />\n<Skeleton className="h-7" />',
+        '<><div className="h-6" />\n<Skeleton className="h-7" /></>',
         'packages/ui/src/components/sidebar/example.tsx',
       ),
     ).toEqual([]);
