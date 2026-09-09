@@ -371,17 +371,17 @@ export default function DiscoveryDesk() {
         }
         icon={TrendingUp}
         label={translateDesk('title')}
+        leading={
+          <FormSearchbar
+            className="w-64"
+            onSearch={setSearch}
+            placeholder={translateDesk('searchPlaceholder')}
+            size={ComponentSize.SM}
+            value={search}
+          />
+        }
         right={
           <>
-            <div className="w-44 sm:w-56">
-              <FormSearchbar
-                className="w-full"
-                onSearch={setSearch}
-                placeholder={translateDesk('searchPlaceholder')}
-                size={ComponentSize.SM}
-                value={search}
-              />
-            </div>
             <Badge variant="ghost">
               {isLoading
                 ? translateDesk('signalsLoading')

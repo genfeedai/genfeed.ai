@@ -73,6 +73,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
+}));
+
+vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
+  usePageHelp: () => null,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -193,6 +201,29 @@ describe('DiscoveryDesk', () => {
         totalTrends: 2,
       },
     });
+  });
+
+  it('puts search on the left of the module topbar', () => {
+    render(<DiscoveryDesk />);
+
+    const search = screen.getByPlaceholderText('Search the Desk');
+    expect(
+      search.closest('[data-testid="section-topbar-leading"]'),
+    ).not.toBeNull();
+    expect(
+      screen.getByTestId('container-header-actions').contains(search),
+    ).toBe(false);
+  });
+
+  it('keeps search on the left of the Following topbar', () => {
+    mocks.paramState.source = 'following';
+
+    render(<DiscoveryDesk />);
+
+    const search = screen.getByPlaceholderText('Search the Desk');
+    expect(
+      search.closest('[data-testid="section-topbar-leading"]'),
+    ).not.toBeNull();
   });
 
   it('renders the table view by default', () => {
