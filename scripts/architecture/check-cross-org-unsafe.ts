@@ -18,6 +18,7 @@ import {
   CROSS_ORG_UNSAFE_BASELINE,
   type CrossOrgUnsafeBaselineEntry,
 } from './cross-org-unsafe.baseline';
+import { parseSourceFile } from './parse-source-file';
 
 const HATCH_NAME = 'crossOrgUnsafe';
 
@@ -102,12 +103,7 @@ function collectOccurrences(
   rootDir: string,
 ): CrossOrgUnsafeOccurrence[] {
   const sourceText = readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(filePath, sourceText, true);
   const file = normalizePath(path.relative(rootDir, filePath));
   const occurrences: CrossOrgUnsafeOccurrence[] = [];
 

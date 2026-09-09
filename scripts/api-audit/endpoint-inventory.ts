@@ -4,6 +4,7 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from '../architecture/parse-source-file';
 
 const DEFAULT_SOURCE_GLOBS = ['apps/server/api/src/**/*.controller.ts'];
 const DEFAULT_IGNORE_GLOBS = [
@@ -157,12 +158,7 @@ function scanControllerFile(
   apiPrefix: string,
 ): EndpointRecord[] {
   const sourceText = readFileSync(absoluteFile, 'utf8');
-  const source = ts.createSourceFile(
-    absoluteFile,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const source = parseSourceFile(absoluteFile, sourceText, true);
   const relativeFile = path.relative(rootDir, absoluteFile);
   const endpoints: EndpointRecord[] = [];
 

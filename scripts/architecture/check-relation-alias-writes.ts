@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const INCLUDE_GLOBS = ['apps/server/**/*.ts'];
 const IGNORE_GLOBS = [
@@ -1104,13 +1105,7 @@ export function runCheckRelationAliasWrites(
     nodir: true,
   }).sort();
   const sourceFiles = files.map((file) =>
-    ts.createSourceFile(
-      file,
-      readFileSync(file, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TS,
-    ),
+    parseSourceFile(file, readFileSync(file, 'utf8'), true, ts.ScriptKind.TS),
   );
   const models = collectModelMetadata(
     readFileSync(options.schemaPath ?? SCHEMA_PATH, 'utf8'),

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './architecture/parse-source-file';
 
 /**
  * Guard: forbid type-only imports for classes consumed through decorator
@@ -138,12 +139,7 @@ function checkFile(file: string): DiValueImportViolation[] {
   ) {
     return [];
   }
-  const sourceFile = ts.createSourceFile(
-    file,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(file, content, true);
   const typeOnlyImports = collectTypeOnlyImports(sourceFile);
   if (typeOnlyImports.size === 0) {
     return [];

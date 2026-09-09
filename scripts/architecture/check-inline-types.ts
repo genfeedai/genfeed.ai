@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import * as ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const INCLUDE_GLOBS = ['apps/app/app/**/*.{ts,tsx}'];
@@ -48,10 +49,9 @@ export function findInlineTypes(
   file: string,
   source: string,
 ): InlineTypeFinding[] {
-  const sourceFile = ts.createSourceFile(
+  const sourceFile = parseSourceFile(
     file,
     source,
-    ts.ScriptTarget.Latest,
     true,
     file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );

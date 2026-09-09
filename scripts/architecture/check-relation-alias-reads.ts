@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import * as ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
 
 /**
@@ -711,12 +712,7 @@ function checkFile(
   aliases: Map<string, string>,
 ): RelationAliasViolation[] {
   const content = readFileSync(file, 'utf8');
-  const sourceFile = ts.createSourceFile(
-    file,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(file, content, true);
 
   const rowBindings = collectRowBindings(sourceFile);
   const violations: RelationAliasViolation[] = [];

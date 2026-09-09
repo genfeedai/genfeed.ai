@@ -61,6 +61,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts', 'packages/libs/**/*.ts'];
 
@@ -399,12 +400,7 @@ export function collectControllers(
   sourceText: string,
   file: string,
 ): ControllerClass[] {
-  const sourceFile = ts.createSourceFile(
-    file,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(file, sourceText, true);
   const routeDecoratorNames = collectRouteDecoratorNames(sourceFile);
 
   if (

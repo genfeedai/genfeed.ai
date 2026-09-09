@@ -38,6 +38,7 @@ import {
   TENANT_QUERY_OPERATION_SET,
   type TenantModel,
 } from '../../packages/libs/prisma/discover-tenant-models';
+import { parseSourceFile } from './parse-source-file';
 
 export { discoverTenantModels, type TenantModel };
 
@@ -992,12 +993,7 @@ function scanSourceFile(
   tenantModelByDelegate: ReadonlyMap<string, string>,
 ): Pick<TenantScopeCheckResult, 'findings' | 'suppressionViolations'> {
   const sourceText = readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(filePath, sourceText, true);
   const file = normalizePath(path.relative(rootDir, filePath));
   const bindings = collectScopedWhereBindings(sourceFile);
   const candidates = collectCallCandidates(sourceFile, tenantModelByDelegate);
