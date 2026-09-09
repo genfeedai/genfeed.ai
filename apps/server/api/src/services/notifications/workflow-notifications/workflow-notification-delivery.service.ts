@@ -1,3 +1,4 @@
+import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import {
   EmailDeliveryError,
   NotificationsService,
@@ -17,7 +18,7 @@ import {
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const LOCK_LEASE_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -34,9 +35,15 @@ export class WorkflowNotificationDeliveryService {
     private readonly notificationsService: NotificationsService,
     private readonly queueService: WorkflowNotificationQueueService,
     private readonly logger: LoggerService,
+    @Optional() private readonly emailPerformance?: EmailPerformanceService,
   ) {}
 
-  async deliver(deliveryId: string): Promise<void> {
+  /**
+   * Takes the lease on one delivery. The conditional update is the claim: it
+   * succeeds for a due pending/retrying row, or for a processing row whose
+   * lease has expired, and never for a row another worker currently holds.
+   */
+  private async claimDelivery(deliveryId: string): Promise<boolean> {
     const now = new Date();
     const leaseExpiredAt = new Date(now.getTime() - LOCK_LEASE_MS);
     // tenant-scope-ignore: system worker claims an opaque globally unique delivery id whose durable row retains organizationId
@@ -67,7 +74,11 @@ export class WorkflowNotificationDeliveryService {
       },
     });
 
-    if (claim.count !== 1) {
+    return claim.count === 1;
+  }
+
+  async deliver(deliveryId: string): Promise<void> {
+    if (!(await this.claimDelivery(deliveryId))) {
       return;
     }
 
@@ -81,6 +92,11 @@ export class WorkflowNotificationDeliveryService {
     });
 
     if (!delivery) {
+      return;
+    }
+
+    if (delivery.event.sourceType === 'system_email' && this.emailPerformance) {
+      await this.emailPerformance.deliverClaimed(deliveryId);
       return;
     }
 
@@ -184,6 +200,13 @@ export class WorkflowNotificationDeliveryService {
   }
 
   async recoverDueDeliveries(): Promise<number> {
+    if (this.emailPerformance) {
+      try {
+        await this.emailPerformance.recoverProviderEvents();
+      } catch {
+        this.logger.warn('Provider email event recovery will retry');
+      }
+    }
     const now = new Date();
     const leaseExpiredAt = new Date(now.getTime() - LOCK_LEASE_MS);
     // tenant-scope-ignore: system recovery intentionally spans tenants and selects only non-deleted due delivery ids

@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
 import type {
+  EmailDigestDelivery,
   EmailDigestPrepared,
+  EmailDigestRecipientResult,
   EmailDigestRendered,
   EmailDigestResult,
 } from '@api/collections/content-performance/services/email-digest.service';
@@ -47,7 +50,7 @@ export function buildEmailDigestChildWorkflowDefinition(): SystemWorkflowGraphDe
     description: 'Delivers one rendered digest to one recipient.',
     label: 'Email Digest Recipient Delivery',
     resultNodeId: 'deliver-recipient',
-    version: 1,
+    version: 2,
   };
 }
 
@@ -129,7 +132,7 @@ export function buildEmailDigestWorkflowDefinition(): SystemWorkflowGraphDefinit
     description: 'Prepares, renders, and fans out a performance digest.',
     label: 'Email Digest Delivery',
     resultNodeId: 'finalize-digest',
-    version: 1,
+    version: 2,
   };
 }
 
@@ -152,18 +155,18 @@ export class EmailDigestWorkflowService implements OnModuleInit {
     );
     this.runner.registerAction(EMAIL_DIGEST_ACTION_IDS.RENDER, ({ input }) =>
       this.digest.renderDigest(
-        input.state as EmailDigestPrepared & { recipients: string[] },
+        input.state as EmailDigestPrepared & { recipientUserIds: string[] },
       ),
     );
     this.runner.registerAction(EMAIL_DIGEST_ACTION_IDS.DELIVER, ({ input }) =>
-      this.digest.deliverDigestRecipient(
-        input.delivery as { email: string; html: string; subject: string },
-      ),
+      this.digest.deliverDigestRecipient(input.delivery as EmailDigestDelivery),
     );
     this.runner.registerAction(EMAIL_DIGEST_ACTION_IDS.FINALIZE, ({ input }) =>
       this.finalize(
         input.rendered as EmailDigestRendered,
-        input.dispatch as { results?: Array<{ result?: { sent?: boolean } }> },
+        input.dispatch as {
+          results?: Array<{ result?: EmailDigestRecipientResult }>;
+        },
       ),
     );
     this.runner.registerWorkflow(buildEmailDigestChildWorkflowDefinition());
@@ -172,26 +175,42 @@ export class EmailDigestWorkflowService implements OnModuleInit {
 
   enqueue(request: EmailDigestWorkflowInput): Promise<string> {
     const definition = buildEmailDigestWorkflowDefinition();
-    const range = `${request.startDate ?? 'default'}-${request.endDate ?? 'default'}`;
+    const normalized = this.digest.normalizeOptions(request);
+    const dispatchKey = createHash('sha256')
+      .update(
+        JSON.stringify({
+          startDate: normalized.startDate,
+          endDate: normalized.endDate,
+          recipients: [
+            ...new Set(
+              normalized.recipientEmails?.map((email) =>
+                email.trim().toLowerCase(),
+              ) ?? [],
+            ),
+          ].sort(),
+        }),
+      )
+      .digest('hex');
     return this.queue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
-        inputValues: { request },
+        inputValues: { request: normalized },
         organizationId: request.organizationId,
         source: 'content-performance',
         userId: request.userId,
       },
-      `email-digest-${request.organizationId}-${request.brandId}-${range}`,
+      `email-digest-${request.organizationId}-${request.brandId}-${dispatchKey}`,
       { attempts: 3, replaceTerminalJob: true },
     );
   }
 
   async run(request: EmailDigestWorkflowInput): Promise<EmailDigestResult> {
+    const normalized = this.digest.normalizeOptions(request);
     const { result } = await this.runner.runWorkflow<EmailDigestResult>({
       actionType: EMAIL_DIGEST_WORKFLOW_ID,
       canonicalId: EMAIL_DIGEST_WORKFLOW_ID,
-      inputValues: { request },
+      inputValues: { request: normalized },
       organizationId: request.organizationId,
       source: 'content-performance',
       userId: request.userId,
@@ -201,14 +220,18 @@ export class EmailDigestWorkflowService implements OnModuleInit {
 
   private finalize(
     rendered: EmailDigestRendered,
-    dispatch: { results?: Array<{ result?: { sent?: boolean } }> },
+    dispatch: { results?: Array<{ result?: EmailDigestRecipientResult }> },
   ): EmailDigestResult {
     const results = dispatch?.results ?? [];
-    const sent = results.filter((entry) => entry.result?.sent === true).length;
-    const errors = results.length - sent;
+    const queued = results.filter(
+      (entry) => entry.result?.queued === true,
+    ).length;
+    const errors =
+      Math.max(rendered.deliveries.length, results.length) - queued;
     return {
       errors,
-      sent,
+      queued,
+      sent: 0,
       skipped: rendered.deliveries.length === 0 ? 1 : 0,
     };
   }

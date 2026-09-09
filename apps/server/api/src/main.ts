@@ -165,6 +165,11 @@ async function main() {
 
     app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+    app.use(
+      '/v1/email-performance/webhooks/resend',
+      express.raw({ limit: '256kb', type: 'application/json' }),
+    );
+
     // Raw body middleware for webhook signature verification
     app.use(
       '/v1/webhooks/stripe',

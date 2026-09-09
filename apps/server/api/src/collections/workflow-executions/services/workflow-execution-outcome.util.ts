@@ -20,6 +20,17 @@ export type WorkflowExecutionCompletionRow = {
   };
 };
 
+export function suppressInternalEmailOutcomeNotification(
+  metadata: unknown,
+): boolean {
+  if (!isHiddenSystemWorkflowMetadata(metadata)) return false;
+  const canonicalId = getSystemWorkflowMetadata(metadata)?.canonicalId;
+  return (
+    canonicalId?.startsWith('lifecycle-email.') === true ||
+    canonicalId?.startsWith('email-product-signals.') === true
+  );
+}
+
 export function buildWorkflowOutcomeInput(
   execution: WorkflowExecutionCompletionRow,
   executionId: string,

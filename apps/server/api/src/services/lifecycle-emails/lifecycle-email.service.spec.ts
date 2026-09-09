@@ -89,7 +89,7 @@ describe('LifecycleEmailService', () => {
     );
   });
 
-  it('plans the four signup deliveries without persisting or queueing them', async () => {
+  it('plans the six conditional signup deliveries without persisting or queueing them', async () => {
     const { actions, prisma, workflowService } = createService();
     const plan = actions.get(LIFECYCLE_SCHEDULING_ACTION_IDS.PLAN);
 
@@ -100,7 +100,7 @@ describe('LifecycleEmailService', () => {
     });
 
     expect((result as { deliveryItems: unknown[] }).deliveryItems).toHaveLength(
-      4,
+      6,
     );
     expect(prisma.lifecycleEmailDelivery.create).not.toHaveBeenCalled();
     expect(workflowService.scheduleEmail).not.toHaveBeenCalled();
@@ -137,5 +137,23 @@ describe('LifecycleEmailService', () => {
       new Date(deliveryItem.scheduledFor),
     );
     expect(prisma.lifecycleEmailDelivery.create).not.toHaveBeenCalled();
+  });
+  it('re-enqueues persisted scheduled rows when the scheduling graph retries', async () => {
+    const { actions, prisma } = createService();
+    prisma.lifecycleEmailDelivery.create.mockRejectedValue({ code: 'P2002' });
+    prisma.lifecycleEmailDelivery.findFirst.mockResolvedValue({
+      id: 'delivery-1',
+    });
+    const result = await actions.get(
+      LIFECYCLE_SCHEDULING_ACTION_IDS.PERSIST_DELIVERY,
+    )?.({
+      context: {
+        organizationId: 'org-1',
+      } as unknown as Parameters<SystemWorkflowActionExecutor>[0]['context'],
+      input: { request: deliveryItem },
+      provenance:
+        {} as Parameters<SystemWorkflowActionExecutor>[0]['provenance'],
+    });
+    expect(result).toEqual({ items: [deliveryItem] });
   });
 });

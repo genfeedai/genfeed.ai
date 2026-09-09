@@ -1,5 +1,9 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { EmailPerformanceController } from '@api/services/email-performance/email-performance.controller';
+import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { EmailPerformanceReportService } from '@api/services/email-performance/email-performance-report.service';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
+import { SystemEmailEligibilityService } from '@api/services/lifecycle-emails/system-email-eligibility.service';
 import { NotificationInboxService } from '@api/services/notifications/inbox/notification-inbox.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
@@ -17,7 +21,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
 @Module({
+  controllers: [EmailPerformanceController],
   exports: [
+    SystemEmailEligibilityService,
+    EmailPerformanceService,
+    EmailPerformanceReportService,
     NotificationInboxService,
     LifecycleEmailDeliveryService,
     NotificationPreferenceService,
@@ -39,6 +47,9 @@ import { Module } from '@nestjs/common';
     }),
   ],
   providers: [
+    EmailPerformanceService,
+    EmailPerformanceReportService,
+    SystemEmailEligibilityService,
     NotificationInboxService,
     NotificationsService,
     LifecycleEmailDeliveryService,

@@ -308,7 +308,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} synchronous email delivery failed`,
-        error,
+        new Error('Synchronous email provider request failed'),
         statusCode === undefined ? undefined : { statusCode },
       );
       throw new EmailDeliveryError(

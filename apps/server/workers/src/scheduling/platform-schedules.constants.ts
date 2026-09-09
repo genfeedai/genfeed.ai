@@ -25,6 +25,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   GLOBAL_TRENDS_REFRESH: 'global-trends-refresh',
   INGREDIENT_METADATA_REFRESH: 'ingredient-metadata-refresh',
   INGREDIENT_PROCESSING_RECONCILE: 'ingredient-processing-reconcile',
+  LIFECYCLE_EMAILS: 'lifecycle-emails',
   LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
   MODEL_DEPRECATION: 'model-deprecation',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
@@ -55,6 +56,10 @@ export type PlatformSchedule = {
 };
 
 export const PLATFORM_SCHEDULE_CATALOG = {
+  [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: {
+    pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE]: {
     pattern: '*/5 * * * *',
     timezone: 'UTC',

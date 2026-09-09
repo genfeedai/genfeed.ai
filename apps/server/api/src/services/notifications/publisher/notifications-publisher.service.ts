@@ -1,6 +1,3 @@
-import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Status } from '@genfeedai/contracts';
 import type {
   IBackgroundTaskUpdatePayload,
@@ -13,12 +10,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class NotificationsPublisherService {
-  constructor(
-    private readonly redisService: RedisService,
-    private readonly notificationsService: NotificationsService,
-    private readonly settingsService: SettingsService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly redisService: RedisService) {}
 
   /**
    * Publish video progress event
@@ -55,18 +47,6 @@ export class NotificationsPublisherService {
         : { error: data, path, room, userId };
 
     await this.redisService.publish(channel, payload);
-
-    await this.maybeSendVideoStatusEmail({
-      error:
-        status === Status.FAILED
-          ? data instanceof Error
-            ? data.message
-            : String(data)
-          : undefined,
-      path,
-      status: status === Status.COMPLETED ? 'completed' : 'failed',
-      userId,
-    });
   }
 
   /**
@@ -321,54 +301,6 @@ export class NotificationsPublisherService {
     await this.redisService.publish('generic-events', {
       data,
       path,
-    });
-  }
-
-  private async getEmailNotificationContext(userId: string): Promise<{
-    email: string | null;
-    settings: Record<string, unknown> | null;
-  }> {
-    if (!userId || typeof userId !== 'string') {
-      return { email: null, settings: null };
-    }
-
-    const [user, settings] = await Promise.all([
-      this.prisma.user.findFirst({
-        select: { email: true },
-        where: { id: userId, isDeleted: false },
-      }),
-      this.settingsService.findOne({ userId: userId }),
-    ]);
-
-    return {
-      email: typeof user?.email === 'string' ? user.email : null,
-      settings: settings
-        ? (settings as unknown as Record<string, unknown>)
-        : null,
-    };
-  }
-
-  private async maybeSendVideoStatusEmail(input: {
-    status: 'completed' | 'failed';
-    path: string;
-    userId: string;
-    error?: string;
-  }): Promise<void> {
-    const { email, settings } = await this.getEmailNotificationContext(
-      input.userId,
-    );
-
-    if (!email || settings?.isVideoNotificationsEmail !== true) {
-      return;
-    }
-
-    await this.notificationsService.sendVideoStatusEmail({
-      error: input.error,
-      path: input.path,
-      status: input.status,
-      to: email,
-      url: 'https://app.genfeed.ai/content/videos',
-      userId: input.userId,
     });
   }
 }

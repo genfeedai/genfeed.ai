@@ -79,6 +79,7 @@ export class ArticleContentPersistenceService {
       userId: params.userId,
     });
     const articlePayload: ArticleCreatePayload = {
+      generationCompletedAt: new Date().toISOString(),
       category: params.category,
       content: params.draft.content,
       label: params.draft.label,

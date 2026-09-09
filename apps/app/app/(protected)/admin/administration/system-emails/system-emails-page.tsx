@@ -1,5 +1,6 @@
 'use client';
 
+import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
 import {
   buildLifecycleSystemEmailAction,
   type LifecycleSystemEmailDefinition,
@@ -87,9 +88,10 @@ export default function SystemEmailsPage() {
   return (
     <Container
       label="System emails"
-      description="Platform-owned lifecycle emails, triggers, and copy"
+      description="Platform-owned lifecycle emails, delivery outcomes, and conversion attribution"
       icon={Mail}
     >
+      <SystemEmailPerformance />
       {isLoading ? (
         <div className="grid gap-4">
           {SYSTEM_EMAIL_SKELETON_KEYS.map((key) => (

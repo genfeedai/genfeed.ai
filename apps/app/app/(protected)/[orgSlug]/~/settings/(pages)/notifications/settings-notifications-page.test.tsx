@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   errorNotification: vi.fn(),
   mutateUser: vi.fn(),
   patchSettings: vi.fn(),
+  findProductPreference: vi.fn(),
+  patchProductPreference: vi.fn(),
   findWorkflowEmailPreference: vi.fn(),
   findAgentEmailPreference: vi.fn(),
   patchAgentEmailPreference: vi.fn(),
@@ -58,12 +60,21 @@ describe('SettingsNotificationsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.patchSettings.mockResolvedValue(undefined);
+    mocks.findProductPreference.mockImplementation(async (topic: string) => ({
+      topic,
+      isEnabled: topic === 'generation.status',
+    }));
+    mocks.patchProductPreference.mockImplementation(
+      async (topic: string, isEnabled: boolean) => ({ topic, isEnabled }),
+    );
     mocks.getUsersService.mockResolvedValue({
       findWorkflowEmailNotificationPreference:
         mocks.findWorkflowEmailPreference,
       findAgentEmailNotificationPreference: mocks.findAgentEmailPreference,
       patchAgentEmailNotificationPreference: mocks.patchAgentEmailPreference,
       patchMeSettings: mocks.patchSettings,
+      findProductEmailPreference: mocks.findProductPreference,
+      patchProductEmailPreference: mocks.patchProductPreference,
       patchWorkflowEmailNotificationPreference:
         mocks.patchWorkflowEmailPreference,
     });
@@ -90,26 +101,27 @@ describe('SettingsNotificationsPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Email Notifications')).toBeInTheDocument();
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
-    expect(screen.getByText('Video Emails')).toBeInTheDocument();
+    expect(screen.getByText('Generation updates')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Send an email when a video generation completes or fails.',
+        'Email when a generation taking at least two minutes completes or fails. You can leave the studio while it runs.',
       ),
     ).toBeInTheDocument();
   });
 
-  it('persists the video email preference through shared settings', async () => {
+  it('persists generation email preference through the durable topic API', async () => {
     const user = userEvent.setup();
     render(<SettingsNotificationsPage />);
 
-    const toggle = screen.getByRole('switch', { name: 'Video Emails' });
-    expect(toggle).toBeChecked();
+    const toggle = screen.getByRole('switch', { name: 'Generation updates' });
+    await waitFor(() => expect(toggle).toBeChecked());
     await user.click(toggle);
 
     await waitFor(() => {
-      expect(mocks.patchSettings).toHaveBeenCalledWith({
-        isVideoNotificationsEmail: false,
-      });
+      expect(mocks.patchProductPreference).toHaveBeenCalledWith(
+        'generation.status',
+        false,
+      );
     });
   });
 

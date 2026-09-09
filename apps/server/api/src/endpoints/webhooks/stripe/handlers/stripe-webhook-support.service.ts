@@ -51,6 +51,7 @@ type OnboardingUser = {
 };
 
 type PurchasedCreditsReference = {
+  actorUserId?: string;
   referenceId: string;
   referenceType: string;
 };
@@ -171,10 +172,12 @@ export class StripeWebhookSupportService {
   buildCheckoutSessionCreditReference(
     kind: string,
     sessionId: string,
+    actorUserId?: string,
   ): PurchasedCreditsReference {
     return {
       referenceId: sessionId,
       referenceType: `${CHECKOUT_SESSION_NAMESPACE}:${kind}`,
+      ...(actorUserId ? { actorUserId } : {}),
     };
   }
 
@@ -305,6 +308,9 @@ export class StripeWebhookSupportService {
           description,
           expiresAt,
           {
+            ...(reference.actorUserId
+              ? { actorUserId: reference.actorUserId }
+              : {}),
             metadata: {
               stripeCheckoutSessionId: reference.referenceId,
               stripeCheckoutSessionType: reference.referenceType,

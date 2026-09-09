@@ -11,6 +11,7 @@ import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-ex
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   buildWorkflowOutcomeInput,
+  suppressInternalEmailOutcomeNotification,
   type WorkflowExecutionCompletionRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
 import {
@@ -491,17 +492,20 @@ export class WorkflowExecutionsService extends BaseService<
           );
         }
 
-        const durableDeliveryId =
-          await this.workflowNotificationOutboxService.recordWorkflowOutcome(
-            transaction,
-            buildWorkflowOutcomeInput(
-              execution,
-              executionId,
-              completedAt,
-              failure,
-              error,
-            ),
-          );
+        const durableDeliveryId = suppressInternalEmailOutcomeNotification(
+          execution.workflow.metadata,
+        )
+          ? null
+          : await this.workflowNotificationOutboxService.recordWorkflowOutcome(
+              transaction,
+              buildWorkflowOutcomeInput(
+                execution,
+                executionId,
+                completedAt,
+                failure,
+                error,
+              ),
+            );
 
         return { deliveryId: durableDeliveryId, result: updatedExecution };
       },
@@ -512,7 +516,11 @@ export class WorkflowExecutionsService extends BaseService<
     }
 
     const { deliveryId, result } = terminalTransition;
-    await this.workflowNotificationOutboxService.enqueueAfterCommit(deliveryId);
+    if (deliveryId) {
+      await this.workflowNotificationOutboxService.enqueueAfterCommit(
+        deliveryId,
+      );
+    }
 
     const document = this.normalizeDocument(result);
     const creditsUsed =

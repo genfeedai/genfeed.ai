@@ -3,10 +3,11 @@ import {
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type {
-  INotificationPreference,
-  NotificationChannel,
-  NotificationTopic,
+import {
+  defaultProductEmailPreference,
+  type INotificationPreference,
+  type NotificationChannel,
+  type NotificationTopic,
 } from '@genfeedai/contracts/interfaces';
 import type { NotificationPreference } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
@@ -39,9 +40,27 @@ export class NotificationPreferenceService {
       where: { channel, isDeleted: false, topic, userId },
     });
 
+    const marketingPreference =
+      topic === 'lifecycle.onboarding'
+        ? await this.prisma.lifecycleEmailPreference.findUnique({
+            where: { userId },
+            select: { marketingUnsubscribedAt: true },
+          })
+        : null;
+    const unsubscribed = Boolean(marketingPreference?.marketingUnsubscribedAt);
     if (preference) {
-      return toNotificationPreference(preference);
+      return {
+        ...toNotificationPreference(preference),
+        isEnabled: preference.isEnabled && !unsubscribed,
+      };
     }
+    const legacy =
+      topic === 'generation.status'
+        ? await this.prisma.setting.findFirst({
+            where: { userId, isDeleted: false },
+            select: { isVideoNotificationsEmail: true },
+          })
+        : null;
 
     const now = new Date().toISOString();
     return {
@@ -49,7 +68,10 @@ export class NotificationPreferenceService {
       createdAt: now,
       id: `default-${userId}-${topic}-${channel}`,
       isDeleted: false,
-      isEnabled: false,
+      isEnabled:
+        !unsubscribed &&
+        (legacy?.isVideoNotificationsEmail ??
+          defaultProductEmailPreference(topic)),
       topic,
       updatedAt: now,
       userId,
@@ -62,6 +84,13 @@ export class NotificationPreferenceService {
     topic: NotificationTopic = WORKFLOW_STATUS_NOTIFICATION_TOPIC,
     channel: NotificationChannel = EMAIL_NOTIFICATION_CHANNEL,
   ): Promise<INotificationPreference> {
+    if (topic === 'lifecycle.onboarding' && isEnabled) {
+      // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailPreference.userId is unique and this model has no organization column, so this clears the marketing unsubscribe on exactly one row for that user.
+      await this.prisma.lifecycleEmailPreference.updateMany({
+        where: { userId },
+        data: { marketingUnsubscribedAt: null },
+      });
+    }
     const preference = await this.prisma.notificationPreference.upsert({
       create: { channel, isEnabled, topic, userId },
       update: { isDeleted: false, isEnabled },

@@ -3,12 +3,10 @@ import {
   SERVER_TOKENS,
   type ServerConfig,
   type ServerLogger,
-  type ServerNotifications,
-  type ServerPrisma,
 } from '@api/server.dependencies';
+import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/contracts';
-import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import {
   buildLifecycleSystemEmailAction,
   getLifecycleSystemEmailDefinition,
@@ -22,10 +20,12 @@ import {
   sanitizeSystemEmailUrl,
 } from '@helpers/email/system-email.helper';
 import { Inject, Injectable } from '@nestjs/common';
+import { SystemEmailEligibilityService } from './system-email-eligibility.service';
 
 const DELIVERY_STATUS = {
   CANCELED: 'canceled',
   FAILED: 'failed',
+  QUEUED: 'queued',
   SENT: 'sent',
   SKIPPED: 'skipped',
 } as const;
@@ -35,6 +35,7 @@ const DELIVERY_STATUS = {
 // already recorded why the delivery stopped.
 const TERMINAL_DELIVERY_STATUSES = new Set<string>([
   DELIVERY_STATUS.SENT,
+  DELIVERY_STATUS.QUEUED,
   DELIVERY_STATUS.CANCELED,
   DELIVERY_STATUS.SKIPPED,
 ]);
@@ -84,6 +85,7 @@ type EmailTemplate = {
 export type LifecycleEmailDeliveryState = {
   delivery?: LifecycleEmailDeliveryRecord;
   html?: string;
+  emailMessageId?: string;
   preference?: {
     id: string;
     marketingUnsubscribedAt: string | null;
@@ -98,13 +100,13 @@ export type LifecycleEmailDeliveryState = {
 export class LifecycleEmailDeliveryService {
   constructor(
     @Inject(SERVER_TOKENS.prisma)
-    private readonly prisma: ServerPrisma,
-    @Inject(SERVER_TOKENS.notifications)
-    private readonly notificationsService: ServerNotifications,
+    private readonly prisma: PrismaService,
+    private readonly emailPerformance: EmailPerformanceService,
     @Inject(SERVER_TOKENS.config)
     private readonly configService: ServerConfig,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
+    private readonly eligibility: SystemEmailEligibilityService,
   ) {}
 
   async loadLifecycleDelivery(
@@ -129,7 +131,10 @@ export class LifecycleEmailDeliveryService {
   ): Promise<LifecycleEmailDeliveryState> {
     const delivery = state.delivery;
     if (!delivery) return { ...state, skipReason: 'delivery record missing' };
-    if (delivery.status === DELIVERY_STATUS.SENT) {
+    if (
+      delivery.status === DELIVERY_STATUS.SENT ||
+      delivery.status === DELIVERY_STATUS.QUEUED
+    ) {
       return { ...state, skipReason: 'already sent' };
     }
     if (
@@ -153,17 +158,23 @@ export class LifecycleEmailDeliveryService {
     if (preference.marketingUnsubscribedAt) {
       return { ...state, preference, skipReason: 'marketing unsubscribed' };
     }
+    const organizationId =
+      this.parseMetadata(delivery.metadata).organizationId ??
+      state.request.organizationId;
     if (
-      state.request.sequence === 'activation-nudge' &&
-      (await this.hasActivated(delivery.user.id))
+      !organizationId ||
+      !(await this.eligibility.shouldSend({
+        organizationId,
+        userId: delivery.user.id,
+        templateKey: state.request.step,
+        policyData: { lifecycleDeliveryId: delivery.id },
+      }))
     ) {
-      return { ...state, preference, skipReason: 'already activated' };
-    }
-    if (
-      state.request.sequence === 'win-back' &&
-      (await this.hasActiveSubscription(delivery.user.id))
-    ) {
-      return { ...state, preference, skipReason: 'subscription active' };
+      return {
+        ...state,
+        preference,
+        skipReason: 'lifecycle milestone fulfilled or tenant unavailable',
+      };
     }
     return { ...state, preference };
   }
@@ -195,18 +206,50 @@ export class LifecycleEmailDeliveryService {
     ) {
       return state;
     }
-    await this.notificationsService.sendEmail(
-      state.delivery.user.email,
-      state.template.subject,
-      state.html,
-    );
-    return state;
+    const organizationId =
+      this.parseMetadata(state.delivery.metadata).organizationId ??
+      state.request.organizationId;
+    if (!organizationId)
+      throw new Error('Lifecycle delivery organization missing');
+    const organization = await this.prisma.organization.findFirst({
+      where: { id: organizationId, isDeleted: false },
+      select: { slug: true },
+    });
+    const destinationUrl =
+      state.request.step === 'checkout-recovery' && organization
+        ? `${this.appUrl()}/${organization.slug}/~/settings/credits`
+        : state.template.actionUrl;
+    const emailMessageId = await this.emailPerformance.queueEmail({
+      userId: state.delivery.user.id,
+      organizationId,
+      topic: 'lifecycle.onboarding',
+      templateKey: state.request.step,
+      subject: state.template.subject,
+      html: state.html,
+      destinationUrl,
+      goal:
+        state.request.step === 'checkout-recovery' ||
+        state.request.step === 'win-back'
+          ? 'buy_credits'
+          : state.request.step === 'welcome-day-2'
+            ? 'connect_account'
+            : state.request.step === 'welcome-day-0' ||
+                state.request.step === 'setup-reminder'
+              ? 'generate_content'
+              : state.request.step === 'first-generation'
+                ? 'generate_content'
+                : 'publish_content',
+      idempotencyKey: `lifecycle:${state.delivery.id}`,
+      lifecycleDeliveryId: state.delivery.id,
+      policyData: { lifecycleDeliveryId: state.delivery.id },
+    });
+    return { ...state, emailMessageId };
   }
 
   async finalizeLifecycleDelivery(
     state: LifecycleEmailDeliveryState | undefined,
     error?: string,
-  ): Promise<{ delivered: boolean; skipped?: string }> {
+  ): Promise<{ delivered: boolean; queued?: boolean; skipped?: string }> {
     if (!state?.delivery) {
       return {
         delivered: false,
@@ -214,9 +257,13 @@ export class LifecycleEmailDeliveryService {
       };
     }
     if (error) {
-      await this.prisma.lifecycleEmailDelivery.update({
+      // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
+      await this.prisma.lifecycleEmailDelivery.updateMany({
         data: { failureReason: error, status: DELIVERY_STATUS.FAILED },
-        where: { id: state.delivery.id },
+        where: {
+          id: state.delivery.id,
+          status: { in: ['scheduled', 'failed'] },
+        },
       });
       return { delivered: false };
     }
@@ -226,15 +273,16 @@ export class LifecycleEmailDeliveryService {
       }
       return { delivered: false, skipped: state.skipReason };
     }
-    await this.prisma.lifecycleEmailDelivery.update({
-      data: {
-        failureReason: null,
-        sentAt: new Date(),
-        status: DELIVERY_STATUS.SENT,
-      },
-      where: { id: state.delivery.id },
+    // Only a still-scheduled row may become queued. The job is enqueued before
+    // this write, so a worker that claims it and terminally fails first has
+    // already written `failed`; widening this to `failed` flipped that back to
+    // a terminal `queued` and dropped the failure reason.
+    // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
+    await this.prisma.lifecycleEmailDelivery.updateMany({
+      data: { failureReason: null, status: DELIVERY_STATUS.QUEUED },
+      where: { id: state.delivery.id, status: 'scheduled' },
     });
-    return { delivered: true };
+    return { delivered: false, queued: true };
   }
 
   async unsubscribe(token: string): Promise<boolean> {
@@ -319,47 +367,6 @@ export class LifecycleEmailDeliveryService {
     });
   }
 
-  private async hasActivated(userId: string): Promise<boolean> {
-    // tenant-scope-ignore: activation is a per-person lifecycle signal, not a per-tenant one; a user can belong to several organizations and this asks whether they have ever published anywhere, so scoping it to one organization would under-report and re-send activation email
-    const publishedPost = await this.prisma.post.findFirst({
-      select: { id: true },
-      where: {
-        isDeleted: false,
-        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-        userId,
-      },
-    });
-
-    return publishedPost !== null;
-  }
-
-  private async hasActiveSubscription(userId: string): Promise<boolean> {
-    const [organizationSubscription, userSubscription] = await Promise.all([
-      this.prisma.subscription.findFirst({
-        select: { id: true },
-        where: {
-          isDeleted: false,
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-          },
-          userId,
-        },
-      }),
-      this.prisma.userSubscription.findFirst({
-        select: { id: true },
-        where: {
-          isDeleted: false,
-          status: {
-            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
-          },
-          userId,
-        },
-      }),
-    ]);
-
-    return organizationSubscription !== null || userSubscription !== null;
-  }
-
   private async markDeliverySkipped(
     deliveryId: string,
     reason: string,
@@ -388,7 +395,7 @@ export class LifecycleEmailDeliveryService {
       const action = buildLifecycleSystemEmailAction(
         definition,
         appUrl,
-        input.metadata.checkoutUrl,
+        undefined,
       );
 
       return {
@@ -437,7 +444,10 @@ export class LifecycleEmailDeliveryService {
         'You are receiving this account lifecycle email because you signed up for Genfeed.ai.',
       preheader: template.preheader,
       title: template.title,
-    });
+    }).replaceAll(
+      `href="${escapeSystemEmailHtml(template.actionUrl)}"`,
+      'href="{{emailActionUrl}}"',
+    );
   }
 
   private appUrl(): string {

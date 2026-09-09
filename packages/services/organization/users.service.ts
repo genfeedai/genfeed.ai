@@ -9,6 +9,7 @@ import type {
   IQueryParams,
   ISetting,
   IUser,
+  ProductEmailTopic,
 } from '@genfeedai/contracts/interfaces';
 import { Setting } from '@genfeedai/models/analytics/setting.model';
 import { User } from '@genfeedai/models/auth/user.model';
@@ -188,6 +189,28 @@ export class UsersService extends BaseService<User> {
         data,
       )
       .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
+  public async findProductEmailPreference(
+    topic: ProductEmailTopic,
+    signal?: AbortSignal,
+  ): Promise<INotificationPreference> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `me/notification-preferences/product/${topic}/email`,
+      { signal },
+    );
+    return this.extractResource<INotificationPreference>(response.data);
+  }
+
+  public async patchProductEmailPreference(
+    topic: ProductEmailTopic,
+    isEnabled: boolean,
+  ): Promise<INotificationPreference> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `me/notification-preferences/product/${topic}/email`,
+      NotificationPreferenceSerializer.serialize({ isEnabled }),
+    );
+    return this.extractResource<INotificationPreference>(response.data);
   }
 
   public async findMe(): Promise<IUser> {

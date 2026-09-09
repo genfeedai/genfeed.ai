@@ -507,7 +507,9 @@ describe('NotificationsService', () => {
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',
-        expect.objectContaining({ message: 'socket exposed detail' }),
+        expect.objectContaining({
+          message: 'Synchronous email provider request failed',
+        }),
         undefined,
       );
     });

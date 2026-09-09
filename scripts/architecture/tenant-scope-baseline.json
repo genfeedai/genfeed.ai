@@ -2025,14 +2025,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "subscription",
-      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-delivery.service.ts",
-      "fingerprint": "90bad02170316a960f64",
-      "method": "findFirst",
-      "model": "Subscription",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "member",
       "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email.service.ts",
       "fingerprint": "9eb58dfa6d9a22610ec8",

@@ -57,6 +57,10 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
+      },
+      {
         find: '@helpers',
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },

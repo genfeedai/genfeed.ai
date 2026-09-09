@@ -16,6 +16,7 @@ import { getCriticalActionContract } from './critical-action-contracts';
 import { getDailyPublishingActionContract } from './daily-publishing-action-contracts';
 import { getEditorialActionContract } from './editorial-action-contracts';
 import { getEmailDigestActionContract } from './email-digest-action-contracts';
+import { getEmailProductSignalsActionContract } from './email-product-signals-action-contracts';
 import { getInsightActionContract } from './insight-action-contracts';
 import { getKnowledgeSourceActionContract } from './knowledge-source-action-contracts';
 import { getLifecycleEmailActionContract } from './lifecycle-email-action-contracts';
@@ -38,6 +39,7 @@ import { getWorkspaceTaskActionContract } from './workspace-task-action-contract
 import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
 
 const CONTRACT_RESOLVERS = [
+  getEmailProductSignalsActionContract,
   getRemotionActionContract,
   getDailyPublishingActionContract,
   getCriticalActionContract,

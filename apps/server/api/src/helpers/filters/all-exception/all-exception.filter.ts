@@ -1,3 +1,4 @@
+import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -84,7 +85,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     const internalDetail =
       (exceptionObj.message as string | undefined) ?? detail;
     this.loggerService.error(
-      `${req.method} ${req.originalUrl} ${status} — ${internalDetail}`,
+      `${req.method} ${redactEmailTrackingUrl(req.originalUrl)} ${status} — ${internalDetail}`,
       {
         operation: 'catch',
         service: this.constructorName,
@@ -100,7 +101,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     this.writeJsonApiError(res, {
       detail,
-      pointer: req.originalUrl,
+      pointer: redactEmailTrackingUrl(req.originalUrl),
       status,
       title,
     });

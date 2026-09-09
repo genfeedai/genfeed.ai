@@ -2500,6 +2500,46 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes one knowledge-source ingestion workflow.',
   ),
   internalAction(
+    'email-product-signals.dispatch',
+    'Discover email product signals',
+    'Discover email product signals through a hidden system workflow.',
+  ),
+  internalAction(
+    'email-product-signals.generations',
+    'Queue long generation updates',
+    'Queue long generation updates through a hidden system workflow.',
+  ),
+  internalAction(
+    'email-product-signals.conversions',
+    'Attribute confirmed email outcomes',
+    'Attribute confirmed email outcomes through a hidden system workflow.',
+  ),
+  internalAction(
+    'email-product-signals.receipts',
+    'Queue credit purchase receipts',
+    'Queue credit purchase receipts through a hidden system workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.sweep.discover',
+    'Discover lifecycle email work',
+    'Discover lifecycle email work through a hidden system workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.organization.recover',
+    'Recover lifecycle email scheduling',
+    'Recover lifecycle email scheduling through a hidden system workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.organization.recap',
+    'Queue eligible content recaps',
+    'Queue eligible content recaps through a hidden system workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.organization.credits',
+    'Queue credit balance alerts',
+    'Queue credit balance alerts through a hidden system workflow.',
+  ),
+  internalAction(
     'lifecycle-email.load-delivery',
     'Load Lifecycle Email Delivery',
     'Loads one scheduled lifecycle-email delivery and its tenant context.',

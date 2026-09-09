@@ -930,4 +930,132 @@ describe('WorkflowExecutionsService', () => {
       );
     },
   );
+
+  it.each(
+    [
+      'lifecycle-email.delivery',
+      'lifecycle-email.scheduling',
+      'lifecycle-email.schedule-delivery',
+      'lifecycle-email.cancel-checkout',
+      'lifecycle-email.enqueue-delivery',
+      'lifecycle-email.sweep',
+      'lifecycle-email.organization',
+      'email-product-signals.reconcile',
+      'email-product-signals.organization',
+    ].flatMap((canonicalId) => [
+      {
+        canonicalId,
+        error: undefined,
+        status: PrismaWorkflowExecutionStatus.COMPLETED,
+      },
+      {
+        canonicalId,
+        error: 'Email provider temporarily unavailable',
+        status: PrismaWorkflowExecutionStatus.FAILED,
+      },
+    ]),
+  )(
+    'keeps $status execution state and webhooks without notification recursion for $canonicalId',
+    async ({ canonicalId, error, status }) => {
+      const {
+        service,
+        prisma,
+        workflowNotificationOutboxService,
+        workflowEventWebhookService,
+      } = makeService();
+      prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+        organizationId: 'org-1',
+        startedAt: null,
+        estimatedDurationMs: null,
+        trigger: 'scheduled',
+        userId: 'actor-user-1',
+        workflowId: 'internal-email-workflow-1',
+        workflow: {
+          label: 'System email maintenance',
+          userId: 'genfeed-public-tools',
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            systemWorkflow: buildHiddenSystemWorkflowMetadata({ canonicalId }),
+          },
+        },
+      });
+
+      await expect(
+        service.completeExecution('execution-1', error),
+      ).resolves.not.toBeNull();
+      expect(prisma.workflowExecution.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status,
+            completedAt: expect.any(Date),
+            progress: 100,
+          }),
+          where: expect.objectContaining({
+            id: 'execution-1',
+            organizationId: 'org-1',
+            isDeleted: false,
+          }),
+        }),
+      );
+      expect(
+        workflowEventWebhookService.emitExecutionOutcome,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org-1',
+          workflowId: 'internal-email-workflow-1',
+          executionId: 'execution-1',
+          errorMessage: error ?? null,
+          status: error
+            ? SharedWorkflowExecutionStatus.FAILED
+            : SharedWorkflowExecutionStatus.COMPLETED,
+        }),
+      );
+      expect(
+        workflowNotificationOutboxService.recordWorkflowOutcome,
+      ).not.toHaveBeenCalled();
+      expect(
+        workflowNotificationOutboxService.enqueueAfterCommit,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([undefined, 'Provider timed out'])(
+    'still notifies a user-owned workflow with an email-like canonical ID (error=%s)',
+    async (error) => {
+      const { service, prisma, workflowNotificationOutboxService } =
+        makeService();
+      prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+        organizationId: 'org-1',
+        startedAt: null,
+        estimatedDurationMs: null,
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'My email workflow',
+          userId: 'owner-user-1',
+          metadata: {
+            sourceType: 'user-workflow',
+            systemWorkflow: buildHiddenSystemWorkflowMetadata({
+              canonicalId: 'lifecycle-email.delivery',
+            }),
+          },
+        },
+      });
+      await service.completeExecution('execution-1', error);
+      expect(
+        workflowNotificationOutboxService.recordWorkflowOutcome,
+      ).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({
+          workflowOwnerUserId: 'owner-user-1',
+          isAgentRun: false,
+          status: error ? 'failed' : 'completed',
+        }),
+      );
+      expect(
+        workflowNotificationOutboxService.enqueueAfterCommit,
+      ).toHaveBeenCalledWith('delivery-1');
+    },
+  );
 });

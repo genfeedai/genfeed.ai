@@ -9,6 +9,8 @@ import {
 describe('lifecycle-emails.constant', () => {
   it('registers the lifecycle system emails surfaced in admin', () => {
     expect(LIFECYCLE_SYSTEM_EMAILS.map((email) => email.step)).toEqual([
+      'setup-reminder',
+      'first-generation',
       'welcome-day-0',
       'welcome-day-2',
       'welcome-day-7',

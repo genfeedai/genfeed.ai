@@ -10,6 +10,7 @@ import { CronCredentialsService } from '@workers/crons/credentials/cron.credenti
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';
+import { CronLifecycleEmailsService } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.service';
 import { CronLlmIdleService } from '@workers/crons/llm-idle/cron.llm-idle.service';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
@@ -76,9 +77,12 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly youtubeMessages: CronYoutubeMessagesService,
     private readonly youtubeStatus: CronYoutubeStatusService,
     private readonly logger: LoggerService,
+    private readonly lifecycleEmails: CronLifecycleEmailsService,
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: () =>
+        this.lifecycleEmails.processLifecycleEmails(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE]: () =>
         this.batchGeneration.reconcileSettlementShortfalls(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: () =>

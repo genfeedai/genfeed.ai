@@ -69,6 +69,7 @@ export interface IDeductCreditsOptions {
 }
 
 export interface IAddCreditsOptions {
+  actorUserId?: string;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;

@@ -1,4 +1,5 @@
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
+import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import {
   ArgumentsHost,
   Catch,
@@ -47,7 +48,7 @@ export class HttpExceptionFilter extends AllExceptionFilter {
           operation: 'catch',
           service: 'HttpExceptionFilter',
           status,
-          url: req.originalUrl,
+          url: redactEmailTrackingUrl(req.originalUrl),
         });
       }
     } else {
@@ -61,13 +62,13 @@ export class HttpExceptionFilter extends AllExceptionFilter {
         operation: 'catch',
         service: 'HttpExceptionFilter',
         status,
-        url: req.originalUrl,
+        url: redactEmailTrackingUrl(req.originalUrl),
       });
     }
 
     this.writeJsonApiError(res, {
       detail,
-      pointer: req.originalUrl,
+      pointer: redactEmailTrackingUrl(req.originalUrl),
       source,
       status,
       title,

@@ -1,21 +1,24 @@
 import {
+  PerformanceSummaryService,
+  type WeeklySummary,
+} from '@api/collections/content-performance/services/performance-summary.service';
+import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
+import {
   SERVER_TOKENS,
   type ServerLogger,
-  type ServerNotifications,
   type ServerPrisma,
 } from '@api/server.dependencies';
+import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
-import { Inject, Injectable } from '@nestjs/common';
-import {
-  PerformanceSummaryService,
-  type WeeklySummary,
-} from './performance-summary.service';
+import { ConfigService } from '@libs/config/config.service';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export interface EmailDigestResult {
   sent: number;
+  queued: number;
   skipped: number;
   errors: number;
 }
@@ -23,9 +26,8 @@ export interface EmailDigestResult {
 export interface EmailDigestOptions {
   organizationId: string;
   brandId: string;
-  /** Override recipients (defaults to org owner) */
+  /** Optional active organization members; external email addresses are rejected. */
   recipientEmails?: string[];
-  /** Date range for summary */
   startDate?: Date | string;
   endDate?: Date | string;
 }
@@ -33,52 +35,114 @@ export interface EmailDigestOptions {
 export interface EmailDigestPrepared {
   options: EmailDigestOptions;
   organizationName: string;
+  destinationUrl: string;
   summary: WeeklySummary;
 }
 
+export interface EmailDigestDelivery {
+  userId: string;
+  organizationId: string;
+  brandId: string;
+  startDate: string;
+  endDate: string;
+  destinationUrl: string;
+  html: string;
+  subject: string;
+}
+
+export interface EmailDigestRecipientResult {
+  userId: string;
+  queued: boolean;
+  deliveryId?: string;
+  error?: string;
+}
+
 export interface EmailDigestRendered {
-  deliveries: Array<{ email: string; html: string; subject: string }>;
+  deliveries: EmailDigestDelivery[];
 }
 
 @Injectable()
 export class EmailDigestService {
   constructor(
     private readonly performanceSummaryService: PerformanceSummaryService,
-    @Inject(SERVER_TOKENS.notifications)
-    private readonly notificationsService: ServerNotifications,
-    @Inject(SERVER_TOKENS.prisma)
-    private readonly prisma: ServerPrisma,
-    @Inject(SERVER_TOKENS.logger)
-    private readonly logger: ServerLogger,
+    private readonly emailPerformance: EmailPerformanceService,
+    @Inject(SERVER_TOKENS.prisma) private readonly prisma: ServerPrisma,
+    @Inject(SERVER_TOKENS.logger) private readonly logger: ServerLogger,
+    private readonly config: ConfigService,
   ) {}
+
+  normalizeOptions<T extends EmailDigestOptions>(
+    options: T,
+  ): T & { startDate: string; endDate: string } {
+    try {
+      const range = DateRangeUtil.parseDateRange(
+        options.startDate,
+        options.endDate,
+      );
+      const duration = range.endDate.getTime() - range.startDate.getTime();
+      if (
+        !Number.isFinite(duration) ||
+        duration <= 0 ||
+        duration >= 90 * 86_400_000
+      )
+        throw new Error('Invalid range');
+      return {
+        ...options,
+        startDate: range.startDate.toISOString(),
+        endDate: range.endDate.toISOString(),
+      };
+    } catch {
+      throw new BadRequestException(
+        'Choose a valid digest period of 2–90 complete UTC days.',
+      );
+    }
+  }
 
   async prepareDigest(
     options: EmailDigestOptions,
   ): Promise<EmailDigestPrepared> {
+    const normalized = this.normalizeOptions(options);
+    const [organization, brand] = await Promise.all([
+      this.prisma.organization.findFirst({
+        where: { id: options.organizationId, isDeleted: false },
+        select: { label: true, slug: true },
+      }),
+      this.prisma.brand.findFirst({
+        where: {
+          id: options.brandId,
+          organizationId: options.organizationId,
+          isDeleted: false,
+        },
+        select: { slug: true },
+      }),
+    ]);
+    if (!organization || !brand)
+      throw new BadRequestException(
+        'Digest organization or brand is unavailable.',
+      );
+    const appUrl = (
+      this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
+    ).replace(/\/$/, '');
+    const destinationUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/${encodeURIComponent(brand.slug)}/library/assets`;
     const summary = await this.performanceSummaryService.getWeeklySummary(
       options.organizationId,
       options.brandId,
-      {
-        endDate: options.endDate as string,
-        startDate: options.startDate as string,
-      },
+      normalized,
     );
-    const organization = await this.prisma.organization.findUnique({
-      where: { id: options.organizationId },
-    });
     return {
-      options,
-      organizationName: organization?.label ?? 'Your Organization',
+      options: normalized,
+      organizationName: organization.label ?? 'Your Organization',
+      destinationUrl,
       summary,
     };
   }
 
   async discoverDigestRecipients(
     prepared: EmailDigestPrepared,
-  ): Promise<EmailDigestPrepared & { recipients: string[] }> {
+  ): Promise<EmailDigestPrepared & { recipientUserIds: string[] }> {
     return {
       ...prepared,
-      recipients: await this.resolveRecipients(
+      recipientUserIds: await this.resolveRecipients(
         prepared.options.organizationId,
         prepared.options.recipientEmails,
       ),
@@ -86,64 +150,129 @@ export class EmailDigestService {
   }
 
   renderDigest(
-    state: EmailDigestPrepared & { recipients: string[] },
+    state: EmailDigestPrepared & { recipientUserIds: string[] },
   ): EmailDigestRendered {
-    const html = this.buildDigestHtml(state.summary, state.organizationName);
+    const normalized = this.normalizeOptions(state.options);
+    const html = this.buildDigestHtml(
+      state.summary,
+      state.organizationName,
+      state.destinationUrl,
+    );
     const subject = `Weekly Performance Digest - ${state.organizationName}`;
     return {
-      deliveries: state.recipients.map((email) => ({ email, html, subject })),
+      deliveries: state.recipientUserIds.map((userId) => ({
+        userId,
+        organizationId: normalized.organizationId,
+        brandId: normalized.brandId,
+        startDate: normalized.startDate,
+        endDate: normalized.endDate,
+        destinationUrl: state.destinationUrl,
+        html,
+        subject,
+      })),
     };
   }
 
-  async deliverDigestRecipient(input: {
-    email: string;
-    html: string;
-    subject: string;
-  }): Promise<{ email: string; sent: boolean; error?: string }> {
+  async deliverDigestRecipient(
+    input: EmailDigestDelivery,
+  ): Promise<EmailDigestRecipientResult> {
     try {
-      await this.notificationsService.sendEmail(
-        input.email,
-        input.subject,
-        input.html,
-      );
-      return { email: input.email, sent: true };
+      if (
+        !input.userId ||
+        !input.organizationId ||
+        !input.brandId ||
+        !input.startDate ||
+        !input.endDate ||
+        !input.destinationUrl
+      )
+        throw new BadRequestException(
+          'Digest requires a canonical member and explicit report window.',
+        );
+      const deliveryId = await this.emailPerformance.queueEmail({
+        userId: input.userId,
+        organizationId: input.organizationId,
+        // An explicitly requested brand report, not the automated weekly recap.
+        // Sharing 'content.weekly' let the recap toggle silently drop it.
+        topic: 'content.digest',
+        templateKey: 'performance-digest',
+        subject: input.subject,
+        html: input.html,
+        destinationUrl: input.destinationUrl,
+        goal: 'publish_content',
+        idempotencyKey: `performance-digest/${input.brandId}/${input.startDate}/${input.endDate}`,
+        policyData: { brandId: input.brandId },
+      });
+      return { userId: input.userId, queued: true, deliveryId };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to send digest email to ${input.email}`, error);
-      return { email: input.email, error: message, sent: false };
+      this.logger.error('Failed to queue digest email', error);
+      return { userId: input.userId, error: message, queued: false };
     }
   }
 
-  /**
-   * Resolve email recipients — use provided list or fall back to org owner.
-   */
   private async resolveRecipients(
     organizationId: string,
     overrideEmails?: string[],
   ): Promise<string[]> {
-    if (overrideEmails && overrideEmails.length > 0) {
-      return overrideEmails;
+    const emails = [
+      ...new Set(
+        (overrideEmails ?? []).map((email) => email.trim().toLowerCase()),
+      ),
+    ];
+    if (emails.length > 50 || emails.some((email) => !email))
+      throw new BadRequestException(
+        'Choose no more than 50 active organization members.',
+      );
+    if (emails.length > 0) {
+      const members = await this.prisma.member.findMany({
+        where: {
+          organizationId,
+          isDeleted: false,
+          isActive: true,
+          user: {
+            is: {
+              isDeleted: false,
+              email: { in: emails, mode: 'insensitive' },
+            },
+          },
+        },
+        select: { user: { select: { id: true, email: true } } },
+      });
+      const resolvedEmails = new Set(
+        members.map((member) => member.user.email?.trim().toLowerCase()),
+      );
+      if (emails.some((email) => !resolvedEmails.has(email)))
+        throw new BadRequestException(
+          'Digest recipients must be active members of this organization.',
+        );
+      return [...new Set(members.map((member) => member.user.id))];
     }
-
-    const org = await this.prisma.organization.findUnique({
-      where: { id: organizationId },
+    const org = await this.prisma.organization.findFirst({
+      where: { id: organizationId, isDeleted: false },
+      select: { userId: true },
     });
-
     if (!org?.userId) return [];
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: org.userId },
+    const member = await this.prisma.member.findFirst({
+      where: {
+        organizationId,
+        userId: org.userId,
+        isDeleted: false,
+        isActive: true,
+        user: { is: { isDeleted: false, email: { not: null } } },
+      },
+      select: { userId: true },
     });
-
-    if (!user?.email) return [];
-
-    return [user.email];
+    return member ? [member.userId] : [];
   }
 
   /**
    * Build the HTML email body from a WeeklySummary.
    */
-  buildDigestHtml(summary: WeeklySummary, orgName: string): string {
+  buildDigestHtml(
+    summary: WeeklySummary,
+    orgName: string,
+    destinationUrl?: string,
+  ): string {
     const trend = summary.weekOverWeekTrend;
     const trendLabel =
       trend.direction === 'up'
@@ -252,12 +381,21 @@ export class EmailDigestService {
       : ''
   }`;
 
-    return buildSystemEmailHtml({
+    const html = buildSystemEmailHtml({
       bodyHtml,
+      action: destinationUrl
+        ? { label: 'Review and publish content', url: destinationUrl }
+        : undefined,
       footerNote:
         'This is an automated performance digest. To unsubscribe, update your notification preferences in Genfeed.',
       title: 'Weekly Performance Digest',
     });
+    return destinationUrl
+      ? html.replaceAll(
+          escapeSystemEmailHtml(destinationUrl),
+          '{{emailActionUrl}}',
+        )
+      : html;
   }
 
   private escapeHtml(text: string): string {

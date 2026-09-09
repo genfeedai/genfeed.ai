@@ -1,3 +1,4 @@
+import AssetDeepLink from '@app/(protected)/[orgSlug]/[brandSlug]/library/assets/asset-deep-link';
 import { LibraryPlace, PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
@@ -17,6 +18,7 @@ export default function LibraryAssetsPage() {
     <LibraryBrowser place={LibraryPlace.ASSETS} scope={PageScope.BRAND}>
       <LibraryCreditNotice />
       <Suspense fallback={null}>
+        <AssetDeepLink />
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

@@ -7,6 +7,8 @@ export type LifecycleSystemEmailSequence =
   | 'win-back';
 
 export type LifecycleSystemEmailStep =
+  | 'setup-reminder'
+  | 'first-generation'
   | 'welcome-day-0'
   | 'welcome-day-2'
   | 'welcome-day-7'
@@ -64,6 +66,53 @@ const DEFAULT_SKIP_RULES = [
 ] as const;
 
 export const LIFECYCLE_SYSTEM_EMAILS = [
+  {
+    action: {
+      label: 'Finish brand setup',
+      path: APP_ROUTES.ONBOARDING.ROOT,
+      type: 'app-path',
+    },
+    audience: 'Cloud signups with incomplete organization onboarding',
+    id: 'setup-reminder',
+    name: 'Finish setup',
+    paragraphs: [
+      `${GREETING_TOKEN}, finish setting up your brand so your content sounds and looks like you.`,
+      'Your progress is saved. Continue when you are ready.',
+    ],
+    preheader: 'Resume your brand setup.',
+    schedule: '1 day after signup',
+    sequence: 'welcome',
+    skipRules: [...DEFAULT_SKIP_RULES, 'Organization onboarding is complete.'],
+    step: 'setup-reminder',
+    subject: 'Your brand setup is waiting',
+    systemWorkflowId: 'system.lifecycle-email.setup-reminder',
+    title: 'Finish your brand setup',
+    trigger: 'Signup without completed setup',
+    visibility: 'admin-only',
+  },
+  {
+    action: { label: 'Create your first content', type: 'app-root' },
+    audience: 'Cloud creators with a brand and no successful generation',
+    id: 'first-generation',
+    name: 'First generation',
+    paragraphs: [
+      `${GREETING_TOKEN}, your brand is ready for its first piece of content.`,
+      'Start with one idea and create an image or video for your next post.',
+    ],
+    preheader: 'Turn your first idea into content.',
+    schedule: '4 days after signup',
+    sequence: 'welcome',
+    skipRules: [
+      ...DEFAULT_SKIP_RULES,
+      'Brand setup is incomplete or content has already been generated.',
+    ],
+    step: 'first-generation',
+    subject: 'Create your first piece of content',
+    systemWorkflowId: 'system.lifecycle-email.first-generation',
+    title: 'Bring your first idea to life',
+    trigger: 'Brand setup complete without generation',
+    visibility: 'admin-only',
+  },
   {
     action: {
       label: 'Start onboarding',
@@ -171,7 +220,7 @@ export const LIFECYCLE_SYSTEM_EMAILS = [
       'You can return when you are ready and continue from the same Genfeed account.',
     ],
     preheader: 'Return to your Genfeed checkout when ready.',
-    schedule: '1 day after checkout starts',
+    schedule: '2 hours after checkout starts',
     sequence: 'abandoned-checkout',
     skipRules: [
       ...DEFAULT_SKIP_RULES,

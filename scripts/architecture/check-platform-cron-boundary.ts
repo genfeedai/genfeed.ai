@@ -109,6 +109,13 @@ export type CronBoundaryOptions = {
  */
 export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
   {
+    file: 'apps/server/workers/src/crons/lifecycle-emails/cron.lifecycle-emails.service.ts',
+    id: 'lifecycle-emails',
+    methodName: 'processLifecycleEmails',
+    reason:
+      'Dispatches hidden lifecycle and product-signal workflows; business eligibility lives in graph actions.',
+  },
+  {
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
     id: 'credentials-refresh',
     methodName: 'refreshExpiringTokens',

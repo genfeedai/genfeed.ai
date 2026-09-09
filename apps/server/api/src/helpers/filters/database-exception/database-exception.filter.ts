@@ -1,4 +1,5 @@
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
+import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import { type ArgumentsHost, Catch, HttpStatus } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import type { Request as ExpressRequest } from 'express';
@@ -38,7 +39,7 @@ export class DatabaseExceptionFilter extends AllExceptionFilter {
       Sentry.captureException(exception);
     } else {
       this.loggerService.error(
-        `${req.method} ${req.originalUrl} ${status} - ${title}: ${detail}`,
+        `${req.method} ${redactEmailTrackingUrl(req.originalUrl)} ${status} - ${title}: ${detail}`,
         {
           databaseCode: exceptionObj.code,
           operation: 'catch',
@@ -49,7 +50,7 @@ export class DatabaseExceptionFilter extends AllExceptionFilter {
 
     this.writeJsonApiError(res, {
       detail,
-      pointer: req.originalUrl,
+      pointer: redactEmailTrackingUrl(req.originalUrl),
       status,
       title,
     });

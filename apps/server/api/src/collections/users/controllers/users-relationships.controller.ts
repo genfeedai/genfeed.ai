@@ -10,6 +10,7 @@ import {
   getCanonicalId,
   nestedSettingsRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
+import { ProductEmailTopicDto } from '@api/collections/users/dto/product-email-topic.dto';
 import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/users/dto/update-workflow-email-notification-preference.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
@@ -133,6 +134,34 @@ export class UsersRelationshipsController {
       user.userId ?? user.id,
       dto.isEnabled,
       AGENT_STATUS_NOTIFICATION_TOPIC,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
+
+  @Get('me/notification-preferences/product/:topic/email')
+  async findProductEmailPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param() params: ProductEmailTopicDto,
+  ) {
+    const data = await this.notificationPreferenceService.findForUser(
+      user.userId ?? user.id,
+      params.topic,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
+
+  @Patch('me/notification-preferences/product/:topic/email')
+  async updateProductEmailPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param() params: ProductEmailTopicDto,
+    @Body() dto: UpdateWorkflowEmailNotificationPreferenceDto,
+  ) {
+    const data = await this.notificationPreferenceService.setForUser(
+      user.userId ?? user.id,
+      dto.isEnabled,
+      params.topic,
     );
     return serializeSingle(request, NotificationPreferenceSerializer, data);
   }
