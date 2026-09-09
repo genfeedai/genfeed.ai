@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CDN_BASE_URL, cdnAsset } from './cdn.helper';
+import { CDN_BASE_URL, cdnAsset, cdnProductStill } from './cdn.helper';
 
 describe('cdnAsset', () => {
   it('prefixes a leading-slash path with the CDN base', () => {
@@ -25,5 +25,11 @@ describe('cdnAsset', () => {
   it('exposes the canonical base without a trailing slash', () => {
     expect(CDN_BASE_URL).toBe('https://cdn.genfeed.ai');
     expect(CDN_BASE_URL.endsWith('/')).toBe(false);
+  });
+
+  it('builds product still URLs for a surface and id', () => {
+    expect(cdnProductStill('agents', 'script-writer')).toBe(
+      'https://cdn.genfeed.ai/assets/agents/script-writer.webp',
+    );
   });
 });

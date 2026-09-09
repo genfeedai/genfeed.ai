@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/contracts';
+import { cdnProductStill } from '@helpers/media/cdn/cdn.helper';
 import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-team-presets';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
@@ -16,13 +17,14 @@ import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Cpu,
   FileText,
-  Image,
+  Image as ImageIcon,
   Megaphone,
   Sparkles,
   User,
   Video,
   Zap,
 } from 'lucide-react';
+import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -33,7 +35,7 @@ const PRESET_ICONS: Partial<Record<AgentType, typeof Cpu>> = {
   [AgentType.BRAND_INTERVIEW]: Sparkles,
   [AgentType.CTA_CONTENT]: Sparkles,
   [AgentType.GENERAL]: Cpu,
-  [AgentType.IMAGE_CREATOR]: Image,
+  [AgentType.IMAGE_CREATOR]: ImageIcon,
   [AgentType.LINKEDIN_CONTENT]: FileText,
   [AgentType.SHORT_FORM_WRITER]: Zap,
   [AgentType.VIDEO_CREATOR]: Video,
@@ -43,6 +45,8 @@ const PRESET_ICONS: Partial<Record<AgentType, typeof Cpu>> = {
 
 const ALL_CATEGORY = 'all';
 const FEATURED_COUNT = 4;
+const FEATURED_AVATAR_SIZE = 40;
+const LIST_AVATAR_SIZE = 36;
 
 function matchesQuery(preset: ContentTeamRolePreset, query: string): boolean {
   if (!query) {
@@ -58,6 +62,40 @@ function matchesQuery(preset: ContentTeamRolePreset, query: string): boolean {
     .join(' ')
     .toLowerCase();
   return haystack.includes(query);
+}
+
+function comparePresetName(
+  left: ContentTeamRolePreset,
+  right: ContentTeamRolePreset,
+): number {
+  return left.displayRole.localeCompare(right.displayRole);
+}
+
+function AgentPresetAvatar({
+  fallbackIcon: FallbackIcon,
+  presetId,
+  size,
+}: {
+  fallbackIcon: typeof Cpu;
+  presetId: string;
+  size: number;
+}) {
+  const [hasFailed, setHasFailed] = useState(false);
+
+  if (hasFailed) {
+    return <FallbackIcon className="size-4 text-foreground/70" />;
+  }
+
+  return (
+    <NextImage
+      alt=""
+      className="rounded-md object-cover"
+      height={size}
+      onError={() => setHasFailed(true)}
+      src={cdnProductStill('agents', presetId)}
+      width={size}
+    />
+  );
 }
 
 export default function AgentMarketplace({
@@ -84,7 +122,7 @@ export default function AgentMarketplace({
           return false;
         }
         return matchesQuery(preset, query);
-      }),
+      }).sort(comparePresetName),
     [category, query],
   );
 
@@ -135,7 +173,14 @@ export default function AgentMarketplace({
                   className="h-full"
                   data-testid={`agent-preset-featured-${preset.id}`}
                   description={preset.description}
-                  icon={Icon}
+                  icon={
+                    <AgentPresetAvatar
+                      fallbackIcon={Icon}
+                      presetId={preset.id}
+                      size={FEATURED_AVATAR_SIZE}
+                    />
+                  }
+                  iconWrapperClassName="bg-transparent p-0"
                   isDisabled={isSubmitting}
                   label={preset.displayRole}
                   onClick={() => {
@@ -180,8 +225,12 @@ export default function AgentMarketplace({
                   density="compact"
                   description={preset.description}
                   leading={
-                    <span className="flex size-9 items-center justify-center rounded-md bg-foreground/5 text-foreground/70">
-                      <Icon className="size-4" />
+                    <span className="flex size-9 items-center justify-center overflow-hidden rounded-md bg-foreground/5">
+                      <AgentPresetAvatar
+                        fallbackIcon={Icon}
+                        presetId={preset.id}
+                        size={LIST_AVATAR_SIZE}
+                      />
                     </span>
                   }
                   meta={`${preset.teamGroup} · ${translate('creditsPerDay', {

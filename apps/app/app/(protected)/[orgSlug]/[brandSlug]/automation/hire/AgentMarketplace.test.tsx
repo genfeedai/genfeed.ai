@@ -59,21 +59,30 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt?: string; src: string }) => (
+    <span data-alt={alt} data-src={src} />
+  ),
+}));
+
 vi.mock('@ui/lists/list-row/ListRow', () => ({
   ListRow: ({
     description,
+    leading,
     meta,
     title,
     trailing,
     'data-testid': dataTestId,
   }: {
     description?: ReactNode;
+    leading?: ReactNode;
     meta?: ReactNode;
     title: ReactNode;
     trailing?: ReactNode;
     'data-testid'?: string;
   }) => (
     <div data-testid={dataTestId}>
+      {leading}
       <p>{title}</p>
       <p>{description}</p>
       <p>{meta}</p>
@@ -183,5 +192,27 @@ describe('AgentMarketplace', () => {
 
     fireEvent.click(screen.getByTestId('activate-copywriter'));
     expect(onActivate).toHaveBeenCalledWith('copywriter');
+  });
+
+  it('lists agents alphabetically by name', () => {
+    render(
+      <AgentMarketplace
+        isSubmitting={false}
+        onActivate={onActivate}
+        submittingPresetId={null}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByTestId(/agent-preset-row-/)
+        .map((row) => row.getAttribute('data-testid')),
+    ).toEqual([
+      'agent-preset-row-copywriter',
+      'agent-preset-row-video-producer',
+    ]);
+    expect(document.querySelector('[data-src]')?.getAttribute('data-src')).toBe(
+      'https://cdn.genfeed.ai/assets/agents/copywriter.webp',
+    );
   });
 });
