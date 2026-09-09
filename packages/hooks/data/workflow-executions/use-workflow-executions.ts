@@ -12,6 +12,10 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
+export interface UseWorkflowExecutionsOptions {
+  enabled?: boolean;
+}
+
 export interface UseWorkflowExecutionsReturn {
   cancelExecution: (id: string) => Promise<void>;
   executions: IWorkflowExecution[];
@@ -24,10 +28,12 @@ export interface UseWorkflowExecutionsReturn {
 
 export function useWorkflowExecutions(
   params: WorkflowExecutionListQueryParams = {},
+  options: UseWorkflowExecutionsOptions = {},
 ): UseWorkflowExecutionsReturn {
   const { getToken, isLoaded, orgId, userId } = useAuthIdentity();
   // orgId stays null until the organization plugin lands; key on the session.
   const isIdentityReady = isLoaded && Boolean(userId);
+  const isEnabled = isIdentityReady && (options.enabled ?? true);
   const {
     data = [],
     isPending,
@@ -36,7 +42,7 @@ export function useWorkflowExecutions(
     refetch,
   } = useQuery({
     // Wait for identity so the first paint never shows an empty "0" strip.
-    enabled: isIdentityReady,
+    enabled: isEnabled,
     queryKey: [
       'workflow-executions',
       userId ?? 'anonymous',

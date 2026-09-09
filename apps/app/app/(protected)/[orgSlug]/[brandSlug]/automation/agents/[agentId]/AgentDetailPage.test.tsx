@@ -24,6 +24,17 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  toBrandListParams: () => ({ brandId: 'brand-1' }),
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@hooks/data/agent-strategies/use-agent-strategy', () => ({
   useAgentStrategy: () => ({
     isLoading: false,

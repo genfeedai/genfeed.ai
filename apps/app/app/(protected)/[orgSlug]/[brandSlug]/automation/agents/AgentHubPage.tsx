@@ -1,12 +1,7 @@
 'use client';
 
-import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  LinkedinIcon,
-  XTwitterIcon,
-  YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
@@ -29,56 +24,14 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  CirclePlay,
-  Cpu,
-  FileText,
-  Image,
-  Megaphone,
-  Sparkles,
-  User,
-  UserPlus,
-  Users,
-  Video,
-  Workflow,
-  Zap,
-} from 'lucide-react';
+import { CirclePlay, UserPlus, Users, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import AddAgentDialog, { type AddAgentMode } from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
-
-const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
-  [AgentType.GENERAL]: <Cpu className="size-5" />,
-  [AgentType.X_CONTENT]: <XTwitterIcon className="size-4" />,
-  [AgentType.IMAGE_CREATOR]: <Image className="size-5" />,
-  [AgentType.VIDEO_CREATOR]: <Video className="size-5" />,
-  [AgentType.AI_AVATAR]: <User className="size-5" />,
-  [AgentType.ARTICLE_WRITER]: <FileText className="size-5" />,
-  [AgentType.LINKEDIN_CONTENT]: <LinkedinIcon className="size-4" />,
-  [AgentType.ADS_SCRIPT_WRITER]: <Megaphone className="size-5" />,
-  [AgentType.SHORT_FORM_WRITER]: <Zap className="size-5" />,
-  [AgentType.CTA_CONTENT]: <Sparkles className="size-5" />,
-  [AgentType.YOUTUBE_SCRIPT]: <YoutubeIcon className="size-4" />,
-  [AgentType.BRAND_INTERVIEW]: <Sparkles className="size-5" />,
-};
-
-const AGENT_TYPE_LABELS: Record<AgentType, string> = {
-  [AgentType.GENERAL]: 'General',
-  [AgentType.X_CONTENT]: 'X Content',
-  [AgentType.IMAGE_CREATOR]: 'Image Creator',
-  [AgentType.VIDEO_CREATOR]: 'Video Creator',
-  [AgentType.AI_AVATAR]: 'AI Avatar',
-  [AgentType.ARTICLE_WRITER]: 'Article Writer',
-  [AgentType.LINKEDIN_CONTENT]: 'LinkedIn Copywriter',
-  [AgentType.ADS_SCRIPT_WRITER]: 'Ads Script Writer',
-  [AgentType.SHORT_FORM_WRITER]: 'Short-Form Writer',
-  [AgentType.CTA_CONTENT]: 'CTA / Conversion',
-  [AgentType.YOUTUBE_SCRIPT]: 'YouTube Script',
-  [AgentType.BRAND_INTERVIEW]: 'Brand Interview',
-};
+import { getAgentTypeIcon, getAgentTypeLabel } from './agent-type-display';
 
 function AgentCard({
   strategy,
@@ -92,9 +45,8 @@ function AgentCard({
   onRunWorkflow: (strategy: AgentStrategy) => void;
 }) {
   const translate = useTranslations('common.automation.agentHub');
-  const agentType = strategy.agentType as AgentType;
-  const icon = AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />;
-  const typeLabel = AGENT_TYPE_LABELS[agentType] ?? strategy.agentType;
+  const Icon = getAgentTypeIcon(strategy.agentType);
+  const typeLabel = getAgentTypeLabel(strategy.agentType);
 
   const lastRunLabel = strategy.lastRunAt
     ? formatDistanceToNow(new Date(strategy.lastRunAt), { addSuffix: true })
@@ -109,7 +61,7 @@ function AgentCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex size-8 items-center justify-center rounded bg-foreground/5 text-foreground/70">
-            {icon}
+            <Icon className="size-5" />
           </span>
           <div>
             <p className="font-medium text-sm">{strategy.label}</p>

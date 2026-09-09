@@ -194,5 +194,7 @@ describe('AutomationOverviewPage', () => {
     expect(screen.getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText('Agents')).toBeInTheDocument();
     expect(screen.getByText('Workflows')).toBeInTheDocument();
+    expect(screen.queryByText('On schedule')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unscheduled')).not.toBeInTheDocument();
   });
 });

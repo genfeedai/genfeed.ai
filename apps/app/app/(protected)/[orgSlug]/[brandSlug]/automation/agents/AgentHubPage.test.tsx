@@ -327,7 +327,7 @@ describe('AgentHubPage', () => {
 
     render(<AgentHubPage />);
 
-    fireEvent.click(screen.getByText('Autopilot'));
+    fireEvent.click(screen.getByText('Run now'));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to trigger agent run',

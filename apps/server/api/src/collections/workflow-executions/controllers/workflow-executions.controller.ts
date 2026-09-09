@@ -103,6 +103,23 @@ export class WorkflowExecutionsController {
       match.trigger = query.trigger;
     }
 
+    if (query.strategyId) {
+      match.OR = [
+        {
+          result: {
+            path: ['metadata', 'strategyId'],
+            equals: query.strategyId,
+          },
+        },
+        {
+          result: {
+            path: ['metadata', 'agentStrategyId'],
+            equals: query.strategyId,
+          },
+        },
+      ];
+    }
+
     return {
       include: {
         workflow: { select: { description: true, id: true, label: true } },
@@ -122,6 +139,12 @@ export class WorkflowExecutionsController {
   @ApiQuery({
     description: 'Filter by status',
     name: 'status',
+    required: false,
+  })
+  @ApiQuery({
+    description:
+      'Filter by agent strategy id stored in execution result metadata',
+    name: 'strategyId',
     required: false,
   })
   @ApiQuery({

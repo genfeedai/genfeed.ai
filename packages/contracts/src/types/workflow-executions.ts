@@ -4,6 +4,7 @@ export interface WorkflowExecutionListQueryParams {
   offset?: number;
   sort?: string;
   status?: string;
+  strategyId?: string;
   trigger?: string;
   workflowId?: string;
 }

@@ -21,6 +21,17 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/brand${path}` }),
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  toBrandListParams: () => ({ brandId: 'brand-1' }),
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AgentType,
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cdnProductStill } from '@helpers/media/cdn/cdn.helper';
 import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-team-presets';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
@@ -14,34 +9,13 @@ import Card from '@ui/card/Card';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Cpu,
-  FileText,
-  Image as ImageIcon,
-  Megaphone,
-  Sparkles,
-  User,
-  Video,
-  Zap,
-} from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-
-const PRESET_ICONS: Partial<Record<AgentType, typeof Cpu>> = {
-  [AgentType.ADS_SCRIPT_WRITER]: Megaphone,
-  [AgentType.AI_AVATAR]: User,
-  [AgentType.ARTICLE_WRITER]: FileText,
-  [AgentType.BRAND_INTERVIEW]: Sparkles,
-  [AgentType.CTA_CONTENT]: Sparkles,
-  [AgentType.GENERAL]: Cpu,
-  [AgentType.IMAGE_CREATOR]: ImageIcon,
-  [AgentType.LINKEDIN_CONTENT]: FileText,
-  [AgentType.SHORT_FORM_WRITER]: Zap,
-  [AgentType.VIDEO_CREATOR]: Video,
-  [AgentType.X_CONTENT]: Sparkles,
-  [AgentType.YOUTUBE_SCRIPT]: Video,
-};
+import {
+  type AgentTypeIcon,
+  getAgentTypeIcon,
+} from '../agents/agent-type-display';
 
 const ALL_CATEGORY = 'all';
 const FEATURED_COUNT = 4;
@@ -76,7 +50,7 @@ function AgentPresetAvatar({
   presetId,
   size,
 }: {
-  fallbackIcon: typeof Cpu;
+  fallbackIcon: AgentTypeIcon;
   presetId: string;
   size: number;
 }) {
@@ -165,7 +139,7 @@ export default function AgentMarketplace({
           </p>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {featuredPresets.map((preset) => {
-              const Icon = PRESET_ICONS[preset.type] ?? Cpu;
+              const Icon = getAgentTypeIcon(preset.type);
               const isActivating = submittingPresetId === preset.id;
               return (
                 <Card
@@ -216,7 +190,7 @@ export default function AgentMarketplace({
             </p>
           ) : (
             visiblePresets.map((preset) => {
-              const Icon = PRESET_ICONS[preset.type] ?? Cpu;
+              const Icon = getAgentTypeIcon(preset.type);
               const isActivating = submittingPresetId === preset.id;
               return (
                 <ListRow

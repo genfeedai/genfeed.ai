@@ -15,26 +15,27 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Cpu, Pause, Users, Workflow } from 'lucide-react';
+import { Users, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
-import {
-  createWorkflowApiService,
-  type WorkflowSummary,
-} from '@/features/workflows/services/workflow-api';
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import ContentPlansSection from '../autopilot/ContentPlansSection';
 import ActiveRunsPanel from '../runs/ActiveRunsPanel';
 import RunHistoryList from '../runs/RunHistoryList';
 import RunStatsStrip from '../runs/RunStatsStrip';
 
 const RECENT_RUN_PAGE_SIZE = 8;
-const WORKFLOW_SAMPLE_LIMIT = 50;
+const OVERVIEW_EXECUTION_LIMIT = 20;
+const WORKFLOW_COUNT_PAGE_SIZE = 1;
 
 export default function AutomationOverviewPage() {
   const collectionScope = useCollectionScope();
   const isReady = isCollectionFetchReady(collectionScope);
   const brandParams = toBrandListParams(collectionScope);
   const { cancelExecution, executions, isError, isLoading, refresh, stats } =
-    useWorkflowExecutions({ limit: 50, sort: '-createdAt' });
+    useWorkflowExecutions(
+      { ...brandParams, limit: OVERVIEW_EXECUTION_LIMIT, sort: '-createdAt' },
+      { enabled: isReady },
+    );
   const { isLoading: areAgentsLoading, strategies } = useAgentStrategies({
     ...brandParams,
     enabled: isReady,
@@ -46,7 +47,7 @@ export default function AutomationOverviewPage() {
       const service = await getWorkflowService();
       return service.listPage({
         ...brandParams,
-        limit: WORKFLOW_SAMPLE_LIMIT,
+        limit: WORKFLOW_COUNT_PAGE_SIZE,
         page: 1,
       });
     },
@@ -57,12 +58,7 @@ export default function AutomationOverviewPage() {
     ],
   });
 
-  const workflows = workflowsQuery.data?.items ?? [];
-  const workflowTotal =
-    workflowsQuery.data?.pagination.total ?? workflows.length;
-  const scheduledWorkflows = workflows.filter(
-    (workflow: WorkflowSummary) => workflow.isScheduleEnabled,
-  ).length;
+  const workflowTotal = workflowsQuery.data?.pagination.total ?? 0;
   const activeAgents = strategies.filter(
     (strategy) => strategy.isActive,
   ).length;
@@ -101,7 +97,7 @@ export default function AutomationOverviewPage() {
           <RunStatsStrip isLoading={isLoading} stats={stats} />
 
           <KPISection
-            gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
+            gridCols={{ desktop: 2, mobile: 2, tablet: 2 }}
             isLoading={areAgentsLoading || workflowsQuery.isLoading}
             items={[
               {
@@ -111,25 +107,10 @@ export default function AutomationOverviewPage() {
                 description: `${activeAgents.toLocaleString()} active`,
               },
               {
-                icon: Cpu,
-                label: 'On schedule',
-                value: activeAgents.toLocaleString(),
-                description: 'Agents currently active',
-              },
-              {
                 icon: Workflow,
                 label: 'Workflows',
                 value: workflowTotal.toLocaleString(),
-                description: `${scheduledWorkflows.toLocaleString()} scheduled`,
-              },
-              {
-                icon: Pause,
-                label: 'Unscheduled',
-                value: Math.max(
-                  workflowTotal - scheduledWorkflows,
-                  0,
-                ).toLocaleString(),
-                description: 'Workflows without a cadence',
+                description: 'In this workspace',
               },
             ]}
           />
