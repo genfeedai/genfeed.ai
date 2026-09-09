@@ -166,7 +166,7 @@ describe('ResendService', () => {
     });
     expect(loggerMock.error).toHaveBeenCalledWith(
       'ResendService sendEmail failed',
-      expect.any(ResendEmailDeliveryError),
+      expect.objectContaining({ message: 'Email provider request failed' }),
       expect.objectContaining({
         providerCode: 'rate_limit_exceeded',
         retryable: true,

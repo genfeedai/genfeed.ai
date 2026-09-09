@@ -452,6 +452,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     const articleId = await this.prisma.$transaction(async (transaction) => {
       const article = await transaction.article.create({
         data: {
+          generationCompletedAt: new Date(),
           ...(brandId ? { brandId } : {}),
           category,
           content: document.content,

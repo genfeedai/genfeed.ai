@@ -36,6 +36,7 @@ describe('PlatformSchedulesProcessor', () => {
   const reviewGate = { resolveTimedOutReviewGates: handler() };
   const rss = { pollEnabledSources: handler() };
   const socialSourceResync = { resyncDueSources: handler() };
+  const lifecycleEmails = { processLifecycleEmails: handler() };
   const streaks = { processStreaks: handler() };
   const tiktok = { checkPendingTiktokPosts: handler() };
   const transcripts = { purgeExpiredTranscripts: handler() };
@@ -132,6 +133,10 @@ describe('PlatformSchedulesProcessor', () => {
         socialSourceResync.resyncDueSources,
       ],
       [PLATFORM_SCHEDULED_TASKS.STREAK_MAINTENANCE, streaks.processStreaks],
+      [
+        PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS,
+        lifecycleEmails.processLifecycleEmails,
+      ],
       [PLATFORM_SCHEDULED_TASKS.TIKTOK_STATUS, tiktok.checkPendingTiktokPosts],
       [
         PLATFORM_SCHEDULED_TASKS.TRANSCRIPT_PURGE,
@@ -189,6 +194,7 @@ describe('PlatformSchedulesProcessor', () => {
       youtubeMessages as never,
       youtubeStatus as never,
       logger as never,
+      lifecycleEmails as never,
     );
   });
 

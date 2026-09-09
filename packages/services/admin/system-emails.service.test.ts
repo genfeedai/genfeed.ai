@@ -34,6 +34,29 @@ describe('AdminSystemEmailsService', () => {
     service = new AdminSystemEmailsService('test-token');
   });
 
+  it('loads a serialized performance report with dates and cancellation', async () => {
+    const signal = new AbortController().signal;
+    const query = { from: '2026-08-01', to: '2026-09-01' };
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          type: 'email-performance',
+          id: 'report',
+          attributes: { ...query, asOf: '2026-09-01', rows: [] },
+        },
+      },
+    });
+    await expect(service.getPerformance(query, signal)).resolves.toMatchObject({
+      id: 'report',
+      ...query,
+      rows: [],
+    });
+    expect(mockGet).toHaveBeenCalledWith('performance', {
+      params: query,
+      signal,
+    });
+  });
+
   it('fetches system email definitions as a plain registry response', async () => {
     const signal = new AbortController().signal;
     mockGet.mockResolvedValue({

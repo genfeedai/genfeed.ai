@@ -520,11 +520,15 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     const newBalance = currentBalance + input.creditsToAdd;
     const newSettledBalance = wallet.settled + input.creditsToAdd;
     const transactionOptions =
+      input.options?.actorUserId ||
       input.options?.idempotencyKey ||
       input.options?.referenceId ||
       input.options?.referenceType ||
       input.options?.metadata
         ? {
+            ...(input.options.actorUserId
+              ? { actorUserId: input.options.actorUserId }
+              : {}),
             ...(input.options.idempotencyKey
               ? { idempotencyKey: input.options.idempotencyKey }
               : {}),

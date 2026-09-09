@@ -15,6 +15,7 @@ import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentia
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
+import { CronLifecycleEmailsModule } from '@workers/crons/lifecycle-emails/cron.lifecycle-emails.module';
 import { CronLlmIdleModule } from '@workers/crons/llm-idle/cron.llm-idle.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
@@ -60,6 +61,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronEngagementModule,
     CronFalModelWatcherModule,
     CronIngredientsModule,
+    CronLifecycleEmailsModule,
     CronLlmIdleModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,

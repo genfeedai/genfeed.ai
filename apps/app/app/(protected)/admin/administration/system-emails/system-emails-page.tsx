@@ -6,6 +6,7 @@ import {
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import SystemEmailPerformance from '@protected/administration/system-emails/system-email-performance';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -87,9 +88,10 @@ export default function SystemEmailsPage() {
   return (
     <Container
       label="System emails"
-      description="Platform-owned lifecycle emails, triggers, and copy"
+      description="Platform-owned lifecycle emails, delivery outcomes, and conversion attribution"
       icon={Mail}
     >
+      <SystemEmailPerformance />
       {isLoading ? (
         <div className="grid gap-4">
           {SYSTEM_EMAIL_SKELETON_KEYS.map((key) => (

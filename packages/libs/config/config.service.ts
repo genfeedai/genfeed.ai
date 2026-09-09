@@ -142,6 +142,7 @@ const apiSchema = Joi.object({
   ...sentrySchema,
   ...stripeSchema,
   ...webhooksSchema,
+  RESEND_WEBHOOK_SECRET: Joi.string().optional().allow(''),
   ...genfeedaiUrlsSchema,
   ...microservicesSchema,
   ...internalAuthSchema,

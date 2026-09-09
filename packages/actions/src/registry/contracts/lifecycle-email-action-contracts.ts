@@ -18,6 +18,8 @@ const SEQUENCE = enumSchema([
   'win-back',
 ] as const);
 const STEP = enumSchema([
+  'setup-reminder',
+  'first-generation',
   'activation-nudge',
   'checkout-recovery',
   'welcome-day-0',
@@ -84,6 +86,7 @@ const DELIVERY_STATE = closedObjectSchema(
   {
     delivery: DELIVERY_RECORD,
     html: STRING_SCHEMA,
+    emailMessageId: STRING_SCHEMA,
     preference: closedObjectSchema(
       {
         id: STRING_SCHEMA,
@@ -181,7 +184,33 @@ const BATCH = closedObjectSchema(
   ['count', 'results'],
 );
 
+const MAINTENANCE_REQUEST = closedObjectSchema(
+  { organizationId: STRING_SCHEMA, referenceDate: STRING_SCHEMA },
+  ['organizationId', 'referenceDate'],
+);
+const MAINTENANCE_CONTRACT = {
+  inputSchema: closedObjectSchema({ request: MAINTENANCE_REQUEST }, [
+    'request',
+  ]),
+  outputSchema: MAINTENANCE_REQUEST,
+};
+
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
+  'lifecycle-email.sweep.discover': {
+    inputSchema: closedObjectSchema(
+      {
+        request: closedObjectSchema({ referenceDate: STRING_SCHEMA }, [
+          'referenceDate',
+        ]),
+      },
+      ['request'],
+    ),
+    outputSchema: closedObjectSchema({ count: INTEGER_SCHEMA }, ['count']),
+  },
+  'lifecycle-email.organization.recover': MAINTENANCE_CONTRACT,
+  'lifecycle-email.organization.recap': MAINTENANCE_CONTRACT,
+  'lifecycle-email.organization.credits': MAINTENANCE_CONTRACT,
+
   'lifecycle-email.check-eligibility': {
     inputSchema: stateInput,
     outputSchema: DELIVERY_STATE,
@@ -199,7 +228,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       state: DELIVERY_STATE,
     }),
     outputSchema: closedObjectSchema(
-      { delivered: TRUE_FALSE, skipped: STRING_SCHEMA },
+      { delivered: TRUE_FALSE, queued: TRUE_FALSE, skipped: STRING_SCHEMA },
       ['delivered'],
     ),
   },

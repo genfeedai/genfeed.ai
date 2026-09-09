@@ -4,12 +4,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
@@ -18,12 +15,13 @@ import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 
+import ProductEmailPreferences from './product-email-preferences';
+
 type PreferenceLoadState = 'error' | 'loading' | 'ready';
 
 export default function SettingsNotificationsPage() {
   const translate = useTranslations('common');
   const { isLoaded } = useAuthUser();
-  const { currentUser, mutateUser } = useCurrentUser();
   const notifications = NotificationsService.getInstance();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -106,33 +104,6 @@ export default function SettingsNotificationsPage() {
     return () => agentPreferenceController.current?.abort();
   }, [refreshAgentPreference]);
 
-  const patchSettings = useCallback(
-    async (patch: Partial<ISetting>) => {
-      if (!currentUser) {
-        return false;
-      }
-
-      setIsSaving(true);
-      try {
-        const service = await getUsersService();
-        await service.patchMeSettings(patch);
-        mutateUser(
-          new User({
-            ...currentUser,
-            settings: { ...currentUser.settings, ...patch },
-          }),
-        );
-        return true;
-      } catch (error) {
-        logger.error('Failed to update settings', error);
-        return false;
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [currentUser, mutateUser, getUsersService],
-  );
-
   const handleWorkflowEmailPreferenceChange = useCallback(
     async (isEnabled: boolean) => {
       const previousValue = isWorkflowNotificationsEmail;
@@ -184,9 +155,6 @@ export default function SettingsNotificationsPage() {
       </div>
     );
   }
-
-  const isVideoNotificationsEmail =
-    currentUser?.settings?.isVideoNotificationsEmail ?? false;
 
   return (
     <div className="space-y-4">
@@ -248,18 +216,7 @@ export default function SettingsNotificationsPage() {
               </div>
             </Alert>
           ) : null}
-          <Switch
-            aria-label={translate('settings.profile.videoEmail.label')}
-            label={translate('settings.profile.videoEmail.label')}
-            description={translate('settings.profile.videoEmail.description')}
-            isChecked={isVideoNotificationsEmail}
-            isDisabled={isSaving}
-            onChange={(e) =>
-              patchSettings({
-                isVideoNotificationsEmail: e.target.checked,
-              })
-            }
-          />
+          <ProductEmailPreferences />
         </div>
       </Card>
     </div>

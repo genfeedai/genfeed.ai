@@ -142,8 +142,6 @@ export class ResendService {
 
       this.loggerService.log(`${url} success`, {
         emailId: response.data?.id ?? null,
-        subject: payload.subject,
-        to: payload.to,
       });
 
       return response.data?.id ?? null;
@@ -153,12 +151,16 @@ export class ResendService {
           ? error
           : ResendEmailDeliveryError.fromCause(error);
 
-      this.loggerService.error(`${url} failed`, error, {
-        provider: 'resend',
-        providerCode: deliveryError.providerCode,
-        retryable: deliveryError.retryable,
-        statusCode: deliveryError.statusCode,
-      });
+      this.loggerService.error(
+        `${url} failed`,
+        new Error('Email provider request failed'),
+        {
+          provider: 'resend',
+          providerCode: deliveryError.providerCode,
+          retryable: deliveryError.retryable,
+          statusCode: deliveryError.statusCode,
+        },
+      );
 
       throw deliveryError;
     }

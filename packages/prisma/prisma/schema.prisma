@@ -1588,6 +1588,8 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+  connectedAt DateTime?
+  @@index([organizationId, userId, connectedAt])
   id                              String             @id @default(cuid())
   organizationId                  String?
   organization                    Organization?      @relation(fields: [organizationId], references: [id])
@@ -3055,6 +3057,7 @@ model NotificationPreference {
 
 /// Durable per-recipient delivery state. Redis jobs only wake this record up.
 model NotificationDelivery {
+  emailMessage      EmailMessage?
   id                String            @id @default(cuid())
   eventId           String
   event             NotificationEvent @relation(fields: [eventId], references: [id])
@@ -3406,6 +3409,7 @@ model CustomerInstance {
 // ═══════════════════════════════════════════════════════════════
 
 model Article {
+  generationCompletedAt DateTime?
   id             String        @id @default(cuid())
   userId         String
   user           User          @relation(fields: [userId], references: [id])
@@ -6858,4 +6862,100 @@ model NotificationInboxItem {
   @@index([organizationId, userId, isDeleted, occurredAt(sort: Desc), id(sort: Desc)], map: "notification_inbox_history_idx")
   @@index([organizationId, userId, isDeleted, readAt], map: "notification_inbox_unread_idx")
   @@map("notification_inbox_items")
+}
+
+/// One tracked product email; accepted is distinct from provider-confirmed delivery.
+model EmailMessage {
+  id String @id @default(cuid())
+  deliveryId String @unique
+  delivery NotificationDelivery @relation(fields: [deliveryId], references: [id])
+  organizationId String
+  userId String
+  templateKey String
+  goal String?
+  destinationUrl String
+  clickTokenHash String @unique
+  recipientHash String?
+  providerMessageId String? @unique
+  acceptedAt DateTime?
+  deliveredAt DateTime?
+  openedAt DateTime?
+  clickedAt DateTime?
+  bouncedAt DateTime?
+  complainedAt DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  conversions EmailConversion[]
+  clicks EmailClick[]
+  @@index([organizationId, userId, goal, clickedAt])
+  @@index([createdAt, templateKey])
+  @@map("email_messages")
+}
+
+/// Seven-day last-click association, not a claim of causal lift.
+model EmailConversion {
+  id String @id @default(cuid())
+  messageId String
+  message EmailMessage @relation(fields: [messageId], references: [id])
+  organizationId String
+  userId String
+  goal String
+  sourceId String
+  occurredAt DateTime
+  value Float?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@unique([organizationId, userId, goal, sourceId])
+  @@index([messageId, isDeleted])
+  @@map("email_conversions")
+}
+
+/// Signed provider receipts retained before message-id reconciliation.
+model EmailProviderEvent {
+  id String @id
+  providerMessageId String
+  eventType String
+  occurredAt DateTime
+  processedAt DateTime?
+  lastAttemptAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([providerMessageId, processedAt])
+  @@index([processedAt, lastAttemptAt])
+  @@map("email_provider_events")
+}
+
+/// Global deliverability suppression uses a one-way recipient hash, never a raw address.
+model EmailSuppression {
+  recipientHash String @id
+  reason String
+  createdAt DateTime @default(now())
+  @@map("email_suppressions")
+}
+
+/// First-party CTA visits retained independently from provider engagement events.
+model EmailClick {
+  id String @id @default(cuid())
+  messageId String
+  message EmailMessage @relation(fields: [messageId], references: [id])
+  organizationId String
+  userId String
+  occurredAt DateTime @default(now())
+  isDeleted Boolean @default(false)
+  @@index([organizationId, userId, occurredAt])
+  @@index([messageId, occurredAt])
+  @@map("email_clicks")
+}
+
+/// Durable producer progress. Advance only after every eligible event in the window is queued.
+model EmailSignalCheckpoint {
+  id String @id @default(cuid())
+  organizationId String
+  stream String
+  scannedThrough DateTime
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([organizationId, stream])
+  @@map("email_signal_checkpoints")
 }

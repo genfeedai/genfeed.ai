@@ -1,30 +1,13 @@
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { Status } from '@genfeedai/contracts';
-import { testId } from '@helpers/testing/test-id.helper';
-import type { RedisService } from '@libs/redis/redis.service';
 
 describe('NotificationsPublisherService', () => {
   let service: NotificationsPublisherService;
   let redisService: { publish: ReturnType<typeof vi.fn> };
-  let notificationsService: {
-    sendVideoStatusEmail: ReturnType<typeof vi.fn>;
-  };
-  let settingsService: { findOne: ReturnType<typeof vi.fn> };
-  let prisma: { user: { findFirst: ReturnType<typeof vi.fn> } };
 
   beforeEach(() => {
     redisService = { publish: vi.fn().mockResolvedValue(1) };
-    notificationsService = {
-      sendVideoStatusEmail: vi.fn().mockResolvedValue(undefined),
-    };
-    settingsService = { findOne: vi.fn().mockResolvedValue(null) };
-    prisma = { user: { findFirst: vi.fn().mockResolvedValue(null) } };
-    service = new NotificationsPublisherService(
-      redisService as unknown as RedisService,
-      notificationsService as never,
-      settingsService as never,
-      prisma as never,
-    );
+    service = new NotificationsPublisherService(redisService as never);
   });
 
   afterEach(() => {
@@ -183,24 +166,12 @@ describe('NotificationsPublisherService', () => {
     );
   });
 
-  it('sends video email when the user opted in', async () => {
-    prisma.user.findFirst.mockResolvedValue({ email: 'user@example.com' });
-    settingsService.findOne.mockResolvedValue({
-      isVideoNotificationsEmail: true,
-    });
-
+  it('publishes completion only once without a parallel legacy email side effect', async () => {
     await service.publishVideoComplete(
-      '/path',
-      { url: 'https://cdn' } as never,
-      testId('user'),
+      '/asset',
+      { url: 'https://cdn.example.com/video.mp4' } as never,
+      'user-1',
     );
-
-    expect(notificationsService.sendVideoStatusEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        path: '/path',
-        status: 'completed',
-        to: 'user@example.com',
-      }),
-    );
+    expect(redisService.publish).toHaveBeenCalledTimes(1);
   });
 });

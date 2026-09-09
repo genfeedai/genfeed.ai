@@ -97,6 +97,7 @@ export interface ArticleGenerationResponse {
  * `xArticleMetadata` are not Article columns (#2859).
  */
 export interface ArticleCreatePayload {
+  generationCompletedAt: string;
   category: ArticleCategory;
   content: string;
   label: string;

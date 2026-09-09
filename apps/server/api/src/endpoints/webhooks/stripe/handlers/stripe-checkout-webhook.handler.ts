@@ -231,6 +231,7 @@ export class StripeCheckoutWebhookHandler {
           this.supportService.buildCheckoutSessionCreditReference(
             'organization-payment',
             session.id,
+            session.metadata?.userId,
           ),
         );
 
@@ -467,6 +468,7 @@ export class StripeCheckoutWebhookHandler {
       this.supportService.buildCheckoutSessionCreditReference(
         'managed-inference',
         session.id,
+        String(dbUser.id),
       ),
     );
 
@@ -851,6 +853,7 @@ export class StripeCheckoutWebhookHandler {
           this.supportService.buildCheckoutSessionCreditReference(
             'user-credit',
             session.id,
+            userId,
           ),
         );
 

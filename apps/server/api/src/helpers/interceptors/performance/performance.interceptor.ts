@@ -9,6 +9,7 @@ import {
   normalizeApiRoute,
   recordApiPerformanceTelemetry,
 } from '@api/helpers/performance/sentry-performance-monitor';
+import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
 import type {
   ApiPerformanceSeverity,
   PerformanceMetrics,
@@ -73,7 +74,8 @@ export class PerformanceInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
 
-    const { method, url, headers, user } = request;
+    const { method, headers, user } = request;
+    const url = redactEmailTrackingUrl(String(request.url ?? ''));
     const userAgent = headers['user-agent'];
     const userId = user?.id;
 

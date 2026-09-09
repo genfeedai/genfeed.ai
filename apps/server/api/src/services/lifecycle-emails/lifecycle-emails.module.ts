@@ -4,6 +4,7 @@ import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 import { LifecycleEmailService } from './lifecycle-email.service';
+import { LifecycleEmailMaintenanceService } from './lifecycle-email-maintenance.service';
 import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 import { LifecycleEmailsController } from './lifecycle-emails.controller';
 
@@ -16,6 +17,10 @@ import { LifecycleEmailsController } from './lifecycle-emails.controller';
     NotificationsModule,
     WorkflowsCoreModule,
   ],
-  providers: [LifecycleEmailWorkflowService, LifecycleEmailService],
+  providers: [
+    LifecycleEmailWorkflowService,
+    LifecycleEmailService,
+    LifecycleEmailMaintenanceService,
+  ],
 })
 export class LifecycleEmailsModule {}

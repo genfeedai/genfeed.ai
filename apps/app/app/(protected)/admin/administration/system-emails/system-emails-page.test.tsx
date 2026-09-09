@@ -6,12 +6,14 @@ import SystemEmailsPage from './system-emails-page';
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
   getSystemEmails: vi.fn(),
+  getPerformance: vi.fn(),
   info: vi.fn(),
 }));
 
 const getSystemEmailsService = vi.hoisted(() =>
   vi.fn(async () => ({
     getSystemEmails: mocks.getSystemEmails,
+    getPerformance: mocks.getPerformance,
   })),
 );
 
@@ -96,6 +98,13 @@ vi.mock('@ui/overview/WorkspaceSurface', () => ({
 describe('SystemEmailsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getPerformance.mockResolvedValue({
+      id: 'report',
+      from: '2026-08-01',
+      to: '2026-09-01',
+      asOf: '2026-09-01',
+      rows: [],
+    });
     mocks.getSystemEmails.mockResolvedValue([
       {
         action: {

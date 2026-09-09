@@ -24,6 +24,7 @@ if (config) {
       const url = String(
         event.request?.url || event.tags?.url || event.transaction || '',
       );
+      if (url.includes('/email-performance/click/')) return null;
       if (BOT_PROBE_PATTERNS.some((p) => p.test(url))) {
         return null;
       }

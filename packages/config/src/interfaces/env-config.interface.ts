@@ -357,6 +357,7 @@ export interface IEnvConfig {
   TELEGRAM_BOT_MODE?: string;
   TELEGRAM_ALLOWED_USER_IDS?: string;
   RESEND_API_KEY?: string;
+  RESEND_WEBHOOK_SECRET?: string;
   RESEND_FROM_EMAIL?: string;
   RESEND_REPLY_TO_EMAIL?: string;
   TWITCH_CLIENT_ID?: string;

@@ -130,6 +130,7 @@ import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-ex
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
+import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
@@ -175,6 +176,7 @@ import { YoutubeCommentsService } from '@api/services/integrations/youtube/servi
 import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
+import { SystemEmailEligibilityService } from '@api/services/lifecycle-emails/system-email-eligibility.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
@@ -319,6 +321,8 @@ const WORKER_DOMAIN_SERVICES = [
   KnowledgeSourceIngestService,
   LeonardoAIService,
   LifecycleEmailDeliveryService,
+  EmailPerformanceService,
+  SystemEmailEligibilityService,
   LinkedInPublisherService,
   LinkedInService,
   ManagedInferenceClientService,

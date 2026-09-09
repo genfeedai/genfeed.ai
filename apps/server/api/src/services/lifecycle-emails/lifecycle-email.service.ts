@@ -188,7 +188,9 @@ export class LifecycleEmailService implements OnModuleInit {
         select: { userId: true },
         where: {
           sequence: 'abandoned-checkout',
-          status: { in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED] },
+          status: {
+            in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED, 'queued'],
+          },
           triggerKey,
         },
       });
@@ -213,6 +215,20 @@ export class LifecycleEmailService implements OnModuleInit {
       return {
         cancellationItems: [],
         deliveryItems: [
+          this.deliveryItem(
+            common,
+            'welcome',
+            'setup-reminder',
+            triggerKey,
+            new Date(now.getTime() + DAY_MS),
+          ),
+          this.deliveryItem(
+            common,
+            'welcome',
+            'first-generation',
+            triggerKey,
+            new Date(now.getTime() + 4 * DAY_MS),
+          ),
           this.deliveryItem(
             common,
             'welcome',
@@ -304,7 +320,7 @@ export class LifecycleEmailService implements OnModuleInit {
       await this.prisma.lifecycleEmailDelivery.create({
         data: {
           email: item.email,
-          metadata: item.metadata,
+          metadata: { ...item.metadata, organizationId },
           scheduledFor: new Date(item.scheduledFor),
           sequence: item.sequence,
           status: DELIVERY_STATUS.SCHEDULED,
@@ -315,7 +331,19 @@ export class LifecycleEmailService implements OnModuleInit {
       });
       return { items: [item] };
     } catch (error: unknown) {
-      if (this.isUniqueConstraintError(error)) return { items: [] };
+      if (this.isUniqueConstraintError(error)) {
+        const existing = await this.prisma.lifecycleEmailDelivery.findFirst({
+          where: {
+            userId: item.userId,
+            sequence: item.sequence,
+            step: item.step,
+            triggerKey: item.triggerKey,
+            status: { in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED] },
+          },
+          select: { id: true },
+        });
+        return { items: existing ? [item] : [] };
+      }
       throw error;
     }
   }
@@ -352,7 +380,9 @@ export class LifecycleEmailService implements OnModuleInit {
       data: { canceledAt: new Date(), status: DELIVERY_STATUS.CANCELED },
       where: {
         sequence: 'abandoned-checkout',
-        status: { in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED] },
+        status: {
+          in: [DELIVERY_STATUS.SCHEDULED, DELIVERY_STATUS.FAILED, 'queued'],
+        },
         triggerKey: item.triggerKey,
         userId: item.userId,
       },

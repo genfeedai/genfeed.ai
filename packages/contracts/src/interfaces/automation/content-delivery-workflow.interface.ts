@@ -51,6 +51,8 @@ export type LifecycleEmailSequence =
   | 'win-back';
 
 export type LifecycleEmailStep =
+  | 'setup-reminder'
+  | 'first-generation'
   | 'welcome-day-0'
   | 'welcome-day-2'
   | 'welcome-day-7'

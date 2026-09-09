@@ -1,3 +1,6 @@
+import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import type { SystemEmailEligibilityService } from './system-email-eligibility.service';
+
 vi.mock('@genfeedai/config', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/config')>()),
   isSelfHostedDeployment: () => false,
@@ -6,7 +9,6 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 import type {
   ServerConfig,
   ServerLogger,
-  ServerNotifications,
   ServerPrisma,
 } from '@api/server.dependencies';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
@@ -27,7 +29,7 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
   const delivery = {
     email: 'owner@example.com',
     id: 'delivery-1',
-    metadata: null,
+    metadata: { organizationId: 'org-1' },
     scheduledFor: new Date('2026-08-28T00:00:00Z'),
     sequence: request.sequence,
     status: 'scheduled',
@@ -45,37 +47,43 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
     lifecycleEmailDelivery: {
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
     lifecycleEmailPreference: {
       create: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
+    organization: { findFirst: ReturnType<typeof vi.fn> };
     post: { findFirst: ReturnType<typeof vi.fn> };
     subscription: { findFirst: ReturnType<typeof vi.fn> };
     userSubscription: { findFirst: ReturnType<typeof vi.fn> };
   };
-  let sendEmail: ReturnType<typeof vi.fn>;
+  let queueEmail: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     prisma = {
       lifecycleEmailDelivery: {
         findFirst: vi.fn().mockResolvedValue(delivery),
         update: vi.fn().mockResolvedValue(undefined),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       lifecycleEmailPreference: {
         create: vi.fn().mockResolvedValue(preference),
         findUnique: vi.fn().mockResolvedValue(preference),
         update: vi.fn().mockResolvedValue(undefined),
       },
+      organization: {
+        findFirst: vi.fn().mockResolvedValue({ slug: 'studio' }),
+      },
       post: { findFirst: vi.fn().mockResolvedValue(null) },
       subscription: { findFirst: vi.fn().mockResolvedValue(null) },
       userSubscription: { findFirst: vi.fn().mockResolvedValue(null) },
     };
-    sendEmail = vi.fn().mockResolvedValue(undefined);
+    queueEmail = vi.fn().mockResolvedValue('email-message-1');
     service = new LifecycleEmailDeliveryService(
       prisma as unknown as ServerPrisma,
-      { sendEmail } as unknown as ServerNotifications,
+      { queueEmail } as unknown as EmailPerformanceService,
       {
         get: vi.fn((key: string) =>
           key === 'GENFEEDAI_API_URL'
@@ -88,6 +96,9 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as ServerLogger,
+      {
+        shouldSend: vi.fn().mockResolvedValue(true),
+      } as unknown as SystemEmailEligibilityService,
     );
   });
 
@@ -100,19 +111,22 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
     const delivered = await service.deliverLifecycleEmail(rendered);
 
     await expect(service.finalizeLifecycleDelivery(delivered)).resolves.toEqual(
-      { delivered: true },
+      { delivered: false, queued: true },
     );
-    expect(sendEmail).toHaveBeenCalledWith(
-      delivery.email,
-      'Welcome to Genfeed.ai',
-      expect.stringContaining('unsubscribe-token'),
-    );
-    expect(prisma.lifecycleEmailDelivery.update).toHaveBeenCalledWith(
+    expect(queueEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: 'sent' }),
-        where: { id: delivery.id },
+        userId: 'user-1',
+        organizationId: 'org-1',
+        topic: 'lifecycle.onboarding',
+        subject: 'Welcome to Genfeed.ai',
+        lifecycleDeliveryId: delivery.id,
+        html: expect.stringContaining('{{emailActionUrl}}'),
       }),
     );
+    expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
+      data: { failureReason: null, status: 'queued' },
+      where: { id: delivery.id, status: { in: ['scheduled', 'failed'] } },
+    });
   });
 
   it('marks a failed workflow finalizer idempotently from the loaded state', async () => {
@@ -120,9 +134,9 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
     await expect(
       service.finalizeLifecycleDelivery(loaded, 'provider unavailable'),
     ).resolves.toEqual({ delivered: false });
-    expect(prisma.lifecycleEmailDelivery.update).toHaveBeenCalledWith({
+    expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
       data: { failureReason: 'provider unavailable', status: 'failed' },
-      where: { id: delivery.id },
+      where: { id: delivery.id, status: { in: ['scheduled', 'failed'] } },
     });
   });
 
@@ -145,7 +159,7 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
     expect(finalized).toEqual({ delivered: false });
   });
 
-  it.each(['sent', 'canceled', 'skipped'])(
+  it.each(['sent', 'queued', 'canceled', 'skipped'])(
     'leaves the delivery row untouched on a %s replay',
     async (status) => {
       prisma.lifecycleEmailDelivery.findFirst.mockResolvedValueOnce({

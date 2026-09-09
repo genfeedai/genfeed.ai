@@ -23,6 +23,9 @@ const REQUEST = closedObjectSchema(
 );
 const PERFORMANCE_ITEM = closedObjectSchema(
   {
+    id: STRING_SCHEMA,
+    origin: enumSchema(['genfeed', 'imported'] as const),
+    sourcePostId: STRING_SCHEMA,
     comments: NUMBER_SCHEMA,
     description: STRING_SCHEMA,
     engagementRate: NUMBER_SCHEMA,
@@ -74,6 +77,15 @@ const POSTING_TIME = closedObjectSchema(
 );
 const SUMMARY = closedObjectSchema(
   {
+    dataset: closedObjectSchema(
+      {
+        genfeedPosts: INTEGER_SCHEMA,
+        importedPosts: INTEGER_SCHEMA,
+        totalPosts: INTEGER_SCHEMA,
+        confidence: enumSchema(['none', 'low', 'medium', 'high'] as const),
+      },
+      ['genfeedPosts', 'importedPosts', 'totalPosts', 'confidence'],
+    ),
     avgEngagementByContentType: arraySchema(CONTENT_GROUP),
     avgEngagementByPlatform: arraySchema(PLATFORM_GROUP),
     bestPostingTimes: arraySchema(POSTING_TIME),
@@ -108,20 +120,46 @@ const SUMMARY = closedObjectSchema(
 const PREPARED_PROPERTIES = {
   options: REQUEST,
   organizationName: STRING_SCHEMA,
+  destinationUrl: STRING_SCHEMA,
   summary: SUMMARY,
 } as const;
 const PREPARED = closedObjectSchema(PREPARED_PROPERTIES, [
   'options',
   'organizationName',
+  'destinationUrl',
   'summary',
 ]);
 const STATE = closedObjectSchema(
-  { ...PREPARED_PROPERTIES, recipients: arraySchema(STRING_SCHEMA) },
-  ['options', 'organizationName', 'recipients', 'summary'],
+  { ...PREPARED_PROPERTIES, recipientUserIds: arraySchema(STRING_SCHEMA) },
+  [
+    'options',
+    'organizationName',
+    'destinationUrl',
+    'recipientUserIds',
+    'summary',
+  ],
 );
 const DELIVERY = closedObjectSchema(
-  { email: STRING_SCHEMA, html: STRING_SCHEMA, subject: STRING_SCHEMA },
-  ['email', 'html', 'subject'],
+  {
+    userId: STRING_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    brandId: STRING_SCHEMA,
+    startDate: STRING_SCHEMA,
+    endDate: STRING_SCHEMA,
+    destinationUrl: STRING_SCHEMA,
+    html: STRING_SCHEMA,
+    subject: STRING_SCHEMA,
+  },
+  [
+    'userId',
+    'organizationId',
+    'brandId',
+    'startDate',
+    'endDate',
+    'destinationUrl',
+    'html',
+    'subject',
+  ],
 );
 const RENDERED = closedObjectSchema({ deliveries: arraySchema(DELIVERY) }, [
   'deliveries',
@@ -131,8 +169,13 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'email-digest.deliver-recipient': {
     inputSchema: closedObjectSchema({ delivery: DELIVERY }, ['delivery']),
     outputSchema: closedObjectSchema(
-      { email: STRING_SCHEMA, error: STRING_SCHEMA, sent: BOOLEAN_SCHEMA },
-      ['email', 'sent'],
+      {
+        userId: STRING_SCHEMA,
+        error: STRING_SCHEMA,
+        queued: BOOLEAN_SCHEMA,
+        deliveryId: STRING_SCHEMA,
+      },
+      ['userId', 'queued'],
     ),
   },
   'email-digest.discover-recipients': {
@@ -145,8 +188,13 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       ['dispatch', 'rendered'],
     ),
     outputSchema: closedObjectSchema(
-      { errors: INTEGER_SCHEMA, sent: INTEGER_SCHEMA, skipped: INTEGER_SCHEMA },
-      ['errors', 'sent', 'skipped'],
+      {
+        errors: INTEGER_SCHEMA,
+        sent: INTEGER_SCHEMA,
+        queued: INTEGER_SCHEMA,
+        skipped: INTEGER_SCHEMA,
+      },
+      ['errors', 'sent', 'queued', 'skipped'],
     ),
   },
   'email-digest.prepare': {
