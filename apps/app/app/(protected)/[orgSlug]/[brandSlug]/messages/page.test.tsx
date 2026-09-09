@@ -187,19 +187,57 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectContent: ({ children }: { children: ReactNode }) => (
+vi.mock('@ui/primitives/popover', () => ({
+  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
-  SelectItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <button type="button">{children}</button>
-  ),
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span>{placeholder}</span>
-  ),
+  PopoverTrigger: ({ children }: { children: ReactNode }) => children,
 }));
+
+vi.mock('@ui/primitives/select', async () => {
+  const React = await import('react');
+  const SelectChangeContext = React.createContext<
+    ((value: string) => void) | undefined
+  >(undefined);
+
+  return {
+    Select: ({
+      children,
+      onValueChange,
+    }: {
+      children: ReactNode;
+      onValueChange?: (value: string) => void;
+    }) => (
+      <SelectChangeContext.Provider value={onValueChange}>
+        {children}
+      </SelectChangeContext.Provider>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => (
+      <div>{children}</div>
+    ),
+    SelectItem: ({
+      children,
+      value,
+    }: {
+      children: ReactNode;
+      value: string;
+    }) => {
+      const onValueChange = React.useContext(SelectChangeContext);
+      return (
+        <button type="button" onClick={() => onValueChange?.(value)}>
+          {children}
+        </button>
+      );
+    },
+    SelectTrigger: ({ children }: { children: ReactNode }) => (
+      <button type="button">{children}</button>
+    ),
+    SelectValue: ({ placeholder }: { placeholder?: string }) => (
+      <span>{placeholder}</span>
+    ),
+  };
+});
 
 vi.mock('@ui/primitives/textarea', () => ({
   Textarea: ({
@@ -372,7 +410,7 @@ describe('SocialMessagesPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Messages' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sync inbox' }),
+      await screen.findByRole('button', { name: 'Sync inbox' }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
@@ -486,6 +524,12 @@ describe('SocialMessagesPage', () => {
     expect(
       screen.getByRole('button', { name: 'Sync inbox' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Filter social conversations' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'DMs' })).toBeInTheDocument();
+    expect(screen.queryByText('0 conversations')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
 
     expect(screen.getByTestId('messages-surface-layout')).toHaveClass(
       'min-h-0',
@@ -584,6 +628,9 @@ describe('SocialMessagesPage', () => {
 
     await screen.findByRole('button', { name: 'Sync inbox' });
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Filter social conversations' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'DMs' }));
 
     await waitFor(() =>
@@ -623,6 +670,9 @@ describe('SocialMessagesPage', () => {
     render(<SocialMessagesPage />);
 
     await screen.findByRole('button', { name: 'Sync inbox' });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Filter social conversations' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Comments' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Sync comments' }),

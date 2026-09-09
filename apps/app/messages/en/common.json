@@ -949,6 +949,7 @@
       "filters": "Inbox filters",
       "platform": "Platform",
       "status": "Status",
+      "type": "Type",
       "syncNow": "Sync now",
       "title": "Conversations"
     },

@@ -1,6 +1,5 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import { Search } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
 
 import { Button } from '../primitives/button';
@@ -28,24 +27,18 @@ export function ConversationSidebarSearch({
   value,
 }: ConversationSidebarSearchProps) {
   return (
-    <div className="flex items-center gap-1.5 px-3 pb-2">
-      <div className="relative min-w-0 flex-1">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground/36"
-        />
-        <Searchbar
-          ariaLabel={ariaLabel}
-          inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-foreground/28"
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            onChange(event.target.value)
-          }
-          placeholder={placeholder}
-          showIcon={false}
-          size={ComponentSize.SM}
-          value={value}
-        />
-      </div>
+    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-3 pb-2">
+      <Searchbar
+        ariaLabel={ariaLabel}
+        className="min-w-0 flex-1"
+        inputClassName="rounded-md border-border bg-background-secondary text-xs placeholder:text-foreground/28"
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange(event.target.value)
+        }
+        placeholder={placeholder}
+        size={ComponentSize.SM}
+        value={value}
+      />
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );

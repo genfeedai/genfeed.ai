@@ -325,7 +325,6 @@ export default function MessagesPage() {
     searchParams.get(SELECTED_CONVERSATION_PARAM) ?? null;
 
   const {
-    connectionState,
     conversationPagination,
     conversations,
     isLoadingConversations,
@@ -526,7 +525,6 @@ export default function MessagesPage() {
       brandFilter={filters.brandFilter}
       brandOptions={brandOptions}
       busyAction={busyAction}
-      connectionState={connectionState}
       conversations={conversations}
       conversationType={filters.conversationType}
       hasConnectedAccounts={hasConnectedAccounts}

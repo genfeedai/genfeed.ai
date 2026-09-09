@@ -182,7 +182,7 @@ export default function Searchbar({
   const iconSize = ICON_SIZES[size];
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative min-w-0', className)}>
       {showIcon && (
         <Search
           className={cn(

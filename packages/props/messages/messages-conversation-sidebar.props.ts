@@ -38,7 +38,6 @@ export interface MessagesConversationSidebarProps {
   brandFilter: string;
   brandOptions: readonly MessagesBrandFilterOption[];
   busyAction: string | null;
-  connectionState: string;
   conversations: SocialConversationModel[];
   conversationType: MessagesSurface;
   hasConnectedAccounts: boolean;
