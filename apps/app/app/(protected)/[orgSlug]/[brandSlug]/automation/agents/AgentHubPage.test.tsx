@@ -226,8 +226,13 @@ describe('AgentHubPage', () => {
     rerender(<AgentHubPage />);
     expect(screen.getByText('No agents yet')).toBeVisible();
     expect(screen.getByText('Add your first agent')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Add agent' }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Add your first agent' }),
+    );
     expect(screen.getByText('Add agent dialog (library)')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Finish add agent' }));
@@ -264,6 +269,7 @@ describe('AgentHubPage', () => {
 
     render(<AgentHubPage />);
 
+    expect(screen.getByRole('button', { name: 'Add agent' })).toBeVisible();
     expect(screen.getByText('Image Producer')).toBeVisible();
     expect(screen.getByText('Image Creator')).toBeVisible();
     expect(screen.getByText('Brand: Moonrise')).toBeVisible();

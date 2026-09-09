@@ -38,6 +38,7 @@ import {
   Sparkles,
   User,
   UserPlus,
+  Users,
   Video,
   Workflow,
   Zap,
@@ -343,19 +344,23 @@ export default function AgentHubPage() {
     [addIntent, pathname, router],
   );
 
+  const isEmpty = !isLoading && strategies.length === 0;
+
   return (
     <Container
       label="Agents"
       description="Content agents that fill workflow prompts and assets, then run deterministic graphs."
-      icon={Cpu}
+      icon={Users}
       right={
-        <Button
-          icon={<UserPlus className="size-4" />}
-          isDisabled={!isBrandReady || !brandId}
-          label="Add agent"
-          onClick={() => handleOpenAddAgent('library')}
-          variant={ButtonVariant.DEFAULT}
-        />
+        isEmpty ? undefined : (
+          <Button
+            icon={<UserPlus className="size-4" />}
+            isDisabled={!isBrandReady || !brandId}
+            label="Add agent"
+            onClick={() => handleOpenAddAgent('library')}
+            variant={ButtonVariant.DEFAULT}
+          />
+        )
       }
     >
       {isLoading ? (
@@ -374,7 +379,7 @@ export default function AgentHubPage() {
       ) : strategies.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
           <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
-            <Cpu className="size-8" />
+            <Users className="size-8" />
           </span>
           <div>
             <p className="text-lg font-medium">{translate('empty.title')}</p>
