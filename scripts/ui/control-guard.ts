@@ -23,7 +23,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
-import { parseSourceFile } from '../architecture/parse-source-file';
+import {
+  parseSourceFile,
+  scriptKindFor,
+} from '../architecture/parse-source-file';
 
 const logger = {
   error: (message: string) => console.error(`[control-guard] ${message}`),
@@ -323,7 +326,7 @@ const RULES: readonly Rule[] = [
     },
     detect: (rel, content) => {
       if (ALLOWLIST.sharedMediaFiles.has(rel)) return [];
-      const source = parseSourceFile(rel, content, true, ts.ScriptKind.TSX);
+      const source = parseSourceFile(rel, content, true, scriptKindFor(rel));
       const lines: number[] = [];
       const visit = (node: ts.Node): void => {
         if (

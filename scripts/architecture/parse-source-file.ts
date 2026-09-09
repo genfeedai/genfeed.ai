@@ -43,6 +43,19 @@ export function collectParseDiagnostics(
 }
 
 /**
+ * The script kind a path should be parsed as. Forcing TSX on a `.ts` file makes
+ * TypeScript read a generic parameter as an unclosed JSX tag, so the file
+ * misparses and the guard walking it sees nothing.
+ */
+export function scriptKindFor(filePath: string): ts.ScriptKind {
+  if (filePath.endsWith('.tsx')) return ts.ScriptKind.TSX;
+  if (filePath.endsWith('.jsx')) return ts.ScriptKind.JSX;
+  if (filePath.endsWith('.js') || filePath.endsWith('.mjs'))
+    return ts.ScriptKind.JS;
+  return ts.ScriptKind.TS;
+}
+
+/**
  * Creates a source file and throws `SourceParseError` when it does not parse,
  * so a guard fails loudly instead of reporting a file it could not read as
  * clean. `setParentNodes` matches what the guards already pass.

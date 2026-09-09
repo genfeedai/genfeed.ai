@@ -24,7 +24,10 @@ import {
 import { sizingTokens } from '../packages/ui/src/core/sizing';
 import { spacingTokens } from '../packages/ui/src/core/spacing';
 import { typographyTokens } from '../packages/ui/src/core/typography';
-import { parseSourceFile } from './architecture/parse-source-file';
+import {
+  parseSourceFile,
+  scriptKindFor,
+} from './architecture/parse-source-file';
 import {
   loadDesignEvalScenario,
   validateDesignEvalScenario,
@@ -357,7 +360,12 @@ export function findPackageUiGuardFindings(
   sourceText: string,
   file = 'packages/ui/src/fixture.tsx',
 ): DesignSystemFinding[] {
-  const sourceFile = parseSourceFile(file, sourceText, true, ts.ScriptKind.TSX);
+  const sourceFile = parseSourceFile(
+    file,
+    sourceText,
+    true,
+    scriptKindFor(file),
+  );
   const findings: DesignSystemFinding[] = [];
   const findingKeys = new Set<string>();
 

@@ -4,6 +4,7 @@ import {
   collectParseDiagnostics,
   parseSourceFile,
   SourceParseError,
+  scriptKindFor,
 } from './parse-source-file';
 
 describe('parseSourceFile', () => {
@@ -64,5 +65,32 @@ describe('parseSourceFile', () => {
         ts.ScriptKind.TS,
       ),
     ).toThrow(SourceParseError);
+  });
+});
+
+describe('scriptKindFor', () => {
+  it.each([
+    ['module.ts', ts.ScriptKind.TS],
+    ['component.tsx', ts.ScriptKind.TSX],
+    ['legacy.jsx', ts.ScriptKind.JSX],
+    ['script.js', ts.ScriptKind.JS],
+    ['script.mjs', ts.ScriptKind.JS],
+  ])('resolves %s from its extension', (filePath, expected) => {
+    expect(scriptKindFor(filePath)).toBe(expected);
+  });
+
+  it('lets a .ts file with a generic parameter parse', () => {
+    // Guards used to force TSX on every file, which reads `<T,>` as an
+    // unclosed JSX tag: the file misparsed and the guard saw nothing.
+    const source = 'export const identity = <T,>(value: T): T => value;\n';
+
+    expect(() =>
+      parseSourceFile('hook.ts', source, true, ts.ScriptKind.TSX),
+    ).toThrow(SourceParseError);
+    expect(
+      collectParseDiagnostics(
+        parseSourceFile('hook.ts', source, true, scriptKindFor('hook.ts')),
+      ),
+    ).toEqual([]);
   });
 });

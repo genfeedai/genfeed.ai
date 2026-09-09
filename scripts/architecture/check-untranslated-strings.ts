@@ -29,7 +29,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import * as ts from 'typescript';
-import { parseSourceFile } from './parse-source-file';
+import { parseSourceFile, scriptKindFor } from './parse-source-file';
 
 export const UNTRANSLATED_STRING_FIX_HELP =
   'Fix: add the copy to apps/app/messages/en/<namespace>.json and resolve it with ' +
@@ -175,7 +175,12 @@ export function findUntranslatedStrings(
   sourceText: string,
   file = 'fixture.tsx',
 ): UntranslatedStringOccurrence[] {
-  const sourceFile = parseSourceFile(file, sourceText, true, ts.ScriptKind.TSX);
+  const sourceFile = parseSourceFile(
+    file,
+    sourceText,
+    true,
+    scriptKindFor(file),
+  );
   const occurrences: UntranslatedStringOccurrence[] = [];
 
   const record = (node: ts.Node, rawText: string): void => {
