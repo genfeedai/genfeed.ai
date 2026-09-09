@@ -21,16 +21,6 @@ const SERVICE_CARDS = [
   {
     cta: 'Book a Call',
     ctaHref: EnvironmentService.calendly,
-    description: contentServiceOffering.description,
-    features: contentServiceOffering.includes,
-    label: 'Done-For-You',
-    number: '01',
-    price: 'Custom',
-    shortLabel: 'Content',
-  },
-  {
-    cta: 'Book a Call',
-    ctaHref: EnvironmentService.calendly,
     description:
       'Setup packages and custom workshops to get your team productive on the platform fast.',
     features: [
@@ -41,9 +31,19 @@ const SERVICE_CARDS = [
       'Ongoing email support',
     ],
     label: 'Training & Onboarding',
-    number: '02',
+    isFeatured: false,
     price: 'From $299',
     shortLabel: 'Training',
+  },
+  {
+    cta: 'Book a Call',
+    ctaHref: EnvironmentService.calendly,
+    description: contentServiceOffering.description,
+    features: contentServiceOffering.includes,
+    label: 'Done-For-You',
+    isFeatured: true,
+    price: 'Custom',
+    shortLabel: 'Content',
   },
   {
     cta: 'Book a Call',
@@ -57,8 +57,8 @@ const SERVICE_CARDS = [
       'Content calendar design',
       'Performance framework setup',
     ],
+    isFeatured: false,
     label: 'Content Consultancy',
-    number: '03',
     price: 'Custom',
     shortLabel: 'Strategy',
   },
@@ -84,7 +84,7 @@ export default function ServicesContent() {
           />
           <NeuralGrid columns={3} className="gsap-grid">
             {SERVICE_CARDS.map((service, index) => {
-              const isFeatured = index === 0;
+              const isFeatured = service.isFeatured;
 
               return (
                 <NeuralGridItem
@@ -104,7 +104,7 @@ export default function ServicesContent() {
                   )}
 
                   <div className="text-xs font-black uppercase tracking-widest mb-6 text-surface/50">
-                    {service.number} / {service.shortLabel}
+                    {String(index + 1).padStart(2, '0')} / {service.shortLabel}
                   </div>
 
                   <div className="mb-2">
