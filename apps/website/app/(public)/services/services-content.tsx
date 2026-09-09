@@ -92,7 +92,7 @@ export default function ServicesContent() {
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
-                    isFeatured && 'bg-[var(--gen-accent-bg)]',
+                    isFeatured && 'bg-card hover:bg-card',
                   )}
                 >
                   {isFeatured && (
