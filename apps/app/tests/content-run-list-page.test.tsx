@@ -39,8 +39,20 @@ vi.mock('@services/content/content-runs.service', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <section>{children}</section>
+  default: ({
+    children,
+    label,
+    leading,
+  }: {
+    children: ReactNode;
+    label?: string;
+    leading?: ReactNode;
+  }) => (
+    <section>
+      {label ? <h1>{label}</h1> : null}
+      {leading}
+      {children}
+    </section>
   ),
 }));
 
@@ -104,6 +116,9 @@ describe('ContentRunListPage', () => {
     renderContentRunList();
 
     expect(await screen.findByText('No content runs yet')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Content Runs' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Go to Discovery' }),
     ).toHaveAttribute('href', '/acme/main/discovery');
