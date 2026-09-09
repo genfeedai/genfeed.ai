@@ -3,9 +3,9 @@ import {
   SERVER_TOKENS,
   type ServerConfig,
   type ServerLogger,
-  type ServerPrisma,
 } from '@api/server.dependencies';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   buildLifecycleSystemEmailAction,
@@ -100,7 +100,7 @@ export type LifecycleEmailDeliveryState = {
 export class LifecycleEmailDeliveryService {
   constructor(
     @Inject(SERVER_TOKENS.prisma)
-    private readonly prisma: ServerPrisma,
+    private readonly prisma: PrismaService,
     private readonly emailPerformance: EmailPerformanceService,
     @Inject(SERVER_TOKENS.config)
     private readonly configService: ServerConfig,

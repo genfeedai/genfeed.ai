@@ -17,6 +17,13 @@ const getSystemEmailsService = vi.hoisted(() =>
   })),
 );
 
+vi.mock(
+  '@app/(protected)/admin/administration/system-emails/system-email-performance',
+  () => ({
+    default: () => <div data-testid="email-performance-report" />,
+  }),
+);
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getSystemEmailsService,
 }));

@@ -42,5 +42,6 @@ export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly warmupOverrideConfirmedAt: Credential['warmupOverrideConfirmedAt'];
   declare readonly warmupOverrideConfirmedByUserId: Credential['warmupOverrideConfirmedByUserId'];
 
+  declare readonly connectedAt: Credential['connectedAt'];
   declare readonly isConnected: boolean;
 }

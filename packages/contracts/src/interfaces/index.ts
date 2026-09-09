@@ -1,4 +1,5 @@
 export * from './admin/announcements.interface';
+export * from './admin/email-performance.interface';
 export * from './admin/fleet.interface';
 export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-artifact-reference.interface';

@@ -1,4 +1,5 @@
-import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
+import { SERVER_TOKENS } from '@api/server.dependencies';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -33,7 +34,7 @@ export const GENERATED_CONTENT_FILTER = {
 @Injectable()
 export class SystemEmailEligibilityService {
   constructor(
-    @Inject(SERVER_TOKENS.prisma) private readonly prisma: ServerPrisma,
+    @Inject(SERVER_TOKENS.prisma) private readonly prisma: PrismaService,
   ) {}
 
   async shouldSend(input: SystemEmailEligibilityInput): Promise<boolean> {

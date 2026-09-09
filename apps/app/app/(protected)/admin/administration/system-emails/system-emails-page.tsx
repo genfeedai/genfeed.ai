@@ -1,12 +1,12 @@
 'use client';
 
+import SystemEmailPerformance from '@app/(protected)/admin/administration/system-emails/system-email-performance';
 import {
   buildLifecycleSystemEmailAction,
   type LifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import SystemEmailPerformance from '@protected/administration/system-emails/system-email-performance';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';

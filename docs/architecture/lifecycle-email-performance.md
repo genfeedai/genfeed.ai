@@ -27,3 +27,11 @@ Admin reports use a created-message date cohort and expose explicit metric denom
 ## Acceptance and verification
 
 Focused coverage must exercise duplicate dispatch/provider callbacks, stale eligibility, worker retry/recovery, subscriber opt-out, four versus five outputs, UTC week boundaries, same-user/tenant attribution, future/out-of-window actions and confirmed credit grants. Required PR checks and independent review remain delivery gates. Production webhook configuration is documented; development verification never sends real customer email.
+
+## Activation
+
+Deploy the schema migrations before the API and workers. Configure the existing email provider credentials, `GENFEEDAI_APP_URL`, `GENFEEDAI_API_URL`, and `RESEND_WEBHOOK_SECRET` in the deployment environment. Register the public API endpoint `/v1/email-performance/webhooks/resend` for `email.sent`, `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, and `email.complained`. The endpoint requires the original request bytes and validates the signed webhook headers. Reverse proxies must preserve those headers and body.
+
+The platform scheduler discovers email work every five minutes. UTC daily/weekly windows and send-time preferences control eligibility. Generation timestamps begin with new transitions after migration; historical completion dates are not backfilled. Generation emails are opt-in and require a recorded duration of at least two minutes. This version does not infer whether a creator has already viewed the result.
+
+The administrator email page reports message cohorts and attributed product actions. Provider receipt setup is required for delivery/bounce/open metrics; accepted messages are recorded directly from the provider response. Attribution uses first-party CTA clicks even if provider click reporting is disabled. Validate configuration using an operator-owned test recipient before enabling customer delivery. Do not use production recipients in automated verification.

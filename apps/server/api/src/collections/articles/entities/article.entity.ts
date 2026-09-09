@@ -19,6 +19,7 @@ export class ArticleEntity extends BaseEntity implements Article {
   scope!: Article['scope'];
 
   publishedAt!: Article['publishedAt'];
+  generationCompletedAt!: Article['generationCompletedAt'];
 
   seoScore!: Article['seoScore'];
   seoBreakdown!: Article['seoBreakdown'];
