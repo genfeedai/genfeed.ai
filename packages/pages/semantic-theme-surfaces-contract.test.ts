@@ -48,11 +48,9 @@ describe('page semantic theme surfaces', () => {
       'bg-white/10',
       'bg-foreground/10',
     ],
-    [
-      'analytics/brand-overview/BrandKPISection.tsx',
-      'bg-white/10',
-      'bg-foreground/10',
-    ],
+    // Delegates its surface to `@ui/kpi/kpi-section`; only the forbidden token
+    // is still this file's concern.
+    ['analytics/brand-overview/BrandKPISection.tsx', 'bg-white/10', null],
     [
       'analytics/trends/trend-detail/trend-detail.tsx',
       'border-white',
@@ -63,10 +61,11 @@ describe('page semantic theme surfaces', () => {
       'border-white',
       'border-border',
     ],
+    // Delegates its border to `@ui/card/Card`.
     [
       'trends/platform-detail/components/related-metric-card.tsx',
       'border-white',
-      'border-border',
+      null,
     ],
     [
       'trends/list/components/HookRemixModal.tsx',
@@ -86,10 +85,16 @@ describe('page semantic theme surfaces', () => {
     ],
   ])(
     'removes fixed dark-only chrome from %s',
-    (relativePath, forbiddenToken, semanticToken) => {
+    (relativePath, forbiddenToken, semanticToken: string | null) => {
       const source = readPage(relativePath);
 
-      expect(source).toContain(semanticToken);
+      // A `null` semantic token means the file hands the surface to a shared
+      // `@ui` primitive, which owns the semantic classes and guards them in
+      // its own contract test.
+      if (semanticToken !== null) {
+        expect(source).toContain(semanticToken);
+      }
+
       expect(source).not.toContain(forbiddenToken);
     },
   );
@@ -109,7 +114,8 @@ describe('page semantic theme surfaces', () => {
     const streaks = readPage('streaks/streaks-page.tsx');
     const campaigns = readPage('agents/campaigns/AgentCampaignsPage.tsx');
 
-    expect(streaks).toContain('border-t-foreground');
+    // The streak page renders its loading state through `@ui` cards now, so it
+    // carries no spinner chrome of its own — the ban still applies.
     expect(streaks).not.toContain('border-t-white');
     expect(campaigns).toContain('bg-foreground/[0.06]');
     expect(campaigns).not.toContain('border-white');

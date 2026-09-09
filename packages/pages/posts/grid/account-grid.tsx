@@ -151,7 +151,11 @@ function AccountGridTile({
           {title}
         </span>
       )}
-      <span className="absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-[10px] text-white">
+      <span
+        className={
+          'absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-[10px] text-white' /* design-system-allow-content-color -- media overlay scrim */
+        }
+      >
         {tone === 'review'
           ? translate('review')
           : tone === 'failed'
