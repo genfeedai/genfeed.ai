@@ -14,6 +14,7 @@ import {
 } from '@pages/activities/activities-list.utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   getGenerationActivityHref,
@@ -43,6 +44,7 @@ export function useLiveActivityFeed() {
   const { orgSlug } = useOrgUrl();
   const router = useRouter();
   const formatter = useActivityMessageFormatter();
+  const translateActivity = useTranslations('common.activity');
   const client = useQueryClient();
   const { isReady, subscribe, connectionState } = useSocketManager();
   const activity = useActivities({
@@ -173,7 +175,10 @@ export function useLiveActivityFeed() {
         brands,
       });
       const options = destination
-        ? { actionLabel: 'View', onAction: () => router.push(destination) }
+        ? {
+            actionLabel: translateActivity('view'),
+            onAction: () => router.push(destination),
+          }
         : undefined;
       const notifications = NotificationsService.getInstance();
       const title = getActivityDescription(item, formatter);
@@ -193,6 +198,7 @@ export function useLiveActivityFeed() {
     orgSlug,
     router,
     scopeKey,
+    translateActivity,
     userId,
   ]);
 

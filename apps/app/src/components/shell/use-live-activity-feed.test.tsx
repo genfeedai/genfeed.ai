@@ -57,6 +57,11 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
     getInstance: () => ({ success: mock.success, warning: mock.warning }),
   },
 }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@/hooks/i18n/useActivityMessageFormatter', () => ({
   useActivityMessageFormatter: () => (descriptor: { key: string }) =>
     descriptor.key,

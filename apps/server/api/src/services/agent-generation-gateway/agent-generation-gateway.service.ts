@@ -204,6 +204,11 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       userId: user.id,
     });
 
+    // Once the first article's completion is written, the processing activity
+    // is resolved. A later throw — recording the remaining activities, the
+    // socket publish, serialization — must not rewrite it as a failure when
+    // the articles genuinely generated.
+    let isCompletionRecorded = false;
     try {
       const { articles, billedCredits } =
         await this.articlesService.generateArticles(
@@ -232,6 +237,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
             activity.id.toString(),
             completion,
           );
+          isCompletionRecorded = true;
         } else {
           await this.activitiesService.create(completion);
         }
@@ -256,12 +262,14 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         docs: articles,
       });
     } catch (error: unknown) {
-      await this.recordArticleGenerationFailure(
-        activity.id.toString(),
-        error,
-        isXArticle,
-        user.id,
-      );
+      if (!isCompletionRecorded) {
+        await this.recordArticleGenerationFailure(
+          activity.id.toString(),
+          error,
+          isXArticle,
+          user.id,
+        );
+      }
 
       throw error;
     }

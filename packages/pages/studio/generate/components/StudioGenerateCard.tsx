@@ -15,6 +15,7 @@ import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.mo
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { logger } from '@services/core/logger.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
@@ -120,6 +121,11 @@ export default function StudioGenerateCard({
     setIsCancelling(true);
     try {
       await assetActions.onCancelGeneration?.(job);
+    } catch (error: unknown) {
+      // The click handler discards this promise, so a rejection here would be
+      // an unhandled rejection. The job keeps its current status and the
+      // Studio reconciler corrects it on the next pass.
+      logger.error('Failed to cancel the Studio generation', error);
     } finally {
       setIsCancelling(false);
     }
