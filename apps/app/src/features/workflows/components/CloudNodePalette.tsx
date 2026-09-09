@@ -12,16 +12,16 @@ const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 const CLOUD_NATIVE_PALETTE_NODES: PaletteNodeDefinition[] = [
   {
     category: 'input',
-    description: 'Upload or pick an image from the library',
+    description: 'Pick an image from the library',
     icon: 'Image',
-    label: 'Image Input',
+    label: 'Image',
     type: 'input-image',
   },
   {
     category: 'input',
-    description: 'Upload or pick a video from the library',
+    description: 'Pick a video from the library',
     icon: 'Video',
-    label: 'Video Input',
+    label: 'Video',
     type: 'input-video',
   },
 ];

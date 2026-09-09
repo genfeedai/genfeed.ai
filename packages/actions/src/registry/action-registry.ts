@@ -99,28 +99,28 @@ type WorkflowActionCatalogEntry = readonly [
 const WORKFLOW_ACTIONS = [
   [
     'daily-publishing.collect-analytics',
-    'Account analytics',
+    'Metrics',
     'Recent post metrics.',
     'input',
     'ChartLine',
   ],
   [
     'daily-publishing.resolve',
-    'Daily accounts',
+    'Accounts',
     'Brand settings and connected accounts.',
     'input',
     'Users',
   ],
   [
     'daily-publishing.refresh',
-    'Refresh sources',
+    'Sources',
     'Refresh trend sources.',
     'input',
     'TrendingUp',
   ],
   [
     'daily-publishing.select',
-    'Select source',
+    'Source',
     "Pick today's source.",
     'input',
     'Calendar',
@@ -184,7 +184,7 @@ const WORKFLOW_ACTIONS = [
     'input',
     'Layers',
   ],
-  ['castPrompt', 'Cast prompt', 'Cast-aware prompt.', 'input', 'Film'],
+  ['castPrompt', 'Cast', 'Cast-aware prompt.', 'input', 'Film'],
   [
     'cinematicColorGrade',
     'Apply Cinematic Color Grade',
@@ -262,7 +262,7 @@ const WORKFLOW_ACTIONS = [
     'ai',
     'Image',
   ],
-  ['input-template', 'Prompt template', 'Saved prompt.', 'input', 'FileText'],
+  ['input-template', 'Template', 'Saved prompt.', 'input', 'FileText'],
   [
     'iterativeSeoRefine',
     'Refine SEO Iteratively',
@@ -293,7 +293,7 @@ const WORKFLOW_ACTIONS = [
   ],
   [
     'musicSource',
-    'Resolve Music Source',
+    'Music',
     'Resolves one workflow music source.',
     'input',
     'AudioLines',
@@ -342,7 +342,7 @@ const WORKFLOW_ACTIONS = [
   ],
   [
     'promptConstructor',
-    'Prompt constructor',
+    'Prompt',
     'Build a prompt from inputs.',
     'input',
     'Puzzle',
@@ -441,7 +441,7 @@ const WORKFLOW_ACTIONS = [
     'Pencil',
   ],
   ['seoScore', 'Score SEO', 'Scores content for SEO.', 'processing', 'Eye'],
-  ['socialRead', 'Social content', 'Posts for context.', 'input', 'Search'],
+  ['socialRead', 'Social', 'Posts for context.', 'input', 'Search'],
   [
     'separateDialogue',
     'Separate Dialogue',
@@ -458,7 +458,7 @@ const WORKFLOW_ACTIONS = [
   ],
   [
     'sourceCorpus',
-    'Build Source Corpus',
+    'Corpus',
     'Collects recent tenant source posts.',
     'input',
     'Layers',
@@ -507,7 +507,7 @@ const WORKFLOW_ACTIONS = [
   ],
   [
     'trendTrigger',
-    'Resolve Matching Trend',
+    'Trend',
     'Resolves one matching trend for workflow execution.',
     'input',
     'Search',

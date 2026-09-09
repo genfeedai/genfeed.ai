@@ -35,10 +35,16 @@ describe('CloudNodePalette', () => {
     expect(props.additionalNodes.length).toBeGreaterThan(0);
     expect(
       props.additionalNodes.find((node) => node.type === 'input-image'),
-    ).toMatchObject({ category: 'input', icon: 'Image', label: 'Image Input' });
+    ).toMatchObject({ category: 'input', icon: 'Image', label: 'Image' });
     expect(
       props.additionalNodes.find((node) => node.type === 'input-video'),
-    ).toMatchObject({ category: 'input', icon: 'Video', label: 'Video Input' });
+    ).toMatchObject({ category: 'input', icon: 'Video', label: 'Video' });
+    expect(
+      props.additionalNodes.some((node) => node.label === 'Image Input'),
+    ).toBe(false);
+    expect(
+      props.additionalNodes.some((node) => node.label === 'Video Input'),
+    ).toBe(false);
     expect(new Set(props.additionalNodes.map((node) => node.category))).toEqual(
       new Set(['input', 'ai', 'processing', 'composition', 'output']),
     );

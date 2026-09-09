@@ -147,7 +147,7 @@ describe('CloudVideoInputNode', () => {
       },
     });
 
-    expect(screen.getByText('Video Input')).toBeVisible();
+    expect(screen.getByText('Video')).toBeVisible();
     expect(document.querySelector('video')).toHaveAttribute(
       'src',
       'https://example.test/original.mp4',

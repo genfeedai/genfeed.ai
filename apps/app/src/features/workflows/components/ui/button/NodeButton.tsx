@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 
@@ -13,15 +13,15 @@ interface NodeButtonProps
   fullWidth?: boolean;
 }
 
-const variantClasses: Record<WorkflowNodeButtonVariant, string> = {
-  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-  ghost: 'bg-muted text-foreground hover:bg-muted/80',
-  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  success: 'bg-success text-success-foreground hover:bg-success/90',
+const NODE_BUTTON_VARIANT: Record<WorkflowNodeButtonVariant, ButtonVariant> = {
+  danger: ButtonVariant.DESTRUCTIVE,
+  ghost: ButtonVariant.GHOST,
+  primary: ButtonVariant.SECONDARY,
+  success: ButtonVariant.SECONDARY,
 };
 
 /**
- * Standardized button component for workflow nodes
+ * Workflow-node actions use the shared Button primitive, not a custom paint.
  */
 export function NodeButton({
   variant = 'primary',
@@ -34,18 +34,15 @@ export function NodeButton({
 }: NodeButtonProps): React.JSX.Element {
   return (
     <Button
-      className={cn(
-        'py-2 text-sm font-black transition flex items-center justify-center gap-2',
-        variantClasses[variant],
-        fullWidth ? 'w-full' : 'px-3',
-        disabled && 'opacity-50 cursor-not-allowed',
-        className,
-      )}
-      disabled={disabled}
-      variant={ButtonVariant.UNSTYLED}
+      className={cn(fullWidth && 'w-full', className)}
+      icon={icon}
+      isDisabled={disabled}
+      size={ButtonSize.SM}
+      textTransform="none"
+      variant={NODE_BUTTON_VARIANT[variant]}
+      withWrapper={false}
       {...props}
     >
-      {icon}
       {children}
     </Button>
   );
@@ -65,8 +62,10 @@ export function NodeIconButton({
     <Button
       ariaLabel={ariaLabel ?? title}
       className={cn('p-1.5 hover:bg-muted transition flex-shrink-0', className)}
+      textTransform="none"
       title={title}
-      variant={ButtonVariant.UNSTYLED}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
       {...props}
     >
       {children}

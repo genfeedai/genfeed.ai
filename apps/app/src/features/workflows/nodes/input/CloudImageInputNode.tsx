@@ -134,11 +134,11 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <BaseNode
       {...props}
-      title="Image Input"
+      title="Image"
       titleElement={
         <div className="flex items-center gap-2">
           <ImageIcon />
-          <span>Image Input</span>
+          <span>Image</span>
         </div>
       }
     >

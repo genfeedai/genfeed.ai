@@ -143,7 +143,7 @@ describe('CloudImageInputNode', () => {
       },
     });
 
-    expect(screen.getByText('Image Input')).toBeVisible();
+    expect(screen.getByText('Image')).toBeVisible();
     expect(screen.getByAltText('Selected image')).toHaveAttribute(
       'src',
       'https://example.test/original.png',

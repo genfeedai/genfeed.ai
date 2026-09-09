@@ -267,6 +267,12 @@ function mergeNodesByCategory(
     });
   }
 
+  for (const category of Object.keys(merged) as NodeCategory[]) {
+    merged[category].sort((left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+    );
+  }
+
   return merged;
 }
 
@@ -363,6 +369,10 @@ export function NodePalette({
         }
       }
     }
+
+    results.sort((left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+    );
 
     return results;
   }, [searchQuery, nodesByCategory]);

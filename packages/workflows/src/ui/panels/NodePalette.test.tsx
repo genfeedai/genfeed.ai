@@ -62,4 +62,48 @@ describe('NodePalette', () => {
       version: 1,
     });
   });
+
+  it('lists nodes alphabetically by label inside a category', () => {
+    render(
+      <NodePalette
+        additionalNodes={[
+          {
+            category: 'input',
+            description: 'Video from the library',
+            icon: 'Video',
+            label: 'Video',
+            type: 'input-video',
+          },
+          {
+            category: 'input',
+            description: 'Brand colors',
+            icon: 'Layers',
+            label: 'Brand',
+            type: 'genfeedAction',
+          },
+          {
+            category: 'input',
+            description: 'Image from the library',
+            icon: 'Image',
+            label: 'Image',
+            type: 'input-image',
+          },
+        ]}
+      />,
+    );
+
+    const labels = screen
+      .getAllByRole('button')
+      .map((button) => button.textContent ?? '')
+      .filter(
+        (text) =>
+          text.startsWith('Brand') ||
+          text.startsWith('Image') ||
+          text.startsWith('Video'),
+      );
+
+    expect(labels[0]).toContain('Brand');
+    expect(labels[1]).toContain('Image');
+    expect(labels[2]).toContain('Video');
+  });
 });

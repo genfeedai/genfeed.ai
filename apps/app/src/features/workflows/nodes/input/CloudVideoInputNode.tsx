@@ -101,11 +101,11 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <BaseNode
       {...props}
-      title="Video Input"
+      title="Video"
       titleElement={
         <div className="flex items-center gap-2">
           <VideoIcon />
-          <span>Video Input</span>
+          <span>Video</span>
         </div>
       }
     >
