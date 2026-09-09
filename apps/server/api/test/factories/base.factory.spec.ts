@@ -75,16 +75,31 @@ describe('TestIdFactory', () => {
 });
 
 describe('test helpers', () => {
-  it('generates emails, urls, and waits for promises', async () => {
+  it('generates emails, urls, and ids', () => {
     expect(generateTestEmail('helper')).toContain('helper.');
     expect(generateTestEmail('helper')).toContain('@example.com');
     expect(generateTestUrl('/path')).toBe('https://test.example.com/path');
     expect(generateTestId()).toMatch(/^test-id-\w+$/u);
     expect(generateTestId()).not.toBe(generateTestId());
+  });
 
-    const before = Date.now();
-    await waitFor(5);
-    expect(Date.now() - before).toBeGreaterThanOrEqual(5);
+  it('waitFor stays pending until its delay elapses', async () => {
+    vi.useFakeTimers();
+    try {
+      let isResolved = false;
+      const pending = waitFor(5).then(() => {
+        isResolved = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(4);
+      expect(isResolved).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(isResolved).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('exposes common error instances', () => {
