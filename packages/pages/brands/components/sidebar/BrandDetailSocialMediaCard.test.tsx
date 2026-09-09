@@ -414,11 +414,14 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(
       screen.getByRole('link', { name: 'Open Genfeed on twitter' }),
     ).toHaveAttribute('href', 'https://x.com/genfeed');
-    expect(screen.getByAltText('Genfeed profile picture')).toHaveAttribute(
-      'src',
-      'https://cdn.example.com/genfeed.jpg',
-    );
-    expect(screen.getByText('@genfeed')).toBeInTheDocument();
+    // The avatar renders in both the account row and the platform card.
+    for (const avatar of screen.getAllByAltText('Genfeed profile picture')) {
+      expect(avatar).toHaveAttribute(
+        'src',
+        'https://cdn.example.com/genfeed.jpg',
+      );
+    }
+    expect(screen.getAllByText('@genfeed').length).toBeGreaterThan(0);
   });
 
   it('renders an initials fallback when an account has no avatar or profile url', () => {
@@ -465,8 +468,15 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getByText('Genfeed')).toBeInTheDocument();
-    expect(screen.getByText('Genfeed Labs')).toBeInTheDocument();
+    // Each account name appears in its row and again on the platform card.
+    expect(screen.getAllByText('Genfeed').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Genfeed Labs').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('link', { name: 'Open Genfeed on twitter' }),
+    ).toHaveAttribute('href', 'https://x.com/genfeed');
+    expect(
+      screen.getByRole('link', { name: 'Open Genfeed Labs on twitter' }),
+    ).toHaveAttribute('href', 'https://x.com/genfeedlabs');
   });
 
   it('starts oauth directly from the social card', async () => {

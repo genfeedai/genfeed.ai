@@ -17,11 +17,15 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   ),
 }));
 
-vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({
-    getToken: vi.fn(async () => 'token-123'),
-  }),
-}));
+// `getToken` feeds the load effect's dependency array. A fresh function per
+// render re-runs that effect on every commit, so a mutation's result is
+// immediately overwritten by a stale list fetch.
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => {
+  const getToken = vi.fn(async () => 'token-123');
+  const identity = { getToken };
+
+  return { useAuthIdentity: () => identity };
+});
 
 vi.mock('@services/organization/credentials.service', () => ({
   CredentialsService: {
@@ -37,14 +41,11 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    }),
-  },
-}));
+vi.mock('@services/core/notifications.service', () => {
+  const service = { error: vi.fn(), success: vi.fn() };
+
+  return { NotificationsService: { getInstance: () => service } };
+});
 
 describe('CredentialPostingTimesEditor', () => {
   beforeEach(() => {

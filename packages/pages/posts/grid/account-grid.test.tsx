@@ -136,7 +136,8 @@ describe('AccountGrid', () => {
       />,
     );
 
-    expect(await screen.findByText(/Token expired|Reconnect/i)).toBeVisible();
+    // The Reconnect action also matches /Reconnect/i, so target the banner copy.
+    expect(await screen.findByText(/needs to be reconnected/i)).toBeVisible();
     expect(screen.getByRole('link', { name: /Reconnect/i })).toHaveAttribute(
       'href',
       '/settings/social',
@@ -165,6 +166,9 @@ describe('AccountGrid', () => {
       />,
     );
 
-    expect(await screen.findByTestId('account-grid-gap')).toBeVisible();
+    // Every empty preferred slot renders its own gap tile.
+    const gaps = await screen.findAllByTestId('account-grid-gap');
+    expect(gaps.length).toBeGreaterThan(0);
+    expect(gaps[0]).toBeVisible();
   });
 });
