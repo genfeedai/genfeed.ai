@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
@@ -162,14 +161,13 @@ export default function ServiceLandingPage({
 
           <NeuralGrid columns={4}>
             {config.process.map((step, index) => (
+              // Every step is one step. Tinting the first and last only marked
+              // the ends of a sequence the numbering already marks, and read as
+              // two cards being highlighted for a reason nobody could name.
               <NeuralGridItem
                 key={step.step}
                 tierLabel={`0${index + 1} / ${step.step}`}
                 padding="lg"
-                className={cn(
-                  index === 0 && 'bg-fill/[0.02]',
-                  index === config.process.length - 1 && 'bg-fill/[0.02]',
-                )}
               >
                 <p className="text-sm leading-relaxed text-surface/60">
                   {step.description}

@@ -185,6 +185,10 @@ export default function ServicesContent() {
                 href: '/launch-content',
                 label: 'Launch Content',
               },
+              {
+                href: '/retainer',
+                label: 'Content Retainer',
+              },
             ].map((item) => (
               <Link
                 key={item.label}
