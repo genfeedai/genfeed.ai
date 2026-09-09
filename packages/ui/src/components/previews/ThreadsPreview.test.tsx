@@ -37,6 +37,6 @@ describe('ThreadsPreview', () => {
       />,
     );
 
-    expect(screen.getByText('No caption yet')).toBeInTheDocument();
+    expect(screen.getByText('Draft preview appears here.')).toBeInTheDocument();
   });
 });

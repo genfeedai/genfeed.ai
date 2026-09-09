@@ -60,6 +60,7 @@ export interface UseStudioGenerationParams {
 }
 
 export interface UseStudioGenerationReturn {
+  cancelJob: (job: StudioGenerateJob) => Promise<void>;
   clearJobs: () => void;
   isGenerating: boolean;
   jobs: readonly StudioGenerateJob[];
@@ -108,9 +109,14 @@ export function useStudioGeneration({
   settings,
   type,
 }: UseStudioGenerationParams): UseStudioGenerationReturn {
-  const { subscribe } = useSocketManager();
+  const { subscribe, connectionState } = useSocketManager();
+  const activeBrandRef = useRef(brandId);
+  activeBrandRef.current = brandId;
+  const submittingRef = useRef(false);
+  const cancellingIds = useRef(new Set<string>());
   const [jobs, setJobs] = useState<readonly StudioGenerateJob[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [jobsBrandId, setJobsBrandId] = useState(brandId);
 
   const subscriptionsRef = useRef<Array<() => void>>([]);
   const subscribedIdsRef = useRef(new Set<string>());
@@ -133,11 +139,15 @@ export function useStudioGeneration({
   );
 
   useEffect(() => {
-    if (!brandId || restoredBrandRef.current !== brandId) {
+    if (
+      !brandId ||
+      jobsBrandId !== brandId ||
+      restoredBrandRef.current !== brandId
+    ) {
       return;
     }
     writeStudioGenerateSessionJobs(brandId, jobs);
-  }, [brandId, jobs]);
+  }, [brandId, jobs, jobsBrandId]);
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -166,7 +176,11 @@ export function useStudioGeneration({
   const patchJob = useCallback(
     (id: string, patch: Partial<StudioGenerateJob>) => {
       setJobs((previous) =>
-        previous.map((job) => (job.id === id ? { ...job, ...patch } : job)),
+        previous.map((job) =>
+          job.id === id && isStudioGenerateJobPending(job.status)
+            ? { ...job, ...patch }
+            : job,
+        ),
       );
     },
     [],
@@ -230,6 +244,7 @@ export function useStudioGeneration({
 
       const handler = createMediaHandler<SocketResult>(
         async (result) => {
+          if (activeBrandRef.current !== brandId) return;
           const resolvedId =
             typeof result === 'string'
               ? result
@@ -240,13 +255,24 @@ export function useStudioGeneration({
           try {
             const fetchService = await resolveFetchService(jobType);
             const ingredient = await fetchService.findOne(resolvedId);
+            if (activeBrandRef.current !== brandId) return;
+            if (
+              !ingredient?.status ||
+              isStudioGenerateJobPending(ingredient.status)
+            )
+              return;
             const dimensions = resolveStudioAssetDimensions(ingredient);
 
             patchJob(pendingId, {
               ...(dimensions.height ? { height: dimensions.height } : {}),
               ingredient: ingredient ?? undefined,
               ingredientId: String(ingredient?.id ?? resolvedId),
-              status: IngredientStatus.GENERATED,
+              phase:
+                ingredient.generationError === 'Cancelled by user'
+                  ? 'cancelled'
+                  : undefined,
+              error: ingredient.generationError ?? undefined,
+              status: ingredient.status,
               url: resolveStudioAssetUrl(ingredient),
               ...(dimensions.width ? { width: dimensions.width } : {}),
             });
@@ -256,12 +282,10 @@ export function useStudioGeneration({
               'Failed to load Studio generation result after socket event',
               error,
             );
-            // The asset may well exist, but we could not read it — showing a
-            // finished card with no media would be a lie. Fail it loudly and
-            // let the gallery refresh surface the row if it did land.
+            if (activeBrandRef.current !== brandId) return;
             patchJob(pendingId, {
-              error: 'Generation finished but the asset could not be loaded',
-              status: IngredientStatus.FAILED,
+              error: 'The result could not be loaded. Reconnecting…',
+              phase: 'saving',
             });
             onGeneratedRef.current?.();
           } finally {
@@ -269,12 +293,15 @@ export function useStudioGeneration({
           }
         },
         (errorMessage: string) => {
+          if (activeBrandRef.current !== brandId) return;
           const message = errorMessage || `${config.label} generation failed`;
           patchJob(pendingId, {
             error: message,
+            phase: message === 'Cancelled by user' ? 'cancelled' : undefined,
             status: IngredientStatus.FAILED,
           });
-          notificationsService.error(message);
+          if (message !== 'Cancelled by user')
+            notificationsService.error(message);
           cleanup();
         },
       );
@@ -283,7 +310,7 @@ export function useStudioGeneration({
       unsubscribe = subscribe(topic, handler);
       subscriptionsRef.current.push(unsubscribe);
     },
-    [notificationsService, patchJob, resolveFetchService, subscribe],
+    [brandId, notificationsService, patchJob, resolveFetchService, subscribe],
   );
 
   const trackPendingIds = useCallback(
@@ -299,6 +326,7 @@ export function useStudioGeneration({
         width?: number;
       },
     ) => {
+      if (activeBrandRef.current !== brandId) return;
       setJobs((previous) => [
         ...pendingIds.map((id) => ({
           createdAt: Date.now(),
@@ -313,14 +341,16 @@ export function useStudioGeneration({
           type: context.type,
           width: context.width,
         })),
-        ...previous,
+        ...previous.filter(
+          (job) => job.runId !== context.runId || job.phase !== 'submitting',
+        ),
       ]);
 
       for (const pendingId of pendingIds) {
         subscribeToPendingJob(pendingId, context.type);
       }
     },
-    [subscribeToPendingJob],
+    [brandId, subscribeToPendingJob],
   );
 
   const rehydratePending = useCallback(
@@ -347,14 +377,14 @@ export function useStudioGeneration({
       return;
     }
 
+    for (const unsubscribe of subscriptionsRef.current) unsubscribe();
+    subscriptionsRef.current = [];
+    subscribedIdsRef.current.clear();
     restoredBrandRef.current = brandId;
     const restored = readStudioGenerateSessionJobs(brandId);
 
-    if (restored.length === 0) {
-      return;
-    }
-
-    setJobs((previous) => mergeStudioGenerateJobs(previous, restored));
+    setJobs(restored);
+    setJobsBrandId(brandId);
 
     for (const job of restored) {
       if (isStudioGenerateJobPending(job.status)) {
@@ -363,9 +393,118 @@ export function useStudioGeneration({
     }
   }, [brandId, subscribeToPendingJob]);
 
+  const cancelJob = useCallback(
+    async (job: StudioGenerateJob) => {
+      if (!job.ingredientId || cancellingIds.current.has(job.id)) return;
+      cancellingIds.current.add(job.id);
+      try {
+        const service = await getIngredientsService();
+        const ingredient = await service.cancelGeneration(job.ingredientId);
+        if (activeBrandRef.current !== brandId) return;
+        patchJob(job.id, {
+          ingredient,
+          status: ingredient.status,
+          phase:
+            ingredient.generationError === 'Cancelled by user'
+              ? 'cancelled'
+              : undefined,
+          error: ingredient.generationError ?? undefined,
+          url: resolveStudioAssetUrl(ingredient),
+        });
+        onGeneratedRef.current?.();
+      } catch (error) {
+        if (activeBrandRef.current === brandId)
+          notificationsService.error(
+            toErrorMessage(error, 'Could not cancel generation'),
+          );
+      } finally {
+        cancellingIds.current.delete(job.id);
+      }
+    },
+    [brandId, getIngredientsService, notificationsService, patchJob],
+  );
+
+  useEffect(() => {
+    const pending = jobs.filter(
+      (job) => job.ingredientId && isStudioGenerateJobPending(job.status),
+    );
+    if (
+      jobsBrandId !== brandId ||
+      pending.length === 0 ||
+      connectionState === 'offline'
+    )
+      return;
+    const controller = new AbortController();
+    let isRefreshing = false;
+    const reconcile = async () => {
+      if (isRefreshing || document.visibilityState === 'hidden') return;
+      isRefreshing = true;
+      try {
+        for (const job of pending) {
+          if (controller.signal.aborted) return;
+          try {
+            const service = await resolveFetchService(job.type);
+            const ingredient = await service.findOne(
+              job.ingredientId ?? job.id,
+              undefined,
+              controller.signal,
+            );
+            if (controller.signal.aborted || activeBrandRef.current !== brandId)
+              return;
+            if (
+              !ingredient?.status ||
+              isStudioGenerateJobPending(ingredient.status)
+            )
+              continue;
+            const dimensions = resolveStudioAssetDimensions(ingredient);
+            patchJob(job.id, {
+              ingredient,
+              phase:
+                ingredient.generationError === 'Cancelled by user'
+                  ? 'cancelled'
+                  : undefined,
+              error: ingredient.generationError ?? undefined,
+              status: ingredient.status,
+              url: resolveStudioAssetUrl(ingredient),
+              ...(dimensions.height ? { height: dimensions.height } : {}),
+              ...(dimensions.width ? { width: dimensions.width } : {}),
+            });
+            onGeneratedRef.current?.();
+          } catch (error) {
+            if (!controller.signal.aborted)
+              logger.debug(
+                'Studio generation status could not be refreshed',
+                error,
+              );
+          }
+        }
+      } finally {
+        isRefreshing = false;
+      }
+    };
+    void reconcile();
+    const timer = window.setInterval(() => void reconcile(), 10000);
+    const onVisible = () => void reconcile();
+    window.addEventListener('focus', onVisible);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [
+    brandId,
+    connectionState,
+    jobs,
+    jobsBrandId,
+    patchJob,
+    resolveFetchService,
+  ]);
+
   const submit = useCallback(
     async (promptText: string, references: StudioGenerationReferences = {}) => {
-      if (isGenerating) {
+      if (submittingRef.current) {
         return;
       }
 
@@ -392,6 +531,18 @@ export function useStudioGeneration({
         return;
       }
 
+      if (
+        (type === 'avatar' && !settings.avatarPhotoUrl) ||
+        ((type === 'voice' || type === 'avatar') && !settings.voiceId)
+      ) {
+        notificationsService.error(
+          type === 'avatar' && !settings.avatarPhotoUrl
+            ? 'Pick an avatar before generating'
+            : 'Pick a voice before generating',
+        );
+        return;
+      }
+
       const modelKey = resolveModelKey(
         settings,
         models,
@@ -411,7 +562,30 @@ export function useStudioGeneration({
         type,
       };
 
+      submittingRef.current = true;
       setIsGenerating(true);
+      setJobs((previous) => [
+        ...Array.from(
+          {
+            length: config.capabilities.hasOutputs
+              ? Math.max(1, settings.outputs)
+              : 1,
+          },
+          (_, index) => ({
+            createdAt: Date.now(),
+            id: `submitting-${runId}-${index}`,
+            modelKey,
+            prompt: promptText,
+            recipe,
+            runId,
+            status: IngredientStatus.PROCESSING,
+            phase: 'submitting' as const,
+            type,
+            ...jobDimensions,
+          }),
+        ),
+        ...previous,
+      ]);
 
       try {
         switch (type) {
@@ -489,6 +663,7 @@ export function useStudioGeneration({
               voiceId: settings.voiceId,
             });
 
+            if (activeBrandRef.current !== brandId) return;
             setJobs((previous) => [
               {
                 createdAt: Date.now(),
@@ -503,7 +678,7 @@ export function useStudioGeneration({
                 type,
                 url: resolveStudioAssetUrl(voice),
               },
-              ...previous,
+              ...previous.filter((job) => job.runId !== runId),
             ]);
             onGeneratedRef.current?.();
             break;
@@ -513,6 +688,7 @@ export function useStudioGeneration({
             logger.error(`Unsupported Studio generation type: ${type}`);
         }
       } catch (error) {
+        if (activeBrandRef.current !== brandId) return;
         logger.error('Studio generation failed', error);
         const message = toErrorMessage(
           error,
@@ -534,10 +710,11 @@ export function useStudioGeneration({
             status: IngredientStatus.FAILED,
             type,
           },
-          ...previous,
+          ...previous.filter((job) => job.runId !== runId),
         ]);
         notificationsService.error(message);
       } finally {
+        submittingRef.current = false;
         setIsGenerating(false);
       }
     },
@@ -548,7 +725,6 @@ export function useStudioGeneration({
       getMusicsService,
       getVideosService,
       getVoicesService,
-      isGenerating,
       models,
       notificationsService,
       settings,
@@ -558,9 +734,10 @@ export function useStudioGeneration({
   );
 
   return {
+    cancelJob,
     clearJobs,
     isGenerating,
-    jobs,
+    jobs: jobsBrandId === brandId ? jobs : [],
     rehydratePending,
     removeJob,
     submit,

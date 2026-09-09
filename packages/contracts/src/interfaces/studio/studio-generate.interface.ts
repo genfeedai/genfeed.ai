@@ -62,7 +62,11 @@ export interface FormDropdownOption {
 
 export interface AssetQueryService {
   findAll(query: IQueryParams): Promise<IIngredient[]>;
-  findOne(id: string): Promise<IIngredient | null>;
+  findOne(
+    id: string,
+    query?: Partial<IQueryParams>,
+    signal?: AbortSignal,
+  ): Promise<IIngredient | null>;
 }
 
 export type BadgeVariant =
@@ -195,6 +199,7 @@ export interface StudioGenerateRecipe {
 }
 
 export interface StudioGenerateJob {
+  phase?: 'submitting' | 'queued' | 'generating' | 'saving' | 'cancelled';
   createdAt: number;
   error?: string;
   height?: number;

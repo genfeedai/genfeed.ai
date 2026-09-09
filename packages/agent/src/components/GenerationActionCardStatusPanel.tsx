@@ -10,6 +10,7 @@ import {
   createLibraryAssetRoute,
 } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { Check, ImagePlus, Paintbrush, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,6 +21,7 @@ import { GenerationActionCardQualityBadge } from './GenerationActionCardQualityB
 
 type GenerationActionCardStatusPanelProps = {
   status: GenerationActionCardStatus;
+  startedAt?: number;
   isImage: boolean;
   resultUrl: string | null;
   resultId: string | null;
@@ -39,6 +41,7 @@ type GenerationActionCardStatusPanelProps = {
 
 export function GenerationActionCardStatusPanel({
   status,
+  startedAt,
   isImage,
   resultUrl,
   resultId,
@@ -62,10 +65,12 @@ export function GenerationActionCardStatusPanel({
 
   if (status === 'generating') {
     return (
-      <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-sm text-muted-foreground">Generating…</span>
-      </div>
+      <GenerationStatus
+        status="generating"
+        startedAt={startedAt}
+        assetLabel={generationType}
+        className="rounded-lg border border-border"
+      />
     );
   }
 

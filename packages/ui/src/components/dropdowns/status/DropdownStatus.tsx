@@ -26,6 +26,7 @@ import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { badgeVariants } from '@ui/display/badge/badge.variants';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
@@ -144,6 +145,7 @@ export default function DropdownStatus({
   onStatusChange,
 }: StatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const notifications = NotificationsService.getInstance();
 
@@ -314,6 +316,39 @@ export default function DropdownStatus({
 
   // Check if we should render icon-only mode (when className includes rounded-full)
   const isIconOnly = className.includes('rounded-full');
+
+  if (String(entity.status).toUpperCase() === 'PROCESSING') {
+    const cancel = async () => {
+      setIsCancelling(true);
+      try {
+        const service = await getIngredientsService();
+        const updated = await service.cancelGeneration(entity.id);
+        onStatusChange?.(updated.status, updated);
+      } catch (error) {
+        logger.error('Could not cancel generation', error);
+        notifications.error('Could not cancel generation');
+      } finally {
+        setIsCancelling(false);
+      }
+    };
+    return (
+      <GenerationStatus
+        status="generating"
+        assetLabel={
+          isArticle
+            ? 'article'
+            : isPost
+              ? 'post'
+              : ingredientCategory?.toLowerCase()
+        }
+        label={isPost || isArticle ? currentMeta.label : undefined}
+        compact
+        className={className}
+        onCancel={!isArticle && !isPost ? () => void cancel() : undefined}
+        isCancelling={isCancelling}
+      />
+    );
+  }
 
   // If disabled, just show the badge without dropdown functionality
   if (isDisabled) {

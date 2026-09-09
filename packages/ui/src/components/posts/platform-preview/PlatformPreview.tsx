@@ -6,6 +6,7 @@ import {
   TargetValidationState,
 } from '@genfeedai/contracts';
 import type { ChannelValidationIssue } from '@genfeedai/contracts/api-types/contracts';
+import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants/platform-limits.constant';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   FacebookIcon,
@@ -19,6 +20,7 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import {
   Bookmark,
@@ -28,7 +30,6 @@ import {
   Play,
   RefreshCw,
   Send,
-  Sparkles,
   ThumbsUp,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -81,6 +82,7 @@ export const PLATFORM_PREVIEW_RENDERERS: Partial<
   [CredentialPlatform.LINKEDIN]: LinkedInPreviewRenderer,
   [CredentialPlatform.TIKTOK]: TikTokPreviewRenderer,
   [CredentialPlatform.TWITTER]: XPreviewRenderer,
+  [CredentialPlatform.THREADS]: ThreadsPreviewRenderer,
   [CredentialPlatform.YOUTUBE]: YouTubePreviewRenderer,
 };
 
@@ -177,7 +179,7 @@ function getPreviewStatus(target: ResolvedPlatformPreviewTarget): {
   }
 
   return {
-    className: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-500',
+    className: 'border-success/25 bg-success/10 text-success',
     label: 'Valid',
   };
 }
@@ -191,7 +193,11 @@ function renderCaptionEntities(text: string): ReactNode[] {
     const key = `${part}-${index}`;
     if (part.match(ENTITY_PATTERN)) {
       return (
-        <span key={key} className="font-medium text-primary">
+        <span
+          key={key}
+          data-testid="preview-entity"
+          className="font-medium text-primary"
+        >
           {part}
         </span>
       );
@@ -206,7 +212,7 @@ function CharacterCounter({ state }: { state: CaptionPreviewState }) {
     <span
       className={cn(
         'text-xs tabular-nums',
-        state.isOverLimit ? 'text-destructive' : 'text-foreground/45',
+        state.isOverLimit ? 'text-destructive' : 'text-muted-foreground',
       )}
     >
       {state.maxLength ? `${state.count}/${state.maxLength}` : state.count}
@@ -224,7 +230,7 @@ function CaptionText({
   const text = target.captionState.previewText.trim();
 
   if (!text) {
-    return <p className="text-sm text-foreground/35">{emptyMessage}</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
@@ -250,7 +256,7 @@ function ValidationIssues({
 
   return (
     <div
-      className="mt-3 border-t border-white/10 pt-3"
+      className="mt-3 border-t border-border pt-3"
       role={target.validation.errors.length > 0 ? 'alert' : 'status'}
     >
       <ul className="grid gap-1 text-xs text-foreground/65">
@@ -306,12 +312,12 @@ function LinkPreviewCard({
           className="aspect-[2/1] w-full object-cover outline-media"
         />
       ) : (
-        <div className="flex aspect-[2/1] items-center justify-center bg-muted text-xs text-foreground/45">
+        <div className="flex aspect-[2/1] items-center justify-center bg-muted text-xs text-muted-foreground">
           No link preview available
         </div>
       )}
       <div className="grid gap-1 p-3">
-        <p className="text-xs uppercase text-foreground/45">{domain}</p>
+        <p className="text-xs uppercase text-muted-foreground">{domain}</p>
         <p className="line-clamp-2 text-sm font-medium text-foreground">
           {target.linkPreview?.title ?? 'Link card pending'}
         </p>
@@ -336,6 +342,7 @@ function MediaTile({
   className?: string;
   animatedConsequence?: string;
 }) {
+  const isVideo = item.kind === 'video' || item.kind === 'short_video';
   const src = item.thumbnailUrl ?? item.url;
   const label = item.kind.replace('_', ' ');
   const consequence = item.isAnimated ? animatedConsequence : undefined;
@@ -343,13 +350,20 @@ function MediaTile({
   return (
     <div
       className={cn(
-        'relative flex min-h-24 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs text-foreground/50',
+        'relative flex min-h-24 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs text-muted-foreground',
         consequence ? 'ring-1 ring-warning/50' : undefined,
         className,
       )}
       data-testid={`platform-preview-media-${item.id}`}
     >
-      {src ? (
+      {isVideo && item.url ? (
+        <VideoPlayer
+          src={item.url}
+          thumbnail={item.thumbnailUrl}
+          mediaClassName="object-cover"
+          ariaLabel={item.alt ?? `Video ${index + 1}`}
+        />
+      ) : src ? (
         <Image
           src={src}
           alt={item.alt ?? `Media ${index + 1}`}
@@ -360,7 +374,7 @@ function MediaTile({
       ) : (
         <span className="capitalize">{label}</span>
       )}
-      {item.kind === 'video' || item.kind === 'short_video' ? (
+      {isVideo && !item.url ? (
         <span
           className={
             'absolute inset-0 flex items-center justify-center bg-black/20 text-white' /* design-system-allow-content-color -- media overlay */
@@ -405,6 +419,10 @@ function MediaGrid({
   target: ResolvedPlatformPreviewTarget;
   variant?: 'grid' | 'square' | 'video' | 'vertical';
 }) {
+  const platform = resolvePreviewPlatform(target.platform);
+  const aspect = platform
+    ? getPlatformPreviewLimit(platform)?.mediaAspect
+    : undefined;
   const maxItems = target.capability?.media.maxItems;
   const visibleMedia = maxItems
     ? target.media.slice(0, maxItems)
@@ -423,7 +441,7 @@ function MediaGrid({
       return (
         <div
           className={cn(
-            'mt-3 flex items-center justify-center rounded-lg border border-dashed border-white/15 bg-muted/40 text-sm text-foreground/45',
+            'mt-3 flex items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 text-sm text-muted-foreground',
             variant === 'vertical' ? 'aspect-[9/16]' : 'aspect-video',
           )}
         >
@@ -437,7 +455,11 @@ function MediaGrid({
 
   if (variant === 'vertical') {
     return (
-      <div className="mt-3">
+      <div
+        className="mt-3"
+        data-testid="preview-media"
+        data-media-aspect={aspect}
+      >
         <MediaTile
           item={visibleMedia[0]}
           index={0}
@@ -450,7 +472,11 @@ function MediaGrid({
 
   if (variant === 'video') {
     return (
-      <div className="mt-3">
+      <div
+        className="mt-3"
+        data-testid="preview-media"
+        data-media-aspect={aspect}
+      >
         <MediaTile
           item={visibleMedia[0]}
           index={0}
@@ -469,14 +495,18 @@ function MediaGrid({
         : 'grid-cols-2';
 
   return (
-    <div className={cn('mt-3 grid gap-1.5', gridClassName)}>
+    <div
+      className={cn('mt-3 grid gap-1.5', gridClassName)}
+      data-testid="preview-media"
+      data-media-aspect={aspect}
+    >
       {visibleMedia.map((item, index) => (
         <MediaTile
           key={item.id}
           item={item}
           index={index}
           animatedConsequence={animatedConsequence}
-          className={variant === 'square' ? 'aspect-square' : 'aspect-video'}
+          className={variant === 'square' ? 'aspect-[4/5]' : 'aspect-video'}
         />
       ))}
       {overflowCount > 0 ? (
@@ -508,18 +538,18 @@ function PreviewShell({
     <article
       aria-label={`${target.platformLabel} platform preview`}
       className={cn(
-        'overflow-hidden rounded-lg border border-white/10 bg-background/60',
+        'overflow-hidden rounded-lg border border-border bg-background/60',
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <Icon className="size-4 shrink-0 text-foreground/70" />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
               {target.platformLabel}
             </p>
-            <p className="truncate text-xs text-foreground/45">
+            <p className="truncate text-xs text-muted-foreground">
               {isApproximate ? 'Approximate preview' : eyebrow}
             </p>
           </div>
@@ -533,8 +563,41 @@ function PreviewShell({
           {status.label}
         </span>
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-4">
+        {children}
+        {target.firstComment?.trim() ? (
+          <div
+            className="mt-3 border-t border-border pt-3"
+            data-testid="preview-first-comment"
+          >
+            <p className="mb-1 text-xs font-medium text-muted-foreground">
+              First comment
+            </p>
+            <p className="whitespace-pre-wrap text-sm text-foreground">
+              {renderCaptionEntities(target.firstComment)}
+            </p>
+          </div>
+        ) : null}
+      </div>
     </article>
+  );
+}
+
+function AuthorAvatar({ target }: PlatformPreviewRendererProps) {
+  return (
+    <div className="relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-medium text-muted-foreground">
+      {target.author?.avatarUrl ? (
+        <Image
+          src={target.author.avatarUrl}
+          alt={`${getAuthorName(target)} profile picture`}
+          fill
+          sizes="40px"
+          className="object-cover outline-media"
+        />
+      ) : (
+        getAuthorName(target).slice(0, 1).toUpperCase()
+      )}
+    </div>
   );
 }
 
@@ -550,22 +613,12 @@ function AuthorRow({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-muted">
-        {target.author?.avatarUrl ? (
-          <Image
-            src={target.author.avatarUrl}
-            alt=""
-            fill
-            sizes="40px"
-            className="object-cover outline-media"
-          />
-        ) : null}
-      </div>
+      <AuthorAvatar target={target} />
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-foreground">
           {authorName}
         </p>
-        <p className="truncate text-xs text-foreground/45">
+        <p className="truncate text-xs text-muted-foreground">
           {handle}
           {meta ? <> · {meta}</> : null}
         </p>
@@ -609,7 +662,7 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
                   {renderCaptionEntities(state.previewText)}
                 </p>
               ) : (
-                <p className="text-sm text-foreground/35">
+                <p className="text-sm text-muted-foreground">
                   Draft preview appears here.
                 </p>
               )}
@@ -625,14 +678,14 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   return (
     <PreviewShell eyebrow="X feed preview" target={target}>
       <div className="flex gap-3">
-        <div className="size-10 shrink-0 rounded-full bg-muted" />
+        <AuthorAvatar target={target} />
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">
                 {getAuthorName(target)}
               </p>
-              <p className="truncate text-xs text-foreground/45">
+              <p className="truncate text-xs text-muted-foreground">
                 {formatHandle(target.author?.handle)}
               </p>
             </div>
@@ -641,7 +694,7 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
           <ThreadSegments target={target} />
           <MediaGrid target={target} />
           <LinkPreviewCard target={target} />
-          <div className="mt-4 flex justify-between text-foreground/45">
+          <div className="mt-4 flex justify-between text-muted-foreground">
             <MessageCircle className="size-4" />
             <RefreshCw className="size-4" />
             <Heart className="size-4" />
@@ -654,12 +707,38 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   );
 }
 
+function ThreadsPreviewRenderer({ target }: PlatformPreviewRendererProps) {
+  return (
+    <PreviewShell eyebrow="Threads feed preview" target={target}>
+      <AuthorRow target={target} />
+      <div className="mt-3">
+        <ThreadSegments target={target} />
+      </div>
+      <MediaGrid target={target} />
+      <LinkPreviewCard target={target} />
+      <div
+        className="mt-4 flex items-center gap-4 text-muted-foreground"
+        aria-hidden="true"
+      >
+        <Heart className="size-4" />
+        <MessageCircle className="size-4" />
+        <RefreshCw className="size-4" />
+        <Send className="size-4" />
+      </div>
+      <div className="mt-2 flex justify-end">
+        <CharacterCounter state={target.captionState} />
+      </div>
+      <ValidationIssues target={target} />
+    </PreviewShell>
+  );
+}
+
 function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   return (
     <PreviewShell eyebrow="LinkedIn feed preview" target={target}>
       <AuthorRow target={target} meta="Public" />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-xs font-medium uppercase text-foreground/45">
+        <span className="text-xs font-medium uppercase text-muted-foreground">
           Feed post
         </span>
         <CharacterCounter state={target.captionState} />
@@ -669,7 +748,7 @@ function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       </div>
       <MediaGrid target={target} />
       <LinkPreviewCard target={target} />
-      <div className="mt-4 flex items-center gap-5 border-t border-white/10 pt-3 text-xs text-foreground/45">
+      <div className="mt-4 flex items-center gap-5 border-t border-border pt-3 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <ThumbsUp className="size-4" />
           Like
@@ -716,9 +795,10 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   return (
     <PreviewShell eyebrow="TikTok vertical preview" target={target}>
+      <AuthorRow target={target} />
       <div
         className={
-          'relative mx-auto max-w-72 overflow-hidden rounded-lg border border-white/10 bg-black' /* design-system-allow-content-color -- platform preview */
+          'relative mx-auto max-w-72 overflow-hidden rounded-lg border border-border bg-black' /* design-system-allow-content-color -- platform preview */
         }
       >
         <MediaGrid target={target} variant="vertical" />
@@ -731,8 +811,9 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
             {formatHandle(target.author?.handle)}
           </p>
           <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-5">
-            {target.captionState.previewText.trim() ||
-              'Draft preview appears here.'}
+            {target.captionState.previewText.trim()
+              ? renderCaptionEntities(target.captionState.previewText)
+              : 'Draft preview appears here.'}
           </p>
           <div
             className={
@@ -756,12 +837,13 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 function YouTubePreviewRenderer({ target }: PlatformPreviewRendererProps) {
   return (
     <PreviewShell eyebrow="YouTube watch preview" target={target}>
+      <AuthorRow target={target} />
       <MediaGrid target={target} variant="video" />
       <div className="mt-3">
         <h3 className="line-clamp-2 text-base font-semibold text-foreground">
           {target.title?.trim() || 'Untitled video'}
         </h3>
-        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-foreground/45">
+        <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>{getAuthorName(target)}</span>
           <CharacterCounter state={target.captionState} />
         </div>
@@ -787,13 +869,11 @@ function GenericPlatformPreviewRenderer({
       target={target}
     >
       <div className="flex items-start gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/55">
-          <Sparkles className="size-4" />
-        </div>
+        <AuthorAvatar target={target} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium text-foreground">
-              Approximate preview
+              {getAuthorName(target)}
             </p>
             <CharacterCounter state={target.captionState} />
           </div>
@@ -803,7 +883,7 @@ function GenericPlatformPreviewRenderer({
           <MediaGrid target={target} />
           <LinkPreviewCard target={target} />
           {target.capability ? (
-            <div className="mt-3 grid gap-1 text-xs text-foreground/50">
+            <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
               <p>
                 Media: {target.capability.media.kinds.join(', ')}
                 {target.capability.media.maxItems
@@ -839,46 +919,45 @@ export default function PlatformPreview({
           ? buildPostTargets(post, accountName, accountHandle)
           : []);
 
-    return previewTargets.map(resolvePlatformPreviewTarget);
+    return previewTargets.map((item, index) => ({
+      ...resolvePlatformPreviewTarget(item),
+      id: item.id ?? `${getPlatformKey(item.platform)}:${index}`,
+    }));
   }, [accountHandle, accountName, post, target, targets]);
 
-  const [selectedPlatform, setSelectedPlatform] = useState<string>(() =>
-    getPlatformKey(activePlatform ?? resolvedTargets[0]?.platform ?? ''),
-  );
+  const [selectedTargetId, setSelectedTargetId] = useState<string>();
 
   useEffect(() => {
-    if (resolvedTargets.length === 0) {
-      return;
-    }
-
-    const activeKey = activePlatform
-      ? getPlatformKey(activePlatform)
-      : selectedPlatform;
-    const hasActiveTarget = resolvedTargets.some(
-      (item) => getPlatformKey(item.platform) === activeKey,
+    const current = resolvedTargets.find(
+      (item) => item.id === selectedTargetId,
     );
-
-    if (!hasActiveTarget || activePlatform) {
-      setSelectedPlatform(
-        getPlatformKey(activePlatform ?? resolvedTargets[0].platform),
-      );
-    }
-  }, [activePlatform, resolvedTargets, selectedPlatform]);
+    const requestedPlatform = activePlatform
+      ? getPlatformKey(activePlatform)
+      : undefined;
+    if (
+      current &&
+      (!requestedPlatform ||
+        getPlatformKey(current.platform) === requestedPlatform)
+    )
+      return;
+    const preferred =
+      resolvedTargets.find(
+        (item) => getPlatformKey(item.platform) === requestedPlatform,
+      ) ?? resolvedTargets[0];
+    setSelectedTargetId(preferred?.id);
+  }, [activePlatform, resolvedTargets, selectedTargetId]);
 
   if (resolvedTargets.length === 0) {
     return (
-      <section
-        className={cn('rounded-lg border border-white/10 p-4', className)}
-      >
-        <p className="text-sm text-foreground/45">{emptyMessage}</p>
+      <section className={cn('rounded-lg border border-border p-4', className)}>
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       </section>
     );
   }
 
   const activeTarget =
-    resolvedTargets.find(
-      (item) => getPlatformKey(item.platform) === selectedPlatform,
-    ) ?? resolvedTargets[0];
+    resolvedTargets.find((item) => item.id === selectedTargetId) ??
+    resolvedTargets[0];
   const Renderer = getPlatformPreviewRenderer(activeTarget.platform);
 
   return (
@@ -889,10 +968,15 @@ export default function PlatformPreview({
       {resolvedTargets.length > 1 ? (
         <div className="flex flex-wrap gap-1">
           {resolvedTargets.map((item) => {
-            const itemKey = getPlatformKey(item.platform);
+            const itemKey = item.id;
             const Icon = getPlatformPreviewIcon(item.platform);
-            const isSelected =
-              itemKey === getPlatformKey(activeTarget.platform);
+            const isSelected = itemKey === activeTarget.id;
+            const hasMultipleAccounts =
+              resolvedTargets.filter(
+                (candidate) =>
+                  getPlatformKey(candidate.platform) ===
+                  getPlatformKey(item.platform),
+              ).length > 1;
 
             return (
               <Button
@@ -901,7 +985,7 @@ export default function PlatformPreview({
                 withWrapper={false}
                 variant={ButtonVariant.UNSTYLED}
                 aria-pressed={isSelected}
-                onClick={() => setSelectedPlatform(itemKey)}
+                onClick={() => setSelectedTargetId(itemKey)}
                 className={cn(
                   'inline-flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-medium transition',
                   isSelected
@@ -911,6 +995,14 @@ export default function PlatformPreview({
               >
                 <Icon className="size-3.5" />
                 {item.platformLabel}
+                {hasMultipleAccounts ? (
+                  <span className="text-muted-foreground">
+                    {item.author?.handle
+                      ? formatHandle(item.author.handle)
+                      : item.author?.name ||
+                        `Account ${resolvedTargets.indexOf(item) + 1}`}
+                  </span>
+                ) : null}
               </Button>
             );
           })}

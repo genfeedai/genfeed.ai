@@ -59,9 +59,13 @@ vi.mock('@services/ingredients/heygen.service', () => ({
 }));
 
 const mockIngredientsFindOne = vi.fn();
+const mockCancelGeneration = vi.fn();
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
-    getInstance: () => ({ findOne: mockIngredientsFindOne }),
+    getInstance: () => ({
+      findOne: mockIngredientsFindOne,
+      cancelGeneration: mockCancelGeneration,
+    }),
   },
 }));
 
@@ -140,8 +144,14 @@ beforeEach(() => {
     id: 'voi-1',
     cdnUrl: 'https://a/v.mp3',
   });
-  mockImagesFindOne.mockResolvedValue({ id: 'img-1', url: 'https://a/i.png' });
-  mockVideosFindOne.mockResolvedValue({ id: 'vid-1', url: 'https://a/v.mp4' });
+  mockImagesFindOne.mockResolvedValue({
+    id: 'img-1',
+    status: IngredientStatus.PROCESSING,
+  });
+  mockVideosFindOne.mockResolvedValue({
+    id: 'vid-1',
+    status: IngredientStatus.PROCESSING,
+  });
 });
 
 // ────────────────────────────────────────────────────────────
@@ -250,8 +260,8 @@ describe('useStudioGeneration socket tracking', () => {
     const ingredient = {
       cdnUrl: 'https://a/i.png',
       id: 'img-1',
+      status: IngredientStatus.GENERATED,
     };
-    mockImagesFindOne.mockResolvedValueOnce(ingredient);
     const captured = captureHandler();
     const { result } = renderStudioGeneration();
 
@@ -259,6 +269,7 @@ describe('useStudioGeneration socket tracking', () => {
       await result.current.submit('A founder at a desk');
     });
 
+    mockImagesFindOne.mockResolvedValue(ingredient);
     await act(async () => {
       await captured.current?.onSuccess({ id: 'img-1' });
     });
@@ -269,8 +280,7 @@ describe('useStudioGeneration socket tracking', () => {
     expect(result.current.jobs[0]?.ingredient).toBe(ingredient);
   });
 
-  it('fails the card when the finished asset cannot be read', async () => {
-    // A generated card with no media is a lie — fail it loudly instead.
+  it('keeps result loading recoverable when the finished asset cannot be read', async () => {
     mockImagesFindOne.mockRejectedValue(new Error('403'));
     const captured = captureHandler();
     const { result } = renderStudioGeneration();
@@ -283,7 +293,7 @@ describe('useStudioGeneration socket tracking', () => {
       await captured.current?.onSuccess({ id: 'img-1' });
     });
 
-    expect(result.current.jobs[0]?.status).toBe(IngredientStatus.FAILED);
+    expect(result.current.jobs[0]?.status).toBe(IngredientStatus.PROCESSING);
     expect(result.current.jobs[0]?.error).toContain('could not be loaded');
   });
 
@@ -569,6 +579,138 @@ describe('useStudioGeneration inline voice', () => {
       ingredient: { id: 'voi-1', cdnUrl: 'https://a/v.mp3' },
       status: IngredientStatus.GENERATED,
       url: 'https://a/v.mp3',
+    });
+  });
+});
+
+describe('Studio generation lifecycle recovery', () => {
+  it('shows submitting immediately and prevents a duplicate request in the same turn', async () => {
+    let finish:
+      | ((value: { pendingIngredientIds: string[] }) => void)
+      | undefined;
+    mockImagesPost.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderStudioGeneration();
+    let request: Promise<void> | undefined;
+    await act(async () => {
+      request = result.current.submit('Portrait');
+      void result.current.submit('Portrait');
+      await Promise.resolve();
+    });
+    expect(result.current.jobs[0]).toMatchObject({
+      phase: 'submitting',
+      prompt: 'Portrait',
+    });
+    expect(mockImagesPost).toHaveBeenCalledOnce();
+    await act(async () => {
+      finish?.({ pendingIngredientIds: ['img-1'] });
+      await request;
+    });
+    expect(result.current.jobs).toHaveLength(1);
+    expect(result.current.jobs[0]?.id).toBe('img-1');
+  });
+
+  it('restores a completed result missed while the page was closed', async () => {
+    const first = renderStudioGeneration();
+    await act(async () => {
+      await first.result.current.submit('Portrait');
+    });
+    first.unmount();
+    mockImagesFindOne.mockResolvedValue({
+      id: 'img-1',
+      status: IngredientStatus.GENERATED,
+      cdnUrl: 'https://a/finished.png',
+    });
+    const restored = renderStudioGeneration();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(restored.result.current.jobs[0]).toMatchObject({
+      status: IngredientStatus.GENERATED,
+      url: 'https://a/finished.png',
+    });
+  });
+
+  it('uses the cancellation endpoint and preserves cancellation across refresh', async () => {
+    mockCancelGeneration.mockResolvedValue({
+      id: 'img-1',
+      status: IngredientStatus.FAILED,
+      generationError: 'Cancelled by user',
+    });
+    const first = renderStudioGeneration();
+    await act(async () => {
+      await first.result.current.submit('Portrait');
+    });
+    await act(async () => {
+      await first.result.current.cancelJob(first.result.current.jobs[0]);
+    });
+    expect(mockCancelGeneration).toHaveBeenCalledWith('img-1');
+    expect(first.result.current.jobs[0]).toMatchObject({
+      phase: 'cancelled',
+      status: IngredientStatus.FAILED,
+    });
+    expect(mockNotificationsError).not.toHaveBeenCalled();
+    first.unmount();
+    const restored = renderStudioGeneration();
+    expect(restored.result.current.jobs[0]?.phase).toBe('cancelled');
+  });
+
+  it('does not relabel an already failed job as cancelled', async () => {
+    mockCancelGeneration.mockResolvedValue({
+      id: 'img-1',
+      status: IngredientStatus.FAILED,
+      generationError: 'Provider unavailable',
+    });
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    await act(async () => {
+      await result.current.cancelJob(result.current.jobs[0]);
+    });
+    expect(result.current.jobs[0]?.phase).not.toBe('cancelled');
+    expect(result.current.jobs[0]?.error).toBe('Provider unavailable');
+  });
+
+  it('ignores a late success after a cancellation event', async () => {
+    const captured = captureHandler();
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    act(() => captured.current?.onFailed('Cancelled by user'));
+    await act(async () => {
+      await captured.current?.onSuccess({ id: 'img-1' });
+    });
+    expect(result.current.jobs[0]).toMatchObject({
+      phase: 'cancelled',
+      status: IngredientStatus.FAILED,
+    });
+  });
+});
+
+describe('authoritative generation completion', () => {
+  it('honors a persisted cancellation even when the socket says success', async () => {
+    const captured = captureHandler();
+    const { result } = renderStudioGeneration();
+    await act(async () => {
+      await result.current.submit('Portrait');
+    });
+    mockImagesFindOne.mockResolvedValue({
+      id: 'img-1',
+      status: IngredientStatus.FAILED,
+      generationError: 'Cancelled by user',
+    });
+    await act(async () => {
+      await captured.current?.onSuccess({ id: 'img-1' });
+    });
+    expect(result.current.jobs[0]).toMatchObject({
+      status: IngredientStatus.FAILED,
+      phase: 'cancelled',
     });
   });
 });

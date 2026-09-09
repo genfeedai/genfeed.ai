@@ -16,6 +16,7 @@ import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
   LazyMasonryImage,
@@ -23,13 +24,7 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import {
-  AlertTriangle,
-  ImageOff,
-  Loader2,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react';
+import { AlertTriangle, ImageOff, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type MouseEvent,
@@ -348,13 +343,25 @@ export default function StudioGenerateCard({
         style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
       >
         {isPending ? (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" />
-            <span className="text-xs">{translate('generating')}</span>
-          </div>
+          <GenerationStatus
+            assetLabel={label.toLowerCase()}
+            status={job.phase ?? 'generating'}
+            startedAt={job.createdAt || undefined}
+            detail={job.error}
+            onCancel={
+              job.ingredientId && assetActions.onCancelGeneration
+                ? () => assetActions.onCancelGeneration?.(job)
+                : undefined
+            }
+          />
         ) : null}
 
-        {isFailed || isPreviewUnavailable ? (
+        {isFailed && job.phase === 'cancelled' ? (
+          <GenerationStatus
+            status="cancelled"
+            assetLabel={label.toLowerCase()}
+          />
+        ) : isFailed || isPreviewUnavailable ? (
           <div
             className={`flex flex-col items-center gap-2 px-3 text-center ${
               isFailed ? 'text-destructive' : 'text-muted-foreground'

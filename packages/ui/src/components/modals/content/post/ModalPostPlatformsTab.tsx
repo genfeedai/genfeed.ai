@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -27,6 +28,10 @@ import PlatformPreview, {
   buildMediaFromIngredients,
   type PlatformPreviewTarget,
 } from '@ui/posts/platform-preview/PlatformPreview';
+import {
+  type PreviewAuthorScope,
+  resolvePreviewAuthor,
+} from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
@@ -52,6 +57,7 @@ export default function ModalPostPlatformsTab({
   updatePlatformConfig,
   getMinDateTime,
 }: ModalPostPlatformsTabProps) {
+  const { brandId, organizationId, selectedBrand, credentials } = useBrand();
   const globalLabel = form.watch('globalLabel');
   const globalDescription = form.watch('globalDescription');
   const [generatingTitleFor, setGeneratingTitleFor] = useState<string | null>(
@@ -79,8 +85,19 @@ export default function ModalPostPlatformsTab({
         ingredients ?? (ingredient ? [ingredient] : undefined),
         globalLabel,
         globalDescription,
+        { brandId, organizationId, selectedBrand, credentials },
       ),
-    [globalDescription, globalLabel, ingredient, ingredients, platformConfigs],
+    [
+      brandId,
+      organizationId,
+      selectedBrand,
+      credentials,
+      globalDescription,
+      globalLabel,
+      ingredient,
+      ingredients,
+      platformConfigs,
+    ],
   );
 
   const getPromptsService = useAuthedService((token) =>
@@ -373,6 +390,7 @@ export function buildComposerPreviewTargets(
   ingredients: IIngredient[] | undefined,
   globalLabel = '',
   globalDescription = '',
+  authorScope?: PreviewAuthorScope,
 ): PlatformPreviewTarget[] {
   const media = buildMediaFromIngredients(ingredients);
 
@@ -407,7 +425,13 @@ export function buildComposerPreviewTargets(
       }
 
       return {
-        author: { handle: config.handle },
+        author: authorScope
+          ? resolvePreviewAuthor(authorScope, {
+              credentialId: config.credentialId,
+              platform: config.platform,
+            })
+          : { handle: config.handle },
+        id: config.credentialId,
         caption: config.description || globalDescription,
         media,
         platform: config.platform,

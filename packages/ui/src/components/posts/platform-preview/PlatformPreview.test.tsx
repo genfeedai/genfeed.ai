@@ -4,7 +4,7 @@ import {
   getChannelCapability,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -281,4 +281,118 @@ describe('PlatformPreview', () => {
     ]);
     expect(buildMediaFromIngredients(undefined)).toEqual([]);
   });
+});
+
+describe('unified completed post previews', () => {
+  it.each([
+    CredentialPlatform.TWITTER,
+    CredentialPlatform.THREADS,
+    CredentialPlatform.INSTAGRAM,
+    CredentialPlatform.LINKEDIN,
+    CredentialPlatform.TIKTOK,
+    CredentialPlatform.YOUTUBE,
+    CredentialPlatform.REDDIT,
+  ])('renders the supplied author avatar on %s', (platform) => {
+    render(
+      <PlatformPreview
+        target={{
+          platform,
+          caption: 'Launch day',
+          author: {
+            name: 'Vincent',
+            avatarUrl: 'https://example.com/vincent.jpg',
+          },
+        }}
+      />,
+    );
+    expect(screen.getByAltText('Vincent profile picture')).toHaveAttribute(
+      'src',
+      'https://example.com/vincent.jpg',
+    );
+  });
+  it('renders Threads as a dedicated feed with every thread segment and first comment', () => {
+    render(
+      <PlatformPreview
+        target={{
+          platform: CredentialPlatform.THREADS,
+          caption: 'Hook',
+          threadSegments: [
+            { id: '1', caption: 'Hook' },
+            { id: '2', caption: 'The detail' },
+          ],
+          firstComment: 'A useful link',
+        }}
+      />,
+    );
+    expect(
+      hasDedicatedPlatformPreviewRenderer(CredentialPlatform.THREADS),
+    ).toBe(true);
+    expect(screen.queryByText('Approximate preview')).not.toBeInTheDocument();
+    expect(screen.getByText('The detail')).toBeInTheDocument();
+    expect(screen.getByTestId('preview-first-comment')).toHaveTextContent(
+      'A useful link',
+    );
+  });
+  it('plays video assets without treating the movie URL as an image', () => {
+    render(
+      <PlatformPreview
+        target={{
+          platform: CredentialPlatform.YOUTUBE,
+          caption: 'Watch this',
+          media: [
+            {
+              id: 'movie',
+              kind: 'video',
+              url: 'https://example.com/movie.mp4',
+            },
+          ],
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole('group', { name: 'Video controls' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Play video' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Video 1')).toHaveAttribute(
+      'src',
+      'https://example.com/movie.mp4',
+    );
+  });
+});
+
+it('keeps same-platform accounts separately selectable and preserves selection when targets reorder', () => {
+  const first = {
+    id: 'account-one',
+    platform: 'twitter',
+    caption: 'First account draft',
+    author: { name: 'First', handle: 'first' },
+  };
+  const second = {
+    id: 'account-two',
+    platform: 'twitter',
+    caption: 'Second account draft',
+    author: { name: 'Second', handle: 'second' },
+  };
+  const { rerender } = render(
+    <PlatformPreview targets={[first, second]} activePlatform="twitter" />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /@second/ }));
+  expect(screen.getByText('Second account draft')).toBeInTheDocument();
+  expect(screen.queryByText('First account draft')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /@second/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.getByRole('button', { name: /@first/ })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  rerender(
+    <PlatformPreview targets={[second, first]} activePlatform="twitter" />,
+  );
+  expect(screen.getByText('Second account draft')).toBeInTheDocument();
+  rerender(<PlatformPreview targets={[first]} activePlatform="twitter" />);
+  expect(screen.getByText('First account draft')).toBeInTheDocument();
 });

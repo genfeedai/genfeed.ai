@@ -7,6 +7,7 @@ import type {
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -14,7 +15,9 @@ import {
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
+import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, CircleX, Layers } from 'lucide-react';
 import { type ReactElement, useState } from 'react';
@@ -63,6 +66,20 @@ function resolveReviewHref(action: AgentUiAction): string | undefined {
 export function BatchGenerationResultCard({
   action,
 }: BatchGenerationResultCardProps): ReactElement {
+  const brandScope = useBrand();
+  const activeStatuses = {
+    pending: 'queued',
+    queued: 'queued',
+    processing: 'generating',
+    running: 'generating',
+    generating: 'generating',
+    saving: 'saving',
+  } as const;
+  const statusKey = action.status?.toLowerCase();
+  const activeStatus =
+    statusKey && Object.hasOwn(activeStatuses, statusKey)
+      ? activeStatuses[statusKey as keyof typeof activeStatuses]
+      : undefined;
   const totalPosts = action.batchCount ?? 0;
   const creditsUsed = action.creditsUsed ?? 0;
   const completedCount = action.completedCount;
@@ -112,7 +129,7 @@ export function BatchGenerationResultCard({
       data-testid="batch-generation-result"
     >
       <div className="flex min-w-0 items-center gap-2 px-3 py-2.5">
-        {isAllFailed ? (
+        {activeStatus ? null : isAllFailed ? (
           <CircleX className="size-4 shrink-0 text-rose-400" />
         ) : isPartialFail ? (
           <Layers className="size-4 shrink-0 text-warning" />
@@ -123,12 +140,26 @@ export function BatchGenerationResultCard({
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="truncate text-sm font-medium text-foreground">
               {action.title ||
-                (isAllFailed ? 'Batch failed' : 'Batch complete')}
+                (activeStatus
+                  ? 'Batch in progress'
+                  : isAllFailed
+                    ? 'Batch failed'
+                    : 'Batch complete')}
             </span>
             {action.status ? (
               <Badge status={action.status} className="h-5 text-2xs" />
             ) : null}
           </div>
+          {activeStatus ? (
+            <GenerationStatus
+              status={activeStatus}
+              assetLabel="posts"
+              startedAt={action.startedAt}
+              completedCount={completedCount ?? 0}
+              totalCount={totalPosts}
+              compact
+            />
+          ) : null}
           {isCollapsed && (action.description || metricsLine) ? (
             <p className="truncate text-xs leading-5 text-foreground/70">
               {action.description?.trim() || metricsLine}
@@ -164,11 +195,17 @@ export function BatchGenerationResultCard({
             <div className="space-y-2.5">
               {previewItems.map((item) => {
                 const caption = item.title?.trim() || 'Draft post';
-                const platform = item.platform?.trim() || 'twitter';
+                const platform =
+                  item.platform?.trim() || action.platform?.trim() || 'post';
                 const href = reviewHref
                   ? `${reviewHref}${reviewHref.includes('?') ? '&' : '?'}post=${encodeURIComponent(item.id)}`
                   : undefined;
                 const previewProps = {
+                  author: resolvePreviewAuthor(brandScope, {
+                    platform,
+                    brandId: item.brandId ?? action.brandId,
+                    credentialId: item.credentialId ?? action.credentialId,
+                  }),
                   caption,
                   platform,
                   title: caption,
@@ -176,11 +213,9 @@ export function BatchGenerationResultCard({
 
                 if (href) {
                   return (
-                    <a
+                    <div
                       key={item.id}
-                      href={href}
-                      aria-label={`Open ${formatPlatformLabel(platform) ?? platform} draft in review`}
-                      className="block rounded-xl transition-opacity hover:opacity-95"
+                      className="space-y-2"
                       data-testid="batch-generation-result-preview"
                     >
                       <PlatformPreview
@@ -188,7 +223,14 @@ export function BatchGenerationResultCard({
                         emptyMessage="No preview available for this draft."
                         target={previewProps}
                       />
-                    </a>
+                      <a
+                        href={href}
+                        className="text-xs font-medium text-primary hover:underline"
+                        aria-label={`Open ${formatPlatformLabel(platform) ?? platform} draft in review`}
+                      >
+                        Open draft
+                      </a>
+                    </div>
                   );
                 }
 

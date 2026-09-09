@@ -12,5 +12,19 @@
   },
   "sectionTopbar": {
     "help": "About this page"
+  },
+  "generationStatus": {
+    "asset": "asset",
+    "submitting": "Submitting {asset}…",
+    "queued": "{asset} queued",
+    "generating": "Creating {asset}…",
+    "saving": "Saving {asset}…",
+    "ready": "{asset} ready",
+    "failed": "{asset} generation failed",
+    "cancelled": "{asset} cancelled",
+    "cancel": "Cancel generation",
+    "cancelling": "Cancelling…",
+    "elapsed": "{time} elapsed",
+    "outputs": "{count} of {total} ready"
   }
 }

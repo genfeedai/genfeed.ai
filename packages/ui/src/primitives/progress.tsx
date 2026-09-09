@@ -13,6 +13,7 @@ function Progress({
   return (
     <ProgressPrimitive.Root
       ref={ref}
+      value={value}
       className={cn(
         'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
         className,

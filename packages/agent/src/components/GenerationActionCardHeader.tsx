@@ -2,6 +2,7 @@ import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCo
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { Square } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -13,6 +14,7 @@ type GenerationActionCardHeaderProps = {
   onToggleCollapsed?: () => void;
   onStop?: () => void;
   statusLabel?: string | null;
+  startedAt?: number;
 };
 
 export function GenerationActionCardHeader({
@@ -22,6 +24,7 @@ export function GenerationActionCardHeader({
   onToggleCollapsed,
   onStop,
   statusLabel,
+  startedAt,
 }: GenerationActionCardHeaderProps): ReactElement {
   return (
     <div
@@ -34,7 +37,14 @@ export function GenerationActionCardHeader({
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
         {title}
       </span>
-      {statusLabel ? (
+      {statusLabel && onStop && isCollapsed ? (
+        <GenerationStatus
+          status="generating"
+          label={statusLabel}
+          startedAt={startedAt}
+          compact
+        />
+      ) : statusLabel ? (
         <span className="shrink-0 text-2xs text-muted-foreground">
           {statusLabel}
         </span>

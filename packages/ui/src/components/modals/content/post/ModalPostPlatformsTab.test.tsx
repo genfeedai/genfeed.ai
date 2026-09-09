@@ -9,6 +9,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type {
+  ICredential,
   IIngredient,
   IPostPlatformConfig,
 } from '@genfeedai/contracts/interfaces';
@@ -268,4 +269,70 @@ describe('ModalPostPlatformsTab', () => {
     expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
   });
+});
+
+it('preserves exact account IDs and supplies each connected account identity to the composer previews', () => {
+  const makeAccount = (id: string, name: string): ICredential => ({
+    id,
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
+    platform: CredentialPlatform.TWITTER,
+    externalName: name,
+    externalHandle: name.toLowerCase(),
+    externalAvatar: `https://example.com/${id}.jpg`,
+    isConnected: true,
+    isDeleted: false,
+    createdAt: '',
+    updatedAt: '',
+  });
+  const targets = buildComposerPreviewTargets(
+    [
+      platformConfig({
+        credentialId: 'first',
+        platform: CredentialPlatform.TWITTER,
+      }),
+      platformConfig({
+        credentialId: 'second',
+        platform: CredentialPlatform.TWITTER,
+      }),
+    ],
+    [],
+    '',
+    '',
+    {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      selectedBrand: {
+        id: 'brand-1',
+        organizationId: 'org-1',
+        label: 'Genfeed',
+        logoUrl: 'https://example.com/logo.jpg',
+      },
+      credentials: [
+        makeAccount('second', 'Second'),
+        makeAccount('first', 'First'),
+      ],
+    },
+  );
+  expect(
+    targets.map((target) => ({ id: target.id, author: target.author })),
+  ).toEqual([
+    {
+      id: 'first',
+      author: {
+        name: 'First',
+        handle: 'first',
+        avatarUrl: 'https://example.com/first.jpg',
+      },
+    },
+    {
+      id: 'second',
+      author: {
+        name: 'Second',
+        handle: 'second',
+        avatarUrl: 'https://example.com/second.jpg',
+      },
+    },
+  ]);
 });

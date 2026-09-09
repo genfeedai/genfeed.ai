@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StoryboardSceneRowProps } from '@genfeedai/props/studio/storyboard.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { CircleCheck, CircleX, RotateCcw, Trash2 } from 'lucide-react';
@@ -56,7 +56,7 @@ export default function SceneFrameRow({
         )}
         {isGenerating ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60">
-            <Spinner size={ComponentSize.SM} />
+            <GenerationStatus status="generating" assetLabel="scene" compact />
           </div>
         ) : null}
       </div>
