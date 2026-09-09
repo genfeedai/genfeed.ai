@@ -80,9 +80,15 @@ describe('scriptKindFor', () => {
   });
 
   it('lets a .ts file with a generic parameter parse', () => {
-    // Guards used to force TSX on every file, which reads `<T,>` as an
-    // unclosed JSX tag: the file misparsed and the guard saw nothing.
-    const source = 'export const identity = <T,>(value: T): T => value;\n';
+    // Guards used to force TSX on every file. A bare `<T>` type parameter —
+    // the form used across this repository's .ts hooks — reads as an unclosed
+    // JSX tag there, so the file misparsed and the guard saw nothing. The
+    // TSX-safe `<T,>` spelling does not reproduce it.
+    const source = [
+      'export const toggle = <T>(items: T[], item: T): T[] =>',
+      '  items.includes(item) ? items : [...items, item];',
+      '',
+    ].join('\n');
 
     expect(() =>
       parseSourceFile('hook.ts', source, true, ts.ScriptKind.TSX),
