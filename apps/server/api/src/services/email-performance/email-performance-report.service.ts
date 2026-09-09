@@ -26,9 +26,9 @@ export class EmailPerformanceReportService {
       );
     }
 
-    // Platform-wide aggregate: only the superadmin reporting endpoint exposes this service.
     const where = { createdAt: { gte: from, lt: to }, isDeleted: false };
     const [messages, conversions] = await this.prisma.$transaction([
+      // tenant-scope-ignore: platform-wide operator aggregate; the only caller is admin/system-emails, gated by IpWhitelistGuard and SuperAdminGuard, and the result is grouped by template with no per-tenant rows.
       this.prisma.emailMessage.groupBy({
         by: ['templateKey'],
         where,
@@ -43,6 +43,7 @@ export class EmailPerformanceReportService {
         },
         orderBy: { templateKey: 'asc' },
       }),
+      // tenant-scope-ignore: same platform-wide superadmin aggregate as above, narrowed to messages with a confirmed conversion.
       this.prisma.emailMessage.groupBy({
         by: ['templateKey'],
         where: {

@@ -38,7 +38,12 @@ export class WorkflowNotificationDeliveryService {
     @Optional() private readonly emailPerformance?: EmailPerformanceService,
   ) {}
 
-  async deliver(deliveryId: string): Promise<void> {
+  /**
+   * Takes the lease on one delivery. The conditional update is the claim: it
+   * succeeds for a due pending/retrying row, or for a processing row whose
+   * lease has expired, and never for a row another worker currently holds.
+   */
+  private async claimDelivery(deliveryId: string): Promise<boolean> {
     const now = new Date();
     const leaseExpiredAt = new Date(now.getTime() - LOCK_LEASE_MS);
     // tenant-scope-ignore: system worker claims an opaque globally unique delivery id whose durable row retains organizationId
@@ -69,7 +74,11 @@ export class WorkflowNotificationDeliveryService {
       },
     });
 
-    if (claim.count !== 1) {
+    return claim.count === 1;
+  }
+
+  async deliver(deliveryId: string): Promise<void> {
+    if (!(await this.claimDelivery(deliveryId))) {
       return;
     }
 

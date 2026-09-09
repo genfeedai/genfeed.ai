@@ -85,6 +85,7 @@ export class NotificationPreferenceService {
     channel: NotificationChannel = EMAIL_NOTIFICATION_CHANNEL,
   ): Promise<INotificationPreference> {
     if (topic === 'lifecycle.onboarding' && isEnabled) {
+      // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailPreference.userId is unique and this model has no organization column, so this clears the marketing unsubscribe on exactly one row for that user.
       await this.prisma.lifecycleEmailPreference.updateMany({
         where: { userId },
         data: { marketingUnsubscribedAt: null },

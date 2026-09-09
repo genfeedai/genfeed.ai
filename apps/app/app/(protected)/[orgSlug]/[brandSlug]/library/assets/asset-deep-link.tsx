@@ -7,10 +7,12 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { readRelationshipId } from '@/features/library-remix/library-remix-reference';
 
 export default function AssetDeepLink() {
+  const translate = useTranslations('pages.library.assetDeepLink');
   const assetId = useSearchParams().get('asset');
   const { brandId, isReady, organizationId } = useBrand();
   const { openIngredientOverlay } = useIngredientOverlay();
@@ -89,16 +91,13 @@ export default function AssetDeepLink() {
   if (state === 'error') {
     return (
       <Alert variant="destructive">
-        <AlertDescription>
-          This asset is unavailable in this brand, or you no longer have access
-          to it.
-        </AlertDescription>
+        <AlertDescription>{translate('unavailable')}</AlertDescription>
       </Alert>
     );
   }
   return (
     <p role="status" className="text-sm text-muted-foreground">
-      Opening your asset…
+      {translate('opening')}
     </p>
   );
 }

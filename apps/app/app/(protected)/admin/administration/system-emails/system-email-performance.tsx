@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 const DAY_MS = 86_400_000;
@@ -38,6 +39,7 @@ function rate(numerator: number, denominator: number): string {
 }
 
 export default function SystemEmailPerformance() {
+  const translate = useTranslations('pages.systemEmailPerformance');
   const [from, setFrom] = useState(() =>
     dateInputValue(new Date(Date.now() - 29 * DAY_MS)),
   );
@@ -90,28 +92,24 @@ export default function SystemEmailPerformance() {
   }
 
   return (
-    <WorkspaceSurface title="Email performance" tone="muted">
+    <WorkspaceSurface title={translate('title')} tone="muted">
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Unique tracked messages queued during the selected UTC dates. Queued
-          is the cohort total, including messages already sent. Outcomes can
-          arrive after the period ends.
-        </p>
+        <p className="text-sm text-muted-foreground">{translate('intro')}</p>
         <div className="flex flex-wrap items-end gap-3">
           <Input
-            label="From (UTC)"
+            label={translate('from')}
             type="date"
             value={from}
             onChange={(event) => setFrom(event.target.value)}
           />
           <Input
-            label="Through (UTC)"
+            label={translate('through')}
             type="date"
             value={to}
             onChange={(event) => setTo(event.target.value)}
           />
           <Button
-            label="Apply dates"
+            label={translate('applyDates')}
             variant={ButtonVariant.SECONDARY}
             isDisabled={!validRange}
             onClick={applyRange}
@@ -119,46 +117,46 @@ export default function SystemEmailPerformance() {
         </div>
         {!validRange && (
           <p role="alert" className="text-sm text-destructive">
-            Choose a date range of 1–90 days.
+            {translate('invalidRange')}
           </p>
         )}
         {state === 'loading' ? (
-          <div role="status" aria-label="Loading email performance">
+          <div role="status" aria-label={translate('loading')}>
             <SkeletonCard showImage={false} />
           </div>
         ) : state === 'error' ? (
           <Alert variant="destructive">
-            <AlertDescription>
-              Email performance could not be loaded.
-            </AlertDescription>
+            <AlertDescription>{translate('loadFailed')}</AlertDescription>
             <Button
-              label="Retry report"
+              label={translate('retry')}
               variant={ButtonVariant.SECONDARY}
               onClick={() => setQuery((value) => ({ ...value }))}
             />
           </Alert>
         ) : !report || report.rows.length === 0 ? (
-          <CardEmptyContent label="No tracked emails were queued in this period" />
+          <CardEmptyContent label={translate('empty')} />
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Queued {report.from.slice(0, 10)} through{' '}
-              {dateInputValue(new Date(new Date(report.to).getTime() - 1))}.
-              Updated {new Date(report.asOf).toLocaleString()}.
+              {translate('queuedRange', {
+                asOf: new Date(report.asOf).toLocaleString(),
+                from: report.from.slice(0, 10),
+                to: dateInputValue(new Date(new Date(report.to).getTime() - 1)),
+              })}
             </p>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Template</TableHead>
-                    <TableHead>Queued</TableHead>
-                    <TableHead>Provider accepted</TableHead>
-                    <TableHead>Delivered</TableHead>
-                    <TableHead>Bounced</TableHead>
-                    <TableHead>Complaints</TableHead>
-                    <TableHead>Opens (approx.)</TableHead>
-                    <TableHead>Clicked</TableHead>
-                    <TableHead>Confirmed goals</TableHead>
+                    <TableHead>{translate('columnTemplate')}</TableHead>
+                    <TableHead>{translate('columnQueued')}</TableHead>
+                    <TableHead>{translate('columnAccepted')}</TableHead>
+                    <TableHead>{translate('columnDelivered')}</TableHead>
+                    <TableHead>{translate('columnBounced')}</TableHead>
+                    <TableHead>{translate('columnComplaints')}</TableHead>
+                    <TableHead>{translate('columnOpens')}</TableHead>
+                    <TableHead>{translate('columnClicked')}</TableHead>
+                    <TableHead>{translate('columnConverted')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -180,7 +178,9 @@ export default function SystemEmailPerformance() {
                       <TableCell>
                         {row.delivered.toLocaleString()}
                         <p className="text-xs text-muted-foreground">
-                          {rate(row.delivered, row.accepted)} of accepted
+                          {translate('ofAccepted', {
+                            rate: rate(row.delivered, row.accepted),
+                          })}
                         </p>
                       </TableCell>
                       <TableCell>{row.bounced.toLocaleString()}</TableCell>
@@ -189,13 +189,17 @@ export default function SystemEmailPerformance() {
                       <TableCell>
                         {row.clicked.toLocaleString()}
                         <p className="text-xs text-muted-foreground">
-                          {rate(row.clicked, row.accepted)} of accepted
+                          {translate('ofAccepted', {
+                            rate: rate(row.clicked, row.accepted),
+                          })}
                         </p>
                       </TableCell>
                       <TableCell>
                         {row.converted.toLocaleString()}
                         <p className="text-xs text-muted-foreground">
-                          {rate(row.converted, row.accepted)} of accepted
+                          {translate('ofAccepted', {
+                            rate: rate(row.converted, row.accepted),
+                          })}
                         </p>
                       </TableCell>
                     </TableRow>
@@ -206,22 +210,9 @@ export default function SystemEmailPerformance() {
           </div>
         )}
         <div className="space-y-2 border-t border-border pt-4 text-sm text-muted-foreground">
-          <p>
-            Each outcome counts a message once, even when an event repeats.
-            Delivery and opens require provider event tracking; historical
-            emails are not backfilled.
-          </p>
-          <p>
-            Opens are approximate because mail privacy features and image
-            blocking affect them. Automated link scanners may count as clicks.
-            Confirmed goals use a seven-day last CTA click association with a
-            recorded product action by the same user in the same organization.
-          </p>
-          <p>
-            Attributed conversions describe recorded follow-through, not causal
-            lift. Revenue is not shown because conversion values do not yet have
-            a verified currency contract.
-          </p>
+          <p>{translate('noteCounting')}</p>
+          <p>{translate('noteApproximation')}</p>
+          <p>{translate('noteAttribution')}</p>
         </div>
       </div>
     </WorkspaceSurface>

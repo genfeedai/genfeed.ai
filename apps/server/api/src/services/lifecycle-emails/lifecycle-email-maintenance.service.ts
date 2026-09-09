@@ -3,6 +3,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   CreditTransactionCategory,
@@ -100,7 +101,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { id: true, userId: true },
         orderBy: { id: 'asc' },
         take: 100,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const organization of organizations) {
         await this.queue.queueSystemWorkflow(
@@ -144,11 +146,13 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
             {
               metadata: { path: ['organizationId'], equals: Prisma.AnyNull },
               user: {
-                members: {
-                  some: {
-                    organizationId: request.organizationId,
-                    isDeleted: false,
-                    isActive: true,
+                is: {
+                  members: {
+                    some: {
+                      organizationId: request.organizationId,
+                      isDeleted: false,
+                      isActive: true,
+                    },
                   },
                 },
               },
@@ -157,7 +161,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         },
         orderBy: { id: 'asc' },
         take: 100,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const row of due) {
         const metadata =
@@ -167,6 +172,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
             ? row.metadata
             : {};
         if (!metadata.organizationId) {
+          // tenant-scope-ignore: resolves the recipient's canonical (oldest) organization so exactly one tenant claims an org-less delivery; the row is discarded below unless it is this organization, and nothing is mutated before that check.
           const membership = await this.prisma.member.findFirst({
             where: { userId: row.userId, isDeleted: false, isActive: true },
             orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -217,7 +223,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         select: { id: true, userId: true },
         orderBy: { id: 'asc' },
         take: 100,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const member of members) {
         const weeklyQueued = await this.sendRecap(
@@ -284,52 +291,12 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       ...articles.map((item) => `article:${item.id}`),
     ]).size;
     if (generated < (weekly ? 5 : 1)) return false;
-    const ingredientIds = ingredients.map(({ id }) => id);
-    const articleIds = articles.map(({ id }) => id);
-    const published = await this.prisma.post.findMany({
-      where: {
-        ...scope,
-        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-        OR: [
-          { entityIngredientId: { in: ingredientIds } },
-          { entityArticleId: { in: articleIds } },
-          {
-            ingredients: {
-              some: {
-                id: { in: ingredientIds },
-                organizationId: request.organizationId,
-                isDeleted: false,
-              },
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        entityIngredientId: true,
-        entityArticleId: true,
-        ingredients: {
-          where: {
-            id: { in: ingredientIds },
-            organizationId: request.organizationId,
-            isDeleted: false,
-          },
-          select: { id: true },
-        },
-      },
-    });
-    const publishedIds = new Set<string>();
-    for (const post of published) {
-      if (
-        post.entityIngredientId &&
-        ingredientIds.includes(post.entityIngredientId)
-      )
-        publishedIds.add(`ingredient:${post.entityIngredientId}`);
-      if (post.entityArticleId && articleIds.includes(post.entityArticleId))
-        publishedIds.add(`article:${post.entityArticleId}`);
-      for (const item of post.ingredients)
-        publishedIds.add(`ingredient:${item.id}`);
-    }
+    const { published, publishedIds } = await this.resolvePublishedOutputs(
+      request.organizationId,
+      scope,
+      ingredients.map(({ id }) => id),
+      articles.map(({ id }) => id),
+    );
     const credits = await this.prisma.creditTransaction.aggregate({
       where: {
         organizationId: request.organizationId,
@@ -359,31 +326,12 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           orderBy: { measuredAt: 'desc' },
         })
       : [];
-    const brands = new Set(
-      [...ingredients, ...articles]
-        .map(({ brandId }) => brandId)
-        .filter((id): id is string => !!id),
-    );
-    let missingConnection = false;
-    let destinationBrandId: string | undefined;
-    for (const brandId of brands)
-      if (
-        !(await this.eligibility.hasConnection(request.organizationId, brandId))
-      ) {
-        missingConnection = true;
-        destinationBrandId ??= brandId;
-      }
-    const destinationBrand = await this.prisma.brand.findFirst({
-      where: {
-        organizationId: request.organizationId,
-        isDeleted: false,
-        id: destinationBrandId ?? [...brands][0],
-      },
-      select: { slug: true },
-    });
-    const destinationUrl = destinationBrand
-      ? `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/integrations' : 'studio/generate'}`
-      : `${this.appUrl()}/${encodeURIComponent(organizationSlug)}`;
+    const { destinationUrl, missingConnection } =
+      await this.resolveRecapDestination(
+        request.organizationId,
+        organizationSlug,
+        [...ingredients, ...articles].map(({ brandId }) => brandId),
+      );
     const views = metrics.some((row) => row.views !== null)
       ? metrics
           .reduce((sum, row) => sum + (row.views ?? 0), 0)
@@ -444,6 +392,88 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     return true;
   }
 
+  /**
+   * Which of the period's outputs already reached a published post. A post can
+   * reference an output directly or through its ingredient join, so both are
+   * folded into one set of `kind:id` keys.
+   */
+  private async resolvePublishedOutputs(
+    organizationId: string,
+    scope: Record<string, unknown>,
+    ingredientIds: string[],
+    articleIds: string[],
+  ): Promise<{ published: Array<{ id: string }>; publishedIds: Set<string> }> {
+    const ownedIngredients = {
+      id: { in: ingredientIds },
+      organizationId,
+      isDeleted: false,
+    };
+    const published = await this.prisma.post.findMany({
+      where: scopedWhere(organizationId, {
+        ...scope,
+        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        OR: [
+          { entityIngredientId: { in: ingredientIds } },
+          { entityArticleId: { in: articleIds } },
+          { ingredients: { some: ownedIngredients } },
+        ],
+      }),
+      select: {
+        id: true,
+        entityIngredientId: true,
+        entityArticleId: true,
+        ingredients: { where: ownedIngredients, select: { id: true } },
+      },
+    });
+    const publishedIds = new Set<string>();
+    for (const post of published) {
+      if (
+        post.entityIngredientId &&
+        ingredientIds.includes(post.entityIngredientId)
+      )
+        publishedIds.add(`ingredient:${post.entityIngredientId}`);
+      if (post.entityArticleId && articleIds.includes(post.entityArticleId))
+        publishedIds.add(`article:${post.entityArticleId}`);
+      for (const item of post.ingredients)
+        publishedIds.add(`ingredient:${item.id}`);
+    }
+    return { published, publishedIds };
+  }
+
+  /**
+   * Points the recap at the brand that needs attention: the first one without a
+   * publishing connection, otherwise any brand that produced content.
+   */
+  private async resolveRecapDestination(
+    organizationId: string,
+    organizationSlug: string,
+    brandIds: Array<string | null>,
+  ): Promise<{ destinationUrl: string; missingConnection: boolean }> {
+    const brands = new Set(brandIds.filter((id): id is string => !!id));
+    let missingConnection = false;
+    let destinationBrandId: string | undefined;
+    for (const brandId of brands)
+      if (!(await this.eligibility.hasConnection(organizationId, brandId))) {
+        missingConnection = true;
+        destinationBrandId ??= brandId;
+      }
+    const destinationBrand = await this.prisma.brand.findFirst({
+      where: {
+        organizationId,
+        isDeleted: false,
+        id: destinationBrandId ?? [...brands][0],
+      },
+      select: { slug: true },
+    });
+    const organizationPath = encodeURIComponent(organizationSlug);
+    return {
+      destinationUrl: destinationBrand
+        ? `${this.appUrl()}/${organizationPath}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/integrations' : 'studio/generate'}`
+        : `${this.appUrl()}/${organizationPath}`,
+      missingConnection,
+    };
+  }
+
   private async connectionReminder(
     request: LifecycleMaintenanceRequest,
     userId: string,
@@ -456,16 +486,15 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       return;
     const now = new Date(request.referenceDate);
     const ingredients = await this.prisma.ingredient.findMany({
-      where: {
+      where: scopedWhere(request.organizationId, {
         ...GENERATED_CONTENT_FILTER,
-        organizationId: request.organizationId,
         userId,
         generationCompletedAt: {
           gte: new Date(now.getTime() - 7 * DAY_MS),
           lt: new Date(now.getTime() - DAY_MS),
         },
         brandId: { not: null },
-      },
+      }),
       select: { brandId: true },
       distinct: ['brandId'],
     });

@@ -230,8 +230,10 @@ export class EmailDigestService {
           isDeleted: false,
           isActive: true,
           user: {
-            isDeleted: false,
-            email: { in: emails, mode: 'insensitive' },
+            is: {
+              isDeleted: false,
+              email: { in: emails, mode: 'insensitive' },
+            },
           },
         },
         select: { user: { select: { id: true, email: true } } },
@@ -256,7 +258,7 @@ export class EmailDigestService {
         userId: org.userId,
         isDeleted: false,
         isActive: true,
-        user: { isDeleted: false, email: { not: null } },
+        user: { is: { isDeleted: false, email: { not: null } } },
       },
       select: { userId: true },
     });

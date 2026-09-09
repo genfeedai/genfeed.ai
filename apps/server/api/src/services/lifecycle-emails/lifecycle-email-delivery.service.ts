@@ -257,6 +257,7 @@ export class LifecycleEmailDeliveryService {
       };
     }
     if (error) {
+      // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
       await this.prisma.lifecycleEmailDelivery.updateMany({
         data: { failureReason: error, status: DELIVERY_STATUS.FAILED },
         where: {
@@ -276,6 +277,7 @@ export class LifecycleEmailDeliveryService {
     // this write, so a worker that claims it and terminally fails first has
     // already written `failed`; widening this to `failed` flipped that back to
     // a terminal `queued` and dropped the failure reason.
+    // sql-risk-audit: ignore bulk-write-tenant-review -- LifecycleEmailDelivery is keyed by user, not organization; `where` pins the primary key so this updates exactly one row.
     await this.prisma.lifecycleEmailDelivery.updateMany({
       data: { failureReason: null, status: DELIVERY_STATUS.QUEUED },
       where: { id: state.delivery.id, status: 'scheduled' },

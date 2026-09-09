@@ -5,6 +5,7 @@ import {
   findCreditRefundReplay,
 } from '@api/collections/credits/services/credit-refund-replay';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { creditTransactionOptions } from '@api/collections/credits/services/credit-transaction-options';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -519,30 +520,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     const currentBalance = wallet.available;
     const newBalance = currentBalance + input.creditsToAdd;
     const newSettledBalance = wallet.settled + input.creditsToAdd;
-    const transactionOptions =
-      input.options?.actorUserId ||
-      input.options?.idempotencyKey ||
-      input.options?.referenceId ||
-      input.options?.referenceType ||
-      input.options?.metadata
-        ? {
-            ...(input.options.actorUserId
-              ? { actorUserId: input.options.actorUserId }
-              : {}),
-            ...(input.options.idempotencyKey
-              ? { idempotencyKey: input.options.idempotencyKey }
-              : {}),
-            ...(input.options.metadata
-              ? { metadata: input.options.metadata }
-              : {}),
-            ...(input.options.referenceId
-              ? { referenceId: input.options.referenceId }
-              : {}),
-            ...(input.options.referenceType
-              ? { referenceType: input.options.referenceType }
-              : {}),
-          }
-        : undefined;
+    const transactionOptions = creditTransactionOptions(input.options);
 
     await this.creditBalanceService.updateBalance(
       input.organizationId,

@@ -11,9 +11,11 @@ import { UsersService } from '@services/organization/users.service';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export default function ProductEmailPreferences() {
+  const translate = useTranslations('pages.productEmailPreferences');
   const getService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -81,7 +83,7 @@ export default function ProductEmailPreferences() {
         <Alert type={AlertCategory.WARNING}>
           <span>{error}</span>
           <Button
-            label="Retry"
+            label={translate('retry')}
             onClick={() => setRequest((value) => value + 1)}
           />
         </Alert>
@@ -100,9 +102,7 @@ export default function ProductEmailPreferences() {
         />
       ))}
       <p className="text-sm text-muted-foreground">
-        Sign-in, security and purchase confirmations are sent when needed.
-        Promotional email unsubscribe settings also apply to getting-started
-        messages.
+        {translate('transactionalNote')}
       </p>
     </div>
   );

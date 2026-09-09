@@ -2,6 +2,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   CreditTransactionCategory,
@@ -77,7 +78,8 @@ export class EmailProductSignalsService implements OnModuleInit {
         select: { id: true, userId: true },
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const organization of organizations) {
         if (!organization.userId) continue;
@@ -109,13 +111,11 @@ export class EmailProductSignalsService implements OnModuleInit {
     let count = 0;
     while (true) {
       const assets = await this.prisma.ingredient.findMany({
-        where: {
-          organizationId,
-          isDeleted: false,
+        where: scopedWhere(organizationId, {
           parentId: null,
           generationCompletedAt: { gte: since, lte: now },
           status: { in: ['GENERATED', 'FAILED'] },
-        },
+        }),
         select: {
           id: true,
           category: true,
@@ -128,7 +128,8 @@ export class EmailProductSignalsService implements OnModuleInit {
         },
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const asset of assets) {
         if (
@@ -195,16 +196,15 @@ export class EmailProductSignalsService implements OnModuleInit {
     while (true) {
       // Read accepted-message cohorts; the attribution service checks immutable CTA click history against each action time.
       const messages = await this.prisma.emailMessage.findMany({
-        where: {
-          organizationId,
-          isDeleted: false,
+        where: scopedWhere(organizationId, {
           goal: { not: null },
           acceptedAt: { gte: new Date(since.getTime() - 7 * DAY_MS), lte: now },
-        },
+        }),
         select: { id: true, userId: true, goal: true },
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       const users = new Map(
         messages.map((message) => [
@@ -269,11 +269,11 @@ export class EmailProductSignalsService implements OnModuleInit {
               );
         } else if (message.goal === 'publish_content') {
           const posts = await this.prisma.post.findMany({
-            where: {
+            where: scopedWhere(organizationId, {
               ...scope,
               ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
               publishedAt: range,
-            },
+            }),
             select: { id: true, publishedAt: true },
           });
           for (const post of posts)
@@ -332,14 +332,12 @@ export class EmailProductSignalsService implements OnModuleInit {
     let count = 0;
     while (true) {
       const purchases = await this.prisma.creditTransaction.findMany({
-        where: {
-          organizationId,
-          isDeleted: false,
+        where: scopedWhere(organizationId, {
           category: CreditTransactionCategory.ADD,
           amount: { gt: 0 },
           createdAt: { gte: since, lt: now },
           referenceType: { startsWith: 'stripe-checkout-session:' },
-        },
+        }),
         select: {
           id: true,
           actorUserId: true,
@@ -349,7 +347,8 @@ export class EmailProductSignalsService implements OnModuleInit {
         },
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        cursor: cursor ? { id: cursor } : undefined,
+        skip: cursor ? 1 : 0,
       });
       for (const purchase of purchases) {
         const userId = purchase.actorUserId ?? organization.userId;
