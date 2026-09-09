@@ -1,4 +1,4 @@
-import type { ServerPrisma } from '@api/server.dependencies';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { SystemEmailEligibilityService } from './system-email-eligibility.service';
@@ -26,7 +26,7 @@ function fixture() {
   return {
     prisma,
     service: new SystemEmailEligibilityService(
-      prisma as unknown as ServerPrisma,
+      prisma as unknown as PrismaService,
     ),
   };
 }

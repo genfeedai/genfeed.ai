@@ -111,6 +111,7 @@ describe('ArticlesContentService generation orchestration', () => {
             {
               category: persistParams.category,
               content: persistParams.draft.content,
+              generationCompletedAt: new Date().toISOString(),
               label: persistParams.draft.label,
               slug: persistParams.slug,
               status: ArticleStatus.DRAFT,

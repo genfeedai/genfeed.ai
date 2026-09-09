@@ -6,12 +6,9 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
   isSelfHostedDeployment: () => false,
 }));
 
-import type {
-  ServerConfig,
-  ServerLogger,
-  ServerPrisma,
-} from '@api/server.dependencies';
+import type { ServerConfig, ServerLogger } from '@api/server.dependencies';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('LifecycleEmailDeliveryService workflow actions', () => {
@@ -82,7 +79,7 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
     };
     queueEmail = vi.fn().mockResolvedValue('email-message-1');
     service = new LifecycleEmailDeliveryService(
-      prisma as unknown as ServerPrisma,
+      prisma as unknown as PrismaService,
       { queueEmail } as unknown as EmailPerformanceService,
       {
         get: vi.fn((key: string) =>
