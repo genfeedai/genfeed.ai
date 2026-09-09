@@ -73,6 +73,7 @@ describe('ContentHarnessService', () => {
       'core-baseline',
       'platform-x',
       'brand-fidelity',
+      'viral-psychology',
     ]);
   });
 
@@ -90,6 +91,7 @@ describe('ContentHarnessService', () => {
       'core-baseline',
       'platform-x',
       'brand-fidelity',
+      'viral-psychology',
       'acme-tone',
     ]);
     expect(runtimeRequire).toHaveBeenCalledTimes(1);
@@ -115,6 +117,7 @@ describe('ContentHarnessService', () => {
       'core-baseline',
       'platform-x',
       'brand-fidelity',
+      'viral-psychology',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
       'ContentHarnessService failed to load content harness pack',
@@ -145,6 +148,7 @@ describe('ContentHarnessService', () => {
       'core-baseline',
       'platform-x',
       'brand-fidelity',
+      'viral-psychology',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
       'ContentHarnessService failed to load content harness pack',
