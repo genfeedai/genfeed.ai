@@ -180,6 +180,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/publishing/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/knowledge', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
@@ -231,6 +232,19 @@ describe('workspace shell trusted registry', () => {
       productClass: 'control-plane',
       safeFallback: '/:orgSlug/:brandSlug/publishing/overview',
       surfaceKey: 'publishing',
+    });
+  });
+
+  it('registers Brand Knowledge under brand settings, not the asset library', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/settings/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/library/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
     });
   });
 

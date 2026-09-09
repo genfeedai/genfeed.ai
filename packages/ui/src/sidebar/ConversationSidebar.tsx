@@ -1,8 +1,7 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ChangeEvent, ReactNode } from 'react';
 
-import { Button } from '../primitives/button';
 import Searchbar from '../primitives/searchbar';
 
 export interface ConversationSidebarFilter<TValue extends string> {
@@ -41,60 +40,6 @@ export function ConversationSidebarSearch({
       />
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
-  );
-}
-
-interface ConversationSidebarFiltersProps<TValue extends string> {
-  ariaLabel: string;
-  filters: readonly ConversationSidebarFilter<TValue>[];
-  onChange: (value: TValue) => void;
-  value: TValue;
-}
-
-export function ConversationSidebarFilters<TValue extends string>({
-  ariaLabel,
-  filters,
-  onChange,
-  value,
-}: ConversationSidebarFiltersProps<TValue>) {
-  return (
-    <fieldset className="flex min-w-0 shrink-0 gap-1 overflow-x-auto border-0 px-3 pb-2 scrollbar-none">
-      <legend className="sr-only">{ariaLabel}</legend>
-      {filters.map((filter) => {
-        const isActive = filter.value === value;
-
-        return (
-          <Button
-            aria-pressed={isActive}
-            className={cn(
-              'h-7 shrink-0 gap-1.5 rounded-md border px-2.5 text-2xs font-medium transition-colors',
-              isActive
-                ? 'border-border-strong bg-foreground/[0.08] text-foreground'
-                : 'border-border bg-transparent text-foreground/48 hover:bg-foreground/[0.04] hover:text-foreground/78',
-            )}
-            key={filter.value}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={() => {
-              onChange(filter.value);
-            }}
-          >
-            {filter.label}
-            {typeof filter.count === 'number' && filter.count > 0 ? (
-              <span
-                className={cn(
-                  'tabular-nums text-2xs',
-                  isActive ? 'text-foreground/62' : 'text-foreground/30',
-                )}
-              >
-                {filter.count}
-              </span>
-            ) : null}
-          </Button>
-        );
-      })}
-    </fieldset>
   );
 }
 

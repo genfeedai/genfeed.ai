@@ -38,7 +38,9 @@ three are needed.
 - `/library/assets` is the canonical home; bare `/library` redirects there.
 - Sidebar groups are **Places** (All assets, Recent, Starred) · **Shelves**
   (Generating, Unsorted, Needs review, Approved, Failed, Archived) · **Folders**
-  (nested tree, drop targets) · tail (Trash).
+  (nested tree, drop targets) · tail (Trash). Brand Knowledge is not a library
+  destination — it lives at `/settings/knowledge` next to Brand Kit.
+  `/library/knowledge` redirects there.
 - `?view=` carries `grid` · `list` · `canvas`. `grid` is the default and is
   labelled "Contact sheet". The canvas entry is gated by the PostHog flag
   `moodboard` — the key kept its name because the rollout did not move, only the

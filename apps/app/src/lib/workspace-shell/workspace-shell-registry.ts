@@ -158,7 +158,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/library/recent': 'Recent',
   '/:orgSlug/:brandSlug/library/shelf/:shelf': ':shelf',
   '/:orgSlug/:brandSlug/library/starred': 'Starred',
-  '/:orgSlug/:brandSlug/library/knowledge': 'Knowledge',
   '/:orgSlug/:brandSlug/library/trash': 'Trash',
   '/:orgSlug/:brandSlug/library/videos': 'Assets',
   '/:orgSlug/:brandSlug/library/voices': 'Assets',
@@ -209,6 +208,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
   '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
+  '/:orgSlug/:brandSlug/settings/knowledge': 'Knowledge',
   '/:orgSlug/:brandSlug/settings/usage': 'Usage',
   '/:orgSlug/:brandSlug/studio/clips/:projectId': 'Project',
   '/:orgSlug/:brandSlug/studio/edit': 'Edit',
@@ -878,7 +878,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/recent',
       '/:orgSlug/:brandSlug/library/starred',
       '/:orgSlug/:brandSlug/library/trash',
-      '/:orgSlug/:brandSlug/library/knowledge',
       '/:orgSlug/:brandSlug/library/shelf/:shelf',
       '/:orgSlug/:brandSlug/library/videos',
       '/:orgSlug/:brandSlug/library/images',
@@ -1052,6 +1051,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
+      '/:orgSlug/:brandSlug/settings/knowledge',
+      // Redirect-only alias kept for saved links.
+      '/:orgSlug/:brandSlug/library/knowledge',
       '/:orgSlug/:brandSlug/settings/characters',
       '/:orgSlug/:brandSlug/settings/integrations',
       // Redirect-only alias kept for saved links.

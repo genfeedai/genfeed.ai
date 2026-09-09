@@ -1,17 +1,21 @@
-import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render, screen } from '@testing-library/react';
-import LibraryKnowledgeRoute, * as PageModule from './page';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
+import { describe, expect, it } from 'vitest';
 
-vi.mock('./library-knowledge-page', () => ({
-  default: () => <div data-testid="library-knowledge-page" />,
-}));
+const PAGE_PATH =
+  'app/(protected)/[orgSlug]/[brandSlug]/library/knowledge/page.tsx';
 
-runPageModuleTests('app/(protected)/library/knowledge/page', PageModule);
+assertSourceHasExport(PAGE_PATH);
 
-describe('LibraryKnowledgeRoute', () => {
-  it('renders the shared library knowledge page', () => {
-    render(<LibraryKnowledgeRoute />);
+describe('LibraryKnowledgeRedirectPage', () => {
+  it('sends the retired library path to brand settings knowledge', () => {
+    const source = readFileSync(join(process.cwd(), PAGE_PATH), 'utf8');
 
-    expect(screen.getByTestId('library-knowledge-page')).toBeInTheDocument();
+    expect(source).toContain('redirect');
+    expect(source).toContain('APP_ROUTES.SETTINGS.KNOWLEDGE');
+    expect(APP_ROUTES.LIBRARY.KNOWLEDGE).toBe('/library/knowledge');
+    expect(APP_ROUTES.SETTINGS.KNOWLEDGE).toBe('/settings/knowledge');
   });
 });

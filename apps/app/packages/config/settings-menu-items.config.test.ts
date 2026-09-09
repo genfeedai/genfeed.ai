@@ -173,6 +173,7 @@ describe('buildSettingsMenuItems', () => {
         'Profile',
         'Integrations',
         'Brand Kit',
+        'Knowledge',
         'Characters',
         'Brand voice',
         'Interview',
@@ -197,6 +198,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
         '/settings/kit',
       );
+      expect(items.find((i) => i.label === 'Knowledge')?.href).toBe(
+        APP_ROUTES.SETTINGS.KNOWLEDGE,
+      );
       expect(items.find((i) => i.label === 'Characters')?.href).toBe(
         APP_ROUTES.SETTINGS.CHARACTERS,
       );
@@ -216,6 +220,7 @@ describe('buildSettingsMenuItems', () => {
         ['Profile', 'Brand'],
         ['Integrations', 'Brand'],
         ['Brand Kit', 'Brand'],
+        ['Knowledge', 'Brand'],
         ['Characters', 'Brand'],
         ['Brand voice', 'Brand'],
         ['Interview', 'Brand'],

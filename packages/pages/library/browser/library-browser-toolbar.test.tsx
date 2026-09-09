@@ -198,6 +198,10 @@ describe('LibraryBrowserToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Contact sheet' }));
 
     expect(onViewModeChange).toHaveBeenCalledWith('grid');
+
+    fireEvent.click(screen.getByRole('button', { name: 'List' }));
+
+    expect(onViewModeChange).toHaveBeenCalledWith('list');
   });
 
   it('drops the canvas option when its flag is off', () => {

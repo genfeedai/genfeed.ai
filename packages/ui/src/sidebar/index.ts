@@ -1,6 +1,5 @@
 export type { ConversationSidebarFilter } from './ConversationSidebar';
 export {
-  ConversationSidebarFilters,
   ConversationSidebarSearch,
   ConversationSidebarSection,
   conversationSidebarRowClassName,

@@ -176,6 +176,11 @@ describe('routes.constant', () => {
     expect(
       getOrgSwitchHref('bravo', '/alpha/moonrise/settings/publishing'),
     ).toBe('/bravo/~/settings/brands');
+    expect(
+      getOrgSwitchHref('bravo', '/alpha/moonrise/settings/knowledge'),
+    ).toBe('/bravo/~/settings/brands');
+    expect(APP_ROUTES.SETTINGS.KNOWLEDGE).toBe('/settings/knowledge');
+    expect(APP_ROUTES.LIBRARY.KNOWLEDGE).toBe('/library/knowledge');
   });
 
   it('keeps personal settings children on the unscoped /settings shell', () => {

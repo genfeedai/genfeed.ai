@@ -126,7 +126,6 @@ export { Modal } from './modals/compound/modal.compound';
 export * from './primitives';
 export type { ConversationSidebarFilter } from './sidebar/ConversationSidebar';
 export {
-  ConversationSidebarFilters,
   ConversationSidebarSearch,
   ConversationSidebarSection,
   conversationSidebarRowClassName,

@@ -224,13 +224,12 @@ export function useMessagesConversations({
     selectedConversation?.organizationId ||
     conversations[0]?.organizationId;
 
-  const connectionState = useMessagesRealtime({
+  useMessagesRealtime({
     onRefresh: refreshSelectedThread,
     organizationId,
   });
 
   return {
-    connectionState,
     conversationPagination,
     conversations,
     isLoadingConversations,

@@ -280,10 +280,7 @@
     "manualDescription": "Add owned guidance and reference assets after reviewing the scan.",
     "reviewDescription": "Review extracted and inferred evidence before accepting it. Candidate colors stay separate from Genfeed product tokens.",
     "reviewTitle": "Review brand evidence",
-    "settingsAriaLabel": "Brand Kit settings",
-    "knowledgeTitle": "Brand Knowledge",
-    "knowledgeDescription": "Save your website, docs and pasted material so generations cite them. Seed it from this Brand Kit in one click.",
-    "openKnowledge": "Open Knowledge"
+    "settingsAriaLabel": "Brand Kit settings"
   },
   "platforms": {
     "home": {

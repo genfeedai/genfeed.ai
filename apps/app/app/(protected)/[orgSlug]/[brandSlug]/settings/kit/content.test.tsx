@@ -19,10 +19,6 @@ vi.mock('@/lib/analytics', () => ({
   captureBrandOsFunnelStage: mocks.captureBrandOsFunnelStage,
 }));
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: (path: string) => path }),
-}));
-
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => ({
     brand: { id: 'brand-1', label: 'Acme' },
@@ -137,5 +133,14 @@ describe('BrandSettingsKitPage', () => {
       2,
       'draft_accepted',
     );
+  });
+
+  it('does not bounce Brand Knowledge out of settings', () => {
+    render(<BrandSettingsKitPage />);
+
+    expect(
+      screen.queryByRole('link', { name: /open knowledge/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Brand Knowledge')).not.toBeInTheDocument();
   });
 });
