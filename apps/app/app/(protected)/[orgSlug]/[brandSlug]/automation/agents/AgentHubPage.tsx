@@ -171,12 +171,12 @@ function AgentCard({
           tooltip="Fill topic/prompt/assets and run the bound workflow"
         />
         <Button
-          label="Autopilot"
+          label={translate('runNow')}
           icon={<CirclePlay className="size-4" />}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => onRunNow(strategy.id)}
-          tooltip="Queue proactive skill-based run"
+          tooltip="Queue a run with this agent's current schedule and skills"
         />
         <Button
           label={strategy.isActive ? 'Pause' : 'Activate'}

@@ -13,7 +13,7 @@ describe('page help routing', () => {
 
   it('picks the longest matching prefix', () => {
     expect(resolvePageHelpKey('/acme/brand/automation/autopilot')).toBe(
-      'automationAutopilot',
+      'automationAgents',
     );
     expect(resolvePageHelpKey('/acme/brand/library/trash')).toBe(
       'libraryTrash',

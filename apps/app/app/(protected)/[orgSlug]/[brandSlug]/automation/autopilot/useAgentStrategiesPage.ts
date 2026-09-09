@@ -19,7 +19,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
-function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
+export function buildPayload(
+  form: AgentStrategyFormState,
+): AgentStrategyPayload {
   const preferredWorkflowTemplateId = preferredWorkflowTemplateIdForAgentType(
     form.agentType,
   );

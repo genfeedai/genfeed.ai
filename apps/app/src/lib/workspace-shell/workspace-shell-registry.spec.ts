@@ -342,7 +342,7 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
-    // Autopilot remains first-class; configuration aliases are removed.
+    // Autopilot URL stays registered and redirects to Agents.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });

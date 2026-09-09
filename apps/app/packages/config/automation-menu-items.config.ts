@@ -5,7 +5,6 @@ import {
   LayoutGrid,
   LayoutTemplate,
   Megaphone,
-  Rocket,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -15,7 +14,7 @@ import {
  *
  * - Home: Overview
  * - Workflows: pipelines + templates + run history
- * - Agents: roster, autopilot, programs
+ * - Agents: roster and programs. Schedule/autonomy live on the agent.
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publishing (P1).
@@ -66,17 +65,9 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     group: 'Agents',
     href: APP_ROUTES.AUTOMATION.AGENTS,
     label: 'Agents',
-    matchPaths: [APP_ROUTES.AUTOMATION.AGENTS],
+    matchPaths: [APP_ROUTES.AUTOMATION.AGENTS, APP_ROUTES.AUTOMATION.AUTOPILOT],
     outline: Users,
     solid: Users,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATION.AUTOPILOT,
-    label: 'Autopilot',
-    matchPaths: [APP_ROUTES.AUTOMATION.AUTOPILOT],
-    outline: Rocket,
-    solid: Rocket,
   },
   {
     group: 'Agents',

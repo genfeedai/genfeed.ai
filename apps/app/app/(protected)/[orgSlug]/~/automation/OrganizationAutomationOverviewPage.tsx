@@ -35,8 +35,8 @@ const AUTOMATION_SURFACES = [
   { icon: Cpu, label: 'Runs', path: APP_ROUTES.AUTOMATION.RUNS },
   {
     icon: MessageSquare,
-    label: 'Autopilot',
-    path: APP_ROUTES.AUTOMATION.AUTOPILOT,
+    label: 'Agents',
+    path: APP_ROUTES.AUTOMATION.AGENTS,
   },
   {
     icon: ChartLine,

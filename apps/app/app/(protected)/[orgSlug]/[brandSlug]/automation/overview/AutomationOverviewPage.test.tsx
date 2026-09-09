@@ -68,6 +68,10 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
   }),
 }));
 
+vi.mock('../autopilot/ContentPlansSection', () => ({
+  default: () => <div>Recent plans</div>,
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({
     data: {
@@ -144,6 +148,7 @@ describe('AutomationOverviewPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Recent activity' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Recent plans')).toBeInTheDocument();
     expect(
       screen.getByText('No automation running right now.'),
     ).toBeInTheDocument();

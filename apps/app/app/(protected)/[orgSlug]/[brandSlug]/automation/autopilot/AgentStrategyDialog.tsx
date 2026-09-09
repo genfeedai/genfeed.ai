@@ -260,7 +260,7 @@ export default function AgentStrategyDialog({
               onClick={() => onOpenChange(false)}
             />
             <Button
-              label="Save Autopilot Changes"
+              label="Save schedule"
               type="submit"
               variant={ButtonVariant.DEFAULT}
               isDisabled={isSubmitting}

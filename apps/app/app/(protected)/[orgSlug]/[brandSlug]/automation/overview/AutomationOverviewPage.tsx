@@ -21,6 +21,7 @@ import {
   createWorkflowApiService,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
+import ContentPlansSection from '../autopilot/ContentPlansSection';
 import ActiveRunsPanel from '../runs/ActiveRunsPanel';
 import RunHistoryList from '../runs/RunHistoryList';
 import RunStatsStrip from '../runs/RunStatsStrip';
@@ -111,9 +112,9 @@ export default function AutomationOverviewPage() {
               },
               {
                 icon: Cpu,
-                label: 'Autopilot',
+                label: 'On schedule',
                 value: activeAgents.toLocaleString(),
-                description: 'Active policies',
+                description: 'Agents currently active',
               },
               {
                 icon: Workflow,
@@ -170,6 +171,8 @@ export default function AutomationOverviewPage() {
               pageSize={RECENT_RUN_PAGE_SIZE}
             />
           </WorkspaceSurface>
+
+          <ContentPlansSection />
         </div>
       )}
     </Container>

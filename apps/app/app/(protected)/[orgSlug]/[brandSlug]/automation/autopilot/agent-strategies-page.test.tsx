@@ -505,13 +505,11 @@ describe('AgentStrategiesPage', () => {
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Edit strategy' })[0],
     );
-    expect(screen.getByText('Edit Autopilot Policy')).toBeVisible();
+    expect(screen.getByText('Schedule')).toBeVisible();
 
     const labelInput = screen.getByLabelText('Policy Label');
     fireEvent.change(labelInput, { target: { value: '' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save Autopilot Changes' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
 
     expect(mocks.error).toHaveBeenCalledWith('Strategy label is required');
     expect(mocks.update).not.toHaveBeenCalled();
@@ -520,16 +518,12 @@ describe('AgentStrategiesPage', () => {
       target: { value: 'Updated Growth Policy' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Twitter / X' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save Autopilot Changes' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
 
     expect(mocks.error).toHaveBeenCalledWith('Select at least one platform');
 
     fireEvent.click(screen.getByRole('button', { name: 'LinkedIn' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Save Autopilot Changes' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
 
     await waitFor(() => {
       expect(mocks.update).toHaveBeenCalledWith(

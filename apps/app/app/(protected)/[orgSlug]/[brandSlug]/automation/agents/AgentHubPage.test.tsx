@@ -282,7 +282,7 @@ describe('AgentHubPage', () => {
       '/automation/agents/agent-1',
     );
 
-    fireEvent.click(screen.getAllByText('Autopilot')[0]);
+    fireEvent.click(screen.getAllByText('Run now')[0]);
     await waitFor(() => {
       expect(mocks.runNow).toHaveBeenCalledWith('agent-1');
     });

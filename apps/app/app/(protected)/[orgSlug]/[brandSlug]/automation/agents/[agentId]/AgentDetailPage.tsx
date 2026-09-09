@@ -16,6 +16,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
   AgentStrategyWorkflowBinding,
@@ -35,6 +36,7 @@ import { Button } from '@ui/primitives/button';
 import {
   ArrowLeft,
   CirclePlay,
+  Clock,
   Cpu,
   FileText,
   Image,
@@ -47,7 +49,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
+import AgentStrategyDialog from '../../autopilot/AgentStrategyDialog';
+import { buildPayload } from '../../autopilot/useAgentStrategiesPage';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
@@ -84,6 +89,7 @@ const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
 };
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
+  const translate = useTranslations('common.automation.agentHub');
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -128,12 +134,34 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     try {
       const service = await getService();
       await service.runNow(agentId);
-      notificationsService.success('Autopilot run triggered');
+      notificationsService.success('Agent run triggered');
     } catch (error) {
       logger.error('Failed to trigger run', { error });
       notificationsService.error('Failed to trigger run');
     }
   }, [agentId, getService, notificationsService]);
+
+  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+
+  const handlePolicySubmit = useCallback(
+    async (form: AgentStrategyFormState) => {
+      setIsSavingPolicy(true);
+      try {
+        const service = await getService();
+        await service.update(agentId, buildPayload(form));
+        notificationsService.success('Agent schedule updated');
+        setIsPolicyOpen(false);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to save agent schedule', { error });
+        notificationsService.error('Failed to save agent schedule');
+      } finally {
+        setIsSavingPolicy(false);
+      }
+    },
+    [agentId, getService, notificationsService, refresh],
+  );
 
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [workflowBinding, setWorkflowBinding] =
@@ -276,6 +304,13 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleToggle}
           />
           <Button
+            label={translate('schedule')}
+            icon={<Clock />}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => setIsPolicyOpen(true)}
+          />
+          <Button
             label="Run workflow"
             icon={<Workflow />}
             size={ButtonSize.SM}
@@ -283,7 +318,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleOpenWorkflow}
           />
           <Button
-            label="Autopilot"
+            label={translate('runNow')}
             icon={<CirclePlay />}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
@@ -346,6 +381,14 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                   : 'text-success',
             },
           ]}
+        />
+
+        <AgentStrategyDialog
+          initialStrategy={strategy}
+          isOpen={isPolicyOpen}
+          isSubmitting={isSavingPolicy}
+          onOpenChange={setIsPolicyOpen}
+          onSubmit={handlePolicySubmit}
         />
 
         <AgentWorkflowRunDialog

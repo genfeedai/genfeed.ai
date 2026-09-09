@@ -33,7 +33,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
   });
 
   it.each([
-    ['Autopilot', '/automation/autopilot'],
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
     ['Runs', '/automation/runs'],
@@ -74,13 +73,17 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('does not keep a Strategies nav alias', () => {
-    const autopilot = AUTOMATION_MENU_ITEMS.find(
-      (item) => item.label === 'Autopilot',
+  it('folds Autopilot into Agents instead of a second nav desk', () => {
+    const agents = AUTOMATION_MENU_ITEMS.find(
+      (item) => item.label === 'Agents',
     );
 
-    expect(autopilot?.href).toBe('/automation/autopilot');
-    expect(autopilot?.matchPaths).toEqual(['/automation/autopilot']);
+    expect(
+      AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Autopilot'),
+    ).toBe(false);
+    expect(agents?.matchPaths).toEqual(
+      expect.arrayContaining(['/automation/agents', '/automation/autopilot']),
+    );
     expect(
       AUTOMATION_MENU_ITEMS.some(
         (item) =>
@@ -140,7 +143,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
       'Templates',
       'Runs',
     ]);
-    expect(byGroup.get('Agents')).toEqual(['Agents', 'Autopilot', 'Programs']);
+    expect(byGroup.get('Agents')).toEqual(['Agents', 'Programs']);
     expect(byGroup.get('Campaigns')).toBeUndefined();
     expect(byGroup.get('Settings')).toBeUndefined();
     expect(byGroup.get('Build')).toBeUndefined();

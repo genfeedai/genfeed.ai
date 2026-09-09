@@ -15,7 +15,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'automationTemplates', prefix: APP_ROUTES.AUTOMATION.TEMPLATES },
   { key: 'automationRuns', prefix: APP_ROUTES.AUTOMATION.RUNS },
   { key: 'automationAgents', prefix: APP_ROUTES.AUTOMATION.AGENTS },
-  { key: 'automationAutopilot', prefix: APP_ROUTES.AUTOMATION.AUTOPILOT },
+  { key: 'automationAgents', prefix: APP_ROUTES.AUTOMATION.AUTOPILOT },
   { key: 'automationPrograms', prefix: APP_ROUTES.AUTOMATION.CAMPAIGNS },
   { key: 'automationContentRuns', prefix: APP_ROUTES.AUTOMATION.CONTENT_RUNS },
   { key: 'publishingOverview', prefix: APP_ROUTES.PUBLISHING.OVERVIEW },

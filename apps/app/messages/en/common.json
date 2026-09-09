@@ -529,6 +529,8 @@
       "title": "Add agent"
     },
     "agentHub": {
+      "runNow": "Run now",
+      "schedule": "Schedule",
       "card": {
         "brand": "Brand: {brand}",
         "creditsToday": "Credits today",
@@ -550,7 +552,7 @@
     "autopilot": {
       "agentType": "Agent Type",
       "autonomy": "Autonomy",
-      "description": "Configure this agent's schedule, budget, and execution policy.",
+      "description": "Set how often this agent runs, its budget, and whether it publishes on its own.",
       "emptyAction": "Add agent",
       "emptyDescription": "Add an agent first, then configure its schedule and autonomy here.",
       "emptyTitle": "No agents available",
@@ -560,7 +562,7 @@
       "runFrequency": "Run Frequency",
       "skillHelp": "Comma-separated skill slugs. Leave empty to use all brand-enabled skills.",
       "skillSlugs": "Skill Slugs",
-      "title": "Edit Autopilot Policy",
+      "title": "Schedule",
       "topics": "Topics"
     },
     "contentPlans": {
