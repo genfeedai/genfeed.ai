@@ -20,6 +20,7 @@ import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, CircleX, Layers } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
 interface BatchGenerationResultCardProps {
@@ -66,6 +67,7 @@ function resolveReviewHref(action: AgentUiAction): string | undefined {
 export function BatchGenerationResultCard({
   action,
 }: BatchGenerationResultCardProps): ReactElement {
+  const translate = useTranslations('agent.batchGenerationResultCard');
   const brandScope = useBrand();
   const activeStatuses = {
     pending: 'queued',
@@ -219,15 +221,17 @@ export function BatchGenerationResultCard({
                     >
                       <PlatformPreview
                         className="max-h-[22rem] overflow-y-auto"
-                        emptyMessage="No preview available for this draft."
+                        emptyMessage={translate('noDraftPreview')}
                         target={previewProps}
                       />
                       <a
                         href={href}
                         className="text-xs font-medium text-primary hover:underline"
-                        aria-label={`Open ${formatPlatformLabel(platform) ?? platform} draft in review`}
+                        aria-label={translate('openDraftAria', {
+                          platform: formatPlatformLabel(platform) ?? platform,
+                        })}
                       >
-                        Open draft
+                        {translate('openDraft')}
                       </a>
                     </div>
                   );
@@ -240,7 +244,7 @@ export function BatchGenerationResultCard({
                   >
                     <PlatformPreview
                       className="max-h-[22rem] overflow-y-auto"
-                      emptyMessage="No preview available for this draft."
+                      emptyMessage={translate('noDraftPreview')}
                       target={previewProps}
                     />
                   </div>
@@ -251,8 +255,7 @@ export function BatchGenerationResultCard({
                   href={reviewHref}
                   className="inline-flex text-xs font-medium text-primary hover:underline"
                 >
-                  +{remainingCount} more post{remainingCount === 1 ? '' : 's'}{' '}
-                  in review
+                  {translate('remainingInReview', { count: remainingCount })}
                 </a>
               ) : null}
             </div>

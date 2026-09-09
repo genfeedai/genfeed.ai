@@ -74,6 +74,7 @@ import { TrendPreferencesService } from '@api/collections/trends/services/trend-
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
@@ -257,6 +258,7 @@ const WORKER_DOMAIN_SERVICES = [
   AttributionService,
   AuthorReplyLoopService,
   AvatarVideoGenerationService,
+  AvatarVideoLifecycleService,
   BatchGenerationCreditsService,
   BatchGenerationReconcileService,
   BatchGenerationService,

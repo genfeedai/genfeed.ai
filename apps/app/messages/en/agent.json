@@ -288,5 +288,11 @@
     "useAnswer": "Use this answer",
     "submit": "Submit answers",
     "failed": "Your answer was not saved. Try again."
+  },
+  "batchGenerationResultCard": {
+    "noDraftPreview": "No preview available for this draft.",
+    "openDraft": "Open draft",
+    "openDraftAria": "Open {platform} draft in review",
+    "remainingInReview": "+{count} more {count, plural, one {post} other {posts}} in review"
   }
 }

@@ -1,5 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -97,6 +98,13 @@ describe('AvatarVideoGenerationService', () => {
       publishFileProcessing: vi.fn().mockResolvedValue(undefined),
       publishVideoProgress: vi.fn().mockResolvedValue(undefined),
     };
+    const activitiesService = {
+      create: vi.fn().mockResolvedValue({ id: 'avatar-activity' }),
+    };
+    const lifecycleService = new AvatarVideoLifecycleService(
+      activitiesService as never,
+      websocketService as never,
+    );
 
     const service = new AvatarVideoGenerationService(
       brandsService as never,
@@ -114,8 +122,7 @@ describe('AvatarVideoGenerationService', () => {
       sharedService as never,
       videosService as never,
       voicesService as never,
-      websocketService as never,
-      { create: vi.fn().mockResolvedValue({ id: 'avatar-activity' }) } as never,
+      lifecycleService,
     );
 
     return {
