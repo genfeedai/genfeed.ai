@@ -41,18 +41,9 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('../hire/ContentTeamHirePage', () => ({
-  default: ({
-    onCancel,
-    onCreated,
-  }: {
-    onCancel: () => void;
-    onCreated: () => Promise<void>;
-  }) => (
+  default: ({ onCreated }: { onCreated: () => Promise<void> }) => (
     <div>
-      <p>Agent library panel</p>
-      <button type="button" onClick={onCancel}>
-        Cancel library
-      </button>
+      <p>Agent marketplace panel</p>
       <button type="button" onClick={() => onCreated()}>
         Create library agent
       </button>
@@ -77,7 +68,7 @@ describe('AddAgentDialog', () => {
     mocks.onCreated.mockResolvedValue(undefined);
   });
 
-  it('switches between the library and custom creation flows', () => {
+  it('switches between the marketplace and custom creation flows', () => {
     render(
       <AddAgentDialog
         initialMode="library"
@@ -87,10 +78,11 @@ describe('AddAgentDialog', () => {
       />,
     );
 
-    expect(screen.getByText('Agent library panel')).toBeVisible();
+    expect(screen.getByText('Agent marketplace panel')).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Marketplace' })).toBeVisible();
     expect(screen.getByTestId('dialog-content')).toHaveClass(
       'w-[calc(100vw-2rem)]',
-      'max-w-3xl',
+      'max-w-4xl',
     );
     expect(screen.getByTestId('dialog-content')).not.toHaveClass('max-w-5xl');
     // Radix tabs activate on pointer down, not click.
@@ -116,18 +108,5 @@ describe('AddAgentDialog', () => {
       expect(mocks.onCreated).toHaveBeenCalledOnce();
       expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
     });
-  });
-
-  it('closes the shared dialog from the library cancel action', () => {
-    render(
-      <AddAgentDialog
-        isOpen
-        onCreated={mocks.onCreated}
-        onOpenChange={mocks.onOpenChange}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel library' }));
-    expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
   });
 });

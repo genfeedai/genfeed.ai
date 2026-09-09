@@ -512,12 +512,20 @@
   },
   "automation": {
     "agentCreation": {
+      "activate": "Activate",
+      "activating": "Activating",
+      "all": "All",
+      "allAgents": "All agents",
+      "creditsPerDay": "{credits} credits / day",
       "custom": "Custom",
-      "description": "Start from a proven role or configure a custom agent for the selected brand.",
-      "library": "Agent library",
+      "description": "Activate a preconfigured agent. Tune budget, voice, and schedule after.",
+      "emptySearch": "No agents match this search.",
+      "featured": "Featured",
+      "library": "Marketplace",
       "loadingBrand": "Loading the selected brand\u2026",
       "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
+      "search": "Search agents",
       "title": "Add agent"
     },
     "agentHub": {

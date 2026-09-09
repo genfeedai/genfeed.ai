@@ -5,12 +5,8 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import {
-  buildRoleStrategyInput,
-  CONTENT_TEAM_ROLE_PRESETS,
-} from '@pages/agents/content-team/content-team-presets';
+import { buildRoleStrategyInput } from '@pages/agents/content-team/content-team-presets';
 import type { ContentTeamHirePageProps } from '@props/automation/content-team-hire-page.props';
-import type { HireFormState } from '@props/automation/hire-form.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -18,13 +14,12 @@ import Container from '@ui/layout/container/Container';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { HireForm } from './HireForm';
+import AgentMarketplace from './AgentMarketplace';
 
 export default function ContentTeamHirePage({
   isEmbedded = false,
-  onCancel,
   onCreated,
 }: ContentTeamHirePageProps) {
   const translate = useTranslations('common.automation.agentCreation');
@@ -34,48 +29,20 @@ export default function ContentTeamHirePage({
   const collectionScope = useCollectionScope();
   const { brandId, pageScope } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState<HireFormState>({
-    budget: '',
-    label: '',
-    persona: '',
-    reportsToLabel: 'Main Orchestrator',
-    rolePresetId: CONTENT_TEAM_ROLE_PRESETS[0]?.id ?? '',
-    sharedTopic: '',
-    teamGroup: '',
-  });
+  const [submittingPresetId, setSubmittingPresetId] = useState<string | null>(
+    null,
+  );
+  const isSubmitting = submittingPresetId !== null;
 
   const getStrategiesService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
 
-  const selectedPreset = useMemo(
-    () =>
-      CONTENT_TEAM_ROLE_PRESETS.find(
-        (preset) => preset.id === form.rolePresetId,
-      ) ?? CONTENT_TEAM_ROLE_PRESETS[0],
-    [form.rolePresetId],
-  );
-
-  const handleChange = useCallback(
-    (field: keyof HireFormState, value: string) => {
-      setForm((previous) => ({ ...previous, [field]: value }));
-    },
-    [],
-  );
-
-  const handleCancel = useCallback(() => {
-    if (onCancel) {
-      onCancel();
-      return;
-    }
-
-    push(href(APP_ROUTES.AUTOMATION.AGENTS));
-  }, [href, onCancel, push]);
-
-  const handleSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+  const handleActivate = useCallback(
+    async (presetId: string) => {
+      if (isSubmitting) {
+        return;
+      }
 
       if (!isBrandReady || !brandId) {
         notificationsService.error(
@@ -86,25 +53,14 @@ export default function ContentTeamHirePage({
         return;
       }
 
-      if (!selectedPreset) {
-        notificationsService.error('Choose a role before hiring.');
-        return;
-      }
-
-      setIsSubmitting(true);
+      setSubmittingPresetId(presetId);
 
       try {
         const service = await getStrategiesService();
         await service.create({
           ...buildRoleStrategyInput({
-            brandId: brandId || undefined,
-            budget: form.budget ? Number(form.budget) : undefined,
-            label: form.label,
-            persona: form.persona,
-            reportsToLabel: form.reportsToLabel,
-            rolePresetId: form.rolePresetId,
-            sharedTopic: form.sharedTopic,
-            teamGroup: form.teamGroup,
+            brandId,
+            rolePresetId: presetId,
           }),
           isActive: true,
         });
@@ -116,29 +72,22 @@ export default function ContentTeamHirePage({
           push(href(APP_ROUTES.AUTOMATION.AGENTS));
         }
       } catch (error) {
-        logger.error('Failed to hire content team agent', { error });
-        notificationsService.error('Unable to hire agent');
+        logger.error('Failed to activate content team agent', { error });
+        notificationsService.error('Unable to activate agent');
       } finally {
-        setIsSubmitting(false);
+        setSubmittingPresetId(null);
       }
     },
     [
       brandId,
-      form.budget,
-      form.label,
-      form.persona,
-      form.reportsToLabel,
-      form.rolePresetId,
-      form.sharedTopic,
-      form.teamGroup,
       getStrategiesService,
       href,
       isBrandReady,
+      isSubmitting,
       notificationsService,
-      pageScope,
       onCreated,
+      pageScope,
       push,
-      selectedPreset,
     ],
   );
 
@@ -148,16 +97,11 @@ export default function ContentTeamHirePage({
         {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
       </p>
     ) : (
-      <div className="mx-auto w-full max-w-3xl">
-        <HireForm
-          form={form}
-          isSubmitting={isSubmitting}
-          onCancel={handleCancel}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-          selectedPreset={selectedPreset}
-        />
-      </div>
+      <AgentMarketplace
+        isSubmitting={isSubmitting}
+        onActivate={handleActivate}
+        submittingPresetId={submittingPresetId}
+      />
     );
 
   if (isEmbedded) {
@@ -166,9 +110,9 @@ export default function ContentTeamHirePage({
 
   return (
     <Container
-      description="Create a specialist content role on top of the existing strategy system."
+      description={translate('description')}
       icon={UserPlus}
-      label="Hire Agent"
+      label={translate('title')}
     >
       {content}
     </Container>

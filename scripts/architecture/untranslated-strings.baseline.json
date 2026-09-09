@@ -50,8 +50,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategyScoreFields.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategySourceToggles.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/useAgentStrategiesColumns.tsx": 14,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/hire/ContentTeamHirePage.tsx": 2,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/hire/HireForm.tsx": 12,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/overview/AutomationOverviewPage.tsx": 26,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/mission-control.tsx": 4,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/[id]/layout.tsx": 2,

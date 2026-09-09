@@ -14,18 +14,8 @@ const mocks = vi.hoisted(() => ({
   getStrategiesService: vi.fn(),
   loggerError: vi.fn(),
   push: vi.fn(),
-  onCancel: vi.fn(),
   onCreated: vi.fn(),
   success: vi.fn(),
-}));
-
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brandId: 'brand-1',
-    isReady: true,
-    organizationId: 'org-1',
-    selectedBrand: { id: 'brand-1', label: 'Moonrise' },
-  }),
 }));
 
 vi.mock('next-intl', async () => {
@@ -38,6 +28,16 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getStrategiesService,
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isBrandResourceReady: () => true,
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
 }));
 
 vi.mock('@pages/agents/content-team/content-team-presets', () => ({
@@ -118,71 +118,34 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('../agents/AgentOptionPicker', () => ({
+vi.mock('./AgentMarketplace', () => ({
   default: ({
-    onValueChange,
-    options,
-    value,
+    onActivate,
+    isSubmitting,
+    submittingPresetId,
   }: {
-    onValueChange: (value: string) => void;
-    options: Array<{
-      description: string;
-      label: string;
-      meta: string;
-      value: string;
-    }>;
-    value: string;
-  }) => {
-    const selected = options.find((option) => option.value === value);
-
-    return (
-      <div>
-        <p>{selected?.description}</p>
-        <p>{selected?.meta}</p>
-        {options.map((option) => (
-          <button
-            aria-pressed={value === option.value}
-            key={option.value}
-            onClick={() => onValueChange(option.value)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    );
-  },
-}));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    children,
-    isDisabled,
-    label,
-    onClick,
-    type = 'button',
-  }: {
-    children?: ReactNode;
-    isDisabled?: boolean;
-    label?: ReactNode;
-    onClick?: () => void;
-    type?: 'button' | 'submit';
+    isSubmitting: boolean;
+    onActivate: (presetId: string) => void;
+    submittingPresetId: string | null;
   }) => (
-    <button disabled={isDisabled} type={type} onClick={onClick}>
-      {children ?? label}
-    </button>
-  ),
-}));
-
-vi.mock('@ui/primitives/input', () => ({
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
-  ),
-}));
-
-vi.mock('@ui/primitives/textarea', () => ({
-  Textarea: (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-    <textarea {...props} />
+    <div data-testid="agent-marketplace">
+      <button
+        disabled={isSubmitting}
+        onClick={() => onActivate('video-producer')}
+        type="button"
+      >
+        {submittingPresetId === 'video-producer'
+          ? 'Activating Video Producer'
+          : 'Activate Video Producer'}
+      </button>
+      <button
+        disabled={isSubmitting}
+        onClick={() => onActivate('copywriter')}
+        type="button"
+      >
+        Activate Copywriter
+      </button>
+    </div>
   ),
 }));
 
@@ -195,87 +158,52 @@ describe('ContentTeamHirePage', () => {
     });
   });
 
-  it('renders the selected template and hires a content team agent', async () => {
-    render(
-      <ContentTeamHirePage
-        isEmbedded
-        onCancel={mocks.onCancel}
-        onCreated={mocks.onCreated}
-      />,
+  it('activates a preconfigured agent with preset defaults', async () => {
+    render(<ContentTeamHirePage isEmbedded onCreated={mocks.onCreated} />);
+
+    expect(screen.getByTestId('agent-marketplace')).toBeVisible();
+    expect(screen.queryByLabelText('Agent Label')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Daily Budget')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Shared Persona')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Activate Video Producer' }),
     );
-
-    expect(screen.getAllByText('Video Producer')[0]).toBeVisible();
-    expect(screen.getByText('Creates short-form video briefs.')).toBeVisible();
-    expect(screen.getByPlaceholderText('Production')).toBeVisible();
-    expect(screen.getByText(/25 credits/)).toBeVisible();
-    expect(screen.queryByText('Brand')).not.toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText('Agent Label'), {
-      target: { value: 'Launch Video Producer' },
-    });
-    fireEvent.change(screen.getByLabelText('Daily Budget'), {
-      target: { value: '42' },
-    });
-    fireEvent.change(screen.getByLabelText('Reports To'), {
-      target: { value: 'Strategy Lead' },
-    });
-    fireEvent.change(screen.getByLabelText('Team Group'), {
-      target: { value: 'Growth' },
-    });
-    fireEvent.change(screen.getByLabelText('Shared Persona'), {
-      target: { value: 'Direct, practical founder voice' },
-    });
-    fireEvent.change(screen.getByLabelText('Primary Topic'), {
-      target: { value: 'AI video launches' },
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
 
     await waitFor(() => {
       expect(mocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: 'brand-1',
-          budget: 42,
           builtFromPreset: true,
           isActive: true,
-          label: 'Launch Video Producer',
-          persona: 'Direct, practical founder voice',
-          reportsToLabel: 'Strategy Lead',
           rolePresetId: 'video-producer',
-          sharedTopic: 'AI video launches',
-          teamGroup: 'Growth',
         }),
       );
+    });
+    expect(mocks.buildRoleStrategyInput).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      rolePresetId: 'video-producer',
     });
     expect(mocks.success).toHaveBeenCalledWith('Agent added successfully');
     expect(mocks.onCreated).toHaveBeenCalledOnce();
   });
 
-  it('updates preview fields, cancels, and reports create failures', async () => {
+  it('reports activate failures without closing the marketplace', async () => {
     mocks.create.mockRejectedValueOnce(new Error('create failed'));
-    render(
-      <ContentTeamHirePage
-        isEmbedded
-        onCancel={mocks.onCancel}
-        onCreated={mocks.onCreated}
-      />,
+    render(<ContentTeamHirePage isEmbedded onCreated={mocks.onCreated} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Activate Copywriter' }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Copywriter/i }));
-    expect(screen.getByText('Writes launch copy.')).toBeVisible();
-    expect(screen.getByPlaceholderText('Editorial')).toBeVisible();
-    expect(screen.getByText(/10 credits/)).toBeVisible();
-
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(mocks.onCancel).toHaveBeenCalledOnce();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to hire content team agent',
+        'Failed to activate content team agent',
         expect.objectContaining({ error: expect.any(Error) }),
       );
     });
-    expect(mocks.error).toHaveBeenCalledWith('Unable to hire agent');
+    expect(mocks.error).toHaveBeenCalledWith('Unable to activate agent');
+    expect(mocks.onCreated).not.toHaveBeenCalled();
+    expect(screen.getByTestId('agent-marketplace')).toBeVisible();
   });
 });
