@@ -154,7 +154,6 @@ export function BatchGenerationResultCard({
             <GenerationStatus
               status={activeStatus}
               assetLabel="posts"
-              startedAt={action.startedAt}
               completedCount={completedCount ?? 0}
               totalCount={totalPosts}
               compact

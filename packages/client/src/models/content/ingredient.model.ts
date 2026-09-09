@@ -52,6 +52,7 @@ export class Ingredient extends BaseEntity implements IIngredient {
   declare public height?: number;
   declare public processingProgress?: number;
   declare public processingError?: string;
+  declare public generationError?: string | null;
   declare public processingStartedAt?: string;
   declare public processingCompletedAt?: string;
   declare public views?: number;
