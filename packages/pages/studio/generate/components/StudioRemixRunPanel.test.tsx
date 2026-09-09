@@ -49,7 +49,11 @@ const run = {
   recipeVersion: 1,
   revision: 2,
   sourceSnapshot: {
+    // `selector` is required on the view contract and the panel reads
+    // `sourceSnapshot.selector.kind` directly — omitting it only type-checked
+    // because of the `as BrandRemixRunView` cast.
     pattern: { hook: 'Proof before promise' },
+    selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
     title: 'Proof-led TikTok hook',
   },
 } as BrandRemixRunView;

@@ -67,8 +67,8 @@ describe('OutreachCampaignWizard', () => {
     render(<OutreachCampaignWizard />);
 
     const twitter = screen.getByRole('button', { name: /Twitter \/ X/i });
-    const reddit = screen.getByRole('button', { name: /Reddit/i });
-    const instagram = screen.getByRole('button', { name: /Instagram/i });
+    const reddit = screen.getByRole('button', { name: /^Reddit/i });
+    const instagram = screen.getByRole('button', { name: /^Instagram/i });
     const scheduled = screen.getByRole('button', { name: /Scheduled Blast/i });
     const dm = screen.getByRole('button', { name: /DM Outreach/i });
 
@@ -94,7 +94,7 @@ describe('OutreachCampaignWizard', () => {
 
   it('keeps unavailable platform choices keyboard-accessible', () => {
     render(<OutreachCampaignWizard />);
-    const reddit = screen.getByRole('button', { name: /Reddit/i });
+    const reddit = screen.getByRole('button', { name: /^Reddit/i });
 
     expect(reddit).not.toBeDisabled();
     reddit.focus();
