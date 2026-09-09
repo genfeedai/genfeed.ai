@@ -41,6 +41,9 @@ describe('NodePalette', () => {
       target: { value: 'Generate Image' },
     });
 
+    const card = screen.getByRole('button', { name: /Generate Image/ });
+    expect(card.className).toContain('normal-case');
+
     const setData = vi.fn();
     fireEvent.dragStart(
       screen.getByRole('button', { name: /Generate Image/ }),

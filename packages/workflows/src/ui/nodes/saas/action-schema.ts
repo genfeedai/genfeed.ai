@@ -53,6 +53,23 @@ export function readActionObjectSchema(
     return { properties: {}, required: new Set() };
   }
 
+  const alternatives = [
+    ...(Array.isArray(schema.oneOf) ? schema.oneOf : []),
+    ...(Array.isArray(schema.anyOf) ? schema.anyOf : []),
+  ];
+  if (alternatives.length > 0) {
+    const firstObject = alternatives.find(
+      (candidate) =>
+        isSchemaRecord(candidate) &&
+        (isSchemaRecord(candidate.properties) ||
+          Array.isArray(candidate.oneOf) ||
+          Array.isArray(candidate.anyOf)),
+    );
+    if (isSchemaRecord(firstObject)) {
+      return readActionObjectSchema(firstObject as ActionJsonSchema);
+    }
+  }
+
   const properties = isSchemaRecord(schema.properties)
     ? (schema.properties as Record<string, ActionSchemaProperty>)
     : {};
@@ -66,6 +83,32 @@ export function readActionObjectSchema(
 
   return { properties, required };
 }
+
+const MEDIA_HANDLE_TYPES = new Set(['audio', 'image', 'video']);
+const PIPELINE_FIELDS = new Set([
+  'avoid',
+  'brand',
+  'brandVoice',
+  'content',
+  'fullText',
+  'hooks',
+  'input',
+  'item',
+  'items',
+  'media',
+  'negativePrompt',
+  'negative_prompt',
+  'output',
+  'outputText',
+  'productContext',
+  'prompt',
+  'resolvedPrompt',
+  'script',
+  'state',
+  'text',
+  'title',
+  'topic',
+]);
 
 function resolveHandleType(
   field: string,
@@ -81,7 +124,8 @@ function resolveHandleType(
   if (
     lowerField.includes('image') ||
     lowerField.includes('photo') ||
-    lowerField.includes('frame')
+    lowerField.includes('frame') ||
+    lowerField === 'references'
   ) {
     return 'image';
   }
@@ -95,7 +139,39 @@ function resolveHandleType(
         ? 'audio'
         : 'image';
   }
+  if (resolved.type === 'object' || resolved.type === 'array') {
+    return 'object';
+  }
   return 'text';
+}
+
+function toHandle(
+  field: string,
+  property: ActionSchemaProperty,
+  direction: 'input' | 'output',
+  required: ReadonlySet<string>,
+): VisualHandleDefinition {
+  return {
+    id: field,
+    label: formatFieldLabel(field, property.title),
+    multiple: unwrapActionSchemaProperty(property).type === 'array',
+    optional: direction === 'input' && !required.has(field),
+    required: direction === 'input' && required.has(field),
+    type: resolveHandleType(field, property),
+  };
+}
+
+function wholeObjectHandle(
+  properties: Record<string, ActionSchemaProperty>,
+): VisualHandleDefinition {
+  return {
+    id: Object.hasOwn(properties, 'output') ? 'result' : 'output',
+    label: 'Output',
+    multiple: false,
+    optional: false,
+    required: false,
+    type: 'object',
+  };
 }
 
 function schemaToHandles(
@@ -107,18 +183,77 @@ function schemaToHandles(
 
   if (entries.length === 0) {
     return direction === 'output'
-      ? [{ id: 'output', label: 'Output', type: 'text' }]
+      ? [
+          {
+            id: 'output',
+            label: 'Output',
+            multiple: false,
+            optional: false,
+            required: false,
+            type: 'text',
+          },
+        ]
       : [];
   }
 
-  return entries.map(([field, property]) => ({
-    id: field,
-    label: formatFieldLabel(field, property.title),
-    multiple: unwrapActionSchemaProperty(property).type === 'array',
-    optional: direction === 'input' && !required.has(field),
-    required: direction === 'input' && required.has(field),
-    type: resolveHandleType(field, property),
-  }));
+  const handles = entries.map(([field, property]) =>
+    toHandle(field, property, direction, required),
+  );
+
+  if (direction === 'input') {
+    const preferred = handles.filter(
+      (handle) =>
+        MEDIA_HANDLE_TYPES.has(handle.type) ||
+        PIPELINE_FIELDS.has(handle.id) ||
+        handle.type === 'brand',
+    );
+    if (preferred.length > 0) {
+      return preferred;
+    }
+
+    const requiredConnectable = handles.filter(
+      (handle) => handle.required && handle.type !== 'number',
+    );
+    if (requiredConnectable.length <= 2) {
+      return requiredConnectable;
+    }
+
+    return requiredConnectable.slice(0, 1);
+  }
+
+  const media = handles.filter((handle) => MEDIA_HANDLE_TYPES.has(handle.type));
+  if (media.length > 0) {
+    return media;
+  }
+
+  const pipeline = handles.filter((handle) => PIPELINE_FIELDS.has(handle.id));
+  if (pipeline.length === 1) {
+    return pipeline;
+  }
+  if (pipeline.length > 1) {
+    return [wholeObjectHandle(properties)];
+  }
+
+  if (
+    handles.length <= 2 &&
+    handles.every((handle) => handle.type !== 'number')
+  ) {
+    return handles;
+  }
+
+  const identity = handles.find((handle) => handle.id === 'id');
+  if (identity) {
+    return [identity];
+  }
+
+  return [wholeObjectHandle(properties)];
+}
+
+export function actionSchemaHandles(
+  schema: ActionJsonSchema | undefined,
+  direction: 'input' | 'output',
+): VisualHandleDefinition[] {
+  return schemaToHandles(schema, direction);
 }
 
 export function createActionVisualDefinition(

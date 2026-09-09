@@ -82,10 +82,22 @@ describe('ACTION_NODE_DEFINITIONS', () => {
     );
   });
 
-  it('unwraps anyOf output schemas so trendTrigger exposes topic', () => {
+  it('unwraps anyOf output schemas so trendTrigger exposes the video port', () => {
     expect(
       ACTION_NODE_DEFINITIONS.trendTrigger?.outputs.map((output) => output.id),
-    ).toEqual(expect.arrayContaining(['topic', 'platform', 'trendId']));
+    ).toEqual(['videoUrl']);
+  });
+
+  it('does not explode daily-publishing state into per-field ports', () => {
+    expect(
+      ACTION_NODE_DEFINITIONS['daily-publishing.select']?.outputs.map(
+        (output) => output.id,
+      ),
+    ).toEqual(['output']);
+    expect(
+      ACTION_NODE_DEFINITIONS['daily-publishing.collect-analytics']?.outputs
+        .length,
+    ).toBe(1);
   });
 
   it('declares content-loop promptConstructor guidance handles', () => {
@@ -103,19 +115,12 @@ describe('ACTION_NODE_DEFINITIONS', () => {
       ACTION_NODE_DEFINITIONS.talkingHeadScript?.inputs.map(
         (input) => input.id,
       ),
-    ).toEqual(
-      expect.arrayContaining([
-        'productContext',
-        'durationSeconds',
-        'clipCount',
-        'wordsPerSecond',
-      ]),
-    );
+    ).toEqual(['productContext']);
     expect(
       ACTION_NODE_DEFINITIONS.talkingHeadScript?.outputs.map(
         (output) => output.id,
       ),
-    ).toEqual(expect.arrayContaining(['script', 'segments', 'fullText']));
+    ).toEqual(['output']);
   });
 });
 

@@ -42,14 +42,6 @@ describe('action schema visual adapter', () => {
       icon: 'Sparkles',
       inputs: [
         {
-          id: 'durationSeconds',
-          label: 'Duration Seconds',
-          multiple: false,
-          optional: true,
-          required: false,
-          type: 'number',
-        },
-        {
           id: 'prompt',
           label: 'Prompt',
           multiple: false,
@@ -76,16 +68,44 @@ describe('action schema visual adapter', () => {
           required: false,
           type: 'image',
         },
-        {
-          id: 'score',
-          label: 'Score',
-          multiple: false,
-          optional: false,
-          required: false,
-          type: 'number',
-        },
       ],
     });
+  });
+
+  it('collapses fat object outputs to one typed port', () => {
+    const definition = createActionVisualDefinition({
+      ...action,
+      inputSchema: {
+        properties: { state: { type: 'object' } },
+        required: ['state'],
+        type: 'object',
+      },
+      outputSchema: {
+        properties: {
+          accountLabel: { type: 'string' },
+          credentialId: { type: 'string' },
+          outcome: { type: 'string' },
+          platform: { type: 'string' },
+          postId: { type: 'string' },
+          score: { type: 'number' },
+          slotKey: { type: 'string' },
+        },
+        required: ['credentialId', 'platform', 'accountLabel', 'slotKey'],
+        type: 'object',
+      },
+    });
+
+    expect(definition.inputs.map((handle) => handle.id)).toEqual(['state']);
+    expect(definition.outputs).toEqual([
+      {
+        id: 'output',
+        label: 'Output',
+        multiple: false,
+        optional: false,
+        required: false,
+        type: 'object',
+      },
+    ]);
   });
 
   it('unwraps nullable action properties without losing the field', () => {

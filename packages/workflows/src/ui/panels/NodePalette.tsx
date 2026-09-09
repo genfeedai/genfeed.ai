@@ -186,6 +186,7 @@ function NodeCard({
       draggable
       onDragStart={handleDragStart}
       className={`h-auto w-full cursor-grab justify-start rounded-md border border-transparent bg-transparent px-2 py-2 text-left shadow-none transition-colors ${colors.hover}`}
+      textTransform="none"
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <div className={`shrink-0 rounded-md p-1.5 ${colors.icon}`}>
