@@ -99,7 +99,7 @@ export default function ServiceLandingPage({
             className="[&_h2]:text-5xl"
           />
 
-          <NeuralGrid columns={3}>
+          <NeuralGrid columns={3} className="gsap-grid">
             {config.outcomes.map((outcome) => (
               <NeuralGridItem
                 key={outcome.title}

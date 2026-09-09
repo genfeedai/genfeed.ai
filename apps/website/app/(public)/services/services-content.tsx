@@ -82,7 +82,7 @@ export default function ServicesContent() {
             description="Expert content services for agencies and brands that need more than software."
             className="[&_h2]:text-5xl mb-4"
           />
-          <NeuralGrid columns={3}>
+          <NeuralGrid columns={3} className="gsap-grid">
             {SERVICE_CARDS.map((service, index) => {
               const isFeatured = index === 0;
 
