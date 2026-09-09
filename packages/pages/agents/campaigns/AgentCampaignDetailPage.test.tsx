@@ -71,14 +71,14 @@ vi.mock('next/navigation', () => ({
   })),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
-  },
-}));
+// The real service is a singleton. Returning a fresh object per call makes
+// every consumer callback that depends on it unstable, which re-fires their
+// effects on each render.
+vi.mock('@services/core/notifications.service', () => {
+  const service = { error: vi.fn(), success: vi.fn() };
+
+  return { NotificationsService: { getInstance: vi.fn(() => service) } };
+});
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
@@ -235,6 +235,13 @@ describe('AgentCampaignDetailPage', () => {
     });
 
     const { rerender } = render(<AgentCampaignDetailPage />);
+
+    // The load resolves the service before it calls `getById`, so the first
+    // request is only in flight after a microtask. Switching brands earlier
+    // makes the second load consume the pending promise and hang the page.
+    await waitFor(() => {
+      expect(getByIdMock).toHaveBeenCalledTimes(1);
+    });
 
     brandContext = {
       brandId: 'brand-456',
