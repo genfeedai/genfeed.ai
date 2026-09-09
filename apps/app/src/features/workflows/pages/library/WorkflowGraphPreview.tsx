@@ -58,8 +58,8 @@ export default function WorkflowGraphPreview({
             <path
               d="M 24 0 L 0 0 0 24"
               fill="none"
-              stroke="currentColor"
-              strokeOpacity="0.08"
+              stroke="var(--border)"
+              strokeOpacity="0.7"
             />
           </pattern>
         </defs>
@@ -90,24 +90,24 @@ export default function WorkflowGraphPreview({
             <rect
               width={PREVIEW_NODE_WIDTH}
               height={PREVIEW_NODE_HEIGHT}
-              rx="6"
-              fill="hsl(var(--background-secondary))"
+              rx="8"
+              fill="var(--card)"
               stroke="currentColor"
-              strokeOpacity="0.6"
+              strokeWidth="1.5"
+              strokeOpacity="0.85"
             />
             <rect
               x="10"
-              y="20"
+              y="18"
               width="4"
-              height="24"
+              height="28"
               rx="2"
               fill="currentColor"
             />
             <text
               x="24"
               y="37"
-              fill="currentColor"
-              className="text-foreground"
+              fill="var(--foreground)"
               fontSize="12"
               fontWeight="500"
             >

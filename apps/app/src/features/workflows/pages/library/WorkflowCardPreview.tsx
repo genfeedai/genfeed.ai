@@ -24,7 +24,7 @@ export default function WorkflowCardPreview({
   const isVideoPreview = previewUrl ? isVideoUrl(previewUrl) : false;
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded shadow-border bg-tertiary">
+    <div className="relative aspect-video overflow-hidden rounded-md border border-border bg-background">
       {!previewUrl ? (
         <WorkflowGraphPreview name={name} nodes={nodes} edges={edges} />
       ) : isVideoPreview ? (
