@@ -58,6 +58,11 @@ export interface IEvaluationScores {
   technical: ITechnicalScores;
   brand: IBrandScores;
   engagement: IEngagementScores;
+  /**
+   * Four-layer persuasion rubric contributed by the `viral-psychology` harness
+   * pack. Optional: evaluations stored before the rubric existed omit it.
+   */
+  persuasion?: IPersuasionScores;
 }
 
 export interface ITechnicalScores {
@@ -85,6 +90,18 @@ export interface IEngagementScores {
   emotionalAppeal: number;
   shareability: number;
   platformFit: number;
+}
+
+/**
+ * Demand -> choice -> consumption -> conversion, scored 0-100 each.
+ * Keys match `PERSUASION_SCORE_KEYS` in `@genfeedai/harness`.
+ */
+export interface IPersuasionScores {
+  overall: number;
+  demandFit: number;
+  hookStrength: number;
+  openLoopIntegrity: number;
+  ctaNaturalness: number;
 }
 
 export interface IEvaluationAnalysis {

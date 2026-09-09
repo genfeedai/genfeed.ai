@@ -11,6 +11,7 @@ import {
   ContentHarnessRegistry,
   composeContentHarnessBrief,
   isContentHarnessPack,
+  VIRAL_PSYCHOLOGY_HARNESS_PACK,
   X_PLATFORM_HARNESS_PACK,
 } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
@@ -134,6 +135,8 @@ export class ContentHarnessService {
     registry.registerPack(X_PLATFORM_HARNESS_PACK);
     // Stricter brand-fidelity / anti-genericity directives.
     registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
+    // Demand -> hook -> retention -> conversion craft layer (platform-agnostic).
+    registry.registerPack(VIRAL_PSYCHOLOGY_HARNESS_PACK);
 
     for (const specifier of this.getExternalPackSpecifiers()) {
       const pack = await this.loadPackFromModuleSpecifier(specifier);
