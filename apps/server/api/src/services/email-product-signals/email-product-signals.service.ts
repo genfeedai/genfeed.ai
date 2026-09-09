@@ -26,6 +26,15 @@ import {
 
 const PAGE_SIZE = 100;
 const DAY_MS = 86_400_000;
+/**
+ * The tenant schedule fans out every five minutes because generation results
+ * and delivery recovery are latency-sensitive. Sweeps that only need to be
+ * eventually correct run on the first tick of each hour instead, so they cost
+ * one pass per organization per hour rather than twelve.
+ */
+function isHourlySweepTick(now: Date): boolean {
+  return now.getUTCMinutes() < 5;
+}
 
 @Injectable()
 export class EmailProductSignalsService implements OnModuleInit {
@@ -178,6 +187,8 @@ export class EmailProductSignalsService implements OnModuleInit {
   async conversions(organizationId: string): Promise<{ count: number }> {
     if (isSelfHostedDeployment()) return { count: 0 };
     const now = new Date();
+    // Attribution reads a seven-day window; it does not need five-minute latency.
+    if (!isHourlySweepTick(now)) return { count: 0 };
     const since = new Date(now.getTime() - 7 * DAY_MS);
     let cursor: string | undefined;
     let count = 0;

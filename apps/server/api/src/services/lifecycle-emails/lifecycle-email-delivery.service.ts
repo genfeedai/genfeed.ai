@@ -272,9 +272,13 @@ export class LifecycleEmailDeliveryService {
       }
       return { delivered: false, skipped: state.skipReason };
     }
+    // Only a still-scheduled row may become queued. The job is enqueued before
+    // this write, so a worker that claims it and terminally fails first has
+    // already written `failed`; widening this to `failed` flipped that back to
+    // a terminal `queued` and dropped the failure reason.
     await this.prisma.lifecycleEmailDelivery.updateMany({
       data: { failureReason: null, status: DELIVERY_STATUS.QUEUED },
-      where: { id: state.delivery.id, status: { in: ['scheduled', 'failed'] } },
+      where: { id: state.delivery.id, status: 'scheduled' },
     });
     return { delivered: false, queued: true };
   }

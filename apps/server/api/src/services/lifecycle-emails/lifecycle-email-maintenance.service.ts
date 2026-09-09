@@ -30,6 +30,13 @@ import {
 } from './system-email-eligibility.service';
 
 const DAY_MS = 86_400_000;
+/**
+ * A balance that simply sits below the threshold is not news. Only an
+ * escalation (low then exhausted) breaks the cooldown; repeating the same tier
+ * waits a week.
+ */
+const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
+const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
 export function completedEmailPeriod(
   reference: Date,
   weekly: boolean,
@@ -375,8 +382,8 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
       select: { slug: true },
     });
     const destinationUrl = destinationBrand
-      ? `${this.appUrl()}/${organizationSlug}/${destinationBrand.slug}/${missingConnection ? 'settings/integrations' : 'studio/generate'}`
-      : `${this.appUrl()}/${organizationSlug}`;
+      ? `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(destinationBrand.slug)}/${missingConnection ? 'settings/integrations' : 'studio/generate'}`
+      : `${this.appUrl()}/${encodeURIComponent(organizationSlug)}`;
     const views = metrics.some((row) => row.views !== null)
       ? metrics
           .reduce((sum, row) => sum + (row.views ?? 0), 0)
@@ -511,7 +518,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
           'You have generated content waiting for a publishing destination.',
           'Connect an account to review and publish it from Genfeed.',
         ],
-        destinationUrl: `${this.appUrl()}/${organizationSlug}/${brand.slug}/settings/integrations`,
+        destinationUrl: `${this.appUrl()}/${encodeURIComponent(organizationSlug)}/${encodeURIComponent(brand.slug)}/settings/integrations`,
         actionLabel: 'Connect an account',
         goal: 'connect_account',
         brandId: item.brandId,
@@ -520,6 +527,10 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
   }
 
   async credits(request: LifecycleMaintenanceRequest): Promise<void> {
+    // A balance alert has a multi-day cooldown; evaluating it hourly is enough,
+    // and the tenant schedule otherwise re-reads every organization's balance
+    // twelve times an hour.
+    if (new Date(request.referenceDate).getUTCMinutes() >= 5) return;
     const [balance, organization] = await Promise.all([
       this.prisma.creditBalance.findFirst({
         where: { organizationId: request.organizationId, isDeleted: false },
@@ -552,25 +563,34 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     const exhausted = spendable <= 0;
     const recipientId =
       organization.billingAccount?.members[0]?.userId ?? organization.userId;
+    // One lookup across both tiers: a separate per-template window let a
+    // balance dipping to zero send both emails the same day.
     const recentAlert = await this.prisma.emailMessage.findFirst({
       where: {
         organizationId: request.organizationId,
         isDeleted: false,
         userId: recipientId,
-        templateKey: exhausted ? 'credit-exhausted' : 'credit-low',
+        templateKey: { in: [...CREDIT_ALERT_TEMPLATE_KEYS] },
         createdAt: {
-          gt: new Date(new Date(request.referenceDate).getTime() - DAY_MS),
+          gt: new Date(
+            new Date(request.referenceDate).getTime() -
+              CREDIT_ALERT_COOLDOWN_MS,
+          ),
         },
       },
-      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+      select: { templateKey: true },
     });
-    if (recentAlert) return;
+    const hasEscalated = exhausted && recentAlert?.templateKey === 'credit-low';
+    if (recentAlert && !hasEscalated) return;
     await this.queueProductEmail({
       request,
       userId: recipientId,
       topic: 'billing.credits',
       templateKey: exhausted ? 'credit-exhausted' : 'credit-low',
       key: `credits:${exhausted ? 'empty' : 'low'}:${new Date(request.referenceDate).toISOString().slice(0, 10)}`,
+      // The cooldown above owns repeat suppression; this key only guards
+      // against the same tick running twice.
       subject: exhausted
         ? 'Your Genfeed credits are used up'
         : 'Your Genfeed credits are running low',
@@ -578,7 +598,7 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
         `You have ${Math.max(0, spendable).toLocaleString('en-US')} credits available after current generation reservations.`,
         'Add credits to keep creating content.',
       ],
-      destinationUrl: `${this.appUrl()}/${organization.slug}/~/settings/credits`,
+      destinationUrl: `${this.appUrl()}/${encodeURIComponent(organization.slug)}/~/settings/credits`,
       actionLabel: 'Add credits',
       goal: 'buy_credits',
     });

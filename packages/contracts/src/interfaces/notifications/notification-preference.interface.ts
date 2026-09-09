@@ -4,6 +4,7 @@ export const PRODUCT_EMAIL_TOPICS = [
   'lifecycle.onboarding',
   'content.weekly',
   'content.daily',
+  'content.digest',
   'publishing.connection',
   'billing.credits',
   'generation.status',
@@ -33,6 +34,13 @@ export const PRODUCT_EMAIL_PREFERENCES = [
     label: 'Daily recap',
     description: 'A summary of your completed content on active days (UTC).',
     isDefaultEnabled: false,
+  },
+  {
+    topic: 'content.digest',
+    label: 'Brand performance digest',
+    description:
+      'The publishing performance report for a brand, sent when someone requests it.',
+    isDefaultEnabled: true,
   },
   {
     topic: 'publishing.connection',

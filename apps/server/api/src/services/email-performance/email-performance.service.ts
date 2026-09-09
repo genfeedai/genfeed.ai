@@ -29,6 +29,14 @@ import {
 } from '@nestjs/common';
 
 const ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * The provider posts receipts for every message on the account, including mail
+ * this service never sent (workflow status, agent, authentication). Those never
+ * match an `EmailMessage`, so without a terminal state they accumulate forever
+ * and rotate against genuinely pending receipts in recovery.
+ */
+const PROVIDER_EVENT_RESOLUTION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const PROVIDER_EVENT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const WEBHOOK_FIELDS = {
   'email.sent': 'acceptedAt',
   'email.delivered': 'deliveredAt',
@@ -340,10 +348,18 @@ export class EmailPerformanceService {
       },
     });
     if (!message) throw new NotFoundException('Email link');
-    const destination = approvedEmailDestination(
-      message.destinationUrl,
-      this.appUrl(),
-    );
+    // A destination approved when the link was issued can stop validating if
+    // the configured app origin changes. That is a dead link, not a server
+    // fault, so it must not surface as a 500 to whoever clicked it.
+    let destination: string;
+    try {
+      destination = approvedEmailDestination(
+        message.destinationUrl,
+        this.appUrl(),
+      );
+    } catch {
+      throw new NotFoundException('Email link');
+    }
     const occurredAt = new Date();
     await this.prisma.$transaction([
       this.prisma.emailMessage.updateMany({
@@ -466,6 +482,23 @@ export class EmailPerformanceService {
   }
 
   async recoverProviderEvents(): Promise<void> {
+    const now = Date.now();
+    // tenant-scope-ignore: verified provider receipts carry no tenant; abandoning and pruning them touches no organization data.
+    await this.prisma.emailProviderEvent.updateMany({
+      where: {
+        processedAt: null,
+        createdAt: {
+          lt: new Date(now - PROVIDER_EVENT_RESOLUTION_WINDOW_MS),
+        },
+      },
+      data: { processedAt: new Date() },
+    });
+    // tenant-scope-ignore: prunes settled receipts only; no tenant data is stored on this table.
+    await this.prisma.emailProviderEvent.deleteMany({
+      where: {
+        processedAt: { lt: new Date(now - PROVIDER_EVENT_RETENTION_MS) },
+      },
+    });
     // tenant-scope-ignore: recovery spans verified provider receipts; each reconciliation resolves its organization before mutation.
     const pending = await this.prisma.emailProviderEvent.findMany({
       where: { processedAt: null },

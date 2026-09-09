@@ -90,7 +90,7 @@ describe('EmailDigestService durable delivery', () => {
     });
     expect(queueEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        topic: 'content.weekly',
+        topic: 'content.digest',
         templateKey: 'performance-digest',
         userId: 'owner-1',
         organizationId: 'org-1',

@@ -159,3 +159,98 @@ describe('system recap policy', () => {
     ]);
   });
 });
+
+function creditsFixture(overrides: {
+  spendable: number;
+  recentAlert?: { templateKey: string } | null;
+}) {
+  const queueEmail = vi.fn();
+  const prisma = {
+    creditBalance: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ balance: overrides.spendable, heldAmount: 0 }),
+    },
+    organization: {
+      findFirst: vi.fn().mockResolvedValue({
+        slug: 'studio',
+        userId: 'owner-1',
+        billingAccount: { members: [] },
+      }),
+    },
+    emailMessage: {
+      findFirst: vi.fn().mockResolvedValue(overrides.recentAlert ?? null),
+    },
+  };
+  const service = new LifecycleEmailMaintenanceService(
+    prisma as unknown as PrismaService,
+    {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+    } as unknown as ConfigService,
+    {} as SystemWorkflowRunnerService,
+    {} as LifecycleEmailWorkflowService,
+    { queueEmail } as unknown as EmailPerformanceService,
+    {} as SystemEmailEligibilityService,
+    {
+      findForUser: vi.fn().mockResolvedValue({ isEnabled: true }),
+    } as unknown as NotificationPreferenceService,
+    {} as WorkflowExecutionQueueService,
+  );
+  return { service, prisma, queueEmail };
+}
+
+describe('credit balance alerts', () => {
+  it('alerts once when the balance first drops below the threshold', async () => {
+    const { service, queueEmail } = creditsFixture({ spendable: 400 });
+    await service.credits(request);
+    expect(queueEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topic: 'billing.credits',
+        templateKey: 'credit-low',
+        userId: 'owner-1',
+      }),
+    );
+  });
+  it('does not repeat the same tier while the balance simply stays low', async () => {
+    const { service, prisma, queueEmail } = creditsFixture({
+      spendable: 400,
+      recentAlert: { templateKey: 'credit-low' },
+    });
+    await service.credits(request);
+    expect(queueEmail).not.toHaveBeenCalled();
+    // One lookup across both tiers, over a window wider than a day.
+    const [call] = prisma.emailMessage.findFirst.mock.calls;
+    expect(call[0].where.templateKey).toEqual({
+      in: ['credit-low', 'credit-exhausted'],
+    });
+    expect(call[0].where.createdAt.gt).toEqual(
+      new Date('2026-09-07T08:00:00.000Z'),
+    );
+  });
+  it('escalates from low to exhausted inside the cooldown', async () => {
+    const { service, queueEmail } = creditsFixture({
+      spendable: 0,
+      recentAlert: { templateKey: 'credit-low' },
+    });
+    await service.credits(request);
+    expect(queueEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ templateKey: 'credit-exhausted' }),
+    );
+  });
+  it('does not fall back to a low alert after an exhausted alert', async () => {
+    const { service, queueEmail } = creditsFixture({
+      spendable: 400,
+      recentAlert: { templateKey: 'credit-exhausted' },
+    });
+    await service.credits(request);
+    expect(queueEmail).not.toHaveBeenCalled();
+  });
+  it('evaluates balances once an hour, not on every five-minute tick', async () => {
+    const { service, prisma } = creditsFixture({ spendable: 400 });
+    await service.credits({
+      organizationId: 'org-1',
+      referenceDate: '2026-09-14T08:20:00.000Z',
+    });
+    expect(prisma.creditBalance.findFirst).not.toHaveBeenCalled();
+  });
+});

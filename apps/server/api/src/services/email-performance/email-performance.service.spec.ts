@@ -57,6 +57,7 @@ function fixture() {
       upsert: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
     member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
     organization: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -364,6 +365,20 @@ describe('EmailPerformanceService provider receipts', () => {
         }),
       }),
     );
+  });
+
+  it('abandons and prunes receipts that can never resolve to a message', async () => {
+    // The provider posts receipts for every message on the account, including
+    // mail this service never sent. Without a terminal state they accumulate
+    // and rotate against genuinely pending receipts in recovery.
+    const f = fixture();
+    await f.service.recoverProviderEvents();
+    const [abandon] = f.prisma.emailProviderEvent.updateMany.mock.calls;
+    expect(abandon[0].where.processedAt).toBeNull();
+    expect(abandon[0].where.createdAt.lt.getTime()).toBeLessThan(Date.now());
+    expect(abandon[0].data.processedAt).toBeInstanceOf(Date);
+    const [prune] = f.prisma.emailProviderEvent.deleteMany.mock.calls;
+    expect(prune[0].where.processedAt.lt).toBeInstanceOf(Date);
   });
 
   it('rejects forged webhook requests before writing any provider event', async () => {

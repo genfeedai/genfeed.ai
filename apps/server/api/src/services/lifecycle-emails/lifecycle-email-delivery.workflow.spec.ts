@@ -123,9 +123,12 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
         html: expect.stringContaining('{{emailActionUrl}}'),
       }),
     );
+    // Only a still-scheduled row may become queued. The job is enqueued before
+    // this write, so a worker that already recorded a terminal failure must not
+    // be flipped back to a terminal 'queued' with its reason cleared.
     expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
       data: { failureReason: null, status: 'queued' },
-      where: { id: delivery.id, status: { in: ['scheduled', 'failed'] } },
+      where: { id: delivery.id, status: 'scheduled' },
     });
   });
 

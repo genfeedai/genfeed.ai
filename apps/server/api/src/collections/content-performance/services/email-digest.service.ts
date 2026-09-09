@@ -191,7 +191,9 @@ export class EmailDigestService {
       const deliveryId = await this.emailPerformance.queueEmail({
         userId: input.userId,
         organizationId: input.organizationId,
-        topic: 'content.weekly',
+        // An explicitly requested brand report, not the automated weekly recap.
+        // Sharing 'content.weekly' let the recap toggle silently drop it.
+        topic: 'content.digest',
         templateKey: 'performance-digest',
         subject: input.subject,
         html: input.html,

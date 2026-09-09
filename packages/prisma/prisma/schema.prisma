@@ -6890,6 +6890,8 @@ model EmailMessage {
   clicks EmailClick[]
   @@index([organizationId, userId, goal, clickedAt])
   @@index([createdAt, templateKey])
+  /// Covers the conversion sweep's accepted-message cohort scan.
+  @@index([organizationId, goal, acceptedAt])
   @@map("email_messages")
 }
 
