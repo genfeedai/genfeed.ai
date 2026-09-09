@@ -10,8 +10,6 @@ import type {
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { useCallback, useEffect, useState } from 'react';
 
-export { AGENT_TYPE_OPTIONS } from '../agents/agent-type-display';
-
 export const PLATFORM_OPTIONS = [
   { label: 'Twitter / X', value: 'twitter' },
   { label: 'Instagram', value: 'instagram' },
