@@ -93,6 +93,9 @@ export class ActivityUpdateService {
         existingActivity.id.toString(),
         {
           key: activityKey,
+          entityId: ingredientId,
+          entityModel: ActivityEntityModel.INGREDIENT,
+          isRead: false,
           value: buildCompletionValue({
             activityKey,
             existingValue: parsedValue,
@@ -182,6 +185,9 @@ export class ActivityUpdateService {
         existingActivity.id.toString(),
         {
           key: activityKey,
+          entityId: ingredientId,
+          entityModel: ActivityEntityModel.INGREDIENT,
+          isRead: false,
           value: buildFailureValue({
             activityKey,
             errorMessage,

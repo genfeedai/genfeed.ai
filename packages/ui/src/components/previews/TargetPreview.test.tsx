@@ -2,8 +2,12 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-import { CredentialPlatform } from '@genfeedai/contracts';
 import {
+  CredentialPlatform,
+  ReleaseAttachmentKind,
+} from '@genfeedai/contracts';
+import {
+  makeAttachment,
   makeCredential,
   makeRelease,
   makeTarget,
@@ -43,4 +47,58 @@ describe('TargetPreview', () => {
       screen.getByText('Untruncated fallback caption'),
     ).toBeInTheDocument();
   });
+});
+
+it('keeps target caption overrides, scoped signatures, first comments and ordered media in the canonical renderer', () => {
+  render(
+    <TargetPreview
+      credential={makeCredential()}
+      release={makeRelease({
+        baseContent: 'Shared caption',
+        media: [
+          {
+            assetId: 'later',
+            order: 2,
+            kind: 'video',
+            url: 'https://example.com/later.mp4',
+          },
+          {
+            assetId: 'first',
+            order: 1,
+            kind: 'video',
+            url: 'https://example.com/first.mp4',
+          },
+        ],
+        attachments: [
+          makeAttachment({
+            body: 'Brand signature',
+            kind: ReleaseAttachmentKind.SIGNATURE,
+          }),
+          makeAttachment({
+            body: 'Other target',
+            kind: ReleaseAttachmentKind.SIGNATURE,
+            targetId: 'other',
+          }),
+          makeAttachment({
+            body: 'First reply',
+            kind: ReleaseAttachmentKind.COMMENT,
+          }),
+        ],
+      })}
+      target={makeTarget({
+        platform: CredentialPlatform.TWITTER,
+        settings: { caption: 'Override' },
+      })}
+    />,
+  );
+  expect(screen.getByText(/Override/)).toHaveTextContent('Brand signature');
+  expect(screen.queryByText('Other target')).not.toBeInTheDocument();
+  expect(screen.getByTestId('preview-first-comment')).toHaveTextContent(
+    'First reply',
+  );
+  expect(
+    screen
+      .getAllByLabelText(/Video \d/)
+      .map((video) => video.getAttribute('src')),
+  ).toEqual(['https://example.com/first.mp4', 'https://example.com/later.mp4']);
 });

@@ -101,6 +101,11 @@ export function toStudioGenerateJob(
 
   return {
     createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
+    error: ingredient.generationError ?? undefined,
+    phase:
+      ingredient.generationError === 'Cancelled by user'
+        ? 'cancelled'
+        : undefined,
     height: dimensions.height,
     id: String(ingredient.id),
     ingredient,

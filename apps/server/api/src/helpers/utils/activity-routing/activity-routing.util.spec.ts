@@ -10,6 +10,28 @@ import {
 } from '@genfeedai/contracts';
 
 describe('ActivityRoutingUtil', () => {
+  it('resolves avatar completion and failure to the same processing activity', () => {
+    expect(
+      getActivityRouting({ category: IngredientCategory.AVATAR }),
+    ).toMatchObject({
+      processingKey: ActivityKey.VIDEO_PROCESSING,
+      activityKey: ActivityKey.VIDEO_GENERATED,
+    });
+    expect(getFailureActivityRouting(IngredientCategory.AVATAR)).toMatchObject({
+      processingKey: ActivityKey.VIDEO_PROCESSING,
+      activityKey: ActivityKey.VIDEO_FAILED,
+    });
+    expect(
+      getActivityRouting({ category: IngredientCategory.VOICE }),
+    ).toMatchObject({
+      processingKey: ActivityKey.VOICE_PROCESSING,
+      activityKey: ActivityKey.VOICE_GENERATED,
+    });
+    expect(getFailureActivityRouting(IngredientCategory.VOICE)).toMatchObject({
+      processingKey: ActivityKey.VOICE_PROCESSING,
+      activityKey: ActivityKey.VOICE_FAILED,
+    });
+  });
   describe('getActivityRouting', () => {
     it('should return video generation routing for VIDEO category', () => {
       const result = getActivityRouting({

@@ -3,6 +3,7 @@
  * AI voice generation: text-to-speech, voice cloning, voice profile management,
  * audio file storage, and voice characteristic customization.
  */
+import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -38,6 +39,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [ExternalVoiceCatalogService, VoiceGenerationService, VoicesService],
   imports: [
+    ActivitiesModule,
     IngredientsModule,
     MetadataModule,
     CreditsModule,

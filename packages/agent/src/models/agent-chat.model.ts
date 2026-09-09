@@ -153,6 +153,7 @@ export interface AgentUiActionOutputVariant {
 
 export interface AgentUiAction {
   id: string;
+  credentialId?: string;
   assetId?: string;
   assetKind?: 'image' | 'video' | 'voice';
   type:
@@ -221,6 +222,8 @@ export interface AgentUiAction {
   visibility?: PostVisibility;
   items?: Array<{
     id: string;
+    credentialId?: string;
+    brandId?: string | null;
     title: string;
     type?: string;
     platform?: string;

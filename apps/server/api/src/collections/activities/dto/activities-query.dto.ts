@@ -1,9 +1,12 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsOptional } from 'class-validator';
 
-/**
- * Query DTO for filtering and paginating activities
- * Inherits page/limit, sorting, and common filters from BaseQueryDto
- */
 export class ActivitiesQueryDto extends BaseQueryDto {
-  // Add activity-specific query parameters here if needed
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean()
+  activeOnly?: boolean;
 }

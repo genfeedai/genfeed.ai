@@ -61,6 +61,8 @@ function renderVariantPreview(
       <AgentTextArtifactPreview
         data={{
           content: variant.textContent ?? '',
+          brandId: variant.brandId,
+          credentialId: variant.credentialId,
           contentFormat: variant.contentFormat,
           platform: variant.platform,
           preheader: variant.preheader,

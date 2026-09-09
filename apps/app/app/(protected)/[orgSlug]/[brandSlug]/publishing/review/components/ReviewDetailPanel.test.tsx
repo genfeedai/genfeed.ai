@@ -75,7 +75,7 @@ describe('ReviewDetailPanel', () => {
 
     expect(screen.getByText('Preview')).toBeInTheDocument();
     expect(
-      screen.getByLabelText('twitter platform preview'),
+      screen.getByLabelText('X (Twitter) platform preview'),
     ).toBeInTheDocument();
     expect(screen.getByText('Ship the review rail')).toBeInTheDocument();
     expect(screen.getByTestId('preview-media')).toBeInTheDocument();

@@ -2,11 +2,14 @@
 
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PlatformPreview, {
   type PlatformPreviewThreadSegment,
 } from '@ui/posts/platform-preview/PlatformPreview';
+import type { PlatformPreviewAuthor } from '@ui/posts/platform-preview/PlatformPreview.types';
+import { resolvePreviewAuthor } from '@ui/posts/platform-preview/preview-author';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -22,6 +25,8 @@ import { type ReactElement, useState } from 'react';
 
 export interface AgentTextArtifactPreviewData {
   content: string;
+  credentialId?: string;
+  brandId?: string | null;
   contentFormat?: AgentUiAction['contentFormat'];
   platform?: string;
   preheader?: string;
@@ -58,9 +63,11 @@ function buildThreadSegments(
 function NewsletterPreview({
   data,
   expanded,
+  author,
 }: {
   data: AgentTextArtifactPreviewData;
   expanded: boolean;
+  author?: PlatformPreviewAuthor;
 }): ReactElement {
   const subject = data.subject?.trim() || data.title?.trim() || 'Newsletter';
 
@@ -79,7 +86,9 @@ function NewsletterPreview({
         </h3>
         <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-[4rem_1fr]">
           <span>From</span>
-          <span className="text-foreground/75">Your publication</span>
+          <span className="text-foreground/75">
+            {author?.name || 'Your publication'}
+          </span>
           <span>To</span>
           <span className="text-foreground/75">Subscribers</span>
         </div>
@@ -108,12 +117,16 @@ function NewsletterPreview({
 function ArtifactPreviewBody({
   data,
   expanded,
+  author,
 }: {
   data: AgentTextArtifactPreviewData;
   expanded: boolean;
+  author?: PlatformPreviewAuthor;
 }): ReactElement {
   if (isNewsletterPreview(data)) {
-    return <NewsletterPreview data={data} expanded={expanded} />;
+    return (
+      <NewsletterPreview data={data} expanded={expanded} author={author} />
+    );
   }
 
   const threadSegments = buildThreadSegments(data.threadSegments);
@@ -121,6 +134,7 @@ function ArtifactPreviewBody({
     return (
       <PlatformPreview
         target={{
+          author,
           caption: threadSegments?.[0]?.caption ?? data.content,
           platform: data.platform,
           threadSegments,
@@ -153,6 +167,8 @@ export function AgentTextArtifactPreview({
   className?: string;
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
+  const brandScope = useBrand();
+  const author = resolvePreviewAuthor(brandScope, data);
   const [isOpen, setIsOpen] = useState(false);
   const copyContent = data.threadSegments?.join('\n\n') ?? data.content;
   const previewLabel = isNewsletterPreview(data)
@@ -161,7 +177,7 @@ export function AgentTextArtifactPreview({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <ArtifactPreviewBody data={data} expanded />
+      <ArtifactPreviewBody data={data} expanded author={author} />
       <div className="flex justify-end gap-1">
         {onCopy ? (
           <Button
@@ -200,7 +216,7 @@ export function AgentTextArtifactPreview({
               </DialogDescription>
             </DialogHeader>
             <div className="overflow-y-auto p-5">
-              <ArtifactPreviewBody data={data} expanded />
+              <ArtifactPreviewBody data={data} expanded author={author} />
             </div>
           </DialogContent>
         </DialogPortal>

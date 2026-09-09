@@ -22,11 +22,11 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ActivityKey,
   ActivitySource,
   ByokProvider,
   IngredientCategory,
@@ -43,6 +43,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { AvatarVideoLifecycleService } from './avatar-video-lifecycle.service';
 
 interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -112,7 +113,7 @@ export class AvatarVideoGenerationService {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly voicesService: VoicesService,
-    private readonly websocketService: NotificationsPublisherService,
+    private readonly lifecycleService: AvatarVideoLifecycleService,
   ) {}
 
   async generateAvatarVideo(
@@ -152,27 +153,14 @@ export class AvatarVideoGenerationService {
         });
 
       ingredientId = String(ingredientData.id);
+      await this.lifecycleService.announceProcessing({
+        brandId: brand.id,
+        ingredientId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      });
       await onPlaceholderCreated?.(ingredientId);
-
-      if (
-        placeholderScope?.settleCreditsExternally &&
-        !placeholderScope.isByokBypass
-      ) {
-        const hasCredits =
-          await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-            context.organizationId,
-            AVATAR_GENERATION_CREDIT_COST,
-          );
-        if (!hasCredits) {
-          throw new HttpException(
-            {
-              detail: 'Insufficient credits for avatar generation.',
-              title: 'Insufficient credits',
-            },
-            HttpStatus.PAYMENT_REQUIRED,
-          );
-        }
-      }
+      await this.assertPlaceholderCredits(context, placeholderScope);
       await onCreditsPrepared?.();
 
       const photoUrl = await this.resolvePhotoUrl(
@@ -229,7 +217,10 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      await this.publishInitialStatus(ingredientId, context.userId);
+      await this.lifecycleService.publishInitialStatus(
+        ingredientId,
+        context.userId,
+      );
 
       return {
         externalId,
@@ -240,13 +231,7 @@ export class AvatarVideoGenerationService {
       this.loggerService.error(`${url} failed`, error);
 
       if (ingredientId) {
-        await this.failedGenerationService.handleFailedVideoGeneration(
-          this.videosService,
-          ingredientId,
-          WebSocketPaths.video(ingredientId),
-          context.userId,
-          getUserRoomName(context.userId),
-        );
+        await this.recordGenerationFailure(ingredientId, context, error);
       }
 
       if (error instanceof HttpException) {
@@ -786,15 +771,54 @@ export class AvatarVideoGenerationService {
     );
   }
 
-  private async publishInitialStatus(
-    ingredientId: string,
-    userId: string,
+  private async assertPlaceholderCredits(
+    context: AvatarVideoGenerationContext,
+    placeholderScope?: GenerationPlaceholderScope,
   ): Promise<void> {
-    await this.websocketService.publishVideoProgress(
+    if (
+      !placeholderScope?.settleCreditsExternally ||
+      placeholderScope.isByokBypass
+    )
+      return;
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        context.organizationId,
+        AVATAR_GENERATION_CREDIT_COST,
+      );
+    if (hasCredits) return;
+    throw new HttpException(
+      {
+        detail: 'Insufficient credits for avatar generation.',
+        title: 'Insufficient credits',
+      },
+      HttpStatus.PAYMENT_REQUIRED,
+    );
+  }
+
+  private async recordGenerationFailure(
+    ingredientId: string,
+    context: AvatarVideoGenerationContext,
+    error: unknown,
+  ): Promise<void> {
+    await this.failedGenerationService.handleFailedVideoGeneration(
+      this.videosService,
+      ingredientId,
       WebSocketPaths.video(ingredientId),
-      0,
-      userId,
-      getUserRoomName(userId),
+      context.userId,
+      getUserRoomName(context.userId),
+      {
+        brandId: context.brandId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+        key: ActivityKey.VIDEO_FAILED,
+        source: ActivitySource.AVATAR_GENERATION,
+        // Must match the processing activity's payload shape: the failure
+        // handler JSON-parses this to find the row it has to resolve.
+        value: JSON.stringify({
+          error: error instanceof Error ? error.message : 'Generation failed',
+          ingredientId,
+        }),
+      },
     );
   }
 

@@ -35,6 +35,7 @@ export function useStudioGenerateGallery({
   );
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [loadedBrandId, setLoadedBrandId] = useState<string | null>(null);
 
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
@@ -75,6 +76,7 @@ export function useStudioGenerateGallery({
           .toSorted((left, right) => right.createdAt - left.createdAt);
 
         setStoredJobs(jobs);
+        setLoadedBrandId(brandId);
       } catch (error) {
         if (!isCancelled) {
           logger.error('Failed to load Studio generation history', error);
@@ -93,5 +95,9 @@ export function useStudioGenerateGallery({
     };
   }, [brandId, filter, getIngredientsService, reloadToken]);
 
-  return { isLoadingGallery, refresh, storedJobs };
+  return {
+    isLoadingGallery,
+    refresh,
+    storedJobs: loadedBrandId === brandId ? storedJobs : [],
+  };
 }

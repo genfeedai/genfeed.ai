@@ -59,6 +59,7 @@ export function GenerationActionCard({
   const translate = useTranslations('agent.generationActionCard');
   const {
     generationType,
+    generationStartedAt,
     prompt,
     setPrompt,
     isAutoMode,
@@ -190,6 +191,7 @@ export function GenerationActionCard({
         title={action.title}
         isCollapsed={isCollapsed}
         statusLabel={statusLabelFor(status)}
+        startedAt={generationStartedAt}
         onStop={status === 'generating' ? handleStop : undefined}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
@@ -199,6 +201,7 @@ export function GenerationActionCard({
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
               status={status}
+              startedAt={generationStartedAt}
               isImage={isImage}
               resultUrl={resultUrl}
               resultId={resultId}
@@ -322,6 +325,7 @@ export function GenerationActionCard({
           {status === 'error' ? (
             <GenerationActionCardStatusPanel
               status={status}
+              startedAt={generationStartedAt}
               isImage={isImage}
               resultUrl={resultUrl}
               resultId={resultId}
@@ -379,6 +383,7 @@ export function GenerationActionCard({
           {status !== 'error' ? (
             <GenerationActionCardStatusPanel
               status={status}
+              startedAt={generationStartedAt}
               isImage={isImage}
               resultUrl={resultUrl}
               resultId={resultId}

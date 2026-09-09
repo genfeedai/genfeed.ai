@@ -556,6 +556,7 @@ export function AgentComposerStatusStack({
                   <span
                     className={cn(
                       'min-w-0 flex-1 truncate text-xs leading-5',
+                      task.status === 'active' && 'animate-text-shimmer',
                       task.status === 'completed' || task.status === 'cancelled'
                         ? 'text-foreground/38'
                         : 'text-foreground/78',

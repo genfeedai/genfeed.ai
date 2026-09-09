@@ -100,6 +100,7 @@ function sanitizeSessionJob(value: unknown): StudioGenerateJob | null {
   return {
     createdAt: typeof createdAt === 'number' ? createdAt : 0,
     error: pickOptionalString(value.error),
+    phase: value.phase === 'cancelled' ? 'cancelled' : undefined,
     height: pickNumber(value.height),
     id,
     ingredientId: pickOptionalString(value.ingredientId),
@@ -152,6 +153,7 @@ export function serializeStudioGenerateSessionJob(
   return {
     createdAt: job.createdAt,
     error: job.error,
+    phase: job.phase === 'cancelled' ? 'cancelled' : undefined,
     height: job.height,
     id: job.id,
     ingredientId: job.ingredientId,
@@ -194,6 +196,7 @@ export function writeStudioGenerateSessionJobs(
 
   const store = readSessionStore();
   store[brandId] = jobs
+    .filter((job) => job.phase !== 'submitting')
     .slice(0, STUDIO_GENERATE_SESSION_LIMIT)
     .map(serializeStudioGenerateSessionJob);
   writeSessionStore(store);

@@ -2,12 +2,12 @@ import {
   CredentialPlatform,
   ReleaseAttachmentKind,
 } from '@genfeedai/contracts';
+import { getCaptionPreviewState } from '@ui/posts/platform-preview/PlatformPreview.data';
 import { describe, expect, it } from 'vitest';
 
 import {
   getAuthorHandle,
   getAuthorName,
-  getCaptionPreviewState,
   resolveFirstComment,
   resolveSignature,
   resolveTargetCaption,
@@ -50,8 +50,8 @@ describe('getCaptionPreviewState', () => {
   it('does not truncate captions within the platform limit', () => {
     const state = getCaptionPreviewState('short caption', 280);
 
-    expect(state.isTruncated).toBe(false);
-    expect(state.text).toBe('short caption');
+    expect(state.isOverLimit).toBe(false);
+    expect(state.previewText).toBe('short caption');
     expect(state.count).toBe(13);
   });
 
@@ -59,9 +59,9 @@ describe('getCaptionPreviewState', () => {
     const caption = 'x'.repeat(300);
     const state = getCaptionPreviewState(caption, 280);
 
-    expect(state.isTruncated).toBe(true);
+    expect(state.isOverLimit).toBe(true);
     expect(state.maxLength).toBe(280);
-    expect(state.text).toBe(`${'x'.repeat(280)}...`);
+    expect(state.previewText).toBe(`${'x'.repeat(280)}...`);
   });
 
   it('is unicode-safe when counting and truncating', () => {
@@ -69,7 +69,7 @@ describe('getCaptionPreviewState', () => {
     const state = getCaptionPreviewState(caption, 5);
 
     expect(state.count).toBe(10);
-    expect(state.text).toBe(`${'🎉'.repeat(5)}...`);
+    expect(state.previewText).toBe(`${'🎉'.repeat(5)}...`);
   });
 });
 

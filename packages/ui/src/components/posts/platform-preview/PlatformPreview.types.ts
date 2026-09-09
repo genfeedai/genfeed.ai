@@ -39,8 +39,10 @@ export type PlatformPreviewThreadSegment = {
 };
 
 export type PlatformPreviewTarget = {
+  id?: string;
   platform: CredentialPlatform | string;
   caption: string;
+  firstComment?: string;
   title?: string;
   author?: PlatformPreviewAuthor;
   media?: PlatformPreviewMedia[];

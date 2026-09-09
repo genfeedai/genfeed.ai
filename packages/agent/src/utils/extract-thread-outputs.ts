@@ -8,6 +8,8 @@ import type {
 export type ThreadOutputKind = 'audio' | 'image' | 'text' | 'video';
 
 export interface ThreadOutputVariant {
+  brandId?: string | null;
+  credentialId?: string;
   assetId?: string;
   ctas?: AgentUiActionCta[];
   id: string;
@@ -67,6 +69,8 @@ function buildTextVariants(
     variants.push({
       ctas: action.ctas,
       contentFormat: action.contentFormat,
+      brandId: action.brandId,
+      credentialId: action.credentialId,
       id: `${messageId}:${action.id}:thread`,
       kind: 'text',
       messageId,
@@ -87,6 +91,8 @@ function buildTextVariants(
     variants.push({
       ctas: action.ctas,
       contentFormat: action.contentFormat,
+      brandId: action.brandId,
+      credentialId: action.credentialId,
       id: `${messageId}:${action.id}:tweet:${index}`,
       kind: 'text',
       messageId,
@@ -102,6 +108,8 @@ function buildTextVariants(
     variants.push({
       ctas: action.ctas,
       contentFormat: action.contentFormat,
+      brandId: action.brandId,
+      credentialId: action.credentialId,
       id: `${messageId}:${action.id}:text-content`,
       kind: 'text',
       messageId,
@@ -213,6 +221,8 @@ function buildActionGroup(
             {
               ctas: action.ctas,
               contentFormat: action.contentFormat,
+              brandId: action.brandId,
+              credentialId: action.credentialId,
               id: `${messageId}:${action.id}:output:${variant.id}`,
               kind: variant.kind,
               messageId,

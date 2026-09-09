@@ -119,7 +119,34 @@ export class PostThreadGenerationService {
         constraints: TWITTER_THREAD_CONSTRAINTS,
       });
 
-      await this.completeGeneratedChildren(childPosts, tweetLines, identity);
+      const completedCount = await this.completeGeneratedChildren(
+        childPosts,
+        tweetLines,
+        identity,
+      );
+      try {
+        await this.activitiesService.patch(activity.id.toString(), {
+          key:
+            completedCount === childPosts.length
+              ? ActivityKey.POST_GENERATED
+              : ActivityKey.POST_FAILED,
+          isRead: false,
+          value: JSON.stringify({
+            originalPostId: String(originalPost.id),
+            resultId: String(originalPost.id),
+            completedCount,
+            totalCount: childPosts.length,
+            ...(completedCount < childPosts.length
+              ? { error: 'Some posts could not be generated' }
+              : {}),
+          }),
+        });
+      } catch (activityError) {
+        this.logger.error(
+          'Failed to finalize thread generation activity',
+          activityError,
+        );
+      }
     } catch (error) {
       this.logger.error('Failed to expand thread asynchronously', error);
       await this.markActivityFailed(activity, error);
@@ -134,7 +161,8 @@ export class PostThreadGenerationService {
     childPosts: PostDocument[],
     tweetLines: Array<string | null>,
     identity: ThreadGenerationMetadata,
-  ): Promise<void> {
+  ): Promise<number> {
+    let completedCount = 0;
     for (let index = 0; index < childPosts.length; index++) {
       const child = childPosts[index];
       const tweetText = tweetLines[index];
@@ -183,6 +211,7 @@ export class PostThreadGenerationService {
             value: childId,
           }),
         );
+        completedCount++;
       } catch (error) {
         this.logger.error(
           `Failed to update expanded thread post ${childId}`,
@@ -191,6 +220,7 @@ export class PostThreadGenerationService {
         await this.markChildFailed(childId, error);
       }
     }
+    return completedCount;
   }
 
   private async markActivityFailed(

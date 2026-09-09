@@ -5,15 +5,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type {
   TargetPreviewCredential,
+  TargetPreviewProps,
   TargetPreviewRelease,
 } from '@genfeedai/props/ui/previews.props';
-
-export interface CaptionPreviewState {
-  text: string;
-  count: number;
-  maxLength?: number;
-  isTruncated: boolean;
-}
+import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview.types';
 
 /**
  * A target's `settings.caption` is the per-platform text override; falling
@@ -27,30 +22,6 @@ export function resolveTargetCaption(
   return typeof override === 'string' && override.trim().length > 0
     ? override
     : release.baseContent;
-}
-
-/** Unicode-safe character count so multi-byte captions aren't undercounted. */
-export function countPreviewCharacters(text: string): number {
-  return Array.from(text).length;
-}
-
-export function getCaptionPreviewState(
-  caption: string,
-  maxLength?: number,
-): CaptionPreviewState {
-  const characters = Array.from(caption);
-  const count = characters.length;
-
-  if (!maxLength || count <= maxLength) {
-    return { count, isTruncated: false, maxLength, text: caption };
-  }
-
-  return {
-    count,
-    isTruncated: true,
-    maxLength,
-    text: `${characters.slice(0, maxLength).join('')}...`,
-  };
 }
 
 function attachmentAppliesToTarget(
@@ -148,4 +119,37 @@ export function getAuthorHandle(credential: TargetPreviewCredential): string {
   }
 
   return handle.startsWith('@') ? handle : `@${handle}`;
+}
+
+export function buildTargetPreview({
+  release,
+  target,
+  credential,
+}: TargetPreviewProps): PlatformPreviewTarget {
+  const caption = resolveTargetCaption(release, target);
+  const signature = resolveSignature(release, target);
+  return {
+    author: {
+      avatarUrl: credential.externalAvatar || undefined,
+      handle: getAuthorHandle(credential),
+      name: getAuthorName(credential),
+    },
+    caption: signature ? `${caption}\n\n${signature}` : caption,
+    firstComment: resolveFirstComment(release, target),
+    id: target.id,
+    media: [...release.media]
+      .sort((left, right) => (left.order ?? 0) - (right.order ?? 0))
+      .map((item) => ({
+        id: item.assetId,
+        isAnimated: item.kind === 'gif',
+        kind:
+          item.kind === 'video' || item.kind === 'short_video'
+            ? item.kind
+            : 'image',
+        url: item.url || undefined,
+      })),
+    platform: target.platform,
+    settings: target.settings,
+    title: release.title,
+  };
 }

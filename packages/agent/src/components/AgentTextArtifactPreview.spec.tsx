@@ -3,6 +3,26 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    selectedBrand: { id: 'brand-1', organizationId: 'org-1', label: 'Genfeed' },
+    credentials: [
+      {
+        id: 'account-1',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'twitter',
+        isConnected: true,
+        isDeleted: false,
+        externalName: 'Vincent',
+        externalHandle: 'decod3rs',
+      },
+    ],
+  }),
+}));
+
 describe('AgentTextArtifactPreview', () => {
   it('uses the canonical X platform renderer for a Twitter output', () => {
     render(
@@ -64,4 +84,19 @@ describe('AgentTextArtifactPreview', () => {
 
     expect(onCopy).toHaveBeenCalledWith('Hook\n\nProof\n\nClose');
   });
+});
+
+it('renders the connected account identity in the completed post emulator', () => {
+  render(
+    <AgentTextArtifactPreview
+      data={{
+        content: 'Launch day',
+        platform: 'twitter',
+        credentialId: 'account-1',
+        brandId: 'brand-1',
+      }}
+    />,
+  );
+  expect(screen.getByText('Vincent')).toBeInTheDocument();
+  expect(screen.getByText('@decod3rs')).toBeInTheDocument();
 });

@@ -60,6 +60,7 @@ export interface StudioGenerateComposerProps {
 }
 
 export interface StudioGenerateAssetActions {
+  onCancelGeneration?: (job: StudioGenerateJob) => void | Promise<void>;
   onClickIngredient: (ingredient: IIngredient) => void;
   onConvertToVideo: (ingredient: IIngredient) => void;
   onCopyPrompt: (ingredient: IIngredient) => void | Promise<void>;

@@ -23,7 +23,7 @@
     "creditUsageLabel": "Credit usage",
     "credits": {
       "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
-      "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} · {amount} credits used}}}}",
+      "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} \u00b7 {amount} credits used}}}}",
       "remove_all": "Removed all credits",
       "reset": "Reset credits"
     },
@@ -40,13 +40,17 @@
     },
     "post": {
       "ready": "Content is ready for review"
-    }
+    },
+    "reconnecting": "Reconnecting to live updates. Activity is checked automatically.",
+    "activeCount": "{count, plural, one {# task in progress} other {# tasks in progress}}",
+    "activeTab": "Activity ({count})",
+    "view": "View"
   },
   "agentAuth": {
     "claim": {
       "actions": {
         "authorize": "Authorize agent",
-        "authorizing": "Authorizing…"
+        "authorizing": "Authorizing\u2026"
       },
       "code": {
         "help": "Enter the code shown by the agent that opened this request.",
@@ -65,7 +69,7 @@
         "description": "Restart registration from your agent to get a fresh link.",
         "title": "Invalid claim link"
       },
-      "loading": "Loading authorization request…",
+      "loading": "Loading authorization request\u2026",
       "permissionsTitle": "This agent will receive access to",
       "signIn": {
         "action": "Sign in to continue",
@@ -94,13 +98,13 @@
         "description": "Sign in to finish connecting your {platform} account.",
         "title": "Sign in required"
       },
-      "connecting": "Connecting your {platform} account…",
+      "connecting": "Connecting your {platform} account\u2026",
       "error": {
         "description": "Failed to verify your account. Please try again.",
         "title": "Connection Failed"
       },
       "success": {
-        "description": "Redirecting you back…",
+        "description": "Redirecting you back\u2026",
         "title": "{platform} Connected"
       }
     }
@@ -111,7 +115,7 @@
       "add": "Add an agent",
       "existingDescription": "Add existing agents to this Program. A selected team template creates its own roles as well.",
       "existingTitle": "Existing agents",
-      "loadingDetails": "Loading agent details…",
+      "loadingDetails": "Loading agent details\u2026",
       "noneAssigned": "No agents are assigned to this Program yet.",
       "noneForBrand": "No agents exist for this brand yet.",
       "title": "Agents ({count})",
@@ -123,7 +127,7 @@
     "creditsAllocated": "Credits Allocated",
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "loadingBrand": "Loading the selected brand…",
+    "loadingBrand": "Loading the selected brand\u2026",
     "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
@@ -157,17 +161,17 @@
   "settings": {
     "search": {
       "empty": "No settings found",
-      "hint": "⌘K",
+      "hint": "\u2318K",
       "label": "Search settings",
-      "placeholder": "Search settings…"
+      "placeholder": "Search settings\u2026"
     },
     "characters": {
       "actions": {
         "approve": "Approve",
-        "creating": "Creating…",
+        "creating": "Creating\u2026",
         "discard": "Discard",
         "generate": "Generate sheet",
-        "generating": "Generating…",
+        "generating": "Generating\u2026",
         "regenerate": "Regenerate",
         "save": "Save character"
       },
@@ -184,13 +188,13 @@
         "approveFailed": "Could not create the character from this sheet.",
         "brandUnavailable": "The selected brand is unavailable for this settings route.",
         "generateFailed": "Could not generate a character sheet.",
-        "invalidHandle": "Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores.",
+        "invalidHandle": "Handle must be 2\u201332 characters of lowercase letters, numbers, hyphens, or underscores.",
         "loadFailed": "Could not load characters.",
         "missingName": "Name and handle are required to save a character."
       },
       "fields": {
         "description": "Description",
-        "descriptionPlaceholder": "A tall woman in a red coat, silver hair, sharp eyes…",
+        "descriptionPlaceholder": "A tall woman in a red coat, silver hair, sharp eyes\u2026",
         "handle": "Handle",
         "handlePlaceholder": "anna",
         "name": "Name",
@@ -213,7 +217,7 @@
         "success": "Character saved. Use @{handle} in Studio or the agent.",
         "error": "Could not save this character. Check that the handle is unique and try again.",
         "retry": "Retry loading characters",
-        "checking": "Checking for a character…",
+        "checking": "Checking for a character\u2026",
         "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
       }
     },
@@ -244,18 +248,18 @@
     "skills": {
       "actions": {
         "customize": "Customize",
-        "customizing": "Customizing…",
+        "customizing": "Customizing\u2026",
         "openAgent": "Open Agent",
         "refresh": "Refresh",
         "saveVariant": "Save variant",
-        "saving": "Saving…",
+        "saving": "Saving\u2026",
         "testWithAgent": "Test with Agent"
       },
       "catalog": {
         "description": "Browse built-in, imported, and organization-owned content skills.",
         "empty": "No skills match the current filters.",
         "enableSkill": "Enable {name}",
-        "loading": "Loading skill catalog…",
+        "loading": "Loading skill catalog\u2026",
         "title": "Catalog",
         "useDefaults": "Use default skills",
         "useDefaultsDescription": "On: the agent runs the built-in default set. Off: only the skills you toggle below are active."
@@ -315,7 +319,7 @@
         },
         "search": {
           "label": "Search skills",
-          "placeholder": "Search skills…"
+          "placeholder": "Search skills\u2026"
         }
       },
       "heading": "Skills",
@@ -358,7 +362,7 @@
       "images": "Images",
       "loadMore": "Load more",
       "loading": "Loading Library sources",
-      "loadingMore": "Loading more…",
+      "loadingMore": "Loading more\u2026",
       "manage": "Manage Library",
       "permissionDenied": "Library sources are unavailable for the effective brand.",
       "retry": "Retry",
@@ -367,7 +371,7 @@
       "stale": "That source is no longer available. Your conversation and picker state were preserved.",
       "unauthorized": "That source is not available to the effective brand. Choose another source or open Library management.",
       "verifyError": "The source could not be verified. Retry without losing your current context.",
-      "verifying": "Verifying source…",
+      "verifying": "Verifying source\u2026",
       "videos": "Videos"
     },
     "browserPane": {
@@ -390,14 +394,14 @@
         "title": "Local mode needs attention"
       },
       "eyebrow": "Local mode",
-      "loading": "Starting local workspace…",
+      "loading": "Starting local workspace\u2026",
       "generation": {
         "description": "Uses the provider configured on this device.",
         "generate": "Generate",
         "promptLabel": "Local generation prompt",
         "promptPlaceholder": "Draft a launch post for...",
         "title": "Generate locally",
-        "working": "Working…"
+        "working": "Working\u2026"
       },
       "title": "Your work stays on this Mac",
       "useCloud": "Use Genfeed Cloud",
@@ -436,7 +440,7 @@
       },
       "status": {
         "connected": "Connected in {latency}ms.",
-        "starting": "Starting local workspace…",
+        "starting": "Starting local workspace\u2026",
         "using": "Using {provider}."
       },
       "title": "Local generation"
@@ -511,7 +515,7 @@
       "custom": "Custom",
       "description": "Start from a proven role or configure a custom agent for the selected brand.",
       "library": "Agent library",
-      "loadingBrand": "Loading the selected brand…",
+      "loadingBrand": "Loading the selected brand\u2026",
       "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
       "title": "Add agent"
@@ -561,7 +565,7 @@
       "description": "Plans generated for this brand by the content engine and Autopilot.",
       "dialogAdditionalTopics": "Topics (optional)",
       "dialogColdStartHint": "This plan will be seeded from competitor ads, creative patterns and followed creators until this brand has more history.",
-      "dialogDescription": "The plan is grounded in this brand’s own performance where there is enough of it, otherwise it starts from a cold-start brief.",
+      "dialogDescription": "The plan is grounded in this brand\u2019s own performance where there is enough of it, otherwise it starts from a cold-start brief.",
       "dialogItemCount": "Items",
       "dialogPeriodEnd": "Period end",
       "dialogPeriodStart": "Period start",
@@ -573,14 +577,14 @@
       "generateCta": "Generate plan now",
       "generateError": "Failed to generate plan",
       "generateSuccess": "Plan generation started",
-      "seedAdvertiserAdCount": "{name} · {platform} · {count, plural, one {# ad} other {# ads}}",
+      "seedAdvertiserAdCount": "{name} \u00b7 {platform} \u00b7 {count, plural, one {# ad} other {# ads}}",
       "seedAdvertisersEmpty": "No watched advertisers yet",
       "seedAdvertisersEmptyCta": "Go watch some in Discovery",
       "seedAdvertisersTitle": "Competitor ads",
       "seedIncludeOwnHistory": "Include this brand's own history ({count, plural, one {# imported post} other {# imported posts}})",
       "seedIncludePatterns": "Include creative patterns ({count})",
       "seedSectionTitle": "Seed this plan from",
-      "seedSourceHandlePlatform": "@{handle} · {platform} · {count, plural, one {# recent post} other {# recent posts}}",
+      "seedSourceHandlePlatform": "@{handle} \u00b7 {platform} \u00b7 {count, plural, one {# recent post} other {# recent posts}}",
       "seedSourcesEmpty": "No followed creators yet",
       "seedSourcesEmptyCta": "Follow some in Discovery",
       "seedSourcesTitle": "Followed creators",
@@ -609,7 +613,7 @@
         "send": "Send reply"
       },
       "selectBrand": "Select a brand to view replies.",
-      "description": "Choose how to respond — warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
+      "description": "Choose how to respond \u2014 warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
       "platform": {
         "label": "Platform",
         "twitter": "X (Twitter)",
@@ -632,7 +636,7 @@
         "saved": "Workflow binding and overrides saved"
       },
       "overrides": {
-        "description": "Applied on every Run workflow for exact workflow slot keys (topic, prompt, customHook, …).",
+        "description": "Applied on every Run workflow for exact workflow slot keys (topic, prompt, customHook, \u2026).",
         "title": "Saved input overrides"
       },
       "templateDefault": "Template default:",
@@ -673,12 +677,12 @@
       "paginationLabel": "runs"
     },
     "workflowRun": {
-      "bindingPreview": "Binding preview still lists: {slots} — form values will fill them on submit.",
+      "bindingPreview": "Binding preview still lists: {slots} \u2014 form values will fill them on submit.",
       "defaultWorkflow": "Default content workflow",
       "fields": {
         "additionalSlots": "Additional workflow slots",
         "cta": "CTA (optional)",
-        "noImages": "No library images found — paste a URL below or upload in Library first.",
+        "noImages": "No library images found \u2014 paste a URL below or upload in Library first.",
         "noLibraryImage": "None (use URL)",
         "prompt": "Prompt / script / angle",
         "referenceLibrary": "Reference image from library",
@@ -686,7 +690,7 @@
         "slotPreview": "Slot preview",
         "topic": "Topic"
       },
-      "loading": "Loading workflow binding…",
+      "loading": "Loading workflow binding\u2026",
       "requiredMissing": "Fill required slots before run: {slots}",
       "requiredReady": "Required slots can be filled from this form + agent defaults.",
       "title": "Run workflow"
@@ -704,12 +708,12 @@
         "publishArchived": "Archived workflows cannot be published.",
         "retry": "Retry",
         "run": "Run",
-        "running": "Running…",
+        "running": "Running\u2026",
         "schedule": "Schedule",
         "scheduleTooltip": "Set a recurring schedule"
       },
       "detail": {
-        "loadingEditor": "Loading editor…"
+        "loadingEditor": "Loading editor\u2026"
       },
       "executions": {
         "actions": "Actions",
@@ -722,7 +726,7 @@
         "previous": "Previous",
         "progress": "Progress",
         "retry": "Retry",
-        "showing": "Showing {from}–{to}",
+        "showing": "Showing {from}\u2013{to}",
         "started": "Started",
         "status": "Status",
         "title": "Execution History",
@@ -779,7 +783,7 @@
         "emptyActionTemplates": "Browse Templates",
         "emptyDescription": "Create your first workflow for a fixed, repeatable automation pipeline.",
         "emptyTitle": "No workflows yet",
-        "noMatching": "No workflows matching “{search}”",
+        "noMatching": "No workflows matching \u201c{search}\u201d",
         "searchPlaceholder": "Search workflows...",
         "synced": "synced",
         "system": "System",
@@ -795,27 +799,27 @@
           "cancel": "Cancel",
           "remove": "Remove schedule",
           "save": "Save schedule",
-          "saving": "Saving…"
+          "saving": "Saving\u2026"
         },
         "cadence": {
-          "custom": "Custom…",
+          "custom": "Custom\u2026",
           "label": "Cadence",
           "placeholder": "Choose when to run"
         },
         "custom": {
           "description": "Advanced cron format. Prefer a preset unless you need something specific.",
-          "placeholder": "e.g. weekdays at 9am → 0 9 * * 1-5",
+          "placeholder": "e.g. weekdays at 9am \u2192 0 9 * * 1-5",
           "title": "Custom schedule"
         },
         "description": "Run this workflow automatically on a recurring cadence.",
-        "descriptionNamed": "Run “{workflow}” automatically on a recurring cadence.",
+        "descriptionNamed": "Run \u201c{workflow}\u201d automatically on a recurring cadence.",
         "errors": {
           "cadenceRequired": "Pick a cadence before saving the schedule.",
           "load": "Failed to load the workflow",
           "remove": "Failed to remove the schedule",
           "save": "Failed to save the schedule"
         },
-        "loading": "Loading schedule…",
+        "loading": "Loading schedule\u2026",
         "nextRun": "Next run {nextRun}",
         "paused": "Paused",
         "recurring": {
@@ -848,13 +852,13 @@
     },
     "followModal": {
       "byAuthor": "by @{author}",
-      "description": "Search a handle to follow accounts on X, Instagram, and TikTok — or paste a post link to import that exact post.",
+      "description": "Search a handle to follow accounts on X, Instagram, and TikTok \u2014 or paste a post link to import that exact post.",
       "emptyHint": "Try a public handle to follow accounts, or paste a post link (X, Instagram, or TikTok) to import that exact post.",
       "following": "Following",
-      "lookingUp": "Looking up accounts across platforms…",
+      "lookingUp": "Looking up accounts across platforms\u2026",
       "noAccounts": "No accounts found for that handle.",
       "notFound": "Not found",
-      "postChoice": "This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.",
+      "postChoice": "This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead \u2014 nothing happens until you choose.",
       "postLabel": "{platform} post",
       "title": "Follow sources",
       "platforms": {
@@ -875,15 +879,15 @@
   "livestreamBot": {
     "contextTemplate": "Context-Aware Question Template",
     "contextSource": {
-      "audioUrl": "Audio URL → speech-to-text",
-      "description": "Streaming via Restream Studio: use Restream Chat for audience context. Host speech is not OBS — push captions/STT into Genfeed while the encoder feeds Restream.",
-      "externalCaptions": "External captions → Genfeed (host speech on Restream)",
+      "audioUrl": "Audio URL \u2192 speech-to-text",
+      "description": "Streaming via Restream Studio: use Restream Chat for audience context. Host speech is not OBS \u2014 push captions/STT into Genfeed while the encoder feeds Restream.",
+      "externalCaptions": "External captions \u2192 Genfeed (host speech on Restream)",
       "label": "Context source (Restream-first)",
       "manual": "Manual paste / API",
       "restreamChat": "Restream Chat (multi-destination audience)"
     },
     "hostPromptTemplate": "Scheduled Host Prompt Template",
-    "loading": "Loading livestream bot…",
+    "loading": "Loading livestream bot\u2026",
     "manualOverride": "Manual Override",
     "message": "Message",
     "restreamAccount": {
@@ -954,7 +958,7 @@
     },
     "inputSchema": "Input schema",
     "lastSeenLabel": "Last seen:",
-    "loading": "Loading contract details…",
+    "loading": "Loading contract details\u2026",
     "noTopLevelFields": "No top-level fields.",
     "outputSchema": "Output schema",
     "pendingReview": "Pending review",
@@ -966,7 +970,7 @@
   "libraryCanvas": {
     "fit": "Fit",
     "fitBoard": "Fit board",
-    "loading": "Loading… {count} so far",
+    "loading": "Loading\u2026 {count} so far",
     "noPreview": "No preview",
     "videoBadge": "Video"
   },
@@ -976,7 +980,7 @@
     "retryAriaLabel": "Retry generation"
   },
   "articleDetail": {
-    "loadingTitle": "Loading article…"
+    "loadingTitle": "Loading article\u2026"
   },
   "newsletterEditor": {
     "content": "Newsletter content"
@@ -1062,11 +1066,11 @@
       "label": "Variation {position} of {count}",
       "noPadding": "No duplicate placeholder was added.",
       "organizationDefaults": "Organization defaults (no brand voice configured)",
-      "provenance": "Source retained · review batch {batch}",
+      "provenance": "Source retained \u00b7 review batch {batch}",
       "ready": "{actual} of {requested} variations ready",
       "reviewAll": "Review all",
       "creditsCharged": "{credits} credits charged",
-      "summary": "Group {group} · {credits} credits charged"
+      "summary": "Group {group} \u00b7 {credits} credits charged"
     },
     "title": "Generate brand-voice variations"
   },
@@ -1094,7 +1098,7 @@
     },
     "desk": {
       "title": "Discovery",
-      "subtitle": "Signal Desk — every trend, followed post, and viral video, ready to remix.",
+      "subtitle": "Signal Desk \u2014 every trend, followed post, and viral video, ready to remix.",
       "searchPlaceholder": "Search the Desk",
       "signalsLoading": "Loading",
       "signalsCount": "{count} signals",
@@ -1108,7 +1112,7 @@
         "retry": "Retry",
         "remixUnavailable": "Remix is not available for this item."
       },
-      "loading": "Loading the Desk…",
+      "loading": "Loading the Desk\u2026",
       "emptyState": {
         "connectAccounts": "Connect accounts",
         "followCreators": "Follow creators"
@@ -1117,7 +1121,7 @@
         "count": "{count} selected",
         "remix": "Remix {count}",
         "clear": "Clear",
-        "skippedRemix": "{count} items skipped — remix is not available for them.",
+        "skippedRemix": "{count} items skipped \u2014 remix is not available for them.",
         "hints": {
           "keyJ": "J",
           "keyK": "K",
@@ -1151,7 +1155,7 @@
       },
       "following": {
         "title": "Following",
-        "subtitle": "One column per platform — every post from the creators you follow, newest first.",
+        "subtitle": "One column per platform \u2014 every post from the creators you follow, newest first.",
         "columnSources": "{count, plural, one {# creator} other {# creators}}",
         "columnPosts": "{count, plural, one {# post} other {# posts}}",
         "columnEmpty": "No posts collected yet. Sync this platform to pull the latest.",
@@ -1183,7 +1187,7 @@
     "linkLabel": "Referral link",
     "loadErrorDescription": "Your referral balance and reward history could not be loaded. No financial totals are shown until the request succeeds.",
     "loadErrorTitle": "Referral rewards unavailable",
-    "loadingLink": "Loading referral link…",
+    "loadingLink": "Loading referral link\u2026",
     "recentRewards": "Recent rewards",
     "retry": "Retry",
     "status": {
@@ -1222,13 +1226,13 @@
   "videoCreativeActions": {
     "extend": {
       "continuationPromptLabel": "Continuation prompt",
-      "continuationPromptPlaceholder": "Describe what happens next…",
+      "continuationPromptPlaceholder": "Describe what happens next\u2026",
       "durationSeconds": "{seconds} seconds",
       "fabricatedMode": "Fabricated last-frame and stitch extension",
       "generationModelLabel": "Generation model",
       "nativeMode": "Native extension; the provider chooses the exact continuation length",
       "newClipDurationLabel": "New clip duration",
-      "summary": "{mode} · quoted charge: {cost} credits"
+      "summary": "{mode} \u00b7 quoted charge: {cost} credits"
     },
     "upscale": {
       "framesPerSecond": "{fps} fps",
@@ -1254,7 +1258,7 @@
     "retry": "Retry",
     "countError": "Could not load the unread count.",
     "readError": "Could not mark notifications read. Try again.",
-    "loading": "Loading notifications…",
+    "loading": "Loading notifications\u2026",
     "loadError": "Could not load notifications.",
     "empty": "You are all caught up. New workflow outcomes and agent alerts will appear here.",
     "completed": "Workflow completed",

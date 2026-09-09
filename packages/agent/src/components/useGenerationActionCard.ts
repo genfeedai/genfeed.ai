@@ -200,6 +200,9 @@ export function useGenerationActionCard({
       : 1;
   });
   const [status, setStatus] = useState<GenerationActionCardStatus>('idle');
+  const [generationStartedAt, setGenerationStartedAt] = useState<
+    number | undefined
+  >();
   const [paidRejectedCount, setPaidRejectedCount] = useState(0);
   const [pilotDurationSeconds, setPilotDurationSeconds] = useState<
     number | null
@@ -567,6 +570,7 @@ export function useGenerationActionCard({
     }
 
     clearGenerationOutcome();
+    setGenerationStartedAt(Date.now());
     setStatus('generating');
     // Dismiss the sticky composer error stack so it cannot cover this card's
     // Generate control while the user retries from the card itself.
@@ -929,6 +933,7 @@ export function useGenerationActionCard({
     prioritize,
     setPrioritize: handlePrioritizeChange,
     models,
+    generationStartedAt,
     modelsLoading: pickerLoading,
     modelsError,
     isAllowlistEmpty,

@@ -32,6 +32,7 @@ export function getActivityRouting(
 
   const isVideo =
     categoryStr === String(IngredientCategory.VIDEO) ||
+    categoryStr === String(IngredientCategory.AVATAR) ||
     (categoryStr === 'AVATAR-VIDEO' &&
       String(metadataExtension).toUpperCase() === MetadataExtension.MP4);
 
@@ -87,6 +88,13 @@ export function getActivityRouting(
     };
   }
 
+  if (categoryStr === String(IngredientCategory.VOICE)) {
+    return {
+      activityKey: ActivityKey.VOICE_GENERATED,
+      activitySource: ActivitySource.VOICE_GENERATION,
+      processingKey: ActivityKey.VOICE_PROCESSING,
+    };
+  }
   return null;
 }
 
@@ -99,7 +107,10 @@ export function getFailureActivityRouting(
 ): ActivityRouting | null {
   const categoryStr = String(category).toUpperCase();
 
-  if (categoryStr === String(IngredientCategory.VIDEO)) {
+  if (
+    categoryStr === String(IngredientCategory.VIDEO) ||
+    categoryStr === String(IngredientCategory.AVATAR)
+  ) {
     return {
       activityKey: ActivityKey.VIDEO_FAILED,
       activitySource: ActivitySource.VIDEO_GENERATION,
@@ -123,5 +134,12 @@ export function getFailureActivityRouting(
     };
   }
 
+  if (categoryStr === String(IngredientCategory.VOICE)) {
+    return {
+      activityKey: ActivityKey.VOICE_FAILED,
+      activitySource: ActivitySource.VOICE_GENERATION,
+      processingKey: ActivityKey.VOICE_PROCESSING,
+    };
+  }
   return null;
 }

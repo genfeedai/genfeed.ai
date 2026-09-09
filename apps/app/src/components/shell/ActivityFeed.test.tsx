@@ -43,7 +43,11 @@ vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
 });
 
 import { PageScope } from '@genfeedai/contracts';
-import ActivityFeed, { TOPBAR_ACTIVITY_LIMIT } from './ActivityFeed';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
+import ActivityFeed, {
+  ActivityFeedContent,
+  TOPBAR_ACTIVITY_LIMIT,
+} from './ActivityFeed';
 
 function activityFixture(
   index: number,
@@ -116,6 +120,30 @@ describe('ActivityFeed', () => {
     expect(
       screen.getByRole('link', { name: 'View all activity' }),
     ).toHaveAttribute('href', '/acme/brand/workspace/activity');
+  });
+
+  it('keeps every active row ahead of recent history and exposes its result link', () => {
+    const rows = [
+      activityFixture(1),
+      ...Array.from({ length: 7 }, (_, index) =>
+        activityFixture(index + 2, { key: ActivityKey.IMAGE_PROCESSING }),
+      ),
+    ] as IActivity[];
+    render(
+      <ActivityFeedContent
+        filteredActivities={rows}
+        isError={false}
+        isLoading={false}
+        getActivityHref={(item) =>
+          `/acme/brand/library/images?asset=${item.id}`
+        }
+      />,
+    );
+    expect(screen.getAllByTestId('topbar-activity-row')).toHaveLength(7);
+    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+      'href',
+      '/acme/brand/library/images?asset=activity-2',
+    );
   });
 
   it('shows an empty state when there is no recent activity', () => {

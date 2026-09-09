@@ -204,6 +204,11 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       userId: user.id,
     });
 
+    // Once the first article's completion is written, the processing activity
+    // is resolved. A later throw — recording the remaining activities, the
+    // socket publish, serialization — must not rewrite it as a failure when
+    // the articles genuinely generated.
+    let isCompletionRecorded = false;
     try {
       const { articles, billedCredits } =
         await this.articlesService.generateArticles(
@@ -215,19 +220,27 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
       this.settleDeferredArticleCredits(request, billedCredits);
 
-      for (const article of articles) {
-        await this.activitiesService.create(
-          new ActivityEntity({
-            brandId,
-            entityId: article.id,
-            entityModel: ActivityEntityModel.ARTICLE,
-            key: ActivityKey.ARTICLE_GENERATED,
-            organizationId: user.organizationId,
-            source: ActivitySource.ARTICLE_GENERATION,
-            userId: user.userId ?? user.id,
-            value: article.id.toString(),
-          }),
-        );
+      for (const [index, article] of articles.entries()) {
+        const completion = {
+          brandId,
+          entityId: article.id,
+          entityModel: ActivityEntityModel.ARTICLE,
+          key: ActivityKey.ARTICLE_GENERATED,
+          organizationId: user.organizationId,
+          source: ActivitySource.ARTICLE_GENERATION,
+          userId: user.userId ?? user.id,
+          value: article.id.toString(),
+          isRead: false,
+        };
+        if (index === 0) {
+          await this.activitiesService.patch(
+            activity.id.toString(),
+            completion,
+          );
+          isCompletionRecorded = true;
+        } else {
+          await this.activitiesService.create(completion);
+        }
 
         await this.websocketService.publishBackgroundTaskUpdate({
           activityId: activity.id.toString(),
@@ -249,12 +262,14 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
         docs: articles,
       });
     } catch (error: unknown) {
-      await this.recordArticleGenerationFailure(
-        activity.id.toString(),
-        error,
-        isXArticle,
-        user.id,
-      );
+      if (!isCompletionRecorded) {
+        await this.recordArticleGenerationFailure(
+          activity.id.toString(),
+          error,
+          isXArticle,
+          user.id,
+        );
+      }
 
       throw error;
     }

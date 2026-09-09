@@ -1,4 +1,5 @@
 import { ButtonVariant } from '@genfeedai/contracts';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Zap } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -45,12 +46,11 @@ export function WorkflowExecuteCardStatusPanel({
 
   if (status === 'executing') {
     return (
-      <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-sm text-muted-foreground">
-          Executing workflow…
-        </span>
-      </div>
+      <GenerationStatus
+        status="generating"
+        label="Executing workflow…"
+        className="border border-border"
+      />
     );
   }
 

@@ -3,6 +3,15 @@ import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    credentials: [],
+    selectedBrand: { id: 'brand-1', organizationId: 'org-1', label: 'Genfeed' },
+  }),
+}));
+
 const seedComposer = vi.fn();
 const defaultMessages = [
   {

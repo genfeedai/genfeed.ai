@@ -8,6 +8,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { useTranslations } from 'next-intl';
@@ -277,6 +278,8 @@ export function ContentPreviewCard({
         <AgentTextArtifactPreview
           data={{
             content: textOutputs[0],
+            brandId: action.brandId,
+            credentialId: action.credentialId,
             contentFormat: action.contentFormat,
             platform: action.platform ?? 'twitter',
             threadSegments: textOutputs,
@@ -290,6 +293,8 @@ export function ContentPreviewCard({
             <AgentTextArtifactPreview
               data={{
                 content: text,
+                brandId: action.brandId,
+                credentialId: action.credentialId,
                 contentFormat: action.contentFormat,
                 platform: action.platform,
                 preheader: action.preheader,
@@ -322,7 +327,12 @@ export function ContentPreviewCard({
           className="grid grid-cols-3 gap-2"
           role="status"
         >
-          <div className="aspect-square w-full animate-pulse rounded-lg border border-border bg-muted" />
+          <div className="col-span-3 flex aspect-video items-center justify-center rounded-lg border border-border bg-muted/30">
+            <GenerationStatus
+              status="generating"
+              assetLabel={assetKindLabel.toLowerCase()}
+            />
+          </div>
         </div>
       )}
       {hasNoMedia && isUnavailable && (

@@ -232,7 +232,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [notificationsService, setType],
   );
-  const { isGenerating, jobs, rehydratePending, removeJob, submit } =
+  const { cancelJob, isGenerating, jobs, rehydratePending, removeJob, submit } =
     useStudioGeneration({
       brandId,
       models,
@@ -831,7 +831,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
               ) : null}
 
               <StudioGenerateResults
-                assetActions={assetActions}
+                assetActions={{
+                  ...assetActions,
+                  onCancelGeneration: cancelJob,
+                }}
                 isLoading={isLoadingGallery}
                 jobs={visibleJobs}
                 onReprompt={handleVaryRecipe}

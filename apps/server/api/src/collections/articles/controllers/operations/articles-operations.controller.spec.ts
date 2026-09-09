@@ -14,6 +14,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
+  ActivityKey,
   ArticleCategory,
   AssetScope,
   ModelCategory,
@@ -236,9 +237,13 @@ describe('ArticlesOperationsController', () => {
         1,
         expect.objectContaining({ brandId: requestedBrandId }),
       );
-      expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({ brandId: requestedBrandId }),
+      expect(mockActivitiesService.patch).toHaveBeenCalledWith(
+        activityId,
+        expect.objectContaining({
+          brandId: requestedBrandId,
+          key: ActivityKey.ARTICLE_GENERATED,
+          entityId: mockArticle.id,
+        }),
       );
     });
 

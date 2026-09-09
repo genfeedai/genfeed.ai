@@ -157,6 +157,13 @@ export class IngredientsService<
     return super.post(body);
   }
 
+  public async cancelGeneration(id: string): Promise<T> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${encodeURIComponent(id)}/cancellations`,
+    );
+    return this.mapOne(response.data);
+  }
+
   public async findChildren(id: string): Promise<T[]> {
     return await this.instance
       .get<JsonApiResponseDocument>(`${id}/children`)
