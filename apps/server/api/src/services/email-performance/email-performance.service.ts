@@ -20,6 +20,7 @@ import { WorkflowNotificationQueueService } from '@api/services/notifications/wo
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { NotificationTopic } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { escapeSystemEmailHtml } from '@helpers/email/system-email.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -171,8 +172,9 @@ export class EmailPerformanceService {
       const recipientHash = row.user.email
         ? emailIdentityHash(row.user.email.trim().toLowerCase())
         : null;
+      const recipientEmail = row.user.email;
       const isDeliverable = await this.isRecipientDeliverable({
-        email: row.user.email,
+        email: recipientEmail,
         isUserDeleted: row.user.isDeleted,
         organizationId: row.organizationId,
         policyData: payload.policyData,
@@ -181,7 +183,7 @@ export class EmailPerformanceService {
         topic: row.topic,
         userId: row.userId,
       });
-      if (!isDeliverable) {
+      if (!isDeliverable || !recipientEmail) {
         await this.recordDeliverySkipped(
           deliveryId,
           row.organizationId,
@@ -199,7 +201,7 @@ export class EmailPerformanceService {
         data: { recipientHash },
       });
       const providerMessageId = await this.notifications.deliverEmail({
-        to: row.user.email,
+        to: recipientEmail,
         subject: payload.subject,
         html: payload.html,
         ...(typeof payload.text === 'string' ? { text: payload.text } : {}),
@@ -241,7 +243,7 @@ export class EmailPerformanceService {
     email: string | null;
     isUserDeleted: boolean;
     organizationId: string;
-    policyData: unknown;
+    policyData?: Prisma.JsonValue;
     recipientHash: string | null;
     templateKey: string;
     topic: string;

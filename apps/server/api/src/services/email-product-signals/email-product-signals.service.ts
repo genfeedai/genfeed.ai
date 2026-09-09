@@ -111,11 +111,13 @@ export class EmailProductSignalsService implements OnModuleInit {
     let count = 0;
     while (true) {
       const assets = await this.prisma.ingredient.findMany({
-        where: scopedWhere(organizationId, {
+        where: {
+          organizationId,
+          isDeleted: false,
           parentId: null,
           generationCompletedAt: { gte: since, lte: now },
           status: { in: ['GENERATED', 'FAILED'] },
-        }),
+        },
         select: {
           id: true,
           category: true,
@@ -196,10 +198,12 @@ export class EmailProductSignalsService implements OnModuleInit {
     while (true) {
       // Read accepted-message cohorts; the attribution service checks immutable CTA click history against each action time.
       const messages = await this.prisma.emailMessage.findMany({
-        where: scopedWhere(organizationId, {
+        where: {
+          organizationId,
+          isDeleted: false,
           goal: { not: null },
           acceptedAt: { gte: new Date(since.getTime() - 7 * DAY_MS), lte: now },
-        }),
+        },
         select: { id: true, userId: true, goal: true },
         orderBy: { id: 'asc' },
         take: PAGE_SIZE,
@@ -332,12 +336,14 @@ export class EmailProductSignalsService implements OnModuleInit {
     let count = 0;
     while (true) {
       const purchases = await this.prisma.creditTransaction.findMany({
-        where: scopedWhere(organizationId, {
+        where: {
+          organizationId,
+          isDeleted: false,
           category: CreditTransactionCategory.ADD,
           amount: { gt: 0 },
           createdAt: { gte: since, lt: now },
           referenceType: { startsWith: 'stripe-checkout-session:' },
-        }),
+        },
         select: {
           id: true,
           actorUserId: true,
