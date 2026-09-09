@@ -71,9 +71,14 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => brandsServiceMock,
-}));
+// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
+// async function per render invalidates consumer callbacks and re-fires their
+// effects on every commit.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const resolveService = async () => brandsServiceMock;
+
+  return { useAuthedService: () => resolveService };
+});
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
   __esModule: true,

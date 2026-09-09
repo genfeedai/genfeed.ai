@@ -33,16 +33,22 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
+// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
+// async function per render invalidates consumer callbacks and re-fires their
+// effects on every commit.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const service = {
     createBrandRemixRun: mocks.createBrandRemixRun,
     findBrandRemixRun: mocks.findBrandRemixRun,
     prepareBrandRemixPausedDraft: mocks.prepareBrandRemixPausedDraft,
     reviseBrandRemixRun: mocks.reviseBrandRemixRun,
     startBrandRemixRun: mocks.startBrandRemixRun,
     submitBrandRemixRunForReview: mocks.submitBrandRemixRunForReview,
-  }),
-}));
+  };
+  const resolveService = async () => service;
+
+  return { useAuthedService: () => resolveService };
+});
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({

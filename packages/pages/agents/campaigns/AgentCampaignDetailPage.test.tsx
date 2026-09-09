@@ -45,14 +45,20 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+const campaignsServiceMock = {
+  execute: vi.fn(),
+  getById: getByIdMock,
+  getStatus: getStatusMock,
+  pause: vi.fn(),
+  update: vi.fn(),
+};
+const resolveCampaignsService = async () => campaignsServiceMock;
+
+// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
+// async function per render invalidates consumer callbacks and re-fires their
+// effects on every commit.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => async () => ({
-    execute: vi.fn(),
-    getById: getByIdMock,
-    getStatus: getStatusMock,
-    pause: vi.fn(),
-    update: vi.fn(),
-  })),
+  useAuthedService: vi.fn(() => resolveCampaignsService),
 }));
 
 vi.mock('next/navigation', () => ({

@@ -18,12 +18,18 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mocks.brandId.value,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
+// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
+// async function per render invalidates consumer callbacks and re-fires their
+// effects on every commit.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const service = {
     createBrandRemixRun: mocks.createBrandRemixRun,
     reviseBrandRemixRun: mocks.reviseBrandRemixRun,
-  }),
-}));
+  };
+  const resolveService = async () => service;
+
+  return { useAuthedService: () => resolveService };
+});
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -124,9 +130,13 @@ describe('DiscoveryRemixProvider', () => {
 
     let firstRequest: Promise<void> | undefined;
     let secondRequest: Promise<void> | undefined;
-    act(() => {
+    // The in-flight guard is set synchronously, but the service call only
+    // happens after `await getContentRunsService()`, so let the microtask queue
+    // drain before counting requests.
+    await act(async () => {
       firstRequest = result.current.openRemix(source);
       secondRequest = result.current.openRemix(source);
+      await Promise.resolve();
     });
     expect(mocks.createBrandRemixRun).toHaveBeenCalledTimes(1);
 
