@@ -23,6 +23,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   usePostRemixModal: () => ({ openPostRemixModal: vi.fn() }),
+  usePostRepurposeModal: () => ({ openPostRepurposeModal: vi.fn() }),
 }));
 
 vi.mock('next/navigation', () => ({

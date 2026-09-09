@@ -4,6 +4,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+// `GenerationStatus` (rendered for a generating frame) calls `useTranslations`,
+// which needs the NextIntlClientProvider context this suite does not mount.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/image', () => ({
   default: ({ src, alt }: Record<string, unknown>) => (
     <img src={src as string} alt={alt as string} />

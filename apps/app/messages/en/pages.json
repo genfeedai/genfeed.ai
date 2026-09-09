@@ -706,6 +706,7 @@
     "nextAction": "Next",
     "noRefreshAdapter": "Authorized-signal refresh is not available for {platform} yet. Reconnect if evidence is stale.",
     "override": "Override 24h",
+    "overrideActive": "Manual override active",
     "phaseLabel": "{phase}",
     "programTitle": "Warm-up program",
     "progress": "{completed} of {total} checks",

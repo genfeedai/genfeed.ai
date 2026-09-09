@@ -387,7 +387,7 @@ export default function SocialWarmupProgram({
 
       {health?.override.isActive ? (
         <Alert variant="info">
-          <AlertTitle>{translate('unresolved')}</AlertTitle>
+          <AlertTitle>{translate('overrideActive')}</AlertTitle>
           <AlertDescription>
             {health.override.reason}
             {health.override.expiresAt

@@ -71,9 +71,14 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => brandsServiceMock,
-}));
+// `useAuthedService` returns a `useCallback`-stable resolver; minting a new
+// async function per render invalidates consumer callbacks and re-fires their
+// effects on every commit.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const resolveService = async () => brandsServiceMock;
+
+  return { useAuthedService: () => resolveService };
+});
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
   __esModule: true,
@@ -90,18 +95,15 @@ vi.mock('@ui/display/table/Table', () => ({
   }: {
     items: Post[];
     onRowClick?: (post: Post) => void;
-  }) => (
-    <button
-      type="button"
-      onClick={() => {
-        if (items[0]) {
-          onRowClick?.(items[0]);
-        }
-      }}
-    >
-      Open analytics brand row
-    </button>
-  ),
+  }) =>
+    // Render the row only once posts have actually loaded, so `waitFor` in the
+    // suite blocks on the fetch instead of on a button that exists from the
+    // first paint with an empty `items`.
+    items.length > 0 ? (
+      <button type="button" onClick={() => onRowClick?.(items[0])}>
+        Open analytics brand row
+      </button>
+    ) : null,
 }));
 
 describe('AnalyticsBrandOverview', () => {

@@ -5,7 +5,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { Voice } from '@models/ingredients/voice.model';
 import { logger } from '@services/core/logger.service';
 import { VoicesService } from '@services/ingredients/voices.service';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const DEFAULT_VOICE_CATALOG_STATUS = [
   IngredientStatus.DRAFT,
@@ -40,6 +40,18 @@ export function useVoiceCatalog({
     VoicesService.getInstance(token),
   );
 
+  // `providers` and `status` are routinely passed as inline array literals, so
+  // their identity changes on every render. Keying on their contents keeps
+  // `refresh` stable: otherwise a completed fetch sets a new `voices` array,
+  // re-renders, rebuilds the literal, invalidates `refresh`, and re-fires the
+  // effect — an endless refetch loop for any caller that does not memoize.
+  const providersKey = providers?.join('\u0001');
+  const statusKey = status.join('\u0001');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on contents, not identity
+  const stableProviders = useMemo(() => providers, [providersKey]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on contents, not identity
+  const stableStatus = useMemo(() => status, [statusKey]);
+
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +66,9 @@ export function useVoiceCatalog({
         isActive,
         limit,
         page,
-        providers,
+        providers: stableProviders,
         search,
-        status,
+        status: stableStatus,
       };
       // The paged UI drives `page`/`limit` itself; every other caller renders
       // the whole catalog and has to walk the server pages to get it.
@@ -78,9 +90,9 @@ export function useVoiceCatalog({
     isPaginated,
     limit,
     page,
-    providers,
     search,
-    status,
+    stableProviders,
+    stableStatus,
   ]);
 
   useEffect(() => {

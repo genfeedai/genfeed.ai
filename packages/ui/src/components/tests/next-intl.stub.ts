@@ -3,7 +3,24 @@ type MessageNode = string | { readonly [key: string]: MessageNode };
 export type MessageCatalog = Readonly<Record<string, MessageNode>>;
 
 const CARDINAL_PLURAL_PATTERN =
-  /\{(\w+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\}/g;
+  /\{(\w+),\s*plural,\s*((?:[^{}]*\{[^{}]*\})+[^{}]*)\}/g;
+const PLURAL_CLAUSE_PATTERN =
+  /(=\d+|zero|one|two|few|many|other)\s*\{([^{}]*)\}/g;
+
+function selectPluralClause(body: string, value: number): string | undefined {
+  const clauses = new Map<string, string>();
+
+  for (const [, selector, text] of body.matchAll(PLURAL_CLAUSE_PATTERN)) {
+    clauses.set(selector, text);
+  }
+
+  // ICU resolves an exact `=N` clause before the keyword categories.
+  return (
+    clauses.get(`=${value}`) ??
+    (value === 1 ? clauses.get('one') : undefined) ??
+    clauses.get('other')
+  );
+}
 
 function interpolateMessage(
   message: string,
@@ -11,14 +28,18 @@ function interpolateMessage(
 ): string {
   const withPlurals = message.replace(
     CARDINAL_PLURAL_PATTERN,
-    (token, name: string, singular: string, plural: string) => {
+    (token, name: string, body: string) => {
       const value = values?.[name];
 
       if (typeof value !== 'number') {
         return token;
       }
 
-      return (value === 1 ? singular : plural).replaceAll('#', String(value));
+      const selected = selectPluralClause(body, value);
+
+      return selected === undefined
+        ? token
+        : selected.replaceAll('#', String(value));
     },
   );
 

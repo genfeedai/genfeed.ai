@@ -190,11 +190,15 @@ describe('SocialWarmupProgram', () => {
       />,
     );
 
-    expect(screen.getByText('Warm-up program')).toBeInTheDocument();
+    // The programme title is the section's accessible name, not visible text.
+    expect(
+      screen.getByRole('region', { name: 'Warm-up program' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Warming')).toBeInTheDocument();
     expect(screen.getByText('Score 42')).toBeInTheDocument();
-    expect(screen.getByText('Day 7')).toBeInTheDocument();
-    expect(screen.getByText('Gradual first uploads')).toBeInTheDocument();
+    // Day and phase label share one element, separated by a middot.
+    expect(screen.getByText(/Day 7/)).toBeInTheDocument();
+    expect(screen.getByText(/Gradual first uploads/)).toBeInTheDocument();
     expect(screen.getByText(/of .* checks/)).toBeInTheDocument();
     expect(screen.getByText('Next')).toBeInTheDocument();
     expect(screen.getByText(/last refresh/i)).toBeInTheDocument();
@@ -285,7 +289,10 @@ describe('SocialWarmupProgram', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Full blueprint' }), {
+      button: 0,
+      ctrlKey: false,
+    });
     expect(
       screen.getAllByText(/authorized tiktok evidence is stale/i).length,
     ).toBeGreaterThan(0);
@@ -320,7 +327,10 @@ describe('SocialWarmupProgram', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Full blueprint' }), {
+      button: 0,
+      ctrlKey: false,
+    });
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Refresh signals' })[0],
     );
@@ -353,7 +363,10 @@ describe('SocialWarmupProgram', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Full blueprint' }), {
+      button: 0,
+      ctrlKey: false,
+    });
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Refresh signals' })[0],
     );
@@ -405,7 +418,10 @@ describe('SocialWarmupProgram', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Full blueprint' }), {
+      button: 0,
+      ctrlKey: false,
+    });
     expect(screen.getByText(/does not guarantee reach/i)).toBeInTheDocument();
     expect(
       screen.getByText(/does not guarantee reach/i).textContent,
