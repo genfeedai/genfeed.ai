@@ -456,6 +456,8 @@ export class PostGenerationService {
         organizationId: identity.organizationId,
       });
 
+      let completedCount = 0;
+      let firstCompletedPostId: string | undefined;
       for (
         let i = 0;
         i < createdPosts.length && i < generatedLines.length;
@@ -463,19 +465,45 @@ export class PostGenerationService {
       ) {
         const post = createdPosts[i];
         const postText = generatedLines[i];
-        await this.completeGeneratedAccountPost(
+        const completed = await this.completeGeneratedAccountPost(
           dto,
           post,
           postText,
           identity,
           context,
         );
+        if (completed) {
+          completedCount++;
+          firstCompletedPostId ??= String(post.id);
+        }
       }
 
       for (let i = generatedLines.length; i < createdPosts.length; i++) {
         await this.handleGeneratedPostFailure(
           String(createdPosts[i].id ?? createdPosts[i].id),
           new Error('Insufficient valid posts generated'),
+        );
+      }
+      try {
+        await this.activitiesService.patch(activity.id.toString(), {
+          key:
+            completedCount === createdPosts.length
+              ? ActivityKey.POST_GENERATED
+              : ActivityKey.POST_FAILED,
+          isRead: false,
+          value: JSON.stringify({
+            resultId: firstCompletedPostId,
+            completedCount,
+            totalCount: createdPosts.length,
+            ...(completedCount < createdPosts.length
+              ? { error: 'Some posts could not be generated' }
+              : {}),
+          }),
+        });
+      } catch (activityError) {
+        this.logger.error(
+          'Failed to finalize post generation activity',
+          activityError,
         );
       }
     } catch (error) {
@@ -515,7 +543,7 @@ export class PostGenerationService {
     postText: string,
     identity: GenerationMetadata,
     context: AccountPublishingContext,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const postId = String(post.id);
     try {
       const updatedPost = await this.postsService.patch(
@@ -568,8 +596,10 @@ export class PostGenerationService {
           postId,
         });
       }
+      return true;
     } catch (error) {
       await this.handleGeneratedPostFailure(postId, error);
+      return false;
     }
   }
 

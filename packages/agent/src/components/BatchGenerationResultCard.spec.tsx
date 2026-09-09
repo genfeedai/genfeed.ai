@@ -1,6 +1,15 @@
 import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    credentials: [],
+    selectedBrand: { id: 'brand-1', organizationId: 'org-1', label: 'Genfeed' },
+  }),
+}));
 
 describe('BatchGenerationResultCard', () => {
   it('renders a dense metrics line without nested metric boxes', () => {
@@ -34,7 +43,8 @@ describe('BatchGenerationResultCard', () => {
         '20 requested · 12 ready · 1 failed · 5 credits · Instagram · X · LinkedIn',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('Processing')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Creating posts');
+    expect(screen.getByText('12 of 20 ready')).toBeInTheDocument();
     // Nested metric boxes removed for T3 density.
     expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     expect(

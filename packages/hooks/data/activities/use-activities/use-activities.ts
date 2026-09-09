@@ -25,12 +25,14 @@ function activityFilterFields(activity: IActivity): (string | undefined)[] {
 
 export function useActivities({
   initialFilter = '',
+  activeOnly = false,
+  sort,
   autoLoad = true,
   scope = PageScope.BRAND,
   page = 1,
   limit = 20,
 }: ActivitiesOptions = {}): ActivitiesReturn {
-  const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
+  const { isLoaded: isAuthLoaded, isSignedIn, userId } = useAuthIdentity();
   const { isSuperAdmin } = useAccessState();
   const { brandId, organizationId } = useCollectionScope();
   const playwrightAuth = getPlaywrightAuthState();
@@ -68,6 +70,9 @@ export function useActivities({
   } = useQuery({
     queryKey: [
       'activities',
+      userId ?? null,
+      activeOnly,
+      sort,
       autoLoad,
       isAuthReady,
       hasAuthenticatedSession,
@@ -84,7 +89,12 @@ export function useActivities({
       }
 
       let data: IActivity[] = [];
-      const paginationParams = { limit, page };
+      const paginationParams = {
+        limit,
+        page,
+        ...(activeOnly ? { activeOnly } : {}),
+        ...(sort ? { sort } : {}),
+      };
 
       if (isSuperAdmin && scope === PageScope.ORGANIZATION && organizationId) {
         const service = await getOrganizationsService();

@@ -9,6 +9,15 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    credentials: [],
+    selectedBrand: { id: 'brand-1', organizationId: 'org-1', label: 'Genfeed' },
+  }),
+}));
+
 const IMAGE_ID = testId('image');
 
 const action = {

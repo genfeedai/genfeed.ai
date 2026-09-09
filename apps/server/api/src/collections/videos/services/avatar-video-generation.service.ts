@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
@@ -27,6 +28,8 @@ import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  ActivityEntityModel,
+  ActivityKey,
   ActivitySource,
   ByokProvider,
   IngredientCategory,
@@ -113,6 +116,7 @@ export class AvatarVideoGenerationService {
     private readonly videosService: VideosService,
     private readonly voicesService: VoicesService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly activitiesService: ActivitiesService,
   ) {}
 
   async generateAvatarVideo(
@@ -152,6 +156,24 @@ export class AvatarVideoGenerationService {
         });
 
       ingredientId = String(ingredientData.id);
+      const activity = await this.activitiesService.create({
+        brandId: brand.id,
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        organizationId: context.organizationId,
+        userId: context.userId,
+        key: ActivityKey.VIDEO_PROCESSING,
+        source: ActivitySource.AVATAR_GENERATION,
+        value: JSON.stringify({ ingredientId, resultType: 'AVATAR' }),
+      });
+      await this.websocketService.publishBackgroundTaskUpdate({
+        activityId: String(activity.id),
+        taskId: ingredientId,
+        resultId: ingredientId,
+        status: 'processing',
+        label: 'Avatar generation',
+        userId: context.userId,
+      });
       await onPlaceholderCreated?.(ingredientId);
 
       if (
@@ -246,6 +268,14 @@ export class AvatarVideoGenerationService {
           WebSocketPaths.video(ingredientId),
           context.userId,
           getUserRoomName(context.userId),
+          {
+            brandId: context.brandId,
+            organizationId: context.organizationId,
+            userId: context.userId,
+            key: ActivityKey.VIDEO_FAILED,
+            source: ActivitySource.AVATAR_GENERATION,
+            value: ingredientId,
+          },
         );
       }
 

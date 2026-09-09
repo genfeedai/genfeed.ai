@@ -19,6 +19,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { ActivityKey } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -98,6 +99,16 @@ export class ActivitiesController {
       } else {
         where.userId = user.userId ?? user.id;
       }
+    }
+
+    if (query.activeOnly) {
+      where.action = {
+        in: Object.values(ActivityKey).filter(
+          (key) =>
+            key.endsWith('-processing') ||
+            key === ActivityKey.MODELS_TRAINING_CREATED,
+        ),
+      };
     }
 
     const aggregate = {

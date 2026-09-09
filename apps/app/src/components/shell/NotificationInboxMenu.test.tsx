@@ -4,9 +4,15 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/components/shell/ActivityFeed', () => ({
-  default: () => <a href="/workspace/activity">View all activity</a>,
+  ActivityFeedContent: () => (
+    <a href="/workspace/activity">View all activity</a>
+  ),
 }));
 
+const live = vi.hoisted(() => ({ activeCount: 0 }));
+vi.mock('@/components/shell/use-live-activity-feed', () => ({
+  useLiveActivityFeed: () => live,
+}));
 const hook = vi.fn();
 vi.mock('@/components/shell/use-notification-inbox', () => ({
   useNotificationInbox: (...args: unknown[]) => hook(...args),
@@ -53,6 +59,7 @@ function state() {
 }
 let current: ReturnType<typeof state>;
 beforeEach(() => {
+  live.activeCount = 0;
   current = state();
   hook.mockImplementation(() => current);
 });
@@ -65,6 +72,17 @@ async function open() {
   return user;
 }
 describe('NotificationInboxMenu', () => {
+  it('opens the live activity view when a generation is running', async () => {
+    live.activeCount = 7;
+    await open();
+    expect(
+      screen.getByRole('status', { name: '7 tasks in progress' }),
+    ).toHaveTextContent('7');
+    expect(screen.getByRole('tab', { name: 'Activity (7)' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
   it('defaults to notifications and keeps activity in a separate tab', async () => {
     const user = await open();
     expect(screen.getByRole('tab', { name: 'Notifications' })).toHaveAttribute(

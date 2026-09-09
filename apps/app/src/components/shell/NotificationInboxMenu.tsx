@@ -12,7 +12,8 @@ import { Bell, Check, CircleAlert, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import ActivityFeed from '@/components/shell/ActivityFeed';
+import { ActivityFeedContent } from '@/components/shell/ActivityFeed';
+import { useLiveActivityFeed } from '@/components/shell/use-live-activity-feed';
 import { useNotificationInbox } from '@/components/shell/use-notification-inbox';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
@@ -20,6 +21,7 @@ export default function NotificationInboxMenu() {
   const translate = useTranslations('common.notificationInbox');
   const translateActivity = useTranslations('common.activity');
   const [open, setOpen] = useState(false);
+  const activity = useLiveActivityFeed();
   const [activeTab, setActiveTab] = useState('notifications');
   const { count, history, read, organizationId } = useNotificationInbox(open);
   const items = history.data?.pages.flatMap((page) => page.items) ?? [];
@@ -29,7 +31,8 @@ export default function NotificationInboxMenu() {
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen) setActiveTab('notifications');
+        if (nextOpen)
+          setActiveTab(activity.activeCount ? 'activity' : 'notifications');
       }}
     >
       <PopoverTrigger asChild>
@@ -44,6 +47,17 @@ export default function NotificationInboxMenu() {
           }
         >
           <Bell aria-hidden="true" className="size-4" />
+          {activity.activeCount > 0 ? (
+            <span
+              role="status"
+              className="absolute -bottom-1 -right-1 rounded-full bg-muted px-1 text-[10px] tabular-nums text-foreground"
+              aria-label={translateActivity('activeCount', {
+                count: activity.activeCount,
+              })}
+            >
+              {activity.activeCount}
+            </span>
+          ) : null}
           {unreadCount ? (
             <span
               aria-hidden="true"
@@ -82,12 +96,22 @@ export default function NotificationInboxMenu() {
             onTabChange={setActiveTab}
             items={[
               { id: 'notifications', label: translate('title') },
-              { id: 'activity', label: translateActivity('label') },
+              {
+                id: 'activity',
+                label: activity.activeCount
+                  ? translateActivity('activeTab', {
+                      count: activity.activeCount,
+                    })
+                  : translateActivity('label'),
+              },
             ]}
           />
         </div>
         {activeTab === 'activity' ? (
-          <ActivityFeed />
+          <ActivityFeedContent
+            {...activity}
+            onNavigate={() => setOpen(false)}
+          />
         ) : (
           <div
             className="max-h-[min(28rem,65vh)] overflow-y-auto text-xs"

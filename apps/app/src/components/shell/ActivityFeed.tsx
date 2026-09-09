@@ -12,11 +12,17 @@ import {
   getBackgroundTaskStatus,
   isBackgroundTask,
   isCreditActivity,
+  parseActivityValue,
 } from '@pages/activities/activities-list.utils';
+import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
-import { CircleAlert, CircleCheck, Coins, LoaderCircle } from 'lucide-react';
+import { CircleAlert, CircleCheck, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import {
+  getGenerationActivityStatus,
+  isActiveGenerationActivity,
+} from '@/components/shell/generation-activity.utils';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 
@@ -40,30 +46,63 @@ function ActivityStatusIcon({
       />
     );
   }
-  if (status === 'processing' || status === 'pending') {
-    return (
-      <LoaderCircle aria-hidden="true" className="mt-0.5 size-4 text-info" />
-    );
-  }
+  if (status === 'processing' || status === 'pending') return null;
   return (
     <CircleCheck aria-hidden="true" className="mt-0.5 size-4 text-success" />
   );
 }
 
+interface ActivityFeedContentProps {
+  filteredActivities: IActivity[];
+  isError: boolean;
+  isLoading: boolean;
+  getActivityHref?: (activity: IActivity) => string | null;
+  onNavigate?: () => void;
+  connectionState?: string;
+}
+
 export default function ActivityFeed() {
+  const data = useActivities({
+    limit: TOPBAR_ACTIVITY_LIMIT,
+    scope: PageScope.ORGANIZATION,
+  });
+  return <ActivityFeedContent {...data} />;
+}
+
+export function ActivityFeedContent({
+  filteredActivities,
+  isError,
+  isLoading,
+  getActivityHref,
+  onNavigate,
+  connectionState,
+}: ActivityFeedContentProps) {
   const translate = useTranslations('common.activity');
   const { href } = useOrgUrl();
   const activityHref = href(APP_ROUTES.WORKSPACE.ACTIVITY);
   const activityMessageFormatter = useActivityMessageFormatter();
-  const { filteredActivities, isError, isLoading } = useActivities({
-    limit: TOPBAR_ACTIVITY_LIMIT,
-    scope: PageScope.ORGANIZATION,
-  });
-  const recentActivities = filteredActivities.slice(0, TOPBAR_ACTIVITY_LIMIT);
+  const recentActivities = [...filteredActivities]
+    .sort(
+      (left, right) =>
+        Number(isActiveGenerationActivity(right)) -
+        Number(isActiveGenerationActivity(left)),
+    )
+    .slice(
+      0,
+      Math.max(
+        TOPBAR_ACTIVITY_LIMIT,
+        filteredActivities.filter(isActiveGenerationActivity).length,
+      ),
+    );
 
   return (
     <>
       <div className="max-h-80 overflow-y-auto">
+        {connectionState === 'offline' || connectionState === 'reconnecting' ? (
+          <p role="status" className="px-3 py-2 text-xs text-muted-foreground">
+            {translate('reconnecting')}
+          </p>
+        ) : null}
         {isLoading ? (
           <p className="px-3 py-4 text-sm text-foreground/70">
             {translate('loading')}
@@ -102,6 +141,32 @@ export default function ActivityFeed() {
                   ))
                 : getActivityDescription(activity, activityMessageFormatter);
               const detail = isSimpleCreditChange ? creditDetail : sourceLabel;
+              const destination = getActivityHref?.(activity);
+              const progress = parseActivityValue(activity.value);
+              const titleContent = isBackgroundTask(activity) ? (
+                <GenerationStatus
+                  compact
+                  completedCount={
+                    typeof progress?.completedCount === 'number'
+                      ? progress.completedCount
+                      : undefined
+                  }
+                  totalCount={
+                    typeof progress?.totalCount === 'number'
+                      ? progress.totalCount
+                      : undefined
+                  }
+                  status={getGenerationActivityStatus(activity)}
+                  label={
+                    getGenerationActivityStatus(activity) === 'cancelled'
+                      ? undefined
+                      : title
+                  }
+                  startedAt={activity.createdAt}
+                />
+              ) : (
+                title
+              );
 
               return (
                 <li
@@ -114,9 +179,19 @@ export default function ActivityFeed() {
                     status={status}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {title}
-                    </p>
+                    {destination ? (
+                      <Link
+                        href={destination}
+                        onClick={onNavigate}
+                        className="block text-sm font-medium text-foreground hover:underline"
+                      >
+                        {titleContent}
+                      </Link>
+                    ) : (
+                      <div className="text-sm font-medium text-foreground">
+                        {titleContent}
+                      </div>
+                    )}
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
                       {detail ? (
                         <>

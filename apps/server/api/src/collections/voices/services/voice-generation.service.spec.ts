@@ -5,7 +5,11 @@ import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -36,6 +40,12 @@ describe('VoiceGenerationService', () => {
     enqueueWorkflow: ReturnType<typeof vi.fn>;
     registerAction: ReturnType<typeof vi.fn>;
   };
+  let activities: {
+    findOne: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let notifications: { publishBackgroundTaskUpdate: ReturnType<typeof vi.fn> };
   let service: VoiceGenerationService;
 
   beforeEach(() => {
@@ -66,6 +76,12 @@ describe('VoiceGenerationService', () => {
       enqueueWorkflow: vi.fn(),
       registerAction: vi.fn(),
     };
+    activities = {
+      findOne: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
+      patch: vi.fn().mockResolvedValue({ id: 'voice-activity' }),
+    };
+    notifications = { publishBackgroundTaskUpdate: vi.fn() };
     service = new VoiceGenerationService(
       elevenLabs as unknown as ElevenLabsService,
       logger as unknown as LoggerService,
@@ -73,6 +89,55 @@ describe('VoiceGenerationService', () => {
       credits as unknown as VoiceCreditsService,
       voices as unknown as VoicesService,
       workflowRunner as never,
+      activities as never,
+      notifications as never,
+    );
+  });
+
+  it('persists a scoped voice activity and emits its durable result ID', async () => {
+    voices.findOne.mockResolvedValue({
+      id: ingredientId,
+      brandId,
+      status: IngredientStatus.PROCESSING,
+    });
+    await service.generate(user, { text: 'Hello', voiceId: 'voice-1' });
+    expect(activities.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: ingredientId,
+        organizationId,
+        userId,
+        brandId,
+        key: ActivityKey.VOICE_PROCESSING,
+      }),
+    );
+    activities.findOne.mockResolvedValue({ id: 'voice-activity' });
+    voices.findOne.mockResolvedValue({
+      id: ingredientId,
+      brandId,
+      cdnUrl: 'https://example.com/voice.mp3',
+      status: IngredientStatus.GENERATED,
+    });
+    await service.executeQueuedGeneration({
+      ingredientId,
+      organizationId,
+      userId,
+      text: 'Hello',
+      voiceId: 'voice-1',
+    });
+    expect(activities.patch).toHaveBeenCalledWith(
+      'voice-activity',
+      expect.objectContaining({
+        key: ActivityKey.VOICE_GENERATED,
+        entityId: ingredientId,
+      }),
+    );
+    expect(notifications.publishBackgroundTaskUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        taskId: ingredientId,
+        resultId: ingredientId,
+        userId,
+        status: 'completed',
+      }),
     );
   });
 
@@ -309,6 +374,14 @@ describe('VoiceGenerationService', () => {
     expect(voices.patchAll).toHaveBeenLastCalledWith(
       { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
+    );
+    expect(activities.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: ActivityKey.VOICE_FAILED,
+        organizationId,
+        userId,
+        entityId: ingredientId,
+      }),
     );
   });
 

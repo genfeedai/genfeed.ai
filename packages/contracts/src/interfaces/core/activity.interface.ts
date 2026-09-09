@@ -3,6 +3,11 @@ import type { IBaseEntity, IIngredient, IPost, IUser } from '../index';
 
 export interface IActivity extends IBaseEntity {
   user: IUser;
+  userId?: string | null;
+  organizationId?: string | null;
+  brandId?: string | null;
+  entityId?: string | null;
+  entityModel?: string | null;
   key: string;
 
   value: string;

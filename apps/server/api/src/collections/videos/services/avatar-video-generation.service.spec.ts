@@ -93,6 +93,7 @@ describe('AvatarVideoGenerationService', () => {
       findOne: vi.fn(),
     };
     const websocketService = {
+      publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
       publishFileProcessing: vi.fn().mockResolvedValue(undefined),
       publishVideoProgress: vi.fn().mockResolvedValue(undefined),
     };
@@ -114,6 +115,7 @@ describe('AvatarVideoGenerationService', () => {
       videosService as never,
       voicesService as never,
       websocketService as never,
+      { create: vi.fn().mockResolvedValue({ id: 'avatar-activity' }) } as never,
     );
 
     return {

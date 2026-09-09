@@ -40,7 +40,10 @@
     },
     "post": {
       "ready": "Content is ready for review"
-    }
+    },
+    "reconnecting": "Reconnecting to live updates. Activity is checked automatically.",
+    "activeCount": "{count, plural, one {# task in progress} other {# tasks in progress}}",
+    "activeTab": "Activity ({count})"
   },
   "agentAuth": {
     "claim": {

@@ -112,6 +112,12 @@ export function isBackgroundTask(activity: IActivity): boolean {
     'voice',
     'article',
     'post',
+    'prompt',
+    'avatar',
+    'asset',
+    'workflow',
+    'model',
+    'newsletter',
   ]);
   return (
     mediaSubjects.has(subject) &&

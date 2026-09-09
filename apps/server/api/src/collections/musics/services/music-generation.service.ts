@@ -288,6 +288,24 @@ export class MusicGenerationService {
       );
       metadataId = created.metadataData.id.toString();
       ingredientId = created.ingredientData.id.toString();
+      const activity = await this.activitiesService.create({
+        brandId: params.brandId,
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        key: ActivityKey.MUSIC_PROCESSING,
+        organizationId: params.user.organizationId,
+        source: ActivitySource.MUSIC_GENERATION,
+        userId: params.user.userId ?? params.user.id,
+        value: JSON.stringify({ ingredientId, type: 'generation' }),
+      });
+      await this.websocketService.publishBackgroundTaskUpdate({
+        activityId: String(activity.id),
+        taskId: ingredientId,
+        resultId: ingredientId,
+        label: 'Music generation',
+        status: 'processing',
+        userId: params.user.userId ?? params.user.id,
+      });
       pendingIds.push(ingredientId);
       await this.musicsService.patch(created.ingredientData.id, {
         promptId: params.promptData.id,

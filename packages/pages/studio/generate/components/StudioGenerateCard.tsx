@@ -115,6 +115,15 @@ export default function StudioGenerateCard({
   const translate = useTranslations('pages.studioGenerate');
   const { label } = getStudioGenerateTypeConfig(job.type);
   const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const cancelGeneration = async () => {
+    setIsCancelling(true);
+    try {
+      await assetActions.onCancelGeneration?.(job);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
   const isFailed = job.status === IngredientStatus.FAILED;
   const isPending =
     job.status === IngredientStatus.PROCESSING ||
@@ -348,9 +357,10 @@ export default function StudioGenerateCard({
             status={job.phase ?? 'generating'}
             startedAt={job.createdAt || undefined}
             detail={job.error}
+            isCancelling={isCancelling}
             onCancel={
               job.ingredientId && assetActions.onCancelGeneration
-                ? () => assetActions.onCancelGeneration?.(job)
+                ? () => void cancelGeneration()
                 : undefined
             }
           />

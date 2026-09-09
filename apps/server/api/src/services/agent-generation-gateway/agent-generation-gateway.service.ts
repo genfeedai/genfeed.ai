@@ -215,19 +215,26 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
 
       this.settleDeferredArticleCredits(request, billedCredits);
 
-      for (const article of articles) {
-        await this.activitiesService.create(
-          new ActivityEntity({
-            brandId,
-            entityId: article.id,
-            entityModel: ActivityEntityModel.ARTICLE,
-            key: ActivityKey.ARTICLE_GENERATED,
-            organizationId: user.organizationId,
-            source: ActivitySource.ARTICLE_GENERATION,
-            userId: user.userId ?? user.id,
-            value: article.id.toString(),
-          }),
-        );
+      for (const [index, article] of articles.entries()) {
+        const completion = {
+          brandId,
+          entityId: article.id,
+          entityModel: ActivityEntityModel.ARTICLE,
+          key: ActivityKey.ARTICLE_GENERATED,
+          organizationId: user.organizationId,
+          source: ActivitySource.ARTICLE_GENERATION,
+          userId: user.userId ?? user.id,
+          value: article.id.toString(),
+          isRead: false,
+        };
+        if (index === 0) {
+          await this.activitiesService.patch(
+            activity.id.toString(),
+            completion,
+          );
+        } else {
+          await this.activitiesService.create(completion);
+        }
 
         await this.websocketService.publishBackgroundTaskUpdate({
           activityId: activity.id.toString(),

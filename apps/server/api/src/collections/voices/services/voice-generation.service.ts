@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
@@ -6,9 +7,13 @@ import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
+  ActivityEntityModel,
+  ActivityKey,
+  ActivitySource,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -31,6 +36,7 @@ export type VoiceGenerationActionResult = {
 };
 
 type VoiceGenerationParams = {
+  brandId?: string;
   ingredientId: string;
   organizationId: string;
   text: string;
@@ -49,6 +55,8 @@ export class VoiceGenerationService implements OnModuleInit {
     private readonly voiceCreditsService: VoiceCreditsService,
     private readonly voicesService: VoicesService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly activitiesService: ActivitiesService,
+    private readonly notifications: NotificationsPublisherService,
   ) {}
 
   onModuleInit(): void {
@@ -90,6 +98,13 @@ export class VoiceGenerationService implements OnModuleInit {
         if (
           String(accepted.status).toUpperCase() === IngredientStatus.PROCESSING
         ) {
+          await this.recordActivity(
+            String(accepted.id),
+            user.organizationId,
+            user.userId ?? user.id,
+            user.brandId,
+            'processing',
+          );
           await this.enqueueGeneration({
             ingredientId: String(accepted.id),
             organizationId: user.organizationId,
@@ -120,6 +135,13 @@ export class VoiceGenerationService implements OnModuleInit {
       },
     );
     const ingredientId = String(ingredientData.id);
+    await this.recordActivity(
+      ingredientId,
+      user.organizationId,
+      user.userId ?? user.id,
+      user.brandId,
+      'processing',
+    );
 
     await this.enqueueGeneration({
       ingredientId,
@@ -186,10 +208,91 @@ export class VoiceGenerationService implements OnModuleInit {
         organizationId: params.organizationId,
         userId: params.userId,
       });
+      await this.recordActivity(
+        params.ingredientId,
+        params.organizationId,
+        params.userId,
+        existing.brandId ?? undefined,
+        'completed',
+      );
       return this.toActionResult(existing);
     }
-    const generated = await this.executeGeneration(params);
+    const generated = await this.executeGeneration({
+      ...params,
+      brandId: existing?.brandId ?? undefined,
+    });
+    await this.recordActivity(
+      params.ingredientId,
+      params.organizationId,
+      params.userId,
+      generated.brandId ?? existing?.brandId ?? undefined,
+      'completed',
+    );
     return this.toActionResult(generated);
+  }
+
+  private async recordActivity(
+    ingredientId: string,
+    organizationId: string,
+    userId: string,
+    brandId: string | undefined,
+    status: 'processing' | 'completed' | 'failed',
+  ): Promise<void> {
+    try {
+      const existing = await this.activitiesService.findOne({
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        organizationId,
+        userId,
+        isDeleted: false,
+        action: {
+          in: [
+            ActivityKey.VOICE_PROCESSING,
+            ActivityKey.VOICE_GENERATED,
+            ActivityKey.VOICE_FAILED,
+          ],
+        },
+      });
+      if (status === 'processing' && existing) return;
+      const key =
+        status === 'processing'
+          ? ActivityKey.VOICE_PROCESSING
+          : status === 'completed'
+            ? ActivityKey.VOICE_GENERATED
+            : ActivityKey.VOICE_FAILED;
+      if (existing?.key === key) return;
+      const data = {
+        brandId,
+        entityId: ingredientId,
+        entityModel: ActivityEntityModel.INGREDIENT,
+        organizationId,
+        userId,
+        key,
+        source: ActivitySource.VOICE_GENERATION,
+        isRead: false,
+        value: JSON.stringify({
+          ingredientId,
+          resultId: ingredientId,
+          resultType: 'VOICE',
+        }),
+      };
+      const activity = existing
+        ? await this.activitiesService.patch(String(existing.id), data)
+        : await this.activitiesService.create(data);
+      await this.notifications.publishBackgroundTaskUpdate({
+        activityId: String(activity.id),
+        taskId: ingredientId,
+        resultId: ingredientId,
+        status,
+        label: 'Voice generation',
+        userId,
+      });
+    } catch (error) {
+      this.loggerService.error(
+        'Failed to record voice generation activity',
+        error,
+      );
+    }
   }
 
   private toActionResult(
@@ -237,8 +340,18 @@ export class VoiceGenerationService implements OnModuleInit {
         params.ingredientId,
         params.organizationId,
         error,
+        params.userId,
+        params.brandId,
       );
     }
+
+    await this.recordActivity(
+      params.ingredientId,
+      params.organizationId,
+      params.userId,
+      params.brandId,
+      'completed',
+    );
 
     await this.voiceCreditsService.settleBackgroundGenerationCredits({
       durationSeconds: result.duration,
@@ -288,12 +401,21 @@ export class VoiceGenerationService implements OnModuleInit {
     ingredientId: string,
     organizationId: string,
     error: unknown,
+    userId: string,
+    brandId?: string,
   ): Promise<never> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.error(`${url} voice generation failed`, error);
     await this.voicesService.patchAll(
       { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
+    );
+    await this.recordActivity(
+      ingredientId,
+      organizationId,
+      userId,
+      brandId,
+      'failed',
     );
 
     if (error instanceof HttpException) {

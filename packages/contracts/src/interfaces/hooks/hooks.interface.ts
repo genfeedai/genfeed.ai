@@ -126,6 +126,8 @@ export interface LazyLoadProps {
 }
 
 export interface ActivitiesOptions {
+  activeOnly?: boolean;
+  sort?: string;
   initialFilter?: string;
   autoLoad?: boolean;
   scope?: ContentScope;

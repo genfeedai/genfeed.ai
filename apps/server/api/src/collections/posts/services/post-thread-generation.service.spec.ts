@@ -11,7 +11,12 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { PostStatus, Status, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ActivityKey,
+  PostStatus,
+  Status,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -133,6 +138,16 @@ describe('PostThreadGenerationService', () => {
       expect.objectContaining({ status: Status.COMPLETED }),
     );
     expect(activitiesService.create).toHaveBeenCalledTimes(3);
+    expect(activitiesService.patch).toHaveBeenCalledWith(
+      activity.id,
+      expect.objectContaining({ key: ActivityKey.POST_GENERATED }),
+    );
+    const completion = activitiesService.patch.mock.calls.at(-1)?.[1];
+    expect(JSON.parse(completion.value)).toMatchObject({
+      completedCount: 2,
+      totalCount: 2,
+      resultId: String(originalPost.id),
+    });
   });
 
   it('fails only unresolved children when the provider returns too few replies', async () => {
