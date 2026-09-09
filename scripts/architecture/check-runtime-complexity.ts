@@ -10,6 +10,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const RUNTIME_GLOB = '{apps,ee,packages}/**/*.{cts,mts,ts,tsx}';
 const RATCHET_BASELINE_PATH =
@@ -186,10 +187,9 @@ function measureContents(
   relativeFile: string,
   kind: RuntimeFileKind,
 ): RuntimeFileMetric {
-  const sourceFile = ts.createSourceFile(
+  const sourceFile = parseSourceFile(
     relativeFile,
     contents,
-    ts.ScriptTarget.Latest,
     true,
     relativeFile.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );

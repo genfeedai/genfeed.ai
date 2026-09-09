@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import {
+  parseSourceFile,
+  scriptKindFor,
+} from './architecture/parse-source-file';
 
 /**
  * The composer surface is owned by PROMPT_BAR_SURFACE_CLASS in
@@ -72,12 +76,11 @@ function collectStringLiterals(node: ts.Node, out: string[]): void {
 }
 
 function findViolations(file: string): IViolation[] {
-  const source = ts.createSourceFile(
+  const source = parseSourceFile(
     file,
     readFileSync(file, 'utf8'),
-    ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TSX,
+    scriptKindFor(file),
   );
 
   const violations: IViolation[] = [];

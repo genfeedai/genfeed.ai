@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const DEFAULT_INCLUDE_GLOBS = ['apps/server/**/*.ts'];
 
@@ -371,12 +372,7 @@ function detectCronDecorators(
   rootDir: string,
 ): DetectedCron[] {
   const sourceText = readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(filePath, sourceText, true);
   const { scheduleIdentifiers, scheduleNamespaces } =
     collectScheduleImports(sourceFile);
 

@@ -8,7 +8,6 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-
 import { PLATFORM_COLORS } from '../packages/contracts/src/constants/platform-colors';
 import { semanticColorTokens } from '../packages/ui/src/core/colors';
 import {
@@ -25,6 +24,10 @@ import {
 import { sizingTokens } from '../packages/ui/src/core/sizing';
 import { spacingTokens } from '../packages/ui/src/core/spacing';
 import { typographyTokens } from '../packages/ui/src/core/typography';
+import {
+  parseSourceFile,
+  scriptKindFor,
+} from './architecture/parse-source-file';
 import {
   loadDesignEvalScenario,
   validateDesignEvalScenario,
@@ -357,12 +360,11 @@ export function findPackageUiGuardFindings(
   sourceText: string,
   file = 'packages/ui/src/fixture.tsx',
 ): DesignSystemFinding[] {
-  const sourceFile = ts.createSourceFile(
+  const sourceFile = parseSourceFile(
     file,
     sourceText,
-    ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TSX,
+    scriptKindFor(file),
   );
   const findings: DesignSystemFinding[] = [];
   const findingKeys = new Set<string>();

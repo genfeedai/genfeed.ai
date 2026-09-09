@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const MARKETPLACE_CONTRACT_DIR =
   'packages/contracts/src/interfaces/marketplace';
@@ -164,12 +165,7 @@ function collectSourceViolations(
   }
 
   const sourceText = readFileSync(path.join(rootDir, file), 'utf8');
-  const sourceFile = ts.createSourceFile(
-    file,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(file, sourceText, true);
   const violations: MarketplaceBoundaryViolation[] = [];
 
   const recordSpecifier = (node: ts.Node, specifier: string): void => {

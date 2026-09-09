@@ -4,6 +4,7 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from '../architecture/parse-source-file';
 
 const DEFAULT_SOURCE_GLOBS = ['apps/server/api/src/**/*.ts'];
 const DEFAULT_IGNORE_GLOBS = [
@@ -178,12 +179,7 @@ function findSourceFiles(rootDir: string, sourceGlobs?: string[]): string[] {
 
 function scanSourceFile(rootDir: string, absoluteFile: string): PrismaCall[] {
   const sourceText = readFileSync(absoluteFile, 'utf8');
-  const source = ts.createSourceFile(
-    absoluteFile,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const source = parseSourceFile(absoluteFile, sourceText, true);
   const calls: PrismaCall[] = [];
   const relativeFile = path.relative(rootDir, absoluteFile);
 

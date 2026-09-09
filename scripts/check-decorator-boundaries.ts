@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './architecture/parse-source-file';
 
 const ROOT_DIR = process.cwd();
 const SHARED_SERVER_DECORATOR_TSCONFIG = path.resolve(
@@ -114,12 +115,7 @@ function collectSourceSignals(projectRoot: string): SourceSignals {
 
   for (const filePath of sourceFiles) {
     const sourceText = readFileSync(filePath, 'utf8');
-    const sourceFile = ts.createSourceFile(
-      filePath,
-      sourceText,
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const sourceFile = parseSourceFile(filePath, sourceText, true);
 
     if (!signals.sampleNestImportFile) {
       for (const statement of sourceFile.statements) {

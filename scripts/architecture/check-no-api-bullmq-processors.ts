@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './parse-source-file';
 
 const ROOT_DIR = process.cwd();
 const API_SRC_DIR = 'apps/server/api/src';
@@ -102,12 +103,7 @@ function getDecoratorIdentifier(decorator: ts.Decorator): string | null {
 
 function collectViolations(filePath: string): Violation[] {
   const sourceText = readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = parseSourceFile(filePath, sourceText, true);
   const imports = collectBullMqImports(sourceFile);
   const relativeFile = path.relative(ROOT_DIR, filePath);
   const violations: Violation[] = [];

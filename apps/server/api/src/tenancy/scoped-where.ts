@@ -6,6 +6,13 @@
  * `isDeleted` is spread first, so a caller that explicitly asks for tombstones
  * (`{ isDeleted: true }`) gets them rather than being silently clobbered back
  * to the default. This mirrors `BaseService.withSoftDeleteFilter`.
+ *
+ * The `where` literal is typed on its own here, not against the delegate's
+ * `…WhereInput`, so it gets no contextual type from Prisma. Pass enum members
+ * rather than their string labels — `status: { in: [IngredientStatus.GENERATED] }`,
+ * never `{ in: ['GENERATED'] }` — or the array widens to `string[]` and the
+ * result stops satisfying the delegate's input type. Using the enum members is
+ * the repository rule regardless; this is where skipping it fails loudly.
  */
 export function scopedWhere<W extends Record<string, unknown>>(
   organizationId: string,

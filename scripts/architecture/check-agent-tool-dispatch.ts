@@ -3,6 +3,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
+import { parseSourceFile } from './parse-source-file';
 
 /**
  * Guard: keep every in-app agent advertisement surface dispatchable, and keep
@@ -95,13 +96,7 @@ function normalizePath(filePath: string): string {
 }
 
 function createSourceFile(filePath: string, sourceText: string): ts.SourceFile {
-  return ts.createSourceFile(
-    filePath,
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
+  return parseSourceFile(filePath, sourceText, true, ts.ScriptKind.TS);
 }
 
 export function collectDispatchedToolNames(

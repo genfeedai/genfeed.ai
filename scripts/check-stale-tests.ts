@@ -3,6 +3,7 @@ import path from 'node:path';
 import { Logger } from '@nestjs/common';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './architecture/parse-source-file';
 
 const logger = new Logger('CheckStaleTests');
 
@@ -160,10 +161,9 @@ function analyzeTestFile(
   rootDir: string,
 ): TestFileFinding | null {
   const fileContent = fs.readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(
+  const sourceFile = parseSourceFile(
     filePath,
     fileContent,
-    ts.ScriptTarget.Latest,
     true,
     resolveScriptKind(filePath),
   );

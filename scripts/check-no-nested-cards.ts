@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
+import { parseSourceFile } from './architecture/parse-source-file';
 
 const logger = {
   error: (message: string) => console.error(`[CheckNoNestedCards] ${message}`),
@@ -102,10 +103,9 @@ export function runCheckNoNestedCards(): { violations: Violation[] } {
 
   for (const filePath of files) {
     const content = readFileSync(filePath, 'utf8');
-    const sourceFile = ts.createSourceFile(
+    const sourceFile = parseSourceFile(
       filePath,
       content,
-      ts.ScriptTarget.Latest,
       true,
       filePath.endsWith('.tsx') || filePath.endsWith('.jsx')
         ? ts.ScriptKind.TSX
