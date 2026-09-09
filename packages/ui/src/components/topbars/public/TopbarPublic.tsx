@@ -34,14 +34,14 @@ interface DropdownItem {
 interface Dropdown {
   label: string;
   items: DropdownItem[];
+  /** Rendered under a grouped (full-width) panel only. */
+  footer?: TopbarPublicMegaMenuFooter;
 }
 
 interface TopbarPublicProps {
   navLinks?: NavLink[];
   dropdowns?: Dropdown[];
   rightContent?: ReactNode;
-  megaMenu?: boolean;
-  megaMenuFooter?: TopbarPublicMegaMenuFooter;
 }
 
 interface DropdownPosition {
@@ -118,8 +118,6 @@ export default function TopbarPublic({
   navLinks = EMPTY_ARRAY,
   dropdowns = EMPTY_ARRAY,
   rightContent,
-  megaMenu = false,
-  megaMenuFooter,
 }: TopbarPublicProps): React.ReactElement {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -132,7 +130,6 @@ export default function TopbarPublic({
   const mounted = useMounted();
   const headerRef = useRef<HTMLElement>(null);
   const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
-  const _megaMenuRef = useRef<HTMLDivElement>(null);
   if (triggerRefs.current === null) {
     triggerRefs.current = new Map<string, HTMLButtonElement>();
   }
@@ -157,30 +154,17 @@ export default function TopbarPublic({
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
-      if (megaMenu && dropdowns.length > 0) {
-        // For mega-menu, position based on first dropdown trigger
-        const firstTrigger = triggerRefsMap.get(dropdowns[0].label);
-        if (firstTrigger) {
-          const rect = firstTrigger.getBoundingClientRect();
-          setDropdownPosition({
-            left: rect.left,
-            top: rect.bottom,
-          });
-        }
-        setOpenDropdown('mega');
-      } else {
-        const trigger = triggerRefsMap.get(label);
-        if (trigger) {
-          const rect = trigger.getBoundingClientRect();
-          setDropdownPosition({
-            left: rect.left,
-            top: rect.bottom + 8,
-          });
-        }
-        setOpenDropdown(label);
+      const trigger = triggerRefsMap.get(label);
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        setDropdownPosition({
+          left: rect.left,
+          top: rect.bottom + 8,
+        });
       }
+      setOpenDropdown(label);
     },
-    [megaMenu, dropdowns, triggerRefsMap],
+    [triggerRefsMap],
   );
 
   const handleDropdownClose = useCallback(() => {
@@ -211,10 +195,7 @@ export default function TopbarPublic({
   );
 
   // Get the current open dropdown data
-  const currentDropdown =
-    openDropdown === 'mega'
-      ? dropdowns[0]
-      : dropdowns.find((d) => d.label === openDropdown);
+  const currentDropdown = dropdowns.find((d) => d.label === openDropdown);
 
   return (
     <>
@@ -260,7 +241,7 @@ export default function TopbarPublic({
                           }
                         }}
                         type="button"
-                        aria-expanded={isOpen || openDropdown === 'mega'}
+                        aria-expanded={isOpen}
                         aria-haspopup="menu"
                         variant={ButtonVariant.UNSTYLED}
                         className={cn(
@@ -275,7 +256,7 @@ export default function TopbarPublic({
                         <ChevronDown
                           className={cn(
                             'size-4 transition-transform duration-200',
-                            (isOpen || openDropdown === 'mega') && 'rotate-180',
+                            isOpen && 'rotate-180',
                           )}
                         />
                       </Button>
@@ -337,7 +318,7 @@ export default function TopbarPublic({
         openDropdown={openDropdown}
         currentDropdown={currentDropdown}
         dropdownPosition={dropdownPosition}
-        megaMenuFooter={megaMenuFooter}
+        megaMenuFooter={currentDropdown?.footer}
         pathname={pathname}
         onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
         onMouseLeaveDropdown={handleDropdownClose}

@@ -52,12 +52,61 @@ describe('WebsiteTopbar', () => {
       'href',
       '/pricing',
     );
-    expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute(
-      'href',
-      'https://docs.genfeed.ai',
-    );
+    // Docs and the changelog live in the footer: the bar sells the product,
+    // it is not the site index.
     expect(
-      screen.queryByRole('button', { name: /use cases/i }),
+      screen.queryByRole('link', { name: 'Docs' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /changelog/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers product, solutions, and use cases as the only menus', () => {
+    render(<WebsiteTopbar />);
+
+    for (const menu of ['Product', 'Solutions', 'Use Cases']) {
+      expect(
+        screen.getByRole('button', { name: new RegExp(menu, 'i') }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('groups delivery shapes under solutions', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /solutions/i }));
+
+    for (const [label, href] of [
+      ['Teams', '/cloud'],
+      ['Hire Agents', '/hire-agents'],
+      ['Done For You', '/done-for-you'],
+      ['Services', '/services'],
+    ]) {
+      expect(
+        screen.getByRole('link', { name: new RegExp(label, 'i') }),
+      ).toHaveAttribute('href', href);
+    }
+  });
+
+  it('lists audiences under use cases without leaking the self-host story', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /use cases/i }));
+
+    for (const [label, href] of [
+      ['Creators', '/use-cases/creators'],
+      ['Agencies', '/use-cases/agencies'],
+      ['All use cases', '/use-cases'],
+    ]) {
+      expect(screen.getByRole('link', { name: label })).toHaveAttribute(
+        'href',
+        href,
+      );
+    }
+
+    expect(
+      screen.queryByRole('link', { name: /self-host|open source/i }),
     ).not.toBeInTheDocument();
   });
 

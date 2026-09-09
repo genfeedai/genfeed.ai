@@ -6,14 +6,19 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
+  Bot,
+  Building2,
   ChartColumn,
   Cpu,
+  HeartHandshake,
   Send,
   ShieldCheck,
   Sparkles,
   Terminal,
+  Users,
 } from 'lucide-react';
 
+/** What the platform is. Grouped, so it renders as the full-width panel. */
 const PRODUCT_LINKS = [
   {
     description: 'Generate every format in one workspace',
@@ -59,23 +64,69 @@ const PRODUCT_LINKS = [
   },
 ];
 
-const NAV_LINKS = [
-  { href: '/pricing', label: 'Pricing' },
-  { href: 'https://docs.genfeed.ai', label: 'Docs' },
+/**
+ * How you buy it. Complementary to Product rather than a second copy of it:
+ * these are the delivery shapes, from a shared workspace to us running it.
+ */
+const SOLUTIONS_LINKS = [
+  {
+    description: 'A shared studio with roles and approvals',
+    href: '/cloud',
+    icon: Users,
+    label: 'Teams',
+  },
+  {
+    description: 'Agents that create and publish on a schedule',
+    href: '/hire-agents',
+    icon: Bot,
+    label: 'Hire Agents',
+  },
+  {
+    description: 'We run the content system for you',
+    href: '/done-for-you',
+    icon: HeartHandshake,
+    label: 'Done For You',
+  },
+  {
+    description: 'Training and content consultancy',
+    href: '/services',
+    icon: Building2,
+    label: 'Services',
+  },
 ];
+
+/** Who it is for. A plain list — the audience pages carry their own pitch. */
+const USE_CASE_LINKS = [
+  { href: '/use-cases/creators', label: 'Creators' },
+  { href: '/use-cases/agencies', label: 'Agencies' },
+  { href: '/use-cases/marketers', label: 'Marketers' },
+  { href: '/use-cases/ecommerce', label: 'E-Commerce' },
+  { href: '/use-cases/founders', label: 'Founders' },
+  { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
+  { href: '/use-cases', label: 'All use cases' },
+];
+
+const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
 
   return (
     <TopbarPublic
-      dropdowns={[{ items: PRODUCT_LINKS, label: 'Product' }]}
-      megaMenu
-      megaMenuFooter={{
-        description: 'One content system from first brief to verified result.',
-        href: '/features',
-        label: 'Explore every capability',
-      }}
+      dropdowns={[
+        {
+          footer: {
+            description:
+              'One content system from first brief to verified result.',
+            href: '/features',
+            label: 'Explore every capability',
+          },
+          items: PRODUCT_LINKS,
+          label: 'Product',
+        },
+        { items: SOLUTIONS_LINKS, label: 'Solutions' },
+        { items: USE_CASE_LINKS, label: 'Use Cases' },
+      ]}
       navLinks={NAV_LINKS}
       rightContent={
         <div className="flex items-center gap-3 lg:gap-6">
