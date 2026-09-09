@@ -7,6 +7,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useRef } from 'react';
@@ -95,6 +96,7 @@ export function useCloudWorkflow({
     createWorkflowApiService,
     EnvironmentService.JWT_LABEL,
   );
+  const { brandId } = useCollectionScope();
 
   const bindSharedWorkflowApi = useCallback((service: WorkflowApiService) => {
     useWorkflowStore.setState({
@@ -198,6 +200,10 @@ export function useCloudWorkflow({
   }, [workflowId, templateId, getService, bindSharedWorkflowApi]);
 
   useEffect(() => {
+    useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
+  }, [brandId]);
+
+  useEffect(() => {
     if (brands.length > 0 || isBrandsLoading || hasRequestedBrandsRef.current) {
       return;
     }
@@ -246,6 +252,7 @@ export function useCloudWorkflow({
         }
 
         serviceRef.current = service;
+        useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
         useCloudWorkflowStore.getState().scheduleAutoSave(service);
       } catch (error) {
         logger.error('Auto-save service initialization failed', { error });
@@ -258,7 +265,7 @@ export function useCloudWorkflow({
       cancelled = true;
       useCloudWorkflowStore.getState().cancelAutoSave();
     };
-  }, [autoSave, getService, isDirty]);
+  }, [autoSave, brandId, getService, isDirty]);
 
   // -------------------------------------------------------------------------
   // Action callbacks
@@ -267,11 +274,12 @@ export function useCloudWorkflow({
     try {
       const service = serviceRef.current ?? (await getService());
       serviceRef.current = service;
+      useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
       await useCloudWorkflowStore.getState().saveToCloud(service);
     } catch (error) {
       logger.error('Manual save failed', { error });
     }
-  }, [getService]);
+  }, [brandId, getService]);
 
   const publish = useCallback(async () => {
     try {

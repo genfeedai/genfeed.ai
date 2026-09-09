@@ -1,6 +1,7 @@
 'use client';
 
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkflowSeed } from '@genfeedai/props/workflows/workflow-new-page.props';
 import {
   buildWorkflowEtaSnapshot,
@@ -9,6 +10,7 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -27,7 +29,7 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
@@ -108,6 +110,8 @@ function buildMessagesAutomationSeed(
  */
 export default function WorkflowNewPageClient() {
   const searchParams = useSearchParams();
+  const { replace } = useRouter();
+  const { href } = useOrgUrl();
   const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
@@ -132,6 +136,18 @@ export default function WorkflowNewPageClient() {
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
   const workflowName = useWorkflowStore((state) => state.workflowName);
   const hasRunInputs = inputVariables.length > 0;
+
+  useEffect(() => {
+    if (!currentWorkflowId || isRunning) {
+      return;
+    }
+
+    const editorPath = `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${currentWorkflowId}`;
+    const nextPath = activeExecutionId
+      ? `${editorPath}?execution=${encodeURIComponent(activeExecutionId)}`
+      : editorPath;
+    replace(href(nextPath));
+  }, [activeExecutionId, currentWorkflowId, href, isRunning, replace]);
 
   const messagesAutomationSeed = useMemo(
     () =>

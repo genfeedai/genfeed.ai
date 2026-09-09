@@ -17,10 +17,12 @@ export function SaveIndicator({
 }: SaveIndicatorProps) {
   const storeIsDirty = useWorkflowStore((state) => state.isDirty);
   const storeIsSaving = useWorkflowStore((state) => state.isSaving);
+  const workflowId = useWorkflowStore((state) => state.workflowId);
   const autoSaveEnabled = useSettingsStore((state) => state.autoSaveEnabled);
   const toggleAutoSave = useSettingsStore((state) => state.toggleAutoSave);
   const isDirty = isDirtyProp ?? storeIsDirty;
   const isSaving = isSavingProp ?? storeIsSaving;
+  const isPersisted = Boolean(workflowId);
   const isPill = variant === 'pill';
 
   if (!autoSaveEnabled) {
@@ -54,7 +56,7 @@ export function SaveIndicator({
     );
   }
 
-  if (isDirty) {
+  if (isDirty || !isPersisted) {
     return (
       <div
         className={

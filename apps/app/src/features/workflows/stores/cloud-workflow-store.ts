@@ -25,6 +25,8 @@ interface CloudWorkflowState {
   pendingTemplateId: string | null;
   /** Metadata to attach when first creating a workflow */
   pendingCreateMetadata: Record<string, unknown> | null;
+  /** Brand to attach on first create so the library brand filter can see it */
+  pendingBrandId: string | null;
   /** Current lifecycle status */
   lifecycle: CloudWorkflowData['lifecycle'];
   /** Organization owning this workflow */
@@ -83,6 +85,8 @@ interface CloudWorkflowActions {
     templateId: string | null,
     metadata?: Record<string, unknown> | null,
   ) => void;
+  /** Brand for the next create — matches the Automation library brand filter */
+  setPendingBrandId: (brandId: string | null) => void;
 }
 
 export interface CloudWorkflowStore
@@ -253,6 +257,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       }
     },
     organizationId: null,
+    pendingBrandId: null,
     pendingCreateMetadata: null,
     pendingTemplateId: null,
 
@@ -296,6 +301,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         inputVariables: [],
         lifecycle: WorkflowLifecycle.DRAFT,
         organizationId: null,
+        pendingBrandId: get().pendingBrandId,
         pendingCreateMetadata: null,
         pendingTemplateId: null,
         workflowId: null,
@@ -305,6 +311,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
     saveToCloud: async (service) => {
       const {
         inputVariables,
+        pendingBrandId,
         pendingCreateMetadata,
         pendingTemplateId,
         workflowId,
@@ -341,12 +348,17 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           // Create new workflow
           savedData = await service.create({
             ...payload,
+            ...(pendingBrandId ? { brandId: pendingBrandId } : {}),
             ...(pendingCreateMetadata
               ? { metadata: pendingCreateMetadata }
               : {}),
             label: payload.label || 'Untitled Workflow',
             ...(pendingTemplateId ? { templateId: pendingTemplateId } : {}),
           });
+
+          if (!savedData.id) {
+            throw new Error('Workflow save did not return an id');
+          }
 
           // Update IDs after first save
           set({
@@ -402,6 +414,9 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
     },
     setHydrated: (isHydrated) => {
       set({ isHydrated });
+    },
+    setPendingBrandId: (brandId) => {
+      set({ pendingBrandId: brandId });
     },
     setPendingTemplateCreate: (templateId, metadata = null) => {
       set({

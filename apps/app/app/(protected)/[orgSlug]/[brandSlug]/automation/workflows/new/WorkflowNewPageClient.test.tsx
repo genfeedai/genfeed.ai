@@ -35,6 +35,15 @@ describe(relativePath, () => {
     expect(source).not.toContain('rightContent=');
   });
 
+  it('leaves /workflows/new for the persisted editor after first save', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).toContain('APP_ROUTES.AUTOMATION.WORKFLOWS');
+    expect(source).toContain('replace(href(');
+    expect(source).toContain('currentWorkflowId');
+    expect(source).toContain('if (!currentWorkflowId)');
+  });
+
   it('keeps module chrome mounted while the workflow loads', () => {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 
