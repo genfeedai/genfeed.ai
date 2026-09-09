@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AssetDeepLink from './asset-deep-link';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   assetId: 'asset-1' as string | null,
   brand: { brandId: 'brand-1', organizationId: 'org-1', isReady: true },

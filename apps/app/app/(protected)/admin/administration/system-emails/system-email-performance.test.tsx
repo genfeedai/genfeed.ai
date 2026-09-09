@@ -6,6 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SystemEmailPerformance from './system-email-performance';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   getPerformance: vi.fn(),
   getService: vi.fn(),
