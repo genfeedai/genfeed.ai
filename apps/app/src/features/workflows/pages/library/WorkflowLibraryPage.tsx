@@ -1,10 +1,12 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -59,6 +61,7 @@ export default function WorkflowLibraryPage() {
     setPage,
   } = useWorkflowLibraryPage();
   const isDesktopShell = isDesktopClient();
+  const pageHelp = usePageHelp();
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);
@@ -69,21 +72,25 @@ export default function WorkflowLibraryPage() {
     <SectionTopbar
       title={translate('library.title')}
       titleVisibility="sr-only"
+      help={null}
+      leading={
+        <div className="flex w-64 items-center gap-3">
+          <FormSearchbar
+            className="min-w-0 flex-1"
+            inputClassName="h-8 rounded-md border-border bg-card text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
+            onSearch={setSearchInput}
+            placeholder={translate('library.searchPlaceholder')}
+            size={ComponentSize.SM}
+            value={searchInput}
+          />
+          {isLoading && workflows.length > 0 ? (
+            <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+          ) : null}
+        </div>
+      }
       actions={
-        <div className="flex items-center gap-2">
-          <div className="flex w-64 items-center gap-3">
-            <FormSearchbar
-              className="min-w-0 flex-1"
-              inputClassName="h-8 rounded-md border-border bg-card text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
-              onSearch={setSearchInput}
-              placeholder={translate('library.searchPlaceholder')}
-              size={ComponentSize.SM}
-              value={searchInput}
-            />
-            {isLoading && workflows.length > 0 ? (
-              <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
-            ) : null}
-          </div>
+        <div className="ml-auto flex items-center gap-2">
+          {pageHelp ? <HelpPopover help={pageHelp} /> : null}
           <Button
             asChild
             size={ButtonSize.SM}
@@ -104,7 +111,7 @@ export default function WorkflowLibraryPage() {
     return (
       <div className="flex min-h-0 flex-col">
         {topbar}
-        <Container>
+        <Container help={null}>
           <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-6 text-center">
             <p className="text-destructive">{error}</p>
             <Button
@@ -124,7 +131,7 @@ export default function WorkflowLibraryPage() {
   return (
     <div className="flex min-h-0 flex-col">
       {topbar}
-      <Container>
+      <Container help={null}>
         {selectedIds.size > 0 ? (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-2">
             <span className="text-sm text-foreground">
