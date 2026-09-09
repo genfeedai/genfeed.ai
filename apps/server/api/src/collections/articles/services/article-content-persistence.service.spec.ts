@@ -82,6 +82,9 @@ describe('ArticleContentPersistenceService', () => {
         {
           category: ArticleCategory.POST,
           content: '<p>Body</p>',
+          // Stamped by the service so the recap and generation-result emails can
+          // read a completion time off the article itself.
+          generationCompletedAt: expect.any(String),
           label: 'Generated article',
           slug: 'generated-article',
           status: ArticleStatus.DRAFT,
