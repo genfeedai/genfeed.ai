@@ -172,14 +172,13 @@ export function useLibraryBrowser({
         params.set(LIBRARY_QUERY_KEYS.SORT, nextSort);
       }
 
-      if (nextViewMode !== 'grid') {
-        params.set(LIBRARY_QUERY_KEYS.VIEW, nextViewMode);
-      }
+      params.set(LIBRARY_QUERY_KEYS.VIEW, nextViewMode);
 
       const queryString = params.toString();
       const expectedSearch = queryString ? `?${queryString}` : '';
+      const currentQuery = searchParams?.toString() ?? '';
 
-      if (window.location.search !== expectedSearch) {
+      if (currentQuery !== queryString) {
         router.replace(`${pathname}${expectedSearch}`, { scroll: false });
       }
     },
@@ -190,6 +189,7 @@ export function useLibraryBrowser({
       pathname,
       router,
       search,
+      searchParams,
       seededCategories,
       sort,
       viewMode,

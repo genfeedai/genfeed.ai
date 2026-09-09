@@ -56,4 +56,12 @@ describe('createLibraryBrowserRoute', () => {
       }),
     ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.SEARCH}=launch%20teaser`);
   });
+
+  it('carries the view so a shared link keeps the layout', () => {
+    expect(
+      createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+        view: 'list',
+      }),
+    ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.VIEW}=list`);
+  });
 });

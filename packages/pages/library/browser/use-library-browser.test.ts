@@ -131,7 +131,35 @@ describe('useLibraryBrowser', () => {
       result.current.handleSearchChange('hero');
     });
 
-    expect(lastPushedSearch()).toBe('?search=hero');
+    expect(lastPushedSearch()).toBe('?search=hero&view=grid');
+  });
+
+  it('writes the selected view into the URL so a shared link keeps the layout', () => {
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleViewModeChange('list');
+    });
+
+    expect(lastPushedSearch()).toBe('?view=list');
+
+    act(() => {
+      result.current.handleViewModeChange('canvas');
+    });
+
+    expect(lastPushedSearch()).toBe('?view=canvas');
+  });
+
+  it('keeps contact sheet in the URL when switching back to grid', () => {
+    state.search = '?view=list';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    act(() => {
+      result.current.handleViewModeChange('grid');
+    });
+
+    expect(lastPushedSearch()).toBe('?view=grid');
   });
 
   it('defaults Recent to most-recently-updated', () => {
