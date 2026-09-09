@@ -606,7 +606,7 @@ describe('StudioGenerateWorkspace', () => {
       expect.objectContaining({ view: 'grid' }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'viewList' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'viewList' }));
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'list' }),

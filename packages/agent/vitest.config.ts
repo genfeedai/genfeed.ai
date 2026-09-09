@@ -14,6 +14,14 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/$1'),
+      },
+      {
         // jsdom suites never load the Sentry bundles: the server entry throws
         // outside a file:// URL and the client entry needs next/router.
         find: /^@sentry\/nextjs$/,
