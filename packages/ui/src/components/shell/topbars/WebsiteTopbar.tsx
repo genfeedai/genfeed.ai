@@ -103,7 +103,7 @@ const USE_CASE_LINKS = [
   { href: '/use-cases/ecommerce', label: 'E-Commerce' },
   { href: '/use-cases/founders', label: 'Founders' },
   { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
-  { href: '/use-cases', label: 'All use cases' },
+  { href: '/use-cases', label: 'All Use Cases' },
 ];
 
 const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];

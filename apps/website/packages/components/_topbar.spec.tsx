@@ -97,7 +97,7 @@ describe('WebsiteTopbar', () => {
     for (const [label, href] of [
       ['Creators', '/use-cases/creators'],
       ['Agencies', '/use-cases/agencies'],
-      ['All use cases', '/use-cases'],
+      ['All Use Cases', '/use-cases'],
     ]) {
       expect(screen.getByRole('link', { name: label })).toHaveAttribute(
         'href',
