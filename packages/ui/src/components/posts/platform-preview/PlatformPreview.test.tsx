@@ -93,6 +93,24 @@ describe('PlatformPreview', () => {
     ).toBeInTheDocument();
   });
 
+  it('never invents a handle for an author without one', () => {
+    const capability = requireCapability(CredentialPlatform.TWITTER);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { name: 'Genfeed' },
+          capability,
+          caption: 'Brand fallback preview',
+          platform: CredentialPlatform.TWITTER,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Genfeed')).toBeInTheDocument();
+    expect(screen.queryByText('@youraccount')).not.toBeInTheDocument();
+  });
+
   it('renders thread segments with per-post counters', () => {
     const capability = requireCapability(CredentialPlatform.TWITTER);
 

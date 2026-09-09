@@ -95,6 +95,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 describe('live generation activity', () => {
   it('reads scoped durable records after socket updates and missed-event recovery', () => {
+    mock.active = [fixture()];
     const { unmount } = renderHook(() => useLiveActivityFeed());
     mock.invalidate.mockClear();
     act(() => {
@@ -115,6 +116,23 @@ describe('live generation activity', () => {
     expect(mock.invalidate).toHaveBeenCalledTimes(4);
     unmount();
     expect(mock.handlers.size).toBe(0);
+  });
+  it('stops polling once nothing is running and the socket is connected', () => {
+    // The bell mounts on every page, so an unconditional interval polled the
+    // activity and inbox endpoints forever.
+    renderHook(() => useLiveActivityFeed());
+    mock.invalidate.mockClear();
+    act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS * 4));
+    expect(mock.invalidate).not.toHaveBeenCalled();
+    act(() => window.dispatchEvent(new Event('focus')));
+    expect(mock.invalidate).toHaveBeenCalledTimes(2);
+  });
+  it('keeps polling while the socket cannot deliver updates', () => {
+    mock.connectionState = 'disconnected';
+    renderHook(() => useLiveActivityFeed());
+    mock.invalidate.mockClear();
+    act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS));
+    expect(mock.invalidate).toHaveBeenCalledTimes(2);
   });
   it('counts active jobs outside recent history and shows each own completion once', () => {
     mock.active = [fixture()];

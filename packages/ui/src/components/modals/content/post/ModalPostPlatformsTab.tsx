@@ -424,13 +424,22 @@ export function buildComposerPreviewTargets(
         overrides.privacyStatus = config.visibility;
       }
 
+      // The connected account resolves avatar/name/handle. When it cannot be
+      // resolved — credentials still loading, or the credential disconnected —
+      // the target keeps its own stored handle rather than losing its identity
+      // to the brand fallback.
+      const resolvedAuthor = authorScope
+        ? resolvePreviewAuthor(authorScope, {
+            credentialId: config.credentialId,
+            platform: config.platform,
+          })
+        : undefined;
+      const fallbackHandle = config.handle?.trim() || undefined;
+
       return {
-        author: authorScope
-          ? resolvePreviewAuthor(authorScope, {
-              credentialId: config.credentialId,
-              platform: config.platform,
-            })
-          : { handle: config.handle },
+        author: resolvedAuthor?.handle
+          ? resolvedAuthor
+          : { ...resolvedAuthor, handle: fallbackHandle },
         id: config.credentialId,
         caption: config.description || globalDescription,
         media,

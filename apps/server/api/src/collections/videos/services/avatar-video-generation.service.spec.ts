@@ -175,6 +175,35 @@ describe('AvatarVideoGenerationService', () => {
     expect(websocketService.publishFileProcessing).not.toHaveBeenCalled();
   });
 
+  it('records an avatar failure with the payload shape the failure handler parses', async () => {
+    const { brandsService, failedGenerationService, heygenService, service } =
+      createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+      new Error('HeyGen rejected the job'),
+    );
+
+    await expect(
+      service.generateAvatarVideo(
+        {
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          audioUrl: 'https://cdn.example.com/audio.mp3',
+          text: 'Create the founder update',
+        },
+        context,
+      ),
+    ).rejects.toBeInstanceOf(HttpException);
+
+    // A bare id here throws in the handler's JSON.parse, which orphans the
+    // VIDEO_PROCESSING row and creates a duplicate activity with no entity.
+    const [, , , , , activityMetadata] =
+      failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
+    expect(JSON.parse((activityMetadata as { value: string }).value)).toEqual({
+      error: 'HeyGen rejected the job',
+      ingredientId: 'avatar-ingredient-1',
+    });
+  });
+
   it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {
     const {
       brandsService,

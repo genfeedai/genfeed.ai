@@ -139,10 +139,15 @@ export function getPlatformPreviewRenderer(
   );
 }
 
-function formatHandle(handle?: string): string {
+/**
+ * Returns `undefined` when no handle is known. Substituting a placeholder here
+ * paired a real account or brand name with an invented handle; callers render
+ * nothing instead.
+ */
+function formatHandle(handle?: string): string | undefined {
   const normalizedHandle = handle?.trim();
   if (!normalizedHandle) {
-    return `@${DEFAULT_PLATFORM_PREVIEW_AUTHOR_HANDLE}`;
+    return undefined;
   }
 
   return normalizedHandle.startsWith('@')
@@ -618,10 +623,13 @@ function AuthorRow({
         <p className="truncate text-sm font-semibold text-foreground">
           {authorName}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {handle}
-          {meta ? <> · {meta}</> : null}
-        </p>
+        {handle || meta ? (
+          <p className="truncate text-xs text-muted-foreground">
+            {handle}
+            {handle && meta ? <> · </> : null}
+            {meta}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -685,9 +693,11 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
               <p className="truncate text-sm font-semibold text-foreground">
                 {getAuthorName(target)}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {formatHandle(target.author?.handle)}
-              </p>
+              {formatHandle(target.author?.handle) ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  {formatHandle(target.author?.handle)}
+                </p>
+              ) : null}
             </div>
             <CharacterCounter state={target.captionState} />
           </div>
@@ -808,7 +818,7 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
           }
         >
           <p className="text-sm font-semibold">
-            {formatHandle(target.author?.handle)}
+            {formatHandle(target.author?.handle) ?? getAuthorName(target)}
           </p>
           <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm leading-5">
             {target.captionState.previewText.trim()

@@ -274,7 +274,13 @@ export class AvatarVideoGenerationService {
             userId: context.userId,
             key: ActivityKey.VIDEO_FAILED,
             source: ActivitySource.AVATAR_GENERATION,
-            value: ingredientId,
+            // Must match the processing activity's payload shape: the failure
+            // handler JSON-parses this to find the row it has to resolve.
+            value: JSON.stringify({
+              error:
+                error instanceof Error ? error.message : 'Generation failed',
+              ingredientId,
+            }),
           },
         );
       }

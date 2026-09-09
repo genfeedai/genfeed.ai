@@ -146,6 +146,7 @@ export function ActivityFeedContent({
               const titleContent = isBackgroundTask(activity) ? (
                 <GenerationStatus
                   compact
+                  isAnnounced={false}
                   completedCount={
                     typeof progress?.completedCount === 'number'
                       ? progress.completedCount

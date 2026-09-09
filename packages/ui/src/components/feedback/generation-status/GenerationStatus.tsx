@@ -18,6 +18,7 @@ export default function GenerationStatus({
   totalCount,
   detail,
   compact = false,
+  isAnnounced = true,
   className,
   onCancel,
   isCancelling = false,
@@ -63,9 +64,9 @@ export default function GenerationStatus({
     >
       <div className="flex min-w-0 items-center gap-2">
         <span
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
+          role={isAnnounced ? 'status' : undefined}
+          aria-live={isAnnounced ? 'polite' : undefined}
+          aria-atomic={isAnnounced ? 'true' : undefined}
           className={cn(
             'min-w-0 break-words font-medium',
             isActive && 'animate-text-shimmer',

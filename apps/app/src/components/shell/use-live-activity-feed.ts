@@ -73,6 +73,10 @@ export function useLiveActivityFeed() {
     [activity.filteredActivities, active.filteredActivities, organizationId],
   );
   const scopeKey = `${userId ?? ''}:${organizationId}`;
+  const activeCount = useMemo(
+    () => scopedActivities.filter(isActiveGenerationActivity).length,
+    [scopedActivities],
+  );
 
   useEffect(() => {
     if (!scopeReady || !isSignedIn || !userId || !organizationId) return;
@@ -102,18 +106,26 @@ export function useLiveActivityFeed() {
     const reconcileVisible = () => {
       if (document.visibilityState !== 'hidden') refresh();
     };
-    const interval = setInterval(reconcileVisible, ACTIVITY_RECONCILE_MS);
+    // The bell is mounted on every page, so an unconditional interval polled
+    // three endpoints forever. Reconcile on a timer only while something is
+    // running or the socket cannot deliver updates; focus, visibility, and
+    // socket events still refresh on demand.
+    const needsPolling = activeCount > 0 || connectionState !== 'connected';
+    const interval = needsPolling
+      ? setInterval(reconcileVisible, ACTIVITY_RECONCILE_MS)
+      : undefined;
     window.addEventListener('focus', reconcileVisible);
     document.addEventListener('visibilitychange', reconcileVisible);
     if (connectionState === 'connected') refresh();
     return () => {
       if (timer) clearTimeout(timer);
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       for (const dispose of disposers) dispose();
       window.removeEventListener('focus', reconcileVisible);
       document.removeEventListener('visibilitychange', reconcileVisible);
     };
   }, [
+    activeCount,
     client,
     connectionState,
     isReady,
@@ -189,7 +201,7 @@ export function useLiveActivityFeed() {
     isError: activity.isError || active.isError,
     isLoading: activity.isLoading || active.isLoading,
     filteredActivities: scopedActivities,
-    activeCount: scopedActivities.filter(isActiveGenerationActivity).length,
+    activeCount,
     connectionState,
     getActivityHref: (item: (typeof scopedActivities)[number]) =>
       getGenerationActivityHref(item, { organizationId, orgSlug, brands }),

@@ -336,3 +336,36 @@ it('preserves exact account IDs and supplies each connected account identity to 
     },
   ]);
 });
+
+it('keeps the target handle when its connected account cannot be resolved', () => {
+  // Credentials are still loading, or the credential was disconnected. The
+  // brand fallback must not replace the target's own stored handle.
+  const targets = buildComposerPreviewTargets(
+    [
+      platformConfig({
+        credentialId: 'cred-twitter',
+        handle: 'genfeed-x',
+        platform: CredentialPlatform.TWITTER,
+      }),
+    ],
+    [],
+    '',
+    '',
+    {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      selectedBrand: {
+        id: 'brand-1',
+        organizationId: 'org-1',
+        label: 'Genfeed',
+        logoUrl: 'https://example.com/logo.jpg',
+      },
+      credentials: [],
+    },
+  );
+
+  expect(targets[0]?.author).toMatchObject({
+    handle: 'genfeed-x',
+    name: 'Genfeed',
+  });
+});

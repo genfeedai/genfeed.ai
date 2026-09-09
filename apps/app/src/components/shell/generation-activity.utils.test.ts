@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getGenerationActivityHref,
   getGenerationActivityStatus,
+  isActiveGenerationActivity,
   mergeGenerationActivities,
 } from './generation-activity.utils';
 
@@ -60,6 +61,43 @@ describe('generation activity destinations', () => {
         }),
       ),
     ).toBe('cancelled');
+  });
+  it('counts only server-active generation keys as in flight', () => {
+    expect(
+      isActiveGenerationActivity(
+        fixture({ key: ActivityKey.IMAGE_PROCESSING }),
+      ),
+    ).toBe(true);
+    expect(
+      isActiveGenerationActivity(
+        fixture({ key: ActivityKey.MODELS_TRAINING_CREATED }),
+      ),
+    ).toBe(true);
+    // Creating or scheduling a post is terminal for the bell: the lifecycle
+    // mapping calls both "processing", but the server's activeOnly filter does
+    // not, so the badge used to never clear.
+    expect(
+      isActiveGenerationActivity(fixture({ key: ActivityKey.POST_CREATED })),
+    ).toBe(false);
+    expect(
+      isActiveGenerationActivity(fixture({ key: ActivityKey.POST_SCHEDULED })),
+    ).toBe(false);
+  });
+  it('does not render created or scheduled posts as still generating', () => {
+    expect(
+      getGenerationActivityStatus(fixture({ key: ActivityKey.POST_CREATED })),
+    ).toBe('ready');
+    expect(
+      getGenerationActivityStatus(fixture({ key: ActivityKey.POST_SCHEDULED })),
+    ).toBe('ready');
+    expect(
+      getGenerationActivityStatus(
+        fixture({ key: ActivityKey.IMAGE_PROCESSING }),
+      ),
+    ).toBe('generating');
+    expect(
+      getGenerationActivityStatus(fixture({ key: ActivityKey.IMAGE_FAILED })),
+    ).toBe('failed');
   });
   it('keeps the newest durable status when active and recent queries overlap', () => {
     const complete = fixture({ updatedAt: '2026-09-09T10:01:00Z' });

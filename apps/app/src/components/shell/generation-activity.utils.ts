@@ -1,4 +1,4 @@
-import { parseActivityKey } from '@genfeedai/contracts';
+import { ActivityKey, parseActivityKey } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createArtifactEditorRoute,
@@ -13,19 +13,30 @@ import {
   parseActivityValue,
 } from '@pages/activities/activities-list.utils';
 
+/**
+ * A row is in flight only when its key is one the server's `activeOnly` filter
+ * would return (`activities.controller.ts`). The shared lifecycle mapping folds
+ * `created` and `scheduled` into `processing` for badge copy, so reusing it here
+ * counted every created or scheduled post as a running generation and the bell
+ * badge never cleared.
+ */
+export function isInFlightGenerationKey(key: string): boolean {
+  return (
+    key.endsWith('-processing') || key === ActivityKey.MODELS_TRAINING_CREATED
+  );
+}
+
 export function isActiveGenerationActivity(activity: IActivity): boolean {
-  if (!isBackgroundTask(activity)) return false;
-  const status = getBackgroundTaskStatus(activity.key);
-  return status === 'pending' || status === 'processing';
+  return isBackgroundTask(activity) && isInFlightGenerationKey(activity.key);
 }
 
 export function getGenerationActivityStatus(activity: IActivity) {
   const value = parseActivityValue(activity.value);
   if (value?.error === 'Cancelled by user') return 'cancelled' as const;
+  if (isInFlightGenerationKey(activity.key)) return 'generating' as const;
   const status = getBackgroundTaskStatus(activity.key);
-  if (status === 'pending') return 'queued' as const;
-  if (status === 'processing') return 'generating' as const;
   if (status === 'failed') return 'failed' as const;
+  if (status === 'pending') return 'queued' as const;
   return 'ready' as const;
 }
 
