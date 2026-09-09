@@ -2,7 +2,6 @@
 
 import { ComponentSize, PostStatus } from '@genfeedai/contracts';
 import type { PublishingPostsView } from '@pages/posts/list/posts-list-query';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -72,7 +71,7 @@ export default function PostsListToolbar({
         >
           <SelectTrigger
             aria-label={translate('toolbar.publishingStateAria')}
-            className="h-8 w-32 rounded-md border-border bg-card text-foreground"
+            className="w-32"
           >
             <SelectValue />
           </SelectTrigger>
@@ -86,13 +85,18 @@ export default function PostsListToolbar({
         </Select>
       ) : null}
 
-      <ButtonDropdown
-        name="sort"
-        value={sortValue}
-        options={sortOptions}
-        onChange={(_name, value) => onSortChange(value)}
-        className="h-8 rounded-md border border-border bg-secondary px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
-      />
+      <Select value={sortValue} onValueChange={onSortChange}>
+        <SelectTrigger aria-label="Sort" className="w-40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {sortOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { IngredientCategory } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryBrowserToolbar from './library-browser-toolbar';
 
@@ -45,8 +45,18 @@ vi.mock('@ui/dropdowns/multiselect/DropdownMultiSelect', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
-  default: () => <div data-testid="sort-dropdown" />,
+vi.mock('@ui/primitives/select', () => ({
+  Select: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="sort-select">{children}</div>
+  ),
+  SelectContent: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SelectItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SelectTrigger: ({ children }: { children?: ReactNode }) => (
+    <button type="button">{children}</button>
+  ),
+  SelectValue: () => <span>Newest first</span>,
 }));
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
@@ -88,11 +98,9 @@ function renderToolbar(
       onCategoriesChange={vi.fn()}
       onClearCategories={vi.fn()}
       onRefresh={vi.fn()}
-      onSearchChange={vi.fn()}
       onSortChange={vi.fn()}
       onUpload={vi.fn()}
       onViewModeChange={vi.fn()}
-      search=""
       sort="createdAt: -1"
       sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
       viewMode="list"
@@ -100,10 +108,6 @@ function renderToolbar(
     />,
   );
 }
-
-vi.mock('@ui/primitives/searchbar', () => ({
-  default: () => <div data-testid="searchbar" />,
-}));
 
 describe('LibraryBrowserToolbar', () => {
   beforeEach(() => {
@@ -120,11 +124,9 @@ describe('LibraryBrowserToolbar', () => {
         onCategoriesChange={onCategoriesChange}
         onClearCategories={vi.fn()}
         onRefresh={vi.fn()}
-        onSearchChange={vi.fn()}
         onSortChange={vi.fn()}
         onUpload={vi.fn()}
         onViewModeChange={vi.fn()}
-        search=""
         sort="createdAt: -1"
         sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
         viewMode="list"
@@ -159,11 +161,9 @@ describe('LibraryBrowserToolbar', () => {
         onCategoriesChange={vi.fn()}
         onClearCategories={vi.fn()}
         onRefresh={vi.fn()}
-        onSearchChange={vi.fn()}
         onSortChange={vi.fn()}
         onUpload={vi.fn()}
         onViewModeChange={vi.fn()}
-        search=""
         sort="createdAt: -1"
         sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
         viewMode="list"
@@ -178,6 +178,7 @@ describe('LibraryBrowserToolbar', () => {
       screen.getByRole('button', { name: 'Upload' }),
     );
     expect(rightCluster?.lastElementChild).toBe(iconActions);
+    expect(screen.queryByTestId('searchbar')).not.toBeInTheDocument();
   });
 
   it('arranges the same result set three ways, canvas included', () => {

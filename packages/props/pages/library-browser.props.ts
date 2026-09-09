@@ -43,15 +43,12 @@ export interface LibraryBrowserSortOption {
 
 export interface LibraryBrowserToolbarProps {
   categories: IngredientCategory[];
-  search: string;
-  searchPlaceholder?: string;
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
   onCategoriesChange: (categories: IngredientCategory[]) => void;
   onClearCategories: () => void;
-  onSearchChange: (search: string) => void;
   onSortChange: (sort: string) => void;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
   onRefresh: () => void;
