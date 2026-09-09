@@ -9,14 +9,69 @@ import {
   Bot,
   Building2,
   ChartColumn,
+  Clapperboard,
   Cpu,
+  GraduationCap,
   HeartHandshake,
+  Megaphone,
+  Rocket,
   Send,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Terminal,
+  UserRound,
   Users,
 } from 'lucide-react';
+
+/**
+ * Who it is for. First in the bar: the question people arrive with is whether
+ * this is built for someone like them, and they leave if nothing answers it.
+ */
+const USE_CASE_LINKS = [
+  {
+    description: 'Ship more without the edit backlog',
+    group: 'Solo',
+    href: '/use-cases/creators',
+    icon: Clapperboard,
+    label: 'Creators',
+  },
+  {
+    description: 'Grow an audience while you build',
+    group: 'Solo',
+    href: '/use-cases/founders',
+    icon: Rocket,
+    label: 'Founders',
+  },
+  {
+    description: 'Personas that post and engage on their own',
+    group: 'Solo',
+    href: '/use-cases/ai-influencers',
+    icon: UserRound,
+    label: 'AI Influencers',
+  },
+  {
+    description: 'Client workspaces, approvals, and bulk output',
+    group: 'Teams',
+    href: '/use-cases/agencies',
+    icon: Building2,
+    label: 'Agencies',
+  },
+  {
+    description: 'Test messages fast, track what converts',
+    group: 'Teams',
+    href: '/use-cases/marketers',
+    icon: Megaphone,
+    label: 'Marketers',
+  },
+  {
+    description: 'Product content for every channel',
+    group: 'Commerce',
+    href: '/use-cases/ecommerce',
+    icon: ShoppingBag,
+    label: 'E-Commerce',
+  },
+];
 
 /** What the platform is. Grouped, so it renders as the full-width panel. */
 const PRODUCT_LINKS = [
@@ -71,39 +126,32 @@ const PRODUCT_LINKS = [
 const SOLUTIONS_LINKS = [
   {
     description: 'A shared studio with roles and approvals',
+    group: 'Self-serve',
     href: '/cloud',
     icon: Users,
     label: 'Teams',
   },
   {
     description: 'Agents that create and publish on a schedule',
+    group: 'Automated',
     href: '/hire-agents',
     icon: Bot,
     label: 'Hire Agents',
   },
   {
     description: 'We run the content system for you',
+    group: 'Managed',
     href: '/done-for-you',
     icon: HeartHandshake,
     label: 'Done For You',
   },
   {
     description: 'Training and content consultancy',
+    group: 'Managed',
     href: '/services',
-    icon: Building2,
+    icon: GraduationCap,
     label: 'Services',
   },
-];
-
-/** Who it is for. A plain list — the audience pages carry their own pitch. */
-const USE_CASE_LINKS = [
-  { href: '/use-cases/creators', label: 'Creators' },
-  { href: '/use-cases/agencies', label: 'Agencies' },
-  { href: '/use-cases/marketers', label: 'Marketers' },
-  { href: '/use-cases/ecommerce', label: 'E-Commerce' },
-  { href: '/use-cases/founders', label: 'Founders' },
-  { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
-  { href: '/use-cases', label: 'All Use Cases' },
 ];
 
 const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
@@ -116,6 +164,15 @@ export default function WebsiteTopbar() {
       dropdowns={[
         {
           footer: {
+            description: 'Every audience runs the same system, its own way.',
+            href: '/use-cases',
+            label: 'Browse all use cases',
+          },
+          items: USE_CASE_LINKS,
+          label: 'Use Cases',
+        },
+        {
+          footer: {
             description:
               'One content system from first brief to verified result.',
             href: '/features',
@@ -124,8 +181,15 @@ export default function WebsiteTopbar() {
           items: PRODUCT_LINKS,
           label: 'Product',
         },
-        { items: SOLUTIONS_LINKS, label: 'Solutions' },
-        { items: USE_CASE_LINKS, label: 'Use Cases' },
+        {
+          footer: {
+            description: 'Every path runs on the same platform and pricing.',
+            href: '/pricing',
+            label: 'Compare plans',
+          },
+          items: SOLUTIONS_LINKS,
+          label: 'Solutions',
+        },
       ]}
       navLinks={NAV_LINKS}
       rightContent={

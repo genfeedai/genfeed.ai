@@ -62,20 +62,24 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('offers product, solutions, and use cases as the only menus', () => {
+  it('leads with the audience question, then what it is and how to buy it', () => {
     render(<WebsiteTopbar />);
 
-    for (const menu of ['Product', 'Solutions', 'Use Cases']) {
-      expect(
-        screen.getByRole('button', { name: new RegExp(menu, 'i') }),
-      ).toBeInTheDocument();
-    }
+    const menus = screen
+      .getAllByRole('button', { expanded: false })
+      .map((trigger) => trigger.textContent?.trim());
+
+    expect(menus).toEqual(['Use Cases', 'Product', 'Solutions']);
   });
 
   it('groups delivery shapes under solutions', () => {
     render(<WebsiteTopbar />);
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /solutions/i }));
+
+    for (const group of ['Self-serve', 'Automated', 'Managed']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
 
     for (const [label, href] of [
       ['Teams', '/cloud'],
@@ -94,15 +98,22 @@ describe('WebsiteTopbar', () => {
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /use cases/i }));
 
+    for (const group of ['Solo', 'Teams', 'Commerce']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+
     for (const [label, href] of [
       ['Creators', '/use-cases/creators'],
+      ['Founders', '/use-cases/founders'],
+      ['AI Influencers', '/use-cases/ai-influencers'],
       ['Agencies', '/use-cases/agencies'],
-      ['All Use Cases', '/use-cases'],
+      ['Marketers', '/use-cases/marketers'],
+      ['E-Commerce', '/use-cases/ecommerce'],
+      ['Browse all use cases', '/use-cases'],
     ]) {
-      expect(screen.getByRole('link', { name: label })).toHaveAttribute(
-        'href',
-        href,
-      );
+      expect(
+        screen.getByRole('link', { name: new RegExp(label, 'i') }),
+      ).toHaveAttribute('href', href);
     }
 
     expect(
