@@ -78,10 +78,9 @@ export const semanticColorTokens = {
     backgroundTertiary: { hex: '#1F1F1F', hsl: '0 0% 12%' },
     border: { hex: '#262626', hsl: '0 0% 15%' },
     borderStrong: { hex: '#3D3D3D', hsl: '0 0% 24%' },
-    // background-200 — the same raised plane as backgroundSecondary and popover,
-    // which is what a card is. At 5% it sat 1.02:1 off the canvas: a fill nobody
-    // could see, so "featured" panels reached for one-off rgba lifts instead.
-    card: { hex: '#161616', hsl: '0 0% 9%' },
+    // Lighter than the canvas, so a card reads as raised without a border.
+    // 5% (not 9%) so dark panels separate from the 4% canvas.
+    card: { hex: '#0D0D0D', hsl: '0 0% 5%' },
     cardForeground: { hex: '#EDEDED', hsl: '0 0% 93%' },
     // #DC2626 only reaches 4.10:1 on this canvas — fails AA as text.
     destructive: { hex: '#FF6166', hsl: '358 100% 69%' },
