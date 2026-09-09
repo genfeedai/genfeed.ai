@@ -34,16 +34,21 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     label,
+    leading,
     right,
     children,
   }: {
     label: string;
+    leading?: ReactNode;
     right: ReactNode;
     children: ReactNode;
   }) => (
     <main>
       <h1>{label}</h1>
-      <header>{right}</header>
+      <header>
+        {leading}
+        {right}
+      </header>
       {children}
     </main>
   ),

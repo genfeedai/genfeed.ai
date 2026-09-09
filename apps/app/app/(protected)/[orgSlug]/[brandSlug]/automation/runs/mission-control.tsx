@@ -68,18 +68,16 @@ export default function MissionControl() {
     <Container
       label="Workflow Executions"
       titleVisibility="sr-only"
-      right={
-        <>
-          <FormSearchbar
-            className="w-full sm:w-64"
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search workflow executions"
-            size={ComponentSize.SM}
-            value={searchQuery}
-          />
-          <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
-        </>
+      leading={
+        <FormSearchbar
+          className="w-64"
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search workflow executions"
+          size={ComponentSize.SM}
+          value={searchQuery}
+        />
       }
+      right={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
     >
       <div className="flex flex-col gap-6">
         {isError && executions.length > 0 ? (

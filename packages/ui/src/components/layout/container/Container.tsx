@@ -40,6 +40,7 @@ export default function Container({
   activeTab: controlledActiveTab,
   onTabChange: controlledOnTabChange,
   left,
+  leading,
   right,
   help,
   children,
@@ -50,6 +51,7 @@ export default function Container({
   const isNested = useContext(ContainerInsetContext);
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
   const hasLeft = Boolean(left);
+  const hasLeading = Boolean(leading);
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
   const routeHelp = usePageHelp();
   // Nested containers never repeat the page-level help trigger.
@@ -88,6 +90,7 @@ export default function Container({
       hasHeaderTabs ||
       shouldPromoteBodyTabs ||
       shouldLiftBodyTabsAlone ||
+      hasLeading ||
       (!hasVisibleTitle && hasHeaderRight)
     );
 
@@ -99,6 +102,7 @@ export default function Container({
     hasHeaderTabs ||
     shouldPromoteBodyTabs ||
     shouldLiftBodyTabsAlone ||
+    hasLeading ||
     (!hasVisibleTitle && hasHeaderRight);
 
   // Visible title + primary actions only (e.g. admin "Invite") — padded row.
@@ -165,6 +169,7 @@ export default function Container({
             ) : (
               <h1 className="sr-only">{sectionTitle}</h1>
             )}
+            {leading}
             {right}
             {helpNode}
             {moduleTabsNode}
@@ -175,6 +180,7 @@ export default function Container({
             subtitle={sectionSubtitle}
             icon={sectionIcon}
             titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
+            leading={leading}
             actions={
               right ? (
                 <div
