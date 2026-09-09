@@ -56,9 +56,8 @@ describe('StudioGenerateSettingsPopover', () => {
       />,
     );
 
-    fireEvent.pointerDown(
+    fireEvent.click(
       screen.getByRole('button', { name: 'Generation settings' }),
-      { button: 0, ctrlKey: false },
     );
     fireEvent.change(screen.getByLabelText('Duration'), {
       target: { value: '5000.4' },
@@ -88,9 +87,8 @@ describe('StudioGenerateSettingsPopover', () => {
       />,
     );
 
-    fireEvent.pointerDown(
+    fireEvent.click(
       screen.getByRole('button', { name: 'Generation settings' }),
-      { button: 0, ctrlKey: false },
     );
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
 

@@ -1,14 +1,22 @@
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateInspector from './StudioGenerateInspector';
 
-const mocks = vi.hoisted(() => ({
-  findChildren: vi.fn(),
-  getPosts: vi.fn(),
-  href: vi.fn((path: string) => `/acme/northstar${path}`),
-}));
+const mocks = vi.hoisted(() => {
+  const findChildren = vi.fn();
+  const getPosts = vi.fn();
+  const service = { findChildren, getPosts };
+
+  return {
+    findChildren,
+    getPosts,
+    href: vi.fn((path: string) => `/acme/northstar${path}`),
+    resolveService: async () => service,
+  };
+});
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -18,11 +26,11 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+// `useAuthedService` hands back a `useCallback`-stable resolver. Minting a new
+// async function per render invalidates every consumer callback built on it,
+// which re-fires their effects on each commit and spins the component forever.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    findChildren: mocks.findChildren,
-    getPosts: mocks.getPosts,
-  }),
+  useAuthedService: () => mocks.resolveService,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -101,7 +109,7 @@ describe('StudioGenerateInspector', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Used in' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Used in' }));
 
     await waitFor(() =>
       expect(
@@ -110,7 +118,7 @@ describe('StudioGenerateInspector', () => {
     );
   });
 
-  it('lists other outputs in the same run as history', () => {
+  it('lists other outputs in the same run as history', async () => {
     const sibling = {
       ...recipeJob,
       id: 'job-2',
@@ -127,7 +135,7 @@ describe('StudioGenerateInspector', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: 'History' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'History' }));
 
     expect(
       screen.getByRole('button', { name: 'Sibling output' }),
@@ -221,6 +229,11 @@ describe('StudioGenerateInspector', () => {
       />,
     );
 
-    expect(screen.getByText(prompt)).toBeVisible();
+    // A prompt-only job gets the synthesized fallback recipe, so the panel
+    // appends its enrichment summary. Assert the stored prompt is rendered
+    // whole rather than pinning the exact text node.
+    expect(screen.getByTestId('studio-generate-inspector')).toHaveTextContent(
+      prompt,
+    );
   });
 });

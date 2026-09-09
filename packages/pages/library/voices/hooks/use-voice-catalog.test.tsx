@@ -8,6 +8,16 @@ const mockFindAllPages = vi.fn();
 const mockUseAuthedService = vi.fn();
 const mockLoggerError = vi.fn();
 
+// `useAuthedService` returns a `useCallback`-stable async resolver, so the
+// consumer's `refresh` identity survives a re-render. A mock that rebuilds its
+// return value each render makes `refresh` unstable, which re-fires the effect
+// on every commit and spins the hook forever — keep this reference stable.
+const voicesService = {
+  findAll: mockFindAll,
+  findAllPages: mockFindAllPages,
+};
+const resolveVoicesService = async () => voicesService;
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (...args: unknown[]) => mockUseAuthedService(...args),
 }));
@@ -27,16 +37,14 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-import { VoiceProvider } from '@genfeedai/contracts';
+import { IngredientStatus, VoiceProvider } from '@genfeedai/contracts';
 
 import { useVoiceCatalog } from './use-voice-catalog';
 
 describe('useVoiceCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAuthedService.mockImplementation(
-      (factory: (token: string) => unknown) => factory('token-123'),
-    );
+    mockUseAuthedService.mockImplementation(() => resolveVoicesService);
   });
 
   it('serves a single server page when the caller drives its own pagination', async () => {
@@ -63,11 +71,11 @@ describe('useVoiceCatalog', () => {
       providers: [VoiceProvider.ELEVENLABS],
       search: 'rachel',
       status: [
-        'draft',
-        'uploaded',
-        'processing',
-        'generated',
-        'failed',
+        IngredientStatus.DRAFT,
+        IngredientStatus.UPLOADED,
+        IngredientStatus.PROCESSING,
+        IngredientStatus.GENERATED,
+        IngredientStatus.FAILED,
         'completed',
       ],
     });
