@@ -202,7 +202,8 @@ export default function Searchbar({
         placeholder={placeholder}
         className={cn(
           sizeClass,
-          'w-full border border-input bg-background px-3 text-foreground',
+          'w-full rounded-md border border-border bg-card px-3 text-foreground placeholder:text-foreground/40',
+          'focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-0',
           showIcon && 'pl-10',
           showClearButton && displayedValue && 'pr-8',
           inputClassName,

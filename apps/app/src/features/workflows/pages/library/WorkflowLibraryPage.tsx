@@ -7,7 +7,6 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -67,30 +66,24 @@ export default function WorkflowLibraryPage() {
   >(null);
 
   const isInitialLoading = isLoading && (workflows ?? []).length === 0;
+  const isEmpty = !isLoading && workflows.length === 0 && !searchInput;
 
-  const topbar = (
-    <SectionTopbar
-      title={translate('library.title')}
-      titleVisibility="sr-only"
-      help={null}
-      leading={
-        <div className="flex w-64 items-center gap-3">
-          <FormSearchbar
-            className="min-w-0 flex-1"
-            inputClassName="h-8 rounded-md border-border bg-card text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
-            onSearch={setSearchInput}
-            placeholder={translate('library.searchPlaceholder')}
-            size={ComponentSize.SM}
-            value={searchInput}
-          />
-          {isLoading && workflows.length > 0 ? (
-            <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
-          ) : null}
-        </div>
-      }
-      actions={
-        <div className="ml-auto flex items-center gap-2">
-          {pageHelp ? <HelpPopover help={pageHelp} /> : null}
+  const libraryChrome = {
+    help: null,
+    label: translate('library.title'),
+    leading: (
+      <FormSearchbar
+        className="w-64"
+        onSearch={setSearchInput}
+        placeholder={translate('library.searchPlaceholder')}
+        size={ComponentSize.SM}
+        value={searchInput}
+      />
+    ),
+    right: (
+      <div className="flex items-center gap-2">
+        {pageHelp ? <HelpPopover help={pageHelp} /> : null}
+        {isEmpty ? null : (
           <Button
             asChild
             size={ButtonSize.SM}
@@ -102,283 +95,281 @@ export default function WorkflowLibraryPage() {
               {translate('library.newWorkflow')}
             </Link>
           </Button>
-        </div>
-      }
-    />
-  );
+        )}
+        {isLoading && workflows.length > 0 ? (
+          <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+        ) : null}
+      </div>
+    ),
+    titleVisibility: 'sr-only' as const,
+  };
 
   if (error) {
     return (
-      <div className="flex min-h-0 flex-col">
-        {topbar}
-        <Container help={null}>
-          <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-6 text-center">
-            <p className="text-destructive">{error}</p>
-            <Button
-              label={translate('actions.retry')}
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => {
-                const controller = new AbortController();
-                loadWorkflows(controller.signal);
-              }}
-            />
-          </div>
-        </Container>
-      </div>
+      <Container {...libraryChrome}>
+        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-6 text-center">
+          <p className="text-destructive">{error}</p>
+          <Button
+            label={translate('actions.retry')}
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => {
+              const controller = new AbortController();
+              loadWorkflows(controller.signal);
+            }}
+          />
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-col">
-      {topbar}
-      <Container help={null}>
-        {selectedIds.size > 0 ? (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-2">
-            <span className="text-sm text-foreground">
-              {translate('library.selectedCount', { count: selectedIds.size })}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => {
-                  void handleDisableSelected();
-                }}
-              >
-                <Pause className="size-4" />
-                {translate('library.disableSelected')}
-              </Button>
-              <Button
-                variant={ButtonVariant.UNSTYLED}
-                onClick={clearSelection}
-                className="text-sm text-foreground/70 hover:text-foreground"
-              >
-                {translate('library.clearSelection')}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        {isInitialLoading ? (
-          <div
-            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-            data-testid="library-skeleton"
-          >
-            {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
-              (skeletonId) => (
-                <div
-                  key={skeletonId}
-                  className="h-64 animate-pulse rounded-card bg-card shadow-border"
-                />
-              ),
-            )}
-          </div>
-        ) : workflows.length === 0 && !searchInput ? (
-          <EmptyWorkflowState />
-        ) : workflows.length === 0 && searchInput ? (
-          <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
-            <p className="text-sm text-foreground/50">
-              {translate('library.noMatching', { search: searchInput })}
-            </p>
-          </div>
-        ) : (
-          <div
-            className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
-            data-testid="library-content"
-          >
-            {/* New Workflow card */}
+    <Container {...libraryChrome}>
+      {selectedIds.size > 0 ? (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-2">
+          <span className="text-sm text-foreground">
+            {translate('library.selectedCount', { count: selectedIds.size })}
+          </span>
+          <div className="flex items-center gap-2">
             <Button
-              asChild
-              className="group flex items-center justify-center rounded-card border-2 border-dashed border-border bg-card/40 p-4 transition-[border-color,background-color] duration-200 hover:border-border-strong hover:bg-card/60"
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                void handleDisableSelected();
+              }}
+            >
+              <Pause className="size-4" />
+              {translate('library.disableSelected')}
+            </Button>
+            <Button
               variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
+              onClick={clearSelection}
+              className="text-sm text-foreground/70 hover:text-foreground"
             >
-              <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
-                <div className="flex flex-col items-center gap-3 py-8">
-                  <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
-                    <Plus className="size-7 text-foreground/50" />
-                  </div>
-                  <span className="text-sm font-medium text-foreground/70">
-                    {translate('library.newWorkflow')}
-                  </span>
+              {translate('library.clearSelection')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {isInitialLoading ? (
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          data-testid="library-skeleton"
+        >
+          {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
+            (skeletonId) => (
+              <div
+                key={skeletonId}
+                className="h-64 animate-pulse rounded-card bg-card shadow-border"
+              />
+            ),
+          )}
+        </div>
+      ) : workflows.length === 0 && !searchInput ? (
+        <EmptyWorkflowState />
+      ) : workflows.length === 0 && searchInput ? (
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
+          <p className="text-sm text-foreground/50">
+            {translate('library.noMatching', { search: searchInput })}
+          </p>
+        </div>
+      ) : (
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          data-testid="library-content"
+        >
+          {/* New Workflow card */}
+          <Button
+            asChild
+            className="group flex items-center justify-center rounded-card border-2 border-dashed border-border bg-card/40 p-4 transition-[border-color,background-color] duration-200 hover:border-border-strong hover:bg-card/60"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          >
+            <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
+                  <Plus className="size-7 text-foreground/50" />
                 </div>
-              </Link>
-            </Button>
+                <span className="text-sm font-medium text-foreground/70">
+                  {translate('library.newWorkflow')}
+                </span>
+              </div>
+            </Link>
+          </Button>
 
-            {/* Workflow cards */}
-            {workflows.map((workflow) => {
-              const isSystemWorkflow = isCanonicalSystemWorkflow(workflow);
+          {/* Workflow cards */}
+          {workflows.map((workflow) => {
+            const isSystemWorkflow = isCanonicalSystemWorkflow(workflow);
 
-              return (
-                <Card
-                  key={workflow.id}
-                  className="group h-full hover:-translate-y-0.5"
-                  label={workflow.label}
-                  description={
-                    workflow.description ??
-                    'Reusable automation workflow for content operations.'
-                  }
-                  headerAction={
-                    <div className="relative z-20 flex shrink-0 items-center gap-2">
-                      <Checkbox
-                        aria-label={translate('library.selectWorkflow', {
-                          name: workflow.label,
-                        })}
-                        checked={selectedIds.has(workflow.id)}
-                        onCheckedChange={() => toggleSelected(workflow.id)}
-                      />
-                      {isSystemWorkflow ? (
-                        <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
-                          {translate('library.system')}
-                        </span>
-                      ) : null}
-                      {isDesktopShell &&
-                      isCapable &&
-                      isConnected &&
-                      workflow.cloudSync ? (
-                        <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
-                          <Cloud className="size-3" />
-                          {translate('library.synced')}
-                        </span>
-                      ) : isDesktopShell && isCapable && isConnected ? (
-                        <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          <CloudUpload className="size-3" />
-                          {translate('library.local')}
-                        </span>
-                      ) : null}
-                      {isNonDefaultWorkflowLifecycle(workflow.lifecycle) ? (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
-                            workflow.lifecycle,
-                          )}`}
-                        >
-                          {formatLifecycleLabel(workflow.lifecycle)}
-                        </span>
-                      ) : null}
-                      <WorkflowCardDropdown
-                        canDelete={!isSystemWorkflow}
-                        onDuplicate={() => handleDuplicate(workflow.id)}
-                        onDelete={() => handleDelete(workflow.id)}
-                        onOpen={() =>
-                          push(
-                            href(
-                              `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
-                            ),
-                          )
-                        }
-                        onDisableSchedule={
-                          workflow.schedule && workflow.isScheduleEnabled
-                            ? () => handleToggleSchedule(workflow.id, false)
-                            : undefined
-                        }
-                        onSchedule={() => setSchedulingWorkflowId(workflow.id)}
-                      />
-                    </div>
-                  }
-                  bodyClassName="h-full justify-between"
-                >
-                  <Link
-                    href={href(
-                      `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
-                    )}
-                    aria-label={`Open ${workflow.label}`}
-                    className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                  />
-                  <div className="space-y-3">
-                    <WorkflowCardPreview
-                      name={workflow.label}
-                      thumbnail={workflow.thumbnail}
-                      nodes={workflow.nodes}
-                      edges={workflow.edges}
+            return (
+              <Card
+                key={workflow.id}
+                className="group h-full hover:-translate-y-0.5"
+                label={workflow.label}
+                description={
+                  workflow.description ??
+                  'Reusable automation workflow for content operations.'
+                }
+                headerAction={
+                  <div className="relative z-20 flex shrink-0 items-center gap-2">
+                    <Checkbox
+                      aria-label={translate('library.selectWorkflow', {
+                        name: workflow.label,
+                      })}
+                      checked={selectedIds.has(workflow.id)}
+                      onCheckedChange={() => toggleSelected(workflow.id)}
                     />
-                    {workflow.schedule ? (
-                      <div className="relative z-20 flex items-center gap-2 text-xs text-foreground/60">
-                        <CalendarClock className="size-3.5 shrink-0" />
-                        <span className="min-w-0 truncate">
-                          {describeCadence(workflow.schedule)}
-                          {workflow.isScheduleEnabled && workflow.nextRunAt ? (
-                            <>
-                              {` · ${translate('library.nextRun')} `}
-                              <ClientFormattedDate
-                                format="relative"
-                                value={workflow.nextRunAt}
-                              />
-                            </>
-                          ) : workflow.isScheduleEnabled ? null : (
-                            ` · ${translate('library.paused')}`
-                          )}
-                        </span>
-                        <Switch
-                          checked={workflow.isScheduleEnabled ?? false}
-                          aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
-                          onCheckedChange={(checked) =>
-                            handleToggleSchedule(workflow.id, checked)
-                          }
-                        />
-                      </div>
+                    {isSystemWorkflow ? (
+                      <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
+                        {translate('library.system')}
+                      </span>
                     ) : null}
-                    <div className="flex items-center justify-between text-xs text-foreground/50">
-                      <span>
-                        {translate('library.updated')}{' '}
-                        <ClientFormattedDate
-                          format="relative"
-                          value={workflow.updatedAt}
-                        />
+                    {isDesktopShell &&
+                    isCapable &&
+                    isConnected &&
+                    workflow.cloudSync ? (
+                      <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
+                        <Cloud className="size-3" />
+                        {translate('library.synced')}
                       </span>
-                      <span>
-                        {translate('library.created')}{' '}
-                        <ClientFormattedDate
-                          format="date"
-                          value={workflow.createdAt}
-                        />
+                    ) : isDesktopShell && isCapable && isConnected ? (
+                      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        <CloudUpload className="size-3" />
+                        {translate('library.local')}
                       </span>
-                    </div>
+                    ) : null}
+                    {isNonDefaultWorkflowLifecycle(workflow.lifecycle) ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
+                          workflow.lifecycle,
+                        )}`}
+                      >
+                        {formatLifecycleLabel(workflow.lifecycle)}
+                      </span>
+                    ) : null}
+                    <WorkflowCardDropdown
+                      canDelete={!isSystemWorkflow}
+                      onDuplicate={() => handleDuplicate(workflow.id)}
+                      onDelete={() => handleDelete(workflow.id)}
+                      onOpen={() =>
+                        push(
+                          href(
+                            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
+                          ),
+                        )
+                      }
+                      onDisableSchedule={
+                        workflow.schedule && workflow.isScheduleEnabled
+                          ? () => handleToggleSchedule(workflow.id, false)
+                          : undefined
+                      }
+                      onSchedule={() => setSchedulingWorkflowId(workflow.id)}
+                    />
                   </div>
-                </Card>
-              );
+                }
+                bodyClassName="h-full justify-between"
+              >
+                <Link
+                  href={href(
+                    `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
+                  )}
+                  aria-label={`Open ${workflow.label}`}
+                  className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                />
+                <div className="space-y-3">
+                  <WorkflowCardPreview
+                    name={workflow.label}
+                    thumbnail={workflow.thumbnail}
+                    nodes={workflow.nodes}
+                    edges={workflow.edges}
+                  />
+                  {workflow.schedule ? (
+                    <div className="relative z-20 flex items-center gap-2 text-xs text-foreground/60">
+                      <CalendarClock className="size-3.5 shrink-0" />
+                      <span className="min-w-0 truncate">
+                        {describeCadence(workflow.schedule)}
+                        {workflow.isScheduleEnabled && workflow.nextRunAt ? (
+                          <>
+                            {` · ${translate('library.nextRun')} `}
+                            <ClientFormattedDate
+                              format="relative"
+                              value={workflow.nextRunAt}
+                            />
+                          </>
+                        ) : workflow.isScheduleEnabled ? null : (
+                          ` · ${translate('library.paused')}`
+                        )}
+                      </span>
+                      <Switch
+                        checked={workflow.isScheduleEnabled ?? false}
+                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
+                        onCheckedChange={(checked) =>
+                          handleToggleSchedule(workflow.id, checked)
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex items-center justify-between text-xs text-foreground/50">
+                    <span>
+                      {translate('library.updated')}{' '}
+                      <ClientFormattedDate
+                        format="relative"
+                        value={workflow.updatedAt}
+                      />
+                    </span>
+                    <span>
+                      {translate('library.created')}{' '}
+                      <ClientFormattedDate
+                        format="date"
+                        value={workflow.createdAt}
+                      />
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {pagination.pages > 1 ? (
+        <div className="mt-4 flex items-center justify-between">
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page <= 1}
+            onClick={() => setPage(Math.max(1, pagination.page - 1))}
+          >
+            {translate('library.previous')}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {translate('library.pageStatus', {
+              page: pagination.page,
+              pages: pagination.pages,
             })}
-          </div>
-        )}
+          </span>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page >= pagination.pages}
+            onClick={() =>
+              setPage(Math.min(pagination.pages, pagination.page + 1))
+            }
+          >
+            {translate('library.next')}
+          </Button>
+        </div>
+      ) : null}
 
-        {pagination.pages > 1 ? (
-          <div className="mt-4 flex items-center justify-between">
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              disabled={pagination.page <= 1}
-              onClick={() => setPage(Math.max(1, pagination.page - 1))}
-            >
-              {translate('library.previous')}
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {translate('library.pageStatus', {
-                page: pagination.page,
-                pages: pagination.pages,
-              })}
-            </span>
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              disabled={pagination.page >= pagination.pages}
-              onClick={() =>
-                setPage(Math.min(pagination.pages, pagination.page + 1))
-              }
-            >
-              {translate('library.next')}
-            </Button>
-          </div>
-        ) : null}
-
-        {schedulingWorkflowId ? (
-          <WorkflowScheduleDialog
-            isOpen
-            onOpenChange={(open) => {
-              if (!open) {
-                setSchedulingWorkflowId(null);
-              }
-            }}
-            onSaved={applyScheduleUpdate}
-            workflowId={schedulingWorkflowId}
-          />
-        ) : null}
-      </Container>
-    </div>
+      {schedulingWorkflowId ? (
+        <WorkflowScheduleDialog
+          isOpen
+          onOpenChange={(open) => {
+            if (!open) {
+              setSchedulingWorkflowId(null);
+            }
+          }}
+          onSaved={applyScheduleUpdate}
+          workflowId={schedulingWorkflowId}
+        />
+      ) : null}
+    </Container>
   );
 }

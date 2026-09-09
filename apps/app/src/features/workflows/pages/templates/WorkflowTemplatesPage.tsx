@@ -13,7 +13,6 @@ import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -537,179 +536,170 @@ function WorkflowTemplatesPageContent() {
 
   const isContentLoading = isLoading || isBootstrapping;
 
-  const toolbar = (
-    <SectionTopbar
-      title="Templates"
-      titleVisibility="sr-only"
-      help={null}
-      leading={
-        <FormSearchbar
-          className="w-64"
-          inputClassName="h-8 rounded-md border-border bg-card text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
-          onSearch={(value) =>
-            dispatch({ type: 'SET_SEARCH', searchQuery: value })
+  const catalogChrome = {
+    help: null,
+    label: 'Templates',
+    leading: (
+      <FormSearchbar
+        className="w-64"
+        onSearch={(value) =>
+          dispatch({ type: 'SET_SEARCH', searchQuery: value })
+        }
+        placeholder="Search templates..."
+        size={ComponentSize.SM}
+        value={searchQuery}
+      />
+    ),
+    right: (
+      <div className="flex items-center gap-2">
+        <Select
+          value={selectedSource}
+          onValueChange={(value) =>
+            dispatch({ type: 'SET_SOURCE', source: value as CatalogSource })
           }
-          placeholder="Search templates..."
-          size={ComponentSize.SM}
-          value={searchQuery}
-        />
-      }
-      actions={
-        <div className="ml-auto flex items-center gap-2">
-          <Select
-            value={selectedSource}
-            onValueChange={(value) =>
-              dispatch({ type: 'SET_SOURCE', source: value as CatalogSource })
-            }
-          >
-            <SelectTrigger aria-label="Source" className="h-8 w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SOURCE_FILTERS.map((filter) => (
-                <SelectItem key={filter.id} value={filter.id}>
-                  {filter.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={selectedCategory}
-            onValueChange={(value) =>
-              dispatch({ type: 'SET_CATEGORY', category: value })
-            }
-          >
-            <SelectTrigger aria-label="Category" className="h-8 w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {categoryOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {pageHelp ? <HelpPopover help={pageHelp} /> : null}
-        </div>
-      }
-    />
-  );
+        >
+          <SelectTrigger aria-label="Source" className="h-8 w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SOURCE_FILTERS.map((filter) => (
+              <SelectItem key={filter.id} value={filter.id}>
+                {filter.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={selectedCategory}
+          onValueChange={(value) =>
+            dispatch({ type: 'SET_CATEGORY', category: value })
+          }
+        >
+          <SelectTrigger aria-label="Category" className="h-8 w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {categoryOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {pageHelp ? <HelpPopover help={pageHelp} /> : null}
+      </div>
+    ),
+    titleVisibility: 'sr-only' as const,
+  };
 
   if (error && templates.length === 0 && systemCatalog.length === 0) {
     return (
-      <div className="flex min-h-0 flex-col">
-        {toolbar}
-        <Container help={null}>
-          <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
-            <p className="text-destructive">{error}</p>
-            <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
-              Retry
-            </Button>
-          </div>
-        </Container>
-      </div>
+      <Container {...catalogChrome}>
+        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
+          <p className="text-destructive">{error}</p>
+          <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
+            Retry
+          </Button>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-col">
-      {toolbar}
-      <Container help={null}>
-        {!isContentLoading && error ? (
-          <p className="mb-4 text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
+    <Container {...catalogChrome}>
+      {!isContentLoading && error ? (
+        <p className="mb-4 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-        <div data-testid="templates-content">
-          {isContentLoading ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
-                (skeletonId) => (
-                  <div
-                    key={skeletonId}
-                    className="h-64 animate-pulse rounded-card bg-card shadow-border"
+      <div data-testid="templates-content">
+        {isContentLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
+              (skeletonId) => (
+                <div
+                  key={skeletonId}
+                  className="h-64 animate-pulse rounded-card bg-card shadow-border"
+                />
+              ),
+            )}
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
+            <p className="text-sm text-foreground/50">
+              No workflows match these filters.
+            </p>
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                dispatch({ type: 'SET_CATEGORY', category: 'all' });
+                dispatch({ type: 'SET_SOURCE', source: 'all' });
+                dispatch({ type: 'SET_SEARCH', searchQuery: '' });
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleItems.map((item) => {
+              const isInstalling =
+                item.systemEntry?.canonicalId === installingCanonicalId;
+              const schedule = cadenceLabel(item.schedule);
+
+              return (
+                <Card
+                  key={item.id}
+                  className="h-full"
+                  label={item.title}
+                  description={item.description}
+                  headerAction={
+                    <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-foreground/60">
+                      {sourceBadge(item.source)}
+                    </span>
+                  }
+                  bodyClassName="justify-between gap-4"
+                >
+                  <WorkflowCardPreview
+                    name={item.title}
+                    thumbnail={item.thumbnail}
+                    nodes={item.nodes}
+                    edges={item.edges}
                   />
-                ),
-              )}
-            </div>
-          ) : visibleItems.length === 0 ? (
-            <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
-              <p className="text-sm text-foreground/50">
-                No workflows match these filters.
-              </p>
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                onClick={() => {
-                  dispatch({ type: 'SET_CATEGORY', category: 'all' });
-                  dispatch({ type: 'SET_SOURCE', source: 'all' });
-                  dispatch({ type: 'SET_SEARCH', searchQuery: '' });
-                }}
-              >
-                Clear filters
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {visibleItems.map((item) => {
-                const isInstalling =
-                  item.systemEntry?.canonicalId === installingCanonicalId;
-                const schedule = cadenceLabel(item.schedule);
-
-                return (
-                  <Card
-                    key={item.id}
-                    className="h-full"
-                    label={item.title}
-                    description={item.description}
-                    headerAction={
-                      <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-foreground/60">
-                        {sourceBadge(item.source)}
-                      </span>
-                    }
-                    bodyClassName="justify-between gap-4"
-                  >
-                    <WorkflowCardPreview
-                      name={item.title}
-                      thumbnail={item.thumbnail}
-                      nodes={item.nodes}
-                      edges={item.edges}
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate text-xs text-muted-foreground">
-                        {schedule ?? categoryLabel(item.category)}
-                      </span>
-                      {item.systemEntry && !item.href ? (
-                        <Button
-                          variant={ButtonVariant.DEFAULT}
-                          size={ButtonSize.SM}
-                          disabled={isInstalling}
-                          onClick={() => {
-                            void handleInstallSystem(item.systemEntry);
-                          }}
-                        >
-                          {isInstalling ? 'Installing…' : item.actionLabel}
-                        </Button>
-                      ) : item.href ? (
-                        <Button
-                          asChild
-                          variant={ButtonVariant.DEFAULT}
-                          size={ButtonSize.SM}
-                          withWrapper={false}
-                        >
-                          <Link href={item.href}>{item.actionLabel}</Link>
-                        </Button>
-                      ) : null}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Container>
-    </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs text-muted-foreground">
+                      {schedule ?? categoryLabel(item.category)}
+                    </span>
+                    {item.systemEntry && !item.href ? (
+                      <Button
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        disabled={isInstalling}
+                        onClick={() => {
+                          void handleInstallSystem(item.systemEntry);
+                        }}
+                      >
+                        {isInstalling ? 'Installing…' : item.actionLabel}
+                      </Button>
+                    ) : item.href ? (
+                      <Button
+                        asChild
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        withWrapper={false}
+                      >
+                        <Link href={item.href}>{item.actionLabel}</Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Container>
   );
 }
 

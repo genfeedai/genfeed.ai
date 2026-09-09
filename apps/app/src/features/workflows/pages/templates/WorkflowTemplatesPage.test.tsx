@@ -63,7 +63,23 @@ vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
-  default: ({ children }: { children?: ReactNode }) => <main>{children}</main>,
+  default: ({
+    children,
+    leading,
+    right,
+  }: {
+    children?: ReactNode;
+    leading?: ReactNode;
+    right?: ReactNode;
+  }) => (
+    <main>
+      <header data-testid="section-topbar">
+        {leading}
+        {right}
+      </header>
+      {children}
+    </main>
+  ),
 }));
 
 vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({

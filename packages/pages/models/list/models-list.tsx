@@ -140,7 +140,6 @@ export default function ModelsList({
         <div className="w-full sm:w-64">
           <FormSearchbar
             className="w-full"
-            inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
             onSearch={handleSearchChange}
             placeholder="Search models"
             size={ComponentSize.SM}

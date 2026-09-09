@@ -99,13 +99,18 @@ vi.mock('@ui/card/Card', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    leading,
     right,
   }: {
     children?: ReactNode;
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
-      {right}
+      <header data-testid="section-topbar">
+        {leading}
+        {right}
+      </header>
       {children}
     </main>
   ),
@@ -449,5 +454,19 @@ describe('WorkflowLibraryPage card semantics', () => {
     expect(screen.queryByText('Autopilot')).toBeNull();
     expect(screen.getByTestId('library-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('library-content')).not.toBeInTheDocument();
+  });
+
+  it('keeps create on the empty state instead of duplicating it in the toolbar', () => {
+    mocks.isLoading = false;
+    mocks.workflows = [];
+    render(<WorkflowLibraryPage />);
+
+    expect(
+      screen.getByPlaceholderText('Search workflows...'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'New Workflow' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Empty workflows')).toBeInTheDocument();
   });
 });

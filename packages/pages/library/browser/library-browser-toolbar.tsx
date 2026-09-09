@@ -135,7 +135,6 @@ export default function LibraryBrowserToolbar({
         <div className="w-44 sm:w-56">
           <FormSearchbar
             className="w-full"
-            inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
             onSearch={onSearchChange}
             placeholder={searchPlaceholder}
             size={ComponentSize.SM}

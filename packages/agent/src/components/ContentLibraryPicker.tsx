@@ -81,10 +81,9 @@ export function ContentLibraryPicker({
         <div className="border-b border-border px-4 py-3">
           <FormSearchbar
             ariaLabel="Search library content"
-            inputClassName="h-9"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by title or type…"
-            size={ComponentSize.MD}
+            size={ComponentSize.SM}
             value={query}
           />
         </div>

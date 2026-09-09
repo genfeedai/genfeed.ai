@@ -60,7 +60,6 @@ export default function PostsListToolbar({
           // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
           size={ComponentSize.SM}
           className="w-full"
-          inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
         />
       </div>
 

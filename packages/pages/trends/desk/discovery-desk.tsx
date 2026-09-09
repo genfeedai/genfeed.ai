@@ -376,7 +376,6 @@ export default function DiscoveryDesk() {
             <div className="w-44 sm:w-56">
               <FormSearchbar
                 className="w-full"
-                inputClassName="h-8"
                 onSearch={setSearch}
                 placeholder={translateDesk('searchPlaceholder')}
                 size={ComponentSize.SM}
