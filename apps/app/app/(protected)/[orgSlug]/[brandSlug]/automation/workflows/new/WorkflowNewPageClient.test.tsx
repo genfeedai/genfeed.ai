@@ -41,7 +41,7 @@ describe(relativePath, () => {
     expect(source).toContain('APP_ROUTES.AUTOMATION.WORKFLOWS');
     expect(source).toContain('replace(href(');
     expect(source).toContain('currentWorkflowId');
-    expect(source).toContain('if (!currentWorkflowId)');
+    expect(source).toContain('if (!currentWorkflowId || isRunning)');
   });
 
   it('keeps module chrome mounted while the workflow loads', () => {
