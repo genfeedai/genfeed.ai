@@ -1,219 +1,177 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { ActivitySignalProps } from '@props/automation/automation-overview-page.props';
-import Card from '@ui/card/Card';
-import CardIcon from '@ui/card/icon/CardIcon';
-import OverviewLayout from '@ui/overview/OverviewLayout';
-import { Button } from '@ui/primitives/button';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
-  ChartLine,
-  CirclePlay,
-  Cpu,
-  House as Home,
-  LayoutDashboard,
-  List,
-  MessageSquare,
-  Settings,
-  Sparkles,
-  Workflow,
-} from 'lucide-react';
-import Link from 'next/link';
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import { useQuery } from '@tanstack/react-query';
+import { ErrorFallback } from '@ui/error/ErrorFallback';
+import KPISection from '@ui/kpi/kpi-section/KPISection';
+import Container from '@ui/layout/container/Container';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Cpu, Pause, Users, Workflow } from 'lucide-react';
+import { useMemo } from 'react';
+import {
+  createWorkflowApiService,
+  type WorkflowSummary,
+} from '@/features/workflows/services/workflow-api';
+import ActiveRunsPanel from '../runs/ActiveRunsPanel';
+import RunHistoryList from '../runs/RunHistoryList';
+import RunStatsStrip from '../runs/RunStatsStrip';
+
+const RECENT_RUN_PAGE_SIZE = 8;
+const WORKFLOW_SAMPLE_LIMIT = 50;
 
 export default function AutomationOverviewPage() {
-  const { href } = useOrgUrl();
+  const collectionScope = useCollectionScope();
+  const isReady = isCollectionFetchReady(collectionScope);
+  const brandParams = toBrandListParams(collectionScope);
+  const { cancelExecution, executions, isError, isLoading, refresh, stats } =
+    useWorkflowExecutions({ limit: 50, sort: '-createdAt' });
+  const { isLoading: areAgentsLoading, strategies } = useAgentStrategies({
+    ...brandParams,
+    enabled: isReady,
+  });
+  const getWorkflowService = useAuthedService(createWorkflowApiService);
+  const workflowsQuery = useQuery({
+    enabled: isReady,
+    queryFn: async () => {
+      const service = await getWorkflowService();
+      return service.listPage({
+        ...brandParams,
+        limit: WORKFLOW_SAMPLE_LIMIT,
+        page: 1,
+      });
+    },
+    queryKey: [
+      'automation-overview-workflows',
+      collectionScope.organizationId,
+      collectionScope.brandId ?? 'org',
+    ],
+  });
 
-  const cards: OverviewCard[] = [
-    {
-      color: 'bg-cyan-500/12 text-cyan-300',
-      cta: 'Inspect Workspace',
-      description: 'Start from the unified agents workspace overview',
-      href: href(APP_ROUTES.AUTOMATION.AGENTS),
-      icon: Settings,
-      id: 'library',
-      label: 'Team',
-    },
-    {
-      color: 'bg-amber-500/12 text-amber-300',
-      cta: 'Open Runs',
-      description: 'Track active, failed, and completed agent runs',
-      href: href(APP_ROUTES.AUTOMATION.RUNS),
-      icon: Cpu,
-      id: 'runs',
-      label: 'Runs',
-    },
-    {
-      color: 'bg-emerald-500/12 text-emerald-300',
-      cta: 'Open Content Runs',
-      description:
-        'Follow briefs from Discovery through remix, publish, and analytics',
-      href: href(APP_ROUTES.AUTOMATION.CONTENT_RUNS),
-      icon: CirclePlay,
-      id: 'content-runs',
-      label: 'Content Runs',
-    },
-    {
-      color: 'bg-indigo-500/12 text-indigo-300',
-      cta: 'Open Workflows',
-      description:
-        'Run fixed automation graphs for repeatable content pipelines',
-      href: href(APP_ROUTES.AUTOMATION.WORKFLOWS),
-      icon: Workflow,
-      id: 'workflows',
-      label: 'Workflows',
-    },
-    {
-      color: 'bg-violet-500/12 text-violet-300',
-      cta: 'Open Programs',
-      description:
-        'Coordinate multi-agent content production with budgets and quotas',
-      href: href(APP_ROUTES.AUTOMATION.CAMPAIGNS),
-      icon: LayoutDashboard,
-      id: 'programs',
-      label: 'Programs',
-    },
-    {
-      color: 'bg-blue-500/12 text-blue-300',
-      cta: 'Open Autopilot',
-      description:
-        'Manage agent policies that schedule adaptive autonomous runs',
-      href: href(APP_ROUTES.AUTOMATION.AUTOPILOT),
-      icon: MessageSquare,
-      id: 'strategies',
-      label: 'Autopilot',
-    },
-    {
-      color: 'bg-pink-500/12 text-pink-300',
-      cta: 'View Analytics',
-      description: 'Performance metrics and insights (Analytics app)',
-      href: href(APP_ROUTES.ANALYTICS.OVERVIEW),
-      icon: ChartLine,
-      id: 'analytics',
-      label: 'Analytics',
-    },
-  ];
+  const workflows = workflowsQuery.data?.items ?? [];
+  const workflowTotal =
+    workflowsQuery.data?.pagination.total ?? workflows.length;
+  const scheduledWorkflows = workflows.filter(
+    (workflow: WorkflowSummary) => workflow.isScheduleEnabled,
+  ).length;
+  const activeAgents = strategies.filter(
+    (strategy) => strategy.isActive,
+  ).length;
 
-  const activitySignals: ActivitySignalProps[] = [
-    {
-      color: 'bg-cyan-500/12 text-cyan-300',
-      cta: 'Open Library',
-      description:
-        'Enable or inspect agent roles for content, engagement, and support.',
-      href: href(APP_ROUTES.AUTOMATION.AGENTS),
-      icon: Settings,
-      kicker: 'Workspace',
-      label: 'Team',
-    },
-    {
-      color: 'bg-amber-500/12 text-amber-300',
-      cta: 'Open Runs',
-      description: 'Review live work, failures, and completed outputs.',
-      href: href(APP_ROUTES.AUTOMATION.RUNS),
-      icon: List,
-      kicker: 'Operations',
-      label: 'Run Console',
-    },
-    {
-      color: 'bg-indigo-500/12 text-indigo-300',
-      cta: 'Open Workflows',
-      description:
-        'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
-      href: href(APP_ROUTES.AUTOMATION.WORKFLOWS),
-      icon: Workflow,
-      kicker: 'Automation',
-      label: 'Workflow Engine',
-    },
-    {
-      color: 'bg-blue-500/12 text-blue-300',
-      cta: 'Open Autopilot',
-      description:
-        'Use autopilot policies when the agent should decide what to do each run.',
-      href: href(APP_ROUTES.AUTOMATION.AUTOPILOT),
-      icon: MessageSquare,
-      kicker: 'Guidance',
-      label: 'Autopilot Policies',
-    },
-    {
-      color: 'bg-pink-500/12 text-pink-300',
-      cta: 'Open Analytics',
-      description: 'Review performance and outcomes in the Analytics app.',
-      href: href(APP_ROUTES.ANALYTICS.OVERVIEW),
-      icon: Sparkles,
-      kicker: 'Insight',
-      label: 'Performance',
-    },
-  ];
-
-  return (
-    <OverviewLayout
-      label={APP_DISPLAY_LABELS.automation}
-      description="Operate brand agents, inspect runs, use Workflows for fixed automations, and use Autopilot for adaptive agent policies"
-      icon={Home}
-      cards={cards}
-    >
-      <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
-        Activity Snapshot
-      </h2>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {activitySignals.map((signal) => (
-          <ActivitySignal key={signal.label} {...signal} />
-        ))}
-      </div>
-    </OverviewLayout>
+  const activeExecutions = useMemo(
+    () =>
+      executions.filter(
+        (execution) =>
+          execution.status === WorkflowExecutionStatus.PENDING ||
+          execution.status === WorkflowExecutionStatus.RUNNING,
+      ),
+    [executions],
   );
-}
+  const recentExecutions = useMemo(
+    () =>
+      executions.filter(
+        (execution) =>
+          execution.status !== WorkflowExecutionStatus.PENDING &&
+          execution.status !== WorkflowExecutionStatus.RUNNING,
+      ),
+    [executions],
+  );
 
-function ActivitySignal({
-  color,
-  cta,
-  description,
-  href,
-  icon,
-  kicker,
-  label,
-}: ActivitySignalProps) {
   return (
-    <Card
-      className="h-full shadow-none"
-      bodyClassName="flex h-full flex-col justify-between gap-5 p-4"
+    <Container
+      label={APP_DISPLAY_LABELS.automation}
+      description="Live runs, failures, and scheduled work across this brand"
     >
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <CardIcon
-            icon={icon}
-            className={cn(
-              'flex h-10 w-10 items-center justify-center border border-border',
-              color,
-            )}
-            iconClassName="h-5 w-5"
+      {isError && executions.length === 0 ? (
+        <ErrorFallback
+          title="Automation activity could not be loaded."
+          resetErrorBoundary={() => void refresh()}
+        />
+      ) : (
+        <div className="flex flex-col gap-8">
+          <RunStatsStrip isLoading={isLoading} stats={stats} />
+
+          <KPISection
+            gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
+            isLoading={areAgentsLoading || workflowsQuery.isLoading}
+            items={[
+              {
+                icon: Users,
+                label: 'Agents',
+                value: strategies.length.toLocaleString(),
+                description: `${activeAgents.toLocaleString()} active`,
+              },
+              {
+                icon: Cpu,
+                label: 'Autopilot',
+                value: activeAgents.toLocaleString(),
+                description: 'Active policies',
+              },
+              {
+                icon: Workflow,
+                label: 'Workflows',
+                value: workflowTotal.toLocaleString(),
+                description: `${scheduledWorkflows.toLocaleString()} scheduled`,
+              },
+              {
+                icon: Pause,
+                label: 'Unscheduled',
+                value: Math.max(
+                  workflowTotal - scheduledWorkflows,
+                  0,
+                ).toLocaleString(),
+                description: 'Workflows without a cadence',
+              },
+            ]}
           />
-          <div className="min-w-0">
-            <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
-              {kicker}
-            </p>
-            <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-foreground">
-              {label}
-            </h3>
-          </div>
+
+          <WorkspaceSurface
+            data-testid="automation-overview-active"
+            density="compact"
+            description="Work currently pending or running"
+            flush={activeExecutions.length > 0}
+            title="Active runs"
+          >
+            {activeExecutions.length > 0 ? (
+              <ActiveRunsPanel
+                executions={activeExecutions}
+                isHeadingVisible={false}
+                onCancel={cancelExecution}
+              />
+            ) : (
+              <p className="px-4 py-6 text-sm text-muted-foreground sm:px-5">
+                {isLoading
+                  ? 'Loading active runs…'
+                  : 'No automation running right now.'}
+              </p>
+            )}
+          </WorkspaceSurface>
+
+          <WorkspaceSurface
+            data-testid="automation-overview-recent"
+            density="compact"
+            description="Latest finished, failed, and cancelled executions"
+            flush
+            title="Recent activity"
+          >
+            <RunHistoryList
+              currentPage={1}
+              executions={recentExecutions}
+              isLoading={isLoading}
+              onPageChange={() => undefined}
+              pageSize={RECENT_RUN_PAGE_SIZE}
+            />
+          </WorkspaceSurface>
         </div>
-
-        <p className="text-sm leading-6 text-foreground/60">{description}</p>
-      </div>
-
-      <div className="border-t border-border pt-4">
-        <Button
-          asChild
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-          className="text-xs tracking-[0.12em]"
-        >
-          <Link href={href}>{cta}</Link>
-        </Button>
-      </div>
-    </Card>
+      )}
+    </Container>
   );
 }
