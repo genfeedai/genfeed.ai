@@ -79,11 +79,11 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /your brand\. everywhere\./i,
+        name: /ask for content\. get it published\./i,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/brief it once: genfeed makes the video/i),
+      screen.getByText(/genfeed is an ai agent that makes your video/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
@@ -151,10 +151,10 @@ describe('HomeHero', () => {
     render(<HomeHero />);
 
     expect(
-      screen.getByRole('link', { name: /start creating/i }),
+      screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
-      screen.getByRole('link', { name: /use the agent/i }),
+      screen.getByRole('link', { name: /see what it does/i }),
     ).toHaveAttribute('href', '/agent');
   });
 
@@ -163,8 +163,8 @@ describe('HomeHero', () => {
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
 
-    fireEvent.click(screen.getByRole('link', { name: /start creating/i }));
-    fireEvent.click(screen.getByRole('link', { name: /use the agent/i }));
+    fireEvent.click(screen.getByRole('link', { name: /start for \$0/i }));
+    fireEvent.click(screen.getByRole('link', { name: /see what it does/i }));
 
     expect(listener).toHaveBeenNthCalledWith(
       1,
