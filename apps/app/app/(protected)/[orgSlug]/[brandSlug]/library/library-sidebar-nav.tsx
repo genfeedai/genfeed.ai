@@ -227,7 +227,7 @@ export default function LibrarySidebarNav() {
     <>
       <div className="flex h-full min-h-0 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 scrollbar-thin">
-          <ul className="mt-2 flex flex-col gap-px">
+          <ul className="flex flex-col gap-px">
             {LIBRARY_PLACE_MENU_ITEMS.map(renderMenuItem)}
           </ul>
 

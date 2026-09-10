@@ -3,11 +3,9 @@ import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-con
 import { History, LayoutGrid, Megaphone, Users, Workflow } from 'lucide-react';
 
 /**
- * Automation module nav — grouped by usage (same pattern as Analytics / Settings).
- *
- * - Home: Overview
- * - Workflows: library + templates + run history
- * - Agents: roster and programs. Schedule and autonomy live on the agent.
+ * Automation module nav — flat under the Automation app chrome (same shape as
+ * Studio / Publishing / Workspace). Overview, workflows, runs, agents and
+ * programs are sibling rows; schedule and autonomy live on the agent.
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publishing (P1).
@@ -25,7 +23,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: LayoutGrid,
   },
   {
-    group: 'Workflows',
+    group: '',
     href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
@@ -38,7 +36,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: Workflow,
   },
   {
-    group: 'Workflows',
+    group: '',
     href: APP_ROUTES.AUTOMATION.RUNS,
     label: 'Runs',
     matchPaths: [
@@ -49,7 +47,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: History,
   },
   {
-    group: 'Agents',
+    group: '',
     href: APP_ROUTES.AUTOMATION.AGENTS,
     label: 'Agents',
     matchPaths: [APP_ROUTES.AUTOMATION.AGENTS],
@@ -57,7 +55,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: Users,
   },
   {
-    group: 'Agents',
+    group: '',
     href: APP_ROUTES.AUTOMATION.CAMPAIGNS,
     label: 'Programs',
     matchPaths: [

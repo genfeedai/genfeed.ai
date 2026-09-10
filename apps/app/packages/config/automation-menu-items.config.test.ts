@@ -130,22 +130,21 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     expect(isCovered).toBe(true);
   });
 
-  it('groups by usage (Workflows / Agents) — no legacy Settings group', () => {
-    const byGroup = new Map<string, string[]>();
-    for (const item of AUTOMATION_MENU_ITEMS) {
-      const group = item.group ?? '';
-      const labels = byGroup.get(group) ?? [];
-      labels.push(item.label);
-      byGroup.set(group, labels);
-    }
-
-    expect(byGroup.get('')).toEqual(['Overview']);
-    expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
-    expect(byGroup.get('Agents')).toEqual(['Agents', 'Programs']);
-    expect(byGroup.get('Campaigns')).toBeUndefined();
-    expect(byGroup.get('Settings')).toBeUndefined();
-    expect(byGroup.get('Build')).toBeUndefined();
-    expect(byGroup.get('Insights')).toBeUndefined();
+  it('sits flat under the Automation app header — no Workflows / Agents subgroups', () => {
+    expect(AUTOMATION_MENU_ITEMS.map((item) => item.group)).toEqual([
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
+    expect(AUTOMATION_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Overview',
+      'Workflows',
+      'Runs',
+      'Agents',
+      'Programs',
+    ]);
   });
 
   it('keeps automation configuration in Settings, not the Automation sidebar', () => {

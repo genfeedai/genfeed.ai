@@ -219,7 +219,22 @@ export default function MenuShared({
           ) : null}
 
           {bodyContent ? (
-            <div className="min-h-0 flex-1 overflow-hidden">{bodyContent}</div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              {sectionLabel ? (
+                <div className="shrink-0 px-3">
+                  <CollapsibleGroup
+                    label={sectionLabel}
+                    isDrillDown={false}
+                    storageKey={`__${sectionLabel.toLowerCase()}__`}
+                  >
+                    {null}
+                  </CollapsibleGroup>
+                </div>
+              ) : null}
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {bodyContent}
+              </div>
+            </div>
           ) : nestedGroup && nestedGroupId ? (
             <div
               className="flex-1 overflow-hidden"
