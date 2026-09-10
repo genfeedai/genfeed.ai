@@ -641,6 +641,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/integrations',
       '/:orgSlug/~/settings/webhooks',
       '/:orgSlug/~/settings/agents',
+      '/:orgSlug/~/settings/memory',
       '/:orgSlug/~/settings/usage',
       '/:orgSlug/~/settings/brands',
       '/:orgSlug/~/settings/models',

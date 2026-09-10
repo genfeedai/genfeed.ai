@@ -140,3 +140,38 @@ export async function deleteMemory(
     'Failed to delete memory',
   );
 }
+
+export async function listOrganizationMemories(
+  api: AgentBaseApiService,
+  signal?: AbortSignal,
+): Promise<AgentMemoryEntry[]> {
+  return api.fetchJson<AgentMemoryEntry[]>(
+    `${api.config.baseUrl}/agent/memories/organization`,
+    { signal },
+    'Failed to list organization memories',
+  );
+}
+
+export async function archiveMemory(
+  api: AgentBaseApiService,
+  memoryId: string,
+  signal?: AbortSignal,
+): Promise<AgentMemoryEntry> {
+  return api.fetchJson<AgentMemoryEntry>(
+    `${api.config.baseUrl}/agent/memories/${memoryId}/archive`,
+    { method: 'POST', signal },
+    'Failed to archive memory',
+  );
+}
+
+export async function promoteMemory(
+  api: AgentBaseApiService,
+  memoryId: string,
+  signal?: AbortSignal,
+): Promise<AgentMemoryEntry> {
+  return api.fetchJson<AgentMemoryEntry>(
+    `${api.config.baseUrl}/agent/memories/${memoryId}/promote`,
+    { method: 'POST', signal },
+    'Failed to promote memory',
+  );
+}

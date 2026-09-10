@@ -132,6 +132,45 @@ export class AgentMemoriesController {
     }
   }
 
+  @Post(':id/promote')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary: 'Promote a brand or org-wide memory into a reusable skill',
+  })
+  async promote(@Param('id') id: string, @CurrentUser() user: User) {
+    try {
+      return await this.memoriesService.promoteMemory(
+        id,
+        user.organizationId,
+        user.userId ?? user.id,
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'promoteMemory');
+    }
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary: 'Reject a memory promotion without changing the memory',
+  })
+  async reject(@Param('id') id: string, @CurrentUser() user: User) {
+    try {
+      return await this.memoriesService.rejectMemoryPromotion(
+        id,
+        user.organizationId,
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'rejectMemoryPromotion',
+      );
+    }
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a memory entry' })
   async remove(

@@ -300,6 +300,11 @@ export const APP_ROUTES = {
      * identical.
      */
     AGENTS: '/settings/agents',
+    /**
+     * Org-shared agent memory governance. Cloud/EE only — personal memory
+     * stays on the agent surface.
+     */
+    MEMORY: '/settings/memory',
     PUBLISHING: '/settings/publishing',
     /**
      * Organization settings home. Bare `/:orgSlug/~/settings` redirects here

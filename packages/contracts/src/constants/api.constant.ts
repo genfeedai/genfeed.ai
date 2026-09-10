@@ -3,6 +3,7 @@ export const API_ENDPOINTS = {
   AD_WATCHED_ADVERTISERS: '/ad-watched-advertisers',
   SAVED_ADS: '/saved-ads',
   AGENT_CAMPAIGNS: '/agent-campaigns',
+  AGENT_MEMORIES: '/agent/memories',
   AGENT_RUNS: '/agent/runs',
   AGENT_PUBLISH_AUDITS: '/agent-publish-audits',
   AGENT_STRATEGIES: '/agent-strategies',

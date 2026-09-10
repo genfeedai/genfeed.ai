@@ -3,6 +3,7 @@ import { CreateKnowledgeSourceDto } from '@api/collections/contexts/dto/create-k
 import { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import {
   KnowledgeEligibilityDto,
+  KnowledgeLegalHoldDto,
   KnowledgeProcessingDto,
   KnowledgePurgeScheduleDto,
   KnowledgeVerificationDto,
@@ -13,12 +14,15 @@ import { KnowledgeCaptureService } from '@api/collections/contexts/services/know
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { MemberRole } from '@genfeedai/contracts';
 import {
   KnowledgeSourceSerializer,
   KnowledgeSourceVersionSerializer,
@@ -34,6 +38,7 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -417,6 +422,8 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions/:versionId/schedule-purge')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -445,6 +452,8 @@ export class KnowledgeSourcesController {
   }
 
   @Post(':sourceId/versions/:versionId/purge')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiQuery({
     name: 'brandId',
     required: false,
@@ -463,6 +472,64 @@ export class KnowledgeSourcesController {
       request,
       KnowledgeSourceVersionSerializer,
       await this.records.purgeVersion(
+        resolveKnowledgeActor(user, brandId),
+        sourceId,
+        id,
+      ),
+    );
+  }
+
+  @Post(':sourceId/versions/:versionId/legal-hold')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description:
+      'Selected brand in the authenticated organization; omit for organization scope',
+  })
+  async legalHold(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sourceId') sourceId: string,
+    @Param('versionId') id: string,
+    @Body() dto: KnowledgeLegalHoldDto,
+    @Query('brandId') brandId?: string,
+  ) {
+    return serializeSingle(
+      request,
+      KnowledgeSourceVersionSerializer,
+      await this.records.setLegalHold(
+        resolveKnowledgeActor(user, brandId),
+        sourceId,
+        id,
+        dto.isLegalHold,
+      ),
+    );
+  }
+
+  @Post(':sourceId/versions/:versionId/erase')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+    description:
+      'Selected brand in the authenticated organization; omit for organization scope',
+  })
+  async erase(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sourceId') sourceId: string,
+    @Param('versionId') id: string,
+    @Query('brandId') brandId?: string,
+  ) {
+    return serializeSingle(
+      request,
+      KnowledgeSourceVersionSerializer,
+      await this.records.eraseVersion(
         resolveKnowledgeActor(user, brandId),
         sourceId,
         id,

@@ -18,6 +18,7 @@ import {
   KnowledgeProcessingState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  MemberRole,
 } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type {
@@ -47,6 +48,7 @@ const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
 const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
+  '20260910180000_knowledge_version_legal_hold',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -98,6 +100,7 @@ const actorA = {
   organizationId: 'org-a',
   userId: 'user-a',
   brandId: 'brand-a',
+  role: MemberRole.ADMIN,
 };
 const actorA2 = { ...actorA, brandId: 'brand-a2' };
 const actorB = {

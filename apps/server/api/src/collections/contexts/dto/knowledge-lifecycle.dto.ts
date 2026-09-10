@@ -3,7 +3,7 @@ import {
   KnowledgeRetrievalState,
 } from '@genfeedai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export class KnowledgeProcessingDto {
   @ApiProperty({
@@ -38,4 +38,10 @@ export class KnowledgePurgeScheduleDto {
   @ApiProperty()
   @IsDateString()
   purgeScheduledAt!: string;
+}
+
+export class KnowledgeLegalHoldDto {
+  @ApiProperty()
+  @IsBoolean()
+  isLegalHold!: boolean;
 }
