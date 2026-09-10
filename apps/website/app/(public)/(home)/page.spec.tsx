@@ -15,7 +15,9 @@ describe('homepage metadata', () => {
 
     const result = await PageModule.generateMetadata({}, parent);
 
-    expect(result.title).toBe('Genfeed.ai | The AI content studio');
+    expect(result.title).toBe(
+      'Genfeed.ai | Ask for content. Get it published.',
+    );
     expect(result.description).toMatch(/the ai content studio/i);
     expect(result.openGraph?.title).toBe(result.title);
     expect(result.twitter?.title).toBe(result.title);

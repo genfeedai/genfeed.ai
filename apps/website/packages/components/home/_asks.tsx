@@ -60,7 +60,9 @@ export default function HomeAsks(): React.ReactElement {
               >
                 &ldquo;{prompt.ask}&rdquo;
               </Heading>
-              <Text className="mt-3 text-sm leading-6 text-surface/72">
+              {/* `Text` is a span by default, so the result needs to be a
+                  block or the destination link wraps onto the same line. */}
+              <Text as="p" className="mt-3 text-sm leading-6 text-surface/72">
                 {prompt.result}
               </Text>
               <Link
