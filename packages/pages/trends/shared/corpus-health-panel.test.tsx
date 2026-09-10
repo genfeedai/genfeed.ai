@@ -69,7 +69,8 @@ describe('CorpusHealthPanel', () => {
       screen.queryByRole('group', { name: 'X / Twitter' }),
     ).not.toBeInTheDocument();
     const reddit = within(screen.getByRole('group', { name: 'Reddit' }));
-    expect(reddit.getByText('Apify · stale')).toBeInTheDocument();
+    expect(reddit.getByText('Reddit · stale')).toBeInTheDocument();
+    expect(reddit.queryByText(/Apify/)).not.toBeInTheDocument();
     expect(reddit.getByText('Last observed')).toBeInTheDocument();
     expect(reddit.queryByText('Health unavailable')).not.toBeInTheDocument();
     // Refresh and attempt are never claimed when nothing was recorded.
@@ -147,5 +148,48 @@ describe('CorpusHealthPanel', () => {
     expect(screen.getByText('Checking trend corpus')).toBeInTheDocument();
     expect(screen.getAllByText('Checking health')).toHaveLength(3);
     expect(screen.queryByText('Health unavailable')).not.toBeInTheDocument();
+  });
+
+  it('collapses seed accounts into one platform row and ignores unused platforms', () => {
+    render(
+      <CorpusHealthPanel
+        health={{
+          ...emptyHealth,
+          status: 'healthy',
+          segments: [
+            {
+              id: 'li-anthropic',
+              platform: 'linkedin',
+              provider: 'anthropic_ai',
+              status: 'healthy',
+              latestSeenAt: '2026-09-10T00:16:00Z',
+            },
+            {
+              id: 'li-canva',
+              platform: 'linkedin',
+              provider: 'canva',
+              status: 'healthy',
+            },
+            {
+              id: 'li-figma',
+              platform: 'linkedin',
+              provider: 'figma',
+              status: 'healthy',
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByRole('group', { name: 'LinkedIn' })).toBeInTheDocument();
+    expect(screen.getByText('LinkedIn · healthy')).toBeInTheDocument();
+    expect(screen.queryByText(/Anthropic/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Canva/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Figma/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'X / Twitter' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'Reddit' }),
+    ).not.toBeInTheDocument();
   });
 });

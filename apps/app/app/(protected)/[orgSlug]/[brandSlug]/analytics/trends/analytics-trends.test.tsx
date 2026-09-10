@@ -451,8 +451,9 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
-    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.getByText('Native Api · healthy')).toBeInTheDocument();
+    expect(screen.getByText('Trend corpus healthy')).toBeInTheDocument();
+    expect(screen.getByText('Youtube · healthy')).toBeInTheDocument();
+    expect(screen.queryByText(/Native Api/)).not.toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
     // detail route before the click and cmd-click opens it in a new tab.

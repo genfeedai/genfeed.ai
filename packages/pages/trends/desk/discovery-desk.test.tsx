@@ -235,6 +235,7 @@ describe('DiscoveryDesk', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('First signal')).toBeInTheDocument();
     expect(screen.getByText('Second signal')).toBeInTheDocument();
+    expect(screen.queryByText('Source health')).not.toBeInTheDocument();
   });
 
   it('renders the light table view when ?view=grid', () => {
@@ -357,25 +358,5 @@ describe('DiscoveryDesk', () => {
       expect(mocks.openRemix).toHaveBeenCalledTimes(1);
     });
     expect(mocks.openRemix).toHaveBeenCalledWith(ITEM_ONE.remixSelector);
-  });
-  it('shows unavailable health alongside retained signals after a health failure', () => {
-    mocks.useDiscoveryDeskItems.mockReturnValue({
-      ...mocks.useDiscoveryDeskItems(),
-      healthError: new Error('internal health error'),
-    });
-    render(<DiscoveryDesk />);
-    expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
-    expect(screen.getByText('First signal')).toBeInTheDocument();
-    expect(screen.getByTestId('desk-table-view')).toBeInTheDocument();
-    expect(screen.queryByText('internal health error')).not.toBeInTheDocument();
-  });
-
-  it('scopes the source health panel to the platform URL filter', () => {
-    mocks.paramState.platform = 'reddit';
-    render(<DiscoveryDesk />);
-    expect(screen.getByRole('group', { name: 'Reddit' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('group', { name: 'X / Twitter' }),
-    ).not.toBeInTheDocument();
   });
 });

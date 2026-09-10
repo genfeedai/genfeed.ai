@@ -9,10 +9,13 @@ import { Text } from '@ui/typography/text';
 import { useTranslations } from 'next-intl';
 
 const PLATFORM_LABELS: Record<string, string> = {
+  linkedin: 'LinkedIn',
   reddit: 'Reddit',
   tiktok: 'TikTok',
   twitter: 'X / Twitter',
 };
+
+const DEFAULT_PLATFORMS = ['twitter', 'reddit', 'tiktok'] as const;
 
 type CorpusStatus = TrendCorpusFreshnessStatus | 'unavailable';
 
@@ -44,6 +47,28 @@ function formatProviderLabel(provider: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function uniquePlatforms(platforms: readonly string[]): string[] {
+  return Array.from(new Set(platforms.map(normalizePlatform)));
+}
+
+function resolvePlatformStatus(
+  statuses: readonly TrendCorpusFreshnessStatus[],
+): TrendCorpusFreshnessStatus | undefined {
+  if (statuses.length === 0) {
+    return undefined;
+  }
+  if (statuses.includes('degraded')) {
+    return 'degraded';
+  }
+  if (statuses.includes('stale')) {
+    return 'stale';
+  }
+  if (statuses.includes('empty')) {
+    return 'empty';
+  }
+  return 'healthy';
 }
 
 // Backend timestamps render identically on the server and in the browser:
@@ -78,21 +103,17 @@ export default function CorpusHealthPanel({
   selectedPlatforms = [],
 }: CorpusHealthPanelProps) {
   const translate = useTranslations('pages.analytics.trends.corpusHealth');
-  const platforms = Array.from(
-    new Set(
-      (selectedPlatforms.length > 0
-        ? selectedPlatforms
-        : [
-            'twitter',
-            'reddit',
-            'tiktok',
-            ...(health?.summary.platforms ?? []),
-            ...(health?.segments.map(({ platform }) => platform) ?? []),
-            ...(health?.providerFailures.map(({ platform }) => platform) ?? []),
-          ]
-      ).map(normalizePlatform),
-    ),
-  );
+  const observedPlatforms = uniquePlatforms([
+    ...(health?.summary.platforms ?? []),
+    ...(health?.segments.map(({ platform }) => platform) ?? []),
+    ...(health?.providerFailures.map(({ platform }) => platform) ?? []),
+  ]);
+  const platforms =
+    selectedPlatforms.length > 0
+      ? uniquePlatforms(selectedPlatforms)
+      : observedPlatforms.length > 0
+        ? observedPlatforms
+        : [...DEFAULT_PLATFORMS];
   const scopedSegments =
     health?.segments.filter((segment) =>
       platforms.includes(normalizePlatform(segment.platform)),
@@ -165,6 +186,9 @@ export default function CorpusHealthPanel({
             const label = formatPlatformLabel(platform);
             const isChecking = !health && !isUnavailable;
             const hasSegments = !isUnavailable && segments.length > 0;
+            const platformStatus = resolvePlatformStatus(
+              segments.map((segment) => segment.status),
+            );
             const latestSeenAt = segments
               .map((segment) => segment.latestSeenAt ?? null)
               .filter((value): value is string => Boolean(value))
@@ -187,16 +211,10 @@ export default function CorpusHealthPanel({
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {hasSegments ? (
-                      segments.map((segment) => (
-                        <Badge
-                          key={segment.id}
-                          variant={SEGMENT_BADGE_VARIANT[segment.status]}
-                        >
-                          {formatProviderLabel(segment.provider)} ·{' '}
-                          {translate(`status.${segment.status}`)}
-                        </Badge>
-                      ))
+                    {hasSegments && platformStatus ? (
+                      <Badge variant={SEGMENT_BADGE_VARIANT[platformStatus]}>
+                        {label} · {translate(`status.${platformStatus}`)}
+                      </Badge>
                     ) : (
                       <Badge variant={isChecking ? 'default' : 'ghost'}>
                         {isChecking
