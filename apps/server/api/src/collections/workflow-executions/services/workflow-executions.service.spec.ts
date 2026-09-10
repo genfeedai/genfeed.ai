@@ -931,6 +931,41 @@ describe('WorkflowExecutionsService', () => {
     },
   );
 
+  it.each([
+    'agent.turn.execute',
+    'agent.thread.ui-action',
+    'agent.thread.input-response',
+  ])(
+    'does not notify Workflow completed when %s succeeds',
+    async (canonicalId) => {
+      const { service, prisma, workflowNotificationOutboxService } =
+        makeService();
+      prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+        organizationId: 'org-1',
+        startedAt: null,
+        estimatedDurationMs: null,
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'Agent',
+          userId: 'genfeed-public-tools',
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            systemWorkflow: buildHiddenSystemWorkflowMetadata({ canonicalId }),
+          },
+        },
+      });
+      await service.completeExecution('execution-1');
+      expect(
+        workflowNotificationOutboxService.recordWorkflowOutcome,
+      ).not.toHaveBeenCalled();
+      expect(
+        workflowNotificationOutboxService.enqueueAfterCommit,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(
     [
       'lifecycle-email.delivery',
