@@ -95,7 +95,7 @@ describe('AdsGatewayRequestContextService', () => {
       refreshToken: 'must-not-leak',
     });
 
-    const context = await service.createAdapterContext(user, 'x', {
+    const context = await service.createAdapterContext(user, AdsPlatform.X, {
       adAccountId: 'act-123',
       credentialId,
       loginCustomerId: 'login-customer-123',
@@ -124,7 +124,7 @@ describe('AdsGatewayRequestContextService', () => {
       credentialsService.findOne.mockResolvedValue(row);
 
       await expect(
-        service.createAdapterContext(user, 'meta', {
+        service.createAdapterContext(user, AdsPlatform.META, {
           adAccountId: 'act-123',
           credentialId,
         }),
@@ -139,7 +139,7 @@ describe('AdsGatewayRequestContextService', () => {
     });
 
     await expect(
-      service.createAdapterContext(user, 'x', {
+      service.createAdapterContext(user, AdsPlatform.X, {
         adAccountId: 'act-123',
         credentialId,
       }),

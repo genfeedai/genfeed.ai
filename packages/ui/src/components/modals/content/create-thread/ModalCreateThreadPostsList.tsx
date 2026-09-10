@@ -8,6 +8,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Image as ImageIcon, Plus, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function ModalCreateThreadPostsList({
   form,
@@ -21,13 +22,15 @@ export default function ModalCreateThreadPostsList({
   onClearMedia,
   onChangeDelay,
 }: ModalCreateThreadPostsListProps) {
+  const translate = useTranslations('ui.createThread');
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Thread Posts</h3>
+        <h3 className="font-semibold">{translate('postsTitle')}</h3>
         <Button
           type="button"
-          label="Add comment / post"
+          label={translate('addPost')}
           icon={<Plus className="size-4" />}
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
@@ -55,7 +58,7 @@ export default function ModalCreateThreadPostsList({
               {fields.length > 1 && (
                 <Button
                   type="button"
-                  label="Remove"
+                  label={translate('remove')}
                   icon={<Trash2 className="size-4" />}
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.XS}
@@ -68,7 +71,7 @@ export default function ModalCreateThreadPostsList({
             <FormControl
               label={
                 <div className="flex items-center justify-between w-full">
-                  <span>Content</span>
+                  <span>{translate('content')}</span>
                   <span
                     className={`text-xs ${isOverLimit ? 'text-error' : 'text-foreground/60'}`}
                   >
@@ -103,11 +106,11 @@ export default function ModalCreateThreadPostsList({
               {mediaIds.length > 0 && (
                 <>
                   <span className="text-xs text-foreground/60">
-                    {mediaIds.length} attached
+                    {translate('attached', { count: mediaIds.length })}
                   </span>
                   <Button
                     type="button"
-                    label="Clear media"
+                    label={translate('clearMedia')}
                     icon={<X className="size-3" />}
                     variant={ButtonVariant.GHOST}
                     size={ButtonSize.XS}
@@ -119,14 +122,13 @@ export default function ModalCreateThreadPostsList({
 
             {isFollowUp && !isCommentMediaSupported && (
               <p className="text-xs text-foreground/60">
-                This channel publishes comments as text only, so a comment here
-                cannot carry media.
+                {translate('commentMediaUnsupported')}
               </p>
             )}
 
             {isFollowUp && (
               <FormControl
-                label="Delay"
+                label={translate('delay')}
                 helpText="Minutes after the post goes live. 0 publishes it right behind the post."
               >
                 <Input

@@ -15,8 +15,10 @@ describe('PostsListToolbar.tsx', () => {
 
   it('resolves publisher view labels through the host pages catalog', () => {
     expect(source).toContain("useTranslations('pages.posts.list')");
+    expect(source).toContain("translate('toolbar.sortAria')");
     expect(source).not.toContain('Held as data rather than inline JSX');
     expect(source).not.toContain("label: 'Not posted'");
+    expect(source).not.toContain('aria-label="Sort"');
   });
 
   it('does not accept route navigation as toolbar content', () => {

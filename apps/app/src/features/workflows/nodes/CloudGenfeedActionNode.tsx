@@ -99,9 +99,9 @@ function CloudGenfeedActionNodeComponent(props: NodeProps) {
             <NodeSelect
               className="nodrag"
               id={`node-brandId-${props.id}`}
-              label="Brand"
+              label={translate('brand')}
               onChange={(event) => handleChange('brandId', event.target.value)}
-              placeholder="Select a brand"
+              placeholder={translate('selectBrand')}
               value={brandValue}
             >
               {(scope.brands.length > 0

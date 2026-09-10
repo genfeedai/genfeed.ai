@@ -611,10 +611,17 @@ export default function RemixBriefInspector(): ReactElement {
               <Select
                 onValueChange={(value) => {
                   const isPaidTarget = run.draft.target.kind === 'paid';
-                  if (
-                    (isPaidTarget && !isBrandRemixAdPlatform(value)) ||
-                    (!isPaidTarget && !isBrandRemixOrganicPlatform(value))
-                  ) {
+                  if (isPaidTarget) {
+                    if (!isBrandRemixAdPlatform(value)) {
+                      return;
+                    }
+                    setEditor((current) => ({
+                      ...current,
+                      targetPlatform: value,
+                    }));
+                    return;
+                  }
+                  if (!isBrandRemixOrganicPlatform(value)) {
                     return;
                   }
                   setEditor((current) => ({

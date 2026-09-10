@@ -948,12 +948,46 @@
       "allBrands": "All brands",
       "brand": "Brand",
       "chooseBrandToConnect": "Choose a brand in Filters before connecting an account.",
+      "filterAria": "Filter social conversations",
+      "filterByBrandAria": "Filter conversations by brand",
+      "filterByPlatformAria": "Filter conversations by platform",
+      "filterByStatusAria": "Filter conversations by status",
+      "filterByTypeAria": "Filter conversations by type",
+      "filterTooltip": "Filter conversations",
       "filters": "Inbox filters",
+      "navAria": "Social conversations",
+      "needsYou": "Needs you",
+      "nextPage": "Next conversations page",
+      "other": "Other",
       "platform": "Platform",
+      "platforms": {
+        "all": "All platforms",
+        "instagram": "Instagram",
+        "linkedin": "LinkedIn",
+        "tiktok": "TikTok",
+        "twitter": "X / Twitter",
+        "youtube": "YouTube"
+      },
+      "previousPage": "Previous conversations page",
+      "searchAria": "Search social conversations",
+      "searchPlaceholder": "Search messages",
       "status": "Status",
-      "type": "Type",
+      "surfaces": {
+        "all": "All",
+        "comments": "Comments",
+        "dms": "DMs"
+      },
       "syncNow": "Sync now",
-      "title": "Conversations"
+      "title": "Conversations",
+      "type": "Type",
+      "views": {
+        "all": "All",
+        "archived": "Archived",
+        "inbox": "Inbox",
+        "resolved": "Resolved",
+        "review": "Review",
+        "unread": "Unread"
+      }
     },
     "title": "Messages"
   },

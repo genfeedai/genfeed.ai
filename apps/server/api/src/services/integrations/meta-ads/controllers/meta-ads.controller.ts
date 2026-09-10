@@ -26,6 +26,7 @@ import {
   CredentialPlatform,
   MemberRole,
 } from '@genfeedai/contracts';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -231,7 +232,7 @@ export class MetaAdsController {
         ...params,
         // Sent explicitly rather than left to Meta's default so an omitted
         // status can never create a campaign that is able to spend.
-        status: resolveProviderPausedStatus('meta'),
+        status: resolveProviderPausedStatus(AdsPlatform.META),
       },
     );
     return { id };
@@ -255,7 +256,7 @@ export class MetaAdsController {
       ...body,
       // Omitted stays omitted so a budget or rename edit never mutates the
       // campaign's serving state.
-      status: resolveProviderCampaignStatus('meta', body.status),
+      status: resolveProviderCampaignStatus(AdsPlatform.META, body.status),
     });
     return { success: true };
   }

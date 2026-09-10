@@ -2,6 +2,7 @@ import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { MetaGraphPaginationLimitError } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CapturedWorkflowAction = (request: {
@@ -68,7 +69,7 @@ describe('PausedMetaCampaignDraftService', () => {
         output: { aspectRatio: '1:1', count: 1, kind: 'image' as const },
         references: [],
         reviewRequired: true as const,
-        target: { kind: 'paid' as const, platform: 'meta' as const },
+        target: { kind: 'paid' as const, platform: BrandRemixAdPlatform.META },
       },
       phase: 'paid_draft_creating' as const,
       readiness: { issues: [], state: 'ready' as const },
@@ -86,7 +87,7 @@ describe('PausedMetaCampaignDraftService', () => {
         evidence: [],
         metrics: {},
         pattern: {},
-        platform: 'meta' as const,
+        platform: BrandRemixAdPlatform.META,
         selector: { adPerformanceId: 'source-1', kind: 'public_ad' as const },
         sourceId: 'source-1',
         title: 'Source pattern',

@@ -12,6 +12,7 @@ import {
 } from '@ui/primitives/dialog';
 import type { Edge, Node } from '@xyflow/react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
 
 export type WorkflowTemplateDetailsDialogProps = {
@@ -50,6 +51,8 @@ export function WorkflowTemplateDetailsDialog({
   sourceLabel,
   title,
 }: WorkflowTemplateDetailsDialogProps) {
+  const translate = useTranslations('pages.workflows.templates');
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -58,13 +61,13 @@ export function WorkflowTemplateDetailsDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">Source</dt>
+          <dt className="text-muted-foreground">{translate('source')}</dt>
           <dd>{sourceLabel}</dd>
-          <dt className="text-muted-foreground">Category</dt>
+          <dt className="text-muted-foreground">{translate('category')}</dt>
           <dd>{categoryLabel}</dd>
           {scheduleLabel ? (
             <>
-              <dt className="text-muted-foreground">Schedule</dt>
+              <dt className="text-muted-foreground">{translate('schedule')}</dt>
               <dd>{scheduleLabel}</dd>
             </>
           ) : null}

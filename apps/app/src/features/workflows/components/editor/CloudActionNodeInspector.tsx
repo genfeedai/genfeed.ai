@@ -18,6 +18,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect } from 'react';
 import {
   useWorkflowActionDefaults,
@@ -62,6 +63,7 @@ function FieldLabel({ htmlFor, label }: { htmlFor: string; label: string }) {
 }
 
 export function CloudActionNodeInspector() {
+  const translate = useTranslations('pages.workflows.actionInspector');
   const selectedNodeId = useUIStore((state) => state.selectedNodeId);
   const selectNode = useUIStore((state) => state.selectNode);
   const node = useWorkflowStore((state) =>
@@ -167,7 +169,7 @@ export function CloudActionNodeInspector() {
           type="button"
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
-          title="Close configuration"
+          title={translate('close')}
           onClick={() => selectNode(null)}
         >
           <X className="size-4" />
@@ -177,7 +179,10 @@ export function CloudActionNodeInspector() {
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {properties.brandId ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-brandId" label="Brand" />
+            <FieldLabel
+              htmlFor="action-field-brandId"
+              label={translate('brand')}
+            />
             {scope.brands.length > 0 ? (
               <Select
                 onValueChange={(value) => handleChange('brandId', value)}
@@ -192,7 +197,7 @@ export function CloudActionNodeInspector() {
                   className="nodrag h-8 w-full"
                   id="action-field-brandId"
                 >
-                  <SelectValue placeholder="Select a brand" />
+                  <SelectValue placeholder={translate('selectBrand')} />
                 </SelectTrigger>
                 <SelectContent>
                   {scope.brands.map((brand) => (
@@ -215,7 +220,10 @@ export function CloudActionNodeInspector() {
 
         {properties.credentialIds ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-credentialIds" label="Accounts" />
+            <FieldLabel
+              htmlFor="action-field-credentialIds"
+              label={translate('accounts')}
+            />
             {scope.credentials.length > 0 ? (
               <DropdownMultiSelect
                 isSearchEnabled={scope.credentials.length > 6}
@@ -228,12 +236,12 @@ export function CloudActionNodeInspector() {
                   label: `@${credential.label.replace(/^@/, '')}`,
                   value: credential.id,
                 }))}
-                placeholder="Select connected accounts"
+                placeholder={translate('selectAccounts')}
                 values={credentialValues}
               />
             ) : (
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Connect X or LinkedIn for this brand to choose accounts.
+                {translate('connectAccounts')}
               </p>
             )}
           </div>
@@ -241,7 +249,10 @@ export function CloudActionNodeInspector() {
 
         {properties.credentialId ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-credentialId" label="Account" />
+            <FieldLabel
+              htmlFor="action-field-credentialId"
+              label={translate('account')}
+            />
             <Select
               onValueChange={(value) => handleChange('credentialId', value)}
               value={credentialId || undefined}
@@ -250,7 +261,7 @@ export function CloudActionNodeInspector() {
                 className="nodrag h-8 w-full"
                 id="action-field-credentialId"
               >
-                <SelectValue placeholder="Select an account" />
+                <SelectValue placeholder={translate('selectAccount')} />
               </SelectTrigger>
               <SelectContent>
                 {scope.credentials.map((credential) => (
@@ -265,7 +276,10 @@ export function CloudActionNodeInspector() {
 
         {properties.timezone ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-timezone" label="Timezone" />
+            <FieldLabel
+              htmlFor="action-field-timezone"
+              label={translate('timezone')}
+            />
             <Select
               onValueChange={(value) => handleChange('timezone', value)}
               value={timezoneValue}
@@ -274,7 +288,7 @@ export function CloudActionNodeInspector() {
                 className="nodrag h-8 w-full"
                 id="action-field-timezone"
               >
-                <SelectValue placeholder="Select a timezone" />
+                <SelectValue placeholder={translate('selectTimezone')} />
               </SelectTrigger>
               <SelectContent>
                 {TIMEZONES.map((zone) => (
@@ -289,7 +303,10 @@ export function CloudActionNodeInspector() {
 
         {properties.topics ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-topics" label="Topics" />
+            <FieldLabel
+              htmlFor="action-field-topics"
+              label={translate('topics')}
+            />
             <Textarea
               className="nodrag nopan min-h-20"
               id="action-field-topics"
@@ -302,7 +319,7 @@ export function CloudActionNodeInspector() {
                     .filter(Boolean),
                 )
               }
-              placeholder="One topic per line"
+              placeholder={translate('topicsPlaceholder')}
               value={topicsValue.join('\n')}
             />
           </div>
@@ -310,7 +327,10 @@ export function CloudActionNodeInspector() {
 
         {properties.minScore ? (
           <div className="space-y-1.5">
-            <FieldLabel htmlFor="action-field-minScore" label="Minimum score" />
+            <FieldLabel
+              htmlFor="action-field-minScore"
+              label={translate('minScore')}
+            />
             <Select
               onValueChange={(value) => handleChange('minScore', Number(value))}
               value={minScore || undefined}
@@ -319,7 +339,7 @@ export function CloudActionNodeInspector() {
                 className="nodrag h-8 w-full"
                 id="action-field-minScore"
               >
-                <SelectValue placeholder="Hold below this score" />
+                <SelectValue placeholder={translate('minScorePlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {[7, 8, 9, 10].map((score) => (
@@ -336,7 +356,7 @@ export function CloudActionNodeInspector() {
           <div className="space-y-1.5">
             <FieldLabel
               htmlFor="action-field-agentStrategyId"
-              label="Strategy"
+              label={translate('strategy')}
             />
             <Select
               onValueChange={(value) =>
@@ -351,10 +371,12 @@ export function CloudActionNodeInspector() {
                 className="nodrag h-8 w-full"
                 id="action-field-agentStrategyId"
               >
-                <SelectValue placeholder="No strategy" />
+                <SelectValue placeholder={translate('noStrategy')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">No strategy</SelectItem>
+                <SelectItem value="__none__">
+                  {translate('noStrategy')}
+                </SelectItem>
                 {scope.strategies.map((strategy) => (
                   <SelectItem key={strategy.id} value={strategy.id}>
                     {strategy.label}

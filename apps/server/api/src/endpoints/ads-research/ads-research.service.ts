@@ -669,7 +669,7 @@ export class AdsResearchService {
       campaignId: item.externalCampaignId as string | undefined,
       campaignName: item.campaignName as string | undefined,
       campaignObjective: item.campaignObjective as string | undefined,
-      channel: 'all',
+      channel: AdsChannel.ALL,
       cta: item.ctaText as string | undefined,
       explanation: this.buildExplanation({
         ctr: this.toNumber(item.ctr),
@@ -794,7 +794,7 @@ export class AdsResearchService {
       accountId: item.advertiserId as string | undefined,
       accountName: advertiserLabel,
       body: isRemixAllowed ? (item.bodyText as string | undefined) : undefined,
-      channel: 'all',
+      channel: AdsChannel.ALL,
       cta: isRemixAllowed ? (item.ctaText as string | undefined) : undefined,
       explanation: isRemixAllowed
         ? `${sourceLabel} creative currently served by ${advertiserLabel}. The archive publishes the creative only, so delivery and spend metrics are unavailable.${longevityNote}`

@@ -1,5 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ViewType } from '@genfeedai/contracts';
+import { isBrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts';
 import {
   type AdPack,
   AdsChannel,
@@ -670,6 +671,7 @@ export function useAdsResearchPageClient() {
 
     if (
       !selectedAd.platform ||
+      !isBrandRemixAdPlatform(selectedAd.platform) ||
       !selectedAd.credentialId ||
       !selectedAd.adAccountId
     ) {
