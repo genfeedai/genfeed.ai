@@ -22,7 +22,6 @@ const RECIPE_FIELD_LABELS = [
   ['lighting', 'Lighting'],
   ['lens', 'Lens'],
   ['aspectRatio', 'Aspect'],
-  ['quality', 'Quality'],
   ['resolution', 'Resolution'],
   ['duration', 'Duration'],
   ['outputs', 'Outputs'],
@@ -131,7 +130,6 @@ export function recipeFromPromptData(
     mood: optionalText(promptData.mood),
     outputs: promptData.outputs || 1,
     promptTemplate: optionalText(promptData.prompt_template),
-    quality: optionalText(promptData.outputQuality),
     references: promptData.references ?? [],
     resolution: optionalText(settings.resolution),
     scene: optionalText(promptData.scene),
@@ -167,7 +165,6 @@ export function recipeFromRepromptData(
     mood: optionalText(promptData.mood),
     outputs: 1,
     promptTemplate: optionalText(promptData.prompt_template),
-    quality: optionalText(promptData.outputQuality),
     references: promptData.references ?? [],
     resolution: optionalText(promptData.resolution),
     scene: optionalText(promptData.scene),
@@ -213,7 +210,6 @@ export function recipeFromIngredient(
     mood: optional('mood'),
     outputs: 1,
     promptTemplate: optional('promptTemplate') || optional('prompt_template'),
-    quality: optional('quality'),
     references: Array.isArray(ingredient.references)
       ? ingredient.references.filter(
           (reference): reference is string => typeof reference === 'string',

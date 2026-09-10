@@ -13,6 +13,7 @@ import type {
   MusicGenerationPayload,
   VideoGenerationPayload,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import { isImageQualitySupported } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
 
 /**
  * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's
@@ -98,7 +99,11 @@ export function buildImagePayload(
     ...basePayload,
     format:
       (promptData.format as IngredientFormat) || IngredientFormat.PORTRAIT,
-    quality: promptData.outputQuality?.trim() || undefined,
+    quality:
+      basePayload.model &&
+      isImageQualitySupported(basePayload.model, promptData.resolution)
+        ? promptData.resolution
+        : undefined,
   };
 }
 

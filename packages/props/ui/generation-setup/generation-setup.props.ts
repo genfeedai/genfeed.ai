@@ -22,7 +22,6 @@ export type GenerationSetupLookFieldKey = Extract<
   | 'lighting'
   | 'mood'
   | 'promptTemplate'
-  | 'quality'
   | 'resolution'
   | 'scene'
   | 'style'

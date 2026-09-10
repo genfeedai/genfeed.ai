@@ -112,6 +112,19 @@ describe('option lists', () => {
     expect(getStudioResolutions('voice')).toEqual([]);
   });
 
+  it('puts GPT Image OpenAPI quality bands on the same Resolution control', () => {
+    expect(
+      getStudioResolutions('image', 'openai/gpt-image-2.5-flare').map(
+        (option) => option.value,
+      ),
+    ).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'auto']);
+    expect(
+      getStudioResolutions('image', 'openai/gpt-image-2').map(
+        (option) => option.value,
+      ),
+    ).toEqual(['low', 'medium', 'high', 'auto']);
+  });
+
   it('waits for an explicit video model instead of posting an illegal generic resolution', () => {
     expect(getStudioResolutions('video')).toEqual([]);
   });

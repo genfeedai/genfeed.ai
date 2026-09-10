@@ -17,7 +17,6 @@ import type {
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { getDefaultImageQuality } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
@@ -30,6 +29,7 @@ import {
   useStudioLooks,
 } from '@pages/studio/generate/hooks/useStudioLooks';
 import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
+import { getDefaultStudioResolution } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
   getStudioGenerateTypeConfig,
   listStudioGenerateTypeConfigs,
@@ -156,11 +156,10 @@ export default function StudioGenerateComposer({
     const modelKey = values[0] ?? AUTO_MODEL_OPTION_VALUE;
     onSettingsChange({
       modelKey,
-      ...(type === 'video' && modelKey !== AUTO_MODEL_OPTION_VALUE
-        ? { resolution: getDefaultVideoResolution(modelKey) ?? '' }
-        : {}),
-      ...(type === 'image' && modelKey !== AUTO_MODEL_OPTION_VALUE
-        ? { quality: getDefaultImageQuality(modelKey) }
+      ...(modelKey !== AUTO_MODEL_OPTION_VALUE
+        ? {
+            resolution: getDefaultStudioResolution(type, modelKey),
+          }
         : {}),
     });
   };

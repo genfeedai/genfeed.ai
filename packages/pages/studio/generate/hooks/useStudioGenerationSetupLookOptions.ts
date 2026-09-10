@@ -1,6 +1,5 @@
 'use client';
 
-import { getImageQualityOptionsByModel } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
 import type { GenerationSetupLookOptions } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { PRESET_TO_TEMPLATE_MAP } from '@pages/studio/generate/utils/generation-payloads';
@@ -91,13 +90,6 @@ export function useStudioGenerationSetupLookOptions(
     const resolutionOptions = getStudioResolutions(type, modelKey).map(
       (option) => ({ key: option.value, label: option.label }),
     );
-    const qualityOptions =
-      type === 'image'
-        ? getImageQualityOptionsByModel(modelKey).map((option) => ({
-            key: option.value,
-            label: option.label,
-          }))
-        : [];
 
     return {
       camera: toDropdownOptions(cameras),
@@ -110,7 +102,6 @@ export function useStudioGenerationSetupLookOptions(
       lighting: toDropdownOptions(lightings),
       mood: toDropdownOptions(moods),
       promptTemplate: getPromptTemplateOptions(type),
-      quality: qualityOptions.length > 0 ? qualityOptions : undefined,
       resolution: resolutionOptions.length > 0 ? resolutionOptions : undefined,
       scene: toDropdownOptions(scenes),
       style: toDropdownOptions(styles),

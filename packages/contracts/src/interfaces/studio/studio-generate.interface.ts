@@ -158,8 +158,6 @@ export interface StudioGenerateSettings {
   mood?: string;
   outputs: number;
   prioritize: RouterPriority;
-  /** Native OpenAPI quality enum (low → max). Shown only when the model has one. */
-  quality?: string;
   /** Preset key — mapped to a `ContentTemplateKey` by the payload builder. */
   promptTemplate?: string;
   resolution: string;
@@ -190,7 +188,6 @@ export interface StudioGenerateRecipe {
   mood?: string;
   outputs: number;
   promptTemplate?: string;
-  quality?: string;
   references: string[];
   resolution?: string;
   scene?: string;
