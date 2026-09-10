@@ -224,13 +224,27 @@ export function AgentThreadList({
         className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
       >
         {showEmptyOrLoadStates ? (
-          <AgentThreadListEmptyState
-            actions={listActions}
-            isLoading={isLoading && threads.length === 0}
-            shouldShowLoadFailureState={shouldShowLoadFailureState}
-            shouldShowEmptyState={shouldShowEmptyState}
-            onRetry={handleRetryLoad}
-          />
+          shouldShowEmptyState ? (
+            <ConversationSidebarSection
+              actions={listActions}
+              label={isArchivedView ? 'Archived' : 'Recent'}
+            >
+              <AgentThreadListEmptyState
+                isLoading={false}
+                shouldShowLoadFailureState={false}
+                shouldShowEmptyState
+                onRetry={handleRetryLoad}
+              />
+            </ConversationSidebarSection>
+          ) : (
+            <AgentThreadListEmptyState
+              actions={listActions}
+              isLoading={isLoading && threads.length === 0}
+              shouldShowLoadFailureState={shouldShowLoadFailureState}
+              shouldShowEmptyState={false}
+              onRetry={handleRetryLoad}
+            />
+          )
         ) : visibleThreadCount === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center px-6 text-center">
             <p className="text-sm text-foreground/50">

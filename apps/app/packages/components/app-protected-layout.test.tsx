@@ -851,6 +851,7 @@ describe('AppProtectedLayout', () => {
         showPrimaryItems: false,
       }),
     );
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0].sectionLabel).toBeUndefined();
   });
 
   it('keeps conversation header actions inside the agent sidebar list (no parent lift)', () => {
