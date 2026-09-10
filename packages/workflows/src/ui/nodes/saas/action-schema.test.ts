@@ -140,6 +140,63 @@ describe('action schema visual adapter', () => {
     });
 
     expect(definition.inputs).toEqual([]);
+    expect(definition.outputs.map((handle) => handle.id)).toEqual(['brandId']);
+  });
+
+  it('keeps content-loop analytics, trend, brand, and publish ports', () => {
+    const trend = createActionVisualDefinition({
+      ...action,
+      inputSchema: {
+        properties: {
+          checkFrequency: { type: 'string' },
+          keywords: { items: { type: 'string' }, type: 'array' },
+          minViralScore: { type: 'number' },
+          platform: { type: 'string' },
+          topic: { type: 'string' },
+        },
+        type: 'object',
+      },
+      outputSchema: {
+        properties: {
+          topic: { type: 'string' },
+          videoUrl: { type: 'string' },
+          viralScore: { type: 'number' },
+        },
+        type: 'object',
+      },
+    });
+    const publish = createActionVisualDefinition({
+      ...action,
+      inputSchema: {
+        properties: {
+          brand: { type: 'string' },
+          caption: { type: 'string' },
+          media: { type: 'string' },
+          schedule: { type: 'object' },
+        },
+        type: 'object',
+      },
+      outputSchema: {
+        properties: { status: { type: 'string' } },
+        type: 'object',
+      },
+    });
+
+    expect(trend.inputs.map((handle) => handle.id)).toEqual([
+      'keywords',
+      'platform',
+      'topic',
+    ]);
+    expect(trend.outputs.map((handle) => handle.id)).toEqual([
+      'topic',
+      'videoUrl',
+    ]);
+    expect(publish.inputs.map((handle) => handle.id)).toEqual([
+      'brand',
+      'caption',
+      'media',
+      'schedule',
+    ]);
   });
 
   it('picks a compact set of on-node fields and skips identity or media', () => {

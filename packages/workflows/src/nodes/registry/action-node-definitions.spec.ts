@@ -85,7 +85,22 @@ describe('ACTION_NODE_DEFINITIONS', () => {
   it('unwraps anyOf output schemas so trendTrigger exposes the video port', () => {
     expect(
       ACTION_NODE_DEFINITIONS.trendTrigger?.outputs.map((output) => output.id),
-    ).toEqual(['videoUrl']);
+    ).toEqual(['topic', 'videoUrl']);
+  });
+
+  it('declares content-loop trend, brand, llm, and publish handles', () => {
+    expect(
+      ACTION_NODE_DEFINITIONS.trendTrigger?.inputs.map((input) => input.id),
+    ).toEqual(expect.arrayContaining(['keywords', 'platform', 'topic']));
+    expect(
+      ACTION_NODE_DEFINITIONS.brandContext?.outputs.map((output) => output.id),
+    ).toEqual(expect.arrayContaining(['brandId', 'voice']));
+    expect(
+      ACTION_NODE_DEFINITIONS.llm?.outputs.map((output) => output.id),
+    ).toEqual(expect.arrayContaining(['text']));
+    expect(
+      ACTION_NODE_DEFINITIONS.publish?.inputs.map((input) => input.id),
+    ).toEqual(expect.arrayContaining(['brand', 'caption', 'schedule']));
   });
 
   it('does not explode daily-publishing state into per-field ports', () => {
