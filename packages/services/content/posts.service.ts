@@ -213,6 +213,7 @@ export class PostsService extends BaseService<
       label: string;
       scheduledDate?: string;
       targetExecutionState?: CreatePostRequest['targetExecutionState'];
+      threadDelayMinutes?: number;
       visibility?: CreatePostRequest['visibility'];
     }>;
   }): Promise<Post[]> {

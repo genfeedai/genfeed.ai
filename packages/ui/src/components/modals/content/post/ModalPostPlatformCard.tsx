@@ -6,6 +6,8 @@ import {
   PostVisibility,
 } from '@genfeedai/contracts';
 import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers';
+import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -26,6 +28,7 @@ type Props = {
   isYoutube: boolean;
   isInstagram: boolean;
   currentLength: number;
+  charLimit: number;
   globalLabel: string | undefined;
   globalDescription: string | undefined;
   generatingTitleFor: string | null;
@@ -50,6 +53,7 @@ export default function ModalPostPlatformCard({
   isYoutube,
   isInstagram,
   currentLength,
+  charLimit,
   globalLabel,
   globalDescription,
   generatingTitleFor,
@@ -186,11 +190,15 @@ export default function ModalPostPlatformCard({
           disabled={!isEnabled || isLoading}
         />
 
-        {isTwitter && (
-          <p className="text-xs text-foreground/70 mt-1">
-            {280 - currentLength} characters remaining
-          </p>
-        )}
+        <p
+          className={cn(
+            'text-xs mt-1',
+            currentLength > charLimit ? 'text-error' : 'text-foreground/70',
+          )}
+        >
+          {formatNumberWithCommas(currentLength)}/
+          {formatNumberWithCommas(charLimit)} characters
+        </p>
       </div>
 
       <Checkbox

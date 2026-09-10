@@ -7,6 +7,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { MAX_THREAD_DELAY_MINUTES } from '@genfeedai/contracts/api-types/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -18,6 +19,8 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
+  Min,
 } from 'class-validator';
 
 export class CreatePostDto {
@@ -261,6 +264,19 @@ export class CreatePostDto {
   @IsOptional()
   @IsNumber()
   readonly order?: number;
+
+  @ApiProperty({
+    description:
+      'Minutes after the parent post goes live before this comment publishes. Thread replies only; 0 publishes with the parent.',
+    maximum: MAX_THREAD_DELAY_MINUTES,
+    minimum: 0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(MAX_THREAD_DELAY_MINUTES)
+  readonly threadDelayMinutes?: number;
 
   @ApiProperty({
     description: 'Array of posts for batch thread creation',

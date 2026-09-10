@@ -2431,6 +2431,9 @@ model Post {
   publishedAt                    DateTime?
   uploadedAt                     DateTime?
   nextScheduledDate              DateTime?
+  // Minutes after the parent post goes live before this follow-up publishes.
+  // Set only on thread children; null or 0 publishes with the parent.
+  threadDelayMinutes             Int?
   isRepeat                       Boolean            @default(false)
   repeatFrequency                String?
   repeatInterval                 Int?
@@ -2518,6 +2521,7 @@ model Post {
   @@index([agentStrategyId])
   @@index([reviewVersionPinId], map: "posts_reviewVersionPinId_idx")
   @@index([isDeleted, parentId, scheduledDate, status])
+  @@index([isDeleted, parentId, targetExecutionState, scheduledDate], map: "posts_thread_child_due_idx")
   @@index([isDeleted, organizationId, status])
   @@index([brandId, isDeleted, status])
   @@index([isDeleted, nextScheduledDate, status])

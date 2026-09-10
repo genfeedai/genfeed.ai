@@ -15,7 +15,9 @@ import {
   deriveReleaseStatusProjectionFromTargets,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
+  MAX_THREAD_DELAY_MINUTES,
   mapPostStatusToCanonicalWrite,
+  normalizeThreadDelayMinutes,
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
   projectLegacyPostStatus,
@@ -617,5 +619,22 @@ describe('post status dual-API hard cut', () => {
     expect(
       JSON.stringify(postVisibilityReadFilter(PostVisibility.PRIVATE)),
     ).not.toContain('"status"');
+  });
+});
+
+describe('comment delay bounds', () => {
+  test('reads a delay as whole minutes inside the supported window', () => {
+    expect(normalizeThreadDelayMinutes(10)).toBe(10);
+    expect(normalizeThreadDelayMinutes(2.7)).toBe(2);
+    expect(normalizeThreadDelayMinutes(MAX_THREAD_DELAY_MINUTES + 1)).toBe(
+      MAX_THREAD_DELAY_MINUTES,
+    );
+  });
+
+  test('publishes with the parent when no usable delay is given', () => {
+    expect(normalizeThreadDelayMinutes(undefined)).toBe(0);
+    expect(normalizeThreadDelayMinutes(null)).toBe(0);
+    expect(normalizeThreadDelayMinutes(-5)).toBe(0);
+    expect(normalizeThreadDelayMinutes(Number.NaN)).toBe(0);
   });
 });

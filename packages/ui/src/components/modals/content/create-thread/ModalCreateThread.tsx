@@ -5,10 +5,16 @@ import {
 import {
   AlertCategory,
   ButtonVariant,
+  IngredientCategory,
   ModalEnum,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import {
+  getChannelCapability,
+  getChannelThreadChildCapability,
+  normalizeThreadDelayMinutes,
+} from '@genfeedai/contracts/api-types/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
@@ -24,6 +30,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import Alert from '@ui/feedback/alert/Alert';
+import { LazyModalGallery } from '@ui/lazy/modal/LazyModal';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import ModalCreateThreadPostsList from '@ui/modals/content/create-thread/ModalCreateThreadPostsList';
 import ModalCreateThreadPreview from '@ui/modals/content/create-thread/ModalCreateThreadPreview';
@@ -31,7 +38,7 @@ import ModalCreateThreadSettings from '@ui/modals/content/create-thread/ModalCre
 import Modal from '@ui/modals/modal/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { PLATFORM_CHAR_LIMITS } from '@ui-constants/platform-char-limit.constant';
+import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 
@@ -54,13 +61,17 @@ export default function ModalCreateThread({
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const formRef = useFocusFirstInput<HTMLFormElement>();
   const [activeTab, setActiveTab] = useState<'compose' | 'preview'>('compose');
+  const [mediaPickerIndex, setMediaPickerIndex] = useState<number | null>(null);
 
   const form = useForm<ThreadModalSchema>({
     defaultValues: {
       credentialId: credential?.id || credentials[0]?.id,
       globalTitle: '',
       ingredient: ingredient?.id,
-      posts: [{ description: '' }, { description: '' }],
+      posts: [
+        { description: '', ingredientIds: [], threadDelayMinutes: 0 },
+        { description: '', ingredientIds: [], threadDelayMinutes: 0 },
+      ],
       scheduledDate: '',
       targetExecutionState: TargetExecutionState.DRAFT,
       visibility: PostVisibility.PUBLIC,
@@ -98,11 +109,18 @@ export default function ModalCreateThread({
     try {
       const service = await getPostsService();
 
+      const sharedIngredients = data.ingredient ? [data.ingredient] : [];
       const threadPosts = data.posts.map((post, index) => ({
         credentialId: data.credentialId,
         description: post.description.trim(),
-        ingredients: data.ingredient ? [data.ingredient] : [],
+        ingredients:
+          post.ingredientIds && post.ingredientIds.length > 0
+            ? post.ingredientIds
+            : sharedIngredients,
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
+        ...(index > 0 && post.threadDelayMinutes
+          ? { threadDelayMinutes: post.threadDelayMinutes }
+          : {}),
         ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
         targetExecutionState: data.targetExecutionState,
         visibility: data.visibility,
@@ -141,9 +159,20 @@ export default function ModalCreateThread({
     (c) => c.id === form.watch('credentialId'),
   )?.platform;
 
-  const charLimit = selectedPlatform
-    ? PLATFORM_CHAR_LIMITS[selectedPlatform] || 280
-    : 280;
+  const charLimit = resolvePlatformCharLimit(selectedPlatform);
+
+  const threadChildCapability = getChannelThreadChildCapability(
+    selectedPlatform ?? '',
+  );
+  const isCommentMediaSupported = threadChildCapability.mediaKinds.length > 0;
+  /**
+   * A comment API takes a single attachment; a reply chain carries whatever
+   * the channel allows on a post of its own.
+   */
+  const maxMediaPerItem =
+    threadChildCapability.kind === 'reply_chain'
+      ? (getChannelCapability(selectedPlatform ?? '')?.media.maxItems ?? 1)
+      : 1;
 
   const credentialOptions = credentials.map((cred) => ({
     label: `${cred.platform} - ${cred.label || cred.externalHandle || 'Untitled'}`,
@@ -151,13 +180,27 @@ export default function ModalCreateThread({
   }));
 
   const addPost = () => {
-    append({ description: '' });
+    append({ description: '', ingredientIds: [], threadDelayMinutes: 0 });
   };
 
   const removePost = (index: number) => {
     if (fields.length > 1) {
       remove(index);
     }
+  };
+
+  const setPostMedia = (index: number, ingredientIds: string[]) => {
+    form.setValue(`posts.${index}.ingredientIds`, ingredientIds, {
+      shouldDirty: true,
+    });
+  };
+
+  const setPostDelay = (index: number, value: string) => {
+    form.setValue(
+      `posts.${index}.threadDelayMinutes`,
+      normalizeThreadDelayMinutes(Number.parseInt(value, 10)),
+      { shouldDirty: true, shouldValidate: true },
+    );
   };
 
   return (
@@ -204,9 +247,13 @@ export default function ModalCreateThread({
               form={form}
               fields={fields}
               charLimit={charLimit}
+              isCommentMediaSupported={isCommentMediaSupported}
               onAddPost={addPost}
               onRemovePost={removePost}
               onKeyDown={handleKeyDown}
+              onPickMedia={setMediaPickerIndex}
+              onClearMedia={(index) => setPostMedia(index, [])}
+              onChangeDelay={setPostDelay}
             />
           </div>
         )}
@@ -239,6 +286,23 @@ export default function ModalCreateThread({
           />
         </ModalActions>
       </form>
+
+      {mediaPickerIndex !== null && (
+        <LazyModalGallery
+          isOpen
+          category={IngredientCategory.IMAGE}
+          title="Attach media"
+          maxSelectableItems={maxMediaPerItem}
+          onClose={() => setMediaPickerIndex(null)}
+          onSelect={(items) => {
+            setPostMedia(
+              mediaPickerIndex,
+              items.map((item) => item.id),
+            );
+            setMediaPickerIndex(null);
+          }}
+        />
+      )}
     </Modal>
   );
 }

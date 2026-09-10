@@ -18,11 +18,7 @@ import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Modal from '@ui/modals/modal/Modal';
-import {
-  DEFAULT_CHAR_LIMIT,
-  PLATFORM_CHAR_LIMITS,
-  X_LONG_FORM_CHAR_LIMIT,
-} from '@ui-constants/platform-char-limit.constant';
+import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
@@ -237,15 +233,12 @@ export default function ModalPost({
     post?.platform ||
     post?.credential?.platform;
 
-  const charLimit =
-    selectedPlatform === Platform.TWITTER &&
-    form.watch('format') === PostFormat.LONG_FORM
-      ? X_LONG_FORM_CHAR_LIMIT
-      : selectedPlatform
-        ? PLATFORM_CHAR_LIMITS[selectedPlatform] || DEFAULT_CHAR_LIMIT
-        : DEFAULT_CHAR_LIMIT;
+  const charLimit = resolvePlatformCharLimit(
+    selectedPlatform,
+    form.watch('format'),
+  );
 
-  const currentLength = form.watch('description')?.length || 0;
+  const currentLength = Array.from(form.watch('description') || '').length;
   const isOverLimit = currentLength > charLimit;
 
   // YouTube requires a title

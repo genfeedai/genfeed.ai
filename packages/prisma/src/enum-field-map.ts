@@ -4274,6 +4274,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'targetReadiness',
       'targetSettings',
       'targetValidationState',
+      'threadDelayMinutes',
       'timezone',
       'updatedAt',
       'uploadedAt',

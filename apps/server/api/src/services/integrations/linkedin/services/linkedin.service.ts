@@ -381,51 +381,11 @@ export class LinkedInService {
       const userInfo = await this.getUserProfile(decryptedAccessToken);
       const personURN = `urn:li:person:${userInfo.id}`;
 
-      // Step 1: Register image upload
-      const registerResponse = await firstValueFrom(
-        this.httpService.post(
-          'https://api.linkedin.com/v2/assets?action=registerUpload',
-          {
-            registerUploadRequest: {
-              owner: personURN,
-              recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
-              serviceRelationships: [
-                {
-                  identifier: 'urn:li:userGeneratedContent',
-                  relationshipType: 'OWNER',
-                },
-              ],
-            },
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${decryptedAccessToken}`,
-              'Content-Type': 'application/json',
-            },
-          },
-        ),
-      );
-
-      const assetId = registerResponse.data.value.asset;
-      const uploadUrl =
-        registerResponse.data.value.uploadMechanism[
-          'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
-        ].uploadUrl;
-
-      // Step 2: Upload image
-      const imageRes = await firstValueFrom(
-        this.httpService.get(imageUrl, {
-          responseType: 'arraybuffer',
-        }),
-      );
-
-      await firstValueFrom(
-        this.httpService.put(uploadUrl, imageRes.data, {
-          headers: {
-            Authorization: `Bearer ${decryptedAccessToken}`,
-            'Content-Type': 'application/octet-stream',
-          },
-        }),
+      // Steps 1 and 2: register the asset, then upload the bytes
+      const assetId = await this.uploadImageAsset(
+        decryptedAccessToken,
+        personURN,
+        imageUrl,
       );
 
       // Step 3: Create share with image
@@ -805,11 +765,73 @@ export class LinkedInService {
   }
 
   /**
+   * Register a digital media asset and upload the image bytes behind it.
+   *
+   * Shared by feed shares and comment attachments: both reference the same
+   * `urn:li:digitalmediaAsset` once the upload completes.
+   */
+  private async uploadImageAsset(
+    accessToken: string,
+    ownerUrn: string,
+    imageUrl: string,
+  ): Promise<string> {
+    const registerResponse = await firstValueFrom(
+      this.httpService.post(
+        'https://api.linkedin.com/v2/assets?action=registerUpload',
+        {
+          registerUploadRequest: {
+            owner: ownerUrn,
+            recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+            serviceRelationships: [
+              {
+                identifier: 'urn:li:userGeneratedContent',
+                relationshipType: 'OWNER',
+              },
+            ],
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+    );
+
+    const assetId = registerResponse.data.value.asset;
+    const uploadUrl =
+      registerResponse.data.value.uploadMechanism[
+        'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
+      ].uploadUrl;
+
+    const imageRes = await firstValueFrom(
+      this.httpService.get(imageUrl, {
+        responseType: 'arraybuffer',
+      }),
+    );
+
+    await firstValueFrom(
+      this.httpService.put(uploadUrl, imageRes.data, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/octet-stream',
+        },
+      }),
+    );
+
+    return assetId;
+  }
+
+  /**
    * Post a comment on a LinkedIn post
    * @param organizationId The organization ID
    * @param brandId The brand ID
    * @param postUrn The LinkedIn post URN (e.g., urn:li:share:123456789)
    * @param text The comment text
+   * @param options.imageUrl Image attached to the comment. LinkedIn accepts a
+   *   single image on this endpoint and no video, so callers drop other media
+   *   upstream.
    * @returns The comment URN
    */
   /**
@@ -822,6 +844,7 @@ export class LinkedInService {
     postUrn: string,
     text: string,
     credentialId?: string,
+    options: { imageUrl?: string } = {},
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -844,6 +867,17 @@ export class LinkedInService {
       const userInfo = await this.getUserProfile(decryptedAccessToken);
       const personURN = `urn:li:person:${userInfo.id}`;
 
+      // A comment attachment references an uploaded asset, the same way a
+      // feed share does. Comments take one image; LinkedIn has no video
+      // attachment on this endpoint.
+      const commentAssetId = options.imageUrl
+        ? await this.uploadImageAsset(
+            decryptedAccessToken,
+            personURN,
+            options.imageUrl,
+          )
+        : undefined;
+
       // LinkedIn Comments API
       const response = await firstValueFrom(
         this.httpService.post(
@@ -853,6 +887,9 @@ export class LinkedInService {
             message: {
               text,
             },
+            ...(commentAssetId
+              ? { content: [{ entity: { digitalmediaAsset: commentAssetId } }] }
+              : {}),
           },
           {
             headers: {

@@ -28,6 +28,7 @@ import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
+import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 
 @Module({
   imports: [
@@ -43,7 +44,11 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),
   ],
-  exports: [CronPostsService, ScheduledPostWorkflowService],
+  exports: [
+    CronPostsService,
+    ScheduledPostWorkflowService,
+    ThreadCommentDeliveryService,
+  ],
   providers: [
     AgentArtifactReferenceService,
     CronPostsService,
@@ -53,6 +58,7 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     ScheduledPostExecutionGuardService,
     ScheduledPostWorkflowQueueService,
     ScheduledPostWorkflowService,
+    ThreadCommentDeliveryService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {

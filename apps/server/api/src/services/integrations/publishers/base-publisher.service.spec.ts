@@ -19,7 +19,10 @@ import {
 } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Mocked } from 'vitest';
-import { BasePublisherService } from './base-publisher.service';
+import {
+  BasePublisherService,
+  type ThreadChildCommentMedia,
+} from './base-publisher.service';
 
 type TestCommentResult = { commentId?: string | null } | null | undefined;
 
@@ -77,16 +80,19 @@ class TestPublisher extends BasePublisherService {
     return this.sanitizeDescription(desc);
   }
 
-  public testPublishTextChildrenAsComments(
+  public testPublishChildrenAsComments(
     context: PublishContext,
     children: ThreadChild[],
-    publishComment: (text: string) => Promise<TestCommentResult>,
+    publishComment: (
+      text: string,
+      media?: ThreadChildCommentMedia,
+    ) => Promise<TestCommentResult>,
     updateChild: (
       childId: string,
       update: TestThreadChildUpdate,
     ) => Promise<unknown>,
   ): Promise<void> {
-    return this.publishTextChildrenAsComments({
+    return this.publishChildrenAsComments({
       children,
       context,
       logPrefix: 'TestPublisher publishThreadChildren',
@@ -95,6 +101,11 @@ class TestPublisher extends BasePublisherService {
       updateChild,
     });
   }
+}
+
+/** Instagram comments are text-only, so media must be dropped, not sent. */
+class TextOnlyCommentPublisher extends TestPublisher {
+  readonly platform: CredentialPlatform = CredentialPlatform.INSTAGRAM;
 }
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
@@ -434,10 +445,15 @@ describe('BasePublisherService', () => {
     });
   });
 
-  describe('publishTextChildrenAsComments()', () => {
-    it('filters, orders, sanitizes, and persists successful text comments', async () => {
+  describe('publishChildrenAsComments()', () => {
+    it('orders, sanitizes, and persists every comment', async () => {
       const publishComment = vi
-        .fn<(text: string) => Promise<TestCommentResult>>()
+        .fn<
+          (
+            text: string,
+            media?: ThreadChildCommentMedia,
+          ) => Promise<TestCommentResult>
+        >()
         .mockResolvedValueOnce({ commentId: 'comment-1' })
         .mockResolvedValueOnce({ commentId: 'comment-2' });
       const updateChild = vi
@@ -453,12 +469,6 @@ describe('BasePublisherService', () => {
           order: 2,
         },
         {
-          category: PostCategory.IMAGE,
-          description: 'Ignored',
-          id: 'child-image',
-          order: 0,
-        },
-        {
           category: PostCategory.TEXT,
           description: '<strong>First</strong>',
           id: 'child-1',
@@ -466,7 +476,7 @@ describe('BasePublisherService', () => {
         },
       ];
 
-      await publisher.testPublishTextChildrenAsComments(
+      await publisher.testPublishChildrenAsComments(
         makeContext(makePost()),
         children,
         publishComment,
@@ -489,9 +499,109 @@ describe('BasePublisherService', () => {
       });
     });
 
+    it('attaches media the channel accepts on a comment', async () => {
+      const publishComment = vi
+        .fn<
+          (
+            text: string,
+            media?: ThreadChildCommentMedia,
+          ) => Promise<TestCommentResult>
+        >()
+        .mockResolvedValue({ commentId: 'comment-1' });
+
+      await publisher.testPublishChildrenAsComments(
+        makeContext(makePost()),
+        [
+          {
+            category: PostCategory.IMAGE,
+            description: 'With a picture',
+            id: 'child-1',
+            ingredients: [mockIngredientId1.toString()],
+            order: 1,
+          },
+        ],
+        publishComment,
+        vi.fn().mockResolvedValue(undefined),
+      );
+
+      expect(publishComment).toHaveBeenCalledWith('With a picture', {
+        kind: 'image',
+        url: `https://cdn.example.com/images/${mockIngredientId1}`,
+      });
+    });
+
+    it('publishes the text and drops media a text-only channel refuses', async () => {
+      const textOnlyPublisher = new TextOnlyCommentPublisher(
+        mockConfig,
+        mockLogger,
+      );
+      const publishComment = vi
+        .fn<
+          (
+            text: string,
+            media?: ThreadChildCommentMedia,
+          ) => Promise<TestCommentResult>
+        >()
+        .mockResolvedValue({ commentId: 'comment-1' });
+
+      await textOnlyPublisher.testPublishChildrenAsComments(
+        makeContext(makePost()),
+        [
+          {
+            category: PostCategory.IMAGE,
+            description: 'Caption only',
+            id: 'child-1',
+            ingredients: [mockIngredientId1.toString()],
+            order: 1,
+          },
+        ],
+        publishComment,
+        vi.fn().mockResolvedValue(undefined),
+      );
+
+      expect(publishComment).toHaveBeenCalledWith('Caption only', undefined);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('comment media dropped by channel'),
+        expect.objectContaining({ childPostId: 'child-1' }),
+      );
+    });
+
+    it('fails a comment that would carry neither text nor media', async () => {
+      const publishComment = vi
+        .fn<
+          (
+            text: string,
+            media?: ThreadChildCommentMedia,
+          ) => Promise<TestCommentResult>
+        >()
+        .mockResolvedValue({ commentId: 'comment-1' });
+      const updateChild = vi
+        .fn<
+          (childId: string, update: TestThreadChildUpdate) => Promise<unknown>
+        >()
+        .mockResolvedValue(undefined);
+
+      await publisher.testPublishChildrenAsComments(
+        makeContext(makePost()),
+        [{ category: PostCategory.TEXT, description: '', id: 'child-1' }],
+        publishComment,
+        updateChild,
+      );
+
+      expect(publishComment).not.toHaveBeenCalled();
+      expect(updateChild).toHaveBeenCalledWith('child-1', {
+        targetExecutionState: TargetExecutionState.FAILED,
+      });
+    });
+
     it('marks failed comments and continues after provider errors', async () => {
       const publishComment = vi
-        .fn<(text: string) => Promise<TestCommentResult>>()
+        .fn<
+          (
+            text: string,
+            media?: ThreadChildCommentMedia,
+          ) => Promise<TestCommentResult>
+        >()
         .mockRejectedValueOnce(new Error('provider failed'))
         .mockResolvedValueOnce({ commentId: null })
         .mockResolvedValueOnce({ commentId: 'comment-3' });
@@ -509,7 +619,7 @@ describe('BasePublisherService', () => {
         }),
       );
 
-      await publisher.testPublishTextChildrenAsComments(
+      await publisher.testPublishChildrenAsComments(
         makeContext(makePost()),
         children,
         publishComment,

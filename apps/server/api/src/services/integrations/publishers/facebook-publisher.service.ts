@@ -158,18 +158,19 @@ export class FacebookPublisherService extends BasePublisherService {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { organizationId, brandId } = context;
-    return this.publishTextChildrenAsComments({
+    return this.publishChildrenAsComments({
       children,
       context,
       logPrefix: url,
       parentExternalId,
-      publishComment: (text) =>
+      publishComment: (text, media) =>
         this.facebookService.postComment(
           organizationId,
           brandId,
           parentExternalId,
           text,
           context.credential.id,
+          media ? { attachmentUrl: media.url } : {},
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

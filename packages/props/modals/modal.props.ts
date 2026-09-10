@@ -260,9 +260,18 @@ export interface ModalCreateThreadPostsListProps {
   form: UseFormReturn<ThreadModalSchema>;
   fields: FieldArrayWithId<ThreadModalSchema, 'posts', 'id'>[];
   charLimit: number;
+  /**
+   * What the selected channel does with media on a follow-up: attach it, or
+   * publish the text alone because its comment API takes no media.
+   */
+  isCommentMediaSupported: boolean;
   onAddPost: () => void;
   onRemovePost: (index: number) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onPickMedia: (index: number) => void;
+  onClearMedia: (index: number) => void;
+  /** Raw input value; the composer parses and clamps it. */
+  onChangeDelay: (index: number, value: string) => void;
 }
 
 export interface ModalCreateThreadPreviewProps {

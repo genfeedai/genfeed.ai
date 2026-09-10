@@ -37,6 +37,7 @@ describe('PlatformSchedulesProcessor', () => {
   const rss = { pollEnabledSources: handler() };
   const socialSourceResync = { resyncDueSources: handler() };
   const lifecycleEmails = { processLifecycleEmails: handler() };
+  const threadComments = { publishDueThreadComments: handler() };
   const streaks = { processStreaks: handler() };
   const tiktok = { checkPendingTiktokPosts: handler() };
   const transcripts = { purgeExpiredTranscripts: handler() };
@@ -107,6 +108,10 @@ describe('PlatformSchedulesProcessor', () => {
         patterns.computeDailyPatterns,
       ],
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH, posts.publishScheduledPosts],
+      [
+        PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS,
+        threadComments.publishDueThreadComments,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH,
         queueMetrics.publishQueueMetrics,
@@ -195,6 +200,7 @@ describe('PlatformSchedulesProcessor', () => {
       youtubeStatus as never,
       logger as never,
       lifecycleEmails as never,
+      threadComments as never,
     );
   });
 

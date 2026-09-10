@@ -6,6 +6,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import type {
@@ -455,13 +456,13 @@ describe('LinkedInPublisherService', () => {
       },
     ];
 
-    it('should post TEXT children as comments', async () => {
+    it('should post every child as a comment', async () => {
       const context = createPublishContext(mockImagePost);
 
       linkedInService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,
@@ -469,12 +470,11 @@ describe('LinkedInPublisherService', () => {
         mockParentExternalId,
       );
 
-      // Should only post 2 comments (TEXT children only)
-      expect(linkedInService.postComment).toHaveBeenCalledTimes(2);
-      expect(postsService.patch).toHaveBeenCalledTimes(2);
+      expect(linkedInService.postComment).toHaveBeenCalledTimes(3);
+      expect(postsService.patch).toHaveBeenCalledTimes(3);
     });
 
-    it('should ignore non-TEXT children', async () => {
+    it('should attach the image this channel accepts on a comment', async () => {
       const context = createPublishContext(mockImagePost);
       const imageChildren = [
         {
@@ -486,16 +486,26 @@ describe('LinkedInPublisherService', () => {
         },
       ];
 
+      linkedInService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
       await service.publishThreadChildren(
         context,
         imageChildren,
         mockParentExternalId,
       );
 
-      expect(linkedInService.postComment).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('no TEXT children'),
-        expect.any(Object),
+      expect(linkedInService.postComment).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        mockParentExternalId,
+        'Image',
+        expect.anything(),
+        expect.objectContaining({
+          imageUrl: expect.stringContaining(`/images/${mockIngredientId}`),
+        }),
       );
     });
 
@@ -519,7 +529,7 @@ describe('LinkedInPublisherService', () => {
       linkedInService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,
@@ -538,7 +548,7 @@ describe('LinkedInPublisherService', () => {
       const singleChild = [mockChildren[0]];
 
       linkedInService.postComment.mockResolvedValue({ commentId: null });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,
@@ -564,7 +574,7 @@ describe('LinkedInPublisherService', () => {
         .mockRejectedValueOnce(new Error('API error'))
         .mockResolvedValueOnce({ commentId: 'comment-2' });
 
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,
@@ -583,7 +593,7 @@ describe('LinkedInPublisherService', () => {
       linkedInService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,
@@ -608,7 +618,7 @@ describe('LinkedInPublisherService', () => {
       linkedInService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
 
       await service.publishThreadChildren(
         context,

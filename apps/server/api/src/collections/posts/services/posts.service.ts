@@ -213,6 +213,7 @@ const POST_SCALAR_FIELDS = [
   'targetSettings',
   'targetValidationIssues',
   'targetValidationState',
+  'threadDelayMinutes',
   'timezone',
   'uploadedAt',
   'url',
