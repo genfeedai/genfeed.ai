@@ -22,7 +22,6 @@ import {
   Shapes,
   Smile,
   Sparkles,
-  Star,
   WandSparkles,
 } from 'lucide-react';
 
@@ -46,7 +45,6 @@ const FIELD_ICON: Record<GenerationSetupFieldKey, LucideIcon> = {
   outputs: Copy,
   prioritize: Gauge,
   promptTemplate: FileText,
-  quality: Star,
   resolution: ScanLine,
   scene: Clapperboard,
   style: Palette,
@@ -67,7 +65,6 @@ const FIELD_LABEL: Record<GenerationSetupFieldKey, string> = {
   outputs: 'Outputs',
   prioritize: 'Routing priority',
   promptTemplate: 'Prompt template',
-  quality: 'Quality',
   resolution: 'Resolution',
   scene: 'Scene',
   style: 'Style',
