@@ -31,6 +31,8 @@ beforeEach(() => {
       actionNode('status', 'remotion.composition.status'),
       actionNode('retry', 'remotion.composition.retry'),
       actionNode('prompt', 'promptConstructor'),
+      actionNode('script-a', 'talkingHeadScript'),
+      actionNode('script-b', 'talkingHeadScript'),
       {
         data: { label: 'Keyword Trigger', status: 'idle' },
         id: 'trigger',
@@ -102,11 +104,11 @@ describe('catalog action connections', () => {
   it('allows multiple distinct sources on an array input', () => {
     useWorkflowStore
       .getState()
-      .onConnect(connect('status', 'prompt', 'id', 'hooks'));
+      .onConnect(connect('script-a', 'prompt', 'output', 'hooks'));
     expect(
       useWorkflowStore
         .getState()
-        .isValidConnection(connect('retry', 'prompt', 'id', 'hooks')),
+        .isValidConnection(connect('script-b', 'prompt', 'output', 'hooks')),
     ).toBe(true);
   });
 
