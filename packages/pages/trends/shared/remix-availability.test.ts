@@ -1,3 +1,5 @@
+import { Platform } from '@genfeedai/contracts';
+import { BrandRemixOrganicPlatform } from '@genfeedai/contracts/api-types/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   getSourcePostRemixAvailability,
@@ -16,13 +18,23 @@ describe('getTrendRemixAvailability', () => {
   });
 
   it('opens Discovery remix for an X post with a durable reference', () => {
-    const result = getTrendRemixAvailability('twitter', true, true);
+    const result = getTrendRemixAvailability(Platform.TWITTER, true, true);
 
     expect(result).toEqual({
       isRemixUnavailable: false,
       opensPrefilledRemix: true,
       opensRemixPage: false,
     });
+  });
+
+  it('opens Discovery remix when the source already uses the remix X enum', () => {
+    const result = getTrendRemixAvailability(
+      BrandRemixOrganicPlatform.X,
+      true,
+      true,
+    );
+
+    expect(result.opensPrefilledRemix).toBe(true);
   });
 
   it('falls back to /publishing/remix when the Discovery surface is missing but the platform still supports variations', () => {
@@ -70,7 +82,7 @@ describe('getSourcePostRemixAvailability', () => {
   });
 
   it('opens the prefilled remix for an X source post', () => {
-    expect(getSourcePostRemixAvailability('twitter', true)).toEqual({
+    expect(getSourcePostRemixAvailability(Platform.TWITTER, true)).toEqual({
       opensPrefilledRemix: true,
     });
   });

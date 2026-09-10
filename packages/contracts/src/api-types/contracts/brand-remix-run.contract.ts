@@ -27,18 +27,73 @@ const shortTextSchema = z.string().trim().min(1).max(1_000);
 const longTextSchema = z.string().trim().min(1).max(10_000);
 const aspectRatioSchema = z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
 
+export enum BrandRemixAdPlatform {
+  META = 'meta',
+  GOOGLE = 'google',
+  TIKTOK = 'tiktok',
+  X = 'x',
+}
+
+export enum BrandRemixOrganicPlatform {
+  TIKTOK = 'tiktok',
+  INSTAGRAM = 'instagram',
+  YOUTUBE = 'youtube',
+  X = 'x',
+}
+
 export const brandRemixAdPlatformValues = [
-  'meta',
-  'google',
-  'tiktok',
-  'x',
+  BrandRemixAdPlatform.META,
+  BrandRemixAdPlatform.GOOGLE,
+  BrandRemixAdPlatform.TIKTOK,
+  BrandRemixAdPlatform.X,
 ] as const;
+
 export const brandRemixOrganicPlatformValues = [
-  'tiktok',
-  'instagram',
-  'youtube',
-  'x',
+  BrandRemixOrganicPlatform.TIKTOK,
+  BrandRemixOrganicPlatform.INSTAGRAM,
+  BrandRemixOrganicPlatform.YOUTUBE,
+  BrandRemixOrganicPlatform.X,
 ] as const;
+
+/** Paid + organic source platforms a remix snapshot may carry. */
+export const brandRemixSourcePlatformValues = [
+  BrandRemixAdPlatform.META,
+  BrandRemixAdPlatform.GOOGLE,
+  BrandRemixAdPlatform.TIKTOK,
+  BrandRemixAdPlatform.X,
+  BrandRemixOrganicPlatform.INSTAGRAM,
+  BrandRemixOrganicPlatform.YOUTUBE,
+] as const;
+
+export type BrandRemixSourcePlatform =
+  (typeof brandRemixSourcePlatformValues)[number];
+
+const BRAND_REMIX_AD_PLATFORM_SET = new Set<string>(brandRemixAdPlatformValues);
+const BRAND_REMIX_ORGANIC_PLATFORM_SET = new Set<string>(
+  brandRemixOrganicPlatformValues,
+);
+const BRAND_REMIX_SOURCE_PLATFORM_SET = new Set<string>(
+  brandRemixSourcePlatformValues,
+);
+
+export function isBrandRemixAdPlatform(
+  value: string,
+): value is BrandRemixAdPlatform {
+  return BRAND_REMIX_AD_PLATFORM_SET.has(value);
+}
+
+export function isBrandRemixOrganicPlatform(
+  value: string,
+): value is BrandRemixOrganicPlatform {
+  return BRAND_REMIX_ORGANIC_PLATFORM_SET.has(value);
+}
+
+export function isBrandRemixSourcePlatform(
+  value: string,
+): value is BrandRemixSourcePlatform {
+  return BRAND_REMIX_SOURCE_PLATFORM_SET.has(value);
+}
+
 export const brandRemixOutputKindValues = [
   'copy',
   'image',
@@ -135,7 +190,7 @@ export const brandRemixSourceSnapshotSchema = z
     evidence: z.array(shortTextSchema).max(50).default([]),
     metrics: z.record(z.string().trim().min(1).max(100), z.number().finite()),
     pattern: brandRemixSourcePatternSchema,
-    platform: z.enum([...brandRemixAdPlatformValues, 'instagram', 'youtube']),
+    platform: z.enum(brandRemixSourcePlatformValues),
     selector: brandRemixSourceSelectorSchema,
     sourceId: opaqueIdSchema,
     title: shortTextSchema,

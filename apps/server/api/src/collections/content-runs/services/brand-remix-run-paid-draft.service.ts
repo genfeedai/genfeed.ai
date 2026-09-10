@@ -22,6 +22,7 @@ import {
 } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
+  BrandRemixAdPlatform,
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
@@ -201,8 +202,8 @@ export class BrandRemixRunPaidDraftService {
   ): void {
     if (
       config.draft.target.kind !== 'paid' ||
-      (config.draft.target.platform !== 'meta' &&
-        config.draft.target.platform !== 'x')
+      (config.draft.target.platform !== BrandRemixAdPlatform.META &&
+        config.draft.target.platform !== BrandRemixAdPlatform.X)
     ) {
       throw new BadRequestException({
         detail:
@@ -210,7 +211,10 @@ export class BrandRemixRunPaidDraftService {
         title: 'Unsupported campaign target',
       });
     }
-    if (config.draft.target.platform === 'x' && !input.sourceTweetId) {
+    if (
+      config.draft.target.platform === BrandRemixAdPlatform.X &&
+      !input.sourceTweetId
+    ) {
       throw new BadRequestException({
         detail:
           'An existing tweet id is required to prepare a paused X Ads draft.',

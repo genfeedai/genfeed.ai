@@ -1,10 +1,18 @@
 import { describe, expect, test } from 'vitest';
 import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  brandRemixAdPlatformValues,
   brandRemixExecutionSchema,
+  brandRemixOrganicPlatformValues,
   brandRemixOutputSchema,
   brandRemixReadinessSchema,
   brandRemixRunViewSchema,
+  brandRemixSourcePlatformValues,
   createBrandRemixRunSchema,
+  isBrandRemixAdPlatform,
+  isBrandRemixOrganicPlatform,
+  isBrandRemixSourcePlatform,
   pausedMetaCampaignDraftSchema,
   reviseBrandRemixRunSchema,
 } from '../../src/api-types/contracts/brand-remix-run.contract';
@@ -403,5 +411,44 @@ describe('brand remix run contract', () => {
       issues: [{ code: 'unsupported_fidelity' }],
       state: 'blocked',
     });
+  });
+});
+
+describe('brand remix platform enums', () => {
+  test('keeps paid and organic remix vocabularies as enums, not string unions', () => {
+    expect(brandRemixAdPlatformValues).toEqual([
+      BrandRemixAdPlatform.META,
+      BrandRemixAdPlatform.GOOGLE,
+      BrandRemixAdPlatform.TIKTOK,
+      BrandRemixAdPlatform.X,
+    ]);
+    expect(brandRemixOrganicPlatformValues).toEqual([
+      BrandRemixOrganicPlatform.TIKTOK,
+      BrandRemixOrganicPlatform.INSTAGRAM,
+      BrandRemixOrganicPlatform.YOUTUBE,
+      BrandRemixOrganicPlatform.X,
+    ]);
+    expect(brandRemixSourcePlatformValues).toEqual([
+      BrandRemixAdPlatform.META,
+      BrandRemixAdPlatform.GOOGLE,
+      BrandRemixAdPlatform.TIKTOK,
+      BrandRemixAdPlatform.X,
+      BrandRemixOrganicPlatform.INSTAGRAM,
+      BrandRemixOrganicPlatform.YOUTUBE,
+    ]);
+  });
+
+  test('guards remix platforms without repeating string literals', () => {
+    expect(isBrandRemixOrganicPlatform(BrandRemixOrganicPlatform.X)).toBe(true);
+    expect(isBrandRemixOrganicPlatform(BrandRemixAdPlatform.META)).toBe(false);
+    expect(isBrandRemixAdPlatform(BrandRemixAdPlatform.GOOGLE)).toBe(true);
+    expect(isBrandRemixAdPlatform(BrandRemixOrganicPlatform.INSTAGRAM)).toBe(
+      false,
+    );
+    expect(isBrandRemixSourcePlatform(BrandRemixOrganicPlatform.YOUTUBE)).toBe(
+      true,
+    );
+    expect(isBrandRemixSourcePlatform('twitter')).toBe(false);
+    expect(isBrandRemixSourcePlatform('linkedin')).toBe(false);
   });
 });

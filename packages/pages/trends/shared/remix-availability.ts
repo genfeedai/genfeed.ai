@@ -1,15 +1,14 @@
+import { Platform } from '@genfeedai/contracts';
+import { brandRemixOrganicPlatformValues } from '@genfeedai/contracts/api-types/contracts';
 import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util';
 
 /**
  * Platforms that open the Discovery remix brief (brand remix run).
- * `twitter`/`x` remix as copy on that same surface — not a separate page.
+ * Posts still persist `twitter`; remix's own vocabulary is `x`.
  */
-export const PREFILLED_REMIX_PLATFORMS = new Set([
-  'instagram',
-  'tiktok',
-  'twitter',
-  'x',
-  'youtube',
+export const PREFILLED_REMIX_PLATFORMS = new Set<string>([
+  ...brandRemixOrganicPlatformValues,
+  Platform.TWITTER,
 ]);
 
 export interface RemixAvailability {

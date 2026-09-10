@@ -21,7 +21,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixAdPlatform,
+  type BrandRemixSourceSelector,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
@@ -59,7 +62,7 @@ export class BrandRemixSourceResolverService {
     organizationId: string,
     brandId: string,
     credentialId: string,
-    platform: 'google' | 'meta' | 'tiktok' | 'x',
+    platform: BrandRemixAdPlatform,
   ) {
     const credential = await this.prisma.credential.findFirst({
       select: {

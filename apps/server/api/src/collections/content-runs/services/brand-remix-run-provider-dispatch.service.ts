@@ -24,6 +24,7 @@ import {
 import {
   type BrandRemixDraft,
   type BrandRemixExecution,
+  BrandRemixOrganicPlatform,
   type BrandRemixRunConfig,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -344,10 +345,10 @@ export class BrandRemixRunProviderDispatchService {
   private contentIntelligencePlatform(
     platform: BrandRemixDraft['target']['platform'],
   ): ContentIntelligencePlatform {
-    if (platform === 'tiktok') {
+    if (platform === BrandRemixOrganicPlatform.TIKTOK) {
       return ContentIntelligencePlatform.TIKTOK;
     }
-    if (platform === 'x') {
+    if (platform === BrandRemixOrganicPlatform.X) {
       return ContentIntelligencePlatform.TWITTER;
     }
     return ContentIntelligencePlatform.INSTAGRAM;
