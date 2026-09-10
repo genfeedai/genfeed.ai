@@ -6,6 +6,7 @@ import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflo
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -143,14 +144,9 @@ describe('WorkflowCrudController', () => {
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
       expect(aggregateArg.where).toMatchObject({
+        ...EXCLUDE_SYSTEM_WORKFLOW,
         isDeleted: false,
         organizationId: mockUser.organizationId,
-        NOT: {
-          metadata: {
-            equals: 'system-workflow',
-            path: ['systemWorkflow', 'kind'],
-          },
-        },
       });
       expect(aggregateArg.where.OR).toBeUndefined();
       expect(aggregateArg.where.userId).toBeUndefined();
@@ -174,12 +170,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where.userId).toBe(mockUser.userId);
       expect(aggregateArg.where.OR).toBeUndefined();
-      expect(aggregateArg.where.NOT).toEqual({
-        metadata: {
-          equals: 'system-workflow',
-          path: ['systemWorkflow', 'kind'],
-        },
-      });
+      expect(aggregateArg.where).toMatchObject(EXCLUDE_SYSTEM_WORKFLOW);
       expect(result).toBeDefined();
     });
 
