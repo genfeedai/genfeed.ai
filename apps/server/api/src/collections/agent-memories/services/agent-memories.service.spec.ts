@@ -24,6 +24,7 @@ describe('AgentMemoriesService', () => {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
   let contextEntryDelegate: {
     updateMany: ReturnType<typeof vi.fn>;
@@ -43,6 +44,7 @@ describe('AgentMemoriesService', () => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     contextEntryDelegate = {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -51,12 +53,21 @@ describe('AgentMemoriesService', () => {
       create: vi.fn(),
     };
 
+    const prisma = {
+      $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
+        callback({
+          agentMemory: agentMemoryDelegate,
+          contextEntry: contextEntryDelegate,
+          skill: skillDelegate,
+        }),
+      ),
+      agentMemory: agentMemoryDelegate,
+      contextEntry: contextEntryDelegate,
+      skill: skillDelegate,
+    };
+
     service = new AgentMemoriesService(
-      {
-        agentMemory: agentMemoryDelegate,
-        contextEntry: contextEntryDelegate,
-        skill: skillDelegate,
-      } as unknown as PrismaService,
+      prisma as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),
@@ -341,6 +352,14 @@ describe('AgentMemoriesService', () => {
         },
       },
     });
+    expect(agentMemoryDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: {
+        id: 'brand-memory',
+        isDeleted: false,
+        organizationId: orgId,
+      },
+    });
     expect(contextEntryDelegate.updateMany).toHaveBeenCalledWith({
       data: { isDeleted: true },
       where: {
@@ -381,13 +400,16 @@ describe('AgentMemoriesService', () => {
         }),
       }),
     );
-    expect(agentMemoryDelegate.update).toHaveBeenCalledWith(
+    expect(agentMemoryDelegate.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           promotedByUserId: userId,
           promotedSkillId: 'skill-1',
         }),
-        where: { id: 'memory-1' },
+        where: expect.objectContaining({
+          id: 'memory-1',
+          promotedSkillId: null,
+        }),
       }),
     );
 

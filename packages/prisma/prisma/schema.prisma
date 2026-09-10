@@ -4235,10 +4235,10 @@ model AgentMemory {
   confidence          Float?
   performanceSnapshot Json?
   promotedSkillId     String?
-  promotedSkill       Skill?         @relation(fields: [promotedSkillId], references: [id], onDelete: SetNull)
+  promotedSkill       Skill?         @relation(fields: [promotedSkillId], references: [id], onDelete: Restrict)
   promotedAt          DateTime?
   promotedByUserId    String?
-  promotedBy          User?          @relation("AgentMemoryPromotions", fields: [promotedByUserId], references: [id], onDelete: SetNull)
+  promotedBy          User?          @relation("AgentMemoryPromotions", fields: [promotedByUserId], references: [id], onDelete: Restrict)
   isDeleted           Boolean        @default(false)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt

@@ -52,6 +52,7 @@ export default function SettingsOrganizationMemoryPage() {
   );
 
   const [entries, setEntries] = useState<OrgMemoryEntry[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const loadEntries = useCallback(
@@ -62,6 +63,7 @@ export default function SettingsOrganizationMemoryPage() {
       }
 
       setEntries(null);
+      setLoadError(false);
       try {
         const service = await getMemoriesService();
         if (signal?.aborted) {
@@ -78,6 +80,7 @@ export default function SettingsOrganizationMemoryPage() {
         }
         logger.error('GET /agent/memories/organization failed', error);
         notificationsService.error('Failed to load organization memory');
+        setLoadError(true);
         setEntries([]);
       }
     },
@@ -203,6 +206,16 @@ export default function SettingsOrganizationMemoryPage() {
         columns={columns}
         description="Brand and organization memory the agent was taught. Personal entries stay private until promoted."
         emptyLabel="No shared memory yet"
+        error={
+          loadError
+            ? {
+                onRetry: () => {
+                  void loadEntries();
+                },
+                title: 'Could not load organization memory',
+              }
+            : undefined
+        }
         getRowKey={(entry) => entry.id}
         isLoading={entries === null}
         items={entries ?? []}

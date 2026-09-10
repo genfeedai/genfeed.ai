@@ -308,29 +308,38 @@ export class AgentMemoriesService extends BaseService<
       );
     }
 
-    const memory = (await findOrThrow(
-      this.delegate,
-      {
+    return this.prisma.$transaction(async (tx) => {
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            scope: {
+              in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+            },
+          },
+        },
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
+
+      await tx.agentMemory.updateMany({
+        data: { isDeleted: true },
         where: {
           id: memoryId,
           isDeleted: false,
           organizationId,
-          scope: {
-            in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
-          },
         },
-      },
-      'Memory entry',
-      memoryId,
-    )) as AgentMemoryDocument;
+      });
 
-    const archived = (await this.delegate.update({
-      where: { id: memoryId },
-      data: { isDeleted: true },
-    })) as AgentMemoryDocument;
-
-    await this.archiveDerivedContextEntries(memory, organizationId);
-    return archived;
+      await this.archiveDerivedContextEntries(memory, organizationId, tx);
+      return {
+        ...memory,
+        isDeleted: true,
+      };
+    });
   }
 
   async promoteMemory(
@@ -344,63 +353,79 @@ export class AgentMemoriesService extends BaseService<
       );
     }
 
-    const memory = (await findOrThrow(
-      this.delegate,
-      {
+    return this.prisma.$transaction(async (tx) => {
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            scope: {
+              in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+            },
+          },
+        },
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
+
+      if (memory.promotedSkillId) {
+        throw new ConflictException(
+          'This memory has already been promoted into a skill.',
+        );
+      }
+
+      const label = this.skillLabelFor(memory);
+      const promotedAt = new Date();
+      const skill = await tx.skill.create({
+        data: {
+          config: {
+            category: ContentSkillCategory.WRITING,
+            channels: [],
+            defaultInstructions: memory.content ?? label,
+            description: memory.summary || label,
+            isBuiltIn: false,
+            isEnabled: true,
+            modalities: ['text'],
+            name: label,
+            promotedAt: promotedAt.toISOString(),
+            promotedByUserId: actorUserId,
+            slug: `memory-${memoryId}`,
+            source: 'custom',
+            sourceMemoryId: memoryId,
+            status: 'published',
+            workflowStage: 'creation',
+          } as Prisma.InputJsonValue,
+          isDeleted: false,
+          label,
+          organizationId,
+        },
+      });
+
+      const claimed = await tx.agentMemory.updateMany({
+        data: {
+          promotedAt,
+          promotedByUserId: actorUserId,
+          promotedSkillId: skill.id,
+        },
         where: {
           id: memoryId,
           isDeleted: false,
           organizationId,
-          scope: {
-            in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
-          },
+          promotedSkillId: null,
         },
-      },
-      'Memory entry',
-      memoryId,
-    )) as AgentMemoryDocument;
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException(
+          'This memory has already been promoted into a skill.',
+        );
+      }
 
-    if (memory.promotedSkillId) {
-      throw new ConflictException(
-        'This memory has already been promoted into a skill.',
-      );
-    }
-
-    const label = this.skillLabelFor(memory);
-    const promotedAt = new Date();
-    const skill = await this.prisma.skill.create({
-      data: {
-        config: {
-          category: ContentSkillCategory.WRITING,
-          channels: [],
-          defaultInstructions: memory.content ?? label,
-          description: memory.summary || label,
-          isBuiltIn: false,
-          isEnabled: true,
-          modalities: ['text'],
-          name: label,
-          promotedAt: promotedAt.toISOString(),
-          promotedByUserId: actorUserId,
-          slug: `memory-${memoryId}`,
-          source: 'custom',
-          sourceMemoryId: memoryId,
-          status: 'published',
-          workflowStage: 'creation',
-        } as Prisma.InputJsonValue,
-        isDeleted: false,
-        label,
-        organizationId,
-      },
+      return (await tx.agentMemory.findFirst({
+        where: { id: memoryId, isDeleted: false, organizationId },
+      })) as AgentMemoryDocument;
     });
-
-    return this.delegate.update({
-      where: { id: memoryId },
-      data: {
-        promotedAt,
-        promotedByUserId: actorUserId,
-        promotedSkillId: skill.id,
-      },
-    }) as Promise<AgentMemoryDocument>;
   }
 
   async rejectMemoryPromotion(
@@ -433,6 +458,7 @@ export class AgentMemoriesService extends BaseService<
   private async archiveDerivedContextEntries(
     memory: AgentMemoryDocument,
     organizationId: string,
+    tx: Prisma.TransactionClient,
   ): Promise<void> {
     const sourceIds = [memory.id, memory.sourceContentId].filter(
       (value): value is string =>
@@ -442,7 +468,7 @@ export class AgentMemoriesService extends BaseService<
       return;
     }
 
-    await this.prisma.contextEntry.updateMany({
+    await tx.contextEntry.updateMany({
       data: { isDeleted: true },
       where: {
         isDeleted: false,

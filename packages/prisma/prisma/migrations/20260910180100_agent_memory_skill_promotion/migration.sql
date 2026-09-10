@@ -5,11 +5,11 @@ ALTER TABLE "agent_memories"
 
 ALTER TABLE "agent_memories"
   ADD CONSTRAINT "agent_memories_promotedSkillId_fkey"
-  FOREIGN KEY ("promotedSkillId") REFERENCES "skills"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  FOREIGN KEY ("promotedSkillId") REFERENCES "skills"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "agent_memories"
   ADD CONSTRAINT "agent_memories_promotedByUserId_fkey"
-  FOREIGN KEY ("promotedByUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  FOREIGN KEY ("promotedByUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 CREATE INDEX "agent_memories_promotedSkillId_idx"
   ON "agent_memories" ("promotedSkillId");
