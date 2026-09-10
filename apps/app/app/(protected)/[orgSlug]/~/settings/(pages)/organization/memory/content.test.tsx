@@ -6,7 +6,6 @@ import SettingsOrganizationMemoryPage from './content';
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
-  getMemoriesService: vi.fn(),
   hasOrganizationBillingHint: vi.fn(),
   listOrganization: vi.fn(),
   loggerError: vi.fn(),
@@ -22,7 +21,8 @@ vi.mock('@genfeedai/config/license', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getMemoriesService,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('test-token'),
 }));
 
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
@@ -57,6 +57,10 @@ vi.mock('@services/automation/agent-memories.service', () => ({
       reject: mocks.reject,
     }),
   },
+}));
+
+vi.mock('@ui/card/empty/CardEmpty', () => ({
+  default: ({ label }: { label?: string }) => <div>{label}</div>,
 }));
 
 vi.mock('@ui/display/table/Table', () => ({
@@ -122,12 +126,6 @@ describe('SettingsOrganizationMemoryPage', () => {
     mocks.promote.mockReset();
     mocks.reject.mockReset();
     mocks.useUserRole.mockReturnValue(MemberRole.ADMIN);
-    mocks.getMemoriesService.mockResolvedValue({
-      archive: mocks.archive,
-      listOrganization: mocks.listOrganization,
-      promote: mocks.promote,
-      reject: mocks.reject,
-    });
   });
 
   it('lists shared memory and promotes an entry', async () => {
