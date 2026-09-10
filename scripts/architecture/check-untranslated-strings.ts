@@ -64,6 +64,9 @@ export const UNTRANSLATED_STRING_IGNORE_GLOBS = [
   // The published Ink terminal is not rendered by the Next.js host and cannot
   // consume its next-intl catalogs. Terminal localization needs its own runtime.
   'packages/cli/**',
+  // Public website chrome lives in packages/ui but is marketing copy, not the
+  // product app catalog. Shared-package i18n is apps/app next-intl only.
+  'packages/ui/src/components/shell/topbars/WebsiteTopbar.tsx',
 ];
 
 const JSX_ENTITY_PATTERN = /&(?:#\d+|#x[\da-f]+|[a-z][\da-z]+);/giu;
