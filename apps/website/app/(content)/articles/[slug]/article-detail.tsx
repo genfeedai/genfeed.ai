@@ -315,7 +315,8 @@ export default function ArticleDetail({
           </div>
 
           <aside className="order-first lg:order-last lg:col-span-1">
-            <div className="lg:sticky lg:top-4 lg:self-start">
+            {/* Public topbar is h-20; top-24 keeps a 1rem gap, matching FAQ sticky and heading scroll-mt-24. */}
+            <div className="lg:sticky lg:top-24 lg:self-start">
               <ArticleAbout brand={brand} />
             </div>
           </aside>
