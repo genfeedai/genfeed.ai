@@ -248,6 +248,7 @@ describe('ContentRunsController', () => {
         'org-1',
         'brand-1',
         body,
+        'user-1',
       );
     });
 

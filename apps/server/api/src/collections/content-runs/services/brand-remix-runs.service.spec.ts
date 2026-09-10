@@ -3,6 +3,10 @@ import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs
 import { runBrandRemixGenerateWorkflow } from '@api/collections/content-runs/services/brand-remix-generate-workflow.test-util';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
+import type {
+  RemixSourceMediaIngestInput,
+  RemixSourceMediaIngestResult,
+} from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -149,7 +153,13 @@ describe('BrandRemixRunsService', () => {
   } as AuthenticatedUser;
   let remixGraph!: ReturnType<typeof assembleBrandRemixRunsGraph>;
   let service: BrandRemixRunsService;
-  let ingestSourceMedia: ReturnType<typeof vi.fn>;
+  let ingestSourceMedia: ReturnType<
+    typeof vi.fn<
+      (
+        input: RemixSourceMediaIngestInput,
+      ) => Promise<RemixSourceMediaIngestResult>
+    >
+  >;
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -223,7 +233,13 @@ describe('BrandRemixRunsService', () => {
         workflowActions.set(id, action);
       },
     );
-    ingestSourceMedia = vi.fn().mockResolvedValue({ status: 'skipped' });
+    ingestSourceMedia = vi
+      .fn<
+        (
+          input: RemixSourceMediaIngestInput,
+        ) => Promise<RemixSourceMediaIngestResult>
+      >()
+      .mockResolvedValue({ status: 'skipped' });
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: adsResearchService as never,
       avatarVideoGenerationService: avatarVideoGenerationService as never,
