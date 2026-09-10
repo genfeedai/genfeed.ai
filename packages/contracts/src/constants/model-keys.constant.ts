@@ -29,6 +29,8 @@ export const MODEL_KEYS = {
   REPLICATE_OPENAI_GPT_5_2: 'openai/gpt-5.2',
   REPLICATE_OPENAI_GPT_IMAGE_1_5: 'openai/gpt-image-1.5',
   REPLICATE_OPENAI_GPT_IMAGE_2: 'openai/gpt-image-2',
+  REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE: 'openai/gpt-image-2.5-flare',
+  REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST: 'openai/gpt-image-2.5-sunburst',
   REPLICATE_OPENAI_SORA_2: 'openai/sora-2',
   REPLICATE_OPENAI_SORA_2_PRO: 'openai/sora-2-pro',
   REPLICATE_QWEN_QWEN_IMAGE: 'qwen/qwen-image',

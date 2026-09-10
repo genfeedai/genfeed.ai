@@ -67,6 +67,26 @@ describe('compileRemainingImageGenerationBrief', () => {
     expect(result.evidence.omittedSignals).toEqual([]);
   });
 
+  it('keeps native 16:9 on GPT Image 2.5 instead of collapsing to GPT Image 2 ratios', () => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a sunset over the ocean' },
+      mediaKind: 'image',
+      output: { aspectRatio: '16:9' },
+      version: 1,
+    });
+
+    const result = compileRemainingImageGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE),
+      modelKey: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+    });
+
+    expect(result.dispatch.aspect_ratio).toBe('16:9');
+    expect(result.evidence.compilerId).toBe(GPT_IMAGE_IMAGE_COMPILER_ID);
+  });
+
   it('omits seeds for GPT Image profiles that do not expose a seed field', () => {
     const brief = imageGenerationBriefSchema.parse({
       constraints: [],

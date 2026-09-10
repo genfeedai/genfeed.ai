@@ -217,6 +217,43 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.09,
   },
   /**
+   * GPT Image 2.5 Flare — OpenAI token billing, fal high 1024×1024
+   * list ~$0.053/image. Same token rates as Sunburst; Flare is the
+   * fast default. Quality `max` is ~4× this band.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.MEDIUM,
+    description:
+      'OpenAI GPT Image 2.5 Flare — fastest 2.5 image model, high-quality everyday generation and editing.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+    label: 'GPT Image 2.5 Flare',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'gpt-image-2.5-flare', owner: 'openai' },
+    providerCostUsd: 0.053,
+  },
+  /**
+   * GPT Image 2.5 Sunburst — same token list as Flare, slower and
+   * more precise. Seed the high-quality 1024×1024 band.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.HIGH,
+    description:
+      'OpenAI GPT Image 2.5 Sunburst — most capable 2.5 image model for precise edits and detailed control.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+    label: 'GPT Image 2.5 Sunburst',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'gpt-image-2.5-sunburst', owner: 'openai' },
+    providerCostUsd: 0.053,
+  },
+  /**
    * Video upscaler — USD per output second (conservative mid band).
    * Not the category default (Topaz remains empty-registry fallback).
    */

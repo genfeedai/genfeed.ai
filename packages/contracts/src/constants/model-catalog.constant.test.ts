@@ -148,6 +148,44 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(mispricedFreeRows).toEqual([]);
   });
 
+  it('activates GPT Image 2.5 Flare and Sunburst as curated Replicate image rows', () => {
+    const flare = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+    );
+    const sunburst = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+    );
+
+    expect(flare).toMatchObject({
+      isActive: true,
+      isHighlighted: true,
+      label: 'GPT Image 2.5 Flare',
+      maxOutputs: 10,
+      maxReferences: 16,
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.053,
+    });
+    expect(sunburst).toMatchObject({
+      isActive: true,
+      isHighlighted: true,
+      label: 'GPT Image 2.5 Sunburst',
+      maxOutputs: 10,
+      maxReferences: 16,
+      provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.053,
+    });
+    expect(flare?.aspectRatios).toEqual([
+      '1:1',
+      '3:2',
+      '2:3',
+      '4:3',
+      '3:4',
+      '16:9',
+      '9:16',
+    ]);
+  });
+
   it('seeds Nano Banana 2 Lite as the cloud image default', () => {
     const imageDefaults = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,

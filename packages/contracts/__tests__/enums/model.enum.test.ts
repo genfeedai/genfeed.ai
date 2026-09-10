@@ -75,6 +75,12 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2).toBe(
         'openai/gpt-image-2',
       );
+      expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE).toBe(
+        'openai/gpt-image-2.5-flare',
+      );
+      expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST).toBe(
+        'openai/gpt-image-2.5-sunburst',
+      );
       expect(MODEL_KEYS.REPLICATE_OPENAI_SORA_2).toBe('openai/sora-2');
       expect(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO).toBe('openai/sora-2-pro');
       expect(MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE).toBe('qwen/qwen-image');

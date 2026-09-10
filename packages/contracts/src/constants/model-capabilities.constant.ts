@@ -498,6 +498,24 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 10,
     },
 
+    [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 10,
+      maxReferences: 16,
+    },
+
+    [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST]: {
+      aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 10,
+      maxReferences: 16,
+    },
+
     [MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE]: {
       aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3'],
       category: ModelCategory.IMAGE,
