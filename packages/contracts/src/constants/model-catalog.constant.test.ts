@@ -148,6 +148,31 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(mispricedFreeRows).toEqual([]);
   });
 
+  it('keeps GPT Image 1.5 selectable as legacy and GPT Image 2 in the main list', () => {
+    const image15 = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+    );
+    const image2 = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
+    );
+
+    expect(image15).toMatchObject({
+      isActive: true,
+      isLegacy: false,
+      isPublic: true,
+      label: 'GPT Image 1.5',
+      lifecycle: ModelLifecycle.LEGACY,
+      succeededBy: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+    });
+    expect(image2).toMatchObject({
+      isActive: true,
+      isLegacy: false,
+      isPublic: true,
+      label: 'GPT Image 2',
+      lifecycle: ModelLifecycle.AVAILABLE,
+    });
+  });
+
   it('activates GPT Image 2.5 Flare and Sunburst as curated Replicate image rows', () => {
     const flare = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
@@ -164,7 +189,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       maxOutputs: 10,
       maxReferences: 16,
       provider: ModelProvider.REPLICATE,
-      providerCostUsd: 0.053,
+      providerCostUsd: 0.211,
     });
     expect(sunburst).toMatchObject({
       isActive: true,
@@ -173,7 +198,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       maxOutputs: 10,
       maxReferences: 16,
       provider: ModelProvider.REPLICATE,
-      providerCostUsd: 0.053,
+      providerCostUsd: 0.211,
     });
     expect(flare?.aspectRatios).toEqual([
       '1:1',

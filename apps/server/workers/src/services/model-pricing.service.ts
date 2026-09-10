@@ -132,8 +132,10 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   // H3 is billed per output second. The catalog owns live PER_SECOND billing;
   // this conservative 2K rate is only the discovery estimator's unit proxy.
   'minimax/h3': 0.13,
-  'openai/gpt-image-2.5-flare': 0.053,
-  'openai/gpt-image-2.5-sunburst': 0.053,
+  'openai/gpt-image-1.5': 0.053,
+  'openai/gpt-image-2': 0.053,
+  'openai/gpt-image-2.5-flare': 0.211,
+  'openai/gpt-image-2.5-sunburst': 0.211,
   'openai/sora-2': 0.21,
   'runwayml/gen-4-turbo': 0.25,
   // Seedance 2.5 is billed per output second. Known-cost map is used for

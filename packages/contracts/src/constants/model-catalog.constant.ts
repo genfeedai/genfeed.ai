@@ -146,9 +146,11 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       isHighlighted: curated?.isHighlighted ?? false,
       isLegacy: false,
       lifecycle:
-        curated?.isDefault || curated?.isHighlighted
-          ? ModelLifecycle.RECOMMENDED
-          : ModelLifecycle.AVAILABLE,
+        curated && 'lifecycle' in curated && curated.lifecycle
+          ? curated.lifecycle
+          : curated?.isDefault || curated?.isHighlighted
+            ? ModelLifecycle.RECOMMENDED
+            : ModelLifecycle.AVAILABLE,
       isPublic: isCurated,
       key,
       label: curated?.label ?? labelFromKey(key),
@@ -176,6 +178,9 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     }
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;
+    }
+    if (curated && 'succeededBy' in curated && curated.succeededBy) {
+      entry.succeededBy = curated.succeededBy;
     }
     if ('aspectRatios' in capability && capability.aspectRatios) {
       entry.aspectRatios = capability.aspectRatios;

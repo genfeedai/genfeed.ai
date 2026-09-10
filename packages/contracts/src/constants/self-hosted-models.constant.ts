@@ -1,4 +1,10 @@
-import { CostTier, ModelCategory, ModelProvider, PricingType } from '..';
+import {
+  CostTier,
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  PricingType,
+} from '..';
 import { MODEL_KEYS } from './model-keys.constant';
 
 /**
@@ -217,13 +223,49 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.09,
   },
   /**
-   * GPT Image 2.5 Flare — OpenAI token billing, fal high 1024×1024
-   * list ~$0.053/image. Same token rates as Sunburst; Flare is the
-   * fast default. Quality `max` is ~4× this band.
+   * GPT Image 1.5 — still selectable via the Legacy pill. Seed at `high`
+   * (the model's top OpenAPI quality band) so we never undercharge.
    */
   {
     category: ModelCategory.IMAGE,
     cost: 18,
+    costTier: CostTier.HIGH,
+    description:
+      'OpenAI GPT Image 1.5 — previous GPT Image generation and editing model.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+    label: 'GPT Image 1.5',
+    lifecycle: ModelLifecycle.LEGACY,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'gpt-image-1.5', owner: 'openai' },
+    providerCostUsd: 0.053,
+    succeededBy: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
+  },
+  /**
+   * GPT Image 2 — still in the main picker. Seed at `high`, its top quality band.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 18,
+    costTier: CostTier.HIGH,
+    description:
+      'OpenAI GPT Image 2 — instruction-following image generation and editing.',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
+    label: 'GPT Image 2',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'gpt-image-2', owner: 'openai' },
+    providerCostUsd: 0.053,
+  },
+  /**
+   * GPT Image 2.5 Flare — seed at OpenAPI `max` 1024×1024 (~$0.211)
+   * so a missing or `auto` quality never undercharges.
+   */
+  {
+    category: ModelCategory.IMAGE,
+    cost: 70,
     costTier: CostTier.MEDIUM,
     description:
       'OpenAI GPT Image 2.5 Flare — fastest 2.5 image model, high-quality everyday generation and editing.',
@@ -233,15 +275,14 @@ export const SELF_HOSTED_MODELS = [
     label: 'GPT Image 2.5 Flare',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'gpt-image-2.5-flare', owner: 'openai' },
-    providerCostUsd: 0.053,
+    providerCostUsd: 0.211,
   },
   /**
-   * GPT Image 2.5 Sunburst — same token list as Flare, slower and
-   * more precise. Seed the high-quality 1024×1024 band.
+   * GPT Image 2.5 Sunburst — same token list as Flare. Seed at `max`.
    */
   {
     category: ModelCategory.IMAGE,
-    cost: 18,
+    cost: 70,
     costTier: CostTier.HIGH,
     description:
       'OpenAI GPT Image 2.5 Sunburst — most capable 2.5 image model for precise edits and detailed control.',
@@ -251,7 +292,7 @@ export const SELF_HOSTED_MODELS = [
     label: 'GPT Image 2.5 Sunburst',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'gpt-image-2.5-sunburst', owner: 'openai' },
-    providerCostUsd: 0.053,
+    providerCostUsd: 0.211,
   },
   /**
    * Video upscaler — USD per output second (conservative mid band).

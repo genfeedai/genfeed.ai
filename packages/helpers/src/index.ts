@@ -17,6 +17,7 @@ export * from './generation-eta.helper';
 export * from './integrations/connect-genfeed.helper';
 export * from './media/cdn/cdn.helper';
 export * from './media/clip-reference-frame.helper';
+export * from './media/image-quality/image-quality.helper';
 export * from './media/provenance/provenance.helper';
 export * from './model-allowlist.helper';
 export * from './model-capability.helper';

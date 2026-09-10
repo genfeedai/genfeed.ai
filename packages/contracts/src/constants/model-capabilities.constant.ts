@@ -27,6 +27,10 @@ export interface ImageModelCapability extends BaseModelCapability {
   isImagenModel?: boolean;
   aspectRatios?: readonly string[];
   defaultAspectRatio?: string;
+  /** Native OpenAPI `quality` enum for the selected model. Empty = no control. */
+  qualityOptions?: readonly string[];
+  /** Highest billed band. `auto` is never the default — it would undercharge. */
+  defaultQuality?: string;
 }
 
 export interface VideoModelCapability extends BaseModelCapability {
@@ -108,6 +112,24 @@ export type ModelOutputCapability =
   | EmbeddingModelCapability
   | MusicModelCapability
   | VoiceModelCapability;
+
+/** OpenAPI `quality` enum for GPT Image 1.5 / 2. Highest billed band is `high`. */
+export const GPT_IMAGE_QUALITY_OPTIONS = [
+  'low',
+  'medium',
+  'high',
+  'auto',
+] as const;
+
+/** OpenAPI `quality` enum for GPT Image 2.5 Flare / Sunburst. Highest billed band is `max`. */
+export const GPT_IMAGE_2_5_QUALITY_OPTIONS = [
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+  'max',
+  'auto',
+] as const;
 
 export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
   {
@@ -484,36 +506,44 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       aspectRatios: ['1:1', '3:2', '2:3'],
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
+      defaultQuality: 'high',
       isBatchSupported: false,
       maxOutputs: 10,
       maxReferences: 10,
+      qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
     },
 
     [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2]: {
       aspectRatios: ASPECT_RATIOS.GPT_IMAGE,
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
+      defaultQuality: 'high',
       isBatchSupported: false,
       maxOutputs: 10,
       maxReferences: 10,
+      qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
     },
 
     [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE]: {
       aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
+      defaultQuality: 'max',
       isBatchSupported: false,
       maxOutputs: 10,
       maxReferences: 16,
+      qualityOptions: GPT_IMAGE_2_5_QUALITY_OPTIONS,
     },
 
     [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST]: {
       aspectRatios: ASPECT_RATIOS.GPT_IMAGE_2_5,
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
+      defaultQuality: 'max',
       isBatchSupported: false,
       maxOutputs: 10,
       maxReferences: 16,
+      qualityOptions: GPT_IMAGE_2_5_QUALITY_OPTIONS,
     },
 
     [MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE]: {
@@ -1059,9 +1089,11 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       aspectRatios: ASPECT_RATIOS.GPT_IMAGE,
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
+      defaultQuality: 'high',
       isBatchSupported: false,
       maxOutputs: 10,
       maxReferences: 10,
+      qualityOptions: GPT_IMAGE_QUALITY_OPTIONS,
     },
     [MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO]: {
       aspectRatios: ASPECT_RATIOS.KLING,

@@ -15,6 +15,7 @@ export interface AssembleImageGenerationBriefInput {
   height?: number;
   lighting?: string;
   objective: string;
+  quality?: string;
   referenceIds?: string[];
   references?: readonly ImageGenerationBriefReference[];
   requestedText?: string[];
@@ -110,6 +111,9 @@ export function assembleImageGenerationBrief(
     output: {
       ...(aspectRatio ? { aspectRatio } : {}),
       ...(hasPairedDimensions ? { height, width } : {}),
+      ...(optionalText(input.quality)
+        ? { quality: optionalText(input.quality) }
+        : {}),
     },
     provenance,
     references,

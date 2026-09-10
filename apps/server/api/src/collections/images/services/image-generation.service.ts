@@ -421,6 +421,7 @@ export class ImageGenerationService {
         lighting: params.createImageDto.lighting,
         model: params.model,
         objective: params.promptOriginalText,
+        quality: params.createImageDto.quality,
         referenceIds: params.referenceIds,
         references: params.runReferences,
         scene: params.createImageDto.scene,

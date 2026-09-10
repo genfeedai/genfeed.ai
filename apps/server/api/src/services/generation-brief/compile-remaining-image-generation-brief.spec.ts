@@ -84,7 +84,27 @@ describe('compileRemainingImageGenerationBrief', () => {
     });
 
     expect(result.dispatch.aspect_ratio).toBe('16:9');
+    expect(result.dispatch.quality).toBe('max');
     expect(result.evidence.compilerId).toBe(GPT_IMAGE_IMAGE_COMPILER_ID);
+  });
+
+  it('dispatches requested GPT Image 2.5 quality and bills unknown quality at max', () => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a sunset over the ocean' },
+      mediaKind: 'image',
+      output: { aspectRatio: '1:1', quality: 'low' },
+      version: 1,
+    });
+
+    const result = compileRemainingImageGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST),
+      modelKey: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
+    });
+
+    expect(result.dispatch.quality).toBe('low');
   });
 
   it('omits seeds for GPT Image profiles that do not expose a seed field', () => {
@@ -105,6 +125,7 @@ describe('compileRemainingImageGenerationBrief', () => {
     });
 
     expect(result.dispatch).not.toHaveProperty('seed');
+    expect(result.dispatch.quality).toBe('high');
   });
 
   it('rejects PuLID compilation when the required identity reference is missing', () => {

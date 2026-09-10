@@ -145,6 +145,69 @@ export function getVideoGenerationResolutionCreditMultiplier(
   return 1;
 }
 
+const GPT_IMAGE_2_5_KEYS = new Set([
+  'openai/gpt-image-2.5-flare',
+  'openai/gpt-image-2.5-sunburst',
+]);
+
+const GPT_IMAGE_KEYS = new Set([
+  'fal-ai/gpt-image-2',
+  'openai/gpt-image-1.5',
+  'openai/gpt-image-2',
+]);
+
+/**
+ * Quality multiplier against the catalog's top OpenAPI band (`max` for 2.5,
+ * `high` for 1.5/2). Missing or unknown quality bills as 1 so we never
+ * undercharge. `auto` is billed as the top band for the same reason.
+ */
+export function getImageGenerationQualityCreditMultiplier(
+  modelKey: string,
+  quality?: string,
+): number {
+  if (GPT_IMAGE_2_5_KEYS.has(modelKey)) {
+    switch (quality) {
+      case 'low':
+        return 0.028;
+      case 'medium':
+        return 0.063;
+      case 'high':
+        return 0.25;
+      case 'xhigh':
+        return 0.445;
+      default:
+        return 1;
+    }
+  }
+
+  if (GPT_IMAGE_KEYS.has(modelKey)) {
+    switch (quality) {
+      case 'low':
+        return 0.112;
+      case 'medium':
+        return 0.25;
+      default:
+        return 1;
+    }
+  }
+
+  return 1;
+}
+
+export function quoteImageGenerationQualityCredits(
+  baseCredits: number,
+  modelKey: string,
+  quality?: string,
+): number {
+  return Math.max(
+    1,
+    Math.ceil(
+      baseCredits *
+        getImageGenerationQualityCreditMultiplier(modelKey, quality),
+    ),
+  );
+}
+
 export interface VideoGenerationCreditQuoteInput {
   cost: number;
   costPerUnit?: number | null;

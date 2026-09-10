@@ -29,6 +29,8 @@ export interface GenerationSetupValues {
   mood?: string;
   outputs: number;
   prioritize: RouterPriority;
+  /** Native OpenAPI quality enum for the selected model. Empty = model default. */
+  quality?: string;
   promptTemplate?: string;
   resolution?: string;
   scene?: string;

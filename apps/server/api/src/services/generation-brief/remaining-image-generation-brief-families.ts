@@ -74,7 +74,7 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
           4,
           {
-            nativeFields: ['input_images'],
+            nativeFields: ['input_images', 'quality'],
             seedSupported: false,
           },
         ),
@@ -83,12 +83,12 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
           10,
           {
-            nativeFields: ['input_images'],
+            nativeFields: ['input_images', 'quality'],
             seedSupported: false,
           },
         ),
         profile('fal-gpt-image-2-capability', MODEL_KEYS.FAL_GPT_IMAGE_2, 10, {
-          nativeFields: ['input_images'],
+          nativeFields: ['input_images', 'quality'],
           seedSupported: false,
         }),
         profile(
@@ -96,7 +96,7 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_FLARE,
           16,
           {
-            nativeFields: ['input_images'],
+            nativeFields: ['input_images', 'quality'],
             seedSupported: false,
           },
         ),
@@ -105,7 +105,7 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2_5_SUNBURST,
           16,
           {
-            nativeFields: ['input_images'],
+            nativeFields: ['input_images', 'quality'],
             seedSupported: false,
           },
         ),

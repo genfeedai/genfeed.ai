@@ -182,6 +182,7 @@ export const imageGenerationBriefOutputSchema = z
       .regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/)
       .optional(),
     height: z.number().int().positive().max(16_384).optional(),
+    quality: z.string().trim().min(1).max(32).optional(),
     width: z.number().int().positive().max(16_384).optional(),
   })
   .strict()

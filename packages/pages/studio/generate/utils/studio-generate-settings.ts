@@ -287,6 +287,7 @@ export function buildStudioPromptData({
       ? optionalText(settings.promptTemplate)
       : undefined,
     quality: 'standard',
+    outputQuality: optionalText(settings.quality),
     references: capabilities.hasReferences ? references : [],
     resolution:
       type === 'video'

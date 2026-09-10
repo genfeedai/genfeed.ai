@@ -33,6 +33,7 @@ export const GENERATION_SETUP_LOOK_FIELD_LABELS: Record<
   lighting: 'Lighting',
   mood: 'Mood',
   promptTemplate: 'Prompt template',
+  quality: 'Quality',
   resolution: 'Resolution',
   scene: 'Scene',
   style: 'Style',
@@ -47,6 +48,7 @@ export const GENERATION_SETUP_LOOK_FIELD_ORDER: readonly GenerationSetupLookFiel
     'cameraMovement',
     'lens',
     'lighting',
+    'quality',
     'resolution',
     'promptTemplate',
   ];

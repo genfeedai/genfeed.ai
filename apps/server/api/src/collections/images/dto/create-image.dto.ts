@@ -73,6 +73,15 @@ export class CreateImageDto extends CreateIngredientDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
+    description:
+      'Native provider quality enum from the model OpenAPI schema (e.g. low, medium, high, xhigh, max, auto). Missing or auto bills at the top band.',
+    required: false,
+  })
+  readonly quality?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
     default: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
     description:
       'The model to use for image generation. Can be a ModelKey enum value or a custom model path (e.g., Replicate destination or training model ID).',

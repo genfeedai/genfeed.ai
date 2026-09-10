@@ -98,6 +98,7 @@ export function buildImagePayload(
     ...basePayload,
     format:
       (promptData.format as IngredientFormat) || IngredientFormat.PORTRAIT,
+    quality: promptData.outputQuality?.trim() || undefined,
   };
 }
 

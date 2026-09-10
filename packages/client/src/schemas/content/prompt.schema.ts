@@ -35,6 +35,8 @@ export const promptTextareaSchema = z.object({
   prompt_template: z.string().optional(),
   // Quality tier for simplified model selection (standard, premium, ultra)
   quality: z.enum(['standard', 'premium', 'ultra']),
+  /** Native provider quality enum from the selected model's OpenAPI schema. */
+  outputQuality: z.string().optional(),
   references: z.array(z.string()).optional(),
   resolution: z.string().optional(),
   scene: z.string().optional(),
