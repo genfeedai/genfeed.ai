@@ -554,7 +554,7 @@ describe('FacebookPublisherService', () => {
       },
     ];
 
-    it('should post TEXT children as comments', async () => {
+    it('should post every child as a comment', async () => {
       const context = createPublishContext(mockImagePost);
 
       facebookService.postComment.mockResolvedValue({
@@ -568,12 +568,11 @@ describe('FacebookPublisherService', () => {
         mockParentExternalId,
       );
 
-      // Should only post 2 comments (TEXT children only)
-      expect(facebookService.postComment).toHaveBeenCalledTimes(2);
-      expect(postsService.patch).toHaveBeenCalledTimes(2);
+      expect(facebookService.postComment).toHaveBeenCalledTimes(3);
+      expect(postsService.patch).toHaveBeenCalledTimes(3);
     });
 
-    it('should ignore non-TEXT children', async () => {
+    it('should attach the image this channel accepts on a comment', async () => {
       const context = createPublishContext(mockImagePost);
       const imageChildren = [
         {
@@ -585,16 +584,26 @@ describe('FacebookPublisherService', () => {
         },
       ];
 
+      facebookService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
       await service.publishThreadChildren(
         context,
         imageChildren,
         mockParentExternalId,
       );
 
-      expect(facebookService.postComment).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('no TEXT children'),
-        expect.any(Object),
+      expect(facebookService.postComment).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        mockParentExternalId,
+        'Image',
+        expect.anything(),
+        expect.objectContaining({
+          attachmentUrl: expect.stringContaining(`/images/${mockIngredientId}`),
+        }),
       );
     });
 

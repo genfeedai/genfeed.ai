@@ -436,7 +436,7 @@ describe('YouTubePublisherService', () => {
       },
     ];
 
-    it('should post TEXT children as comments', async () => {
+    it('should post every child as a comment', async () => {
       const context = createPublishContext(mockVideoPost);
 
       youtubeService.postComment.mockResolvedValue({
@@ -450,14 +450,13 @@ describe('YouTubePublisherService', () => {
         mockParentExternalId,
       );
 
-      // Should only post 2 comments (TEXT children only)
-      expect(youtubeService.postComment).toHaveBeenCalledTimes(2);
-      expect(postsService.patch).toHaveBeenCalledTimes(2);
+      expect(youtubeService.postComment).toHaveBeenCalledTimes(3);
+      expect(postsService.patch).toHaveBeenCalledTimes(3);
     });
 
-    it('should ignore non-TEXT children', async () => {
+    it('should publish the text and drop media this channel refuses', async () => {
       const context = createPublishContext(mockVideoPost);
-      const videoChildren = [
+      const mediaChildren = [
         {
           id: testId('child', 4),
           category: PostCategory.VIDEO,
@@ -467,15 +466,26 @@ describe('YouTubePublisherService', () => {
         },
       ];
 
+      youtubeService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
       await service.publishThreadChildren(
         context,
-        videoChildren,
+        mediaChildren,
         mockParentExternalId,
       );
 
-      expect(youtubeService.postComment).not.toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('no TEXT children'),
+      expect(youtubeService.postComment).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        mockParentExternalId,
+        'Video',
+        expect.anything(),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('comment media dropped by channel'),
         expect.any(Object),
       );
     });
