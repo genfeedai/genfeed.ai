@@ -22,7 +22,7 @@ import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/consta
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import type { AgentType } from '@genfeedai/contracts';
+import { type AgentType, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { IAgentCampaignContentRotation } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
@@ -920,7 +920,7 @@ export class ContentEngineService {
           totalPosts: analyticsOverview.totalPosts ?? 0,
           totalViews: analyticsOverview.totalViews ?? 0,
         },
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         sourceContentId: String(campaign.id),
         sourceType: 'campaign-orchestrator',
         summary: goalSummaries.length

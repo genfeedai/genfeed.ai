@@ -3,6 +3,7 @@ import type {
   AgentMemoryKind,
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
@@ -89,7 +90,9 @@ export class TaskFeedbackMemoryAdapterService {
           },
           platform,
           saveToContextMemory: Boolean(brandId),
-          scope: brandId ? 'brand' : 'user',
+          scope: brandId
+            ? KnowledgeMemoryScope.BRAND
+            : KnowledgeMemoryScope.PERSONAL,
           sourceContentId: taskId,
           sourceMessageId: this.buildSourceMessageId(
             input.decision,

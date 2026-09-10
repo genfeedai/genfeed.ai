@@ -1,6 +1,7 @@
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -95,7 +96,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         campaignId,
         content: 'Campaign insight',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
       });
 
       expect(agentMemoriesService.createMemory).toHaveBeenCalledWith(
@@ -104,7 +105,7 @@ describe('AgentMemoryCaptureService', () => {
         expect.objectContaining({
           brandId,
           campaignId,
-          scope: 'brand',
+          scope: KnowledgeMemoryScope.BRAND,
         }),
       );
     });
@@ -113,7 +114,7 @@ describe('AgentMemoryCaptureService', () => {
       await service.capture(userId, orgId, {
         content: 'No brand',
         kind: 'winner',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
       });
 
       expect(brandMemoryService.addInsight).not.toHaveBeenCalled();
@@ -124,7 +125,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         content: 'Winning hook format',
         kind: 'winner',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         summary: 'Short hooks win',
       });
 
@@ -143,7 +144,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         content: 'Carousel pattern',
         kind: 'pattern',
-        scope: 'global',
+        scope: KnowledgeMemoryScope.PERSONAL,
       });
 
       expect(brandMemoryService.addInsight).toHaveBeenCalled();
@@ -178,7 +179,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         content: 'Reuse check',
         kind: 'reference',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
       });
 
       expect(contextsService.create).not.toHaveBeenCalled();
@@ -192,8 +193,8 @@ describe('AgentMemoryCaptureService', () => {
     it('returns wroteBrandInsight=false and wroteContextMemory=false when no qualifying fields', async () => {
       const result = await service.capture(userId, orgId, {
         content: 'Plain memory, no brand',
-        kind: 'observation',
-        scope: 'global',
+        kind: 'preference',
+        scope: KnowledgeMemoryScope.PERSONAL,
       });
 
       expect(result.wroteBrandInsight).toBe(false);
@@ -206,7 +207,7 @@ describe('AgentMemoryCaptureService', () => {
         confidence: 1.5,
         content: 'Over-confident memory',
         kind: 'winner',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         summary: 'Very confident',
       });
 
@@ -222,7 +223,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         content: 'No confidence given',
         kind: 'winner',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         summary: 'Fallback test',
       });
 
@@ -240,7 +241,7 @@ describe('AgentMemoryCaptureService', () => {
         brandId,
         content: longContent,
         kind: 'winner',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         // no summary — will derive from content
       });
 

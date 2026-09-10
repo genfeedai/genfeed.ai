@@ -9,6 +9,7 @@ import type {
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -321,14 +322,14 @@ export class AgentMemoryGoalsToolHandler {
     value: unknown,
   ): AgentMemoryScope | undefined {
     switch (value) {
-      case 'brand':
-      case 'org':
-      case 'personal':
+      case KnowledgeMemoryScope.BRAND:
+      case KnowledgeMemoryScope.ORG:
+      case KnowledgeMemoryScope.PERSONAL:
         return value;
       case 'campaign':
-        return 'brand';
+        return KnowledgeMemoryScope.BRAND;
       case 'user':
-        return 'personal';
+        return KnowledgeMemoryScope.PERSONAL;
       default:
         return undefined;
     }

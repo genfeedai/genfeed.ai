@@ -7,6 +7,7 @@ import { AgentMemoriesService } from '@api/collections/agent-memories/services/a
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -56,13 +57,13 @@ export class AgentMemoryCaptureService {
 
     const shouldWriteBrandInsight =
       Boolean(payload.brandId) &&
-      (payload.scope === 'brand' ||
+      (payload.scope === KnowledgeMemoryScope.BRAND ||
         payload.kind === 'winner' ||
         payload.kind === 'pattern');
 
     const shouldWriteContextMemory =
       Boolean(payload.brandId) &&
-      (payload.scope === 'brand' ||
+      (payload.scope === KnowledgeMemoryScope.BRAND ||
         payload.saveToContextMemory === true ||
         payload.contentType === 'newsletter' ||
         payload.kind === 'reference' ||
