@@ -72,7 +72,7 @@
     "symbol": "apps/server/api/src/collections/posting-cadences/services/posting-cadences.service.ts"
   },
   {
-    "actual": 1260,
+    "actual": 1261,
     "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/posts/services/posts.service.ts"
@@ -120,7 +120,7 @@
     "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
   },
   {
-    "actual": 1070,
+    "actual": 1189,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
@@ -168,7 +168,7 @@
     "symbol": "PublishApprovalsService.createForPost"
   },
   {
-    "actual": 1025,
+    "actual": 1029,
     "file": "apps/server/api/src/services/agent-campaign/content-engine.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-campaign/content-engine.service.ts"
@@ -336,6 +336,12 @@
     "symbol": "YoutubeAuthService.refreshToken"
   },
   {
+    "actual": 168,
+    "file": "apps/server/api/src/services/notifications/inbox/notification-inbox.service.ts",
+    "metric": "method-lines",
+    "symbol": "NotificationInboxService.list"
+  },
+  {
     "actual": 186,
     "file": "apps/server/api/src/services/prompt-builder/prompt-builder.service.ts",
     "metric": "method-lines",
@@ -414,13 +420,13 @@
     "symbol": "CronTiktokStatusService.checkPostStatus"
   },
   {
-    "actual": 29,
+    "actual": 30,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1123,
+    "actual": 1212,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

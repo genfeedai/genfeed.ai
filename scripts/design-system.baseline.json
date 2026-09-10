@@ -21,9 +21,6 @@
     },
     "packages/ui/src/primitives/tags-editable.tsx": {
       "undersized-control-height": 1
-    },
-    "packages/ui/src/sidebar/ConversationSidebar.tsx": {
-      "undersized-control-height": 1
     }
   }
 }
