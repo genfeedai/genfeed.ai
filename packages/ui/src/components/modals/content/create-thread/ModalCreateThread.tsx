@@ -5,10 +5,15 @@ import {
 import {
   AlertCategory,
   ButtonVariant,
+  IngredientCategory,
   ModalEnum,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import {
+  getChannelCapability,
+  getChannelThreadChildCapability,
+} from '@genfeedai/contracts/api-types/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
@@ -24,6 +29,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import Alert from '@ui/feedback/alert/Alert';
+import { LazyModalGallery } from '@ui/lazy/modal/LazyModal';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import ModalCreateThreadPostsList from '@ui/modals/content/create-thread/ModalCreateThreadPostsList';
 import ModalCreateThreadPreview from '@ui/modals/content/create-thread/ModalCreateThreadPreview';
@@ -54,13 +60,17 @@ export default function ModalCreateThread({
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const formRef = useFocusFirstInput<HTMLFormElement>();
   const [activeTab, setActiveTab] = useState<'compose' | 'preview'>('compose');
+  const [mediaPickerIndex, setMediaPickerIndex] = useState<number | null>(null);
 
   const form = useForm<ThreadModalSchema>({
     defaultValues: {
       credentialId: credential?.id || credentials[0]?.id,
       globalTitle: '',
       ingredient: ingredient?.id,
-      posts: [{ description: '' }, { description: '' }],
+      posts: [
+        { description: '', ingredientIds: [] },
+        { description: '', ingredientIds: [] },
+      ],
       scheduledDate: '',
       targetExecutionState: TargetExecutionState.DRAFT,
       visibility: PostVisibility.PUBLIC,
@@ -98,10 +108,14 @@ export default function ModalCreateThread({
     try {
       const service = await getPostsService();
 
+      const sharedIngredients = data.ingredient ? [data.ingredient] : [];
       const threadPosts = data.posts.map((post, index) => ({
         credentialId: data.credentialId,
         description: post.description.trim(),
-        ingredients: data.ingredient ? [data.ingredient] : [],
+        ingredients:
+          post.ingredientIds && post.ingredientIds.length > 0
+            ? post.ingredientIds
+            : sharedIngredients,
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
         ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
         targetExecutionState: data.targetExecutionState,
@@ -143,19 +157,38 @@ export default function ModalCreateThread({
 
   const charLimit = resolvePlatformCharLimit(selectedPlatform);
 
+  const threadChildCapability = getChannelThreadChildCapability(
+    selectedPlatform ?? '',
+  );
+  const isCommentMediaSupported = threadChildCapability.mediaKinds.length > 0;
+  /**
+   * A comment API takes a single attachment; a reply chain carries whatever
+   * the channel allows on a post of its own.
+   */
+  const maxMediaPerItem =
+    threadChildCapability.kind === 'reply_chain'
+      ? (getChannelCapability(selectedPlatform ?? '')?.media.maxItems ?? 1)
+      : 1;
+
   const credentialOptions = credentials.map((cred) => ({
     label: `${cred.platform} - ${cred.label || cred.externalHandle || 'Untitled'}`,
     value: cred.id,
   }));
 
   const addPost = () => {
-    append({ description: '' });
+    append({ description: '', ingredientIds: [] });
   };
 
   const removePost = (index: number) => {
     if (fields.length > 1) {
       remove(index);
     }
+  };
+
+  const setPostMedia = (index: number, ingredientIds: string[]) => {
+    form.setValue(`posts.${index}.ingredientIds`, ingredientIds, {
+      shouldDirty: true,
+    });
   };
 
   return (
@@ -202,9 +235,12 @@ export default function ModalCreateThread({
               form={form}
               fields={fields}
               charLimit={charLimit}
+              isCommentMediaSupported={isCommentMediaSupported}
               onAddPost={addPost}
               onRemovePost={removePost}
               onKeyDown={handleKeyDown}
+              onPickMedia={setMediaPickerIndex}
+              onClearMedia={(index) => setPostMedia(index, [])}
             />
           </div>
         )}
@@ -237,6 +273,23 @@ export default function ModalCreateThread({
           />
         </ModalActions>
       </form>
+
+      {mediaPickerIndex !== null && (
+        <LazyModalGallery
+          isOpen
+          category={IngredientCategory.IMAGE}
+          title="Attach media"
+          maxSelectableItems={maxMediaPerItem}
+          onClose={() => setMediaPickerIndex(null)}
+          onSelect={(items) => {
+            setPostMedia(
+              mediaPickerIndex,
+              items.map((item) => item.id),
+            );
+            setMediaPickerIndex(null);
+          }}
+        />
+      )}
     </Modal>
   );
 }

@@ -15,7 +15,10 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
-import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
+import {
+  getChannelCapability,
+  getChannelThreadChildCapability,
+} from '@genfeedai/contracts/api-types/contracts';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 type PublisherConfig = {
@@ -32,13 +35,23 @@ type ThreadChildStatusUpdate = {
   targetExecutionState: TargetExecutionState;
 };
 
-type PublishTextChildrenAsCommentsParams = {
+/**
+ * One media item a comment can carry. Comment APIs take a single attachment,
+ * so publishers receive the first item the channel accepts rather than a list.
+ */
+export type ThreadChildCommentMedia = {
+  kind: 'image' | 'video';
+  url: string;
+};
+
+type PublishChildrenAsCommentsParams = {
   children: ThreadChild[];
   context: PublishContext;
   logPrefix: string;
   parentExternalId: string;
   publishComment: (
     text: string,
+    media?: ThreadChildCommentMedia,
   ) => Promise<CommentPublishResult | null | undefined>;
   updateChild: (
     childId: string,
@@ -303,27 +316,61 @@ export abstract class BasePublisherService implements IPublisher {
     return htmlToText(description);
   }
 
-  protected async publishTextChildrenAsComments({
+  /**
+   * Resolve the media a comment can carry on this channel.
+   *
+   * The follow-up capability is narrower than the post-level one — a channel
+   * that publishes video in a post may only accept an image on a comment — so
+   * anything the channel cannot attach is dropped here and reported by the
+   * caller rather than failing the comment.
+   */
+  protected resolveThreadChildMedia(
+    child: ThreadChild,
+  ): ThreadChildCommentMedia[] {
+    const ingredientIds = (child.ingredients || [])
+      .map((ingredient) => this.getRecordId(ingredient))
+      .filter((id) => id.length > 0 && id !== 'undefined');
+
+    if (ingredientIds.length === 0) {
+      return [];
+    }
+
+    const isVideo =
+      child.category === PostCategory.VIDEO ||
+      child.category === PostCategory.REEL;
+    const acceptedKinds = getChannelThreadChildCapability(
+      this.platform,
+    ).mediaKinds;
+
+    if (!acceptedKinds.includes(isVideo ? 'video' : 'image')) {
+      return [];
+    }
+
+    return ingredientIds.map((id) => ({
+      kind: isVideo ? ('video' as const) : ('image' as const),
+      url: `${this.configService.ingredientsEndpoint}/${
+        isVideo ? 'videos' : 'images'
+      }/${id}`,
+    }));
+  }
+
+  protected async publishChildrenAsComments({
     children,
     context,
     logPrefix,
     parentExternalId,
     publishComment,
     updateChild,
-  }: PublishTextChildrenAsCommentsParams): Promise<void> {
-    const textChildren = children.filter(
-      (child) => child.category === PostCategory.TEXT,
-    );
-
-    if (textChildren.length === 0) {
-      this.logger.log(`${logPrefix} no TEXT children to post as comments`, {
+  }: PublishChildrenAsCommentsParams): Promise<void> {
+    if (children.length === 0) {
+      this.logger.log(`${logPrefix} no children to post as comments`, {
         parentExternalId,
         parentPostId: context.postId,
       });
       return;
     }
 
-    const sortedChildren = [...textChildren].sort(
+    const sortedChildren = [...children].sort(
       (a, b) => (a.order || 0) - (b.order || 0),
     );
 
@@ -335,11 +382,32 @@ export abstract class BasePublisherService implements IPublisher {
 
     for (const child of sortedChildren) {
       const childId = child.id.toString();
+      const text = this.sanitizeDescription(child.description);
+      const [media] = this.resolveThreadChildMedia(child);
+      const hasIngredients = (child.ingredients || []).length > 0;
+
+      if (hasIngredients && !media) {
+        this.logger.warn(`${logPrefix} comment media dropped by channel`, {
+          childPostId: childId,
+          order: child.order,
+          platform: this.platform,
+        });
+      }
+
+      if (!text && !media) {
+        this.logger.error(`${logPrefix} comment has no text and no media`, {
+          childPostId: childId,
+          order: child.order,
+        });
+
+        await updateChild(childId, {
+          targetExecutionState: TargetExecutionState.FAILED,
+        });
+        continue;
+      }
 
       try {
-        const commentResult = await publishComment(
-          this.sanitizeDescription(child.description),
-        );
+        const commentResult = await publishComment(text, media);
 
         if (commentResult?.commentId) {
           await updateChild(childId, {

@@ -158,12 +158,12 @@ export class LinkedInPublisherService extends BasePublisherService {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { organizationId, brandId } = context;
-    return this.publishTextChildrenAsComments({
+    return this.publishChildrenAsComments({
       children,
       context,
       logPrefix: url,
       parentExternalId,
-      publishComment: (text) =>
+      publishComment: (text, media) =>
         this.linkedInService.postComment(
           organizationId,
           brandId,
@@ -171,6 +171,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           text,
           // Comments go out as the account that posted the parent.
           context.credential.id,
+          media ? { imageUrl: media.url } : {},
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

@@ -632,6 +632,9 @@ export class FacebookService {
    * @param message The comment text
    * @param credentialId Which Facebook account comments; the brand's oldest
    *   account is used when the caller cannot name one
+   * @param options.attachmentUrl Publicly reachable image URL attached to the
+   *   comment. Graph comments take a photo this way; video attachments are not
+   *   part of the comment API, so callers drop them upstream.
    * @returns The comment ID
    */
   public async postComment(
@@ -640,6 +643,7 @@ export class FacebookService {
     postId: string,
     message: string,
     credentialId?: string,
+    options: { attachmentUrl?: string } = {},
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -679,6 +683,9 @@ export class FacebookService {
             params: {
               access_token: pageAccessToken,
               message,
+              ...(options.attachmentUrl
+                ? { attachment_url: options.attachmentUrl }
+                : {}),
             },
           },
         ),

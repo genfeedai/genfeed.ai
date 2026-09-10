@@ -7,6 +7,7 @@ import {
 import {
   channelTargetValidationResultSchema,
   getChannelCapability,
+  getChannelThreadChildCapability,
   getSupportedPostVisibilities,
   listChannelCapabilities,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
@@ -584,5 +585,59 @@ describe('resolveChannelTargetSettings', () => {
     expect(
       resolveChannelTargetSettings(CredentialPlatform.TWITTER, 'corrupt'),
     ).toEqual({ replyPolicy: 'everyone' });
+  });
+});
+
+describe('channel follow-up capability', () => {
+  test('describes reply chains and comment surfaces per channel', () => {
+    expect(getChannelThreadChildCapability(CredentialPlatform.TWITTER)).toEqual(
+      { kind: 'reply_chain', mediaKinds: ['image', 'video'] },
+    );
+    expect(
+      getChannelThreadChildCapability(CredentialPlatform.LINKEDIN),
+    ).toEqual({ kind: 'comment', mediaKinds: ['image'] });
+  });
+
+  test('keeps text-only comment channels free of media', () => {
+    for (const platform of [
+      CredentialPlatform.INSTAGRAM,
+      CredentialPlatform.REDDIT,
+      CredentialPlatform.YOUTUBE,
+    ]) {
+      const capability = getChannelThreadChildCapability(platform);
+      expect(capability.kind).toBe('comment');
+      expect(capability.mediaKinds).toEqual([]);
+    }
+  });
+
+  test('reports no follow-up surface for a channel without one', () => {
+    expect(getChannelThreadChildCapability(CredentialPlatform.TIKTOK)).toEqual({
+      kind: 'unsupported',
+      mediaKinds: [],
+    });
+    expect(getChannelThreadChildCapability('carrier-pigeon')).toEqual({
+      kind: 'unsupported',
+      mediaKinds: [],
+    });
+  });
+
+  test('never offers media on a channel with no follow-up surface', () => {
+    for (const platform of Object.values(CredentialPlatform)) {
+      const capability = getChannelThreadChildCapability(platform);
+      if (capability.kind === 'unsupported') {
+        expect(capability.mediaKinds).toEqual([]);
+      }
+    }
+  });
+
+  test('hands back a copy so a caller cannot edit the catalog', () => {
+    const capability = getChannelThreadChildCapability(
+      CredentialPlatform.LINKEDIN,
+    );
+    capability.mediaKinds.push('video');
+
+    expect(
+      getChannelThreadChildCapability(CredentialPlatform.LINKEDIN).mediaKinds,
+    ).toEqual(['image']);
   });
 });

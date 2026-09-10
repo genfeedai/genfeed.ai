@@ -119,6 +119,12 @@ export type PostMetadataSchema = z.infer<typeof postMetadataSchema>;
 
 export const threadPostSchema = z.object({
   description: z.string().min(1, 'Post content is required'),
+  /**
+   * Media attached to this item alone. Empty means the item falls back to the
+   * thread's shared ingredient, which is how every item behaved before items
+   * could carry their own media.
+   */
+  ingredientIds: z.array(z.string().min(1)).optional(),
 });
 
 export type ThreadPostSchema = z.infer<typeof threadPostSchema>;

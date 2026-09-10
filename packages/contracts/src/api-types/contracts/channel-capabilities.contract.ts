@@ -65,6 +65,21 @@ export const channelHelperKindValues = [
 
 export const channelValidationSeverityValues = ['error', 'warning'] as const;
 
+/**
+ * How a channel carries the follow-up items scheduled behind a post.
+ *
+ * - `reply_chain` — each item replies to the previous one, so the follow-ups
+ *   read as a thread and a delayed item must resume from its predecessor.
+ * - `comment` — every item comments on the root post; order is presentational
+ *   and the anchor never moves.
+ * - `unsupported` — the provider offers no follow-up surface.
+ */
+export const channelThreadChildKindValues = [
+  'reply_chain',
+  'comment',
+  'unsupported',
+] as const;
+
 export const channelCapabilityStatusSchema = z.enum(
   channelCapabilityStatusValues,
 );
@@ -76,6 +91,9 @@ export const channelSettingFieldTypeSchema = z.enum(
 export const channelHelperKindSchema = z.enum(channelHelperKindValues);
 export const channelValidationSeveritySchema = z.enum(
   channelValidationSeverityValues,
+);
+export const channelThreadChildKindSchema = z.enum(
+  channelThreadChildKindValues,
 );
 
 const channelTargetSettingsSchema = z
@@ -155,6 +173,20 @@ export const channelCapabilitySchema = z.object({
   status: channelCapabilityStatusSchema,
 });
 
+/**
+ * What a channel accepts for a follow-up scheduled behind a post — the
+ * "comment after the post" surface.
+ *
+ * `mediaKinds` is deliberately narrower than the post-level `media.kinds`:
+ * LinkedIn and Facebook accept an image on a comment but not a video, and
+ * Instagram, Reddit and YouTube comments are text-only at the API level. An
+ * empty list means the follow-up carries text alone.
+ */
+export const channelThreadChildCapabilitySchema = z.object({
+  kind: channelThreadChildKindSchema,
+  mediaKinds: z.array(channelMediaKindSchema),
+});
+
 export const channelTargetValidationMediaSchema = z.object({
   id: z.string().min(1).optional(),
   isAnimated: z.boolean().optional(),
@@ -208,6 +240,12 @@ export type ChannelHelperDefinition = z.infer<
   typeof channelHelperDefinitionSchema
 >;
 export type ChannelCapability = z.infer<typeof channelCapabilitySchema>;
+export type ChannelThreadChildKind = z.infer<
+  typeof channelThreadChildKindSchema
+>;
+export type ChannelThreadChildCapability = z.infer<
+  typeof channelThreadChildCapabilitySchema
+>;
 export type ValidateChannelTargetSettingsInput = z.infer<
   typeof validateChannelTargetSettingsInputSchema
 >;
@@ -766,6 +804,56 @@ export function getChannelCapability(
 
   const capability = channelCapabilitiesByPlatform.get(normalizedPlatform);
   return capability ? cloneChannelCapability(capability) : undefined;
+}
+
+const THREAD_CHILD_UNSUPPORTED: ChannelThreadChildCapability = {
+  kind: 'unsupported',
+  mediaKinds: [],
+};
+
+/**
+ * Follow-up surface per channel. Every entry mirrors what its publisher can
+ * actually send, so the composer, the publish path and the delayed-comment
+ * sweep all read one description of the same provider behaviour. A channel
+ * absent from this map has no follow-up surface.
+ */
+const channelThreadChildCapabilities: Partial<
+  Record<CredentialPlatform, ChannelThreadChildCapability>
+> = {
+  [CredentialPlatform.TWITTER]: {
+    kind: 'reply_chain',
+    mediaKinds: ['image', 'video'],
+  },
+  [CredentialPlatform.THREADS]: {
+    kind: 'reply_chain',
+    mediaKinds: ['image', 'video', 'carousel'],
+  },
+  [CredentialPlatform.MASTODON]: {
+    kind: 'reply_chain',
+    mediaKinds: ['image', 'video'],
+  },
+  // LinkedIn and Facebook comments take a single image; neither accepts a
+  // video on a comment.
+  [CredentialPlatform.LINKEDIN]: { kind: 'comment', mediaKinds: ['image'] },
+  [CredentialPlatform.FACEBOOK]: { kind: 'comment', mediaKinds: ['image'] },
+  // Text-only comment APIs.
+  [CredentialPlatform.INSTAGRAM]: { kind: 'comment', mediaKinds: [] },
+  [CredentialPlatform.REDDIT]: { kind: 'comment', mediaKinds: [] },
+  [CredentialPlatform.YOUTUBE]: { kind: 'comment', mediaKinds: [] },
+};
+
+export function getChannelThreadChildCapability(
+  platform: CredentialPlatform | string,
+): ChannelThreadChildCapability {
+  const normalizedPlatform = normalizeCredentialPlatform(platform);
+  if (!normalizedPlatform) {
+    return THREAD_CHILD_UNSUPPORTED;
+  }
+
+  const capability = channelThreadChildCapabilities[normalizedPlatform];
+  return capability
+    ? { kind: capability.kind, mediaKinds: [...capability.mediaKinds] }
+    : THREAD_CHILD_UNSUPPORTED;
 }
 
 export function validateChannelTargetSettings(
