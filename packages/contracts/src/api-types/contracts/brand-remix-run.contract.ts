@@ -55,20 +55,19 @@ export const brandRemixOrganicPlatformValues = [
   BrandRemixOrganicPlatform.X,
 ] as const;
 
-/** Paid + organic source platforms a remix snapshot may carry. */
+/** Unique wire labels. Organic TikTok/X share labels with the paid enums. */
 export const brandRemixSourcePlatformValues = [
   BrandRemixAdPlatform.META,
   BrandRemixAdPlatform.GOOGLE,
   BrandRemixAdPlatform.TIKTOK,
   BrandRemixAdPlatform.X,
-  BrandRemixOrganicPlatform.TIKTOK,
   BrandRemixOrganicPlatform.INSTAGRAM,
   BrandRemixOrganicPlatform.YOUTUBE,
-  BrandRemixOrganicPlatform.X,
 ] as const;
 
 export type BrandRemixSourcePlatform =
-  (typeof brandRemixSourcePlatformValues)[number];
+  | BrandRemixAdPlatform
+  | BrandRemixOrganicPlatform;
 
 const BRAND_REMIX_AD_PLATFORM_SET = new Set<string>(brandRemixAdPlatformValues);
 const BRAND_REMIX_ORGANIC_PLATFORM_SET = new Set<string>(
@@ -192,7 +191,11 @@ export const brandRemixSourceSnapshotSchema = z
     evidence: z.array(shortTextSchema).max(50).default([]),
     metrics: z.record(z.string().trim().min(1).max(100), z.number().finite()),
     pattern: brandRemixSourcePatternSchema,
-    platform: z.enum(brandRemixSourcePlatformValues),
+    platform: z.custom<BrandRemixSourcePlatform>(
+      (value): value is BrandRemixSourcePlatform =>
+        typeof value === 'string' && isBrandRemixSourcePlatform(value),
+      { message: 'Unsupported remix source platform' },
+    ),
     selector: brandRemixSourceSelectorSchema,
     sourceId: opaqueIdSchema,
     title: shortTextSchema,

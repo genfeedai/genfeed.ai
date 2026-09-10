@@ -433,10 +433,8 @@ describe('brand remix platform enums', () => {
       BrandRemixAdPlatform.GOOGLE,
       BrandRemixAdPlatform.TIKTOK,
       BrandRemixAdPlatform.X,
-      BrandRemixOrganicPlatform.TIKTOK,
       BrandRemixOrganicPlatform.INSTAGRAM,
       BrandRemixOrganicPlatform.YOUTUBE,
-      BrandRemixOrganicPlatform.X,
     ]);
   });
 
