@@ -102,6 +102,19 @@ function CatalogSignal({ models }: ModelsContentProps) {
       <Text className="mt-7 max-w-md text-sm leading-6 text-surface/60">
         Read from the same public registry as the app and refreshed hourly.
       </Text>
+      {/*
+        A catalog answers "what can I run", never "which one wins". The bench
+        is the only page that answers the second question, and this is where
+        people ask it. Placed outside the catalog branches so the link survives
+        a registry outage.
+      */}
+      <Link
+        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-surface underline-offset-4 hover:underline"
+        href="/benchmark"
+      >
+        See how they compare on the benchmark
+        <ArrowRight className="size-4" />
+      </Link>
     </div>
   );
 }
