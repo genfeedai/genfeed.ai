@@ -1,6 +1,8 @@
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandRemixSourceResolverService', () => {
@@ -179,7 +181,7 @@ describe('BrandRemixSourceResolverService', () => {
       explanation: 'Strong proof',
       id: 'ad-1',
       metrics: { spend: 12 },
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'ad-1',
       title: 'Performance ad',
       usagePolicy: 'remixable',
@@ -190,7 +192,7 @@ describe('BrandRemixSourceResolverService', () => {
       adId: 'ad-1',
       credentialId: 'credential-1',
       kind: 'connected_ad',
-      platform: 'meta',
+      platform: BrandRemixAdPlatform.META,
     });
 
     expect(prisma.credential.findFirst).toHaveBeenCalledWith(

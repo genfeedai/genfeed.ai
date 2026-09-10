@@ -3,7 +3,10 @@ import type { ResolvedBrandContext } from '@api/collections/content-runs/service
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientStatus } from '@genfeedai/contracts';
-import type { BrandRemixDraft } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixDraft,
+  BrandRemixOrganicPlatform,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -78,7 +81,10 @@ describe('BrandRemixRunPlanningService', () => {
       output: { aspectRatio: '1:1', count: 1, kind: 'image' },
       references: [],
       reviewRequired: true,
-      target: { kind: 'organic', platform: 'instagram' },
+      target: {
+        kind: 'organic',
+        platform: BrandRemixOrganicPlatform.INSTAGRAM,
+      },
     } as BrandRemixDraft;
 
     const readiness = planning.buildReadiness(brandContext, draft);
@@ -97,7 +103,10 @@ describe('BrandRemixRunPlanningService', () => {
       output: { aspectRatio: '1:1', count: 1, kind: 'image' },
       references: [{ assetId: 'product-1', role: 'product' }],
       reviewRequired: true,
-      target: { kind: 'organic', platform: 'instagram' },
+      target: {
+        kind: 'organic',
+        platform: BrandRemixOrganicPlatform.INSTAGRAM,
+      },
     } as BrandRemixDraft;
 
     const readiness = planning.buildReadiness(brandContext, draft);
@@ -118,7 +127,10 @@ describe('BrandRemixRunPlanningService', () => {
       output: { aspectRatio: '1:1', count: 1, kind: 'image' },
       references: [{ assetId: 'style-1', role: 'style' }],
       reviewRequired: true,
-      target: { kind: 'organic', platform: 'instagram' },
+      target: {
+        kind: 'organic',
+        platform: BrandRemixOrganicPlatform.INSTAGRAM,
+      },
     } as BrandRemixDraft;
 
     const readiness = planning.buildReadiness(brandContext, draft);
@@ -166,7 +178,7 @@ describe('BrandRemixRunPlanningService', () => {
           evidence: [],
           metrics: {},
           pattern: {},
-          platform: 'instagram',
+          platform: BrandRemixOrganicPlatform.INSTAGRAM,
           selector: { kind: 'source_post', sourcePostId: 'source-1' },
           sourceId: 'source-1',
           title: 'Source',
@@ -193,7 +205,7 @@ describe('BrandRemixRunPlanningService', () => {
         evidence: ['Do not wait for permission to ship.'],
         metrics: {},
         pattern: { hook: 'Outcome-led relevance hook.' },
-        platform: 'x',
+        platform: BrandRemixOrganicPlatform.X,
         selector: { kind: 'source_post', sourcePostId: 'tweet-1' },
         sourceId: 'tweet-1',
         title: 'Do not wait for permission to ship.',
@@ -218,7 +230,10 @@ describe('BrandRemixRunPlanningService', () => {
       output: { aspectRatio: '1:1', count: 1, kind: 'image' },
       references: [{ assetId: 'ref-1', role: 'product', source: 'explicit' }],
       reviewRequired: true,
-      target: { kind: 'organic', platform: 'instagram' },
+      target: {
+        kind: 'organic',
+        platform: BrandRemixOrganicPlatform.INSTAGRAM,
+      },
     } as BrandRemixDraft;
 
     await planning.assertDraftAssetsAuthorized('org-1', 'brand-1', draft);

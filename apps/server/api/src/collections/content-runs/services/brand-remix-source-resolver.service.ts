@@ -30,7 +30,11 @@ import {
   type BrandRemixAdPlatform,
   type BrandRemixSourceSelector,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
+import {
+  type AdsResearchDetail,
+  isAdsChannel,
+  isAdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -323,11 +327,16 @@ export class BrandRemixSourceResolverService {
     const detail = await this.adsResearchService.getAdDetail(organizationId, {
       adAccountId: selector.adAccountId,
       brandId,
-      channel: selector.channel,
+      channel:
+        typeof selector.channel === 'string' && isAdsChannel(selector.channel)
+          ? selector.channel
+          : undefined,
       credentialId: selector.credentialId,
       id: selector.adId,
       loginCustomerId: selector.loginCustomerId,
-      platform: selector.platform,
+      platform: isAdsPlatform(selector.platform)
+        ? selector.platform
+        : undefined,
       source: 'my_accounts',
     });
     return this.resolvedAd(selector, detail);
