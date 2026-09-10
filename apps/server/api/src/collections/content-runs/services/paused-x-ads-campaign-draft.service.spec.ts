@@ -1,6 +1,7 @@
 import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { IngredientStatus } from '@genfeedai/contracts';
+import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CapturedWorkflowAction = (request: {
@@ -62,7 +63,7 @@ describe('PausedXAdsCampaignDraftService', () => {
         output: { aspectRatio: '1:1', count: 1, kind: 'image' as const },
         references: [],
         reviewRequired: true as const,
-        target: { kind: 'paid' as const, platform: 'x' as const },
+        target: { kind: 'paid' as const, platform: BrandRemixAdPlatform.X },
       },
       phase: 'paid_draft_creating' as const,
       readiness: { issues: [], state: 'ready' as const },
@@ -80,7 +81,7 @@ describe('PausedXAdsCampaignDraftService', () => {
         evidence: [],
         metrics: {},
         pattern: {},
-        platform: 'x' as const,
+        platform: BrandRemixAdPlatform.X,
         selector: { adPerformanceId: 'source-1', kind: 'public_ad' as const },
         sourceId: 'source-1',
         title: 'Source pattern',
@@ -247,7 +248,10 @@ describe('PausedXAdsCampaignDraftService', () => {
       workflowId: 'workflow-1',
     });
     expect(adCreativeMappingsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ platform: 'x', status: 'paused' }),
+      expect.objectContaining({
+        platform: BrandRemixAdPlatform.X,
+        status: 'paused',
+      }),
     );
   });
 

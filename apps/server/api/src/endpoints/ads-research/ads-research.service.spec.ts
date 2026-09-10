@@ -1,5 +1,6 @@
 import type { AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -89,7 +90,7 @@ describe('AdsResearchService', () => {
       industry: 'fitness',
       limit: 999,
       metric: 'spendEfficiency',
-      platform: 'meta',
+      platform: AdsPlatform.META,
       source: 'public',
     });
 
@@ -121,7 +122,7 @@ describe('AdsResearchService', () => {
     expect(adPerformanceService.findById).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       id: 'public-ad',
-      platform: 'meta',
+      platform: AdsPlatform.META,
       source: 'public',
       title: 'Public campaign',
     });
@@ -137,12 +138,15 @@ describe('AdsResearchService', () => {
       source: 'public',
     });
 
-    expect(result).toMatchObject({ platform: 'tiktok', source: 'public' });
+    expect(result).toMatchObject({
+      platform: AdsPlatform.TIKTOK,
+      source: 'public',
+    });
     // Creative patterns are keyed by the storage platform name, which is
     // `tiktok` for TikTok (unlike meta → facebook, google → google_ads).
     expect(creativePatternsService.findAll).toHaveBeenCalledWith({
       organizationId: 'org-1',
-      platform: 'tiktok',
+      platform: AdsPlatform.TIKTOK,
       scope: 'public',
     });
   });
@@ -159,7 +163,10 @@ describe('AdsResearchService', () => {
         source: 'public',
       });
 
-      expect(result).toMatchObject({ platform: 'x', source: 'public' });
+      expect(result).toMatchObject({
+        platform: AdsPlatform.X,
+        source: 'public',
+      });
       // Creative patterns are keyed by the storage platform name, which is
       // `x_ads` for X (unlike meta → facebook, google → google_ads).
       expect(creativePatternsService.findAll).toHaveBeenCalledWith({
@@ -175,7 +182,7 @@ describe('AdsResearchService', () => {
       industry: 'fitness',
       limit: 999,
       metric: 'spendEfficiency',
-      platform: 'x',
+      platform: AdsPlatform.X,
       source: 'public',
     });
 
@@ -227,7 +234,7 @@ describe('AdsResearchService', () => {
       imageUrls: [],
       metricLabel: 'Estimated reach',
       metricValue: 150,
-      platform: 'x',
+      platform: AdsPlatform.X,
       source: 'public',
       sourceLabel: 'X Ads Repository disclosure',
       usagePolicy: 'disclosure_only',
@@ -269,7 +276,7 @@ describe('AdsResearchService', () => {
       headline: 'Winter running kit',
       imageUrls: ['https://media.example/meta.jpg'],
       landingPageUrl: 'https://nike.example/winter',
-      platform: 'meta',
+      platform: AdsPlatform.META,
       previewUrl: 'https://media.example/meta.jpg',
       sourceLabel: 'Meta Ad Library',
       usagePolicy: 'remix_allowed',
@@ -357,7 +364,7 @@ describe('AdsResearchService', () => {
     });
 
     expect(result).toMatchObject({
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       sourceLabel: 'Google Ads Transparency Center',
       title: 'Example Corp ad',
       usagePolicy: 'remix_allowed',
@@ -383,7 +390,7 @@ describe('AdsResearchService', () => {
     });
 
     expect(result).toMatchObject({
-      platform: 'tiktok',
+      platform: AdsPlatform.TIKTOK,
       sourceLabel: 'TikTok Creative Center',
       title: 'gymshark ad',
       usagePolicy: 'remix_allowed',
@@ -439,7 +446,7 @@ describe('AdsResearchService', () => {
 
     await service.listAds('org-1', {
       brandId: 'brand-1',
-      platform: 'x',
+      platform: AdsPlatform.X,
       source: 'public',
     });
     await service.getAdDetail('org-1', {
@@ -537,7 +544,7 @@ describe('AdsResearchService', () => {
     const result = await service.listAds('org-1', {
       adAccountId: 'advertiser-1',
       credentialId,
-      platform: 'tiktok',
+      platform: AdsPlatform.TIKTOK,
       source: 'my_accounts',
     });
 
@@ -553,7 +560,7 @@ describe('AdsResearchService', () => {
     expect(result.connectedAds).toHaveLength(1);
     expect(result.connectedAds[0]).toMatchObject({
       accountName: 'Connected TikTok Ads account',
-      channel: 'all',
+      channel: AdsChannel.ALL,
       id: 'connected:tiktok:ad-1',
     });
     expect(result.connectedAds[0]).not.toHaveProperty('firstSeenAt');
@@ -604,7 +611,7 @@ describe('AdsResearchService', () => {
     expect(adapter.getAdAccounts).toHaveBeenCalled();
     expect(result.connectedAds).toHaveLength(1);
     expect(result.connectedAds[0]).toMatchObject({
-      channel: 'youtube',
+      channel: AdsChannel.YOUTUBE,
       id: 'connected:google:ad-yt',
       previewUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
       videoUrls: ['https://www.youtube.com/watch?v=vid-1'],
@@ -626,7 +633,7 @@ describe('AdsResearchService', () => {
     await service.listAds('org-1', {
       adAccountId: 'x-account-1',
       credentialId,
-      platform: 'x',
+      platform: AdsPlatform.X,
       source: 'my_accounts',
     });
 

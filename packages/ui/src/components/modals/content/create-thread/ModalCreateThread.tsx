@@ -39,6 +39,7 @@ import Modal from '@ui/modals/modal/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 
@@ -51,6 +52,7 @@ export default function ModalCreateThread({
   onConfirm,
   onClose,
 }: ModalCreateThreadProps) {
+  const translate = useTranslations('ui.createThread');
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
@@ -207,9 +209,9 @@ export default function ModalCreateThread({
     <Modal id={ModalEnum.THREAD_CREATE}>
       <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Create Thread</h2>
+          <h2 className="text-2xl font-semibold">{translate('title')}</h2>
           <p className="text-foreground/70 text-sm">
-            Create multiple posts that will be linked together as a thread
+            {translate('description')}
           </p>
         </div>
 
@@ -218,7 +220,7 @@ export default function ModalCreateThread({
           activeTab={activeTab}
           fullWidth={false}
           items={[
-            { id: 'compose', label: 'Compose' },
+            { id: 'compose', label: translate('compose') },
             { id: 'preview', label: `Preview (${fields.length})` },
           ]}
           onTabChange={(tab) => setActiveTab(tab as 'compose' | 'preview')}
@@ -269,7 +271,7 @@ export default function ModalCreateThread({
         <ModalActions>
           <Button
             type="button"
-            label="Cancel"
+            label={translate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={() => closeModal(false)}
             isDisabled={isSubmitting}
@@ -291,7 +293,7 @@ export default function ModalCreateThread({
         <LazyModalGallery
           isOpen
           category={IngredientCategory.IMAGE}
-          title="Attach media"
+          title={translate('attachMedia')}
           maxSelectableItems={maxMediaPerItem}
           onClose={() => setMediaPickerIndex(null)}
           onSelect={(items) => {

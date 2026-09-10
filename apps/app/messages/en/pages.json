@@ -29,6 +29,17 @@
     "version": "Version"
   },
   "analytics": {
+    "overview": {
+      "checkConnections": "Check connections",
+      "connectAccounts": "Connect accounts",
+      "createPost": "Create a post",
+      "emptyDescription": "Winners, trends, and rankings appear after a connected social account publishes and analytics syncs back.",
+      "emptyTitle": "Connect accounts to see analytics",
+      "placeholderDescription": "After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming.",
+      "placeholderTitle": "Trend lines will appear here once performance data lands",
+      "timeseriesDescription": "Use this to see which channels are actually contributing movement in the selected range.",
+      "timeseriesTitle": "Posts views by platform over time"
+    },
     "accounts": {
       "errorTitle": "Account analytics error",
       "evaluation": "Evaluation",
@@ -821,7 +832,8 @@
         "posted": "Posted",
         "publishing": "Publishing",
         "publishingStateAria": "Publishing state",
-        "searchPlaceholder": "Search posts"
+        "searchPlaceholder": "Search posts",
+        "sortAria": "Sort"
       },
       "unscheduled": "Unscheduled",
       "untitled": "Untitled post",
@@ -1168,6 +1180,17 @@
     }
   },
   "library": {
+    "browser": {
+      "toolbar": {
+        "canvas": "Canvas",
+        "clearTypeFilter": "Clear type filter",
+        "contactSheet": "Contact sheet",
+        "list": "List",
+        "sortAria": "Sort",
+        "type": "Type",
+        "upload": "Upload"
+      }
+    },
     "inspector": {
       "empty": "Select one asset to inspect it.",
       "surface": "Library",
@@ -1650,7 +1673,26 @@
     }
   },
   "workflows": {
+    "actionInspector": {
+      "account": "Account",
+      "accounts": "Accounts",
+      "brand": "Brand",
+      "close": "Close configuration",
+      "connectAccounts": "Connect X or LinkedIn for this brand to choose accounts.",
+      "minScore": "Minimum score",
+      "minScorePlaceholder": "Hold below this score",
+      "noStrategy": "No strategy",
+      "selectAccount": "Select an account",
+      "selectAccounts": "Select connected accounts",
+      "selectBrand": "Select a brand",
+      "selectTimezone": "Select a timezone",
+      "strategy": "Strategy",
+      "timezone": "Timezone",
+      "topics": "Topics",
+      "topicsPlaceholder": "One topic per line"
+    },
     "actionNode": {
+      "brand": "Brand",
       "configured": "Configured",
       "inputsToConfigure": "{count, plural, one {# input \u00b7 Select to configure} other {# inputs \u00b7 Select to configure}}",
       "items": "{count, plural, one {# item} other {# items}}",
@@ -1659,8 +1701,24 @@
       "notSet": "Not set",
       "off": "Off",
       "on": "On",
+      "selectBrand": "Select a brand",
       "unavailableDescription": "This node references an action that is no longer available.",
       "unavailableTitle": "Unavailable action"
+    },
+    "nodePalette": {
+      "image": {
+        "description": "Pick an image from the library",
+        "label": "Image"
+      },
+      "video": {
+        "description": "Pick a video from the library",
+        "label": "Video"
+      }
+    },
+    "templates": {
+      "category": "Category",
+      "schedule": "Schedule",
+      "source": "Source"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",

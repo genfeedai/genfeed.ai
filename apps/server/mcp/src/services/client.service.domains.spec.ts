@@ -1,3 +1,4 @@
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { ClientService } from '@mcp/services/client.service';
@@ -1158,7 +1159,7 @@ describe('ClientService (MCP) domain clients', () => {
         credentialId: 'credential-1',
         datePreset: 'last_7d',
         entityId: 'adset-1',
-        platform: 'tiktok',
+        platform: AdsPlatform.TIKTOK,
       });
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
@@ -1187,7 +1188,7 @@ describe('ClientService (MCP) domain clients', () => {
         credentialId: 'credential-1',
         entityId: 'ad-1',
         loginCustomerId: 'manager-1',
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         since: '2026-08-01',
         until: '2026-08-06',
       });

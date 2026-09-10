@@ -2,7 +2,10 @@ import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
-import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
+import {
+  type AdsAdapterContext,
+  AdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -41,7 +44,7 @@ const buildInsights = (
   dateStart: '2026-03-01',
   dateStop: '2026-03-15',
   impressions,
-  platform: 'meta' as const,
+  platform: AdsPlatform.META,
   roas,
   spend,
 });
@@ -125,8 +128,8 @@ describe('AdsGatewayService', () => {
 
       await service.comparePlatforms(
         [
-          { ctx: mockCtx, platform: 'meta' },
-          { ctx: mockCtx, platform: 'google' },
+          { ctx: mockCtx, platform: AdsPlatform.META },
+          { ctx: mockCtx, platform: AdsPlatform.GOOGLE },
         ],
         params,
       );
@@ -150,7 +153,7 @@ describe('AdsGatewayService', () => {
       );
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
       ]);
 
       expect(result.platforms).toHaveLength(1);
@@ -173,8 +176,8 @@ describe('AdsGatewayService', () => {
       );
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
-        { ctx: mockCtx, platform: 'google' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
+        { ctx: mockCtx, platform: AdsPlatform.GOOGLE },
       ]);
 
       expect(result.bestPerformer.platform).toBe('meta');
@@ -193,8 +196,8 @@ describe('AdsGatewayService', () => {
       );
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
-        { ctx: mockCtx, platform: 'google' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
+        { ctx: mockCtx, platform: AdsPlatform.GOOGLE },
       ]);
 
       expect(result.bestPerformer.platform).toBe('meta');
@@ -205,7 +208,7 @@ describe('AdsGatewayService', () => {
       metaAdapter.listCampaigns.mockRejectedValue(new Error('API error'));
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
       ]);
 
       expect(result.platforms).toHaveLength(0);
@@ -217,7 +220,7 @@ describe('AdsGatewayService', () => {
       metaAdapter.listCampaigns.mockResolvedValue([] as never);
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
       ]);
 
       expect(result.platforms[0]).toMatchObject({
@@ -234,7 +237,7 @@ describe('AdsGatewayService', () => {
       );
 
       const result = await service.comparePlatforms([
-        { ctx: mockCtx, platform: 'meta' },
+        { ctx: mockCtx, platform: AdsPlatform.META },
       ]);
 
       expect(result.platforms[0].avgCpc).toBe(0);

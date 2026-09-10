@@ -262,7 +262,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(palette).toContain("type: 'genfeedAction'");
     expect(credits).toContain('ALL_ACTIONS');
     expect(credits).toContain('action.credits.amount');
-    expect(canvas).toContain('genfeedAction: coreNodeTypes.genfeedAction');
+    expect(canvas).toContain('genfeedAction: CloudGenfeedActionNode');
     expect(canvas).not.toContain('socialRead:');
     expect(canvas).not.toContain('reportDelivery:');
   });

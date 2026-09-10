@@ -22,6 +22,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
@@ -69,6 +70,7 @@ export default function AnalyticsOverview({
   timeseriesData: initialTimeseriesData = [],
   topPosts: initialTopPosts = [],
 }: AnalyticsOverviewProps) {
+  const translate = useTranslations('pages.analytics.overview');
   const router = useRouter();
   const {
     agentBlocks,
@@ -132,10 +134,10 @@ export default function AnalyticsOverview({
     return (
       <EmptyStateCard
         icon={ChartColumn}
-        title="Connect accounts to see analytics"
-        description="Winners, trends, and rankings appear after a connected social account publishes and analytics syncs back."
+        title={translate('emptyTitle')}
+        description={translate('emptyDescription')}
         action={{
-          label: 'Connect accounts',
+          label: translate('connectAccounts'),
           onClick: () => router.push(connectAccountsHref),
         }}
       />
@@ -206,8 +208,8 @@ export default function AnalyticsOverview({
         {hasTimeseriesData || isTimeseriesLoading ? (
           <Card
             variant={CardVariant.DEFAULT}
-            label="Posts views by platform over time"
-            description="Use this to see which channels are actually contributing movement in the selected range."
+            label={translate('timeseriesTitle')}
+            description={translate('timeseriesDescription')}
           >
             <PlatformTimeSeriesChart
               data={timeseriesData}
@@ -224,17 +226,17 @@ export default function AnalyticsOverview({
           </Card>
         ) : (
           <OverviewPlaceholderCard
-            title="Trend lines will appear here once performance data lands"
-            description="After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming."
+            title={translate('placeholderTitle')}
+            description={translate('placeholderDescription')}
             icon={ChartColumn}
             primaryAction={{
               href: APP_ROUTES.PUBLISHING.OVERVIEW,
-              label: 'Create a post',
+              label: translate('createPost'),
               variant: ButtonVariant.DEFAULT,
             }}
             secondaryAction={{
               href: connectAccountsHref,
-              label: 'Check connections',
+              label: translate('checkConnections'),
               variant: ButtonVariant.SECONDARY,
             }}
           />

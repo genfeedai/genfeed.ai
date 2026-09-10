@@ -202,6 +202,35 @@ const UI_TEST_MESSAGES = {
       validationRequired: 'Choose a time and at least one healthy channel.',
     },
   },
+  ui: {
+    createThread: {
+      addPost: 'Add comment / post',
+      attachMedia: 'Attach media',
+      attached: '{count} attached',
+      cancel: 'Cancel',
+      clearMedia: 'Clear media',
+      commentMediaUnsupported:
+        'This channel publishes comments as text only, so a comment here cannot carry media.',
+      compose: 'Compose',
+      content: 'Content',
+      delay: 'Delay',
+      description:
+        'Create multiple posts that will be linked together as a thread',
+      postsTitle: 'Thread Posts',
+      remove: 'Remove',
+      title: 'Create Thread',
+    },
+    postPlatforms: {
+      charactersUsed: 'Characters used per channel',
+      empty: 'Enable a platform above to configure its publishing content.',
+      livePreview: 'Live preview',
+      livePreviewDescription:
+        'Platform-tuned preview of each enabled channel, updated as you type.',
+      settingsDescription:
+        'Enable a platform above to customise its title, description, and scheduling options.',
+      settingsTitle: 'Platform-Specific Settings',
+    },
+  },
   pages: {
     library: {
       inspector: {

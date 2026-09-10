@@ -42,6 +42,7 @@ import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
@@ -63,6 +64,7 @@ export default function ModalPostPlatformsTab({
   updatePlatformConfig,
   getMinDateTime,
 }: ModalPostPlatformsTabProps) {
+  const translate = useTranslations('ui.postPlatforms');
   const { brandId, organizationId, selectedBrand, credentials } = useBrand();
   const globalLabel = form.watch('globalLabel');
   const globalDescription = form.watch('globalDescription');
@@ -306,20 +308,19 @@ export default function ModalPostPlatformsTab({
 
       <PostCharacterUsage
         items={characterUsageItems}
-        title="Characters used per channel"
+        title={translate('charactersUsed')}
       />
 
       {/* Platform-specific customization */}
       <div className="border-t pt-4 space-y-4">
-        <h4 className="font-medium">Platform-Specific Settings</h4>
+        <h4 className="font-medium">{translate('settingsTitle')}</h4>
         <p className="text-sm text-foreground/70">
-          Enable a platform above to customise its title, description, and
-          scheduling options.
+          {translate('settingsDescription')}
         </p>
 
         {platformConfigs.filter((config) => config.enabled).length === 0 ? (
           <div className="bg-card/40 shadow-border p-6 text-sm text-foreground/70">
-            Enable a platform above to configure its publishing content.
+            {translate('empty')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -382,10 +383,9 @@ export default function ModalPostPlatformsTab({
         <div className="border-t pt-4 space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h4 className="font-medium">Live preview</h4>
+              <h4 className="font-medium">{translate('livePreview')}</h4>
               <p className="text-sm text-foreground/70">
-                Platform-tuned preview of each enabled channel, updated as you
-                type.
+                {translate('livePreviewDescription')}
               </p>
             </div>
             <Button

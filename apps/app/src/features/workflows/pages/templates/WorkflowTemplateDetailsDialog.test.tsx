@@ -4,6 +4,11 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children?: ReactNode; href: string }) => (
     <a href={href}>{children}</a>

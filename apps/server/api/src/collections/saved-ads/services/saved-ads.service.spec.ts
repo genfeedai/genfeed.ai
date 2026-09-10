@@ -1,6 +1,7 @@
 import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SavedAdsService } from './saved-ads.service';
 
@@ -58,7 +59,7 @@ describe('SavedAdsService', () => {
     });
     adsResearch.getAdDetail.mockResolvedValue({
       id: 'record-1',
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'source-1',
     });
 
@@ -80,7 +81,7 @@ describe('SavedAdsService', () => {
       id: 'record-1',
       imageUrls: [],
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'source-1',
       title: 'Winner',
       usagePolicy: 'remix_allowed',
@@ -117,7 +118,7 @@ describe('SavedAdsService', () => {
       explanation: 'Preview evidence',
       id: 'record-1',
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       previewUrl: 'https://source.example/preview.jpg',
       sourceId: 'source-1',
       title: 'Preview only',
@@ -156,7 +157,7 @@ describe('SavedAdsService', () => {
         (_, index) => `https://source.example/image-${index}.jpg`,
       ),
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'source-1',
       title: 'Gallery',
       usagePolicy: 'remix_allowed',
@@ -211,7 +212,7 @@ describe('SavedAdsService', () => {
           adId: 'record-1',
           brandId: 'brand-1',
           credentialId: 'credential-other',
-          platform: 'meta',
+          platform: AdsPlatform.META,
           source: 'my_accounts',
         },
       ]),
@@ -244,7 +245,7 @@ describe('SavedAdsService', () => {
       explanation: 'Strong proof',
       id: 'record-1',
       metrics: {},
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       sourceId: 'source-1',
       title: 'Connected winner',
       usagePolicy: 'remix_allowed',
@@ -259,10 +260,10 @@ describe('SavedAdsService', () => {
         adAccountId: 'acct-1',
         adId: 'source-1',
         brandId: 'brand-1',
-        channel: 'search',
+        channel: AdsChannel.SEARCH,
         credentialId: 'credential-1',
         loginCustomerId: 'mcc-1',
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         source: 'my_accounts',
       },
     ]);
@@ -285,11 +286,11 @@ describe('SavedAdsService', () => {
     expect(adsResearch.getAdDetail).toHaveBeenCalledWith('org-1', {
       adAccountId: 'acct-1',
       brandId: 'brand-1',
-      channel: 'search',
+      channel: AdsChannel.SEARCH,
       credentialId: 'credential-1',
       id: 'source-1',
       loginCustomerId: 'mcc-1',
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       source: 'my_accounts',
     });
     expect(saved).toMatchObject({
@@ -315,7 +316,7 @@ describe('SavedAdsService', () => {
       explanation: 'Strong proof',
       id: 'record-1',
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'source-1',
       title: 'Winner',
       usagePolicy: 'remix_allowed',
@@ -359,7 +360,7 @@ describe('SavedAdsService', () => {
       explanation: 'Strong proof',
       id: 'record-1',
       metrics: {},
-      platform: 'meta',
+      platform: AdsPlatform.META,
       sourceId: 'source-1',
       title: 'Winner',
       usagePolicy: 'remix_allowed',
@@ -378,7 +379,7 @@ describe('SavedAdsService', () => {
         brandId: 'brand-1',
         organizationId: 'org-1',
         OR: [{ isDeleted: false }, { isDeleted: true }],
-        platform: 'meta',
+        platform: AdsPlatform.META,
         sourceAdId: 'source-1',
       },
     });

@@ -3,6 +3,11 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const { nodePaletteSpy } = vi.hoisted(() => ({
   nodePaletteSpy: vi.fn(),
 }));

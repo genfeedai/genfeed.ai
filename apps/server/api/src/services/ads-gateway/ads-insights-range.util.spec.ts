@@ -9,6 +9,7 @@ import {
   resolveAdsInsightsDateRange,
   resolveAdsInsightsPresetRange,
 } from '@api/services/ads-gateway/ads-insights-range.util';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 const FIXED_NOW = new Date('2026-08-19T12:00:00.000Z');
 
@@ -322,7 +323,7 @@ describe('ads-insights-range.util', () => {
         dateStart: '',
         dateStop: '',
         impressions: 0,
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         spend: 0,
       });
       expect(emptyUnifiedInsights('tiktok')).toEqual({
@@ -333,7 +334,7 @@ describe('ads-insights-range.util', () => {
         dateStart: '',
         dateStop: '',
         impressions: 0,
-        platform: 'tiktok',
+        platform: AdsPlatform.TIKTOK,
         spend: 0,
       });
       expect(emptyUnifiedInsights('meta')).toEqual({
@@ -344,7 +345,7 @@ describe('ads-insights-range.util', () => {
         dateStart: '',
         dateStop: '',
         impressions: 0,
-        platform: 'meta',
+        platform: AdsPlatform.META,
         spend: 0,
       });
     });

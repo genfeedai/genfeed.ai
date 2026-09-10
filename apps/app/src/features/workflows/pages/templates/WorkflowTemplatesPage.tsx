@@ -629,7 +629,11 @@ function WorkflowTemplatesPageContent() {
                         size={ButtonSize.SM}
                         disabled={isInstalling}
                         onClick={() => {
-                          void handleInstallSystem(item.systemEntry);
+                          const entry = item.systemEntry;
+                          if (!entry) {
+                            return;
+                          }
+                          void handleInstallSystem(entry);
                         }}
                       >
                         {isInstalling ? 'Installing…' : item.actionLabel}
@@ -664,7 +668,11 @@ function WorkflowTemplatesPageContent() {
         onInstall={
           detailsItem?.systemEntry && !detailsItem.href
             ? () => {
-                void handleInstallSystem(detailsItem.systemEntry);
+                const entry = detailsItem.systemEntry;
+                if (!entry) {
+                  return;
+                }
+                void handleInstallSystem(entry);
               }
             : undefined
         }

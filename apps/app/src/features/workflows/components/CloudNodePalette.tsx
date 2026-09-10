@@ -5,33 +5,34 @@ import {
   NodePalette,
   type PaletteNodeDefinition,
 } from '@genfeedai/workflows/ui';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
-
-const CLOUD_NATIVE_PALETTE_NODES: PaletteNodeDefinition[] = [
-  {
-    category: 'input',
-    description: 'Pick an image from the library',
-    icon: 'Image',
-    label: 'Image',
-    type: 'input-image',
-  },
-  {
-    category: 'input',
-    description: 'Pick a video from the library',
-    icon: 'Video',
-    label: 'Video',
-    type: 'input-video',
-  },
-];
 
 /**
  * Cloud workflow palette: engine primitives plus catalog-generated action
  * entries. Product actions all create the same `genfeedAction` node shape.
  */
 export function CloudNodePalette() {
+  const translate = useTranslations('pages.workflows.nodePalette');
   const additionalNodes = useMemo((): PaletteNodeDefinition[] => {
+    const nativeNodes: PaletteNodeDefinition[] = [
+      {
+        category: 'input',
+        description: translate('image.description'),
+        icon: 'Image',
+        label: translate('image.label'),
+        type: 'input-image',
+      },
+      {
+        category: 'input',
+        description: translate('video.description'),
+        icon: 'Video',
+        label: translate('video.label'),
+        type: 'input-video',
+      },
+    ];
     const actionNodes = ALL_ACTIONS.filter(
       (action) => action.visibility === 'workflow',
     ).map((action) => {
@@ -51,8 +52,8 @@ export function CloudNodePalette() {
       };
     });
 
-    return [...CLOUD_NATIVE_PALETTE_NODES, ...actionNodes];
-  }, []);
+    return [...nativeNodes, ...actionNodes];
+  }, [translate]);
 
   return (
     <NodePalette

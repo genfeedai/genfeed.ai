@@ -86,7 +86,10 @@ export default function PostsListToolbar({
       ) : null}
 
       <Select value={sortValue} onValueChange={onSortChange}>
-        <SelectTrigger aria-label="Sort" className="w-40">
+        <SelectTrigger
+          aria-label={translate('toolbar.sortAria')}
+          className="w-40"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

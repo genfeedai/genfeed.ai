@@ -9,7 +9,6 @@ import {
 import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
-  type ConversationSidebarFilter,
   ConversationSidebarSearch,
   ConversationSidebarSection,
   conversationSidebarRowClassName,
@@ -50,32 +49,44 @@ import MessageAutomationsMenu from '@/components/messages/MessageAutomationsMenu
 
 export type { MessagesInboxView, MessagesSurface };
 
-const VIEW_FILTERS: readonly ConversationSidebarFilter<MessagesInboxView>[] = [
-  { label: 'Inbox', value: 'inbox' },
-  { label: 'Unread', value: 'unread' },
-  { label: 'Review', value: 'review' },
-  { label: 'Resolved', value: 'resolved' },
-  { label: 'Archived', value: 'archived' },
-  { label: 'All', value: 'all' },
-];
+const VIEW_FILTERS = [
+  { messageKey: 'inbox', value: 'inbox' },
+  { messageKey: 'unread', value: 'unread' },
+  { messageKey: 'review', value: 'review' },
+  { messageKey: 'resolved', value: 'resolved' },
+  { messageKey: 'archived', value: 'archived' },
+  { messageKey: 'all', value: 'all' },
+] as const satisfies ReadonlyArray<{
+  messageKey: 'all' | 'archived' | 'inbox' | 'resolved' | 'review' | 'unread';
+  value: MessagesInboxView;
+}>;
 
-const SURFACE_FILTERS: readonly ConversationSidebarFilter<MessagesSurface>[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Comments', value: SocialConversationType.COMMENT },
-  { label: 'DMs', value: SocialConversationType.DM },
-];
+const SURFACE_FILTERS = [
+  { messageKey: 'all', value: 'all' },
+  { messageKey: 'comments', value: SocialConversationType.COMMENT },
+  { messageKey: 'dms', value: SocialConversationType.DM },
+] as const satisfies ReadonlyArray<{
+  messageKey: 'all' | 'comments' | 'dms';
+  value: MessagesSurface;
+}>;
 
-const PLATFORM_OPTIONS: Array<{
-  label: string;
+const PLATFORM_OPTIONS = [
+  { messageKey: 'all', value: 'all' },
+  { messageKey: 'youtube', value: 'youtube' },
+  { messageKey: 'instagram', value: 'instagram' },
+  { messageKey: 'tiktok', value: 'tiktok' },
+  { messageKey: 'twitter', value: 'twitter' },
+  { messageKey: 'linkedin', value: 'linkedin' },
+] as const satisfies ReadonlyArray<{
+  messageKey:
+    | 'all'
+    | 'instagram'
+    | 'linkedin'
+    | 'tiktok'
+    | 'twitter'
+    | 'youtube';
   value: SocialPlatform | 'all';
-}> = [
-  { label: 'All platforms', value: 'all' },
-  { label: 'YouTube', value: 'youtube' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'X / Twitter', value: 'twitter' },
-  { label: 'LinkedIn', value: 'linkedin' },
-];
+}>;
 
 function formatRelativeTime(value?: string | null): string {
   if (!value) {
@@ -342,25 +353,25 @@ export function MessagesConversationSidebar({
             : 'No comments for this brand yet. Sync or switch brands.';
   const singleSectionLabel =
     view === 'resolved'
-      ? 'Resolved'
+      ? translate('sidebar.views.resolved')
       : view === 'archived'
-        ? 'Archived'
+        ? translate('sidebar.views.archived')
         : view === 'review'
           ? translate('conversation.needsReviewCompact')
           : view === 'unread'
-            ? 'Unread'
+            ? translate('sidebar.views.unread')
             : null;
   const filterAction = (
     <div className="flex items-center gap-1">
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            ariaLabel="Filter social conversations"
+            ariaLabel={translate('sidebar.filterAria')}
             className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 hover:bg-foreground/[0.07] hover:text-foreground"
             icon={<ListFilter className="size-4" />}
             size={ButtonSize.ICON}
             textTransform="none"
-            tooltip="Filter conversations"
+            tooltip={translate('sidebar.filterTooltip')}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
@@ -379,13 +390,13 @@ export function MessagesConversationSidebar({
                 onConversationTypeChange(value as MessagesSurface);
               }}
             >
-              <SelectTrigger aria-label="Filter conversations by type">
-                <SelectValue placeholder="All" />
+              <SelectTrigger aria-label={translate('sidebar.filterByTypeAria')}>
+                <SelectValue placeholder={translate('sidebar.surfaces.all')} />
               </SelectTrigger>
               <SelectContent>
                 {SURFACE_FILTERS.map((filter) => (
                   <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
+                    {translate(`sidebar.surfaces.${filter.messageKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -401,13 +412,15 @@ export function MessagesConversationSidebar({
                 onViewChange(value as MessagesInboxView);
               }}
             >
-              <SelectTrigger aria-label="Filter conversations by status">
-                <SelectValue placeholder="Inbox" />
+              <SelectTrigger
+                aria-label={translate('sidebar.filterByStatusAria')}
+              >
+                <SelectValue placeholder={translate('sidebar.views.inbox')} />
               </SelectTrigger>
               <SelectContent>
                 {VIEW_FILTERS.map((filter) => (
                   <SelectItem key={filter.value} value={filter.value}>
-                    {filter.label}
+                    {translate(`sidebar.views.${filter.messageKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -419,7 +432,9 @@ export function MessagesConversationSidebar({
                 {translate('sidebar.brand')}
               </p>
               <Select value={brandFilter} onValueChange={onBrandFilterChange}>
-                <SelectTrigger aria-label="Filter conversations by brand">
+                <SelectTrigger
+                  aria-label={translate('sidebar.filterByBrandAria')}
+                >
                   <SelectValue placeholder={translate('sidebar.allBrands')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -445,13 +460,15 @@ export function MessagesConversationSidebar({
                 onPlatformChange(value as SocialPlatform | 'all');
               }}
             >
-              <SelectTrigger aria-label="Filter conversations by platform">
-                <SelectValue placeholder="All platforms" />
+              <SelectTrigger
+                aria-label={translate('sidebar.filterByPlatformAria')}
+              >
+                <SelectValue placeholder={translate('sidebar.platforms.all')} />
               </SelectTrigger>
               <SelectContent>
                 {PLATFORM_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    {translate(`sidebar.platforms.${option.messageKey}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -466,7 +483,7 @@ export function MessagesConversationSidebar({
 
   return (
     <nav
-      aria-label="Social conversations"
+      aria-label={translate('sidebar.navAria')}
       className="flex h-full min-h-0 flex-col pt-1"
     >
       <div className="flex items-center justify-between px-3 py-1.5">
@@ -484,8 +501,8 @@ export function MessagesConversationSidebar({
       </div>
       <ConversationSidebarSearch
         action={filterAction}
-        ariaLabel="Search social conversations"
-        placeholder="Search messages"
+        ariaLabel={translate('sidebar.searchAria')}
+        placeholder={translate('sidebar.searchPlaceholder')}
         value={search}
         onChange={onSearchChange}
       />
@@ -575,7 +592,7 @@ export function MessagesConversationSidebar({
             {groups.needsYou.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.needsYou.length}
-                label="Needs you"
+                label={translate('sidebar.needsYou')}
               >
                 {groups.needsYou.map((conversation) => (
                   <ConversationRow
@@ -596,7 +613,11 @@ export function MessagesConversationSidebar({
             {groups.inbox.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.inbox.length}
-                label={view === 'all' ? 'Other' : 'Inbox'}
+                label={
+                  view === 'all'
+                    ? translate('sidebar.other')
+                    : translate('sidebar.views.inbox')
+                }
               >
                 {groups.inbox.map((conversation) => (
                   <ConversationRow
@@ -621,7 +642,7 @@ export function MessagesConversationSidebar({
       {pagination.totalPages > 1 ? (
         <div className="flex shrink-0 items-center border-t border-border px-3 py-2">
           <Button
-            ariaLabel="Previous conversations page"
+            ariaLabel={translate('sidebar.previousPage')}
             icon={<ChevronLeft className="size-4" />}
             isDisabled={!pagination.hasPrevious}
             onClick={onPreviousPage}
@@ -636,7 +657,7 @@ export function MessagesConversationSidebar({
             })}
           </span>
           <Button
-            ariaLabel="Next conversations page"
+            ariaLabel={translate('sidebar.nextPage')}
             icon={<ChevronRight className="size-4" />}
             isDisabled={!pagination.hasNext}
             onClick={onNextPage}

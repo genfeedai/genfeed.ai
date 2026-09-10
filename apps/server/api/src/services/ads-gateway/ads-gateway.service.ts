@@ -136,7 +136,7 @@ export class AdsGatewayService {
     if (platforms.length === 0) {
       return {
         metric: 'none',
-        platform: 'meta',
+        platform: AdsPlatform.META,
         reason: 'No platform data available',
       };
     }

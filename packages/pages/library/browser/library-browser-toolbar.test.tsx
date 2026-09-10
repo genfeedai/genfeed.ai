@@ -4,6 +4,11 @@ import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LibraryBrowserToolbar from './library-browser-toolbar';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const { useFeatureFlag } = vi.hoisted(() => ({
   useFeatureFlag: vi.fn(() => true),
 }));
