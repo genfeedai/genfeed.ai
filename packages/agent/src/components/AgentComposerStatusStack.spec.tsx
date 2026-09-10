@@ -312,6 +312,30 @@ describe('AgentComposerStatusStack', () => {
     expect(screen.queryByText('Capture Knowledge')).not.toBeInTheDocument();
   });
 
+  it('uses the model plan steps while they are awaiting approval', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        latestProposedPlan={{
+          createdAt: '2026-07-13T00:00:00.000Z',
+          id: 'plan-1',
+          status: 'awaiting_approval',
+          steps: [
+            { status: 'pending', step: 'Read the brand kit' },
+            { status: 'pending', step: 'Draft the voice' },
+          ],
+          updatedAt: '2026-07-13T00:00:00.000Z',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Read the brand kit')).toBeInTheDocument();
+    expect(screen.getByText('Draft the voice')).toBeInTheDocument();
+    expect(screen.queryByText('Creating audio')).not.toBeInTheDocument();
+  });
+
   it('shows an approved plan when the run is not a generation pipeline', () => {
     render(
       <AgentComposerStatusStack

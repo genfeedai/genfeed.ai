@@ -210,7 +210,7 @@ function buildPlanTasks(
   plan: AgentProposedPlan | null,
   isRunActive: boolean,
 ): ComposerTask[] {
-  if (!isRunActive || plan?.status !== 'approved') {
+  if (!isRunActive || !plan || plan.status === 'superseded') {
     return [];
   }
 
@@ -231,8 +231,12 @@ function buildPlanTasks(
 
   // Approved plans may arrive with every step still marked pending. While the
   // run is active, identify the next pending step as current without claiming
-  // that any unreported step has completed.
-  if (!tasks.some((task) => task.status === 'active')) {
+  // that any unreported step has completed. A plan still awaiting approval is
+  // not executing, so every step stays pending until the user approves it.
+  if (
+    plan.status === 'approved' &&
+    !tasks.some((task) => task.status === 'active')
+  ) {
     const nextPending = tasks.find((task) => task.status === 'pending');
     if (nextPending) {
       nextPending.status = 'active';
