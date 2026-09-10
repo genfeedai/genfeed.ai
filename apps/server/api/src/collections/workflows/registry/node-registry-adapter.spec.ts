@@ -53,17 +53,11 @@ describe('node-registry-adapter', () => {
 
     expect(definition?.category).toBe('ai');
     expect(definition?.type).toBe('talkingHeadScript');
-    expect(Object.keys(definition?.inputs ?? {})).toEqual(
-      expect.arrayContaining([
-        'productContext',
-        'brandVoice',
-        'durationSeconds',
-        'clipCount',
-        'wordsPerSecond',
-      ]),
-    );
-    expect(Object.keys(definition?.outputs ?? {})).toEqual(
-      expect.arrayContaining(['script', 'segments', 'fullText']),
-    );
+    expect(Object.keys(definition?.inputs ?? {})).toEqual([
+      'brand',
+      'brandVoice',
+      'productContext',
+    ]);
+    expect(Object.keys(definition?.outputs ?? {})).toEqual(['output']);
   });
 });
