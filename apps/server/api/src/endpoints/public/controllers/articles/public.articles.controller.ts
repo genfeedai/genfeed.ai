@@ -11,6 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -48,6 +49,7 @@ export class PublicArticlesController {
   async findPublicArticles(
     @Req() request: Request,
     @Query() query: ArticlesQueryDto,
+    @Query('brand') brand?: string,
   ): Promise<JsonApiCollectionResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { query });
@@ -90,9 +92,18 @@ export class PublicArticlesController {
     // scalar form outright, which used to 500 every `?tag=` request.
     Object.assign(matchQuery, ArticleFilterUtil.buildTagFilter(tag));
 
-    // Filter by brand if provided
-    if (brandId) {
-      matchQuery.brandId = brandId;
+    // Brand settings send `?brand=<id>`. ValidationPipe whitelist-strips that
+    // alias off ArticlesQueryDto (which declares `brandId`), so bind it the
+    // same way public videos/images do. Without this, every brand sees the
+    // whole public corpus.
+    const scopedBrandId =
+      brand && isEntityId(brand)
+        ? brand
+        : brandId && isEntityId(brandId)
+          ? brandId
+          : undefined;
+    if (scopedBrandId) {
+      matchQuery.brandId = scopedBrandId;
     }
 
     const aggregate = {

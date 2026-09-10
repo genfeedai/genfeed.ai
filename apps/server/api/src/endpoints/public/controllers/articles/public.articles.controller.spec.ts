@@ -253,6 +253,45 @@ describe('PublicArticlesController', () => {
       const queryArg = call[0] as { where: Record<string, unknown> };
       expect(queryArg.where).not.toHaveProperty('tags');
     });
+
+    it('scopes the list to ?brand= so a brand page cannot see the public corpus', async () => {
+      const request = {} as Request;
+      const brandId = testId('brand');
+      const query = buildArticlesQuery();
+
+      mockArticlesService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 0,
+      });
+
+      await controller.findPublicArticles(request, query, brandId);
+
+      const call = mockArticlesService.findAll.mock.calls[0];
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where.brandId).toBe(brandId);
+    });
+
+    it('does not apply a brand filter when the alias is not an entity id', async () => {
+      const request = {} as Request;
+      const query = buildArticlesQuery();
+
+      mockArticlesService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 10,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 0,
+      });
+
+      await controller.findPublicArticles(request, query, 'not-an-id');
+
+      const call = mockArticlesService.findAll.mock.calls[0];
+      const queryArg = call[0] as { where: Record<string, unknown> };
+      expect(queryArg.where).not.toHaveProperty('brandId');
+    });
   });
 
   describe('findPublicArticleBySlug', () => {
