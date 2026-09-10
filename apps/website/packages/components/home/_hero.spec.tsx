@@ -76,15 +76,18 @@ describe('HomeHero', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    const heading = screen.getByRole('heading', {
+      level: 1,
+      name: /ask for content\. get it published\./i,
+    });
+    expect(heading).toBeInTheDocument();
+    expect(heading.querySelector('br')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: /ask for content\. get it published\./i,
-      }),
+      screen.getByText(
+        /genfeed is an ai agent that makes on-brand videos, images, ads and posts, then schedules them to 20\+ channels/i,
+      ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/genfeed is an ai agent that makes your video/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/— on brand —/)).not.toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
     ).toEqual(['Start for $0', 'See what it does']);

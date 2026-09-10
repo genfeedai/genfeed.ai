@@ -36,14 +36,16 @@ export default function HomeHero(): React.ReactElement {
           as="h1"
           className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          Ask for content. Get it published.
+          Ask for content.
+          <br />
+          Get it published.
         </Heading>
         <Text
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Genfeed is an AI agent that makes your video, images, ads and posts
-          &mdash; on brand &mdash; then schedules them to 20+ channels.
+          Genfeed is an AI agent that makes on-brand videos, images, ads and
+          posts, then schedules them to 20+ channels.
         </Text>
 
         <div
