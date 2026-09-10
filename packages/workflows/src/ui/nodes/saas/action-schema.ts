@@ -104,6 +104,25 @@ const RECOMMENDATION_OUTPUT_FIELDS = new Set([
   'worstTopics',
 ]);
 
+const CONTENT_LOOP_INPUT_FIELDS = new Set([
+  'caption',
+  'keywords',
+  'platform',
+  'schedule',
+]);
+
+const CONTENT_LOOP_OUTPUT_FIELDS = new Set([
+  'brandId',
+  'text',
+  'topic',
+  'voice',
+]);
+
+const PRESERVED_OUTPUT_FIELDS = new Set([
+  ...RECOMMENDATION_OUTPUT_FIELDS,
+  ...CONTENT_LOOP_OUTPUT_FIELDS,
+]);
+
 const PIPELINE_FIELDS = new Set([
   'avoid',
   'brand',
@@ -216,7 +235,9 @@ function schemaToHandles(
   }
 
   const handles = entries
-    .filter(([field]) => !CONFIG_HANDLE_SKIP.has(field))
+    .filter(
+      ([field]) => direction === 'output' || !CONFIG_HANDLE_SKIP.has(field),
+    )
     .map(([field, property]) => toHandle(field, property, direction, required));
 
   if (direction === 'input') {
@@ -224,6 +245,7 @@ function schemaToHandles(
       (handle) =>
         MEDIA_HANDLE_TYPES.has(handle.type) ||
         PIPELINE_FIELDS.has(handle.id) ||
+        CONTENT_LOOP_INPUT_FIELDS.has(handle.id) ||
         handle.type === 'brand',
     );
     if (preferred.length > 0) {
@@ -241,15 +263,12 @@ function schemaToHandles(
   }
 
   const media = handles.filter((handle) => MEDIA_HANDLE_TYPES.has(handle.type));
-  if (media.length > 0) {
-    return media;
-  }
-
-  const recommendation = handles.filter((handle) =>
-    RECOMMENDATION_OUTPUT_FIELDS.has(handle.id),
+  const preserved = handles.filter((handle) =>
+    PRESERVED_OUTPUT_FIELDS.has(handle.id),
   );
-  if (recommendation.length > 0) {
-    return recommendation;
+  if (media.length > 0 || preserved.length > 0) {
+    const keep = new Set([...media, ...preserved].map((handle) => handle.id));
+    return handles.filter((handle) => keep.has(handle.id));
   }
 
   const pipeline = handles.filter((handle) => PIPELINE_FIELDS.has(handle.id));
