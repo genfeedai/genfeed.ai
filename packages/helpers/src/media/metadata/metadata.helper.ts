@@ -7,8 +7,11 @@ export const metadata = {
     // domain) where the file does not exist.
     default: cdnAsset('/assets/cards/default.jpg'),
   },
+  // Says what Genfeed is before it says what it has: "AI content studio" is a
+  // category every competitor also claims, and it names no mechanism, output
+  // or destination to a reader who arrived from a link.
   description:
-    'The AI content studio. Generate on-brand images, video, ads, voice, and articles, then review, schedule, and publish everywhere from one workspace.',
+    'Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.',
   keywords: [
     'genfeed',
     'genfeed.ai',

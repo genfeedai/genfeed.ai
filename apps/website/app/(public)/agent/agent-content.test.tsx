@@ -60,11 +60,11 @@ describe('AgentContent', () => {
     expect(codexCommand).toHaveTextContent('https://mcp.genfeed.ai/mcp');
   });
 
-  it('sends both hero actions to the sign-up app and the docs', () => {
+  it('sends the hero to sign-up and the secondary action to developers', () => {
     render(<AgentContent />);
 
     const [heroKeyLink] = screen.getAllByRole('link', {
-      name: /get an api key/i,
+      name: /start for \$0/i,
     });
 
     expect(heroKeyLink).toHaveAttribute(
@@ -72,8 +72,8 @@ describe('AgentContent', () => {
       'https://app.genfeed.ai/sign-up',
     );
     expect(
-      screen.getByRole('link', { name: /read the docs/i }),
-    ).toHaveAttribute('href', 'https://docs.genfeed.ai');
+      screen.getByRole('link', { name: /for developers/i }),
+    ).toHaveAttribute('href', '/developers');
   });
 
   it('tracks hero and closing CTAs under separate page-scoped names', () => {
@@ -82,7 +82,7 @@ describe('AgentContent', () => {
     render(<AgentContent />);
 
     const [heroKeyLink] = screen.getAllByRole('link', {
-      name: /get an api key/i,
+      name: /start for \$0/i,
     });
     fireEvent.click(heroKeyLink);
     fireEvent.click(screen.getByRole('link', { name: /mcp setup guide/i }));

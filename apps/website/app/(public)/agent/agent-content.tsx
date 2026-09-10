@@ -1,5 +1,6 @@
 'use client';
 
+import { AGENT_PROMPTS } from '@data/agent-prompts.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -9,6 +10,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
 import { Blocks, BookOpen, Plug, Terminal } from 'lucide-react';
+import Link from 'next/link';
 
 const DOCS_URL = 'https://docs.genfeed.ai';
 const MCP_DOCS_URL = 'https://docs.genfeed.ai/api-reference/mcp';
@@ -77,29 +79,29 @@ const CAPABILITIES = [
 
 const HERO_VISUAL = (
   <EditorialPoster
-    detail="One API key connects the terminal, your coding agent, and the Genfeed workspace behind them."
+    detail="Every output lands in review before it publishes. Nothing goes out that you have not seen."
     eyebrow="Genfeed Agent"
-    footer={<span>Streamable HTTP at mcp.genfeed.ai/mcp</span>}
+    footer={<span>Publishes to 20+ channels</span>}
     items={[
       {
-        label: 'Terminal',
-        value: 'genfeed chat — the agent shell, installed globally.',
+        label: 'You say',
+        value: '"Make me a TikTok slideshow about this product."',
       },
       {
-        label: 'Your agent',
-        value: 'Claude Code, Codex, or any MCP client over Streamable HTTP.',
+        label: 'It makes',
+        value: 'Six slides, hook first, caption and CTA written.',
       },
       {
-        label: 'Skills',
-        value: 'The product skill catalog, installed into the agent you use.',
+        label: 'It checks',
+        value: 'Your brand, your voice, the right ratio per channel.',
       },
       {
-        label: 'Auth',
-        value: 'One gf_ key, scoped and rotatable from the CLI.',
+        label: 'You approve',
+        value: 'Then it schedules and posts on its own.',
       },
     ]}
-    subtitle="Run Genfeed from where you already work"
-    title="The agent, on your machine."
+    subtitle="Say what you want in a sentence"
+    title="It makes the content. You approve it."
   />
 );
 
@@ -111,7 +113,7 @@ export default function AgentContent() {
     <div ref={containerRef}>
       <PageLayout
         compact
-        description="Run Genfeed from your terminal, or connect it to the agent you already use."
+        description="Tell it what you want. It makes the content, keeps it on brand, and schedules it — and shows you everything before it goes out."
         heroActions={
           <>
             <ButtonTracked
@@ -121,7 +123,7 @@ export default function AgentContent() {
               trackingName="agent_hero_click"
             >
               <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                Get an API key
+                Start for $0
               </a>
             </ButtonTracked>
             <ButtonTracked
@@ -131,15 +133,72 @@ export default function AgentContent() {
               trackingName="agent_hero_click"
               variant={ButtonVariant.SECONDARY}
             >
-              <a href={DOCS_URL} rel="noopener noreferrer" target="_blank">
-                Read the docs
-              </a>
+              <Link href="/developers">For developers</Link>
             </ButtonTracked>
           </>
         }
         heroVisual={HERO_VISUAL}
         title="Genfeed Agent"
       >
+        {/*
+          What people actually ask for, before any of the connection detail.
+          A reader arriving from an article wants to know what the agent will
+          do for them; the CLI and MCP material below answers a different
+          question and used to be the only thing on this page.
+        */}
+        <section className="gsap-section max-w-6xl mx-auto pb-20 px-6">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+            What people ask it for
+          </Heading>
+          <Text as="p" className="text-surface/65 mb-8">
+            Six requests, and what lands in your workspace.
+          </Text>
+          <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
+            {AGENT_PROMPTS.map((prompt) => (
+              <Link
+                className="flex flex-col gap-3 border border-edge/[0.08] bg-fill/5 p-6 transition-colors hover:border-edge/20 hover:bg-fill/10"
+                href={prompt.href}
+                key={prompt.ask}
+              >
+                <Heading as="h3" className="font-semibold text-surface">
+                  &ldquo;{prompt.ask}&rdquo;
+                </Heading>
+                <Text className="text-sm text-surface/65">{prompt.result}</Text>
+                <Text className="mt-auto text-[13px] font-semibold text-surface/50">
+                  {prompt.hrefLabel}
+                </Text>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/*
+          Everything below is the developer surface. It stays on this page
+          because it is shipped and documented, but it is banded off so the
+          reader who does not want a terminal knows to stop here.
+        */}
+        <section className="gsap-section max-w-6xl mx-auto border-t border-edge/[0.08] pb-10 px-6 pt-16">
+          <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
+            Connect it to your own tools
+          </Heading>
+          <Text as="p" className="text-surface/65">
+            The rest of this page is for developers. There is a fuller tour on{' '}
+            <Link className="link" href="/developers">
+              the developers page
+            </Link>
+            , and the full reference in{' '}
+            <a
+              className="link"
+              href={DOCS_URL}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              the docs
+            </a>
+            .
+          </Text>
+        </section>
+
         {/* Three surfaces */}
         <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
           <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-3">

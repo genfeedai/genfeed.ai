@@ -18,6 +18,11 @@ interface ArticleCoverProps {
  * The article hero. Uploaded artwork wins; otherwise the cover is generated
  * from the slug so every article opens on an image instead of straight prose.
  *
+ * Sizing is an aspect ratio, never a fixed height: covers are authored 16:9
+ * (1280x720), and a fixed height turns into whatever ratio the column happens
+ * to be — at desktop width `h-80` was ~5:1, so `object-cover` discarded about
+ * two thirds of the artwork.
+ *
  * `gen-grain` goes on the container, never on an overlay: it declares
  * `position: relative`, which silently beats a `absolute inset-0` utility and
  * collapses the overlay to zero height. The vignette is drawn inline for the
@@ -25,7 +30,7 @@ interface ArticleCoverProps {
  */
 export default function ArticleCover({
   category,
-  className = 'mb-6 h-48 md:mb-8 md:h-64 lg:h-80',
+  className = 'mb-6 aspect-[16/9] md:mb-8',
   coverImageUrl,
   isCompact = false,
   label,

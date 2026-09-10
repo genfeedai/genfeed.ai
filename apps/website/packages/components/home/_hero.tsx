@@ -36,14 +36,14 @@ export default function HomeHero(): React.ReactElement {
           as="h1"
           className="animate-gen-stagger-in mx-auto max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface [--gen-stagger-delay:90ms] sm:text-6xl md:text-7xl lg:text-[5.5rem]"
         >
-          Your brand. Everywhere.
+          Ask for content. Get it published.
         </Heading>
         <Text
           as="p"
           className="animate-gen-stagger-in mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 [--gen-stagger-delay:180ms] md:text-lg"
         >
-          Brief it once: Genfeed makes the video, images, ads and posts, on
-          brand and ready to publish.
+          Genfeed is an AI agent that makes your video, images, ads and posts
+          &mdash; on brand &mdash; then schedules them to 20+ channels.
         </Text>
 
         <div
@@ -59,7 +59,7 @@ export default function HomeHero(): React.ReactElement {
               trackingName="home_hero_click"
             >
               <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                Start creating
+                Start for $0
               </a>
             </ButtonTracked>
 
@@ -71,7 +71,7 @@ export default function HomeHero(): React.ReactElement {
               trackingName="home_hero_click"
               variant={ButtonVariant.SECONDARY}
             >
-              <Link href={AGENT_HREF}>Use the Agent</Link>
+              <Link href={AGENT_HREF}>See what it does</Link>
             </ButtonTracked>
           </div>
           <Text as="p" className="mt-5 text-center text-[13px] text-surface/72">
