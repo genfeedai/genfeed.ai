@@ -96,6 +96,14 @@ const CONFIG_HANDLE_SKIP = new Set([
   'topics',
 ]);
 
+const RECOMMENDATION_OUTPUT_FIELDS = new Set([
+  'bestPlatform',
+  'bestPostingTimes',
+  'topHooks',
+  'topTopics',
+  'worstTopics',
+]);
+
 const PIPELINE_FIELDS = new Set([
   'avoid',
   'brand',
@@ -235,6 +243,13 @@ function schemaToHandles(
   const media = handles.filter((handle) => MEDIA_HANDLE_TYPES.has(handle.type));
   if (media.length > 0) {
     return media;
+  }
+
+  const recommendation = handles.filter((handle) =>
+    RECOMMENDATION_OUTPUT_FIELDS.has(handle.id),
+  );
+  if (recommendation.length > 0) {
+    return recommendation;
   }
 
   const pipeline = handles.filter((handle) => PIPELINE_FIELDS.has(handle.id));
