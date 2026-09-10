@@ -102,6 +102,12 @@ describe('untranslated-string fix guidance', () => {
   it('keeps standalone terminal JSX outside the Next.js catalog ratchet', () => {
     expect(UNTRANSLATED_STRING_IGNORE_GLOBS).toContain('packages/cli/**');
   });
+
+  it('keeps public website chrome outside the product app catalog ratchet', () => {
+    expect(UNTRANSLATED_STRING_IGNORE_GLOBS).toContain(
+      'packages/ui/src/components/shell/topbars/WebsiteTopbar.tsx',
+    );
+  });
 });
 
 describe('untranslated-string baseline', () => {
