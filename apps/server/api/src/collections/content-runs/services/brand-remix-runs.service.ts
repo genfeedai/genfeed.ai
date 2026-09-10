@@ -10,6 +10,8 @@ import { BrandRemixRunPlanningService } from '@api/collections/content-runs/serv
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
+import type { BrandRemixRunRecord } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
@@ -39,12 +41,14 @@ export class BrandRemixRunsService {
     private readonly execution: BrandRemixRunExecutionService,
     private readonly review: BrandRemixRunReviewService,
     private readonly paidDraft: BrandRemixRunPaidDraftService,
+    private readonly sourceMedia: BrandRemixSourceMediaService,
   ) {}
 
   async create(
     organizationId: string,
     brandId: string,
     body: unknown,
+    userId?: string,
   ): Promise<BrandRemixRunView> {
     const input = parseBrandRemixPayload(
       createBrandRemixRunSchema,
@@ -68,6 +72,14 @@ export class BrandRemixRunsService {
       brandId,
       input.source,
     );
+    const ingestedSourceMedia = userId
+      ? await this.sourceMedia.ingest({
+          brandId,
+          organizationId,
+          source: resolvedSource,
+          userId,
+        })
+      : { status: 'skipped' as const };
     const reusable = input.edits
       ? null
       : await this.persistence.findReusablePrefilledRun(
@@ -75,14 +87,25 @@ export class BrandRemixRunsService {
           brandId,
           input.source,
         );
-    if (reusable) {
+    if (
+      reusable &&
+      (ingestedSourceMedia.status !== 'saved' ||
+        this.persistedConfigHasSourceAsset(
+          reusable,
+          ingestedSourceMedia.assetId,
+        ))
+    ) {
       return projectBrandRemixRun(
         reusable,
         brandContext,
         this.persistence.parseConfig(reusable.config, reusable.id),
       );
     }
-    const defaults = this.planning.defaultDraft(brandContext, resolvedSource);
+    const defaults = this.planning.defaultDraft(
+      brandContext,
+      resolvedSource,
+      ingestedSourceMedia,
+    );
     const draft = await this.planning.resolveDraft(
       organizationId,
       brandId,
@@ -90,7 +113,11 @@ export class BrandRemixRunsService {
       defaults,
       input.edits,
     );
-    const readiness = this.planning.buildReadiness(brandContext, draft);
+    const readiness = this.planning.buildReadiness(
+      brandContext,
+      draft,
+      ingestedSourceMedia,
+    );
     const config = brandRemixRunConfigSchema.parse({
       contract: BRAND_REMIX_RUN_CONTRACT,
       draft,
@@ -230,5 +257,15 @@ export class BrandRemixRunsService {
       'paid draft',
     );
     return this.paidDraft.prepare(organizationId, runId, userId, input);
+  }
+
+  private persistedConfigHasSourceAsset(
+    run: BrandRemixRunRecord,
+    assetId: string,
+  ): boolean {
+    const config = this.persistence.parseConfig(run.config, run.id);
+    return config.draft.references.some(
+      (reference) => reference.assetId === assetId,
+    );
   }
 }

@@ -14,6 +14,7 @@ import {
   BRAND_REMIX_RUNTIME,
   systemBrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
@@ -33,6 +34,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { Module } from '@nestjs/common';
@@ -53,6 +55,7 @@ import { Module } from '@nestjs/common';
     ContentIntelligenceModule,
     CreditsModule,
     ContentOptimizationModule,
+    FilesClientModule,
     ImagesModule,
     MetaAdsModule,
     ModelsModule,
@@ -65,6 +68,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     BrandRemixSourceResolverService,
+    BrandRemixSourceMediaService,
     BrandRemixRunPlanningService,
     BrandRemixRunPersistenceService,
     BrandRemixRunStateService,

@@ -101,6 +101,34 @@ export function remixPublicUrl(value: unknown): string | undefined {
   }
 }
 
+/** Full download URL, including signed query params. Hash is dropped. */
+export function remixMediaUrl(value: unknown): string | undefined {
+  const text = remixText(value);
+  if (!text) return undefined;
+  try {
+    const url = new URL(text);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return undefined;
+    }
+    url.hash = '';
+    return url.href;
+  } catch {
+    return undefined;
+  }
+}
+
+export function remixMediaUrls(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : [value];
+  return [
+    ...new Set(
+      values.flatMap((entry) => {
+        const url = remixMediaUrl(entry);
+        return url ? [url] : [];
+      }),
+    ),
+  ];
+}
+
 export function remixIso(value: Date | string): string {
   return value instanceof Date
     ? value.toISOString()

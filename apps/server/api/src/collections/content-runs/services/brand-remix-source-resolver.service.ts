@@ -1,6 +1,8 @@
 import {
   remixCredentialPlatform,
   remixIsVideoMedia,
+  remixMediaUrl,
+  remixMediaUrls,
   remixNumericRecord,
   remixPatternFromText,
   remixPublicUrl,
@@ -11,7 +13,10 @@ import {
   remixText,
   remixTruncate,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
-import type { ResolvedSource } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import type {
+  ResolvedSource,
+  ResolvedSourceMedia,
+} from '@api/collections/content-runs/services/brand-remix-runs.types';
 import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
@@ -119,6 +124,8 @@ export class BrandRemixSourceResolverService {
     const platform = remixSourcePlatform(post.platform);
     const title = remixTruncate(remixText(post.text) ?? 'Source post');
     const hasVideo = remixIsVideoMedia(post.contentType, post.mediaUrls);
+    const mediaUrls = remixMediaUrls(post.mediaUrls);
+    const thumbnailUrl = remixMediaUrl(post.thumbnailUrl);
     return {
       recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
@@ -133,6 +140,10 @@ export class BrandRemixSourceResolverService {
         sourceId: post.id,
         title,
       },
+      sourceMedia: this.sourceMedia({
+        imageUrls: hasVideo ? (thumbnailUrl ? [thumbnailUrl] : []) : mediaUrls,
+        videoUrls: hasVideo ? mediaUrls : [],
+      }),
     };
   }
 
@@ -147,7 +158,7 @@ export class BrandRemixSourceResolverService {
         description: true,
         id: true,
         ingredients: {
-          select: { category: true },
+          select: { category: true, id: true, status: true },
           where: { isDeleted: false },
         },
         platform: true,
@@ -165,6 +176,19 @@ export class BrandRemixSourceResolverService {
         ingredient.category === IngredientCategory.AVATAR,
     );
     const platform = remixSourcePlatform(post.platform);
+    const readyIngredients = post.ingredients.filter((ingredient) =>
+      ['GENERATED', 'UPLOADED', 'VALIDATED'].includes(ingredient.status),
+    );
+    const videoIds = readyIngredients
+      .filter(
+        (ingredient) =>
+          ingredient.category === IngredientCategory.VIDEO ||
+          ingredient.category === IngredientCategory.AVATAR,
+      )
+      .map((ingredient) => ingredient.id);
+    const imageIds = readyIngredients
+      .filter((ingredient) => ingredient.category === IngredientCategory.IMAGE)
+      .map((ingredient) => ingredient.id);
     return {
       recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
@@ -178,6 +202,9 @@ export class BrandRemixSourceResolverService {
         sourceId: post.id,
         title,
       },
+      sourceMedia: this.sourceMedia({
+        existingAssetIds: [...videoIds, ...imageIds],
+      }),
     };
   }
 
@@ -262,6 +289,10 @@ export class BrandRemixSourceResolverService {
         sourceId: reference.id,
         title,
       },
+      sourceMedia: this.sourceMedia({
+        imageUrls: remixMediaUrls(data.mediaUrls),
+        videoUrls: remixMediaUrls(data.videoUrls),
+      }),
     };
   }
 
@@ -426,6 +457,26 @@ export class BrandRemixSourceResolverService {
         sourceId,
         title,
       },
+      sourceMedia: this.sourceMedia({
+        imageUrls: remixMediaUrls([
+          ...(detail.imageUrls ?? []),
+          ...(detail.creative?.imageUrls ?? []),
+        ]),
+        videoUrls: remixMediaUrls([
+          ...(detail.videoUrls ?? []),
+          ...(detail.creative?.videoUrls ?? []),
+        ]),
+      }),
+    };
+  }
+
+  private sourceMedia(
+    media: Partial<ResolvedSourceMedia>,
+  ): ResolvedSourceMedia {
+    return {
+      existingAssetIds: media.existingAssetIds ?? [],
+      imageUrls: media.imageUrls ?? [],
+      videoUrls: media.videoUrls ?? [],
     };
   }
 }

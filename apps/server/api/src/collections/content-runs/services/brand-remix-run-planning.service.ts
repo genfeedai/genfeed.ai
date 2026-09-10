@@ -15,6 +15,7 @@ import {
   type ResolvedSource,
   SUPPORTED_ASPECT_RATIOS,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import type { RemixSourceMediaIngestResult } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
@@ -116,6 +117,7 @@ export class BrandRemixRunPlanningService {
   defaultDraft(
     context: ResolvedBrandContext,
     source: ResolvedSource,
+    sourceMedia?: RemixSourceMediaIngestResult,
   ): BrandRemixDraft {
     const isPaidSource =
       source.snapshot.selector.kind === 'connected_ad' ||
@@ -147,7 +149,19 @@ export class BrandRemixRunPlanningService {
     const hookPattern =
       source.snapshot.pattern.hook?.replace(/[.!?]+$/, '') ??
       'performance-led hook';
-    const defaultReferences = this.mergeDefaultReferences([], context.brandKit);
+    const sourceReference =
+      sourceMedia?.status === 'saved'
+        ? [
+            {
+              assetId: sourceMedia.assetId,
+              role: this.sourceReferenceRole(outputKind, sourceMedia.category),
+            },
+          ]
+        : [];
+    const defaultReferences = this.mergeDefaultReferences(
+      sourceReference,
+      context.brandKit,
+    );
     const objective =
       outputKind === 'avatar'
         ? this.defaultAvatarSpeech(context)
@@ -227,6 +241,7 @@ export class BrandRemixRunPlanningService {
   buildReadiness(
     context: ResolvedBrandContext,
     draft: BrandRemixDraft,
+    sourceMedia?: RemixSourceMediaIngestResult,
   ): BrandRemixReadiness {
     const issues: BrandRemixReadiness['issues'] = [];
     const hasStrictFidelityReference = draft.references.some((reference) =>
@@ -261,6 +276,15 @@ export class BrandRemixRunPlanningService {
         field: 'output',
         message: `Aspect ratio ${draft.output.aspectRatio} is not supported by the remix generation path.`,
         severity: 'blocked',
+      });
+    }
+    if (sourceMedia?.status === 'unavailable') {
+      issues.push({
+        code: 'source_media_unavailable',
+        field: 'references',
+        message:
+          'The source creative could not be copied onto Genfeed. Remix can still run, but the original pixels may vanish.',
+        severity: 'degraded',
       });
     }
     this.appendDurationAndIdentityIssues(draft, issues);
@@ -509,6 +533,19 @@ export class BrandRemixRunPlanningService {
       ...(duration !== undefined ? { durationSeconds: duration } : {}),
       kind,
     };
+  }
+
+  private sourceReferenceRole(
+    outputKind: BrandRemixDraft['output']['kind'],
+    category: IngredientCategory.IMAGE | IngredientCategory.VIDEO,
+  ): BrandRemixDraft['references'][number]['role'] {
+    if (
+      category === IngredientCategory.VIDEO &&
+      (outputKind === 'video' || outputKind === 'avatar')
+    ) {
+      return 'reference_video';
+    }
+    return 'subject';
   }
 
   private mergeDefaultReferences(
