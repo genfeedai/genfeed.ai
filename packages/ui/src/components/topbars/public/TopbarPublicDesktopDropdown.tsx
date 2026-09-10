@@ -3,6 +3,7 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Link from 'next/link';
 import type { ComponentType, SVGProps } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface DropdownItem {
@@ -42,8 +43,13 @@ type TopbarPublicDesktopDropdownProps = {
   onItemClick: () => void;
 };
 
-/** Height of the public top bar (`h-20`), which the mega panel sits directly under. */
-const HEADER_HEIGHT_PX = 80;
+/** Keep in lockstep with the Product/Use Cases/Solutions chevron. */
+export const TOPBAR_MENU_MOTION_MS = 300;
+
+type RenderedPanel = {
+  dropdown: CurrentDropdown;
+  footer?: TopbarPublicMegaMenuFooter;
+};
 
 function isLinkActive(pathname: string | null, href: string): boolean {
   if (!pathname) {
@@ -83,11 +89,31 @@ export default function TopbarPublicDesktopDropdown({
   onMouseLeaveDropdown,
   onItemClick,
 }: TopbarPublicDesktopDropdownProps): React.ReactElement | null {
-  if (!mounted || !openDropdown || !currentDropdown) {
+  const isExpanded = Boolean(openDropdown && currentDropdown);
+  const [lastPanel, setLastPanel] = useState<RenderedPanel | undefined>();
+
+  useEffect(() => {
+    if (currentDropdown) {
+      setLastPanel({ dropdown: currentDropdown, footer: megaMenuFooter });
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLastPanel(undefined);
+    }, TOPBAR_MENU_MOTION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentDropdown, megaMenuFooter]);
+
+  const panel: RenderedPanel | undefined = currentDropdown
+    ? { dropdown: currentDropdown, footer: megaMenuFooter }
+    : lastPanel;
+
+  if (!mounted || !panel) {
     return null;
   }
 
-  const hasGroups = currentDropdown.items.some((item) => Boolean(item.group));
+  const hasGroups = panel.dropdown.items.some((item) => Boolean(item.group));
 
   /**
    * A menu row, not a card.
@@ -132,63 +158,73 @@ export default function TopbarPublicDesktopDropdown({
     );
   }
 
+  const groupedBody = (
+    <div className="container mx-auto grid grid-cols-3 gap-x-10 px-6 py-8">
+      {groupItems(panel.dropdown.items).map(([groupLabel, items]) => (
+        // `items-start` on the column, not `stretch`: groups hold
+        // different numbers of links, and equal-height panels left the
+        // shortest column as a tall empty box.
+        <div className="min-w-0 self-start" key={groupLabel}>
+          {groupLabel && (
+            <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/45">
+              {groupLabel}
+            </div>
+          )}
+          <ul className="flex flex-col gap-0.5">{items.map(renderItem)}</ul>
+        </div>
+      ))}
+      {panel.footer ? (
+        <div className="col-span-3 mt-7 flex items-center justify-between border-t border-edge/10 px-3 pt-5">
+          <p className="text-xs text-foreground/55">
+            {panel.footer.description}
+          </p>
+          <Link
+            className="text-xs font-semibold text-foreground underline underline-offset-4"
+            href={panel.footer.href}
+            onClick={onItemClick}
+          >
+            {panel.footer.label}
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (hasGroups) {
+    return (
+      <div
+        aria-hidden={!isExpanded}
+        className={cn(
+          'hidden lg:grid transition-[grid-template-rows,opacity] duration-300 ease-out starting:grid-rows-[0fr] starting:opacity-0',
+          isExpanded
+            ? 'grid-rows-[1fr] opacity-100'
+            : 'pointer-events-none grid-rows-[0fr] opacity-0',
+        )}
+        {...(!isExpanded ? { inert: true } : {})}
+        onMouseEnter={onMouseEnterDropdown}
+        onMouseLeave={onMouseLeaveDropdown}
+      >
+        <div className="min-h-0 overflow-hidden">{groupedBody}</div>
+      </div>
+    );
+  }
+
   return createPortal(
     <div
       className="fixed hidden lg:block"
       style={{
         isolation: 'isolate',
-        left: hasGroups ? 0 : dropdownPosition.left,
-        paddingTop: hasGroups ? 0 : 8,
-        // The mega panel hangs off the bar itself, so it tracks the bar's real
-        // height rather than a copy of it that drifts the day the bar changes.
-        top: hasGroups ? HEADER_HEIGHT_PX : dropdownPosition.top - 8,
+        left: dropdownPosition.left,
+        paddingTop: 8,
+        top: dropdownPosition.top - 8,
         zIndex: 50,
       }}
       onMouseEnter={onMouseEnterDropdown}
       onMouseLeave={onMouseLeaveDropdown}
     >
-      {hasGroups ? (
-        // The same glass as the bar it hangs from, so the two read as one
-        // surface rather than a solid panel bolted under a translucent strip.
-        // One hairline at the bottom; nothing inside is raised again.
-        <div className="w-screen border-b border-edge/10 bg-background/90 shadow-dropdown backdrop-blur-2xl">
-          <div className="container mx-auto grid grid-cols-3 gap-x-10 px-6 py-8">
-            {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
-              // `items-start` on the column, not `stretch`: groups hold
-              // different numbers of links, and equal-height panels left the
-              // shortest column as a tall empty box.
-              <div className="min-w-0 self-start" key={groupLabel}>
-                {groupLabel && (
-                  <div className="px-3 pb-2 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/45">
-                    {groupLabel}
-                  </div>
-                )}
-                <ul className="flex flex-col gap-0.5">
-                  {items.map(renderItem)}
-                </ul>
-              </div>
-            ))}
-            {megaMenuFooter ? (
-              <div className="col-span-3 mt-7 flex items-center justify-between border-t border-edge/10 px-3 pt-5">
-                <p className="text-xs text-foreground/55">
-                  {megaMenuFooter.description}
-                </p>
-                <Link
-                  className="text-xs font-semibold text-foreground underline underline-offset-4"
-                  href={megaMenuFooter.href}
-                  onClick={onItemClick}
-                >
-                  {megaMenuFooter.label}
-                </Link>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <ul className="w-72 bg-popover p-3 shadow-dropdown">
-          {currentDropdown.items.map(renderItem)}
-        </ul>
-      )}
+      <ul className="w-72 bg-popover p-3 shadow-dropdown">
+        {panel.dropdown.items.map(renderItem)}
+      </ul>
     </div>,
     document.body,
   );
