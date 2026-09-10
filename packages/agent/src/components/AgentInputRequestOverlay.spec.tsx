@@ -68,6 +68,19 @@ function makeRequest(
 }
 
 describe('AgentInputRequestOverlay', () => {
+  it('keeps pick-one cards in the conversation column for the inline variant', () => {
+    const { container } = render(
+      <AgentInputRequestOverlay
+        onSubmit={vi.fn()}
+        request={makeRequest()}
+        variant="inline"
+      />,
+    );
+
+    expect(container.firstChild).not.toHaveClass('absolute');
+    expect(screen.getByText('Choose one')).toBeInTheDocument();
+  });
+
   it('submits the selected option immediately', () => {
     const onSubmit = vi.fn();
 
@@ -75,8 +88,10 @@ describe('AgentInputRequestOverlay', () => {
       <AgentInputRequestOverlay onSubmit={onSubmit} request={makeRequest()} />,
     );
 
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
 
+    expect(screen.getByText('Recommended')).toBeInTheDocument();
+    expect(screen.queryByText('Hybrid (Recommended)')).not.toBeInTheDocument();
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith('Hybrid');
   });
@@ -106,7 +121,7 @@ describe('AgentInputRequestOverlay', () => {
       <AgentInputRequestOverlay onSubmit={onSubmit} request={makeRequest()} />,
     );
 
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
 
     expect(screen.getByRole('button', { name: /Hybrid/ })).toHaveAttribute(
       'aria-pressed',
@@ -125,7 +140,7 @@ describe('ask transitions', () => {
     fireEvent.change(screen.getByLabelText('Other'), {
       target: { value: 'Old answer' },
     });
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
     expect(screen.queryByText('Dropzone only')).not.toBeInTheDocument();
     rerender(
       <AgentInputRequestOverlay
@@ -149,7 +164,7 @@ describe('ask transitions', () => {
     render(
       <AgentInputRequestOverlay request={makeRequest()} onSubmit={onSubmit} />,
     );
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
     await screen.findByRole('alert');
     expect(screen.getByText('Dropzone only')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Dropzone only'));
@@ -164,8 +179,8 @@ describe('ask transitions', () => {
     render(
       <AgentInputRequestOverlay request={makeRequest()} onSubmit={onSubmit} />,
     );
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
-    fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });
@@ -184,7 +199,7 @@ it('ignores a rejected answer belonging to the previous ask', async () => {
   const { rerender } = render(
     <AgentInputRequestOverlay request={makeRequest()} onSubmit={onSubmit} />,
   );
-  fireEvent.click(screen.getByText('Hybrid (Recommended)'));
+  fireEvent.click(screen.getByRole('button', { name: /Hybrid/ }));
   rerender(
     <AgentInputRequestOverlay
       request={makeRequest({ inputRequestId: 'new-ask' })}

@@ -280,9 +280,9 @@
     "addedStage": "Added stage: {stages}"
   },
   "inputRequest": {
-    "interaction": "Interaction",
+    "interaction": "Choose one",
     "other": "Other",
-    "recommended": " (Recommended)",
+    "recommended": "Recommended",
     "placeholderRecommended": "Type your own answer, or leave this blank to use \"{recommended}\"",
     "placeholder": "Type your answer",
     "useAnswer": "Use this answer",
