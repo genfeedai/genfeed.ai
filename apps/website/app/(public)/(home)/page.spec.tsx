@@ -8,7 +8,7 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 runPageModuleTests('apps/website/app/(public)/(home)/page', PageModule);
 
 describe('homepage metadata', () => {
-  it('positions Genfeed as the AI content studio', async () => {
+  it('positions Genfeed by what it does, not by its category', async () => {
     const parent = Promise.resolve({
       openGraph: { images: ['https://cdn.genfeed.ai/previous.jpg'] },
     }) as ResolvingMetadata;
@@ -18,7 +18,7 @@ describe('homepage metadata', () => {
     expect(result.title).toBe(
       'Genfeed.ai | Ask for content. Get it published.',
     );
-    expect(result.description).toMatch(/the ai content studio/i);
+    expect(result.description).toMatch(/tell the genfeed agent what you want/i);
     expect(result.openGraph?.title).toBe(result.title);
     expect(result.twitter?.title).toBe(result.title);
     expect(result.openGraph?.images).toEqual([
