@@ -203,6 +203,23 @@ describe('SharedService', () => {
       expect(ingredientsService.create).not.toHaveBeenCalled();
     });
 
+    it('accepts an opaque Better Auth user id as media owner', async () => {
+      const legacyUserId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      const legacyUser = {
+        ...mockUser,
+        id: legacyUserId,
+        userId: legacyUserId,
+      } as unknown as User;
+
+      await service.createMediaDocuments(legacyUser, {
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: legacyUserId }),
+      );
+    });
+
     it('soft-deletes metadata when ingredient persistence fails', async () => {
       vi.mocked(ingredientsService.create).mockRejectedValue(
         new Error('Ingredient create failed'),
