@@ -200,10 +200,10 @@ describe('runCheckProductRouteInventory', () => {
     expect(runCheckProductRouteInventory()).toMatchObject({
       appPublicRouteCount: 22,
       issues: [],
-      protectedPageCount: 218,
-      protectedRouteCount: 235,
-      publicRouteCount: 76,
-      websitePublicRouteCount: 54,
+      protectedPageCount: 219,
+      protectedRouteCount: 236,
+      publicRouteCount: 77,
+      websitePublicRouteCount: 55,
     });
   });
 });
