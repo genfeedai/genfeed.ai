@@ -19,7 +19,7 @@ describe('auth callback URL helpers', () => {
   });
 
   it('sends Google failures to the login page on the current origin', () => {
-    expect(getAuthErrorCallbackURL()).toBe('https://app.genfeed.ai/login');
+    expect(getAuthErrorCallbackURL()).toBe(`${window.location.origin}/login`);
   });
 
   it('maps Better Auth OAuth error codes to login copy', () => {
