@@ -346,6 +346,12 @@ describe('GenerationSetupPopover', () => {
 
     expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
     expect(screen.getByText('Agent pick')).toBeInTheDocument();
+    // The agent owns the type here, so the row reads Auto rather than echoing
+    // the Agent pick header, and no model or output rows are offered.
+    expect(screen.getByText('Auto')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Edit Aspect ratio' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Search setup fields' }),
     ).toBeInTheDocument();
@@ -404,9 +410,11 @@ describe('GenerationSetupPopover', () => {
     expect(onResetAll).toHaveBeenCalledOnce();
   });
 
-  it('opens the nested section directly from an agent-pick value', async () => {
+  it('opens the nested section directly from a summary value', async () => {
     const user = userEvent.setup();
-    renderPopover();
+    // Media rows only appear once the type is the user's own pick; an
+    // agent-owned type summarises to Auto and hides model and output fields.
+    renderPopover({ setup: createSetup({ sources: { type: 'user' } }) });
 
     await openPopover(user);
     await user.click(screen.getByRole('button', { name: 'Edit Aspect ratio' }));

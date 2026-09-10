@@ -41,8 +41,11 @@ export default function GenerationSetupFrontDoor({
     setup.sources.type !== 'user' &&
     setup.sources.type !== 'preset';
   const isTextType = setup.values.type === 'text';
+  // The panel header already reads "Agent pick". An agent-owned type row says
+  // Auto, the same word the model row uses for "the system decides", instead of
+  // repeating that header two lines below itself.
   const typeLabel = isTypeAgentOwned
-    ? translate('agentPick')
+    ? translate('auto')
     : (typeOptions.find((option) => option.value === setup.values.type)
         ?.label ?? setup.values.type);
 

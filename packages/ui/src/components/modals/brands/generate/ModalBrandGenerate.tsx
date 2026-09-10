@@ -24,22 +24,13 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
-const GENERATE_COPY = {
-  banner: {
-    category: AssetCategory.BANNER,
-    label: 'Describe the banner',
-    placeholder: 'A wide banner of…',
-    title: 'Generate Banner',
-  },
-  logo: {
-    category: AssetCategory.LOGO,
-    label: 'Describe the profile picture',
-    placeholder: 'A square portrait of…',
-    title: 'Generate Profile Picture',
-  },
+const GENERATE_CATEGORY = {
+  banner: AssetCategory.BANNER,
+  logo: AssetCategory.LOGO,
 } as const;
 
 export default function ModalBrandGenerate({
@@ -47,7 +38,8 @@ export default function ModalBrandGenerate({
   onConfirm,
   brandId,
 }: ModalBrandGenerateProps) {
-  const copy = GENERATE_COPY[type];
+  const translate = useTranslations('ui.brandGenerate');
+  const category = GENERATE_CATEGORY[type];
   const getAssetsService = useAuthedService((token) =>
     AssetsService.getInstance(token),
   );
@@ -83,7 +75,7 @@ export default function ModalBrandGenerate({
       const formData = form.getValues();
 
       await service.postGenerate({
-        category: copy.category,
+        category,
         model: '',
         parentId: brandId,
         parentType: AssetParent.BRAND,
@@ -95,26 +87,24 @@ export default function ModalBrandGenerate({
     } catch (error) {
       logger.error(`${url} failed`, error);
     }
-  }, [
-    brandId,
-    copy.category,
-    getAssetsService,
-    form,
-    closeAccountGenerateModal,
-  ]);
+  }, [brandId, category, getAssetsService, form, closeAccountGenerateModal]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
     submitModalBrandGenerate(),
   );
 
   return (
-    <Modal id={ModalEnum.BRAND_GENERATE} title={copy.title} size="md">
+    <Modal
+      id={ModalEnum.BRAND_GENERATE}
+      title={translate(`${type}.title`)}
+      size="md"
+    >
       <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
-        <FormControl label={copy.label}>
+        <FormControl label={translate(`${type}.label`)}>
           <Textarea
             name="prompt"
             control={form.control}
-            placeholder={copy.placeholder}
+            placeholder={translate(`${type}.placeholder`)}
             isDisabled={isSubmitting}
             rows={4}
           />
@@ -122,7 +112,7 @@ export default function ModalBrandGenerate({
 
         <ModalActions className="mt-0">
           <Button
-            label="Cancel"
+            label={translate('cancel')}
             variant={ButtonVariant.SECONDARY}
             onClick={closeAccountGenerateModal}
             isLoading={isSubmitting}
@@ -132,7 +122,7 @@ export default function ModalBrandGenerate({
             variant={ButtonVariant.DEFAULT}
             icon={<ArrowUp />}
             type="submit"
-            label="Generate"
+            label={translate('generate')}
             isDisabled={isSubmitting || !hasPrompt}
           />
         </ModalActions>
