@@ -24,6 +24,11 @@ import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import PostCharacterUsage from '@ui/posts/character-usage/PostCharacterUsage';
+import {
+  buildPostCharacterUsageItems,
+  countCaptionCharacters,
+} from '@ui/posts/character-usage/post-character-usage.util';
 import PlatformPreview, {
   buildMediaFromIngredients,
   type PlatformPreviewTarget,
@@ -35,6 +40,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
+import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { Eye, EyeOff } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -98,6 +104,16 @@ export default function ModalPostPlatformsTab({
       ingredients,
       platformConfigs,
     ],
+  );
+
+  const characterUsageItems = useMemo(
+    () =>
+      buildPostCharacterUsageItems(
+        platformConfigs,
+        globalDescription,
+        credentials,
+      ),
+    [credentials, globalDescription, platformConfigs],
   );
 
   const getPromptsService = useAuthedService((token) =>
@@ -288,6 +304,11 @@ export default function ModalPostPlatformsTab({
         togglePlatform={togglePlatform}
       />
 
+      <PostCharacterUsage
+        items={characterUsageItems}
+        title="Characters used per channel"
+      />
+
       {/* Platform-specific customization */}
       <div className="border-t pt-4 space-y-4">
         <h4 className="font-medium">Platform-Specific Settings</h4>
@@ -312,7 +333,12 @@ export default function ModalPostPlatformsTab({
               const isYoutube = config.platform === CredentialPlatform.YOUTUBE;
               const isInstagram =
                 config.platform === CredentialPlatform.INSTAGRAM;
-              const currentLength = config.description?.length ?? 0;
+              // Counts the caption this channel will actually publish: its own
+              // override when set, the shared caption otherwise.
+              const currentLength = countCaptionCharacters(
+                config.description || globalDescription,
+              );
+              const charLimit = resolvePlatformCharLimit(config.platform);
 
               const node = (
                 <div key={config.platform} className="space-y-2">
@@ -324,6 +350,7 @@ export default function ModalPostPlatformsTab({
                     isYoutube={isYoutube}
                     isInstagram={isInstagram}
                     currentLength={currentLength}
+                    charLimit={charLimit}
                     globalLabel={globalLabel}
                     globalDescription={globalDescription}
                     generatingTitleFor={generatingTitleFor}

@@ -31,7 +31,7 @@ import ModalCreateThreadSettings from '@ui/modals/content/create-thread/ModalCre
 import Modal from '@ui/modals/modal/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { PLATFORM_CHAR_LIMITS } from '@ui-constants/platform-char-limit.constant';
+import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 
@@ -141,9 +141,7 @@ export default function ModalCreateThread({
     (c) => c.id === form.watch('credentialId'),
   )?.platform;
 
-  const charLimit = selectedPlatform
-    ? PLATFORM_CHAR_LIMITS[selectedPlatform] || 280
-    : 280;
+  const charLimit = resolvePlatformCharLimit(selectedPlatform);
 
   const credentialOptions = credentials.map((cred) => ({
     label: `${cred.platform} - ${cred.label || cred.externalHandle || 'Untitled'}`,

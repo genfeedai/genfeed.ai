@@ -5,17 +5,15 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-const PLATFORM_CHAR_LIMITS: Record<string, number> = {
-  instagram: 2200,
-  linkedin: 3000,
-  tiktok: 2200,
-  twitter: 280,
-  youtube: 5000,
-};
+/**
+ * Caption budget for a channel the capability catalog does not describe.
+ */
+const FALLBACK_CHAR_LIMIT = 2200;
 
 const TRUSTED_TREND_REMIX_MODELS = new Set<string>([
   LLM_DEFAULTS.planning,
@@ -66,7 +64,9 @@ export class TrendRemixHandler implements SkillHandler {
       ? trend.metadata.hashtags.slice(0, 5).join(' ')
       : '';
 
-    const charLimit = PLATFORM_CHAR_LIMITS[platform ?? ''] ?? 2200;
+    const charLimit =
+      getChannelCapability(platform ?? '')?.caption.maxLength ??
+      FALLBACK_CHAR_LIMIT;
     const tone =
       typeof params.tone === 'string' ? params.tone : 'engaging and authentic';
 
