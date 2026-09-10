@@ -671,8 +671,10 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     github,
     requireEmailVerification = false,
     cookieDomain,
+    errorURL,
     ipAddressHeaders,
     experimentalJoins,
+    skipStateCookieCheck,
     rateLimitStore,
     sendMagicLink,
     sendResetPassword,
@@ -705,6 +707,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     secret,
     trustedOrigins,
     database: prismaAdapter(prisma, { provider: 'postgresql' }),
+    ...(errorURL ? { onAPIError: { errorURL } } : {}),
     account: {
       accountLinking: {
         enabled: true,
@@ -712,6 +715,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         trustedProviders: ['google', 'github'],
         updateUserInfoOnLink: true,
       },
+      ...(skipStateCookieCheck ? { skipStateCookieCheck: true } : {}),
     },
     emailAndPassword: {
       enabled: true,

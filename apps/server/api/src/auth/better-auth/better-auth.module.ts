@@ -104,6 +104,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
             'BETTER_AUTH_TRUSTED_ORIGINS',
           ),
           BETTER_AUTH_URL: config.get('BETTER_AUTH_URL'),
+          GENFEEDAI_APP_URL: config.get('GENFEEDAI_APP_URL'),
           GITHUB_CLIENT_ID: config.get('GITHUB_CLIENT_ID'),
           GITHUB_CLIENT_SECRET: config.get('GITHUB_CLIENT_SECRET'),
           GOOGLE_OAUTH_CLIENT_ID: config.get('GOOGLE_OAUTH_CLIENT_ID'),

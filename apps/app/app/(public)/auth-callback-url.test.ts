@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getAuthCallbackURL,
+  getAuthErrorCallbackURL,
   getAuthFlowHref,
   parseBrandOsPreviewToken,
   parsePublicYoutubeClipToken,
+  resolveOAuthLoginErrorMessage,
   toAbsoluteAuthCallbackURL,
   toAbsolutePasswordResetURL,
 } from './auth-callback-url';
@@ -14,6 +16,24 @@ const SERVER_FALLBACK_ORIGIN = 'https://app.genfeed.ai';
 describe('auth callback URL helpers', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('sends Google failures to the login page on the current origin', () => {
+    expect(getAuthErrorCallbackURL()).toBe('https://app.genfeed.ai/login');
+  });
+
+  it('maps Better Auth OAuth error codes to login copy', () => {
+    expect(resolveOAuthLoginErrorMessage('state_mismatch')).toBe(
+      'Google sign-in was interrupted. Please try again.',
+    );
+    expect(resolveOAuthLoginErrorMessage('access_denied')).toBe(
+      'Google sign-in was cancelled.',
+    );
+    expect(resolveOAuthLoginErrorMessage('invalid_code')).toBe(
+      'Google sign-in failed. Please try again.',
+    );
+    expect(resolveOAuthLoginErrorMessage('javascript:alert(1)')).toBeNull();
+    expect(resolveOAuthLoginErrorMessage(null)).toBeNull();
   });
 
   it('prefers callbackUrl and falls back to root', () => {

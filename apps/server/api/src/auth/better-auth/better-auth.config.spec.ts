@@ -3,6 +3,7 @@ import {
   BETTER_AUTH_SECRET_REQUIRED_MESSAGE,
   DESKTOP_SHELL_TRUSTED_ORIGINS,
   parseCommaSeparated,
+  resolveAuthErrorUrl,
   resolveBetterAuthBaseUrl,
   resolveBetterAuthRuntimeConfig,
   resolveBooleanFlag,
@@ -10,6 +11,7 @@ import {
   resolveExperimentalJoins,
   resolveSocialProviderConfig,
   resolveTrustedOrigins,
+  shouldSkipOAuthStateCookieCheck,
 } from './better-auth.config';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 
@@ -155,6 +157,8 @@ describe('Better Auth config', () => {
 
       expect(runtime.baseURL).toBe('https://api.genfeed.ai');
       expect(runtime.cookieDomain).toBeUndefined();
+      expect(runtime.errorURL).toBeUndefined();
+      expect(runtime.skipStateCookieCheck).toBe(false);
     });
 
     it('uses only BETTER_AUTH_COOKIE_DOMAIN for cloud cookie sharing', () => {
@@ -168,6 +172,62 @@ describe('Better Auth config', () => {
       expect(runtime.cookieDomain).toBe('.genfeed.ai');
     });
 
+    it('sends OAuth failures to the app login page on split cloud hosts', () => {
+      const runtime = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        BETTER_AUTH_URL: 'https://api.genfeed.ai',
+        GENFEEDAI_APP_URL: 'https://app.genfeed.ai/',
+        NODE_ENV: 'production',
+      });
+
+      expect(runtime.errorURL).toBe('https://app.genfeed.ai/login');
+      expect(runtime.skipStateCookieCheck).toBe(true);
+    });
+
+    it('keeps the OAuth state cookie check on a single-host self-host', () => {
+      const runtime = resolveBetterAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: 'runtime-config-secret',
+        BETTER_AUTH_URL: 'https://genfeed.example',
+        GENFEEDAI_APP_URL: 'https://genfeed.example',
+        NODE_ENV: 'production',
+      });
+
+      expect(runtime.errorURL).toBe('https://genfeed.example/login');
+      expect(runtime.skipStateCookieCheck).toBe(false);
+    });
+  });
+
+  describe('resolveAuthErrorUrl', () => {
+    it('appends /login to a valid app origin', () => {
+      expect(resolveAuthErrorUrl('https://app.genfeed.ai')).toBe(
+        'https://app.genfeed.ai/login',
+      );
+    });
+
+    it('returns undefined for missing or non-http app URLs', () => {
+      expect(resolveAuthErrorUrl(undefined)).toBeUndefined();
+      expect(resolveAuthErrorUrl('javascript:alert(1)')).toBeUndefined();
+    });
+  });
+
+  describe('shouldSkipOAuthStateCookieCheck', () => {
+    it('skips only when the app and API origins differ', () => {
+      expect(
+        shouldSkipOAuthStateCookieCheck(
+          'https://api.genfeed.ai',
+          'https://app.genfeed.ai',
+        ),
+      ).toBe(true);
+      expect(
+        shouldSkipOAuthStateCookieCheck(
+          'https://genfeed.example',
+          'https://genfeed.example/app',
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe('auto-trust localhost', () => {
     it('auto-trusts localhost only outside production', () => {
       const development = resolveBetterAuthRuntimeConfig({
         BETTER_AUTH_SECRET: 'runtime-config-secret',
