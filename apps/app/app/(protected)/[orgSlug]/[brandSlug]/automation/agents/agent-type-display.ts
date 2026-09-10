@@ -4,6 +4,7 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import type { AgentTypeIcon } from '@genfeedai/props/automation/agent-type-display.props';
 import {
   Cpu,
   FileText,
@@ -14,9 +15,8 @@ import {
   Video,
   Zap,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
 
-export type AgentTypeIcon = ComponentType<{ className?: string }>;
+export type { AgentTypeIcon };
 
 export const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
