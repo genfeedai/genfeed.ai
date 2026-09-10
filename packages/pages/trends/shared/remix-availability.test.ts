@@ -10,18 +10,28 @@ describe('getTrendRemixAvailability', () => {
 
     expect(result).toEqual({
       isRemixUnavailable: false,
-      opensLegacyRemix: false,
       opensPrefilledRemix: true,
+      opensRemixPage: false,
     });
   });
 
-  it('falls back to the legacy remix link when the prefilled surface is unavailable but the platform supports the legacy flow', () => {
-    const result = getTrendRemixAvailability('instagram', true, false);
+  it('opens Discovery remix for an X post with a durable reference', () => {
+    const result = getTrendRemixAvailability('twitter', true, true);
 
     expect(result).toEqual({
       isRemixUnavailable: false,
-      opensLegacyRemix: true,
+      opensPrefilledRemix: true,
+      opensRemixPage: false,
+    });
+  });
+
+  it('falls back to /publishing/remix when the Discovery surface is missing but the platform still supports variations', () => {
+    const result = getTrendRemixAvailability('linkedin', true, false);
+
+    expect(result).toEqual({
+      isRemixUnavailable: false,
       opensPrefilledRemix: false,
+      opensRemixPage: true,
     });
   });
 
@@ -30,18 +40,18 @@ describe('getTrendRemixAvailability', () => {
 
     expect(result).toEqual({
       isRemixUnavailable: false,
-      opensLegacyRemix: false,
       opensPrefilledRemix: false,
+      opensRemixPage: false,
     });
   });
 
-  it('has no remix path on a platform that is neither prefilled nor legacy-eligible', () => {
+  it('has no remix path on a platform that is neither Discovery nor variation-eligible', () => {
     const result = getTrendRemixAvailability('reddit', true, true);
 
     expect(result).toEqual({
       isRemixUnavailable: false,
-      opensLegacyRemix: false,
       opensPrefilledRemix: false,
+      opensRemixPage: false,
     });
   });
 });
@@ -59,8 +69,14 @@ describe('getSourcePostRemixAvailability', () => {
     });
   });
 
-  it('does not open the prefilled remix on a non-prefilled platform', () => {
+  it('opens the prefilled remix for an X source post', () => {
     expect(getSourcePostRemixAvailability('twitter', true)).toEqual({
+      opensPrefilledRemix: true,
+    });
+  });
+
+  it('does not open the prefilled remix on a non-Discovery platform', () => {
+    expect(getSourcePostRemixAvailability('linkedin', true)).toEqual({
       opensPrefilledRemix: false,
     });
   });

@@ -503,6 +503,75 @@ describe('TwitterService (coverage)', () => {
     });
   });
 
+  describe('getUserTimelineByUsername', () => {
+    it('requests and maps the profile image onto each tweet', async () => {
+      mockV2Get
+        .mockResolvedValueOnce({
+          data: {
+            id: 'uid-1',
+            name: 'Vincent e/acc',
+            profile_image_url:
+              'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+            public_metrics: { followers_count: 106 },
+            username: 'vincentshipsit',
+          },
+        })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              author_id: 'uid-1',
+              id: 'tweet-1',
+              public_metrics: {
+                like_count: 4,
+                reply_count: 1,
+                retweet_count: 0,
+              },
+              text: 'Ship it.',
+            },
+          ],
+          includes: {
+            users: [
+              {
+                id: 'uid-1',
+                name: 'Vincent e/acc',
+                profile_image_url:
+                  'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+                public_metrics: { followers_count: 106 },
+                username: 'vincentshipsit',
+              },
+            ],
+          },
+        });
+
+      const tweets = await service.getUserTimelineByUsername('vincentshipsit', {
+        maxResults: 25,
+      });
+
+      expect(mockV2Get).toHaveBeenNthCalledWith(
+        1,
+        'users/by/username/vincentshipsit',
+        { 'user.fields': 'public_metrics,profile_image_url' },
+      );
+      expect(mockV2Get).toHaveBeenNthCalledWith(
+        2,
+        'users/uid-1/tweets',
+        expect.objectContaining({
+          'user.fields': 'username,name,public_metrics,profile_image_url',
+        }),
+      );
+      expect(tweets).toEqual([
+        expect.objectContaining({
+          authorAvatarUrl:
+            'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+          authorName: 'Vincent e/acc',
+          authorUsername: 'vincentshipsit',
+          id: 'tweet-1',
+          text: 'Ship it.',
+        }),
+      ]);
+    });
+  });
+
   // ── getFollowers ──────────────────────────────────────────────────────────
 
   describe('getFollowers', () => {

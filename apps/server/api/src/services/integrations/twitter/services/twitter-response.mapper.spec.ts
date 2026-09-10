@@ -73,6 +73,26 @@ describe('TwitterResponseMapper', () => {
       });
     });
 
+    it('maps a profile image when the provider sends one', () => {
+      expect(
+        mapper.mapUser({
+          data: {
+            id: 'user-2',
+            name: 'Vincent e/acc',
+            profile_image_url:
+              'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+            username: 'vincentshipsit',
+          },
+        }),
+      ).toEqual({
+        followersCount: undefined,
+        id: 'user-2',
+        name: 'Vincent e/acc',
+        profileImageUrl: 'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+        username: 'vincentshipsit',
+      });
+    });
+
     it('returns null or an empty list when provider data is absent', () => {
       expect(mapper.mapUser({})).toBeNull();
       expect(mapper.mapUsers({})).toEqual([]);

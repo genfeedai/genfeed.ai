@@ -131,11 +131,13 @@ export class BrandRemixRunPlanningService {
           ? '1:1'
           : '9:16';
     const outputKind =
-      source.recommendedOutputKind === 'video' &&
-      aspectRatio === '9:16' &&
-      'avatarAssetId' in context.defaultIdentity
-        ? 'avatar'
-        : source.recommendedOutputKind;
+      source.recommendedOutputKind === 'copy'
+        ? 'copy'
+        : source.recommendedOutputKind === 'video' &&
+            aspectRatio === '9:16' &&
+            'avatarAssetId' in context.defaultIdentity
+          ? 'avatar'
+          : source.recommendedOutputKind;
     const hookPattern =
       source.snapshot.pattern.hook?.replace(/[.!?]+$/, '') ??
       'performance-led hook';
@@ -156,12 +158,15 @@ export class BrandRemixRunPlanningService {
         structure: source.snapshot.pattern.structure,
         visualDirection: source.snapshot.pattern.visualDirection,
       },
-      output: {
-        aspectRatio,
-        count: 3,
-        kind: outputKind,
-        ...(outputKind === 'video' ? { durationSeconds: 8 } : {}),
-      },
+      output:
+        outputKind === 'copy'
+          ? { count: 3, kind: 'copy' }
+          : {
+              aspectRatio,
+              count: 3,
+              kind: outputKind,
+              ...(outputKind === 'video' ? { durationSeconds: 8 } : {}),
+            },
       references: defaultReferences,
       reviewRequired: true,
       target,

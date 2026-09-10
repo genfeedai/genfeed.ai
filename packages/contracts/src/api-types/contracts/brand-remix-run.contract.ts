@@ -37,6 +37,7 @@ export const brandRemixOrganicPlatformValues = [
   'tiktok',
   'instagram',
   'youtube',
+  'x',
 ] as const;
 export const brandRemixOutputKindValues = [
   'copy',

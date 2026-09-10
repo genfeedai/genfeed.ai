@@ -27,6 +27,31 @@ describe('BrandRemixSourceResolverService', () => {
     );
   });
 
+  it('recommends copy output for an X source post', async () => {
+    (prisma.sourcePost.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        authorHandle: 'vincentshipsit',
+        collectedAt: new Date('2026-08-20T10:00:00.000Z'),
+        contentType: 'tweet',
+        id: 'tweet-1',
+        mediaUrls: [],
+        metrics: { likes: 12 },
+        platform: 'twitter',
+        sourceUrl: 'https://x.com/vincentshipsit/status/1',
+        text: 'Do not wait for permission to ship.',
+        thumbnailUrl: null,
+      },
+    );
+
+    const resolved = await resolver.resolveSource('org-1', 'brand-1', {
+      kind: 'source_post',
+      sourcePostId: 'tweet-1',
+    });
+
+    expect(resolved.recommendedOutputKind).toBe('copy');
+    expect(resolved.snapshot.platform).toBe('x');
+  });
+
   it('scopes owned-post resolution to organization, brand, and live rows', async () => {
     (prisma.post.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 

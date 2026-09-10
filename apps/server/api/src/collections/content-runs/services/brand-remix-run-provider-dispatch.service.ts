@@ -344,8 +344,12 @@ export class BrandRemixRunProviderDispatchService {
   private contentIntelligencePlatform(
     platform: BrandRemixDraft['target']['platform'],
   ): ContentIntelligencePlatform {
-    return platform === 'tiktok'
-      ? ContentIntelligencePlatform.TIKTOK
-      : ContentIntelligencePlatform.INSTAGRAM;
+    if (platform === 'tiktok') {
+      return ContentIntelligencePlatform.TIKTOK;
+    }
+    if (platform === 'x') {
+      return ContentIntelligencePlatform.TWITTER;
+    }
+    return ContentIntelligencePlatform.INSTAGRAM;
   }
 }

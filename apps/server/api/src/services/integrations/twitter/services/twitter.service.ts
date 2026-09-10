@@ -407,6 +407,7 @@ export class TwitterService {
       authorId?: string;
       authorUsername?: string;
       authorName?: string;
+      authorAvatarUrl?: string;
       authorFollowersCount?: number;
       isRetweet: boolean;
       inReplyToId: string | null;
@@ -427,7 +428,7 @@ export class TwitterService {
     try {
       const userResult = (await client.v2.get(
         `users/by/username/${encodeURIComponent(cleanUsername)}`,
-        { 'user.fields': 'public_metrics' },
+        { 'user.fields': 'public_metrics,profile_image_url' },
       )) as TwitterUserResponse;
       const user = this.responseMapper.mapUser(userResult);
       if (!user) {
@@ -447,7 +448,7 @@ export class TwitterService {
         max_results: maxResults,
         'tweet.fields':
           'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
-        'user.fields': 'username,name,public_metrics',
+        'user.fields': 'username,name,public_metrics,profile_image_url',
       };
       if (exclude.length > 0) {
         params.exclude = exclude;
@@ -478,6 +479,7 @@ export class TwitterService {
             id: string;
             username?: string;
             name?: string;
+            profile_image_url?: string;
             public_metrics?: { followers_count?: number };
           }>;
         };
@@ -493,6 +495,7 @@ export class TwitterService {
           tweet.referenced_tweets?.some((ref) => ref.type === 'retweeted'),
         );
         return {
+          authorAvatarUrl: author?.profile_image_url ?? user.profileImageUrl,
           authorFollowersCount:
             author?.public_metrics?.followers_count ?? user.followersCount,
           authorId: tweet.author_id ?? user.id,

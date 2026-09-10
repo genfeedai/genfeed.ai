@@ -132,18 +132,30 @@ export function remixSourcePlatform(
 
 export function remixOrganicPlatform(
   platform: BrandRemixSourceSnapshot['platform'],
-): 'instagram' | 'tiktok' | 'youtube' {
+): 'instagram' | 'tiktok' | 'youtube' | 'x' {
   if (
     platform === 'instagram' ||
     platform === 'tiktok' ||
-    platform === 'youtube'
+    platform === 'youtube' ||
+    platform === 'x'
   ) {
     return platform;
   }
   throw new BadRequestException({
-    detail: `Organic remix output is not supported for ${platform}. Choose Instagram, TikTok, or YouTube.`,
+    detail: `Organic remix output is not supported for ${platform}. Choose Instagram, TikTok, YouTube, or X.`,
     title: 'Unsupported organic remix target',
   });
+}
+
+/** X text posts remix as copy; visual platforms keep image/video. */
+export function remixRecommendedOutputKind(
+  platform: BrandRemixSourceSnapshot['platform'],
+  hasVideo: boolean,
+): 'copy' | 'image' | 'video' {
+  if (platform === 'x' && !hasVideo) {
+    return 'copy';
+  }
+  return hasVideo ? 'video' : 'image';
 }
 
 export function remixCredentialPlatform(

@@ -26,6 +26,7 @@ export interface TwitterUserSummary {
   id: string;
   username: string;
   name?: string;
+  profile_image_url?: string;
   public_metrics?: {
     followers_count?: number;
   };
@@ -43,6 +44,7 @@ export interface TwitterMappedUser {
   followersCount?: number;
   id: string;
   name?: string;
+  profileImageUrl?: string;
   username: string;
 }
 
@@ -269,6 +271,9 @@ export class TwitterResponseMapper {
       followersCount: user.public_metrics?.followers_count,
       id: user.id,
       name: user.name,
+      ...(user.profile_image_url
+        ? { profileImageUrl: user.profile_image_url }
+        : {}),
       username: user.username,
     };
   }

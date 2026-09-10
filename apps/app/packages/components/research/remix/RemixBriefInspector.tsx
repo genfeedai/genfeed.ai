@@ -11,6 +11,8 @@ import {
   type BrandRemixDraftEdits,
   type BrandRemixReference,
   type BrandRemixRunView,
+  brandRemixAdPlatformValues,
+  brandRemixOrganicPlatformValues,
   generationFidelityModeValues,
   generationReferenceRoleValues,
 } from '@genfeedai/contracts/api-types/contracts';
@@ -167,18 +169,13 @@ export function buildRemixDraftEdits(
       run.draft.target.kind === 'paid'
         ? {
             ...run.draft.target,
-            platform: editor.targetPlatform as
-              | 'google'
-              | 'meta'
-              | 'tiktok'
-              | 'x',
+            platform:
+              editor.targetPlatform as (typeof brandRemixAdPlatformValues)[number],
           }
         : {
             ...run.draft.target,
-            platform: editor.targetPlatform as
-              | 'instagram'
-              | 'tiktok'
-              | 'youtube',
+            platform:
+              editor.targetPlatform as (typeof brandRemixOrganicPlatformValues)[number],
           },
   };
 }
@@ -620,8 +617,8 @@ export default function RemixBriefInspector(): ReactElement {
                 </SelectTrigger>
                 <SelectContent>
                   {(run.draft.target.kind === 'paid'
-                    ? ['meta', 'google', 'tiktok', 'x']
-                    : ['tiktok', 'instagram', 'youtube']
+                    ? brandRemixAdPlatformValues
+                    : brandRemixOrganicPlatformValues
                   ).map((platform) => (
                     <SelectItem key={platform} value={platform}>
                       {formatLabel(platform)}

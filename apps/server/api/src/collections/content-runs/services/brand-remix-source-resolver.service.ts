@@ -4,6 +4,7 @@ import {
   remixNumericRecord,
   remixPatternFromText,
   remixPublicUrl,
+  remixRecommendedOutputKind,
   remixRecord,
   remixSourcePlatform,
   remixStringArray,
@@ -116,7 +117,7 @@ export class BrandRemixSourceResolverService {
     const title = remixTruncate(remixText(post.text) ?? 'Source post');
     const hasVideo = remixIsVideoMedia(post.contentType, post.mediaUrls);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         authorHandle: remixText(post.authorHandle),
         canonicalUrl: remixPublicUrl(post.sourceUrl),
@@ -160,15 +161,16 @@ export class BrandRemixSourceResolverService {
         ingredient.category === IngredientCategory.VIDEO ||
         ingredient.category === IngredientCategory.AVATAR,
     );
+    const platform = remixSourcePlatform(post.platform);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         canonicalUrl: remixPublicUrl(post.url),
         capturedAt: this.runtime.now().toISOString(),
         evidence: [title],
         metrics: {},
         pattern: remixPatternFromText(title, hasVideo ? 'video' : 'image'),
-        platform: remixSourcePlatform(post.platform),
+        platform,
         selector,
         sourceId: post.id,
         title,
@@ -237,8 +239,9 @@ export class BrandRemixSourceResolverService {
       engagementTotal: reference.currentEngagementTotal,
       viralityScore: reference.latestTrendViralityScore,
     };
+    const platform = remixSourcePlatform(reference.platform);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         authorHandle: remixText(reference.authorHandle),
         canonicalUrl: remixPublicUrl(reference.canonicalUrl),
@@ -251,7 +254,7 @@ export class BrandRemixSourceResolverService {
           sourcePatternText,
           hasVideo ? 'video' : 'image',
         ),
-        platform: remixSourcePlatform(reference.platform),
+        platform,
         selector,
         sourceId: reference.id,
         title,
