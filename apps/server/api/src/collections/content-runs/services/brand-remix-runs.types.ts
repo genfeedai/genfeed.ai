@@ -53,9 +53,16 @@ export interface ResolvedBrandContext {
   defaultIdentity: BrandRemixDraft['identity'];
 }
 
+export interface ResolvedSourceMedia {
+  existingAssetIds: string[];
+  imageUrls: string[];
+  videoUrls: string[];
+}
+
 export interface ResolvedSource {
   recommendedOutputKind: BrandRemixDraft['output']['kind'];
   snapshot: BrandRemixSourceSnapshot;
+  sourceMedia?: ResolvedSourceMedia;
 }
 
 export interface GenerationDimensions {

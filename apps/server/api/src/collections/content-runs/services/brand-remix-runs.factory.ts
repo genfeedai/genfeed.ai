@@ -9,6 +9,7 @@ import { BrandRemixRunReviewService } from '@api/collections/content-runs/servic
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { BrandRemixRuntime } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
@@ -38,6 +39,7 @@ export interface BrandRemixRunsCollaborators {
   pausedXAdsCampaignDraftService: PausedXAdsCampaignDraftService;
   prisma: PrismaService;
   runtime: BrandRemixRuntime;
+  sourceMedia?: Pick<BrandRemixSourceMediaService, 'ingest'>;
   systemWorkflowRunner: SystemWorkflowRunnerService;
   trendReferenceCorpusService: TrendReferenceCorpusService;
   videoGenerationService: VideoGenerationService;
@@ -123,6 +125,9 @@ export function assembleBrandRemixRunsGraph(
       execution,
       review,
       paidDraft,
+      (collaborators.sourceMedia ?? {
+        ingest: async () => ({ status: 'skipped' as const }),
+      }) as BrandRemixSourceMediaService,
     ),
     sourceResolver,
     state,
