@@ -102,6 +102,7 @@ export class ContentRunsController {
       user.organizationId,
       brandId,
       body,
+      user.userId,
     );
     return serializeSingle(req, ContentRunSerializer, data);
   }
