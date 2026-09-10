@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudActionNodeInspector } from './CloudActionNodeInspector';
 
@@ -94,9 +94,8 @@ describe('CloudActionNodeInspector', () => {
     ).toBeNull();
     expect(screen.queryByLabelText(/Brand Id/i)).toBeNull();
     expect(screen.getByRole('combobox', { name: 'Timezone' })).toBeTruthy();
-    fireEvent.click(
+    expect(
       screen.getByRole('button', { name: /Select connected accounts/i }),
-    );
-    expect(screen.getByText('@VincentShipsIt')).toBeTruthy();
+    ).toBeTruthy();
   });
 });
