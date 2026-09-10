@@ -92,7 +92,7 @@ describe('SectionTopbar', () => {
       'min-w-0',
       'flex-1',
       'flex-wrap',
-      'justify-start',
+      'justify-end',
     );
   });
 
@@ -191,6 +191,30 @@ describe('SectionTopbar', () => {
     expect(topbar.tagName).toBe('H1');
     expect(topbar).toHaveClass('sr-only');
     expect(topbar.className).not.toMatch(/border-b/);
+  });
+
+  it('clusters Help immediately left of chrome-only actions on the right', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <SectionTopbar
+        title="Activities"
+        titleVisibility="sr-only"
+        actions={<button type="button">Refresh</button>}
+        help={{ title: 'About Activities', body: 'What changed.' }}
+      />,
+    );
+
+    const actions = screen.getByTestId('section-topbar-actions');
+    const helpSlot = screen.getByTestId('section-topbar-help');
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+
+    expect(actions).toHaveClass('justify-end');
+    expect(actions.firstElementChild).toBe(helpSlot);
+    expect(
+      helpSlot.compareDocumentPosition(refresh) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('renders a help trigger before actions that opens a popover with the given title and body', () => {

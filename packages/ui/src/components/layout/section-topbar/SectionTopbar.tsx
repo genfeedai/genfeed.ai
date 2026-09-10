@@ -83,7 +83,7 @@ export default function SectionTopbar({
                 hasTabs
                   ? 'shrink-0 flex-wrap justify-end'
                   : actions
-                    ? 'min-w-0 flex-1 flex-wrap justify-start'
+                    ? 'min-w-0 flex-1 flex-wrap justify-end'
                     : 'shrink-0',
               )}
             >

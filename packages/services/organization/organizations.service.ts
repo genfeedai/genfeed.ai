@@ -310,6 +310,7 @@ export class OrganizationsService extends BaseService<Organization> {
         if (query?.page && pagination) {
           PagesService.setCurrentPage(pagination.page);
           PagesService.setTotalPages(pagination.pages);
+          PagesService.setTotalDocs(pagination.total ?? 0);
         }
 
         const activities = this.extractCollection<Partial<IActivity>>(document);

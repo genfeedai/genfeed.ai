@@ -1,15 +1,19 @@
 import {
   ActivityKey,
   getActivityMessageDescriptor,
+  IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  getActivityAssetId,
   getActivityCreditAmount,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
+  getActivityMediaPreviewUrl,
   getActivitySourceLabel,
   getActivityTypeKind,
 } from './activities-list.utils';
@@ -103,5 +107,28 @@ describe('getActivityDescription', () => {
 
     expect(getActivitySourceLabel(activity.source)).toBe('Prompt creation');
     expect(getActivityCreditAmount(activity)).toBe(1);
+  });
+
+  it('derives a CDN preview from the ingredient id when the row is not populated', () => {
+    const activity = {
+      entityId: 'ing-42',
+      entityModel: 'Ingredient',
+      key: ActivityKey.IMAGE_PROCESSING,
+      value: JSON.stringify({ ingredientId: 'ing-42', type: 'generation' }),
+    } as IActivity;
+
+    expect(getActivityAssetId(activity)).toBe('ing-42');
+    expect(getActivityMediaPreviewUrl(activity)).toBe(
+      `${EnvironmentService.ingredientsEndpoint}/images/ing-42`,
+    );
+    expect(
+      getActivityMediaPreviewUrl(activity, {
+        resultType: IngredientCategory.VIDEO,
+        status: 'completed',
+      }),
+    ).toBe(`${EnvironmentService.cdnUrl}/ingredients/thumbnails/ing-42`);
+    expect(
+      getActivityMediaPreviewUrl(activity, { status: 'failed' }),
+    ).toBeUndefined();
   });
 });

@@ -104,7 +104,7 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
-        { params: { ...query, brand: id } },
+        { params: { ...query, brandId: id } },
       )
       .then((res) => {
         const document = res.data;
@@ -113,6 +113,7 @@ export class BrandsService extends BaseService<Brand> {
         if (query?.page && pagination) {
           PagesService.setCurrentPage(pagination.page);
           PagesService.setTotalPages(pagination.pages);
+          PagesService.setTotalDocs(pagination.total ?? 0);
         }
 
         return deserializeCollection<Partial<IActivity>>(document).map(

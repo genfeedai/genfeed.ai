@@ -93,6 +93,7 @@ describe('OrganizationsService HTTP methods', () => {
 
     it('findOrganizationActivities GETs /activities scoped to the organization', async () => {
       const setCurrentPage = vi.spyOn(PagesService, 'setCurrentPage');
+      const setTotalDocs = vi.spyOn(PagesService, 'setTotalDocs');
       http.get.mockResolvedValue(
         axiosResponse(
           collectionDocument([{ id: 'activity_1', key: 'post.created' }], {
@@ -110,6 +111,7 @@ describe('OrganizationsService HTTP methods', () => {
         { params: { organizationId: orgId, page: 1 } },
       );
       expect(setCurrentPage).toHaveBeenCalledWith(1);
+      expect(setTotalDocs).toHaveBeenCalledWith(12);
       expect(result[0].id).toBe('activity_1');
     });
   });

@@ -253,7 +253,7 @@ describe('BrandsService', () => {
 
       expect(mockGet).toHaveBeenCalledWith(
         expect.stringContaining('/activities'),
-        { params: { brand: mockBrandId } },
+        { params: { brandId: mockBrandId } },
       );
     });
 
@@ -266,7 +266,7 @@ describe('BrandsService', () => {
       expect(mockGet).toHaveBeenCalledWith(
         expect.stringContaining('/activities'),
         {
-          params: { ...query, brand: mockBrandId },
+          params: { ...query, brandId: mockBrandId },
         },
       );
     });
