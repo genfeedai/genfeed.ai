@@ -306,6 +306,27 @@ export class BaseQueryNormalizationAdapter {
     return alias ?? trimmed.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   }
 
+  /**
+   * Query-string filters arrive as `"true"` / `"false"`. Prisma Boolean
+   * columns reject those strings. `is*` / `has*` is the repo boolean naming
+   * contract, so coerce only those keys that actually exist on the model.
+   */
+  private coerceBooleanScalarValue(fieldName: string, value: unknown): unknown {
+    if (typeof value !== 'string' || !/^(is|has)[A-Z]/.test(fieldName)) {
+      return value;
+    }
+    if (!this.fieldExists(fieldName)) {
+      return value;
+    }
+    if (value === 'true' || value === '1') {
+      return true;
+    }
+    if (value === 'false' || value === '0') {
+      return false;
+    }
+    return value;
+  }
+
   private normalizeEnumScalarValue(fieldName: string, value: unknown): unknown {
     if (typeof value !== 'string') {
       return value;
@@ -335,7 +356,10 @@ export class BaseQueryNormalizationAdapter {
 
   private normalizeOperatorValue(fieldName: string, value: unknown): unknown {
     if (!this.isPlainObject(value)) {
-      return this.normalizeEnumScalarValue(fieldName, value);
+      return this.normalizeEnumScalarValue(
+        fieldName,
+        this.coerceBooleanScalarValue(fieldName, value),
+      );
     }
 
     const operators = value as Record<string, unknown>;

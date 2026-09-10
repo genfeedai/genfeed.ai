@@ -11,10 +11,14 @@ import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategi
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { AgentStrategySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -26,6 +30,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -72,12 +77,14 @@ export class AgentStrategiesController extends BaseCRUDController<
       match.platforms = query.platform;
     }
 
-    if (query.isActive !== undefined) {
-      match.isActive = query.isActive;
+    const isActive = parseOptionalBoolean(query.isActive);
+    if (isActive !== undefined) {
+      match.isActive = isActive;
     }
 
-    if (query.isEnabled !== undefined) {
-      match.isEnabled = query.isEnabled;
+    const isEnabled = parseOptionalBoolean(query.isEnabled);
+    if (isEnabled !== undefined) {
+      match.isEnabled = isEnabled;
     }
 
     if (query.agentType) {
@@ -109,6 +116,20 @@ export class AgentStrategiesController extends BaseCRUDController<
     }
 
     return Boolean(user?.isSuperAdmin);
+  }
+
+  /**
+   * Bind the concrete query DTO so ValidationPipe transforms `?isActive=true`.
+   * The generic `@Query() query: QueryDto` on BaseCRUDController erases the
+   * metatype, so query-string booleans would otherwise reach Prisma as strings.
+   */
+  @Get()
+  override async findAll(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: AgentStrategiesQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    return super.findAll(request, user, query);
   }
 
   /**

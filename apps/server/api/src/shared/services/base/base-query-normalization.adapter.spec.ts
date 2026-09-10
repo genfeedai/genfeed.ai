@@ -123,6 +123,26 @@ describe('BaseQueryNormalizationAdapter', () => {
     ).toEqual({ organizationId: 'org-1' });
   });
 
+  it('coerces query-string booleans on is*/has* model fields', () => {
+    getModelMetaMock.mockReturnValue(
+      makeModelMeta('id', 'isActive', 'isDeleted', 'label'),
+    );
+
+    expect(
+      adapter.normalizeWhere({
+        isActive: 'true',
+        isDeleted: 'false',
+        label: 'true',
+        organizationId: 'org-1',
+      }),
+    ).toEqual({
+      isActive: true,
+      isDeleted: false,
+      label: 'true',
+      organizationId: 'org-1',
+    });
+  });
+
   it('preserves an explicit empty OR as a no-match filter', () => {
     expect(adapter.normalizeWhere({ OR: [], organizationId: 'org-1' })).toEqual(
       { OR: [], organizationId: 'org-1' },
