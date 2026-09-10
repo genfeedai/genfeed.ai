@@ -315,7 +315,7 @@ describe('ads-insights-range.util', () => {
 
   describe('emptyUnifiedInsights', () => {
     it('returns the same zero fields for every ads platform', () => {
-      expect(emptyUnifiedInsights('google')).toEqual({
+      expect(emptyUnifiedInsights(AdsPlatform.GOOGLE)).toEqual({
         clicks: 0,
         cpc: 0,
         cpm: 0,
@@ -326,7 +326,7 @@ describe('ads-insights-range.util', () => {
         platform: AdsPlatform.GOOGLE,
         spend: 0,
       });
-      expect(emptyUnifiedInsights('tiktok')).toEqual({
+      expect(emptyUnifiedInsights(AdsPlatform.TIKTOK)).toEqual({
         clicks: 0,
         cpc: 0,
         cpm: 0,
@@ -337,7 +337,7 @@ describe('ads-insights-range.util', () => {
         platform: AdsPlatform.TIKTOK,
         spend: 0,
       });
-      expect(emptyUnifiedInsights('meta')).toEqual({
+      expect(emptyUnifiedInsights(AdsPlatform.META)).toEqual({
         clicks: 0,
         cpc: 0,
         cpm: 0,

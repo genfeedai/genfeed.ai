@@ -91,15 +91,15 @@ describe('AdsGatewayService', () => {
 
   describe('getAdapter', () => {
     it('returns the meta adapter', () => {
-      expect(service.getAdapter('meta')).toBe(metaAdapter);
+      expect(service.getAdapter(AdsPlatform.META)).toBe(metaAdapter);
     });
 
     it('returns the google adapter', () => {
-      expect(service.getAdapter('google')).toBe(googleAdapter);
+      expect(service.getAdapter(AdsPlatform.GOOGLE)).toBe(googleAdapter);
     });
 
     it('returns the tiktok adapter', () => {
-      expect(service.getAdapter('tiktok')).toBe(tiktokAdapter);
+      expect(service.getAdapter(AdsPlatform.TIKTOK)).toBe(tiktokAdapter);
     });
 
     it('throws BadRequestException for unsupported platform', () => {

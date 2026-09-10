@@ -433,8 +433,10 @@ describe('brand remix platform enums', () => {
       BrandRemixAdPlatform.GOOGLE,
       BrandRemixAdPlatform.TIKTOK,
       BrandRemixAdPlatform.X,
+      BrandRemixOrganicPlatform.TIKTOK,
       BrandRemixOrganicPlatform.INSTAGRAM,
       BrandRemixOrganicPlatform.YOUTUBE,
+      BrandRemixOrganicPlatform.X,
     ]);
   });
 
@@ -446,6 +448,10 @@ describe('brand remix platform enums', () => {
       false,
     );
     expect(isBrandRemixSourcePlatform(BrandRemixOrganicPlatform.YOUTUBE)).toBe(
+      true,
+    );
+    expect(isBrandRemixSourcePlatform(BrandRemixOrganicPlatform.X)).toBe(true);
+    expect(isBrandRemixSourcePlatform(BrandRemixOrganicPlatform.TIKTOK)).toBe(
       true,
     );
     expect(isBrandRemixSourcePlatform('twitter')).toBe(false);

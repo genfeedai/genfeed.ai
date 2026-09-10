@@ -8,6 +8,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/contracts';
+import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +19,7 @@ const source: ResolvedSource = {
     evidence: [],
     metrics: {},
     pattern: {},
-    platform: 'tiktok',
+    platform: BrandRemixAdPlatform.TIKTOK,
     selector: { kind: 'saved_ad', savedAdId: 'saved-ad-1' },
     sourceId: 'saved-ad-1',
     title: 'Winning ad',

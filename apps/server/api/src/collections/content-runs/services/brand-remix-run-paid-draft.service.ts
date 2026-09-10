@@ -103,7 +103,7 @@ export class BrandRemixRunPaidDraftService {
     run: BrandRemixRunRecord;
     runId: string;
     selectedVariant?: BrandRemixExecution['variants'][number];
-    targetPlatform: 'meta' | 'x';
+    targetPlatform: BrandRemixAdPlatform.META | BrandRemixAdPlatform.X;
     targetPlatformLabel: string;
     view?: BrandRemixRunView;
   }> {
@@ -117,8 +117,12 @@ export class BrandRemixRunPaidDraftService {
       brandId,
     );
     this.assertPaidDraftTarget(config, input);
-    const targetPlatform = config.draft.target.platform as 'meta' | 'x';
-    const targetPlatformLabel = targetPlatform === 'x' ? 'X Ads' : 'Meta';
+    const targetPlatform =
+      config.draft.target.platform === BrandRemixAdPlatform.X
+        ? BrandRemixAdPlatform.X
+        : BrandRemixAdPlatform.META;
+    const targetPlatformLabel =
+      targetPlatform === BrandRemixAdPlatform.X ? 'X Ads' : 'Meta';
     if (config.paidDraft) {
       if (
         config.paidDraft.credentialId !== input.destination.credentialId ||
@@ -231,7 +235,7 @@ export class BrandRemixRunPaidDraftService {
     organizationId: string;
     run: BrandRemixRunRecord;
     runId: string;
-    targetPlatform: 'meta' | 'x';
+    targetPlatform: BrandRemixAdPlatform.META | BrandRemixAdPlatform.X;
   }): Promise<{
     config: BrandRemixRunConfig;
     run: BrandRemixRunRecord;
@@ -360,7 +364,7 @@ export class BrandRemixRunPaidDraftService {
     run: BrandRemixRunRecord;
     runId: string;
     selectedVariant: BrandRemixExecution['variants'][number];
-    targetPlatform: 'meta' | 'x';
+    targetPlatform: BrandRemixAdPlatform.META | BrandRemixAdPlatform.X;
     targetPlatformLabel: string;
   }): Promise<{
     config: BrandRemixRunConfig;
@@ -460,7 +464,7 @@ export class BrandRemixRunPaidDraftService {
     organizationId: string;
     runId: string;
     selectedVariant: BrandRemixExecution['variants'][number];
-    targetPlatform: 'meta' | 'x';
+    targetPlatform: BrandRemixAdPlatform.META | BrandRemixAdPlatform.X;
     userId: string;
   }): Promise<PaidDraftResult> {
     try {
@@ -508,7 +512,7 @@ export class BrandRemixRunPaidDraftService {
     organizationId: string;
     paidDraft: PaidDraftResult;
     runId: string;
-    targetPlatform: 'meta' | 'x';
+    targetPlatform: BrandRemixAdPlatform.META | BrandRemixAdPlatform.X;
   }): Promise<BrandRemixRunView> {
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...params.claimedConfig,

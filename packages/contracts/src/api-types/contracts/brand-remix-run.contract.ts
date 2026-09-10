@@ -61,8 +61,10 @@ export const brandRemixSourcePlatformValues = [
   BrandRemixAdPlatform.GOOGLE,
   BrandRemixAdPlatform.TIKTOK,
   BrandRemixAdPlatform.X,
+  BrandRemixOrganicPlatform.TIKTOK,
   BrandRemixOrganicPlatform.INSTAGRAM,
   BrandRemixOrganicPlatform.YOUTUBE,
+  BrandRemixOrganicPlatform.X,
 ] as const;
 
 export type BrandRemixSourcePlatform =
