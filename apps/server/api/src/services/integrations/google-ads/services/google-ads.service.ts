@@ -594,7 +594,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      let query = `SELECT ad_group.id, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.status, ad_group_ad.ad.final_urls, ad_group_ad.ad.responsive_search_ad.headlines, ad_group_ad.ad.responsive_search_ad.descriptions FROM ad_group_ad`;
+      let query = `SELECT ad_group.id, campaign.advertising_channel_type, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.status, ad_group_ad.ad.final_urls, ad_group_ad.ad.responsive_search_ad.headlines, ad_group_ad.ad.responsive_search_ad.descriptions, ad_group_ad.ad.video_responsive_ad.headlines, ad_group_ad.ad.video_responsive_ad.long_headlines, ad_group_ad.ad.video_ad.video.asset FROM ad_group_ad`;
       if (adGroupId) {
         query += ` WHERE ad_group.id = ${adGroupId}`;
       }
@@ -602,6 +602,7 @@ export class GoogleAdsService {
 
       const results = await this.executeGaql<{
         adGroup: { id: string };
+        campaign?: { advertisingChannelType?: string };
         adGroupAd: {
           status: string;
           ad: {
@@ -612,26 +613,95 @@ export class GoogleAdsService {
               headlines?: Array<{ text?: string }>;
               descriptions?: Array<{ text?: string }>;
             };
+            videoResponsiveAd?: {
+              headlines?: Array<{ text?: string }>;
+              longHeadlines?: Array<{ text?: string }>;
+            };
+            videoAd?: { video?: { asset?: string } };
           };
         };
       }>(accessToken, customerId, query, loginCustomerId);
 
-      return results.map((row) => ({
-        adGroupId: row.adGroup.id,
-        descriptions: (row.adGroupAd.ad.responsiveSearchAd?.descriptions || [])
-          .map((description) => description.text || '')
-          .filter(Boolean),
-        finalUrls: row.adGroupAd.ad.finalUrls,
-        headlines: (row.adGroupAd.ad.responsiveSearchAd?.headlines || [])
+      const youtubeVideoIds = await this.listYoutubeVideoIdsByAsset(
+        accessToken,
+        customerId,
+        loginCustomerId,
+      );
+
+      return results.map((row) => {
+        const videoHeadlines = (
+          row.adGroupAd.ad.videoResponsiveAd?.headlines || []
+        )
           .map((headline) => headline.text || '')
-          .filter(Boolean),
-        id: row.adGroupAd.ad.id,
-        name: row.adGroupAd.ad.name,
-        status: row.adGroupAd.status,
-      }));
+          .filter(Boolean);
+        const videoLongHeadlines = (
+          row.adGroupAd.ad.videoResponsiveAd?.longHeadlines || []
+        )
+          .map((headline) => headline.text || '')
+          .filter(Boolean);
+        const searchHeadlines = (
+          row.adGroupAd.ad.responsiveSearchAd?.headlines || []
+        )
+          .map((headline) => headline.text || '')
+          .filter(Boolean);
+        const assetName = row.adGroupAd.ad.videoAd?.video?.asset;
+        return {
+          adGroupId: row.adGroup.id,
+          advertisingChannelType: row.campaign?.advertisingChannelType,
+          descriptions: (
+            row.adGroupAd.ad.responsiveSearchAd?.descriptions || []
+          )
+            .map((description) => description.text || '')
+            .filter(Boolean),
+          finalUrls: row.adGroupAd.ad.finalUrls,
+          headlines:
+            searchHeadlines.length > 0
+              ? searchHeadlines
+              : videoHeadlines.length > 0
+                ? videoHeadlines
+                : videoLongHeadlines,
+          id: row.adGroupAd.ad.id,
+          name: row.adGroupAd.ad.name,
+          status: row.adGroupAd.status,
+          youtubeVideoId: assetName
+            ? youtubeVideoIds.get(assetName)
+            : undefined,
+        };
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
+    }
+  }
+
+  private async listYoutubeVideoIdsByAsset(
+    accessToken: string,
+    customerId: string,
+    loginCustomerId?: string,
+  ): Promise<Map<string, string>> {
+    try {
+      const assets = await this.executeGaql<{
+        asset: {
+          resourceName?: string;
+          youtubeVideoAsset?: { youtubeVideoId?: string };
+        };
+      }>(
+        accessToken,
+        customerId,
+        `SELECT asset.resource_name, asset.youtube_video_asset.youtube_video_id FROM asset WHERE asset.type = 'YOUTUBE_VIDEO'`,
+        loginCustomerId,
+      );
+      const ids = new Map<string, string>();
+      for (const row of assets) {
+        const resourceName = row.asset.resourceName;
+        const youtubeVideoId = row.asset.youtubeVideoAsset?.youtubeVideoId;
+        if (resourceName && youtubeVideoId) {
+          ids.set(resourceName, youtubeVideoId);
+        }
+      }
+      return ids;
+    } catch {
+      return new Map();
     }
   }
 

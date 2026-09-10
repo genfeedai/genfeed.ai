@@ -317,7 +317,11 @@ export function useAdsResearchPageClient() {
         }
 
         if (effectivePlatform === 'google') {
-          if (value === 'google_ads' || value === 'google') {
+          if (
+            value === 'google_ads' ||
+            value === 'google-ads' ||
+            value === 'google'
+          ) {
             options.push(credential as CredentialOption);
           }
           return options;
@@ -341,6 +345,7 @@ export function useAdsResearchPageClient() {
           value === 'facebook' ||
           value === 'meta' ||
           value === 'google_ads' ||
+          value === 'google-ads' ||
           value === 'google' ||
           value === 'tiktok' ||
           value === 'tiktok_ads' ||

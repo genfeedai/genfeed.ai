@@ -294,8 +294,12 @@ export class GoogleAdsAdapter implements IAdsAdapter {
       adSetId: ad.adGroupId,
       creative: {
         body: ad.descriptions?.[0],
+        imageUrl: ad.youtubeVideoId
+          ? `https://img.youtube.com/vi/${ad.youtubeVideoId}/hqdefault.jpg`
+          : undefined,
         linkUrl: ad.finalUrls?.[0],
         title: ad.headlines?.[0],
+        videoId: ad.youtubeVideoId,
       },
       id: ad.id,
       name: ad.name,

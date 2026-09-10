@@ -426,14 +426,106 @@ export class AdsResearchService {
     filters: AdsResearchFilters,
   ): Promise<AdsResearchItem[]> {
     if (!filters.platform || !filters.credentialId || !filters.adAccountId) {
+      return this.discoverConnectedAds(organizationId, filters);
+    }
+
+    return this.loadConnectedAdsForAccount(organizationId, {
+      adAccountId: filters.adAccountId,
+      channel: filters.channel,
+      credentialId: filters.credentialId,
+      limit: filters.limit,
+      loginCustomerId: filters.loginCustomerId,
+      metric: filters.metric,
+      platform: filters.platform,
+      timeframe: filters.timeframe,
+    });
+  }
+
+  private async discoverConnectedAds(
+    organizationId: string,
+    filters: AdsResearchFilters,
+  ): Promise<AdsResearchItem[]> {
+    if (!filters.brandId) {
       return [];
     }
 
-    const adAccountId = filters.adAccountId;
-    const credentialId = filters.credentialId;
+    const platforms: AdsResearchPlatform[] = filters.platform
+      ? [filters.platform]
+      : ['google', 'meta', 'tiktok', 'x'];
+    const items: AdsResearchItem[] = [];
+    const limit = filters.limit ?? 12;
+
+    for (const platform of platforms) {
+      const credentials = await this.credentialsService.findConnectedAccounts(
+        organizationId,
+        filters.brandId,
+        mapAdsCredentialPlatform(platform),
+      );
+      for (const credential of credentials) {
+        if (filters.credentialId && credential.id !== filters.credentialId) {
+          continue;
+        }
+        try {
+          const context = await this.buildContext(organizationId, {
+            adAccountId: filters.adAccountId || credential.externalId || '',
+            credentialId: credential.id,
+            loginCustomerId: filters.loginCustomerId,
+            platform,
+          });
+          const adapter = this.adsGatewayService.getAdapter(platform);
+          const accounts = filters.adAccountId
+            ? [{ id: filters.adAccountId, status: 'ACTIVE' }]
+            : await adapter.getAdAccounts(context);
+          const managers = accounts.filter(
+            (account) => account.status === 'MANAGER',
+          );
+          const clients = accounts.filter(
+            (account) => account.status !== 'MANAGER',
+          );
+          const targets = (clients.length > 0 ? clients : accounts).slice(0, 3);
+          const loginCustomerId = filters.loginCustomerId || managers[0]?.id;
+          for (const account of targets) {
+            const loaded = await this.loadConnectedAdsForAccount(
+              organizationId,
+              {
+                adAccountId: account.id,
+                channel: filters.channel,
+                credentialId: credential.id,
+                limit,
+                loginCustomerId,
+                metric: filters.metric,
+                platform,
+                timeframe: filters.timeframe,
+              },
+            );
+            items.push(...loaded);
+            if (items.length >= limit) {
+              return items.slice(0, limit);
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return items.slice(0, limit);
+  }
+
+  private async loadConnectedAdsForAccount(
+    organizationId: string,
+    filters: {
+      adAccountId: string;
+      channel?: AdsChannel;
+      credentialId: string;
+      limit?: number;
+      loginCustomerId?: string;
+      metric?: AdsResearchMetric;
+      platform: AdsResearchPlatform;
+      timeframe?: AdsResearchFilters['timeframe'];
+    },
+  ): Promise<AdsResearchItem[]> {
     const context = await this.buildContext(organizationId, {
-      adAccountId,
-      credentialId,
+      adAccountId: filters.adAccountId,
+      credentialId: filters.credentialId,
       loginCustomerId: filters.loginCustomerId,
       platform: filters.platform,
     });
@@ -448,17 +540,27 @@ export class AdsResearchService {
     ]);
 
     const adMap = new Map(ads.map((ad) => [ad.id, ad]));
-    return topPerformers.map((performer) =>
+    const ranked =
+      topPerformers.length > 0
+        ? topPerformers
+        : ads.map((ad) => ({
+            id: ad.id,
+            insights: undefined,
+            metric: undefined,
+            name: ad.name,
+            value: undefined,
+          }));
+    return ranked.map((performer) =>
       this.mapConnectedItem({
-        ad: adMap.get(performer.id),
-        adAccountId,
+        ad: adMap.get(performer.id) ?? ads.find((ad) => ad.id === performer.id),
+        adAccountId: filters.adAccountId,
         channel: filters.channel,
-        credentialId,
+        credentialId: filters.credentialId,
         insightMetric: performer.metric,
         loginCustomerId: filters.loginCustomerId,
         metricValue: performer.value,
         name: performer.name,
-        platform: filters.platform as AdsResearchPlatform,
+        platform: filters.platform,
         sourceId: performer.id,
         topInsights: performer.insights,
       }),
@@ -519,7 +621,10 @@ export class AdsResearchService {
         headline: ad.creative?.title,
         imageUrls: ad.creative?.imageUrl ? [ad.creative.imageUrl] : [],
         landingPageUrl: ad.creative?.linkUrl,
-        videoUrls: [],
+        videoUrls:
+          params.platform === 'google' && ad.creative?.videoId
+            ? [`https://www.youtube.com/watch?v=${ad.creative.videoId}`]
+            : [],
       },
     };
   }
@@ -725,8 +830,18 @@ export class AdsResearchService {
 
   private mapConnectedItem(params: ConnectedItemParams): AdsResearchItem {
     const creative = params.ad?.creative;
+    const videoUrl =
+      params.platform === 'google' && creative?.videoId
+        ? `https://www.youtube.com/watch?v=${creative.videoId}`
+        : undefined;
     const channel =
-      params.platform === 'google' ? params.channel || 'search' : 'all';
+      params.platform === 'google'
+        ? params.channel && params.channel !== 'all'
+          ? params.channel
+          : creative?.videoId
+            ? 'youtube'
+            : 'search'
+        : 'all';
 
     return {
       accountId: params.adAccountId,
@@ -760,13 +875,13 @@ export class AdsResearchService {
       metricValue: params.metricValue,
       patternSummary: [],
       platform: params.platform,
-      previewUrl: creative?.imageUrl,
+      previewUrl: creative?.imageUrl || videoUrl,
       source: 'my_accounts',
       sourceId: params.sourceId,
       sourceLabel: 'Connected account',
       status: params.ad?.status,
       title: params.name || params.ad?.name || 'Connected ad',
-      videoUrls: [],
+      videoUrls: videoUrl ? [videoUrl] : [],
     };
   }
 

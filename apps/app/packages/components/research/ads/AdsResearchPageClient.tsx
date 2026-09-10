@@ -235,7 +235,7 @@ export default function AdsResearchPageClient() {
         <CardEmpty
           icon={Megaphone}
           label="Connect Meta, Google/YouTube, TikTok, or X Ads"
-          description="Meta uses Facebook OAuth; Google/YouTube Ads, TikTok Ads, and X Ads each need their ad credentials. Public winners can appear without a connection; your campaigns show after you connect and pick an ad account in Filters."
+          description="Meta uses Facebook OAuth. Google Ads covers Search, Display, and YouTube from one connection. TikTok Ads and X Ads need their own credentials. Public winners can appear without a connection; your campaigns load once an ad account is linked."
           actions={
             <Button
               asChild

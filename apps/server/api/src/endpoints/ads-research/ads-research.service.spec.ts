@@ -52,6 +52,7 @@ describe('AdsResearchService', () => {
     findAll: vi.fn(),
   };
   const credentialsService = {
+    findConnectedAccounts: vi.fn(),
     findOne: vi.fn(),
   };
   const adsGatewayService = {
@@ -71,6 +72,7 @@ describe('AdsResearchService', () => {
     vi.clearAllMocks();
     adPerformanceService.findTopPerformers.mockResolvedValue([]);
     creativePatternsService.findAll.mockResolvedValue([]);
+    credentialsService.findConnectedAccounts.mockResolvedValue([]);
 
     service = new AdsResearchService(
       adPerformanceService as never,
@@ -559,6 +561,54 @@ describe('AdsResearchService', () => {
     expect(result.connectedAds[0]?.previewUrl).toBeUndefined();
     expect(result.connectedAds[0]?.videoUrls).toEqual([]);
     expect(result.connectedAds[0].explanation).toContain('TikTok Ads');
+  });
+
+  it('loads connected Google Ads for the brand without a filter pick', async () => {
+    credentialsService.findConnectedAccounts.mockImplementation(
+      (_organizationId: string, _brandId: string, platform: string) =>
+        Promise.resolve(
+          String(platform).toLowerCase().includes('google')
+            ? [{ id: testId('credential'), externalId: '123' }]
+            : [],
+        ),
+    );
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: 'sealed-token',
+    });
+    const adapter = {
+      getAdAccounts: vi.fn().mockResolvedValue([
+        { id: 'mgr-1', status: 'MANAGER' },
+        { id: 'cust-1', status: 'ACTIVE' },
+      ]),
+      getTopPerformers: vi.fn().mockResolvedValue([]),
+      listAds: vi.fn().mockResolvedValue([
+        {
+          creative: {
+            imageUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
+            title: 'Ship launch',
+            videoId: 'vid-1',
+          },
+          id: 'ad-yt',
+          name: 'YouTube in-feed',
+        },
+      ]),
+    };
+    adsGatewayService.getAdapter.mockReturnValue(adapter);
+
+    const result = await service.listAds('org-1', {
+      brandId: 'brand-1',
+      source: 'my_accounts',
+    });
+
+    expect(credentialsService.findConnectedAccounts).toHaveBeenCalled();
+    expect(adapter.getAdAccounts).toHaveBeenCalled();
+    expect(result.connectedAds).toHaveLength(1);
+    expect(result.connectedAds[0]).toMatchObject({
+      channel: 'youtube',
+      id: 'connected:google:ad-yt',
+      previewUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
+      videoUrls: ['https://www.youtube.com/watch?v=vid-1'],
+    });
   });
 
   it('forwards both OAuth 1.0a credentials to the X Ads gateway adapter', async () => {

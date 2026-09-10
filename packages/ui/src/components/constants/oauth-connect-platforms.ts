@@ -33,9 +33,7 @@ export interface OAuthConnectPlatform {
    */
   connectId?: string;
   /**
-   * Brand mark for this tile. It belongs to the tile, not to {@link platform}:
-   * YouTube Ads authenticates through Google Ads, so resolving the icon from
-   * the credential platform drew a Google "G" on the YouTube Ads card.
+   * Brand mark for this tile. It belongs to the tile, not to {@link platform}.
    */
   Icon: ComponentType<{ className?: string }>;
   /** Brand colour for {@link Icon}. */
@@ -127,7 +125,8 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
  *
  * Ads notes:
  * - Meta Ads reuses Facebook OAuth (ads_management scopes on FACEBOOK).
- * - YouTube Ads reuses Google Ads OAuth (YouTube campaigns live in Google Ads).
+ * - YouTube campaigns are bought in Google Ads. One Google Ads OAuth tile
+ *   covers Search, Display, and YouTube — do not add a second connection.
  *
  * Shared by brand social settings + agent connect menu. Only add a platform
  * here when `POST /v1/services/<path>/connect` is live.
@@ -216,16 +215,6 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     // GoogleColorIcon carries its own brand fills; the class only sizes it.
     iconClassName: 'text-foreground',
     label: 'Google Ads',
-    platform: CredentialPlatform.GOOGLE_ADS,
-    servicePath: 'google-ads',
-  },
-  {
-    category: 'ads',
-    connectId: 'youtube-ads',
-    Icon: YoutubeIcon,
-    iconClassName: 'text-red-500',
-    label: 'YouTube Ads',
-    // YouTube campaigns are bought through Google Ads OAuth.
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
   },

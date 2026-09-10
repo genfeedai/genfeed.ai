@@ -42,9 +42,11 @@ export interface GoogleAdsAd {
   adGroupId: string;
   name: string;
   status: string;
+  advertisingChannelType?: string;
   finalUrls?: string[];
   headlines?: string[];
   descriptions?: string[];
+  youtubeVideoId?: string;
 }
 
 export interface GoogleAdsUpdateCampaignInput {

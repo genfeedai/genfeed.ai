@@ -237,8 +237,10 @@ describe('GoogleAdsAdapter', () => {
         adSetId: 'ag-1',
         creative: {
           body: 'Desc 1',
+          imageUrl: undefined,
           linkUrl: 'https://example.com',
           title: 'Headline 1',
+          videoId: undefined,
         },
         id: 'ad-1',
         name: 'Ad One',
@@ -246,6 +248,30 @@ describe('GoogleAdsAdapter', () => {
         status: 'PAUSED',
       },
     ]);
+  });
+
+  it('maps YouTube video ads to a thumbnail and video id', async () => {
+    googleAdsService.listAds.mockResolvedValue([
+      {
+        adGroupId: 'ag-2',
+        advertisingChannelType: 'VIDEO',
+        headlines: ['Launch cut'],
+        id: 'ad-yt',
+        name: 'YouTube in-feed',
+        status: 'ENABLED',
+        youtubeVideoId: 'vid-1',
+      },
+    ]);
+
+    const result = await adapter.listAds(ctx);
+
+    expect(result[0]?.creative).toEqual({
+      body: undefined,
+      imageUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
+      linkUrl: undefined,
+      title: 'Launch cut',
+      videoId: 'vid-1',
+    });
   });
 
   it('creates ad as responsive search ad', async () => {

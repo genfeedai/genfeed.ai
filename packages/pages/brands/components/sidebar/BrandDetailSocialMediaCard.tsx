@@ -569,9 +569,6 @@ export default function BrandDetailSocialMediaCard({
   const renderIntegrationCard = (item: ResolvedOAuthConnectPlatform) => {
     const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
     const isConnected = platformConnections.length > 0;
-    // The tile owns its brand mark: YouTube Ads and Google Ads share the
-    // GOOGLE_ADS credential, so resolving the icon from the platform drew a
-    // Google "G" on the YouTube Ads card.
     const { Icon } = item;
     const isReconnectDisabled =
       !item.isConnectAvailable || connectingPlatform !== null;
