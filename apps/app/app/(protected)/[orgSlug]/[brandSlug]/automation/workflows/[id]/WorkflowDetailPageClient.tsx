@@ -15,10 +15,7 @@ import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import {
-  ActionNodeInspector,
-  WorkflowEditorShell,
-} from '@genfeedai/workflows/ui';
+import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -35,12 +32,14 @@ import '@/features/workflows/styles/workflow-scope.css';
 import { useTranslations } from 'next-intl';
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
+import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
 import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
+import { useWorkflowActionDefaults } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
@@ -82,6 +81,7 @@ export default function WorkflowDetailPageClient({
   >(null);
   const [workflowRunTracker] = useState(createEditorWorkflowRunTracker);
   const getWorkflowService = useAuthedService(createWorkflowApiService);
+  const actionParameterDefaults = useWorkflowActionDefaults();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeThread = useAgentChatStore((state) =>
     state.threads.find((thread) => thread.id === state.activeThreadId),
@@ -155,6 +155,7 @@ export default function WorkflowDetailPageClient({
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      actionParameterDefaults,
       applyEditOperations,
       executionApiBaseUrl: EnvironmentService.apiEndpoint,
       executionHeaders: getExecutionProviderHeaders,
@@ -190,7 +191,7 @@ export default function WorkflowDetailPageClient({
         },
       },
     }),
-    [getWorkflowService],
+    [actionParameterDefaults, getWorkflowService],
   );
 
   const handlePublish = useCallback(async () => {
@@ -334,7 +335,7 @@ export default function WorkflowDetailPageClient({
                     runId={visibleExecutionPanelId}
                   />
                 ) : (
-                  <ActionNodeInspector />
+                  <CloudActionNodeInspector />
                 )
               }
             />

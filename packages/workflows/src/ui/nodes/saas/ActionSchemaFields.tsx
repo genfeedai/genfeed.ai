@@ -28,6 +28,7 @@ import {
 
 interface ActionSchemaFieldsProps {
   disabled?: boolean;
+  hiddenFields?: ReadonlySet<string>;
   onChange: (field: string, value: unknown) => void;
   schema: object;
   values: Record<string, unknown>;
@@ -240,13 +241,16 @@ function ActionField({
 
 export function ActionSchemaFields({
   disabled = false,
+  hiddenFields,
   onChange,
   schema,
   values,
 }: ActionSchemaFieldsProps) {
   const translate = useTranslations('pages.workflows.actionSchema');
   const { properties, required } = readActionObjectSchema(schema);
-  const entries = Object.entries(properties);
+  const entries = Object.entries(properties).filter(
+    ([field]) => !hiddenFields?.has(field),
+  );
 
   if (entries.length === 0) {
     return (

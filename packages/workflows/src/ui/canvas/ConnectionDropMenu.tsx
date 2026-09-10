@@ -13,6 +13,7 @@ import {
   isCompatibleWorkflowHandle,
   resolveWorkflowNodeDefinition,
 } from '../lib/workflowNodeHandles';
+import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
 
@@ -45,6 +46,7 @@ function ConnectionDropMenuComponent() {
   const { addNode, updateNodeData, findCompatibleHandle, onConnect } =
     useWorkflowStore();
   const reactFlow = useReactFlow();
+  const { actionParameterDefaults } = useWorkflowUIConfig();
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +149,7 @@ function ConnectionDropMenuComponent() {
         updateNodeData(newNodeId, {
           actionId: action.id,
           label: action.label,
-          parameters: {},
+          parameters: actionParameterDefaults?.(action.id) ?? {},
         });
       }
 
@@ -170,6 +172,7 @@ function ConnectionDropMenuComponent() {
       closeConnectionDropMenu();
     },
     [
+      actionParameterDefaults,
       connectionDropMenu,
       reactFlow,
       addNode,

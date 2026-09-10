@@ -26,7 +26,7 @@ describe(relativePath, () => {
 
     expect(source).toContain('<WorkflowEditorSectionTopbar');
     expect(source).toContain('graphChrome=');
-    expect(source).toContain('<ActionNodeInspector />');
+    expect(source).toContain('<CloudActionNodeInspector />');
     expect(source).toContain(
       'workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden',
     );

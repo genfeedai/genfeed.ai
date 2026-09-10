@@ -34,6 +34,7 @@ export {
 } from './hooks';
 // Nodes
 export { BaseNode, nodeTypes } from './nodes';
+export { ActionSchemaFields } from './nodes/saas/ActionSchemaFields';
 // Panels
 export {
   ActionNodeInspector,

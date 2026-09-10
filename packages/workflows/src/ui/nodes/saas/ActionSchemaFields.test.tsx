@@ -88,6 +88,26 @@ describe('ActionSchemaFields with shared controls', () => {
     expect(settings).toHaveAttribute('aria-invalid', 'true');
   });
 
+  it('hides scoped identity fields from the generic schema form', () => {
+    render(
+      <ActionSchemaFields
+        hiddenFields={new Set(['brandId'])}
+        schema={{
+          type: 'object',
+          properties: {
+            brandId: { type: 'string', title: 'Brand Id' },
+            prompt: { type: 'string', title: 'Prompt' },
+          },
+        }}
+        values={{}}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Brand Id')).toBeNull();
+    expect(screen.getByLabelText('Prompt')).toBeTruthy();
+  });
+
   it('opens the shared select by keyboard and commits the selected value', () => {
     const onChange = vi.fn();
     render(
