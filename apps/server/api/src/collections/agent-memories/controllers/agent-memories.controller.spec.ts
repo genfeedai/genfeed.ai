@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -55,7 +56,10 @@ describe('AgentMemoriesController', () => {
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AgentMemoriesController);
     memoriesService = module.get(AgentMemoriesService);
