@@ -151,6 +151,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 onApplyPreset={handleApplyPreset}
                 onCustomize={handleCustomize}
                 onDeletePreset={onDeletePreset}
+                onSavePreset={onSavePreset}
                 onSearch={() => setView('search')}
                 presets={presets}
                 reasons={reasons}

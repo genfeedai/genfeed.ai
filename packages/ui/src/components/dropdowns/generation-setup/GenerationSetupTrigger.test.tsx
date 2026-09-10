@@ -56,7 +56,7 @@ const typeOptions: GenerationSetupTypeOption[] = [
 ];
 
 describe('GenerationSetupTrigger', () => {
-  it('renders the type · Auto · ratio summary when fully agent-owned', () => {
+  it('renders Agent when the type is still agent-owned', () => {
     render(
       <GenerationSetupTrigger
         isOpen={false}
@@ -67,7 +67,8 @@ describe('GenerationSetupTrigger', () => {
     );
 
     const button = screen.getByRole('button');
-    expect(within(button).getByText('Image · Auto · 1:1')).toBeInTheDocument();
+    expect(within(button).getByText('Agent')).toBeInTheDocument();
+    expect(screen.queryByText(/1:1/)).toBeNull();
     expect(button).toHaveClass('border-primary/30', 'bg-primary/5');
   });
 
@@ -77,6 +78,7 @@ describe('GenerationSetupTrigger', () => {
         isOpen={false}
         models={[]}
         setup={createSetup({
+          sources: { type: 'user' },
           values: {
             aspectRatio: '1:1',
             brandingMode: 'off',

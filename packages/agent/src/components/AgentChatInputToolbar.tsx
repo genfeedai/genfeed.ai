@@ -15,6 +15,7 @@ import type {
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   AGENT_GENERATION_SETUP_TYPE_OPTIONS,
+  type AgentGenerationType,
   buildConversationComposerGenerationSettings,
   buildDefaultAgentGenerationSetupValues,
   getAgentGenerationSetupCapabilities,
@@ -99,6 +100,7 @@ export interface AgentChatInputToolbarProps {
   onGenerationSettingsChange: (
     settings: ConversationComposerGenerationSettings,
   ) => void;
+  onFillPrompt?: (prompt: string) => void;
   onSelectAction: (actionName: ConversationComposerActionName) => void;
   onSend: () => void;
   onStartListening: () => void;
@@ -127,6 +129,7 @@ function AgentChatInputToolbarInner({
   onInsertReference,
   onGenerationModeChange,
   onGenerationSettingsChange,
+  onFillPrompt,
   onSelectAction,
   onSend,
   onStartListening,
@@ -150,13 +153,12 @@ function AgentChatInputToolbarInner({
 
   // The setup scope only ever tracks image/video — a brand-new composer
   // starts on image, matching the shared store's own default aspect ratio.
-  const [activeGenerationType, setActiveGenerationType] = useState<
-    'image' | 'video'
-  >(
-    generationMode === AgentGenerationMode.VIDEO
-      ? AgentGenerationMode.VIDEO
-      : AgentGenerationMode.IMAGE,
-  );
+  const [activeGenerationType, setActiveGenerationType] =
+    useState<AgentGenerationType>(
+      generationMode === AgentGenerationMode.VIDEO
+        ? AgentGenerationMode.VIDEO
+        : AgentGenerationMode.IMAGE,
+    );
 
   const scope = buildAgentGenerationSetupScope(threadId, activeGenerationType);
   const defaults = buildDefaultAgentGenerationSetupValues(activeGenerationType);
@@ -166,22 +168,34 @@ function AgentChatInputToolbarInner({
   const reasons =
     useGenerationSetupStore((state) => state.reasonsByScope[scope]) ?? {};
   const setup = setupFromStore ?? { sources: {}, values: defaults };
+  const isTextType = activeGenerationType === 'text';
   const isTypeLocked = hasExplicitAgentGenerationSetup(setup);
   const capabilities =
     getAgentGenerationSetupCapabilities(activeGenerationType);
 
-  // Locked type always generates. Unlocked Auto still generates when the
-  // prompt is an unambiguous image/video request — the LLM does not pick a tool.
+  // Text (and unlocked Agent pick) is conversation. Locked image/video
+  // generate. Unlocked Auto still generates when the prompt is an unambiguous
+  // image/video request — the LLM does not pick a tool.
   useEffect(() => {
+    if (isTextType && isTypeLocked) {
+      onGenerationModeChange(AgentGenerationMode.AUTO);
+      return;
+    }
     onGenerationModeChange(
-      isTypeLocked
+      isTypeLocked && !isTextType
         ? activeGenerationType === 'video'
           ? AgentGenerationMode.VIDEO
           : AgentGenerationMode.IMAGE
         : (inferAgentMediaGenerationModeFromPrompt(promptText) ??
             AgentGenerationMode.AUTO),
     );
-  }, [activeGenerationType, isTypeLocked, onGenerationModeChange, promptText]);
+  }, [
+    activeGenerationType,
+    isTextType,
+    isTypeLocked,
+    onGenerationModeChange,
+    promptText,
+  ]);
 
   // Send-boundary wire shape stays the narrow ConversationComposerGenerationSettings
   // the rest of the send pipeline already expects — only its source moved.
@@ -202,7 +216,7 @@ function AgentChatInputToolbarInner({
       : ModelCategory.IMAGE;
 
   useEffect(() => {
-    if (!apiService) {
+    if (!apiService || isTextType) {
       setRegistryModels([]);
       return;
     }
@@ -215,7 +229,7 @@ function AgentChatInputToolbarInner({
         if (!controller.signal.aborted) setRegistryModels([]);
       });
     return () => controller.abort();
-  }, [apiService, category, organizationId]);
+  }, [apiService, category, isTextType, organizationId]);
   const filteredModels = useMemo(
     () =>
       resolveOrgAllowlistedModels(registryModels, {
@@ -323,15 +337,31 @@ function AgentChatInputToolbarInner({
         agentPresetToGenerationSetupValues(preset),
         defaults,
       );
+      const savedPrompt = preset.promptTemplate?.trim();
+      if (savedPrompt) {
+        onFillPrompt?.(savedPrompt);
+      }
     },
-    [scope, defaults],
+    [defaults, onFillPrompt, scope],
   );
+
+  const lastPromptRef = useRef(promptText);
+  if (promptText.trim()) {
+    lastPromptRef.current = promptText;
+  }
 
   const handleSavePreset = useCallback(
     (label: string) => {
-      void savePreset(label, setup.values);
+      const promptTemplate =
+        promptText.trim() ||
+        lastPromptRef.current.trim() ||
+        setup.values.promptTemplate;
+      void savePreset(label, {
+        ...setup.values,
+        promptTemplate,
+      });
     },
-    [savePreset, setup.values],
+    [promptText, savePreset, setup.values],
   );
 
   const handleDeletePreset = useCallback(

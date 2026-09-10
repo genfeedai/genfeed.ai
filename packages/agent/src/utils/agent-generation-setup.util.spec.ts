@@ -11,13 +11,14 @@ import {
 } from './agent-generation-setup.util';
 
 describe('isAgentGenerationType', () => {
-  it('accepts image and video', () => {
+  it('accepts text, image and video', () => {
+    expect(isAgentGenerationType('text')).toBe(true);
     expect(isAgentGenerationType('image')).toBe(true);
     expect(isAgentGenerationType('video')).toBe(true);
   });
 
   it('rejects other generation types and nullish values', () => {
-    expect(isAgentGenerationType('text')).toBe(false);
+    expect(isAgentGenerationType('music')).toBe(false);
     expect(isAgentGenerationType(undefined)).toBe(false);
     expect(isAgentGenerationType(null)).toBe(false);
   });
@@ -33,6 +34,15 @@ describe('getAgentGenerationSetupCapabilities', () => {
     expect(capabilities.hasModelSelection).toBe(true);
   });
 
+  it('returns text capabilities with no media controls', () => {
+    const capabilities = getAgentGenerationSetupCapabilities('text');
+
+    expect(capabilities.hasOutputs).toBe(false);
+    expect(capabilities.hasDuration).toBe(false);
+    expect(capabilities.hasAspectRatio).toBe(false);
+    expect(capabilities.hasModelSelection).toBe(false);
+  });
+
   it('returns video capabilities with duration but no outputs', () => {
     const capabilities = getAgentGenerationSetupCapabilities('video');
 
@@ -44,8 +54,9 @@ describe('getAgentGenerationSetupCapabilities', () => {
 });
 
 describe('AGENT_GENERATION_SETUP_TYPE_OPTIONS', () => {
-  it('offers exactly image and video', () => {
+  it('offers text, image and video', () => {
     expect(AGENT_GENERATION_SETUP_TYPE_OPTIONS).toEqual([
+      { label: 'Text', value: 'text' },
       { label: 'Image', value: 'image' },
       { label: 'Video', value: 'video' },
     ]);

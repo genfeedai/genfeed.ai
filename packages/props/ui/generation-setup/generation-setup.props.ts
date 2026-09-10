@@ -110,6 +110,7 @@ export interface GenerationSetupFrontDoorProps {
   onApplyPreset: (preset: IStudioLook) => void;
   onCustomize: (section?: GenerationSetupCustomizeSectionId) => void;
   onDeletePreset?: (presetId: string) => void;
+  onSavePreset: (label: string) => void;
   onSearch: () => void;
   presets: readonly IStudioLook[];
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;

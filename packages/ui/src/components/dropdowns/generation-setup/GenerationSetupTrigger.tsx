@@ -31,19 +31,28 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   ...buttonProps
 }: GenerationSetupTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
-  const typeLabel =
-    typeOptions.find((option) => option.value === setup.values.type)?.label ??
-    setup.values.type;
+  const isTypeAgentOwned =
+    !setup.presetId &&
+    setup.sources.type !== 'user' &&
+    setup.sources.type !== 'preset';
+  const isTextType = setup.values.type === 'text';
+
+  const typeLabel = isTypeAgentOwned
+    ? 'Agent'
+    : (typeOptions.find((option) => option.value === setup.values.type)
+        ?.label ?? setup.values.type);
 
   const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
     ? 'Auto'
     : (models.find((model) => model.key === setup.values.modelKey)?.label ??
       setup.values.modelKey);
 
+  const showMediaSummary = !isTypeAgentOwned && !isTextType && hasAspectRatio;
+
   const summaryParts = [
     typeLabel,
-    modelLabel,
-    hasAspectRatio ? setup.values.aspectRatio : undefined,
+    isTypeAgentOwned || isTextType ? undefined : modelLabel,
+    showMediaSummary ? setup.values.aspectRatio : undefined,
   ].filter((part): part is string => Boolean(part));
 
   const isFullyAgentOwned =

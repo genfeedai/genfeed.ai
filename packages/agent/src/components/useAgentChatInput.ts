@@ -911,6 +911,7 @@ export function useAgentChatInput({
     handlePasteImages,
     handleRemoveAttachment,
     handleRemoveReference,
+    fillPrompt: handleTranscript,
     handleInsertReference,
     handleSelectAction,
     handleSelectContentReference,

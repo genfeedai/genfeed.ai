@@ -165,6 +165,7 @@ const UI_TEST_MESSAGES = {
       promptEnhance: 'Prompt enhance',
       searchFields: 'Search fields…',
       searchSetupFields: 'Search setup fields',
+      text: 'Text',
       type: 'Type',
     },
     postingSets: {

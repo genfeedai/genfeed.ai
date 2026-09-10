@@ -278,6 +278,21 @@ describe('AgentChatInputToolbar', () => {
     });
   });
 
+  it('locks conversation when the operator picks Text', async () => {
+    const onGenerationModeChange = vi.fn();
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({ onGenerationModeChange })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lock Text' }));
+
+    await waitFor(() => {
+      expect(onGenerationModeChange).toHaveBeenLastCalledWith('auto');
+    });
+  });
+
   it('keeps unlocked Auto for conversational prompts', async () => {
     const onGenerationModeChange = vi.fn();
     render(

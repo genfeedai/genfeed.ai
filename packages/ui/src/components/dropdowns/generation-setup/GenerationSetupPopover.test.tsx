@@ -350,6 +350,7 @@ describe('GenerationSetupPopover', () => {
       screen.getByRole('button', { name: 'Search setup fields' }),
     ).toBeInTheDocument();
     expect(screen.getByText('No saved presets yet.')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Save as preset…')).toBeInTheDocument();
     expect(
       screen
         .getByRole('img', { name: 'Type: Set by the agent' })

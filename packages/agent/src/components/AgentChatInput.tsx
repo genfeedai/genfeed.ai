@@ -133,6 +133,7 @@ export function AgentChatInput({
     handlePasteImages,
     handleRemoveAttachment,
     handleRemoveReference,
+    fillPrompt,
     handleInsertReference,
     handleSelectAction,
     handleSelectContentReference,
@@ -252,6 +253,7 @@ export function AgentChatInput({
           promptText={promptText}
           onAddFiles={addFiles}
           onInsertReference={handleInsertReference}
+          onFillPrompt={fillPrompt}
           onGenerationModeChange={setGenerationMode}
           onGenerationSettingsChange={setGenerationSettings}
           onSelectAction={handleSelectAction}

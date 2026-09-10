@@ -92,12 +92,17 @@ function resolveType(
   }
 
   const isVideo = matchesAny(prompt, VIDEO_TYPE_KEYWORDS);
-  const value: StudioGenerateType = isVideo ? 'video' : 'image';
-  const reason = isVideo
-    ? 'Prompt describes motion, so this switches to video'
-    : 'Defaulting to a still image for this prompt';
+  if (isVideo) {
+    return {
+      recommendation: {
+        reason: 'Prompt describes motion, so this switches to video',
+        value: 'video',
+      },
+      resolvedType: 'video',
+    };
+  }
 
-  return { recommendation: { reason, value }, resolvedType: value };
+  return { resolvedType: input.type };
 }
 
 function resolveAspectRatio(

@@ -63,6 +63,25 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
     resourceSegment: 'images',
     type: 'image',
   },
+  text: {
+    capabilities: {
+      hasAspectRatio: false,
+      hasBrandEnrichment: true,
+      hasDuration: false,
+      hasIdentity: false,
+      hasLook: false,
+      hasModelSelection: false,
+      hasOutputs: false,
+      hasReferences: false,
+      hasSpeech: false,
+    },
+    elementsType: 'all',
+    ingredientCategory: IngredientCategory.IMAGE,
+    label: 'Text',
+    modelCategory: null,
+    resourceSegment: 'images',
+    type: 'text',
+  },
   music: {
     capabilities: {
       hasAspectRatio: false,
