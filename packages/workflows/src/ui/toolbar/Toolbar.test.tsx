@@ -59,6 +59,7 @@ vi.mock('../stores/workflow', () => ({
         isDirty: false,
         isSaving: false,
         loadWorkflow: stores.loadWorkflow,
+        workflowId: 'wf-1',
         workflowName: 'Shared Workflow',
       };
 

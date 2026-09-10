@@ -60,6 +60,7 @@ vi.mock('../PreviewTooltip', () => ({
 }));
 
 vi.mock('@genfeedai/actions', () => ({
+  ALL_ACTIONS: [],
   getActionDefinition: () => ({
     description: 'Posts for context.',
     id: 'socialRead',

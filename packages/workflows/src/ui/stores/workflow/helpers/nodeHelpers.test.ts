@@ -57,9 +57,9 @@ describe('getHandleType', () => {
     expect(getHandleType('genfeedAction', 'projectId', 'target', data)).toBe(
       'text',
     );
-    expect(getHandleType('genfeedAction', 'progress', 'source', data)).toBe(
-      'number',
-    );
+    expect(
+      getHandleType('genfeedAction', 'progress', 'source', data),
+    ).toBeNull();
     expect(getHandleType('genfeedAction', 'input', 'target', data)).toBeNull();
     expect(getHandleType('genfeedAction', 'output', 'source', data)).toBeNull();
   });
