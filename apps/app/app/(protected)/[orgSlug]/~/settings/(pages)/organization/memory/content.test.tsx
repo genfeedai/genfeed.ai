@@ -16,9 +16,7 @@ describe('organization memory settings content', () => {
       'export default function SettingsOrganizationMemoryPage',
     );
     expect(source).toContain('listOrganization');
-    expect(source).toContain('Promote to skill');
-    expect(source).toContain('Reject promotion');
-    expect(source).toContain('Archive');
+    expect(source).toContain("useTranslations('common.settings.memory')");
     expect(source).toContain('hasOrganizationBillingHint');
   });
 });

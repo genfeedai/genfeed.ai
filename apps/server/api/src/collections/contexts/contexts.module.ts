@@ -3,6 +3,7 @@
  * Brand knowledge storage and semantic retrieval for direct context injection.
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
+import { KnowledgeSourceGovernanceController } from '@api/collections/contexts/controllers/knowledge-source-governance.controller';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
@@ -23,6 +24,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     ContextsController,
+    KnowledgeSourceGovernanceController,
     KnowledgeSourcesController,
     KnowledgeSpacesController,
   ],

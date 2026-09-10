@@ -35,6 +35,11 @@ export class KnowledgeRecordsService {
     if (this.isGovernanceRole(actor.role)) {
       return;
     }
+    if (actor.role) {
+      throw new ForbiddenException(
+        'Knowledge governance requires an organization admin',
+      );
+    }
 
     const member = await this.prisma.member.findFirst({
       select: { role: { select: { key: true } }, roleKey: true },

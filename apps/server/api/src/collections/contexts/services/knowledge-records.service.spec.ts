@@ -20,6 +20,7 @@ import {
   MemberRole,
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
+import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { Request } from 'express';
 import { Pool } from 'pg';
@@ -214,7 +215,7 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     });
     await expect(
       records.purgeVersion(anotherUser, source.id, version.id),
-    ).rejects.toMatchObject({ status: 403 });
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('atomically deduplicates concurrent extension retries and conflicts on changed requests', async () => {

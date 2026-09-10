@@ -18,29 +18,11 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Archive, Lock, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
-function authorLabel(entry: OrgMemoryEntry): string {
-  return (
-    entry.user?.name ||
-    entry.user?.handle ||
-    entry.user?.email ||
-    entry.user?.id ||
-    'Unknown'
-  );
-}
-
-function scopeLabel(scope?: string | null): string {
-  if (scope === 'org') {
-    return 'Organization';
-  }
-  if (scope === 'brand') {
-    return 'Brand';
-  }
-  return scope || 'Unknown';
-}
-
 export default function SettingsOrganizationMemoryPage() {
+  const translate = useTranslations('common.settings.memory');
   const notificationsService = NotificationsService.getInstance();
   const userRole = useUserRole();
   const { orgHref } = useOrgUrl();
@@ -54,6 +36,29 @@ export default function SettingsOrganizationMemoryPage() {
   const [entries, setEntries] = useState<OrgMemoryEntry[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const authorLabel = useCallback(
+    (entry: OrgMemoryEntry): string =>
+      entry.user?.name ||
+      entry.user?.handle ||
+      entry.user?.email ||
+      entry.user?.id ||
+      translate('unknownAuthor'),
+    [translate],
+  );
+
+  const scopeLabel = useCallback(
+    (scope?: string | null): string => {
+      if (scope === 'org') {
+        return translate('scope.org');
+      }
+      if (scope === 'brand') {
+        return translate('scope.brand');
+      }
+      return scope || translate('scope.unknown');
+    },
+    [translate],
+  );
 
   const loadEntries = useCallback(
     async (signal?: AbortSignal) => {
@@ -79,12 +84,12 @@ export default function SettingsOrganizationMemoryPage() {
           return;
         }
         logger.error('GET /agent/memories/organization failed', error);
-        notificationsService.error('Failed to load organization memory');
+        notificationsService.error(translate('notifications.loadFailed'));
         setLoadError(true);
         setEntries([]);
       }
     },
-    [getMemoriesService, isBillingEnabled, notificationsService],
+    [getMemoriesService, isBillingEnabled, notificationsService, translate],
   );
 
   useEffect(() => {
@@ -100,55 +105,55 @@ export default function SettingsOrganizationMemoryPage() {
         const service = await getMemoriesService();
         if (action === 'archive') {
           await service.archive(entry.id);
-          notificationsService.success('Memory archived');
+          notificationsService.success(translate('notifications.archived'));
         } else if (action === 'promote') {
           await service.promote(entry.id);
-          notificationsService.success('Memory promoted to a skill');
+          notificationsService.success(translate('notifications.promoted'));
         } else {
           await service.reject(entry.id);
-          notificationsService.success('Promotion rejected');
+          notificationsService.success(translate('notifications.rejected'));
         }
         await loadEntries();
       } catch (error) {
         logger.error(`Memory ${action} failed`, error);
-        notificationsService.error('Could not update that memory entry');
+        notificationsService.error(translate('error.update'));
       } finally {
         setPendingId(null);
       }
     },
-    [getMemoriesService, loadEntries, notificationsService],
+    [getMemoriesService, loadEntries, notificationsService, translate],
   );
 
   const columns: TableColumn<OrgMemoryEntry>[] = [
     {
-      header: 'Memory',
+      header: translate('columns.memory'),
       key: 'summary',
       render: (entry) => entry.summary || entry.content || '-',
     },
     {
-      header: 'Author',
+      header: translate('columns.author'),
       key: 'user',
       render: authorLabel,
     },
     {
-      header: 'Scope',
+      header: translate('columns.scope'),
       key: 'scope',
       render: (entry) => (
         <Badge variant="secondary">{scopeLabel(entry.scope)}</Badge>
       ),
     },
     {
-      header: 'Status',
+      header: translate('columns.status'),
       key: 'promotedSkillId',
       render: (entry) =>
         entry.promotedSkillId ? (
-          <Badge variant="success">Promoted</Badge>
+          <Badge variant="success">{translate('status.promoted')}</Badge>
         ) : (
-          <Badge variant="secondary">Active</Badge>
+          <Badge variant="secondary">{translate('status.active')}</Badge>
         ),
     },
     {
-      header: 'Created',
+      header: translate('columns.created'),
       key: 'createdAt',
       render: (entry) => (entry.createdAt ? formatDate(entry.createdAt) : '-'),
     },
@@ -160,20 +165,20 @@ export default function SettingsOrganizationMemoryPage() {
         actions={
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-              View subscription
+              {translate('actions.viewSubscription')}
             </Link>
           </Button>
         }
-        description="Shared org memory listing, archive, and skill promotion are available on Cloud and Enterprise."
+        description={translate('billedDescription')}
         icon={Lock}
-        label="Organization memory is a billed feature"
+        label={translate('billedTitle')}
       />
     );
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="sr-only">Organization memory</h1>
+      <h1 className="sr-only">{translate('heading')}</h1>
       <AppTable<OrgMemoryEntry>
         actions={
           canGovern
@@ -184,7 +189,7 @@ export default function SettingsOrganizationMemoryPage() {
                     Boolean(entry.promotedSkillId) || pendingId === entry.id,
                   isVisible: (entry) => !entry.promotedSkillId,
                   onClick: (entry) => void runAction(entry, 'promote'),
-                  tooltip: 'Promote to skill',
+                  tooltip: translate('actions.promote'),
                 },
                 {
                   icon: <X />,
@@ -192,34 +197,34 @@ export default function SettingsOrganizationMemoryPage() {
                     Boolean(entry.promotedSkillId) || pendingId === entry.id,
                   isVisible: (entry) => !entry.promotedSkillId,
                   onClick: (entry) => void runAction(entry, 'reject'),
-                  tooltip: 'Reject promotion',
+                  tooltip: translate('actions.reject'),
                 },
                 {
                   icon: <Archive />,
                   isDisabled: (entry) => pendingId === entry.id,
                   onClick: (entry) => void runAction(entry, 'archive'),
-                  tooltip: 'Archive',
+                  tooltip: translate('actions.archive'),
                 },
               ]
             : []
         }
         columns={columns}
-        description="Brand and organization memory the agent was taught. Personal entries stay private until promoted."
-        emptyLabel="No shared memory yet"
+        description={translate('description')}
+        emptyLabel={translate('empty')}
         error={
           loadError
             ? {
                 onRetry: () => {
                   void loadEntries();
                 },
-                title: 'Could not load organization memory',
+                title: translate('error.load'),
               }
             : undefined
         }
         getRowKey={(entry) => entry.id}
         isLoading={entries === null}
         items={entries ?? []}
-        label="Shared memory"
+        label={translate('table')}
       />
     </div>
   );
