@@ -149,6 +149,7 @@ describe('BrandRemixRunsService', () => {
   } as AuthenticatedUser;
   let remixGraph!: ReturnType<typeof assembleBrandRemixRunsGraph>;
   let service: BrandRemixRunsService;
+  let ingestSourceMedia: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -222,6 +223,7 @@ describe('BrandRemixRunsService', () => {
         workflowActions.set(id, action);
       },
     );
+    ingestSourceMedia = vi.fn().mockResolvedValue({ status: 'skipped' });
     const graph = assembleBrandRemixRunsGraph({
       adsResearchService: adsResearchService as never,
       avatarVideoGenerationService: avatarVideoGenerationService as never,
@@ -236,6 +238,7 @@ describe('BrandRemixRunsService', () => {
       pausedXAdsCampaignDraftService: pausedXAdsCampaignDraftService as never,
       prisma,
       runtime,
+      sourceMedia: { ingest: ingestSourceMedia },
       systemWorkflowRunner: systemWorkflowRunner as never,
       trendReferenceCorpusService: trendReferenceCorpusService as never,
       videoGenerationService: videoGenerationService as never,
@@ -342,6 +345,85 @@ describe('BrandRemixRunsService', () => {
       expect(result.draft.intent.objective).not.toContain(sourcePost.text);
       expect(result.draft.intent.objective).not.toContain('Create an original');
       expect(result.source).toBeUndefined();
+    });
+
+    it('pins ingested source media as an explicit remix reference', async () => {
+      ingestSourceMedia.mockResolvedValue({
+        assetId: 'source-asset-1',
+        category: IngredientCategory.VIDEO,
+        status: 'saved',
+      });
+      contentRun.create.mockImplementation(({ data }) =>
+        Promise.resolve(makeRun(data.config as Record<string, unknown>)),
+      );
+      (
+        prisma.ingredient.findMany as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          category: IngredientCategory.VIDEO,
+          id: 'source-asset-1',
+          status: IngredientStatus.UPLOADED,
+        },
+        {
+          brandId: 'brand-1',
+          category: 'AVATAR',
+          id: 'avatar-1',
+          status: IngredientStatus.GENERATED,
+        },
+        {
+          brandId: 'brand-1',
+          category: 'VOICE',
+          externalVoiceId: 'voice-external-1',
+          id: 'voice-1',
+          isCloned: true,
+          status: IngredientStatus.GENERATED,
+        },
+      ]);
+
+      const result = await service.create(
+        'org-1',
+        'brand-1',
+        { source: { kind: 'source_post', sourcePostId: 'source-post-1' } },
+        'user-1',
+      );
+
+      expect(ingestSourceMedia).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        source: expect.objectContaining({
+          sourceMedia: expect.objectContaining({
+            videoUrls: ['https://media.example/video.mp4'],
+          }),
+        }),
+        userId: 'user-1',
+      });
+      expect(result.draft.references[0]).toEqual({
+        assetId: 'source-asset-1',
+        role: 'reference_video',
+        source: 'explicit',
+      });
+    });
+
+    it('marks source media unavailable without blocking a guided remix', async () => {
+      ingestSourceMedia.mockResolvedValue({ status: 'unavailable' });
+      contentRun.create.mockImplementation(({ data }) =>
+        Promise.resolve(makeRun(data.config as Record<string, unknown>)),
+      );
+
+      const result = await service.create(
+        'org-1',
+        'brand-1',
+        { source: { kind: 'source_post', sourcePostId: 'source-post-1' } },
+        'user-1',
+      );
+
+      expect(result.readiness).toMatchObject({
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: 'source_media_unavailable' }),
+        ]),
+        state: 'degraded',
+      });
     });
 
     it('recommends a brand avatar for vertical video when paired identity defaults are ready', async () => {
