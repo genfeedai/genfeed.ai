@@ -4,7 +4,7 @@ import { AgentMemoryCaptureService } from '@api/collections/agent-memories/servi
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { AnalyticsMetric } from '@genfeedai/contracts';
+import { AnalyticsMetric, KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -164,7 +164,7 @@ export class CampaignWinnerExtractionService {
           dominantTone: patternSummary.tone,
           sampleSize: topContent.length,
         },
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         sourceContentId: String(campaign.id),
         sourceType: 'campaign-winner-extraction',
         summary: `Winner pattern extracted from ${topContent.length} top-performing post(s).`,

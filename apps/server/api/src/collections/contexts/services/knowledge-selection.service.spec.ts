@@ -1,5 +1,8 @@
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
-import { KnowledgeSourcePurpose } from '@genfeedai/contracts';
+import {
+  KnowledgeMemoryScope,
+  KnowledgeSourcePurpose,
+} from '@genfeedai/contracts';
 
 function buildService(memberships: Array<{ sourceId: string }> = []) {
   const findMany = vi.fn().mockResolvedValue(memberships);
@@ -50,8 +53,8 @@ describe('KnowledgeSelectionService', () => {
           is: {
             isDeleted: false,
             OR: [
-              { scope: 'org', brandId: null },
-              { scope: 'brand', brandId: 'brand-1' },
+              { scope: KnowledgeMemoryScope.ORG, brandId: null },
+              { scope: KnowledgeMemoryScope.BRAND, brandId: 'brand-1' },
             ],
           },
         },

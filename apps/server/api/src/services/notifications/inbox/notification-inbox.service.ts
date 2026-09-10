@@ -84,15 +84,19 @@ function hasSystemWorkflowMetadata(metadata: Prisma.JsonValue): boolean {
 }
 
 function inboxSourceHref(
-  organizationSlug: string,
+  organizationSlug: string | null | undefined,
   brandSlug: string | null | undefined,
   path: string,
-): string {
+): string | null {
+  const org = organizationSlug ?? '';
+  if (org.length === 0) {
+    return null;
+  }
   const slug = brandSlug ?? '';
   if (slug.length > 0) {
-    return createBrandAppRoute(organizationSlug, slug, path);
+    return createBrandAppRoute(org, slug, path);
   }
-  return createOrganizationAppRoute(organizationSlug, path);
+  return createOrganizationAppRoute(org, path);
 }
 
 @Injectable()

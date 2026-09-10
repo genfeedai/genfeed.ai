@@ -1,4 +1,5 @@
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
@@ -70,7 +71,7 @@ describe('TaskFeedbackMemoryAdapterService', () => {
         contentType: 'post',
         kind: 'positive_example',
         platform: 'x',
-        scope: 'brand',
+        scope: KnowledgeMemoryScope.BRAND,
         sourceContentId: 'task-1',
         sourceMessageId: 'approved',
         sourceType: 'task_review',
