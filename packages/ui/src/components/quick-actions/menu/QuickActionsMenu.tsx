@@ -13,7 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
+import {
+  QUICK_ACTION_TRIGGER_CLASS,
+  QUICK_ACTION_TRIGGER_SIZE_CLASS,
+} from '@ui/quick-actions/quick-actions.constants';
 import { EllipsisVertical } from 'lucide-react';
 
 const SIZE_CLASSES = {
@@ -45,8 +48,8 @@ export default function QuickActionsMenu({
           size={SIZE_CLASSES[size]}
           className={cn(
             QUICK_ACTION_TRIGGER_CLASS,
-            'text-muted-foreground hover:bg-accent hover:text-foreground',
-            triggerClassName,
+            triggerClassName ?? QUICK_ACTION_TRIGGER_SIZE_CLASS,
+            'text-muted-foreground hover:bg-hover hover:text-foreground',
           )}
           ariaLabel="More"
         >

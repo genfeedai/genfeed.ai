@@ -34,6 +34,39 @@ describe('QuickActionsMenu', () => {
     expect(screen.getByLabelText('More')).toBeInTheDocument();
   });
 
+  it('uses a quiet hover fill instead of a white focus ring', () => {
+    render(
+      <QuickActionsMenu
+        actions={actions}
+        isMenuOpen={false}
+        setIsMenuOpen={vi.fn()}
+        onActionClick={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'More' });
+    expect(trigger.className).toContain('focus-visible:bg-hover');
+    expect(trigger.className).not.toContain('ring-ring');
+    expect(trigger.className).toContain('h-8');
+  });
+
+  it('lets a compact trigger replace the default padded size', () => {
+    render(
+      <QuickActionsMenu
+        actions={actions}
+        isMenuOpen={false}
+        setIsMenuOpen={vi.fn()}
+        onActionClick={vi.fn()}
+        triggerClassName="size-7 p-0"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'More' });
+    expect(trigger).toHaveClass('size-7', 'p-0');
+    expect(trigger.className.split(/\s+/)).not.toContain('h-8');
+    expect(trigger.className).not.toContain('ring-ring');
+  });
+
   it('renders grouped section labels inside the open menu', async () => {
     render(
       <QuickActionsMenu

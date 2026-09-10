@@ -138,4 +138,19 @@ describe('IngredientDownloadButton', () => {
     await waitFor(() => expect(original).toHaveBeenCalledOnce());
     expect(exportMedia).not.toHaveBeenCalled();
   });
+
+  it('matches the compact overlay icon square without a focus ring', () => {
+    render(
+      <IngredientDownloadButton
+        ingredientId="image-1"
+        onDownloadOriginal={vi.fn()}
+        isCompact
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'options' });
+    expect(trigger).toHaveClass('size-7');
+    expect(trigger.className).toContain('focus-visible:bg-hover');
+    expect(trigger.className).not.toContain('ring-ring');
+  });
 });
