@@ -31,6 +31,8 @@ export const ARTICLE_ARTWORK_IDS = {
   'how-to-grow-on-linkedin-with-ai-generated-content': 'card-0020',
   'how-to-grow-on-tiktok-with-ai-generated-content': 'card-0021',
   'how-to-grow-on-youtube-with-ai-generated-content': 'card-0022',
+  'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt':
+    'card-0038',
   'how-to-prompt-ai-content-clear-framework': 'card-0023',
   'how-to-prompt-ai-images-videos-and-audio': 'card-0024',
   'how-to-self-host-ai-content-creation-platform': 'card-0025',
