@@ -2669,7 +2669,7 @@
       "count": 5,
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "5d87b77c637a91ffb235",
-      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"running\" | \"idle\" | \"waiting_input\"'.",
+      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
       "workspace": "api"
     },
     {
@@ -2677,7 +2677,7 @@
       "count": 1,
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "d3c88d723207f66652bb",
-      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"running\" | \"idle\" | \"waiting_input\"'.",
+      "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"idle\" | \"running\" | \"waiting_input\"'.",
       "workspace": "api"
     },
     {
@@ -3017,14 +3017,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
-      "fingerprint": "5dcc775542a5756d2cbd",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 19 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2304,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
@@ -3046,14 +3038,6 @@
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "eb64949acc171a268a18",
       "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
-      "fingerprint": "a9e6dbd7d8d6be9ceec5",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, entityArticleId, entityIngredientId, and 19 more.",
       "workspace": "api"
     },
     {
