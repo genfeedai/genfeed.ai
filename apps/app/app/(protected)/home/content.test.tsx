@@ -573,14 +573,17 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the metric rail chrome with skeleton values while overview data loads', () => {
+  it('renders KPI metric cards with skeleton values while overview data loads', () => {
     mocks.overviewIsLoading = true;
 
     render(<OperationalHomeContent />);
 
     const metrics = screen.getByTestId('operational-home-metrics');
-    expect(metrics).toHaveTextContent('ready to review');
-    expect(metrics).toHaveTextContent('pending posts');
+    expect(metrics).toHaveTextContent('Ready to review');
+    expect(metrics).toHaveTextContent('Pending posts');
+    expect(
+      metrics.querySelectorAll('[data-testid="metric-card"]'),
+    ).toHaveLength(5);
     expect(metrics.querySelectorAll('.animate-pulse')).toHaveLength(2);
   });
 

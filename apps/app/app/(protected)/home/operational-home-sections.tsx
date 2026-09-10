@@ -35,7 +35,8 @@ import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
+import MetricCard, { MetricSummary } from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -795,21 +796,6 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
   );
 }
 
-function metricValue(isLoading: boolean, value: number): ReactNode {
-  if (isLoading) {
-    return (
-      <Skeleton
-        className="inline-block align-middle"
-        height={12}
-        variant="text"
-        width={20}
-      />
-    );
-  }
-
-  return String(value);
-}
-
 export default function OperationalHomeSections({
   brandSlug,
   orgSlug,
@@ -881,31 +867,38 @@ export default function OperationalHomeSections({
       className="flex flex-col gap-4"
       data-testid="operational-home-sections"
     >
-      <MetricSummary
-        data-testid="operational-home-metrics"
-        items={[
-          {
-            label: 'ready to review',
-            value: metricValue(isLoading, reviewInbox.readyCount),
-          },
-          {
-            label: 'pending posts',
-            value: metricValue(isLoading, analytics.pendingPosts ?? 0),
-          },
-          {
-            label: 'active',
-            value: metricValue(areExecutionsLoading, activeExecutions.length),
-          },
-          {
-            label: 'failed today',
-            value: metricValue(areExecutionsLoading, executionStats.failed),
-          },
-          {
-            label: 'need attention',
-            value: metricValue(credentialsLoading, attentionCredentials.length),
-          },
-        ]}
-      />
+      <MetricCardGrid columns={5} data-testid="operational-home-metrics">
+        <MetricCard
+          isLoading={isLoading}
+          label="Ready to review"
+          size="sm"
+          value={String(reviewInbox.readyCount)}
+        />
+        <MetricCard
+          isLoading={isLoading}
+          label="Pending posts"
+          size="sm"
+          value={String(analytics.pendingPosts ?? 0)}
+        />
+        <MetricCard
+          isLoading={areExecutionsLoading}
+          label="Active"
+          size="sm"
+          value={String(activeExecutions.length)}
+        />
+        <MetricCard
+          isLoading={areExecutionsLoading}
+          label="Failed today"
+          size="sm"
+          value={String(executionStats.failed)}
+        />
+        <MetricCard
+          isLoading={credentialsLoading}
+          label="Need attention"
+          size="sm"
+          value={String(attentionCredentials.length)}
+        />
+      </MetricCardGrid>
 
       <NeedsYouSurface
         brandSlug={brandSlug}
