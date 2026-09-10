@@ -12,11 +12,15 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { hasOrganizationBilling } from '@genfeedai/config';
-import { KnowledgeMemoryScope } from '@genfeedai/contracts';
+import {
+  ContentSkillCategory,
+  KnowledgeMemoryScope,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
@@ -304,7 +308,137 @@ export class AgentMemoriesService extends BaseService<
       );
     }
 
-    await findOrThrow(
+    return this.prisma.$transaction(async (tx) => {
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            scope: {
+              in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+            },
+          },
+        },
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
+
+      await tx.agentMemory.updateMany({
+        data: { isDeleted: true },
+        where: {
+          id: memoryId,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+
+      await this.archiveDerivedContextEntries(memory, organizationId, tx);
+      return {
+        ...memory,
+        isDeleted: true,
+      };
+    });
+  }
+
+  async promoteMemory(
+    memoryId: string,
+    organizationId: string,
+    actorUserId: string,
+  ): Promise<AgentMemoryDocument> {
+    if (!hasOrganizationBilling()) {
+      throw new ForbiddenException(
+        'Organization-wide memory promotion requires organization billing.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const memory = (await findOrThrow(
+        tx.agentMemory,
+        {
+          where: {
+            id: memoryId,
+            isDeleted: false,
+            organizationId,
+            scope: {
+              in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+            },
+          },
+        },
+        'Memory entry',
+        memoryId,
+      )) as AgentMemoryDocument;
+
+      if (memory.promotedSkillId) {
+        throw new ConflictException(
+          'This memory has already been promoted into a skill.',
+        );
+      }
+
+      const label = this.skillLabelFor(memory);
+      const promotedAt = new Date();
+      const skill = await tx.skill.create({
+        data: {
+          config: {
+            category: ContentSkillCategory.WRITING,
+            channels: [],
+            defaultInstructions: memory.content ?? label,
+            description: memory.summary || label,
+            isBuiltIn: false,
+            isEnabled: true,
+            modalities: ['text'],
+            name: label,
+            promotedAt: promotedAt.toISOString(),
+            promotedByUserId: actorUserId,
+            slug: `memory-${memoryId}`,
+            source: 'custom',
+            sourceMemoryId: memoryId,
+            status: 'published',
+            workflowStage: 'creation',
+          } as Prisma.InputJsonValue,
+          isDeleted: false,
+          label,
+          organizationId,
+        },
+      });
+
+      const claimed = await tx.agentMemory.updateMany({
+        data: {
+          promotedAt,
+          promotedByUserId: actorUserId,
+          promotedSkillId: skill.id,
+        },
+        where: {
+          id: memoryId,
+          isDeleted: false,
+          organizationId,
+          promotedSkillId: null,
+        },
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException(
+          'This memory has already been promoted into a skill.',
+        );
+      }
+
+      return (await tx.agentMemory.findFirst({
+        where: { id: memoryId, isDeleted: false, organizationId },
+      })) as AgentMemoryDocument;
+    });
+  }
+
+  async rejectMemoryPromotion(
+    memoryId: string,
+    organizationId: string,
+  ): Promise<AgentMemoryDocument> {
+    if (!hasOrganizationBilling()) {
+      throw new ForbiddenException(
+        'Organization-wide memory promotion requires organization billing.',
+      );
+    }
+
+    return findOrThrow(
       this.delegate,
       {
         where: {
@@ -318,12 +452,49 @@ export class AgentMemoriesService extends BaseService<
       },
       'Memory entry',
       memoryId,
-    );
+    ) as Promise<AgentMemoryDocument>;
+  }
 
-    return this.delegate.update({
-      where: { id: memoryId },
+  private async archiveDerivedContextEntries(
+    memory: AgentMemoryDocument,
+    organizationId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const sourceIds = [memory.id, memory.sourceContentId].filter(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    );
+    if (sourceIds.length === 0) {
+      return;
+    }
+
+    await tx.contextEntry.updateMany({
       data: { isDeleted: true },
-    }) as Promise<AgentMemoryDocument>;
+      where: {
+        isDeleted: false,
+        organizationId,
+        OR: sourceIds.map((sourceId) => ({
+          data: {
+            equals: sourceId,
+            path: ['metadata', 'sourceId'],
+          },
+        })),
+      },
+    });
+  }
+
+  private skillLabelFor(memory: AgentMemoryDocument): string {
+    const summary =
+      typeof memory.summary === 'string' ? memory.summary.trim() : '';
+    if (summary) {
+      return summary.slice(0, 140);
+    }
+    const content =
+      typeof memory.content === 'string' ? memory.content.trim() : '';
+    if (content) {
+      return content.slice(0, 140);
+    }
+    return `Promoted memory ${memory.id}`;
   }
 
   private normalizeKind(value?: string): AgentMemoryKind {

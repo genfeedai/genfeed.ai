@@ -4,7 +4,6 @@ import { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-
 import {
   KnowledgeEligibilityDto,
   KnowledgeProcessingDto,
-  KnowledgePurgeScheduleDto,
   KnowledgeVerificationDto,
 } from '@api/collections/contexts/dto/knowledge-lifecycle.dto';
 import { KnowledgeListDto } from '@api/collections/contexts/dto/knowledge-list.dto';
@@ -412,60 +411,6 @@ export class KnowledgeSourcesController {
         id,
         dto.verifiedAt,
         dto.expiresAt,
-      ),
-    );
-  }
-
-  @Post(':sourceId/versions/:versionId/schedule-purge')
-  @ApiQuery({
-    name: 'brandId',
-    required: false,
-    type: String,
-    description:
-      'Selected brand in the authenticated organization; omit for organization scope',
-  })
-  async schedule(
-    @Req() request: Request,
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('sourceId') sourceId: string,
-    @Param('versionId') id: string,
-    @Body() dto: KnowledgePurgeScheduleDto,
-    @Query('brandId') brandId?: string,
-  ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceVersionSerializer,
-      await this.records.schedulePurge(
-        resolveKnowledgeActor(user, brandId),
-        sourceId,
-        id,
-        dto.purgeScheduledAt,
-      ),
-    );
-  }
-
-  @Post(':sourceId/versions/:versionId/purge')
-  @ApiQuery({
-    name: 'brandId',
-    required: false,
-    type: String,
-    description:
-      'Selected brand in the authenticated organization; omit for organization scope',
-  })
-  async purge(
-    @Req() request: Request,
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('sourceId') sourceId: string,
-    @Param('versionId') id: string,
-    @Query('brandId') brandId?: string,
-  ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceVersionSerializer,
-      await this.records.purgeVersion(
-        resolveKnowledgeActor(user, brandId),
-        sourceId,
-        id,
       ),
     );
   }

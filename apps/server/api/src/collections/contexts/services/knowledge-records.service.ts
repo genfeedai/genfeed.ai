@@ -13,17 +13,52 @@ import {
   KnowledgeRetentionPolicy,
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
+  MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 
 @Injectable()
 export class KnowledgeRecordsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isGovernanceRole(role: string | undefined): boolean {
+    return role === MemberRole.OWNER || role === MemberRole.ADMIN;
+  }
+
+  private async assertCanGovern(actor: KnowledgeActor): Promise<void> {
+    if (this.isGovernanceRole(actor.role)) {
+      return;
+    }
+    if (actor.role) {
+      throw new ForbiddenException(
+        'Knowledge governance requires an organization admin',
+      );
+    }
+
+    const member = await this.prisma.member.findFirst({
+      select: { role: { select: { key: true } }, roleKey: true },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        userId: actor.userId,
+      },
+    });
+    const role = member?.roleKey ?? member?.role?.key;
+    if (this.isGovernanceRole(role)) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Knowledge governance requires an organization admin',
+    );
+  }
 
   private ownership(
     actor: KnowledgeActor,
@@ -790,13 +825,18 @@ export class KnowledgeRecordsService {
     });
   }
 
-  schedulePurge(
+  async schedulePurge(
     actor: KnowledgeActor,
     sourceId: string,
     id: string,
     purgeScheduledAt: string,
   ) {
+    await this.assertCanGovern(actor);
     return this.mutateVersion(actor, sourceId, id, (version) => {
+      if (version.isLegalHold)
+        throw new BadRequestException(
+          'A legal hold prevents scheduling purge for this version',
+        );
       if (
         version.retentionState !== KnowledgeRetentionState.RETAINED &&
         version.retentionState !== KnowledgeRetentionState.SCHEDULED_FOR_PURGE
@@ -810,18 +850,61 @@ export class KnowledgeRecordsService {
   }
 
   /** Purge clears payload, provenance and every derived chunk; receipt identity stays. */
-  purgeVersion(actor: KnowledgeActor, sourceId: string, id: string) {
+  async purgeVersion(actor: KnowledgeActor, sourceId: string, id: string) {
+    await this.assertCanGovern(actor);
     return this.mutateVersion(
       actor,
       sourceId,
       id,
       (version) => {
+        if (version.isLegalHold)
+          throw new BadRequestException(
+            'A legal hold prevents purging this version',
+          );
         if (version.retentionState === KnowledgeRetentionState.POLICY_ERASED)
           ErrorResponse.notFound('Knowledge source version', id);
         return {
           payload: Prisma.DbNull,
           provenance: Prisma.DbNull,
           retentionState: KnowledgeRetentionState.PAYLOAD_PURGED,
+          purgedAt: version.purgedAt ?? new Date(),
+        };
+      },
+      (tx) =>
+        softDeleteKnowledgeChunks(tx, actor.organizationId, {
+          versionId: id,
+        }).then(() => undefined),
+    );
+  }
+
+  async setLegalHold(
+    actor: KnowledgeActor,
+    sourceId: string,
+    id: string,
+    isLegalHold: boolean,
+  ) {
+    await this.assertCanGovern(actor);
+    return this.mutateVersion(actor, sourceId, id, () => ({
+      isLegalHold,
+    }));
+  }
+
+  /** Policy erasure removes payload and chunks and marks the receipt unavailable. */
+  async eraseVersion(actor: KnowledgeActor, sourceId: string, id: string) {
+    await this.assertCanGovern(actor);
+    return this.mutateVersion(
+      actor,
+      sourceId,
+      id,
+      (version) => {
+        if (version.isLegalHold)
+          throw new BadRequestException(
+            'A legal hold prevents erasing this version',
+          );
+        return {
+          payload: Prisma.DbNull,
+          provenance: Prisma.DbNull,
+          retentionState: KnowledgeRetentionState.POLICY_ERASED,
           purgedAt: version.purgedAt ?? new Date(),
         };
       },

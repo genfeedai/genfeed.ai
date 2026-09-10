@@ -6,6 +6,7 @@ import {
   BookOpen,
   Bot,
   Box,
+  Brain,
   Building2,
   ChartColumn,
   CircleQuestionMark,
@@ -178,6 +179,18 @@ function buildOrganizationMenuItems(
       outline: Bot,
       solid: Bot,
     },
+    ...(isEnterprise
+      ? [
+          {
+            group: 'Organization',
+            href: APP_ROUTES.SETTINGS.MEMORY,
+            hrefScope: 'organization' as const,
+            label: 'Memory',
+            outline: Brain,
+            solid: Brain,
+          },
+        ]
+      : []),
     // Billing is a sidebar group header only — pages live under it.
     ...(showCredits
       ? [

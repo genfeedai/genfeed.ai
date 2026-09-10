@@ -620,6 +620,7 @@ model User {
   agentCampaigns            AgentCampaign[]
   agentGoals                AgentGoal[]
   agentMemories             AgentMemory[]
+  promotedAgentMemories     AgentMemory[] @relation("AgentMemoryPromotions")
   agentThreads              AgentThread[]
   agentMessages             AgentMessage[]
   agentTransfers            AgentTransfer[]
@@ -4233,12 +4234,18 @@ model AgentMemory {
   importance          Float?
   confidence          Float?
   performanceSnapshot Json?
+  promotedSkillId     String?
+  promotedSkill       Skill?         @relation(fields: [promotedSkillId], references: [id], onDelete: Restrict)
+  promotedAt          DateTime?
+  promotedByUserId    String?
+  promotedBy          User?          @relation("AgentMemoryPromotions", fields: [promotedByUserId], references: [id], onDelete: Restrict)
   isDeleted           Boolean        @default(false)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, scope, brandId])
+  @@index([promotedSkillId])
   @@map("agent_memories")
 }
 
@@ -6123,6 +6130,7 @@ model Skill {
   isDeleted      Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  sourceMemories AgentMemory[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("skills")
@@ -6789,6 +6797,7 @@ model KnowledgeSourceVersion {
   purgedAt              DateTime?
   supersededByVersionId String?
   isCurrent             Boolean                  @default(true)
+  isLegalHold           Boolean                  @default(false)
   isDeleted             Boolean                  @default(false)
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt

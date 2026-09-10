@@ -221,6 +221,47 @@
         "inspectionUnavailable": "Image detection is unavailable. You can still save this image if it contains your character."
       }
     },
+    "memory": {
+      "actions": {
+        "archive": "Archive",
+        "promote": "Promote to skill",
+        "reject": "Reject promotion",
+        "viewSubscription": "View subscription"
+      },
+      "billedDescription": "Shared org memory listing, archive, and skill promotion are available on Cloud and Enterprise.",
+      "billedTitle": "Organization memory is a billed feature",
+      "columns": {
+        "author": "Author",
+        "created": "Created",
+        "memory": "Memory",
+        "scope": "Scope",
+        "status": "Status"
+      },
+      "description": "Brand and organization memory the agent was taught. Personal entries stay private until promoted.",
+      "empty": "No shared memory yet",
+      "error": {
+        "load": "Could not load organization memory",
+        "update": "Could not update that memory entry"
+      },
+      "heading": "Organization memory",
+      "notifications": {
+        "archived": "Memory archived",
+        "loadFailed": "Failed to load organization memory",
+        "promoted": "Memory promoted to a skill",
+        "rejected": "Promotion rejected"
+      },
+      "scope": {
+        "brand": "Brand",
+        "org": "Organization",
+        "unknown": "Unknown"
+      },
+      "status": {
+        "active": "Active",
+        "promoted": "Promoted"
+      },
+      "table": "Shared memory",
+      "unknownAuthor": "Unknown"
+    },
     "profile": {
       "fields": {
         "email": "Email",

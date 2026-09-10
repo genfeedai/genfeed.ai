@@ -23,6 +23,7 @@ const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
 const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
+  '20260910180000_knowledge_version_legal_hold',
 ].map((name) =>
   readFileSync(
     new URL(

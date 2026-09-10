@@ -42,6 +42,8 @@ describe('AgentMemoriesController', () => {
             archiveMemory: vi.fn(),
             listForOrganization: vi.fn(),
             listForUser: vi.fn(),
+            promoteMemory: vi.fn(),
+            rejectMemoryPromotion: vi.fn(),
             removeMemory: vi.fn(),
           },
         },
@@ -122,6 +124,39 @@ describe('AgentMemoriesController', () => {
         ORG_ID,
       );
       expect(result).toEqual(archived);
+    });
+  });
+
+  describe('promote', () => {
+    it('promotes an org-visible memory', async () => {
+      const promoted = { id: 'mem-1', promotedSkillId: 'skill-1' };
+      memoriesService.promoteMemory.mockResolvedValue(promoted as never);
+
+      const result = await controller.promote('mem-1', mockUser);
+
+      expect(memoriesService.promoteMemory).toHaveBeenCalledWith(
+        'mem-1',
+        ORG_ID,
+        USER_ID,
+      );
+      expect(result).toEqual(promoted);
+    });
+  });
+
+  describe('reject', () => {
+    it('rejects promotion without mutating the memory', async () => {
+      const unchanged = { id: 'mem-1' };
+      memoriesService.rejectMemoryPromotion.mockResolvedValue(
+        unchanged as never,
+      );
+
+      const result = await controller.reject('mem-1', mockUser);
+
+      expect(memoriesService.rejectMemoryPromotion).toHaveBeenCalledWith(
+        'mem-1',
+        ORG_ID,
+      );
+      expect(result).toEqual(unchanged);
     });
   });
 

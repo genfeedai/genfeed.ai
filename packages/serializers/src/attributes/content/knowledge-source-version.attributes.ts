@@ -19,4 +19,5 @@ export const knowledgeSourceVersionAttributes = createEntityAttributes([
   'purgedAt',
   'supersededByVersionId',
   'isCurrent',
+  'isLegalHold',
 ]);

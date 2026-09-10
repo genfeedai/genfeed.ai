@@ -4,6 +4,7 @@ import { AgentMemoryCaptureService } from '@api/collections/agent-memories/servi
 import { TaskFeedbackMemoryAdapterService } from '@api/collections/agent-memories/services/task-feedback-memory-adapter.service';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
+import { MembersModule } from '@api/collections/members/members.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -13,7 +14,7 @@ import { Module } from '@nestjs/common';
     AgentMemoryCaptureService,
     TaskFeedbackMemoryAdapterService,
   ],
-  imports: [BrandMemoryModule, ContextsModule],
+  imports: [BrandMemoryModule, ContextsModule, MembersModule],
   providers: [
     AgentMemoriesService,
     AgentMemoryCaptureService,

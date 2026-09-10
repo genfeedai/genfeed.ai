@@ -79,6 +79,7 @@ describe('buildSettingsMenuItems', () => {
         'Brands',
         'Models',
         'Agents',
+        'Memory',
         'Credits',
         'Subscription',
         'Usage',
@@ -162,6 +163,17 @@ describe('buildSettingsMenuItems', () => {
         APP_ROUTES.SETTINGS.AGENTS,
       );
       expect(APP_ROUTES.SETTINGS.AGENTS).toBe('/settings/agents');
+    });
+
+    it('points Memory at /settings/memory when organization billing is on', () => {
+      const items = buildSettingsMenuItems({
+        isEnterprise: true,
+        scope: SettingsSurface.ORGANIZATION,
+      });
+      expect(items.find((i) => i.label === 'Memory')?.href).toBe(
+        APP_ROUTES.SETTINGS.MEMORY,
+      );
+      expect(APP_ROUTES.SETTINGS.MEMORY).toBe('/settings/memory');
     });
   });
 

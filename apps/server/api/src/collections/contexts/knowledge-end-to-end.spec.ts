@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
@@ -18,6 +19,7 @@ import {
   KnowledgeProcessingState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  MemberRole,
 } from '@genfeedai/contracts';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type {
@@ -47,6 +49,7 @@ const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
 const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
+  '20260910180000_knowledge_version_legal_hold',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -94,16 +97,18 @@ function embed(text: string): number[] {
   return vector.map((v) => v / norm);
 }
 
-const actorA = {
+const actorA: KnowledgeActor = {
   organizationId: 'org-a',
   userId: 'user-a',
   brandId: 'brand-a',
+  role: MemberRole.ADMIN,
 };
-const actorA2 = { ...actorA, brandId: 'brand-a2' };
-const actorB = {
+const actorA2: KnowledgeActor = { ...actorA, brandId: 'brand-a2' };
+const actorB: KnowledgeActor = {
   organizationId: 'org-b',
   userId: 'user-b',
   brandId: 'brand-b',
+  role: MemberRole.ADMIN,
 };
 
 let pool: Pool;
@@ -144,12 +149,12 @@ const workflowStub = {
 };
 
 async function retrieve(
-  actor: typeof actorA,
+  actor: KnowledgeActor,
   query: string,
   extra: Partial<BrandContentMemoryRetrievalParams> = {},
 ) {
   return contexts.retrieveBrandContentMemory({
-    brandId: actor.brandId,
+    brandId: actor.brandId ?? '',
     limit: 8,
     minRelevance: 0.05,
     organizationId: actor.organizationId,

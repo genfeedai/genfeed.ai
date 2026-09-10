@@ -17,8 +17,10 @@ import {
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  MemberRole,
 } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
+import { ForbiddenException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import type { Request } from 'express';
 import { Pool } from 'pg';
@@ -33,6 +35,7 @@ const describePostgres = process.env.KNOWLEDGE_TEST_DATABASE_URL
 const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
+  '20260910180000_knowledge_version_legal_hold',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -47,11 +50,17 @@ const actor = {
   userId: 'legacyBase62User',
   organizationId: 'org-a',
   brandId: 'brand-a',
+  role: MemberRole.ADMIN,
 };
 const otherBrand = { ...actor, brandId: 'brand-b' };
 const otherTenant = { ...actor, organizationId: 'org-b', brandId: 'brand-c' };
 const orgActor = { ...actor, brandId: '' };
-const anotherUser = { ...actor, id: 'otherUser', userId: 'otherUser' };
+const anotherUser = {
+  ...actor,
+  id: 'otherUser',
+  role: MemberRole.USER,
+  userId: 'otherUser',
+};
 const capture: CreateKnowledgeVersionDto = {
   contentHash: `sha256:${'a'.repeat(64)}`,
   provenance: { url: 'https://private.example/source', capturedBy: 'browser' },
@@ -185,6 +194,28 @@ describePostgres('Knowledge collection with PostgreSQL', () => {
     );
     const shared = await createSource(KnowledgeMemoryScope.ORG);
     expect((await records.getSource(orgActor, shared.id)).id).toBe(shared.id);
+  });
+
+  it('blocks purge and erasure while a legal hold is set and erases payloads without leaking content', async () => {
+    const source = await createSource();
+    const version = await records.createVersion(actor, source.id, capture);
+    await records.setLegalHold(actor, source.id, version.id, true);
+    await expect(
+      records.purgeVersion(actor, source.id, version.id),
+    ).rejects.toThrow('legal hold');
+    await expect(
+      records.eraseVersion(actor, source.id, version.id),
+    ).rejects.toThrow('legal hold');
+    await records.setLegalHold(actor, source.id, version.id, false);
+    const erased = await records.eraseVersion(actor, source.id, version.id);
+    expect(erased).toMatchObject({
+      payload: null,
+      provenance: null,
+      retentionState: KnowledgeRetentionState.POLICY_ERASED,
+    });
+    await expect(
+      records.purgeVersion(anotherUser, source.id, version.id),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('atomically deduplicates concurrent extension retries and conflicts on changed requests', async () => {
