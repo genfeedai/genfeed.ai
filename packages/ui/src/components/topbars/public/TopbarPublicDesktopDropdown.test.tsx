@@ -59,7 +59,9 @@ describe('TopbarPublicDesktopDropdown', () => {
       />,
     );
 
-    const link = screen.getByRole('link', { name: 'Pricing' });
+    // The closed panel is aria-hidden, so it is out of the accessibility tree:
+    // query it with `hidden` rather than asserting it disappeared entirely.
+    const link = screen.getByRole('link', { hidden: true, name: 'Pricing' });
     const panel = link.closest('[aria-hidden]');
     expect(panel).toHaveAttribute('aria-hidden', 'true');
     expect(panel).toHaveAttribute('inert');
@@ -83,7 +85,7 @@ describe('TopbarPublicDesktopDropdown', () => {
     );
 
     const panel = screen
-      .getByRole('link', { name: /Agent/ })
+      .getByRole('link', { hidden: true, name: /Agent/ })
       .closest('[aria-hidden]');
     expect(panel).toHaveAttribute('aria-hidden', 'true');
     expect(panel).toHaveAttribute('inert');
