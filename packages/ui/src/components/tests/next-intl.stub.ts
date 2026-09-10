@@ -204,6 +204,20 @@ const UI_TEST_MESSAGES = {
     },
   },
   ui: {
+    brandGenerate: {
+      banner: {
+        label: 'Describe the banner',
+        placeholder: 'A wide banner of…',
+        title: 'Generate Banner',
+      },
+      cancel: 'Cancel',
+      generate: 'Generate',
+      logo: {
+        label: 'Describe the profile picture',
+        placeholder: 'A square portrait of…',
+        title: 'Generate Profile Picture',
+      },
+    },
     createThread: {
       addPost: 'Add comment / post',
       attachMedia: 'Attach media',

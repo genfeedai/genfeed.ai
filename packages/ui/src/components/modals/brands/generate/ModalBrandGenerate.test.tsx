@@ -4,6 +4,11 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children, title }: { children: ReactNode; title?: string }) => (
     <div data-testid="modal">

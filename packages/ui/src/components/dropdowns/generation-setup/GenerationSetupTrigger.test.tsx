@@ -106,6 +106,9 @@ describe('GenerationSetupTrigger', () => {
         isOpen={false}
         models={[]}
         setup={createSetup({
+          // The media summary only appears once the type is the user's own
+          // pick; an agent-owned type collapses the whole trigger to "Agent".
+          sources: { type: 'user' },
           values: {
             aspectRatio: '1:1',
             brandingMode: 'off',
@@ -127,7 +130,7 @@ describe('GenerationSetupTrigger', () => {
   });
 
   it('shows the selected model label and drops the accent once a field is user-owned', () => {
-    const sources: GenerationSetupSources = { modelKey: 'user' };
+    const sources: GenerationSetupSources = { modelKey: 'user', type: 'user' };
     render(
       <GenerationSetupTrigger
         isOpen={false}
