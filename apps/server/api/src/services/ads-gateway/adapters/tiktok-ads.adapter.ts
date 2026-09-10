@@ -11,26 +11,27 @@ import {
 } from '@api/services/ads-gateway/ads-insights-range.util';
 import type { TikTokInsightsData } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
-  CreateAdInput,
-  CreateAdSetInput,
-  CreateCampaignInput,
-  IAdsAdapter,
-  UnifiedAd,
-  UnifiedAdAccount,
-  UnifiedAdSet,
-  UnifiedCampaign,
-  UnifiedInsights,
-  UpdateCampaignInput,
+import {
+  type AdsAdapterContext,
+  type AdsInsightsParams,
+  AdsPlatform,
+  type CreateAdInput,
+  type CreateAdSetInput,
+  type CreateCampaignInput,
+  type IAdsAdapter,
+  type UnifiedAd,
+  type UnifiedAdAccount,
+  type UnifiedAdSet,
+  type UnifiedCampaign,
+  type UnifiedInsights,
+  type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TikTokAdsAdapter implements IAdsAdapter {
-  readonly platform = 'tiktok' as const;
+  readonly platform = AdsPlatform.TIKTOK;
 
   constructor(
     private readonly tiktokAdsService: TikTokAdsService,

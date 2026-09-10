@@ -14,6 +14,7 @@ import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 
@@ -37,12 +38,14 @@ describe('AdsGatewayRequestContextService', () => {
     );
   });
 
-  it.each(['meta', 'google', 'tiktok', 'x'] as const)(
-    'accepts the supported %s platform',
-    (platform) => {
-      expect(service.validatePlatform(platform)).toBe(platform);
-    },
-  );
+  it.each([
+    AdsPlatform.META,
+    AdsPlatform.GOOGLE,
+    AdsPlatform.TIKTOK,
+    AdsPlatform.X,
+  ])('accepts the supported %s platform', (platform) => {
+    expect(service.validatePlatform(platform)).toBe(platform);
+  });
 
   it('rejects unsupported platforms with the existing error', () => {
     expect(() => service.validatePlatform('snapchat')).toThrow(
@@ -54,17 +57,17 @@ describe('AdsGatewayRequestContextService', () => {
   });
 
   it.each([
-    ['meta', CredentialPlatform.FACEBOOK],
-    ['google', CredentialPlatform.GOOGLE_ADS],
-    ['tiktok', CredentialPlatform.TIKTOK],
-    ['x', CredentialPlatform.X_ADS],
+    [AdsPlatform.META, CredentialPlatform.FACEBOOK],
+    [AdsPlatform.GOOGLE, CredentialPlatform.GOOGLE_ADS],
+    [AdsPlatform.TIKTOK, CredentialPlatform.TIKTOK],
+    [AdsPlatform.X, CredentialPlatform.X_ADS],
   ] as const)(
     'resolves %s credentials from the connected tenant-scoped provider row',
     async (platform, credentialPlatform) => {
       credentialsService.findOne.mockResolvedValue({
         accessToken: EncryptionUtil.encrypt('access-token'),
         accessTokenSecret:
-          platform === 'x'
+          platform === AdsPlatform.X
             ? EncryptionUtil.encrypt('access-token-secret')
             : undefined,
       });

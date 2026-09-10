@@ -9,19 +9,19 @@ import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credenti
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
-  Platform,
   toPrismaCredentialPlatform,
   WorkflowStatus,
   WorkflowTrigger,
 } from '@genfeedai/contracts';
-import type {
-  AdsAdapterContext,
+import {
+  type AdsAdapterContext,
+  AdsChannel,
   AdsPlatform,
-  UnifiedAd,
+  isAdsPlatform,
+  type UnifiedAd,
 } from '@genfeedai/contracts/interfaces';
 import type {
   AdPack,
-  AdsChannel,
   AdsResearchDetail,
   AdsResearchFilters,
   AdsResearchItem,
@@ -343,7 +343,7 @@ export class AdsResearchService {
         dailyBudget: input.dailyBudget,
         name:
           input.campaignName ||
-          `${input.brandName || 'Brand'} ${detail.channel === 'all' ? this.toPlatformLabel(detail.platform) : detail.channel} Campaign`,
+          `${input.brandName || 'Brand'} ${detail.channel === AdsChannel.ALL ? this.toPlatformLabel(detail.platform) : detail.channel} Campaign`,
         objective: input.objective || detail.campaignObjective || 'CONVERSIONS',
         status: 'PAUSED',
       },
@@ -451,7 +451,12 @@ export class AdsResearchService {
 
     const platforms: AdsResearchPlatform[] = filters.platform
       ? [filters.platform]
-      : ['google', 'meta', 'tiktok', 'x'];
+      : [
+          AdsPlatform.GOOGLE,
+          AdsPlatform.META,
+          AdsPlatform.TIKTOK,
+          AdsPlatform.X,
+        ];
     const items: AdsResearchItem[] = [];
     const limit = filters.limit ?? 12;
 
@@ -622,7 +627,7 @@ export class AdsResearchService {
         imageUrls: ad.creative?.imageUrl ? [ad.creative.imageUrl] : [],
         landingPageUrl: ad.creative?.linkUrl,
         videoUrls:
-          params.platform === 'google' && ad.creative?.videoId
+          params.platform === AdsPlatform.GOOGLE && ad.creative?.videoId
             ? [`https://www.youtube.com/watch?v=${ad.creative.videoId}`]
             : [],
       },
@@ -831,17 +836,17 @@ export class AdsResearchService {
   private mapConnectedItem(params: ConnectedItemParams): AdsResearchItem {
     const creative = params.ad?.creative;
     const videoUrl =
-      params.platform === 'google' && creative?.videoId
+      params.platform === AdsPlatform.GOOGLE && creative?.videoId
         ? `https://www.youtube.com/watch?v=${creative.videoId}`
         : undefined;
     const channel =
-      params.platform === 'google'
-        ? params.channel && params.channel !== 'all'
+      params.platform === AdsPlatform.GOOGLE
+        ? params.channel && params.channel !== AdsChannel.ALL
           ? params.channel
           : creative?.videoId
-            ? 'youtube'
-            : 'search'
-        : 'all';
+            ? AdsChannel.YOUTUBE
+            : AdsChannel.SEARCH
+        : AdsChannel.ALL;
 
     return {
       accountId: params.adAccountId,
@@ -972,7 +977,7 @@ export class AdsResearchService {
     const brandName = params.brandName || 'your brand';
     const objective =
       params.objective || params.ad.campaignObjective || 'Conversions';
-    const channel = params.channel || params.ad.channel || 'all';
+    const channel = params.channel || params.ad.channel || AdsChannel.ALL;
     const sourceHeadline = params.ad.headline?.trim() || 'Winning angle';
     const sourceBody = params.ad.body?.trim() || 'Strong proof-based ad copy';
     const sourceCta = params.ad.cta?.trim() || 'Learn more';
@@ -987,16 +992,16 @@ export class AdsResearchService {
       )} creative for ${brandName} in ${niche}. Keep the winning angle from "${sourceHeadline}", make the promise clearer, add brand-specific proof, and leave space for a direct CTA.${harnessSuffix}`,
       campaignRecipe: {
         budgetStrategy:
-          params.ad.platform === 'google'
+          params.ad.platform === AdsPlatform.GOOGLE
             ? 'Start with a paused daily budget and validate search intent before scale.'
             : 'Start with a paused daily budget and test 2-3 placement clusters before scale.',
         channel,
         objective,
         placements:
-          params.ad.platform === 'google'
-            ? channel === Platform.YOUTUBE
+          params.ad.platform === AdsPlatform.GOOGLE
+            ? channel === AdsChannel.YOUTUBE
               ? ['YouTube In-Feed', 'YouTube Shorts']
-              : channel === 'display'
+              : channel === AdsChannel.DISPLAY
                 ? ['Display Network']
                 : ['Google Search']
             : ['Facebook Feed', 'Instagram Feed', 'Stories'],
@@ -1051,7 +1056,7 @@ export class AdsResearchService {
   private normalizeFilters(filters: AdsResearchFilters): AdsResearchFilters {
     return {
       ...filters,
-      channel: filters.channel || 'all',
+      channel: filters.channel || AdsChannel.ALL,
       limit: filters.limit ? Math.min(filters.limit, 24) : 12,
       metric: filters.metric || 'performanceScore',
       source: filters.source || 'all',
@@ -1061,51 +1066,50 @@ export class AdsResearchService {
 
   private normalizePlatform(platform: string): AdsResearchPlatform {
     const value = platform.trim().toLowerCase();
+    if (isAdsPlatform(value)) {
+      return value;
+    }
     // `google-ads` is the normalized ad-platform id transparency-archive
     // snapshots are stored with; `google_ads` is the connected-account spelling.
-    if (
-      value === 'google_ads' ||
-      value === 'google-ads' ||
-      value === 'google'
-    ) {
-      return 'google';
+    if (value === 'google_ads' || value === 'google-ads') {
+      return AdsPlatform.GOOGLE;
     }
-    if (value === 'meta_ads' || value === 'facebook' || value === 'meta') {
-      return 'meta';
+    if (value === 'meta_ads' || value === 'facebook') {
+      return AdsPlatform.META;
     }
-    if (value === 'tiktok_ads' || value === 'tiktok') {
-      return 'tiktok';
+    if (value === 'tiktok_ads') {
+      return AdsPlatform.TIKTOK;
     }
-    if (value === 'x_ads' || value === 'x' || value === 'twitter') {
-      return 'x';
+    if (value === 'x_ads' || value === 'twitter') {
+      return AdsPlatform.X;
     }
     return platform as AdsResearchPlatform;
   }
 
   private toPatternPlatform(platform: AdsResearchPlatform): string {
-    if (platform === 'meta') {
-      return 'facebook';
+    switch (platform) {
+      case AdsPlatform.META:
+        return 'facebook';
+      case AdsPlatform.TIKTOK:
+        return 'tiktok';
+      case AdsPlatform.X:
+        return 'x_ads';
+      case AdsPlatform.GOOGLE:
+        return 'google_ads';
     }
-    if (platform === 'tiktok') {
-      return 'tiktok';
-    }
-    if (platform === 'x') {
-      return 'x_ads';
-    }
-    return 'google_ads';
   }
 
   private toPlatformLabel(platform: AdsResearchPlatform | AdsPlatform): string {
-    if (platform === 'meta') {
-      return 'Meta Ads';
+    switch (platform) {
+      case AdsPlatform.META:
+        return 'Meta Ads';
+      case AdsPlatform.TIKTOK:
+        return 'TikTok Ads';
+      case AdsPlatform.X:
+        return 'X Ads';
+      case AdsPlatform.GOOGLE:
+        return 'Google Ads';
     }
-    if (platform === 'tiktok') {
-      return 'TikTok Ads';
-    }
-    if (platform === 'x') {
-      return 'X Ads';
-    }
-    return 'Google Ads';
   }
 
   private mapMetric(metric?: AdsResearchMetric): string {

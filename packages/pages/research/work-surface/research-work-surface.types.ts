@@ -1,11 +1,12 @@
-import type {
-  AdsResearchItem,
-  ISourcePost,
-  ITrendHashtag,
-  ITrendSound,
-  ITrendVideo,
-  ResearchFindingReference,
-  ResearchFindingReferenceKind,
+import {
+  AdsPlatform,
+  type AdsResearchItem,
+  type ISourcePost,
+  type ITrendHashtag,
+  type ITrendSound,
+  type ITrendVideo,
+  type ResearchFindingReference,
+  type ResearchFindingReferenceKind,
 } from '@genfeedai/contracts/interfaces';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 
@@ -47,19 +48,19 @@ export function toAdsResearchFinding(
 ): AuthorizedResearchFinding {
   const id = item.source === 'my_accounts' ? item.sourceId : item.id;
   const kindByPlatform = {
-    google: {
+    [AdsPlatform.GOOGLE]: {
       my_accounts: 'research-ad-connected-google',
       public: 'research-ad-public-google',
     },
-    meta: {
+    [AdsPlatform.META]: {
       my_accounts: 'research-ad-connected-meta',
       public: 'research-ad-public-meta',
     },
-    tiktok: {
+    [AdsPlatform.TIKTOK]: {
       my_accounts: 'research-ad-connected-tiktok',
       public: 'research-ad-public-tiktok',
     },
-    x: {
+    [AdsPlatform.X]: {
       my_accounts: 'research-ad-connected-x',
       public: 'research-ad-public-x',
     },
@@ -71,11 +72,11 @@ export function toAdsResearchFinding(
   >;
   const kind = kindByPlatform[item.platform][item.source];
   const platformLabel =
-    item.platform === 'meta'
+    item.platform === AdsPlatform.META
       ? 'Meta'
-      : item.platform === 'tiktok'
+      : item.platform === AdsPlatform.TIKTOK
         ? 'TikTok'
-        : item.platform === 'x'
+        : item.platform === AdsPlatform.X
           ? 'X'
           : 'Google';
 

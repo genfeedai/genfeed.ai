@@ -13,19 +13,20 @@ import type {
   GoogleAdsAdInsights,
 } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
-  CreateAdInput,
-  CreateAdSetInput,
-  CreateCampaignInput,
-  IAdsAdapter,
-  UnifiedAd,
-  UnifiedAdAccount,
-  UnifiedAdSet,
-  UnifiedCampaign,
-  UnifiedInsights,
-  UpdateCampaignInput,
+import {
+  type AdsAdapterContext,
+  type AdsInsightsParams,
+  AdsPlatform,
+  type CreateAdInput,
+  type CreateAdSetInput,
+  type CreateCampaignInput,
+  type IAdsAdapter,
+  type UnifiedAd,
+  type UnifiedAdAccount,
+  type UnifiedAdSet,
+  type UnifiedCampaign,
+  type UnifiedInsights,
+  type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -34,7 +35,7 @@ const MICROS_DIVISOR = 1_000_000;
 
 @Injectable()
 export class GoogleAdsAdapter implements IAdsAdapter {
-  readonly platform = 'google' as const;
+  readonly platform = AdsPlatform.GOOGLE;
 
   constructor(
     private readonly googleAdsService: GoogleAdsService,

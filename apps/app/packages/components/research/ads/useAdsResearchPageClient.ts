@@ -1,18 +1,20 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ViewType } from '@genfeedai/contracts';
-import type {
-  AdPack,
+import {
+  type AdPack,
   AdsChannel,
-  AdsResearchFilters,
-  AdsResearchItem,
-  AdsResearchMetric,
-  AdsResearchPlatform,
-  AdsResearchResponse,
-  AdsResearchSource,
-  AdsResearchTimeframe,
-  CampaignLaunchPrep,
-  ISavedAd,
-  SaveAdInput,
+  AdsPlatform,
+  type AdsResearchFilters,
+  type AdsResearchItem,
+  type AdsResearchMetric,
+  type AdsResearchPlatform,
+  type AdsResearchResponse,
+  type AdsResearchSource,
+  type AdsResearchTimeframe,
+  adsChannelValues,
+  type CampaignLaunchPrep,
+  type ISavedAd,
+  type SaveAdInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
@@ -73,8 +75,14 @@ export type AdSortKey = 'score' | 'ctr' | 'roas' | 'longevity';
 export type AdsResearchViewSource = AdsResearchSource | 'saved';
 
 const SOURCE_VALUES = ['all', 'my_accounts', 'public', 'saved'] as const;
-const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok', 'x'] as const;
-const CHANNEL_VALUES = ['all', 'display', 'search', 'youtube'] as const;
+const PLATFORM_VALUES = [
+  'all',
+  AdsPlatform.GOOGLE,
+  AdsPlatform.META,
+  AdsPlatform.TIKTOK,
+  AdsPlatform.X,
+] as const;
+const CHANNEL_VALUES = adsChannelValues;
 const METRIC_VALUES = [
   'performanceScore',
   'ctr',
@@ -217,7 +225,7 @@ export function useAdsResearchPageClient() {
   });
   const [channel, setChannel] = useResearchSearchParamState<AdsChannel>({
     allowedValues: CHANNEL_VALUES,
-    defaultValue: 'all',
+    defaultValue: AdsChannel.ALL,
     key: 'channel',
   });
   const [metric, setMetric] = useResearchSearchParamState<AdsResearchMetric>({
@@ -287,11 +295,11 @@ export function useAdsResearchPageClient() {
 
   const brandLabel = getBrandLabel(selectedBrand);
   const effectivePlatform = platform;
-  const showChannelFilter = effectivePlatform === 'google';
+  const showChannelFilter = effectivePlatform === AdsPlatform.GOOGLE;
 
   useEffect(() => {
-    if (!showChannelFilter && channel !== 'all') {
-      setChannel('all');
+    if (!showChannelFilter && channel !== AdsChannel.ALL) {
+      setChannel(AdsChannel.ALL);
     }
   }, [channel, setChannel, showChannelFilter]);
 
@@ -309,33 +317,33 @@ export function useAdsResearchPageClient() {
       credentials.reduce<CredentialOption[]>((options, credential) => {
         const value = String(credential.platform || '').toLowerCase();
 
-        if (effectivePlatform === 'meta') {
-          if (value === 'facebook' || value === 'meta') {
+        if (effectivePlatform === AdsPlatform.META) {
+          if (value === 'facebook' || value === AdsPlatform.META) {
             options.push(credential as CredentialOption);
           }
           return options;
         }
 
-        if (effectivePlatform === 'google') {
+        if (effectivePlatform === AdsPlatform.GOOGLE) {
           if (
             value === 'google_ads' ||
             value === 'google-ads' ||
-            value === 'google'
+            value === AdsPlatform.GOOGLE
           ) {
             options.push(credential as CredentialOption);
           }
           return options;
         }
 
-        if (effectivePlatform === 'tiktok') {
-          if (value === 'tiktok' || value === 'tiktok_ads') {
+        if (effectivePlatform === AdsPlatform.TIKTOK) {
+          if (value === AdsPlatform.TIKTOK || value === 'tiktok_ads') {
             options.push(credential as CredentialOption);
           }
           return options;
         }
 
-        if (effectivePlatform === 'x') {
-          if (value === 'x' || value === 'x_ads') {
+        if (effectivePlatform === AdsPlatform.X) {
+          if (value === AdsPlatform.X || value === 'x_ads') {
             options.push(credential as CredentialOption);
           }
           return options;
@@ -343,13 +351,13 @@ export function useAdsResearchPageClient() {
 
         if (
           value === 'facebook' ||
-          value === 'meta' ||
+          value === AdsPlatform.META ||
           value === 'google_ads' ||
           value === 'google-ads' ||
-          value === 'google' ||
-          value === 'tiktok' ||
+          value === AdsPlatform.GOOGLE ||
+          value === AdsPlatform.TIKTOK ||
           value === 'tiktok_ads' ||
-          value === 'x' ||
+          value === AdsPlatform.X ||
           value === 'x_ads'
         ) {
           options.push(credential as CredentialOption);
@@ -481,7 +489,7 @@ export function useAdsResearchPageClient() {
                 (effectivePlatform === 'all' ||
                   item.platform === effectivePlatform) &&
                 (!showChannelFilter ||
-                  channel === 'all' ||
+                  channel === AdsChannel.ALL ||
                   item.channel === channel) &&
                 (item.source === 'public' ||
                   ((!credentialId || item.credentialId === credentialId) &&
@@ -737,11 +745,11 @@ export function useAdsResearchPageClient() {
       const result = await service.prepareCampaignForReview({
         ...payload,
         campaignName: `${brandLabel} ${
-          selectedAd.platform === 'meta'
+          selectedAd.platform === AdsPlatform.META
             ? 'Meta'
-            : selectedAd.platform === 'tiktok'
+            : selectedAd.platform === AdsPlatform.TIKTOK
               ? 'TikTok'
-              : selectedAd.platform === 'x'
+              : selectedAd.platform === AdsPlatform.X
                 ? 'X'
                 : 'Google'
         } Campaign`,

@@ -5,7 +5,7 @@ import {
   resolveProviderPausedStatus,
   UNIFIED_PAUSED_CAMPAIGN_STATUS,
 } from '@api/services/ads-gateway/ads-campaign-status.util';
-import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 describe('ads-campaign-status.util', () => {
   describe('isPausedCampaignStatus', () => {
@@ -40,10 +40,10 @@ describe('ads-campaign-status.util', () => {
 
   describe('resolveProviderPausedStatus', () => {
     it.each([
-      ['meta', 'PAUSED'],
-      ['google', 'PAUSED'],
-      ['x', 'PAUSED'],
-      ['tiktok', 'DISABLE'],
+      [AdsPlatform.META, 'PAUSED'],
+      [AdsPlatform.GOOGLE, 'PAUSED'],
+      [AdsPlatform.X, 'PAUSED'],
+      [AdsPlatform.TIKTOK, 'DISABLE'],
     ] as Array<[AdsPlatform, string]>)(
       'maps %s to its provider paused value',
       (platform, expected) => {
@@ -54,12 +54,14 @@ describe('ads-campaign-status.util', () => {
 
   describe('resolveProviderCampaignStatus', () => {
     it('keeps an omitted status omitted so updates never mutate serving state', () => {
-      expect(resolveProviderCampaignStatus('meta', undefined)).toBeUndefined();
+      expect(
+        resolveProviderCampaignStatus(AdsPlatform.META, undefined),
+      ).toBeUndefined();
     });
 
     it.each([
-      ['meta', 'PAUSED'],
-      ['tiktok', 'DISABLE'],
+      [AdsPlatform.META, 'PAUSED'],
+      [AdsPlatform.TIKTOK, 'DISABLE'],
     ] as Array<[AdsPlatform, string]>)(
       'translates a supplied PAUSED to the %s value',
       (platform, expected) => {
