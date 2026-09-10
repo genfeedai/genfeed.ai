@@ -164,85 +164,98 @@ export default function NotificationInboxMenu() {
               <p className="p-3">{translate('empty')}</p>
             ) : null}
             <ol className="divide-y divide-border">
-              {items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-start gap-2.5 px-3 py-2.5"
-                >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-                    {item.outcome === 'completed' ? (
-                      <CircleCheck
-                        aria-hidden="true"
-                        className="size-4 text-success"
-                      />
+              {items.map((item) => {
+                const title =
+                  item.failure?.title ??
+                  translate(
+                    item.outcome === 'completed' ? 'completed' : 'failed',
+                  );
+                const sourceCopy =
+                  item.sourceLabel ??
+                  (item.sourceHref
+                    ? translate('openSource')
+                    : translate('unavailable'));
+                const body = (
+                  <>
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
+                      {item.outcome === 'completed' ? (
+                        <CircleCheck
+                          aria-hidden="true"
+                          className="size-4 text-success"
+                        />
+                      ) : (
+                        <CircleAlert
+                          aria-hidden="true"
+                          className="size-4 text-destructive"
+                        />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 text-xs font-medium leading-5 text-foreground">
+                          {title}
+                        </span>
+                        <ClientFormattedDate
+                          value={item.occurredAt}
+                          format="relative"
+                          fallback=""
+                          className="shrink-0 text-xs text-muted-foreground"
+                        />
+                      </span>
+                      {item.failure ? (
+                        <span className="block space-y-1 text-xs text-muted-foreground">
+                          <span className="block">{item.failure.summary}</span>
+                          {item.failure.recovery ? (
+                            <span className="block">
+                              {item.failure.recovery}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                      <span className="block truncate text-xs text-muted-foreground underline-offset-2 group-hover:text-foreground group-hover:underline">
+                        {sourceCopy}
+                      </span>
+                    </span>
+                  </>
+                );
+                return (
+                  <li
+                    key={item.id}
+                    className="flex items-start gap-1 px-2 py-1"
+                  >
+                    {item.sourceHref ? (
+                      <Link
+                        href={item.sourceHref}
+                        onClick={() => setOpen(false)}
+                        className="group flex min-w-0 flex-1 items-start gap-2.5 rounded-md px-1 py-1.5 hover:bg-hover"
+                      >
+                        {body}
+                      </Link>
                     ) : (
-                      <CircleAlert
-                        aria-hidden="true"
-                        className="size-4 text-destructive"
-                      />
+                      <div className="flex min-w-0 flex-1 items-start gap-2.5 px-1 py-1.5">
+                        {body}
+                      </div>
                     )}
-                  </span>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="min-w-0 text-xs font-medium leading-5">
-                        {item.failure?.title ??
-                          translate(
-                            item.outcome === 'completed'
-                              ? 'completed'
-                              : 'failed',
-                          )}
-                      </h3>
-                      <ClientFormattedDate
-                        value={item.occurredAt}
-                        format="relative"
-                        fallback=""
-                        className="shrink-0 text-xs text-muted-foreground"
-                      />
-                    </div>
-                    {item.failure ? (
-                      <div className="space-y-1 text-xs text-muted-foreground">
-                        <p>{item.failure.summary}</p>
-                        <p>{item.failure.recovery}</p>
+                    {!item.readAt ? (
+                      <div className="flex shrink-0 items-center gap-1 pt-1.5">
+                        <span className="size-1.5 rounded-full bg-info">
+                          <span className="sr-only">{translate('unread')}</span>
+                        </span>
+                        <Button
+                          variant={ButtonVariant.GHOST}
+                          size={ButtonSize.ICON}
+                          className="size-6"
+                          ariaLabel={translate('markRead')}
+                          disabled={read.isPending}
+                          onClick={() => read.mutate([item.id])}
+                        >
+                          <Check aria-hidden="true" className="size-3.5" />
+                        </Button>
                       </div>
                     ) : null}
-                    <div className="flex min-w-0 items-center justify-between gap-2 text-xs text-muted-foreground">
-                      {item.sourceHref ? (
-                        <Link
-                          href={item.sourceHref}
-                          onClick={() => setOpen(false)}
-                          className="truncate hover:text-foreground hover:underline"
-                          aria-label={translate('openSource')}
-                        >
-                          {item.sourceLabel ?? translate('openSource')}
-                        </Link>
-                      ) : (
-                        <span className="truncate">
-                          {item.sourceLabel ?? translate('unavailable')}
-                        </span>
-                      )}
-                      {!item.readAt ? (
-                        <div className="flex shrink-0 items-center gap-1">
-                          <span className="size-1.5 rounded-full bg-info">
-                            <span className="sr-only">
-                              {translate('unread')}
-                            </span>
-                          </span>
-                          <Button
-                            variant={ButtonVariant.GHOST}
-                            size={ButtonSize.ICON}
-                            className="size-6"
-                            ariaLabel={translate('markRead')}
-                            disabled={read.isPending}
-                            onClick={() => read.mutate([item.id])}
-                          >
-                            <Check aria-hidden="true" className="size-3.5" />
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ol>
             {history.hasNextPage ? (
               <Button

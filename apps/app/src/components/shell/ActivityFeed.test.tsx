@@ -140,7 +140,8 @@ describe('ActivityFeed', () => {
       />,
     );
     expect(screen.getAllByTestId('topbar-activity-row')).toHaveLength(7);
-    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+    const firstRow = screen.getAllByTestId('topbar-activity-row')[0];
+    expect(within(firstRow).getByRole('link')).toHaveAttribute(
       'href',
       '/acme/brand/library/images?asset=activity-2',
     );

@@ -104,7 +104,7 @@ describe('NotificationInboxMenu', () => {
   it('exposes unread state, source link, read actions, and older pages', async () => {
     const user = await open();
     expect(screen.getByText('Unread')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open run' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /My task/ })).toHaveAttribute(
       'href',
       item.sourceHref,
     );
@@ -116,6 +116,27 @@ describe('NotificationInboxMenu', () => {
       screen.getByRole('button', { name: 'Load older notifications' }),
     );
     expect(current.history.fetchNextPage).toHaveBeenCalled();
+  });
+
+  it('opens the result asset from the whole notification row', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'workflow.status',
+        outcome: 'completed',
+        sourceHref: '/acme/brand/library/images?asset=img-1',
+        sourceLabel: null,
+        failure: null,
+      },
+    ];
+    await open();
+    expect(screen.getByRole('link', { name: /Open run/ })).toHaveAttribute(
+      'href',
+      '/acme/brand/library/images?asset=img-1',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Mark read' }),
+    ).toBeInTheDocument();
   });
   it('keeps existing rows and failed read action retryable', async () => {
     current.read.isError = true;
