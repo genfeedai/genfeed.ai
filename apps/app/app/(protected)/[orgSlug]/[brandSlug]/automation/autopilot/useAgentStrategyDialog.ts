@@ -19,20 +19,6 @@ export const PLATFORM_OPTIONS = [
   { label: 'Facebook', value: 'facebook' },
 ];
 
-export const AGENT_TYPE_OPTIONS = [
-  { label: 'General', value: AgentType.GENERAL },
-  { label: 'X Content', value: AgentType.X_CONTENT },
-  { label: 'Image Creator', value: AgentType.IMAGE_CREATOR },
-  { label: 'Video Creator', value: AgentType.VIDEO_CREATOR },
-  { label: 'AI Avatar', value: AgentType.AI_AVATAR },
-  { label: 'Article Writer', value: AgentType.ARTICLE_WRITER },
-  { label: 'LinkedIn Copywriter', value: AgentType.LINKEDIN_CONTENT },
-  { label: 'Ads Script Writer', value: AgentType.ADS_SCRIPT_WRITER },
-  { label: 'Short-Form Writer', value: AgentType.SHORT_FORM_WRITER },
-  { label: 'CTA / Conversion', value: AgentType.CTA_CONTENT },
-  { label: 'YouTube Script', value: AgentType.YOUTUBE_SCRIPT },
-];
-
 export const AUTONOMY_MODE_OPTIONS = [
   { label: 'Supervised', value: AgentAutonomyMode.SUPERVISED },
   { label: 'Auto Publish', value: AgentAutonomyMode.AUTO_PUBLISH },

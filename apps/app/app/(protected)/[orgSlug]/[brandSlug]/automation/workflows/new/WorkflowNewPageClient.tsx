@@ -1,6 +1,7 @@
 'use client';
 
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkflowSeed } from '@genfeedai/props/workflows/workflow-new-page.props';
 import {
   buildWorkflowEtaSnapshot,
@@ -9,15 +10,13 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import {
-  ActionNodeInspector,
-  WorkflowEditorShell,
-} from '@genfeedai/workflows/ui';
+import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -27,18 +26,20 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
+import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
 import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
+import { useWorkflowActionDefaults } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
@@ -108,6 +109,8 @@ function buildMessagesAutomationSeed(
  */
 export default function WorkflowNewPageClient() {
   const searchParams = useSearchParams();
+  const { push, replace } = useRouter();
+  const { href } = useOrgUrl();
   const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
@@ -132,6 +135,19 @@ export default function WorkflowNewPageClient() {
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
   const workflowName = useWorkflowStore((state) => state.workflowName);
   const hasRunInputs = inputVariables.length > 0;
+  const actionParameterDefaults = useWorkflowActionDefaults();
+
+  useEffect(() => {
+    if (!currentWorkflowId || isRunning) {
+      return;
+    }
+
+    const editorPath = `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${currentWorkflowId}`;
+    const nextPath = activeExecutionId
+      ? `${editorPath}?execution=${encodeURIComponent(activeExecutionId)}`
+      : editorPath;
+    replace(href(nextPath));
+  }, [activeExecutionId, currentWorkflowId, href, isRunning, replace]);
 
   const messagesAutomationSeed = useMemo(
     () =>
@@ -199,6 +215,7 @@ export default function WorkflowNewPageClient() {
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      actionParameterDefaults,
       applyEditOperations,
       executionApiBaseUrl: EnvironmentService.apiEndpoint,
       executionHeaders: getExecutionProviderHeaders,
@@ -234,7 +251,7 @@ export default function WorkflowNewPageClient() {
         },
       },
     }),
-    [getWorkflowService],
+    [actionParameterDefaults, getWorkflowService],
   );
 
   const handlePublish = useCallback(async () => {
@@ -248,6 +265,21 @@ export default function WorkflowNewPageClient() {
   const handleRename = useCallback(async () => {
     await save();
   }, [save]);
+
+  const handleSaveAsCopy = useCallback(
+    async (newName: string) => {
+      await save();
+      const service = await getWorkflowService();
+      const duplicated = await useCloudWorkflowStore
+        .getState()
+        .duplicateWorkflow(service);
+      await service.update(duplicated.id, {
+        label: newName.trim() || duplicated.label,
+      });
+      push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${duplicated.id}`));
+    },
+    [getWorkflowService, href, push, save],
+  );
 
   const handleTerminalExecution = useCallback(
     (execution: { id: string; status: WorkflowExecutionStatus }) => {
@@ -324,6 +356,14 @@ export default function WorkflowNewPageClient() {
         <div className="workflow-scope workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
           <WorkflowEditorSectionTopbar
             estimateLabel={workflowEstimateLabel}
+            graphChrome={
+              <CloudWorkflowToolbar
+                isSaving={isSaving}
+                middleContent={<CloudCreditsIndicator />}
+                onRename={handleRename}
+                onSaveAsCopy={handleSaveAsCopy}
+              />
+            }
             isRunning={isRunning}
             lifecycle={lifecycle}
             onArchive={handleArchive}
@@ -364,15 +404,8 @@ export default function WorkflowNewPageClient() {
                     runId={activeExecutionId}
                   />
                 ) : (
-                  <ActionNodeInspector />
+                  <CloudActionNodeInspector />
                 )
-              }
-              toolbar={
-                <CloudWorkflowToolbar
-                  isSaving={isSaving}
-                  middleContent={<CloudCreditsIndicator />}
-                  onRename={handleRename}
-                />
               }
             />
           )}

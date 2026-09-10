@@ -4,6 +4,7 @@ import { MemberRole } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  createLibraryAssetRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
@@ -207,16 +208,27 @@ export class NotificationInboxService {
         },
       ],
     } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
+    const runIds = [...new Set(page.map((row) => row.event.sourceId))];
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
         isDeleted: false,
-        id: {
-          in: page
-            .filter((row) => row.event.sourceType === 'workflow_execution')
-            .map((row) => row.event.sourceId),
+        id: { in: runIds },
+        OR: [
+          { userId },
+          {
+            workflow: {
+              is: { userId, organizationId, isDeleted: false },
+            },
+          },
+        ],
+        workflow: {
+          is: {
+            organizationId,
+            isDeleted: false,
+            OR: sourceAccessWhere.OR,
+          },
         },
-        workflow: { is: sourceAccessWhere },
       },
       select: {
         id: true,
@@ -228,57 +240,78 @@ export class NotificationInboxService {
             brand: { select: { slug: true } },
           },
         },
+        ingredients: {
+          where: {
+            organizationId,
+            isDeleted: false,
+            ...(restrictToAssignedBrands
+              ? {
+                  OR: [
+                    { brandId: null },
+                    {
+                      brandId: {
+                        in: member.brands.map((brand) => brand.id),
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            category: true,
+            brand: { select: { slug: true } },
+          },
+          take: 1,
+        },
       },
     });
-    const sources = new Map(
-      executions
-        .filter(
-          (source) =>
-            source.workflow.brand &&
-            !hasSystemWorkflowMetadata(source.workflow.metadata),
-        )
-        .map((source) => [source.id, source]),
-    );
-    const threadEvents = await Promise.all(
-      page
-        .filter((row) => row.event.sourceType === 'agent_run')
-        .map((row) =>
-          this.prisma.agentThreadEvent.findFirst({
-            where: {
-              organizationId,
-              isDeleted: false,
-              runId: row.event.sourceId,
-              thread: { is: sourceAccessWhere },
-            },
-            select: {
-              runId: true,
-              thread: {
-                select: {
-                  id: true,
-                  title: true,
-                  brand: { select: { slug: true } },
-                },
-              },
-            },
-            orderBy: { sequence: 'desc' },
-          }),
-        ),
-    );
-    const threads = new Map(
-      threadEvents
-        .filter((event) => event !== null)
-        .map((event) => [event.runId, event.thread]),
-    );
+    const sources = new Map(executions.map((source) => [source.id, source]));
+    const threadEvents = await this.prisma.agentThreadEvent.findMany({
+      where: {
+        organizationId,
+        isDeleted: false,
+        runId: { in: runIds },
+        thread: { is: sourceAccessWhere },
+      },
+      select: {
+        runId: true,
+        thread: {
+          select: {
+            id: true,
+            title: true,
+            brand: { select: { slug: true } },
+          },
+        },
+      },
+      orderBy: { sequence: 'desc' },
+    });
+    const threads = new Map<string, (typeof threadEvents)[number]['thread']>();
+    for (const event of threadEvents) {
+      if (!threads.has(event.runId)) {
+        threads.set(event.runId, event.thread);
+      }
+    }
 
     const docs = page.map((row) => {
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
-      const path = thread
-        ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
-        : source
-          ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
-          : null;
-      const brandSlug = thread?.brand?.slug ?? source?.workflow.brand?.slug;
+      const ingredient = source?.ingredients?.[0];
+      const isVisibleWorkflow =
+        Boolean(source?.workflow.brand) &&
+        !hasSystemWorkflowMetadata(source?.workflow.metadata ?? null);
+      const path = ingredient
+        ? createLibraryAssetRoute(ingredient.category, ingredient.id)
+        : thread
+          ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
+          : isVisibleWorkflow && source
+            ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
+            : APP_ROUTES.WORKSPACE.ACTIVITY;
+      const brandSlug =
+        ingredient?.brand?.slug ??
+        thread?.brand?.slug ??
+        source?.workflow.brand?.slug;
       return {
         id: row.id,
         topic: row.topic,
@@ -290,8 +323,9 @@ export class NotificationInboxService {
         sourceHref: inboxSourceHref(member.organization.slug, brandSlug, path),
         sourceLabel:
           thread?.title?.slice(0, 300) ??
-          source?.workflow.label?.slice(0, 300) ??
-          null,
+          (isVisibleWorkflow
+            ? (source?.workflow.label?.slice(0, 300) ?? null)
+            : null),
         failure: readInboxFailure(row.topic, row.event.payload),
       };
     });

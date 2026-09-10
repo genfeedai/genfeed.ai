@@ -97,7 +97,6 @@ export const APP_ROUTES = {
     ONBOARDING: '/agent/onboarding',
   },
   AUTOMATION: {
-    AUTOPILOT: '/automation/autopilot',
     /** Content-run history: briefs handed off from Discovery through publish. */
     CONTENT_RUNS: '/automation/content-runs',
     /**
@@ -113,6 +112,10 @@ export const APP_ROUTES = {
     OVERVIEW: '/automation/overview',
     ROOT: '/automation',
     RUNS: '/automation/runs',
+    /**
+     * Redirect-only alias. Templates live on the Workflows page
+     * (`WORKFLOWS_TEMPLATES`).
+     */
     TEMPLATES: '/automation/templates',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
@@ -124,6 +127,8 @@ export const APP_ROUTES = {
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automation/workflows',
     WORKFLOWS_NEW: '/automation/workflows/new',
+    /** Templates tab on the Workflows page. */
+    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
   },
   DISCOVERY: {
     ADS: '/discovery/ads',
@@ -163,8 +168,8 @@ export const APP_ROUTES = {
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
     /**
-     * Brand Knowledge: saved sources and spaces that ground generation. A
-     * sibling destination, not an asset type or shelf.
+     * Redirect alias. Brand Knowledge now lives under Settings
+     * (`SETTINGS.KNOWLEDGE`). Keep this path so old links still resolve.
      */
     KNOWLEDGE: '/library/knowledge',
     MUSIC: '/library/music',
@@ -267,6 +272,11 @@ export const APP_ROUTES = {
     CREDITS: '/settings/credits',
     /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
     INTEGRATIONS: '/settings/integrations',
+    /**
+     * Brand Knowledge: saved sources generations cite. Lives next to Brand
+     * Kit, not in the asset library. `/library/knowledge` redirects here.
+     */
+    KNOWLEDGE: '/settings/knowledge',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     CHARACTERS: '/settings/characters',
@@ -591,6 +601,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.PUBLISHING,
   APP_ROUTES.SETTINGS.SKILLS,
   APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.KNOWLEDGE,
   '/settings/voice',
   '/settings/interview',
   '/settings/harness',

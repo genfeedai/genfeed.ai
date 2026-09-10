@@ -10,7 +10,7 @@ import { useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
 import KnowledgeSourcesList from './knowledge-sources-list';
 
-export default function LibraryKnowledgePage() {
+export default function BrandSettingsKnowledgePage() {
   const { brandId, isReady, selectedBrand } = useBrand();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [seedRequestId, setSeedRequestId] = useState(0);
@@ -39,7 +39,6 @@ export default function LibraryKnowledgePage() {
           />
         </div>
       }
-      titleVisibility="sr-only"
     >
       {!isReady || !brandId ? (
         <Loading isFullSize={false} />

@@ -4,6 +4,7 @@ import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/
 import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import {
   remixOrganicPlatform,
+  remixPaidPlatform,
   remixRecord,
   remixText,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
@@ -27,8 +28,10 @@ import {
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
+  type BrandRemixAdPlatform,
   type BrandRemixDraft,
   type BrandRemixDraftEdits,
+  BrandRemixOrganicPlatform,
   type BrandRemixReadiness,
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
@@ -60,7 +63,7 @@ export class BrandRemixRunPlanningService {
     organizationId: string,
     brandId: string,
     credentialId: string,
-    platform: 'google' | 'meta' | 'tiktok' | 'x',
+    platform: BrandRemixAdPlatform,
   ) {
     return this.sourceResolver.assertConnectedCredential(
       organizationId,
@@ -121,23 +124,28 @@ export class BrandRemixRunPlanningService {
       source.snapshot.selector.kind === 'public_ad' ||
       source.snapshot.selector.kind === 'saved_ad';
     const target = isPaidSource
-      ? ({ kind: 'paid', platform: source.snapshot.platform } as const)
-      : ({
-          kind: 'organic',
+      ? {
+          kind: 'paid' as const,
+          platform: remixPaidPlatform(source.snapshot.platform),
+        }
+      : {
+          kind: 'organic' as const,
           platform: remixOrganicPlatform(source.snapshot.platform),
-        } as const);
+        };
     const aspectRatio =
-      source.snapshot.platform === 'youtube'
+      source.snapshot.platform === BrandRemixOrganicPlatform.YOUTUBE
         ? '16:9'
         : target.kind === 'paid'
           ? '1:1'
           : '9:16';
     const outputKind =
-      source.recommendedOutputKind === 'video' &&
-      aspectRatio === '9:16' &&
-      'avatarAssetId' in context.defaultIdentity
-        ? 'avatar'
-        : source.recommendedOutputKind;
+      source.recommendedOutputKind === 'copy'
+        ? 'copy'
+        : source.recommendedOutputKind === 'video' &&
+            aspectRatio === '9:16' &&
+            'avatarAssetId' in context.defaultIdentity
+          ? 'avatar'
+          : source.recommendedOutputKind;
     const hookPattern =
       source.snapshot.pattern.hook?.replace(/[.!?]+$/, '') ??
       'performance-led hook';
@@ -170,12 +178,15 @@ export class BrandRemixRunPlanningService {
         structure: source.snapshot.pattern.structure,
         visualDirection: source.snapshot.pattern.visualDirection,
       },
-      output: {
-        aspectRatio,
-        count: 3,
-        kind: outputKind,
-        ...(outputKind === 'video' ? { durationSeconds: 8 } : {}),
-      },
+      output:
+        outputKind === 'copy'
+          ? { count: 3, kind: 'copy' }
+          : {
+              aspectRatio,
+              count: 3,
+              kind: outputKind,
+              ...(outputKind === 'video' ? { durationSeconds: 8 } : {}),
+            },
       references: defaultReferences,
       reviewRequired: true,
       target,

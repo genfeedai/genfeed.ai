@@ -6,10 +6,20 @@ import { SaveIndicator } from './SaveIndicator';
 
 beforeEach(() => {
   useSettingsStore.setState({ autoSaveEnabled: true });
-  useWorkflowStore.setState({ isDirty: false, isSaving: false });
+  useWorkflowStore.setState({
+    isDirty: false,
+    isSaving: false,
+    workflowId: 'wf-1',
+  });
 });
 
 describe('SaveIndicator', () => {
+  it('shows Unsaved until the workflow has a persisted id', () => {
+    useWorkflowStore.setState({ workflowId: null });
+    render(<SaveIndicator />);
+    expect(screen.getByText('Unsaved')).toBeInTheDocument();
+  });
+
   it('shows Saved when clean and toggles auto-save on click', () => {
     render(<SaveIndicator />);
 

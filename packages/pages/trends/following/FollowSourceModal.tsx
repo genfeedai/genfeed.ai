@@ -15,6 +15,7 @@ import type {
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { getSafeExternalUrl } from '@pages/trends/shared/safe-external-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
@@ -554,6 +555,7 @@ export default function FollowSourceModal({
                   const canSelect = isCandidateSelectable(candidate);
                   const isChecked = selectedKeySet.has(candidate.key);
                   const selectLabel = `Select ${platformLabel} @${candidate.handle}`;
+                  const avatarUrl = getSafeExternalUrl(candidate.avatarUrl);
 
                   const rowBody = (
                     <>
@@ -576,12 +578,12 @@ export default function FollowSourceModal({
                         <div className="mt-1 size-4 shrink-0" />
                       )}
 
-                      {candidate.avatarUrl ? (
+                      {avatarUrl ? (
                         <Image
-                          alt=""
+                          alt={candidate.displayName || `@${candidate.handle}`}
                           className="size-10 shrink-0 rounded-full object-cover"
                           height={40}
-                          src={candidate.avatarUrl}
+                          src={avatarUrl}
                           unoptimized
                           width={40}
                         />

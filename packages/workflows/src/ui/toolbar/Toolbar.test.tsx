@@ -104,6 +104,16 @@ describe('Toolbar', () => {
     expect(stores.openModal).toHaveBeenCalledWith('shortcutHelp');
   });
 
+  it('drops standalone bar chrome when embedded in module topbar actions', () => {
+    render(<Toolbar embedded leftContent={<div>Workflow Metadata</div>} />);
+
+    const toolbar = screen.getByTestId('workflow-toolbar');
+    expect(toolbar.className).toContain('flex-1');
+    expect(toolbar.className).not.toContain('border-b');
+    expect(toolbar.className).not.toContain('h-14');
+    expect(screen.queryByTitle('Go to Overview')).toBeNull();
+  });
+
   it('renders an optional logo only when logoSrc is provided', () => {
     render(
       <Toolbar

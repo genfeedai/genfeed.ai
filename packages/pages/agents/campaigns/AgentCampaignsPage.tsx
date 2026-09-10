@@ -339,6 +339,7 @@ export default function AgentCampaignsPage() {
   );
 
   const hasCampaigns = campaigns.length > 0;
+  const isEmpty = !isLoading && !hasCampaigns;
 
   return (
     <Container
@@ -346,11 +347,13 @@ export default function AgentCampaignsPage() {
       description="Coordinate agents for multi-agent content production."
       icon={LayoutDashboard}
       right={
-        <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
-            <Plus /> New Program
-          </Link>
-        </Button>
+        isEmpty ? undefined : (
+          <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
+            <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
+              <Plus /> New Program
+            </Link>
+          </Button>
+        )
       }
     >
       {isLoading ? (

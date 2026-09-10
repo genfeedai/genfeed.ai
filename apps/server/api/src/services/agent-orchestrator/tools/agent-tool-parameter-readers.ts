@@ -1,10 +1,11 @@
-import { Platform } from '@genfeedai/contracts';
-import type {
-  AdsChannel,
-  AdsResearchFilters,
-  AdsResearchPlatform,
-  AdsResearchSource,
-} from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
+import {
+  type AdsChannel,
+  type AdsResearchFilters,
+  type AdsResearchPlatform,
+  type AdsResearchSource,
+  isAdsChannel,
+  isAdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 
 export function readOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0
@@ -28,21 +29,11 @@ export function readAdsPlatform(
   value: unknown,
 ): AdsResearchPlatform | undefined {
   // Ads research uses product-channel names, not CredentialPlatform values.
-  return value === 'meta' ||
-    value === 'google' ||
-    value === 'tiktok' ||
-    value === 'x'
-    ? value
-    : undefined;
+  return typeof value === 'string' && isAdsPlatform(value) ? value : undefined;
 }
 
 export function readAdsChannel(value: unknown): AdsChannel | undefined {
-  return value === 'all' ||
-    value === 'search' ||
-    value === 'display' ||
-    value === Platform.YOUTUBE
-    ? value
-    : undefined;
+  return typeof value === 'string' && isAdsChannel(value) ? value : undefined;
 }
 
 export function readAdsMetric(value: unknown): AdsResearchFilters['metric'] {

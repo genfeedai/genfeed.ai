@@ -141,7 +141,7 @@ const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms $
 // executions routes that share the module surface key. Both keys are checked
 // because the canvas routes are registered as their own surface; the pathname
 // still has to carry a `workflows` segment so sibling Automation routes (runs,
-// skills, autopilot) keep the generic inspector.
+// agents, programs) keep the generic inspector.
 const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<WorkspaceShellSurfaceKey> =
   new Set(['automation', 'automation-workflows-editor']);
 
@@ -811,7 +811,7 @@ function UniversalWorkspaceShellContent({
       }
 
       const destinationHref = buildLibraryRemixIntentHref(
-        href(APP_ROUTES.PUBLISHING.REMIX),
+        href(APP_ROUTES.STUDIO.GENERATE),
         reference,
       );
       const launch = resolveWorkspaceSurfaceLaunch({

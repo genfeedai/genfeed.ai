@@ -314,7 +314,7 @@ export function useModalIngredient({
       closeModal(ModalEnum.INGREDIENT);
       push(
         href(
-          buildContextualRemixHref(APP_ROUTES.PUBLISHING.REMIX, {
+          buildContextualRemixHref(APP_ROUTES.STUDIO.GENERATE, {
             kind: 'ingredient',
             recordId: image.id,
             recordVersion: image.version?.toString(),

@@ -66,6 +66,17 @@ test.describe('Content Library', () => {
       ).toBeVisible();
     });
 
+    test('writes the selected layout onto the shareable URL', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.ASSETS));
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+
+      await expect(authenticatedPage).toHaveURL(/view=grid/);
+      await authenticatedPage.getByRole('radio', { name: 'List' }).click();
+      await expect(authenticatedPage).toHaveURL(/view=list/);
+    });
+
     test('should show avatars section', async ({ authenticatedPage }) => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -107,6 +118,10 @@ test.describe('Content Library', () => {
       await expect
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
+
+      await expect(
+        libraryNav.getByRole('link', { name: 'Knowledge' }),
+      ).toHaveCount(0);
     });
   });
 

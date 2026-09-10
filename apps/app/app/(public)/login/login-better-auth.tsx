@@ -32,7 +32,9 @@ import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-wo
 
 import {
   getAuthCallbackURL,
+  getAuthErrorCallbackURL,
   getAuthFlowHref,
+  resolveOAuthLoginErrorMessage,
   toAbsoluteAuthCallbackURL,
 } from '../auth-callback-url';
 import {
@@ -130,7 +132,7 @@ export default function LoginBetterAuth({
     string | null
   >(null);
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
-    null,
+    () => resolveOAuthLoginErrorMessage(searchParams.get('error')),
   );
   const [desktopErrorMessage, setDesktopErrorMessage] = useState<string | null>(
     null,
@@ -397,6 +399,7 @@ export default function LoginBetterAuth({
     try {
       const result = await signIn.social({
         callbackURL: authCallbackURL,
+        errorCallbackURL: getAuthErrorCallbackURL(),
         provider,
       });
       if (result?.error) {

@@ -30,7 +30,7 @@ describe('isValidNodeType', () => {
 
 describe('getNodeDefinition', () => {
   it('catalog action node', () => {
-    expect(getNodeDefinition('brand')?.label).toBe('Read Brand');
+    expect(getNodeDefinition('brand')?.label).toBe('Brand');
   });
   it('unknown', () => expect(getNodeDefinition('xxx')).toBeUndefined());
 });

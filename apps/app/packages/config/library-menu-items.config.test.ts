@@ -18,7 +18,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/shelf/approved',
       '/library/shelf/failed',
       '/library/shelf/archived',
-      '/library/knowledge',
       '/library/trash',
     ]);
   });
@@ -75,6 +74,15 @@ describe('LIBRARY_MENU_ITEMS', () => {
   it('keeps Library destinations flat without obsolete divider metadata', () => {
     expect(LIBRARY_TAIL_MENU_ITEMS.every((item) => !item.hasDividerAbove)).toBe(
       true,
+    );
+  });
+
+  it('does not keep Brand Knowledge under Library', () => {
+    expect(
+      LIBRARY_MENU_ITEMS.some((item) => item.href === '/library/knowledge'),
+    ).toBe(false);
+    expect(LIBRARY_MENU_ITEMS.some((item) => item.label === 'Knowledge')).toBe(
+      false,
     );
   });
 });

@@ -31,7 +31,7 @@ async function setup() {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
-    agentThreadEvent: { findFirst: vi.fn().mockResolvedValue(null) },
+    agentThreadEvent: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -108,7 +108,7 @@ describe('NotificationInboxService', () => {
     prisma.notificationInboxItem.findMany.mockResolvedValue([fixture(1)]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
-      sourceHref: null,
+      sourceHref: '/acme/~/workspace/activity',
       sourceLabel: null,
       failure: null,
     });
@@ -136,7 +136,7 @@ describe('NotificationInboxService', () => {
     ]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
-      sourceHref: null,
+      sourceHref: '/acme/~/workspace/activity',
       sourceLabel: null,
       failure: {
         title: 'Run failed',
@@ -159,19 +159,21 @@ describe('NotificationInboxService', () => {
         },
       }),
     ]);
-    prisma.agentThreadEvent.findFirst.mockResolvedValue({
-      runId: 'run-1',
-      thread: { id: 'thread-1', title: 'My task', brand: { slug: 'brand' } },
-    });
+    prisma.agentThreadEvent.findMany.mockResolvedValue([
+      {
+        runId: 'run-1',
+        thread: { id: 'thread-1', title: 'My task', brand: { slug: 'brand' } },
+      },
+    ]);
     expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
       '/acme/brand/agent/thread-1',
     );
-    expect(prisma.agentThreadEvent.findFirst).toHaveBeenCalledWith(
+    expect(prisma.agentThreadEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           organizationId: 'org',
           isDeleted: false,
-          runId: 'run-1',
+          runId: { in: ['run-1'] },
           thread: {
             is: expect.objectContaining({
               userId: 'recipient',
@@ -195,21 +197,121 @@ describe('NotificationInboxService', () => {
           metadata: { systemWorkflow: { visibility: 'hidden' } },
           brand: { slug: 'brand' },
         },
+        ingredients: [],
       },
     ]);
-    expect(
-      (await service.list('org', 'recipient')).docs[0].sourceHref,
-    ).toBeNull();
+    expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
+      sourceHref: '/acme/brand/workspace/activity',
+      sourceLabel: null,
+    });
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
         id: 'run-1',
         workflowId: 'workflow-1',
         workflow: { label: 'Brandless', metadata: null, brand: null },
+        ingredients: [],
       },
     ]);
-    expect(
-      (await service.list('org', 'recipient')).docs[0].sourceHref,
-    ).toBeNull();
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      '/acme/~/workspace/activity',
+    );
+  });
+
+  it('opens the latest library asset for a hidden system workflow run', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'agent.status',
+        event: {
+          sourceId: 'run-1',
+          sourceType: 'agent_run',
+          eventKey: 'workflow.execution.failed',
+          payload: {},
+        },
+      }),
+    ]);
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        id: 'run-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'Internal agent workflow',
+          metadata: { systemWorkflow: { visibility: 'hidden' } },
+          brand: { slug: 'brand' },
+        },
+        ingredients: [
+          {
+            id: 'img-1',
+            category: 'IMAGE',
+            brand: { slug: 'brand' },
+          },
+        ],
+      },
+    ]);
+    const page = await service.list('org', 'recipient');
+    expect(page.docs[0]).toMatchObject({
+      sourceHref: '/acme/brand/library/images?asset=img-1',
+      sourceLabel: null,
+    });
+    expect(JSON.stringify(page)).not.toMatch(/Internal agent workflow/);
+  });
+
+  it('opens a visible workflow execution when no asset exists', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([fixture(1)]);
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        id: 'run-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'Daily Posts',
+          metadata: null,
+          brand: { slug: 'brand' },
+        },
+        ingredients: [],
+      },
+    ]);
+    expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
+      sourceHref: '/acme/brand/automation/workflows/workflow-1?execution=run-1',
+      sourceLabel: 'Daily Posts',
+    });
+  });
+
+  it('loads executions for the actor or workflow owner, including agent runs', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'agent.status',
+        event: {
+          sourceId: 'run-1',
+          sourceType: 'agent_run',
+          eventKey: 'workflow.execution.failed',
+          payload: {},
+        },
+      }),
+    ]);
+    await service.list('org', 'recipient');
+    expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org',
+          isDeleted: false,
+          id: { in: ['run-1'] },
+          OR: [
+            { userId: 'recipient' },
+            {
+              workflow: {
+                is: {
+                  userId: 'recipient',
+                  organizationId: 'org',
+                  isDeleted: false,
+                },
+              },
+            },
+          ],
+        }),
+      }),
+    );
   });
 
   it('writes only unread owned rows and propagates failed mutations', async () => {

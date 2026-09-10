@@ -185,6 +185,25 @@ describe('BrandRemixRunPlanningService', () => {
     ]);
   });
 
+  it('defaults an X source post to organic copy output', () => {
+    const draft = planning.defaultDraft(brandContext, {
+      recommendedOutputKind: 'copy',
+      snapshot: {
+        capturedAt: '2026-08-26T12:00:00.000Z',
+        evidence: ['Do not wait for permission to ship.'],
+        metrics: {},
+        pattern: { hook: 'Outcome-led relevance hook.' },
+        platform: 'x',
+        selector: { kind: 'source_post', sourcePostId: 'tweet-1' },
+        sourceId: 'tweet-1',
+        title: 'Do not wait for permission to ship.',
+      },
+    });
+
+    expect(draft.target).toEqual({ kind: 'organic', platform: 'x' });
+    expect(draft.output).toEqual({ count: 3, kind: 'copy' });
+  });
+
   it('authorizes draft assets with tenant and brand scope', async () => {
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'ref-1', status: IngredientStatus.GENERATED },

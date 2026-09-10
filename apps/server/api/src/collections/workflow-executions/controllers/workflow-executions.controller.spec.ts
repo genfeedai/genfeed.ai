@@ -162,6 +162,39 @@ describe('WorkflowExecutionsController', () => {
         expect.any(Object),
       );
     });
+
+    it('filters executions by strategy id in result metadata', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [], total: 0 });
+      const strategyId = testId('strategy');
+
+      await controller.findAll(mockRequest, mockUser, {
+        strategyId,
+      } as never);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            organizationId,
+            OR: [
+              {
+                result: {
+                  path: ['metadata', 'strategyId'],
+                  equals: strategyId,
+                },
+              },
+              {
+                result: {
+                  path: ['metadata', 'agentStrategyId'],
+                  equals: strategyId,
+                },
+              },
+            ],
+          },
+        }),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('getExecutionStats', () => {

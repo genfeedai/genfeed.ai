@@ -52,6 +52,13 @@ describe('WorkflowEditorShell', () => {
     expect(screen.getByText('Modal Host')).toBeTruthy();
   });
 
+  it('renders the canvas without a stacked toolbar slot', () => {
+    render(<WorkflowEditorShell />);
+
+    expect(screen.queryByText('Toolbar Slot')).toBeNull();
+    expect(screen.getByText('Shared Workflow Canvas')).toBeTruthy();
+  });
+
   it('respects palette visibility from the shared UI store', () => {
     stores.showPalette = false;
 

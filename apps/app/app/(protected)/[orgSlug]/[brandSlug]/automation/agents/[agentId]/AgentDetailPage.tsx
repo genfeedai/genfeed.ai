@@ -2,20 +2,20 @@
 
 import {
   AgentAutonomyMode,
-  AgentType,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import {
-  LinkedinIcon,
-  XTwitterIcon,
-  YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
   AgentStrategyWorkflowBinding,
@@ -32,62 +32,30 @@ import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  ArrowLeft,
-  CirclePlay,
-  Cpu,
-  FileText,
-  Image,
-  Megaphone,
-  Sparkles,
-  User,
-  Video,
-  Workflow,
-  Zap,
-} from 'lucide-react';
+import { ArrowLeft, CirclePlay, Clock, Cpu, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useMemo, useState } from 'react';
+import AgentStrategyDialog from '../../autopilot/AgentStrategyDialog';
+import { buildPayload } from '../../autopilot/build-agent-strategy-payload';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
+import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
 import WorkflowExecutionHistorySection from './WorkflowExecutionHistorySection';
 
-const AGENT_TYPE_LABELS: Record<AgentType, string> = {
-  [AgentType.GENERAL]: 'General',
-  [AgentType.X_CONTENT]: 'X Content',
-  [AgentType.IMAGE_CREATOR]: 'Image Creator',
-  [AgentType.VIDEO_CREATOR]: 'Video Creator',
-  [AgentType.AI_AVATAR]: 'AI Avatar',
-  [AgentType.ARTICLE_WRITER]: 'Article Writer',
-  [AgentType.LINKEDIN_CONTENT]: 'LinkedIn Copywriter',
-  [AgentType.ADS_SCRIPT_WRITER]: 'Ads Script Writer',
-  [AgentType.SHORT_FORM_WRITER]: 'Short-Form Writer',
-  [AgentType.CTA_CONTENT]: 'CTA / Conversion',
-  [AgentType.YOUTUBE_SCRIPT]: 'YouTube Script',
-  [AgentType.BRAND_INTERVIEW]: 'Brand Interview',
-};
-
-const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
-  [AgentType.GENERAL]: <Cpu className="size-5" />,
-  [AgentType.X_CONTENT]: <XTwitterIcon className="size-4" />,
-  [AgentType.IMAGE_CREATOR]: <Image className="size-5" />,
-  [AgentType.VIDEO_CREATOR]: <Video className="size-5" />,
-  [AgentType.AI_AVATAR]: <User className="size-5" />,
-  [AgentType.ARTICLE_WRITER]: <FileText className="size-5" />,
-  [AgentType.LINKEDIN_CONTENT]: <LinkedinIcon className="size-4" />,
-  [AgentType.ADS_SCRIPT_WRITER]: <Megaphone className="size-5" />,
-  [AgentType.SHORT_FORM_WRITER]: <Zap className="size-5" />,
-  [AgentType.CTA_CONTENT]: <Sparkles className="size-5" />,
-  [AgentType.YOUTUBE_SCRIPT]: <YoutubeIcon className="size-4" />,
-  [AgentType.BRAND_INTERVIEW]: <Sparkles className="size-5" />,
-};
+const AGENT_EXECUTION_PAGE_SIZE = 20;
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
+  const translate = useTranslations('common.automation.agentHub');
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { href } = useOrgUrl();
+  const collectionScope = useCollectionScope();
+  const isReady = isCollectionFetchReady(collectionScope);
+  const brandParams = toBrandListParams(collectionScope);
   const requestedOpportunityId = searchParams.get('opportunity');
   const {
     strategy,
@@ -95,7 +63,13 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     refresh,
   } = useAgentStrategy(agentId);
   const { executions, isLoading: areExecutionsLoading } = useWorkflowExecutions(
-    { limit: 100, sort: '-createdAt' },
+    {
+      ...brandParams,
+      limit: AGENT_EXECUTION_PAGE_SIZE,
+      sort: '-createdAt',
+      strategyId: agentId,
+    },
+    { enabled: isReady },
   );
 
   const getService = useAuthedService((token: string) =>
@@ -128,12 +102,34 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     try {
       const service = await getService();
       await service.runNow(agentId);
-      notificationsService.success('Autopilot run triggered');
+      notificationsService.success('Agent run triggered');
     } catch (error) {
       logger.error('Failed to trigger run', { error });
       notificationsService.error('Failed to trigger run');
     }
   }, [agentId, getService, notificationsService]);
+
+  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+
+  const handlePolicySubmit = useCallback(
+    async (form: AgentStrategyFormState) => {
+      setIsSavingPolicy(true);
+      try {
+        const service = await getService();
+        await service.update(agentId, buildPayload(form));
+        notificationsService.success('Agent schedule updated');
+        setIsPolicyOpen(false);
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to save agent schedule', { error });
+        notificationsService.error('Failed to save agent schedule');
+      } finally {
+        setIsSavingPolicy(false);
+      }
+    },
+    [agentId, getService, notificationsService, refresh],
+  );
 
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [workflowBinding, setWorkflowBinding] =
@@ -188,17 +184,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     null,
   );
 
-  const strategyExecutions = useMemo(
-    () =>
-      executions.filter(
-        (execution) => execution.metadata?.strategyId === agentId,
-      ),
-    [agentId, executions],
-  );
-  const recentExecutions = useMemo(
-    () => strategyExecutions.slice(0, 20),
-    [strategyExecutions],
-  );
   const selectedOpportunity = useMemo(
     () =>
       requestedOpportunityId
@@ -215,15 +200,8 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     );
   }, []);
 
-  const agentType = strategy?.agentType as AgentType | undefined;
-  const icon = agentType ? (
-    (AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />)
-  ) : (
-    <Cpu className="size-5" />
-  );
-  const typeLabel = agentType
-    ? (AGENT_TYPE_LABELS[agentType] ?? strategy?.agentType)
-    : '';
+  const Icon = getAgentTypeIcon(strategy?.agentType);
+  const typeLabel = getAgentTypeLabel(strategy?.agentType);
 
   if (isStrategyLoading) {
     return (
@@ -276,6 +254,13 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleToggle}
           />
           <Button
+            label={translate('schedule')}
+            icon={<Clock />}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            onClick={() => setIsPolicyOpen(true)}
+          />
+          <Button
             label="Run workflow"
             icon={<Workflow />}
             size={ButtonSize.SM}
@@ -283,7 +268,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={handleOpenWorkflow}
           />
           <Button
-            label="Autopilot"
+            label={translate('runNow')}
             icon={<CirclePlay />}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
@@ -296,7 +281,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         {/* Agent info header */}
         <div className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded bg-foreground/5 text-foreground/70">
-            {icon}
+            <Icon className="size-5" />
           </span>
           <div>
             <p className="font-semibold">{strategy.label}</p>
@@ -332,9 +317,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
               value: strategy.creditsUsedThisWeek,
             },
             {
-              description: 'All time executions',
-              label: 'Total Executions',
-              value: strategyExecutions.length,
+              description: 'Latest runs for this agent',
+              label: 'Recent executions',
+              value: executions.length,
             },
             {
               description: 'Consecutive errors',
@@ -346,6 +331,14 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
                   : 'text-success',
             },
           ]}
+        />
+
+        <AgentStrategyDialog
+          initialStrategy={strategy}
+          isOpen={isPolicyOpen}
+          isSubmitting={isSavingPolicy}
+          onOpenChange={setIsPolicyOpen}
+          onSubmit={handlePolicySubmit}
         />
 
         <AgentWorkflowRunDialog
@@ -367,7 +360,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         )}
 
         <WorkflowExecutionHistorySection
-          executions={recentExecutions}
+          executions={executions}
           expandedExecutionId={expandedExecutionId}
           isLoading={areExecutionsLoading}
           onToggleExpand={handleToggleExpand}

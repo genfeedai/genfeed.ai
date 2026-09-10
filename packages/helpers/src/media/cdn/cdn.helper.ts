@@ -19,3 +19,11 @@ export function cdnAsset(assetPath: string): string {
     : `/${assetPath}`;
   return `${CDN_BASE_URL}${normalizedPath}`;
 }
+
+/**
+ * Immutable product stills: `s3://cdn.genfeed.ai/assets/<surface>/<id>.webp`.
+ * Agents use surface `agents`; other catalogs can reuse the same folder shape.
+ */
+export function cdnProductStill(surface: string, id: string): string {
+  return cdnAsset(`/assets/${surface}/${id}.webp`);
+}

@@ -224,6 +224,7 @@ export function Toolbar({
   logoSrc,
   showSettings = true,
   showShortcutHelp = false,
+  embedded = false,
   rightContent,
 }: ToolbarProps) {
   const { exportWorkflow, workflowName } = useWorkflowStore();
@@ -334,8 +335,21 @@ export function Toolbar({
   });
 
   return (
-    <div className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
-      <ToolbarLogo branding={branding} logoHref={logoHref} logoSrc={logoSrc} />
+    <div
+      className={
+        embedded
+          ? 'flex min-w-0 flex-1 items-center gap-2'
+          : 'flex h-14 items-center gap-3 border-b border-border bg-card px-4'
+      }
+      data-testid="workflow-toolbar"
+    >
+      {embedded ? null : (
+        <ToolbarLogo
+          branding={branding}
+          logoHref={logoHref}
+          logoSrc={logoSrc}
+        />
+      )}
 
       {leftContent}
 

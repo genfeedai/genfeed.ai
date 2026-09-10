@@ -9,10 +9,15 @@ import {
 } from '@genfeedai/contracts';
 import {
   type BrandRemixDraftEdits,
+  BrandRemixOrganicPlatform,
   type BrandRemixReference,
   type BrandRemixRunView,
+  brandRemixAdPlatformValues,
+  brandRemixOrganicPlatformValues,
   generationFidelityModeValues,
   generationReferenceRoleValues,
+  isBrandRemixAdPlatform,
+  isBrandRemixOrganicPlatform,
 } from '@genfeedai/contracts/api-types/contracts';
 import type {
   AgentArtifactReference,
@@ -74,7 +79,7 @@ const EMPTY_EDITOR: RemixEditorState = {
   outputKind: 'video',
   references: [],
   speechVoiceId: '',
-  targetPlatform: 'tiktok',
+  targetPlatform: BrandRemixOrganicPlatform.TIKTOK,
   visualDirection: '',
 };
 
@@ -167,18 +172,15 @@ export function buildRemixDraftEdits(
       run.draft.target.kind === 'paid'
         ? {
             ...run.draft.target,
-            platform: editor.targetPlatform as
-              | 'google'
-              | 'meta'
-              | 'tiktok'
-              | 'x',
+            platform: isBrandRemixAdPlatform(editor.targetPlatform)
+              ? editor.targetPlatform
+              : run.draft.target.platform,
           }
         : {
             ...run.draft.target,
-            platform: editor.targetPlatform as
-              | 'instagram'
-              | 'tiktok'
-              | 'youtube',
+            platform: isBrandRemixOrganicPlatform(editor.targetPlatform)
+              ? editor.targetPlatform
+              : run.draft.target.platform,
           },
   };
 }
@@ -607,12 +609,19 @@ export default function RemixBriefInspector(): ReactElement {
             </p>
             <div className="grid gap-3 sm:grid-cols-4">
               <Select
-                onValueChange={(value) =>
+                onValueChange={(value) => {
+                  const isPaidTarget = run.draft.target.kind === 'paid';
+                  if (
+                    (isPaidTarget && !isBrandRemixAdPlatform(value)) ||
+                    (!isPaidTarget && !isBrandRemixOrganicPlatform(value))
+                  ) {
+                    return;
+                  }
                   setEditor((current) => ({
                     ...current,
-                    targetPlatform: value as RemixEditorState['targetPlatform'],
-                  }))
-                }
+                    targetPlatform: value,
+                  }));
+                }}
                 value={editor.targetPlatform}
               >
                 <SelectTrigger aria-label="Target platform">
@@ -620,8 +629,8 @@ export default function RemixBriefInspector(): ReactElement {
                 </SelectTrigger>
                 <SelectContent>
                   {(run.draft.target.kind === 'paid'
-                    ? ['meta', 'google', 'tiktok', 'x']
-                    : ['tiktok', 'instagram', 'youtube']
+                    ? brandRemixAdPlatformValues
+                    : brandRemixOrganicPlatformValues
                   ).map((platform) => (
                     <SelectItem key={platform} value={platform}>
                       {formatLabel(platform)}

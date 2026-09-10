@@ -3,7 +3,16 @@ import {
   type GenerationDimensions,
   MAX_ERROR_LENGTH,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import type { BrandRemixSourceSnapshot } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { Platform } from '@genfeedai/contracts';
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixSourcePlatform,
+  type BrandRemixSourceSnapshot,
+  isBrandRemixAdPlatform,
+  isBrandRemixOrganicPlatform,
+  isBrandRemixSourcePlatform,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
@@ -135,23 +144,26 @@ export function remixErrorMessage(error: unknown): string {
   return remixTruncate(message || 'Generation failed', MAX_ERROR_LENGTH);
 }
 
-export function remixSourcePlatform(
-  value: unknown,
-): BrandRemixSourceSnapshot['platform'] {
+const REMIX_SOURCE_PLATFORM_ALIASES: Record<string, BrandRemixSourcePlatform> =
+  {
+    facebook_ads: BrandRemixAdPlatform.META,
+    [Platform.FACEBOOK]: BrandRemixAdPlatform.META,
+    [Platform.GOOGLE_ADS]: BrandRemixAdPlatform.GOOGLE,
+    [Platform.TWITTER]: BrandRemixAdPlatform.X,
+    [Platform.X_ADS]: BrandRemixAdPlatform.X,
+  };
+
+export function remixSourcePlatform(value: unknown): BrandRemixSourcePlatform {
   const normalized = remixText(value)?.toLowerCase();
-  if (
-    normalized === 'tiktok' ||
-    normalized === 'instagram' ||
-    normalized === 'youtube' ||
-    normalized === 'meta' ||
-    normalized === 'google' ||
-    normalized === 'x'
-  ) {
+  if (normalized && isBrandRemixSourcePlatform(normalized)) {
     return normalized;
   }
-  if (normalized === 'facebook' || normalized === 'facebook_ads') return 'meta';
-  if (normalized === 'google_ads') return 'google';
-  if (normalized === 'twitter' || normalized === 'x_ads') return 'x';
+  const aliased = normalized
+    ? REMIX_SOURCE_PLATFORM_ALIASES[normalized]
+    : undefined;
+  if (aliased) {
+    return aliased;
+  }
   throw new BadRequestException({
     detail: `Source platform ${normalized ?? 'unknown'} is not supported for a brand remix.`,
     title: 'Unsupported remix source platform',
@@ -159,28 +171,53 @@ export function remixSourcePlatform(
 }
 
 export function remixOrganicPlatform(
-  platform: BrandRemixSourceSnapshot['platform'],
-): 'instagram' | 'tiktok' | 'youtube' {
-  if (
-    platform === 'instagram' ||
-    platform === 'tiktok' ||
-    platform === 'youtube'
-  ) {
+  platform: BrandRemixSourcePlatform,
+): BrandRemixOrganicPlatform {
+  if (isBrandRemixOrganicPlatform(platform)) {
     return platform;
   }
   throw new BadRequestException({
-    detail: `Organic remix output is not supported for ${platform}. Choose Instagram, TikTok, or YouTube.`,
+    detail: `Organic remix output is not supported for ${platform}. Choose Instagram, TikTok, YouTube, or X.`,
     title: 'Unsupported organic remix target',
   });
 }
 
+export function remixPaidPlatform(
+  platform: BrandRemixSourcePlatform,
+): BrandRemixAdPlatform {
+  if (isBrandRemixAdPlatform(platform)) {
+    return platform;
+  }
+  throw new BadRequestException({
+    detail: `Paid remix output is not supported for ${platform}. Choose Meta, Google, TikTok, or X.`,
+    title: 'Unsupported paid remix target',
+  });
+}
+
+/** X text posts remix as copy; visual platforms keep image/video. */
+export function remixRecommendedOutputKind(
+  platform: BrandRemixSourcePlatform,
+  hasVideo: boolean,
+): 'copy' | 'image' | 'video' {
+  if (platform === BrandRemixOrganicPlatform.X && !hasVideo) {
+    return 'copy';
+  }
+  return hasVideo ? 'video' : 'image';
+}
+
 export function remixCredentialPlatform(
-  platform: 'google' | 'meta' | 'tiktok' | 'x',
+  platform: BrandRemixAdPlatform,
 ): CredentialPlatform {
-  if (platform === 'meta') return CredentialPlatform.FACEBOOK;
-  if (platform === 'google') return CredentialPlatform.GOOGLE_ADS;
-  if (platform === 'x') return CredentialPlatform.X_ADS;
-  return CredentialPlatform.TIKTOK;
+  switch (platform) {
+    case BrandRemixAdPlatform.META:
+      return CredentialPlatform.FACEBOOK;
+    case BrandRemixAdPlatform.GOOGLE:
+      return CredentialPlatform.GOOGLE_ADS;
+    case BrandRemixAdPlatform.X:
+      return CredentialPlatform.X_ADS;
+    case BrandRemixAdPlatform.TIKTOK:
+      return CredentialPlatform.TIKTOK;
+  }
 }
 
 export function remixIsVideoMedia(kind: unknown, urls: string[] = []): boolean {

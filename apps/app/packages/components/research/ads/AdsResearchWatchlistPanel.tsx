@@ -1,10 +1,11 @@
 'use client';
 
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type {
-  AdWatchedAdvertiser,
-  AdWatchlistPlatform,
-  AdWatchlistPlatformReadiness,
+import {
+  AdsPlatform,
+  type AdWatchedAdvertiser,
+  type AdWatchlistPlatform,
+  type AdWatchlistPlatformReadiness,
 } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
@@ -25,11 +26,11 @@ const WATCHLIST_PLATFORM_OPTIONS: Array<{
   label: string;
   value: AdWatchlistPlatform;
 }> = [
-  { label: 'Meta Ad Library', value: 'meta' },
-  { label: 'TikTok Creative Center', value: 'tiktok' },
-  { label: 'Google Ads Transparency', value: 'google' },
+  { label: 'Meta Ad Library', value: AdsPlatform.META },
+  { label: 'TikTok Creative Center', value: AdsPlatform.TIKTOK },
+  { label: 'Google Ads Transparency', value: AdsPlatform.GOOGLE },
   { label: 'YouTube (Google Ads Transparency)', value: 'youtube' },
-  { label: 'X Ads Repository', value: 'x' },
+  { label: 'X Ads Repository', value: AdsPlatform.X },
 ];
 
 /**
@@ -152,7 +153,9 @@ export function AdsResearchWatchlistPanel({
 }: AdsResearchWatchlistPanelProps) {
   const translate = useTranslations('pages.adsResearch.watchlist');
   const [advertiserHandle, setAdvertiserHandle] = useState('');
-  const [platform, setPlatform] = useState<AdWatchlistPlatform>('meta');
+  const [platform, setPlatform] = useState<AdWatchlistPlatform>(
+    AdsPlatform.META,
+  );
   const blockedPlatforms = readiness.filter((entry) => !entry.available);
 
   return (

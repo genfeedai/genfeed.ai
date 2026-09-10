@@ -37,6 +37,10 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
+/** Deck fills the content plane; columns grow, then scroll sideways. */
+const DECK_COLUMN_FRAME =
+  'h-[calc(100dvh-13rem)] min-h-0 snap-start overflow-hidden rounded-card';
+
 /** Deck column order — the networks people actually follow first. */
 const PLATFORM_ORDER = [
   'twitter',
@@ -256,7 +260,7 @@ function FollowingDeckPost({
             alt=""
             className="object-cover"
             fill
-            sizes="320px"
+            sizes="(min-width: 1024px) 28vw, 80vw"
             src={previewMediaUrl}
             unoptimized
           />
@@ -346,7 +350,7 @@ function FollowingDeckColumnView({
   return (
     <section
       aria-label={label}
-      className="flex max-h-[calc(100dvh-13rem)] w-80 shrink-0 snap-start flex-col overflow-hidden rounded-card bg-background-secondary shadow-border"
+      className={`flex min-w-80 flex-1 flex-col bg-background-secondary shadow-border ${DECK_COLUMN_FRAME}`}
       data-testid="following-deck-column"
     >
       <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
@@ -446,7 +450,7 @@ export default function FollowingDeck({
       className="flex min-h-0 flex-1 flex-col gap-3"
       data-testid="following-deck"
     >
-      <div className="flex min-h-0 flex-1 snap-x gap-3 overflow-x-auto pb-2">
+      <div className="flex min-h-0 w-full flex-1 snap-x items-stretch gap-3 overflow-x-auto pb-2">
         {columns.map((column) => (
           <FollowingDeckColumnView
             column={column}
@@ -459,7 +463,7 @@ export default function FollowingDeck({
           />
         ))}
         <Button
-          className="flex min-h-48 w-64 shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-card border border-dashed border-border-strong p-6 text-center normal-case text-foreground/60 transition hover:bg-hover hover:text-foreground"
+          className={`flex w-64 shrink-0 flex-col items-center justify-center gap-2 border border-dashed border-border-strong p-6 text-center normal-case text-foreground/60 transition hover:bg-hover hover:text-foreground ${DECK_COLUMN_FRAME}`}
           onClick={() => setIsFollowOpen(true)}
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}

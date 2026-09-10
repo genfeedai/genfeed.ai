@@ -1,24 +1,14 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostsRemixPage from './page';
 
-vi.mock('@/features/library-remix/LibraryRemixSurface', () => ({
-  default: ({
-    sourceArtifact,
-    sourceVersion,
-  }: {
-    sourceArtifact?: string | null;
-    sourceVersion?: string | null;
-  }) => (
-    <div data-testid="library-remix-surface">
-      {sourceArtifact ?? 'none'}:{sourceVersion ?? 'none'}
-    </div>
-  ),
+const mocks = vi.hoisted(() => ({
+  redirect: vi.fn(),
 }));
 
-vi.mock('./trend-remix-page', () => ({
-  default: () => <div data-testid="trend-remix-surface" />,
+vi.mock('next/navigation', () => ({
+  redirect: (url: string) => mocks.redirect(url),
 }));
 
 assertSourceHasExport(
@@ -26,47 +16,24 @@ assertSourceHasExport(
 );
 
 describe('PostsRemixPage', () => {
-  it('launches the focused Library Remix surface with its typed source intent', async () => {
-    const page = await PostsRemixPage({
+  beforeEach(() => {
+    mocks.redirect.mockClear();
+  });
+
+  it('sends remix into Studio instead of the retired variations page', async () => {
+    await PostsRemixPage({
+      params: Promise.resolve({
+        brandSlug: 'moonrise',
+        orgSlug: 'acme',
+      }),
       searchParams: Promise.resolve({
         sourceArtifact: 'ingredient:ingredient-1',
         sourceVersion: '7',
-        thread: 'thread-1',
       }),
     });
 
-    render(page);
-
-    expect(screen.getByTestId('library-remix-surface')).toHaveTextContent(
-      'ingredient:ingredient-1:7',
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      `/acme/moonrise${APP_ROUTES.STUDIO.GENERATE}`,
     );
-    expect(screen.queryByTestId('trend-remix-surface')).not.toBeInTheDocument();
-  });
-
-  it('preserves the existing trend Remix route contract', async () => {
-    const page = await PostsRemixPage({
-      searchParams: Promise.resolve({
-        sourceArtifact: 'ingredient:ingredient-1',
-        sourceReferenceId: 'trend-1',
-      }),
-    });
-
-    render(page);
-
-    expect(screen.getByTestId('trend-remix-surface')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('library-remix-surface'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the Library source picker when Remix has no source intent', async () => {
-    const page = await PostsRemixPage({});
-
-    render(page);
-
-    expect(screen.getByTestId('library-remix-surface')).toHaveTextContent(
-      'none:none',
-    );
-    expect(screen.queryByTestId('trend-remix-surface')).not.toBeInTheDocument();
   });
 });

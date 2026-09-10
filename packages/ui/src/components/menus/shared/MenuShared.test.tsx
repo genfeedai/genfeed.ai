@@ -916,6 +916,22 @@ describe('MenuShared', () => {
     expect(customBody.parentElement).not.toHaveClass('overflow-y-auto');
   });
 
+  it('keeps the app section header when a module owns the nav column', () => {
+    render(
+      <MenuShared
+        config={config}
+        renderBody={() => <div data-testid="custom-body">Custom body</div>}
+        sectionLabel="Library"
+        showPrimaryItems={false}
+      />,
+    );
+
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Library').parentElement).toHaveClass('pb-2');
+    expect(screen.getByTestId('custom-body')).toBeInTheDocument();
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+  });
+
   it('does not duplicate workspace context in the sidebar header', () => {
     mockBrandState.selectedBrand = { label: 'Acme Org' };
 

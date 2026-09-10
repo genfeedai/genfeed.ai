@@ -3,6 +3,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Bell,
+  BookOpen,
   Bot,
   Box,
   Building2,
@@ -36,6 +37,7 @@ const BRAND_SETTINGS = {
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
+  KNOWLEDGE: APP_ROUTES.SETTINGS.KNOWLEDGE,
   PROFILE: APP_ROUTES.SETTINGS.ROOT,
   PUBLISHING: '/settings/publishing',
   INTEGRATIONS: APP_ROUTES.SETTINGS.SOCIAL,
@@ -262,6 +264,14 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Brand Kit',
       outline: Palette,
       solid: Palette,
+    },
+    {
+      group: 'Brand',
+      href: BRAND_SETTINGS.KNOWLEDGE,
+      hrefScope: 'brand',
+      label: 'Knowledge',
+      outline: BookOpen,
+      solid: BookOpen,
     },
     {
       group: 'Brand',

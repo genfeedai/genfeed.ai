@@ -1,50 +1,11 @@
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { PostsRemixPageProps } from '@props/publishing/posts-remix-page.props';
-import LibraryRemixSurface from '@/features/library-remix/LibraryRemixSurface';
-import {
-  LIBRARY_REMIX_SOURCE_QUERY_KEY,
-  LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY,
-} from '@/features/library-remix/library-remix-reference';
-import TrendRemixPage from './trend-remix-page';
+import { redirect } from 'next/navigation';
 
 export const generateMetadata = createPageMetadata('Remix');
 
-const LEGACY_TREND_REMIX_QUERY_KEYS = [
-  'sourceAuthor',
-  'sourcePostId',
-  'postId',
-  'sourceReferenceId',
-  'sourceText',
-  'sourceUrl',
-  'topic',
-  'trendId',
-] as const;
-
-export default async function PostsRemixPage({
-  searchParams,
-}: PostsRemixPageProps) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
-  const hasLegacyTrendIntent = LEGACY_TREND_REMIX_QUERY_KEYS.some((key) => {
-    const value = resolvedSearchParams[key];
-    return typeof value === 'string' ? value.trim().length > 0 : Boolean(value);
-  });
-
-  if (hasLegacyTrendIntent) {
-    return <TrendRemixPage />;
-  }
-
-  const sourceArtifact = resolvedSearchParams[LIBRARY_REMIX_SOURCE_QUERY_KEY];
-  const sourceVersion =
-    resolvedSearchParams[LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY];
-
-  if (typeof sourceArtifact !== 'string' || !sourceArtifact.trim()) {
-    return <LibraryRemixSurface sourceArtifact={null} sourceVersion={null} />;
-  }
-
-  return (
-    <LibraryRemixSurface
-      sourceArtifact={sourceArtifact}
-      sourceVersion={typeof sourceVersion === 'string' ? sourceVersion : null}
-    />
-  );
+export default async function PostsRemixPage({ params }: PostsRemixPageProps) {
+  const { brandSlug, orgSlug } = await params;
+  redirect(`/${orgSlug}/${brandSlug}${APP_ROUTES.STUDIO.GENERATE}`);
 }

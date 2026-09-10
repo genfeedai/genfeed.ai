@@ -197,6 +197,7 @@ export interface IBetterAuthEnvValues {
   BETTER_AUTH_SECRET?: string;
   BETTER_AUTH_TRUSTED_ORIGINS?: string;
   BETTER_AUTH_URL?: string;
+  GENFEEDAI_APP_URL?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_OAUTH_CLIENT_ID?: string;
@@ -223,6 +224,11 @@ export interface ICreateBetterAuthOptions {
    */
   cookieDomain?: string;
   /**
+   * Absolute app login URL for OAuth failures. Better Auth otherwise dumps
+   * `state_mismatch` onto the API origin (`/?error=…`).
+   */
+  errorURL?: string;
+  /**
    * Ordered client-IP headers for Better Auth's rate limiting + session
    * tracking (e.g. `['x-forwarded-for']` behind the production ALB). Unset
    * keeps Better Auth's default header detection — important for deployment
@@ -234,6 +240,11 @@ export interface ICreateBetterAuthOptions {
    * Gated off by default; flip per environment after staging verification.
    */
   experimentalJoins?: boolean;
+  /**
+   * Skip Better Auth's extra OAuth state cookie when the app and API are on
+   * different origins. Database verification remains the CSRF check.
+   */
+  skipStateCookieCheck?: boolean;
   /**
    * Shared KV (Redis) backing rate-limit counters across instances. When
    * provided, rate limiting uses it instead of per-process memory.
@@ -259,11 +270,13 @@ export type IBetterAuthRuntimeConfig = Pick<
   | 'apiKey'
   | 'baseURL'
   | 'cookieDomain'
+  | 'errorURL'
   | 'experimentalJoins'
   | 'github'
   | 'google'
   | 'ipAddressHeaders'
   | 'requireEmailVerification'
   | 'secret'
+  | 'skipStateCookieCheck'
   | 'trustedOrigins'
 >;

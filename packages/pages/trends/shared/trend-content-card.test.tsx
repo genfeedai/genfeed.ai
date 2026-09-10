@@ -71,13 +71,17 @@ describe('TrendContentCard', () => {
     mocks.isRemixAvailable = true;
   });
 
-  it('links an imported trend reference to the org- and brand-scoped variation flow', () => {
+  it('opens Discovery remix for an imported X trend reference', () => {
     render(<TrendContentCard item={item} />);
 
-    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-      'href',
-      '/org-1/brand-1/publishing/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(mocks.openRemix).toHaveBeenCalledWith({
+      kind: 'trend_reference',
+      sourceReferenceId: 'reference-1',
+      trendId: 'trend-1',
+    });
+    expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
   });
 
   it('opens the shared prefilled brief for eligible TikTok trend content', () => {
@@ -103,7 +107,7 @@ describe('TrendContentCard', () => {
     expect(mocks.push).not.toHaveBeenCalled();
   });
 
-  it.each(['instagram', 'youtube'] as const)(
+  it.each(['instagram', 'youtube', 'twitter'] as const)(
     'opens the shared prefilled brief for eligible %s trend content',
     (platform) => {
       render(
@@ -129,7 +133,7 @@ describe('TrendContentCard', () => {
     },
   );
 
-  it('falls back to the legacy remix link when the provider is missing on TikTok', () => {
+  it('falls back to Studio generate when the Discovery surface is missing on TikTok', () => {
     mocks.isRemixAvailable = false;
     render(
       <TrendContentCard
@@ -145,12 +149,12 @@ describe('TrendContentCard', () => {
 
     expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
       'href',
-      '/org-1/brand-1/publishing/remix?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
+      '/org-1/brand-1/studio/generate?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
     );
     expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
   });
 
-  it('shows an unavailable remix control when YouTube has no provider or legacy path', () => {
+  it('shows an unavailable remix control when YouTube has no Discovery surface or variation page', () => {
     mocks.isRemixAvailable = false;
     render(
       <TrendContentCard
@@ -195,7 +199,7 @@ describe('TrendContentCard', () => {
   });
 
   it.each(['instagram', 'youtube'] as const)(
-    'does not fall back to a legacy remix for %s content without a durable source reference',
+    'does not fall back to Studio generate for %s content without a durable source reference',
     (platform) => {
       render(
         <TrendContentCard

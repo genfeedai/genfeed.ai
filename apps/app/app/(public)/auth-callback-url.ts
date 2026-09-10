@@ -10,7 +10,47 @@ import {
 } from '@/lib/onboarding/onboarding-access.util';
 
 const ROOT_CALLBACK_URL = '/';
+const LOGIN_PATH = '/login';
 const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
+
+const OAUTH_INTERRUPTED_MESSAGE =
+  'Google sign-in was interrupted. Please try again.';
+const OAUTH_CANCELLED_MESSAGE = 'Google sign-in was cancelled.';
+const OAUTH_FAILED_MESSAGE = 'Google sign-in failed. Please try again.';
+
+const OAUTH_INTERRUPTED_CODES = new Set([
+  'state_mismatch',
+  'state_not_found',
+  'state_invalid',
+  'state_generation_error',
+]);
+
+export function getAuthErrorCallbackURL(): string {
+  const origin =
+    typeof window === 'undefined'
+      ? 'https://app.genfeed.ai'
+      : window.location.origin;
+  return `${origin}${LOGIN_PATH}`;
+}
+
+export function resolveOAuthLoginErrorMessage(
+  error: string | null,
+): string | null {
+  const code = error?.trim();
+  if (!code) {
+    return null;
+  }
+  if (OAUTH_INTERRUPTED_CODES.has(code)) {
+    return OAUTH_INTERRUPTED_MESSAGE;
+  }
+  if (code === 'access_denied') {
+    return OAUTH_CANCELLED_MESSAGE;
+  }
+  if (/^[A-Za-z0-9_-]{1,64}$/.test(code)) {
+    return OAUTH_FAILED_MESSAGE;
+  }
+  return null;
+}
 const BRAND_OS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 

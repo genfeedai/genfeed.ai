@@ -102,7 +102,13 @@ describe('loadMessages', () => {
       'Open publishing',
     );
     expect(resolveMessageId(english, 'home.publishing.empty')).toBe(
-      'No publishing runs yet. Drafts created through MCP will appear here.',
+      'Nothing is ready to publish.',
+    );
+    expect(resolveMessageId(english, 'home.credentials.empty')).toBe(
+      'No accounts are connected yet.',
+    );
+    expect(resolveMessageId(english, 'home.activity.empty')).toBe(
+      'No recent activity yet.',
     );
     expect(resolveMessageId(english, 'home.schedule.open')).toBe(
       'Open calendar',

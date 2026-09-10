@@ -1,10 +1,11 @@
 'use client';
 
-import type {
+import {
   AdsChannel,
-  AdsResearchMetric,
-  AdsResearchPlatform,
-  AdsResearchTimeframe,
+  AdsPlatform,
+  type AdsResearchMetric,
+  type AdsResearchPlatform,
+  type AdsResearchTimeframe,
 } from '@genfeedai/contracts/interfaces';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
 import { Input } from '@ui/primitives/input';
@@ -28,10 +29,10 @@ const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchViewSource }> = [
 ];
 
 const GOOGLE_CHANNEL_OPTIONS: Array<{ label: string; value: AdsChannel }> = [
-  { label: 'All Inventory', value: 'all' },
-  { label: 'Search', value: 'search' },
-  { label: 'Display', value: 'display' },
-  { label: 'YouTube', value: 'youtube' },
+  { label: 'All Inventory', value: AdsChannel.ALL },
+  { label: 'Search', value: AdsChannel.SEARCH },
+  { label: 'Display', value: AdsChannel.DISPLAY },
+  { label: 'YouTube', value: AdsChannel.YOUTUBE },
 ];
 
 const METRIC_OPTIONS: Array<{ label: string; value: AdsResearchMetric }> = [
@@ -229,7 +230,7 @@ export function AdsResearchFilterPanel({
           ))}
         </SelectContent>
       </Select>
-      {effectivePlatform === 'google' && (
+      {effectivePlatform === AdsPlatform.GOOGLE && (
         <Input
           value={loginCustomerId}
           onChange={(event) => onLoginCustomerIdChange(event.target.value)}

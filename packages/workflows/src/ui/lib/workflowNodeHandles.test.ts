@@ -15,8 +15,10 @@ describe('workflow node handles', () => {
       'images',
     ]);
     expect(core?.outputs.map((handle) => handle.id)).toEqual(['image']);
-    expect(action?.inputs.map((handle) => handle.id)).toContain('model');
+    expect(action?.inputs.map((handle) => handle.id)).toContain('prompt');
+    expect(action?.inputs.map((handle) => handle.id)).not.toContain('model');
     expect(action?.outputs.map((handle) => handle.id)).toContain('imageUrl');
+    expect(action?.outputs.map((handle) => handle.id)).not.toContain('model');
   });
 
   it('uses action identity over the generic visual override', () => {
@@ -35,9 +37,7 @@ describe('workflow node handles', () => {
     expect(definition?.inputs.map((handle) => handle.id)).toEqual([
       'projectId',
     ]);
-    expect(definition?.outputs.map((handle) => handle.id)).toContain(
-      'progress',
-    );
+    expect(definition?.outputs.map((handle) => handle.id)).toEqual(['id']);
   });
 
   it('preserves custom presentation definitions when no action is selected', () => {

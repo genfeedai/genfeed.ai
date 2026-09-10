@@ -1,4 +1,23 @@
-export type AdsPlatform = 'meta' | 'google' | 'tiktok' | 'x';
+/** Paid ads product channels (Discovery Ads, gateway, remix). Not CredentialPlatform. */
+export enum AdsPlatform {
+  META = 'meta',
+  GOOGLE = 'google',
+  TIKTOK = 'tiktok',
+  X = 'x',
+}
+
+export const adsPlatformValues = [
+  AdsPlatform.META,
+  AdsPlatform.GOOGLE,
+  AdsPlatform.TIKTOK,
+  AdsPlatform.X,
+] as const;
+
+const ADS_PLATFORM_SET = new Set<string>(adsPlatformValues);
+
+export function isAdsPlatform(value: string): value is AdsPlatform {
+  return ADS_PLATFORM_SET.has(value);
+}
 
 export interface UnifiedAdAccount {
   id: string;

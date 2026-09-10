@@ -111,27 +111,31 @@ function ErrorLine({
   );
 }
 
-function EmptyLine({
-  actionHref,
-  actionLabel,
-  description,
+function EmptyLine({ description }: { description: ReactNode }) {
+  return (
+    <div
+      className="px-4 py-3 text-sm text-foreground/55 sm:px-5"
+      data-testid="workspace-empty-state"
+    >
+      {description}
+    </div>
+  );
+}
+
+function SurfaceTitleLink({
+  children,
+  href,
 }: {
-  actionHref?: string;
-  actionLabel?: string;
-  description: ReactNode;
+  children: ReactNode;
+  href: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm text-foreground/55 sm:px-5">
-      <span>{description}</span>
-      {actionHref && actionLabel ? (
-        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
-          <Link href={actionHref}>
-            {actionLabel}
-            <ArrowRight aria-hidden="true" className="size-3.5" />
-          </Link>
-        </Button>
-      ) : null}
-    </div>
+    <Link
+      href={href}
+      className="transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -260,19 +264,12 @@ function NeedsYouSurface({
 
   return (
     <WorkspaceSurface
-      actions={
-        <Link
-          href={reviewHref}
-          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {translate('home.approvals.viewAll')}
-          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
-        </Link>
-      }
       data-testid="operational-home-needs-you"
       density="compact"
       flush
-      title="Attention queue"
+      title={
+        <SurfaceTitleLink href={reviewHref}>Attention queue</SurfaceTitleLink>
+      }
     >
       {isLoading ? (
         <ListRowsSkeleton rows={3} />
@@ -282,11 +279,7 @@ function NeedsYouSurface({
           onRetry={onRetry}
         />
       ) : !brandSlug ? (
-        <EmptyLine
-          actionHref={brandSetupHref}
-          actionLabel="Set up a brand"
-          description="Add a brand before opening a brand-scoped review queue."
-        />
+        <EmptyLine description="Add a brand before opening a brand-scoped review queue." />
       ) : needsYouItems.length === 0 ? (
         <EmptyLine description={translate('home.approvals.empty')} />
       ) : (
@@ -515,6 +508,13 @@ function UpcomingScheduleBlock({
   const totalScheduled =
     scheduleDays?.reduce((total, day) => total + day.count, 0) ?? 0;
 
+  if (
+    !brandSlug ||
+    (!isError && scheduleDays !== null && totalScheduled === 0)
+  ) {
+    return null;
+  }
+
   return (
     <div
       className="flex flex-col gap-3 border-t border-border px-4 py-4 sm:px-5"
@@ -532,11 +532,7 @@ function UpcomingScheduleBlock({
         </Button>
       </div>
 
-      {!brandSlug ? (
-        <p className="text-sm text-foreground/55">
-          {translate('home.schedule.addBrand')}
-        </p>
-      ) : isError ? (
+      {isError ? (
         <div
           className="flex flex-wrap items-center gap-3 border-l-2 border-destructive py-1 pl-3 text-sm text-foreground/70"
           role="alert"
@@ -558,10 +554,6 @@ function UpcomingScheduleBlock({
         </div>
       ) : scheduleDays === null ? (
         <Skeleton className="w-2/3" height={12} variant="text" />
-      ) : totalScheduled === 0 ? (
-        <p className="text-sm text-foreground/55">
-          {translate('home.schedule.empty')}
-        </p>
       ) : (
         <MetricSummary
           data-testid="upcoming-schedule-summary"
@@ -621,20 +613,11 @@ function PublishingSurface({
 
   return (
     <WorkspaceSurface
-      actions={
-        <Link
-          href={postsHref}
-          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {translate('home.publishing.open')}
-          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
-        </Link>
-      }
       className="h-full"
       data-testid="operational-home-publishing"
       density="compact"
       flush
-      title="Publishing"
+      title={<SurfaceTitleLink href={postsHref}>Publishing</SurfaceTitleLink>}
     >
       {isLoading ? (
         <ListRowsSkeleton rows={3} />
@@ -644,46 +627,43 @@ function PublishingSurface({
           onRetry={onRetry}
         />
       ) : !brandSlug ? (
-        <EmptyLine
-          actionHref={brandSetupHref}
-          actionLabel="Set up a brand"
-          description="Add a brand before opening brand-scoped publishing."
-        />
+        <EmptyLine description="Add a brand before opening brand-scoped publishing." />
       ) : recentExecutions.length === 0 ? (
         <EmptyLine description={translate('home.publishing.empty')} />
       ) : (
-        <div>
-          {recentExecutions.map((execution) => (
-            <ListRow
-              density="compact"
-              key={execution.id}
-              meta={
-                <ClientFormattedDate
-                  fallback="Time unavailable"
-                  format="relative"
-                  value={getExecutionTimestamp(execution)}
-                />
-              }
-              title={execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL}
-              trailing={
-                <Badge
-                  variant={
-                    EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
-                  }
-                >
-                  {execution.status.toLowerCase()}
-                </Badge>
-              }
-            />
-          ))}
-        </div>
+        <>
+          <div>
+            {recentExecutions.map((execution) => (
+              <ListRow
+                density="compact"
+                key={execution.id}
+                meta={
+                  <ClientFormattedDate
+                    fallback="Time unavailable"
+                    format="relative"
+                    value={getExecutionTimestamp(execution)}
+                  />
+                }
+                title={execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL}
+                trailing={
+                  <Badge
+                    variant={
+                      EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
+                    }
+                  >
+                    {execution.status.toLowerCase()}
+                  </Badge>
+                }
+              />
+            ))}
+          </div>
+          <UpcomingScheduleBlock
+            brandId={brandId}
+            brandSlug={brandSlug}
+            orgSlug={orgSlug}
+          />
+        </>
       )}
-
-      <UpcomingScheduleBlock
-        brandId={brandId}
-        brandSlug={brandSlug}
-        orgSlug={orgSlug}
-      />
     </WorkspaceSurface>
   );
 }
@@ -714,33 +694,11 @@ function CredentialHealthSurface({
 
   return (
     <WorkspaceSurface
-      actions={
-        <>
-          <Button
-            aria-label="Refresh credential health"
-            onClick={() => {
-              void onRetry();
-            }}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <RefreshCw aria-hidden="true" className="size-4" />
-          </Button>
-          <Link
-            href={settingsHref}
-            className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {translate('home.credentials.manage')}
-            <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
-          </Link>
-        </>
-      }
       className="h-full"
       data-testid="operational-home-credentials"
       density="compact"
       flush
-      title="Accounts"
+      title={<SurfaceTitleLink href={settingsHref}>Accounts</SurfaceTitleLink>}
     >
       {isLoading ? (
         <>
@@ -755,11 +713,7 @@ function CredentialHealthSurface({
           onRetry={onRetry}
         />
       ) : credentials.length === 0 ? (
-        <EmptyLine
-          actionHref={settingsHref}
-          actionLabel={brandSlug ? 'Connect an account' : 'Set up a brand'}
-          description="No publishing credentials are connected yet."
-        />
+        <EmptyLine description={translate('home.credentials.empty')} />
       ) : (
         <div>
           {credentials.slice(0, CREDENTIAL_ROW_LIMIT).map((credential) => {
@@ -795,19 +749,12 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
 
   return (
     <WorkspaceSurface
-      actions={
-        <Link
-          href={activityHref}
-          className="inline-flex min-h-8 items-center gap-1 text-sm text-foreground/55 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {translate('home.activity.open')}
-          <ArrowRight aria-hidden="true" className="size-3.5 shrink-0" />
-        </Link>
-      }
       data-testid="operational-home-activity"
       density="compact"
       flush
-      title="Recent activity"
+      title={
+        <SurfaceTitleLink href={activityHref}>Recent activity</SurfaceTitleLink>
+      }
     >
       {isLoading ? (
         <ListRowsSkeleton rows={4} />
@@ -817,11 +764,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           onRetry={refresh}
         />
       ) : recentActivities.length === 0 ? (
-        <EmptyLine
-          actionHref={activityHref}
-          actionLabel="Open activity"
-          description="No activity has been recorded for this organization yet."
-        />
+        <EmptyLine description={translate('home.activity.empty')} />
       ) : (
         <div>
           {recentActivities.map((activity: IActivity) => {

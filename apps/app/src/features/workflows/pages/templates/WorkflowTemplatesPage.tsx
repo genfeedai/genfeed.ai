@@ -1,39 +1,95 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
+import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import type { Edge, Node } from '@xyflow/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
+import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
 import {
   createWorkflowApiService,
   type SystemWorkflowCatalogEntry,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
-
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
+import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
+import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
-const TEMPLATE_CATEGORIES = [
-  { id: 'all', label: 'All Templates' },
-  { id: 'system', label: 'System' },
-  { id: 'social', label: 'Social Media' },
-  { id: 'video', label: 'Video' },
-  { id: 'editing', label: 'Editing' },
-  { id: 'batch', label: 'Batch' },
-  { id: 'integration', label: 'Integration' },
-  { id: 'generation', label: 'Generation' },
-  { id: 'real-estate', label: 'Real Estate' },
-  { id: 'routines', label: 'Routines' },
-];
+const CATEGORY_LABELS: Record<string, string> = {
+  all: 'All categories',
+  system: 'System',
+  social: 'Social Media',
+  video: 'Video',
+  editing: 'Editing',
+  batch: 'Batch',
+  integration: 'Integration',
+  generation: 'Generation',
+  'real-estate': 'Real Estate',
+  routines: 'Routines',
+  library: 'Library',
+  product: 'Product',
+  'ad-automation': 'Ads',
+  content: 'Content',
+};
+
+const SOURCE_FILTERS = [
+  { id: 'all', label: 'All sources' },
+  { id: 'installed', label: 'Installed' },
+  { id: 'available', label: 'Available' },
+] as const;
+
+type CatalogSource = (typeof SOURCE_FILTERS)[number]['id'];
+
+type CatalogItem = {
+  actionLabel: string;
+  category: string;
+  changeSummary?: string;
+  description: string;
+  edges?: Edge[];
+  href?: string;
+  id: string;
+  nodes?: Node[];
+  schedule?: string;
+  source: Exclude<CatalogSource, 'all'>;
+  systemEntry?: SystemWorkflowCatalogEntry;
+  thumbnail?: string | null;
+  title: string;
+};
 
 type PageState = {
   templates: WorkflowTemplate[];
   systemCatalog: SystemWorkflowCatalogEntry[];
   selectedCategory: string;
+  selectedSource: CatalogSource;
+  searchQuery: string;
   isLoading: boolean;
   error: string | null;
   isBootstrapping: boolean;
@@ -49,6 +105,8 @@ type PageAction =
     }
   | { type: 'LOAD_ERROR'; error: string }
   | { type: 'SET_CATEGORY'; category: string }
+  | { type: 'SET_SOURCE'; source: CatalogSource }
+  | { type: 'SET_SEARCH'; searchQuery: string }
   | { type: 'BOOTSTRAP_START' }
   | { type: 'BOOTSTRAP_ERROR'; error: string }
   | { type: 'INSTALL_START'; canonicalId: string }
@@ -63,6 +121,8 @@ const initialState: PageState = {
   templates: [],
   systemCatalog: [],
   selectedCategory: 'all',
+  selectedSource: 'all',
+  searchQuery: '',
   isLoading: true,
   error: null,
   isBootstrapping: false,
@@ -84,6 +144,10 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return { ...state, isLoading: false, error: action.error };
     case 'SET_CATEGORY':
       return { ...state, selectedCategory: action.category };
+    case 'SET_SOURCE':
+      return { ...state, selectedSource: action.source };
+    case 'SET_SEARCH':
+      return { ...state, searchQuery: action.searchQuery };
     case 'BOOTSTRAP_START':
       return { ...state, isBootstrapping: true, error: null };
     case 'BOOTSTRAP_ERROR':
@@ -119,12 +183,103 @@ function pageReducer(state: PageState, action: PageAction): PageState {
   }
 }
 
-/**
- * Template Gallery — generation templates + system catalog install (#2176).
- *
- * System catalog entries are app-owned automations the org installs on demand
- * (no clone at signup). Generation templates still bootstrap via create + templateId.
- */
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? formatEnumLabel(category) ?? category;
+}
+
+function cadenceLabel(cron?: string): string | null {
+  const described = describeCadence(cron);
+  if (!described) {
+    return null;
+  }
+  return /[*]/.test(described) ? 'Scheduled' : described;
+}
+
+function sourceBadge(source: CatalogItem['source']): string {
+  if (source === 'installed') {
+    return 'Installed';
+  }
+  return 'Available';
+}
+
+function buildCatalogItems({
+  systemCatalog,
+  templates,
+  href,
+}: {
+  href: (path: string) => string;
+  systemCatalog: SystemWorkflowCatalogEntry[];
+  templates: WorkflowTemplate[];
+}): CatalogItem[] {
+  const catalogItems: CatalogItem[] = systemCatalog.map((entry) => ({
+    actionLabel: entry.installed ? 'Open' : 'Install',
+    category: entry.category || entry.family || 'system',
+    changeSummary: entry.changeSummary,
+    description: entry.description,
+    edges: entry.edges,
+    href:
+      entry.installed && entry.installedWorkflowId
+        ? href(
+            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+          )
+        : undefined,
+    id: `system-${entry.canonicalId}`,
+    nodes: entry.nodes,
+    schedule: entry.schedule,
+    source: entry.installed ? 'installed' : 'available',
+    systemEntry: entry,
+    title: entry.label,
+  }));
+
+  const templateItems: CatalogItem[] = templates.map((template) => ({
+    actionLabel: 'Use template',
+    category: template.category || 'generation',
+    changeSummary: template.changeSummary,
+    description: template.description,
+    edges: template.edges,
+    href: href(
+      `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+    ),
+    id: `template-${template.id}`,
+    nodes: template.nodes,
+    schedule: template.schedule,
+    source: 'available',
+    title: template.name,
+  }));
+
+  return [...catalogItems, ...templateItems];
+}
+
+function filterCatalogItems(
+  items: CatalogItem[],
+  {
+    category,
+    searchQuery,
+    source,
+  }: {
+    category: string;
+    searchQuery: string;
+    source: CatalogSource;
+  },
+): CatalogItem[] {
+  const query = searchQuery.trim().toLowerCase();
+  return items.filter((item) => {
+    if (source !== 'all' && item.source !== source) {
+      return false;
+    }
+    if (category !== 'all' && item.category !== category) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+    return (
+      item.title.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query)
+    );
+  });
+}
+
 function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
   const [state, dispatch] = useReducer(pageReducer, initialState);
@@ -132,6 +287,8 @@ function WorkflowTemplatesPageContent() {
     templates,
     systemCatalog,
     selectedCategory,
+    selectedSource,
+    searchQuery,
     isLoading,
     error,
     isBootstrapping,
@@ -143,6 +300,7 @@ function WorkflowTemplatesPageContent() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get('template');
+  const [detailsItem, setDetailsItem] = useState<CatalogItem | null>(null);
 
   const loadTemplates = useCallback(async () => {
     dispatch({ type: 'LOAD_START' });
@@ -189,14 +347,10 @@ function WorkflowTemplatesPageContent() {
     };
   }, [loadTemplates]);
 
-  // Stable navigation callback : avoids re-running the bootstrap effect
-  // when useOrgUrl() returns a fresh href function on each render.
   const hrefRef = useRef(href);
   hrefRef.current = href;
 
   useEffect(() => {
-    // Wait for catalog+templates load so system installables are classified
-    // correctly before creating from a generation template id.
     if (!templateId || isLoading) {
       return;
     }
@@ -304,214 +458,236 @@ function WorkflowTemplatesPageContent() {
     [getService, href, replace],
   );
 
-  const showSystemSection =
-    selectedCategory === 'all' || selectedCategory === 'system';
-  const showGenerationSection = selectedCategory !== 'system';
+  const catalogItems = useMemo(
+    () =>
+      buildCatalogItems({
+        href,
+        systemCatalog,
+        templates,
+      }),
+    [href, systemCatalog, templates],
+  );
 
-  const filteredTemplates =
-    selectedCategory === 'all' || selectedCategory === 'system'
-      ? templates
-      : templates.filter((t) => t.category === selectedCategory);
+  const visibleItems = useMemo(
+    () =>
+      filterCatalogItems(catalogItems, {
+        category: selectedCategory,
+        searchQuery,
+        source: selectedSource,
+      }),
+    [catalogItems, searchQuery, selectedCategory, selectedSource],
+  );
+
+  const categoryOptions = useMemo(() => {
+    const present = new Set(catalogItems.map((item) => item.category));
+    return [
+      { id: 'all', label: CATEGORY_LABELS.all },
+      ...[...present].sort().map((id) => ({ id, label: categoryLabel(id) })),
+    ];
+  }, [catalogItems]);
 
   const isContentLoading = isLoading || isBootstrapping;
 
+  const catalogChrome = {
+    headerTabs: workflowCollectionHeaderTabs(href),
+    label: 'Workflows',
+    leading: (
+      <FormSearchbar
+        className="w-64"
+        onSearch={(value) =>
+          dispatch({ type: 'SET_SEARCH', searchQuery: value })
+        }
+        placeholder="Search templates..."
+        size={ComponentSize.SM}
+        value={searchQuery}
+      />
+    ),
+    right: (
+      <div className="flex items-center gap-2">
+        <Select
+          value={selectedSource}
+          onValueChange={(value) =>
+            dispatch({ type: 'SET_SOURCE', source: value as CatalogSource })
+          }
+        >
+          <SelectTrigger aria-label="Source" className="h-8 w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SOURCE_FILTERS.map((filter) => (
+              <SelectItem key={filter.id} value={filter.id}>
+                {filter.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={selectedCategory}
+          onValueChange={(value) =>
+            dispatch({ type: 'SET_CATEGORY', category: value })
+          }
+        >
+          <SelectTrigger aria-label="Category" className="h-8 w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {categoryOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    ),
+    titleVisibility: 'sr-only' as const,
+  };
+
   if (error && templates.length === 0 && systemCatalog.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p className="text-destructive">{error}</p>
-        <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
-          Retry
-        </Button>
-      </div>
+      <Container {...catalogChrome}>
+        <div className="flex min-h-[320px] flex-col items-center justify-center gap-4">
+          <p className="text-destructive">{error}</p>
+          <Button variant={ButtonVariant.DEFAULT} onClick={loadTemplates}>
+            Retry
+          </Button>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <h1 className="sr-only">Templates</h1>
+    <Container {...catalogChrome}>
+      {!isContentLoading && error ? (
+        <p className="mb-4 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-      <div className="border-b border-border bg-card/50 px-6 py-3">
-        <div className="mx-auto flex max-w-7xl gap-2">
-          {TEMPLATE_CATEGORIES.map((category) => (
+      <div data-testid="templates-content">
+        {isContentLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
+              (skeletonId) => (
+                <div
+                  key={skeletonId}
+                  className="h-64 animate-pulse rounded-card bg-card shadow-border"
+                />
+              ),
+            )}
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center">
+            <p className="text-sm text-foreground/50">
+              No workflows match these filters.
+            </p>
             <Button
-              key={category.id}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-              onClick={() =>
-                dispatch({ type: 'SET_CATEGORY', category: category.id })
-              }
-              className={`px-4 py-2 text-sm transition-colors ${
-                selectedCategory === category.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent'
-              }`}
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                dispatch({ type: 'SET_CATEGORY', category: 'all' });
+                dispatch({ type: 'SET_SOURCE', source: 'all' });
+                dispatch({ type: 'SET_SEARCH', searchQuery: '' });
+              }}
             >
-              {category.label}
+              Clear filters
             </Button>
-          ))}
-        </div>
-      </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleItems.map((item) => {
+              const isInstalling =
+                item.systemEntry?.canonicalId === installingCanonicalId;
+              const schedule = cadenceLabel(item.schedule);
 
-      <main
-        className="mx-auto max-w-7xl space-y-10 px-6 py-8"
-        data-testid="templates-content"
-      >
-        {!isContentLoading && error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        {!isContentLoading && showSystemSection ? (
-          <section aria-labelledby="system-catalog-heading">
-            <div className="mb-4">
-              <h2
-                id="system-catalog-heading"
-                className="text-lg font-semibold tracking-tight"
-              >
-                System workflows
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                App-owned automations. Install the ones you want — nothing is
-                copied into your org until you install.
-              </p>
-            </div>
-
-            {systemCatalog.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No installable system workflows are available.
-              </p>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {systemCatalog.map((entry) => {
-                  const isInstalling =
-                    installingCanonicalId === entry.canonicalId;
-
-                  return (
-                    <div
-                      key={entry.canonicalId}
-                      className="group relative overflow-hidden bg-card shadow-border"
-                    >
-                      <WorkflowCardPreview
-                        name={entry.label}
-                        nodes={entry.nodes}
-                        edges={entry.edges}
-                      />
-                      <div className="p-4">
-                        <div className="mb-1 flex items-center gap-2">
-                          <h3 className="font-semibold">{entry.label}</h3>
-                          {entry.installed ? (
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
-                              Installed
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
-                          {entry.description}
-                        </p>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {entry.family}
-                            {entry.schedule ? ` · ${entry.schedule}` : ''}
-                          </span>
-                          <Button
-                            variant={ButtonVariant.DEFAULT}
-                            withWrapper={false}
-                            disabled={isInstalling}
-                            onClick={() => {
-                              void handleInstallSystem(entry);
-                            }}
-                            className="px-4 py-2 text-sm"
-                          >
-                            {isInstalling
-                              ? 'Installing…'
-                              : entry.installed
-                                ? 'Open'
-                                : 'Install'}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        ) : null}
-
-        {!isContentLoading && showGenerationSection ? (
-          <section aria-labelledby="generation-templates-heading">
-            {selectedCategory === 'all' ? (
-              <div className="mb-4">
-                <h2
-                  id="generation-templates-heading"
-                  className="text-lg font-semibold tracking-tight"
+              return (
+                <Card
+                  key={item.id}
+                  className="h-full"
+                  label={item.title}
+                  description={item.description}
+                  onDescriptionClick={() => setDetailsItem(item)}
+                  headerAction={
+                    <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-foreground/60">
+                      {sourceBadge(item.source)}
+                    </span>
+                  }
+                  bodyClassName="justify-between gap-4"
                 >
-                  Templates
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Starting points for custom workflows.
-                </p>
-              </div>
-            ) : null}
-
-            {filteredTemplates.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <h2 className="mb-2 text-xl font-semibold">
-                  No templates found
-                </h2>
-                <p className="mb-6 text-muted-foreground">
-                  {selectedCategory === 'all'
-                    ? 'No workflow templates are available yet.'
-                    : 'No templates match the selected category.'}
-                </p>
-                {selectedCategory !== 'all' && (
-                  <Button
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() =>
-                      dispatch({ type: 'SET_CATEGORY', category: 'all' })
-                    }
-                  >
-                    View All Templates
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTemplates.map((template) => (
-                  <div
-                    key={template.id}
-                    className="group relative overflow-hidden bg-card shadow-border"
-                  >
-                    <WorkflowCardPreview
-                      name={template.name}
-                      nodes={template.nodes}
-                      edges={template.edges}
-                    />
-                    <div className="p-4">
-                      <h3 className="mb-1 font-semibold">{template.name}</h3>
-                      <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
-                        {template.description}
-                      </p>
-                      <div className="flex justify-end">
-                        <Link
-                          href={href(
-                            `${APP_ROUTES.AUTOMATION.TEMPLATES}?template=${template.id}`,
-                          )}
-                          className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100"
-                        >
-                          Use Template
-                        </Link>
-                      </div>
-                    </div>
+                  <WorkflowCardPreview
+                    name={item.title}
+                    thumbnail={item.thumbnail}
+                    nodes={item.nodes}
+                    edges={item.edges}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs text-muted-foreground">
+                      {schedule ?? categoryLabel(item.category)}
+                    </span>
+                    {item.systemEntry && !item.href ? (
+                      <Button
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        disabled={isInstalling}
+                        onClick={() => {
+                          void handleInstallSystem(item.systemEntry);
+                        }}
+                      >
+                        {isInstalling ? 'Installing…' : item.actionLabel}
+                      </Button>
+                    ) : item.href ? (
+                      <Button
+                        asChild
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        withWrapper={false}
+                      >
+                        <Link href={item.href}>{item.actionLabel}</Link>
+                      </Button>
+                    ) : null}
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
-      </main>
-    </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <WorkflowTemplateDetailsDialog
+        actionLabel={detailsItem?.actionLabel ?? ''}
+        categoryLabel={detailsItem ? categoryLabel(detailsItem.category) : ''}
+        changeSummary={detailsItem?.changeSummary}
+        description={detailsItem?.description ?? ''}
+        href={detailsItem?.href}
+        isInstalling={
+          detailsItem?.systemEntry?.canonicalId === installingCanonicalId
+        }
+        isOpen={detailsItem !== null}
+        onInstall={
+          detailsItem?.systemEntry && !detailsItem.href
+            ? () => {
+                void handleInstallSystem(detailsItem.systemEntry);
+              }
+            : undefined
+        }
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDetailsItem(null);
+          }
+        }}
+        preview={
+          detailsItem
+            ? {
+                edges: detailsItem.edges,
+                name: detailsItem.title,
+                nodes: detailsItem.nodes,
+                thumbnail: detailsItem.thumbnail,
+              }
+            : undefined
+        }
+        scheduleLabel={detailsItem ? cadenceLabel(detailsItem.schedule) : null}
+        sourceLabel={detailsItem ? sourceBadge(detailsItem.source) : ''}
+        title={detailsItem?.title ?? ''}
+      />
+    </Container>
   );
 }
 

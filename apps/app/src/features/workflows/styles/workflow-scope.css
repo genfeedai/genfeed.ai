@@ -147,18 +147,6 @@
 }
 
 .workflow-scope.workflow-editor-shell {
-  .workflow-topbar-shell {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-  }
-
-  .workflow-topbar-shell > div {
-    border-bottom: 1px solid hsl(var(--border));
-    background: color-mix(in oklab, hsl(var(--card)) 95%, transparent);
-    backdrop-filter: blur(12px);
-  }
-
   .cloud-workflow-title {
     letter-spacing: -0.01em;
   }

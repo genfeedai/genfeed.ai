@@ -141,20 +141,7 @@ const navbar = (
   <Navbar
     logo={
       <span style={{ alignItems: 'center', display: 'flex' }}>
-        <span
-          aria-hidden="true"
-          className="dark:invert"
-          style={{
-            backgroundImage:
-              'url(https://cdn.genfeed.ai/assets/branding/logo.svg)',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'contain',
-            display: 'inline-block',
-            height: 24,
-            width: 24,
-          }}
-        />
+        <span aria-hidden="true" className="docs-navbar-logo-mark" />
         <span style={{ fontWeight: 600, marginLeft: '.5em' }}>Genfeed.ai</span>
       </span>
     }

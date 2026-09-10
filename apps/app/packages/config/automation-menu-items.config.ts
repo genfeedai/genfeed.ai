@@ -1,21 +1,11 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import {
-  History,
-  LayoutGrid,
-  LayoutTemplate,
-  Megaphone,
-  Rocket,
-  Users,
-  Workflow,
-} from 'lucide-react';
+import { History, LayoutGrid, Megaphone, Users, Workflow } from 'lucide-react';
 
 /**
- * Automation module nav — grouped by usage (same pattern as Analytics / Settings).
- *
- * - Home: Overview
- * - Workflows: pipelines + templates + run history
- * - Agents: roster, autopilot, programs
+ * Automation module nav — flat under the Automation app chrome (same shape as
+ * Studio / Publishing / Workspace). Overview, workflows, runs, agents and
+ * programs are sibling rows; schedule and autonomy live on the agent.
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publishing (P1).
@@ -33,26 +23,20 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: LayoutGrid,
   },
   {
-    group: 'Workflows',
+    group: '',
     href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
+      APP_ROUTES.AUTOMATION.TEMPLATES,
       APP_ROUTES.AUTOMATION.WORKFLOWS,
       APP_ROUTES.AUTOMATION.WORKFLOWS_NEW,
+      APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
     ],
     outline: Workflow,
     solid: Workflow,
   },
   {
-    group: 'Workflows',
-    href: APP_ROUTES.AUTOMATION.TEMPLATES,
-    label: 'Templates',
-    matchPaths: [APP_ROUTES.AUTOMATION.TEMPLATES],
-    outline: LayoutTemplate,
-    solid: LayoutTemplate,
-  },
-  {
-    group: 'Workflows',
+    group: '',
     href: APP_ROUTES.AUTOMATION.RUNS,
     label: 'Runs',
     matchPaths: [
@@ -63,7 +47,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: History,
   },
   {
-    group: 'Agents',
+    group: '',
     href: APP_ROUTES.AUTOMATION.AGENTS,
     label: 'Agents',
     matchPaths: [APP_ROUTES.AUTOMATION.AGENTS],
@@ -71,15 +55,7 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: Users,
   },
   {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATION.AUTOPILOT,
-    label: 'Autopilot',
-    matchPaths: [APP_ROUTES.AUTOMATION.AUTOPILOT],
-    outline: Rocket,
-    solid: Rocket,
-  },
-  {
-    group: 'Agents',
+    group: '',
     href: APP_ROUTES.AUTOMATION.CAMPAIGNS,
     label: 'Programs',
     matchPaths: [

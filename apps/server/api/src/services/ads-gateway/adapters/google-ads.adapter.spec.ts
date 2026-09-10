@@ -1,6 +1,9 @@
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
-import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
+import {
+  type AdsAdapterContext,
+  AdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -106,7 +109,7 @@ describe('GoogleAdsAdapter', () => {
         id: '987',
         name: 'Updated Campaign',
         objective: 'SEARCH',
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         status: 'ENABLED',
       }),
     );
@@ -168,7 +171,7 @@ describe('GoogleAdsAdapter', () => {
         dailyBudget: 1.2,
         id: '100',
         name: 'Ad Group A',
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         status: 'PAUSED',
       },
     ]);
@@ -205,7 +208,7 @@ describe('GoogleAdsAdapter', () => {
       id: '301',
       name: 'New Ad Group',
       optimizationGoal: undefined,
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       status: 'PAUSED',
       targeting: { countries: ['US'] },
     });
@@ -237,15 +240,41 @@ describe('GoogleAdsAdapter', () => {
         adSetId: 'ag-1',
         creative: {
           body: 'Desc 1',
+          imageUrl: undefined,
           linkUrl: 'https://example.com',
           title: 'Headline 1',
+          videoId: undefined,
         },
         id: 'ad-1',
         name: 'Ad One',
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         status: 'PAUSED',
       },
     ]);
+  });
+
+  it('maps YouTube video ads to a thumbnail and video id', async () => {
+    googleAdsService.listAds.mockResolvedValue([
+      {
+        adGroupId: 'ag-2',
+        advertisingChannelType: 'VIDEO',
+        headlines: ['Launch cut'],
+        id: 'ad-yt',
+        name: 'YouTube in-feed',
+        status: 'ENABLED',
+        youtubeVideoId: 'vid-1',
+      },
+    ]);
+
+    const result = await adapter.listAds(ctx);
+
+    expect(result[0]?.creative).toEqual({
+      body: undefined,
+      imageUrl: 'https://img.youtube.com/vi/vid-1/hqdefault.jpg',
+      linkUrl: undefined,
+      title: 'Launch cut',
+      videoId: 'vid-1',
+    });
   });
 
   it('creates ad as responsive search ad', async () => {
@@ -290,7 +319,7 @@ describe('GoogleAdsAdapter', () => {
       },
       id: 'ad-2',
       name: 'Ad Two',
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       status: 'PAUSED',
     });
   });
@@ -332,7 +361,7 @@ describe('GoogleAdsAdapter', () => {
       dateStart: '2026-03-01',
       dateStop: '2026-03-07',
       impressions: 1000,
-      platform: 'google',
+      platform: AdsPlatform.GOOGLE,
       spend: 10,
     });
   });
@@ -372,7 +401,7 @@ describe('GoogleAdsAdapter', () => {
         dateStart: '',
         dateStop: '',
         impressions: 500,
-        platform: 'google',
+        platform: AdsPlatform.GOOGLE,
         spend: 2,
       }),
     );

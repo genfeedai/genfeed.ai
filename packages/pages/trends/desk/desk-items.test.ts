@@ -118,9 +118,21 @@ describe('toDeskItemFromTrend', () => {
     expect(result.remixSelector).toBeNull();
   });
 
-  it('has no remix selector on a non-prefilled platform', () => {
+  it('opens Discovery remix for an X trend with a durable source reference', () => {
     const result = toDeskItemFromTrend(
       makeTrendItem({ platform: 'twitter', sourceReferenceId: 'ref-2' }),
+    );
+
+    expect(result.remixSelector).toEqual({
+      kind: 'trend_reference',
+      sourceReferenceId: 'ref-2',
+      trendId: 'twitter-1',
+    });
+  });
+
+  it('has no remix selector on a non-Discovery platform', () => {
+    const result = toDeskItemFromTrend(
+      makeTrendItem({ platform: 'linkedin', sourceReferenceId: 'ref-2' }),
     );
 
     expect(result.remixSelector).toBeNull();
@@ -179,9 +191,20 @@ describe('toDeskItemFromSourcePost', () => {
     });
   });
 
-  it('has no remix selector on a non-prefilled platform', () => {
+  it('opens Discovery remix for an X source post', () => {
     const result = toDeskItemFromSourcePost(
       makeSourcePost({ platform: SocialSourcePlatform.TWITTER }),
+    );
+
+    expect(result.remixSelector).toEqual({
+      kind: 'source_post',
+      sourcePostId: 'post-1',
+    });
+  });
+
+  it('has no remix selector on a non-Discovery platform', () => {
+    const result = toDeskItemFromSourcePost(
+      makeSourcePost({ platform: SocialSourcePlatform.LINKEDIN }),
     );
 
     expect(result.remixSelector).toBeNull();

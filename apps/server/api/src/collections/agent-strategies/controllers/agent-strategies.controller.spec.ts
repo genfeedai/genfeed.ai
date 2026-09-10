@@ -29,6 +29,35 @@ describe('AgentStrategiesController', () => {
     });
   });
 
+  it('coerces query-string isActive into a Prisma boolean', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const query = controller.buildFindAllQuery(
+      { organizationId: 'org-1' } as AuthenticatedUser,
+      {
+        brandId: 'brand-1',
+        isActive: 'true',
+        isDeleted: false,
+        limit: 10,
+        page: 1,
+        sort: 'createdAt: -1',
+      } as never,
+    );
+
+    expect(query.where).toMatchObject({
+      brandId: 'brand-1',
+      isActive: true,
+      organizationId: 'org-1',
+    });
+    expect(query.where?.isActive).toBe(true);
+  });
+
   it('fails closed when the authenticated organization is missing', () => {
     const controller = new AgentStrategiesController(
       {} as never,

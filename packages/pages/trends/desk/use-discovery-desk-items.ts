@@ -16,7 +16,6 @@ import {
 import type { DiscoveryDeskItem } from '@props/trends/discovery-desk.props';
 import type {
   TrendContentResponse,
-  TrendCorpusFreshnessHealth,
   TrendsSummary,
 } from '@props/trends/trends-page.props';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -57,8 +56,6 @@ const FOLLOWING_POSTS_LIMIT = 100;
 const VIRAL_VIDEOS_LIMIT = 12;
 
 export interface UseDiscoveryDeskItemsReturn {
-  corpusHealth: TrendCorpusFreshnessHealth | null;
-  healthError: Error | null;
   items: DiscoveryDeskItem[];
   summary: TrendsSummary;
   sources: ISocialSource[];
@@ -70,7 +67,7 @@ export interface UseDiscoveryDeskItemsReturn {
 
 export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
   const collectionScope = useCollectionScope();
-  const { brandId, organizationId } = collectionScope;
+  const { brandId } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
   const queryClient = useQueryClient();
 
@@ -80,20 +77,6 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
   const getSocialSourcesService = useAuthedService((token: string) =>
     SocialSourcesService.getInstance(token),
   );
-
-  const {
-    data: corpusHealth,
-    error: healthError,
-    isFetching: isFetchingHealth,
-    refetch: refetchHealth,
-  } = useQuery<TrendCorpusFreshnessHealth>({
-    enabled: isBrandReady,
-    queryFn: async ({ signal }) => {
-      const service = await getTrendsService();
-      return service.getCorpusFreshnessHealth(signal);
-    },
-    queryKey: ['trend-corpus-health', organizationId, brandId],
-  });
 
   const trendContentQueryKey = ['trend-content', brandId, undefined];
   const {
@@ -184,7 +167,6 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
       queryClient.invalidateQueries({ queryKey: viralVideosQueryKey }),
     ]);
     await Promise.all([
-      refetchHealth(),
       refetchTrendContent(),
       refetchFollowingFeed(),
       refetchViralVideos(),
@@ -192,7 +174,6 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
   }, [
     queryClient,
     refetchFollowingFeed,
-    refetchHealth,
     refetchTrendContent,
     refetchViralVideos,
     viralVideosQueryKey,
@@ -209,14 +190,9 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
     (isFetchingFollowingFeed && isPlaceholderFollowingFeed) ||
     (isFetchingViralVideos && isPlaceholderViralVideos);
   const isFetching =
-    isFetchingHealth ||
-    isFetchingTrendContent ||
-    isFetchingFollowingFeed ||
-    isFetchingViralVideos;
+    isFetchingTrendContent || isFetchingFollowingFeed || isFetchingViralVideos;
 
   return {
-    corpusHealth: corpusHealth ?? null,
-    healthError: healthError ?? null,
     error: trendContentError ?? followingFeedError ?? viralVideosError ?? null,
     isLoading,
     isRefreshing: isFetching && !isLoading,

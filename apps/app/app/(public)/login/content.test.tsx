@@ -506,6 +506,16 @@ describe('LoginPage', () => {
     );
   });
 
+  it('shows an interrupted Google sign-in when Better Auth bounced with state_mismatch', () => {
+    window.history.replaceState({}, '', '/login?error=state_mismatch');
+
+    render(<LoginPage />);
+
+    expect(
+      screen.getByText('Google sign-in was interrupted. Please try again.'),
+    ).toBeInTheDocument();
+  });
+
   it('starts Google sign-in with the default callback URL', async () => {
     render(<LoginPage />);
 
@@ -514,6 +524,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/'),
+        errorCallbackURL: `${window.location.origin}/login`,
         provider: 'google',
       });
     });
@@ -529,6 +540,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
         callbackURL: absoluteCallback('/onboarding'),
+        errorCallbackURL: `${window.location.origin}/login`,
         provider: 'google',
       });
     });

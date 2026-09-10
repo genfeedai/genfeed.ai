@@ -123,6 +123,7 @@ describe('FollowSourceModal', () => {
     validateSourceMock.mockImplementation(async (platform: string) => {
       if (platform === SocialSourcePlatform.TWITTER) {
         return {
+          avatarUrl: 'https://pbs.twimg.com/profile_images/abc_normal.jpg',
           displayName: 'Vincent e/acc',
           followersCount: 72,
           handle: 'vincentshipsit',
@@ -166,6 +167,12 @@ describe('FollowSourceModal', () => {
       name: 'Select X @vincentshipsit',
     });
     expect(row).toHaveAttribute('aria-checked', 'true');
+    expect(
+      within(row).getByRole('img', { name: 'Vincent e/acc' }),
+    ).toHaveAttribute(
+      'src',
+      'https://pbs.twimg.com/profile_images/abc_normal.jpg',
+    );
 
     const followButton = screen.getByRole('button', {
       name: /Follow selected/i,

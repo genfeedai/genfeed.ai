@@ -1,9 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import type {
-  AdsResearchItem,
-  AdsResearchMetric,
+import {
+  AdsChannel,
+  type AdsResearchItem,
+  type AdsResearchMetric,
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
@@ -82,7 +83,7 @@ export function AdGridCard({
                   {item.source === 'public' ? 'Public' : 'Connected'}
                 </Badge>
                 <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
-                {item.channel !== 'all' && (
+                {item.channel !== AdsChannel.ALL && (
                   <Badge variant="ghost">{item.channel}</Badge>
                 )}
                 {longevityLabel && (
@@ -227,7 +228,7 @@ export function AdTableRow({
         {formatLongevity(item.longevity) || '—'}
       </TableCell>
       <TableCell className="px-4 py-3 text-sm text-foreground/60">
-        {item.channel !== 'all' ? item.channel : '—'}
+        {item.channel !== AdsChannel.ALL ? item.channel : '—'}
       </TableCell>
       <TableCell className="px-4 py-3 text-sm text-foreground/40">
         {item.accountName || '—'}

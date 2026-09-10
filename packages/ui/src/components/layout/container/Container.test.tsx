@@ -78,6 +78,37 @@ describe('Container', () => {
     );
   });
 
+  it('places leading search on the left of the module bar, before actions', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <Container
+        label="Runs"
+        titleVisibility="sr-only"
+        leading={<input placeholder="Search runs" />}
+        right={<button type="button">Refresh</button>}
+      >
+        content
+      </Container>,
+    );
+
+    const bar = screen.getByTestId('section-topbar');
+    const search = screen.getByPlaceholderText('Search runs');
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+
+    expect(bar).toContainElement(search);
+    expect(screen.getByTestId('section-topbar-leading')).toContainElement(
+      search,
+    );
+    expect(screen.getByTestId('section-topbar-actions')).toContainElement(
+      refresh,
+    );
+    expect(
+      search.compareDocumentPosition(refresh) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+  });
+
   it('pins breadcrumb-only actions to the right via SectionTopbar module chrome', () => {
     navigationState.hasCanonicalBreadcrumb = true;
 

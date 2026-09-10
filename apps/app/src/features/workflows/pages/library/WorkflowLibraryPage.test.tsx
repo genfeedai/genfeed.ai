@@ -99,21 +99,63 @@ vi.mock('@ui/card/Card', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    headerTabs,
+    leading,
     right,
   }: {
     children?: ReactNode;
+    headerTabs?: { tabs?: Array<{ href?: string; label: string }> };
+    leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
-      {right}
+      <header data-testid="section-topbar">
+        {headerTabs?.tabs?.map((tab) => (
+          <a key={tab.label} href={tab.href}>
+            {tab.label}
+          </a>
+        ))}
+        {leading}
+        <button type="button" aria-label="Page help">
+          Help
+        </button>
+        {right}
+      </header>
       {children}
     </main>
   ),
 }));
 
 vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
-  default: ({ actions }: { actions?: ReactNode }) => (
-    <header data-testid="section-topbar">{actions}</header>
+  default: ({
+    actions,
+    leading,
+  }: {
+    actions?: ReactNode;
+    leading?: ReactNode;
+  }) => (
+    <header data-testid="section-topbar">
+      {leading}
+      {actions}
+    </header>
+  ),
+}));
+
+vi.mock('@ui/layout/help-popover/HelpPopover', () => ({
+  default: () => (
+    <button type="button" aria-label="Page help">
+      Help
+    </button>
+  ),
+}));
+
+vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
+  usePageHelp: () => ({ body: 'Workflow help', title: 'Workflows' }),
+}));
+
+vi.mock('@ui/primitives/searchbar', () => ({
+  default: ({ placeholder }: { placeholder?: string }) => (
+    <input placeholder={placeholder} />
   ),
 }));
 
@@ -280,10 +322,44 @@ describe('WorkflowLibraryPage card semantics', () => {
     ];
   });
 
+  it('keeps one toolbar with search on the left and help before new workflow', () => {
+    render(<WorkflowLibraryPage />);
+
+    expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
+    const toolbar = screen.getByTestId('section-topbar');
+    const search = screen.getByPlaceholderText('Search workflows...');
+    const help = screen.getByRole('button', { name: 'Page help' });
+    const newWorkflow = screen.getAllByRole('link', {
+      name: 'New Workflow',
+    })[0];
+
+    expect(toolbar).toContainElement(search);
+    expect(toolbar).toContainElement(help);
+    expect(toolbar).toContainElement(newWorkflow);
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows',
+    );
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows/templates',
+    );
+    expect(
+      search.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      help.compareDocumentPosition(newWorkflow) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('keeps card navigation separate from schedule and menu actions', () => {
     render(<WorkflowLibraryPage />);
 
-    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows/templates',
+    );
     for (const link of screen.getAllByRole('link', {
       name: 'New Workflow',
     })) {
@@ -395,9 +471,25 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(topbar).toContainElement(search);
     expect(createLinks.some((link) => topbar.contains(link))).toBe(true);
-    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
+    expect(topbar).toContainElement(
+      screen.getByRole('link', { name: 'Templates' }),
+    );
     expect(screen.queryByText('Autopilot')).toBeNull();
     expect(screen.getByTestId('library-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('library-content')).not.toBeInTheDocument();
+  });
+
+  it('keeps create on the empty state instead of duplicating it in the toolbar', () => {
+    mocks.isLoading = false;
+    mocks.workflows = [];
+    render(<WorkflowLibraryPage />);
+
+    expect(
+      screen.getByPlaceholderText('Search workflows...'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'New Workflow' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Empty workflows')).toBeInTheDocument();
   });
 });

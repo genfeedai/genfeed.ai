@@ -17,12 +17,14 @@ interface CloudWorkflowToolbarProps {
   isSaving: boolean;
   middleContent?: ReactNode;
   onRename?: (newName: string) => Promise<void> | void;
+  onSaveAsCopy?: (newName: string) => Promise<void> | void;
 }
 
 export function CloudWorkflowToolbar({
   isSaving,
   middleContent,
   onRename,
+  onSaveAsCopy,
 }: CloudWorkflowToolbarProps) {
   const isDirty = useWorkflowStore(selectIsDirty);
   const setWorkflowName = useWorkflowStore((state) => state.setWorkflowName);
@@ -74,48 +76,52 @@ export function CloudWorkflowToolbar({
   }, []);
 
   return (
-    <div className="workflow-topbar-shell">
-      <Toolbar
-        onSaveAs={async (newName) => {
-          const trimmedName = newName.trim();
-          const nextName = trimmedName || 'Untitled Workflow';
+    <Toolbar
+      embedded
+      onSaveAs={async (newName) => {
+        const trimmedName = newName.trim();
+        const nextName = trimmedName || 'Untitled Workflow';
 
-          setWorkflowName(nextName);
-          await onRename?.(nextName);
-        }}
-        leftContent={
-          <div className="min-w-0 flex-1">
-            {isEditing ? (
-              <Input
-                ref={inputRef}
-                type="text"
-                value={editedName}
-                onBlur={() => void commitRename()}
-                onChange={(event) => setEditedName(event.target.value)}
-                onKeyDown={(event) => void handleNameKeyDown(event)}
-                className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/40"
-              />
-            ) : (
-              <Button
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={handleStartEditing}
-                className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-foreground/80"
-                tooltip="Rename workflow"
-              >
-                {workflowName || 'Untitled Workflow'}
-              </Button>
-            )}
-          </div>
+        if (onSaveAsCopy) {
+          await onSaveAsCopy(nextName);
+          return;
         }
-        middleContent={middleContent}
-        onAutoLayout={autoLayout}
-        saveIndicator={
-          <SaveIndicator isDirty={isDirty} isSaving={isSaving} variant="pill" />
-        }
-        showShortcutHelp
-      />
-    </div>
+
+        setWorkflowName(nextName);
+        await onRename?.(nextName);
+      }}
+      leftContent={
+        <div className="min-w-0 max-w-56 flex-1">
+          {isEditing ? (
+            <Input
+              ref={inputRef}
+              type="text"
+              value={editedName}
+              onBlur={() => void commitRename()}
+              onChange={(event) => setEditedName(event.target.value)}
+              onKeyDown={(event) => void handleNameKeyDown(event)}
+              className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+          ) : (
+            <Button
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              onClick={handleStartEditing}
+              className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-foreground/80"
+              tooltip="Rename workflow"
+            >
+              {workflowName || 'Untitled Workflow'}
+            </Button>
+          )}
+        </div>
+      }
+      middleContent={middleContent}
+      onAutoLayout={autoLayout}
+      saveIndicator={
+        <SaveIndicator isDirty={isDirty} isSaving={isSaving} variant="pill" />
+      }
+      showShortcutHelp
+    />
   );
 }

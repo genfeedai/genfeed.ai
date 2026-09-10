@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   createBrandRemixRun: vi.fn(),
   push: vi.fn(),
   reviseBrandRemixRun: vi.fn(),
+  startBrandRemixRun: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -25,6 +26,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   const service = {
     createBrandRemixRun: mocks.createBrandRemixRun,
     reviseBrandRemixRun: mocks.reviseBrandRemixRun,
+    startBrandRemixRun: mocks.startBrandRemixRun,
   };
   const resolveService = async () => service;
 
@@ -101,9 +103,13 @@ describe('DiscoveryRemixProvider', () => {
     mocks.brandId.value = 'brand-1';
     mocks.createBrandRemixRun.mockResolvedValue(run);
     mocks.reviseBrandRemixRun.mockResolvedValue({ ...run, revision: 2 });
+    mocks.startBrandRemixRun.mockResolvedValue({
+      ...run,
+      phase: 'generating',
+    });
   });
 
-  it('hydrates a server-owned brief from a typed source selector', async () => {
+  it('starts a ready remix and sends it to Studio without a brief prompt', async () => {
     const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
 
     await act(async () => {
@@ -113,10 +119,14 @@ describe('DiscoveryRemixProvider', () => {
     expect(mocks.createBrandRemixRun).toHaveBeenCalledWith('brand-1', {
       source,
     });
-    expect(result.current.run?.sourceSnapshot.pattern.hook).toBe(
-      'Proof before promise',
+    expect(mocks.startBrandRemixRun).toHaveBeenCalledWith('run-1', {
+      expectedRevision: 1,
+    });
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/northstar/studio/generate?run=run-1',
     );
-    expect(result.current.status).toBe('ready');
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.status).toBe('idle');
   });
 
   it('deduplicates rapid preparation requests for the same source selector', async () => {
@@ -147,7 +157,36 @@ describe('DiscoveryRemixProvider', () => {
     expect(result.current.run?.id).toBe('run-1');
   });
 
+  it('keeps the brief open when preparation is blocked', async () => {
+    mocks.createBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: {
+        issues: [{ code: 'credits', message: 'Need credits' }],
+        state: 'blocked',
+      },
+    });
+    const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
+
+    await act(async () => {
+      await result.current.openRemix(source);
+    });
+
+    expect(mocks.startBrandRemixRun).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.status).toBe('ready');
+  });
+
   it('persists reviewed edits before navigating with only the opaque run id', async () => {
+    mocks.createBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: { issues: [], state: 'blocked' },
+    });
+    mocks.reviseBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: { issues: [], state: 'ready' },
+      revision: 2,
+    });
     const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
 
     await act(async () => {
@@ -173,6 +212,10 @@ describe('DiscoveryRemixProvider', () => {
   });
 
   it('reports a save-specific fallback when a revision save has no JSON:API detail', async () => {
+    mocks.createBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: { issues: [], state: 'blocked' },
+    });
     mocks.reviseBrandRemixRun.mockRejectedValueOnce({ status: 409 });
     const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
 
@@ -233,6 +276,10 @@ describe('DiscoveryRemixProvider', () => {
   });
 
   it('keeps refreshed blocking issues in the inspector instead of navigating', async () => {
+    mocks.createBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: { issues: [], state: 'blocked' },
+    });
     mocks.reviseBrandRemixRun.mockResolvedValueOnce({
       ...run,
       readiness: {
@@ -284,6 +331,10 @@ describe('DiscoveryRemixProvider', () => {
   });
 
   it('does not navigate when the inspector is closed while a revision saves', async () => {
+    mocks.createBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      readiness: { issues: [], state: 'blocked' },
+    });
     let resolveRevision: ((value: BrandRemixRunView) => void) | undefined;
     mocks.reviseBrandRemixRun.mockReturnValueOnce(
       new Promise<BrandRemixRunView>((resolve) => {

@@ -3,9 +3,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
-import type {
-  AdsAdapterContext,
+import {
+  type AdsAdapterContext,
   AdsPlatform,
+  adsPlatformValues,
+  isAdsPlatform,
 } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
@@ -13,8 +15,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-
-const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok', 'x'];
 
 export interface AdsGatewayAdapterContextInput {
   adAccountId: string;
@@ -32,13 +32,13 @@ export class AdsGatewayRequestContextService {
   constructor(private readonly credentialsService: CredentialsService) {}
 
   validatePlatform(platform: string): AdsPlatform {
-    if (!VALID_PLATFORMS.includes(platform as AdsPlatform)) {
+    if (!isAdsPlatform(platform)) {
       throw new BadRequestException(
-        `Invalid platform: ${platform}. Must be one of: ${VALID_PLATFORMS.join(', ')}`,
+        `Invalid platform: ${platform}. Must be one of: ${adsPlatformValues.join(', ')}`,
       );
     }
 
-    return platform as AdsPlatform;
+    return platform;
   }
 
   async createAdapterContext(
@@ -82,7 +82,7 @@ export class AdsGatewayRequestContextService {
       );
     }
 
-    if (platform === 'x' && !credential.accessTokenSecret) {
+    if (platform === AdsPlatform.X && !credential.accessTokenSecret) {
       throw new UnauthorizedException(
         `Credential ${credentialId} not found or missing access token secret`,
       );

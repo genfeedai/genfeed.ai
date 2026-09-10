@@ -35,8 +35,8 @@ const AUTOMATION_SURFACES = [
   { icon: Cpu, label: 'Runs', path: APP_ROUTES.AUTOMATION.RUNS },
   {
     icon: MessageSquare,
-    label: 'Autopilot',
-    path: APP_ROUTES.AUTOMATION.AUTOPILOT,
+    label: 'Agents',
+    path: APP_ROUTES.AUTOMATION.AGENTS,
   },
   {
     icon: ChartLine,
@@ -88,7 +88,7 @@ export default function OrganizationAutomationOverviewPage() {
   return (
     <OverviewLayout
       label={APP_DISPLAY_LABELS.automation}
-      description="Workflows, autopilot, and run history across every brand in this organization"
+      description="Workflows, agents, and run history across every brand in this organization"
       icon={Workflow}
     >
       {isReady && brandCards.length === 0 ? (

@@ -1,15 +1,10 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { toOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
 import { AGENT_TYPE_VALUES } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsString,
-  ValidateIf,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class AgentStrategiesQueryDto extends BaseQueryDto {
   @IsString()
@@ -27,37 +22,13 @@ export class AgentStrategiesQueryDto extends BaseQueryDto {
   agentType?: AgentType;
 
   @IsOptional()
-  @ValidateIf((o) => o.isActive !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    return undefined;
-  })
+  @Transform(toOptionalBoolean)
   @IsBoolean()
   @ApiProperty({ description: 'Filter by active status', required: false })
   isActive?: boolean;
 
   @IsOptional()
-  @ValidateIf((o) => o.isEnabled !== undefined)
-  @Transform(({ value }) => {
-    if (value === undefined || value === null) {
-      return undefined;
-    }
-    if (value === 'true' || value === true) {
-      return true;
-    }
-    if (value === 'false' || value === false) {
-      return false;
-    }
-    return undefined;
-  })
+  @Transform(toOptionalBoolean)
   @IsBoolean()
   @ApiProperty({ description: 'Filter by enabled status', required: false })
   isEnabled?: boolean;

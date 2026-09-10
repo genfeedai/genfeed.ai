@@ -186,6 +186,7 @@ function NodeCard({
       draggable
       onDragStart={handleDragStart}
       className={`h-auto w-full cursor-grab justify-start rounded-md border border-transparent bg-transparent px-2 py-2 text-left shadow-none transition-colors ${colors.hover}`}
+      textTransform="none"
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <div className={`shrink-0 rounded-md p-1.5 ${colors.icon}`}>
@@ -264,6 +265,12 @@ function mergeNodesByCategory(
       label: node.label,
       type: node.type,
     });
+  }
+
+  for (const category of Object.keys(merged) as NodeCategory[]) {
+    merged[category].sort((left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+    );
   }
 
   return merged;
@@ -362,6 +369,10 @@ export function NodePalette({
         }
       }
     }
+
+    results.sort((left, right) =>
+      left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+    );
 
     return results;
   }, [searchQuery, nodesByCategory]);

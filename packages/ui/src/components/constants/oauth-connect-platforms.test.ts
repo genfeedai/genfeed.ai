@@ -1,8 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import {
-  GoogleColorIcon,
-  YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
+import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Star } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
@@ -29,41 +26,23 @@ describe('resolveOAuthServicePath', () => {
 });
 
 describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
-  it('exposes Meta Ads via Facebook OAuth and YouTube Ads via Google Ads', () => {
+  it('exposes Meta Ads via Facebook OAuth and a single Google Ads tile for YouTube', () => {
     const meta = OAUTH_CONNECT_PLATFORMS.find(
       (p) => p.connectId === 'meta-ads',
     );
-    const youtubeAds = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.connectId === 'youtube-ads',
-    );
     const googleAds = OAUTH_CONNECT_PLATFORMS.find(
       (p) => p.connectId === 'google-ads',
+    );
+    const youtubeAdsTiles = OAUTH_CONNECT_PLATFORMS.filter(
+      (p) => p.connectId === 'youtube-ads',
     );
 
     expect(meta?.platform).toBe(CredentialPlatform.FACEBOOK);
     expect(meta?.servicePath).toBe('facebook');
-    expect(youtubeAds?.platform).toBe(CredentialPlatform.GOOGLE_ADS);
-    expect(youtubeAds?.servicePath).toBe('google-ads');
+    expect(googleAds?.platform).toBe(CredentialPlatform.GOOGLE_ADS);
     expect(googleAds?.servicePath).toBe('google-ads');
-  });
-
-  it('gives each ads tile its own brand mark even when they share a platform', () => {
-    const googleAds = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.connectId === 'google-ads',
-    );
-    const youtubeAds = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.connectId === 'youtube-ads',
-    );
-    const youtube = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.platform === CredentialPlatform.YOUTUBE,
-    );
-
-    // Both tiles authenticate through GOOGLE_ADS; resolving the icon from the
-    // platform painted a Google "G" on the YouTube Ads card.
     expect(googleAds?.Icon).toBe(GoogleColorIcon);
-    expect(youtubeAds?.Icon).toBe(YoutubeIcon);
-    expect(youtubeAds?.Icon).toBe(youtube?.Icon);
-    expect(googleAds?.Icon).not.toBe(youtubeAds?.Icon);
+    expect(youtubeAdsTiles).toEqual([]);
   });
 });
 

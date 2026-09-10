@@ -1,4 +1,4 @@
-import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 /**
  * The only campaign status this product writes to a paid-media provider.
@@ -13,10 +13,10 @@ export const UNIFIED_PAUSED_CAMPAIGN_STATUS = 'PAUSED';
  * status; its campaign write API takes `DISABLE`.
  */
 const PROVIDER_PAUSED_CAMPAIGN_STATUS: Record<AdsPlatform, string> = {
-  google: 'PAUSED',
-  meta: 'PAUSED',
-  tiktok: 'DISABLE',
-  x: 'PAUSED',
+  [AdsPlatform.GOOGLE]: 'PAUSED',
+  [AdsPlatform.META]: 'PAUSED',
+  [AdsPlatform.TIKTOK]: 'DISABLE',
+  [AdsPlatform.X]: 'PAUSED',
 };
 
 export const INVALID_CAMPAIGN_STATUS_MESSAGE = `Campaign status must be omitted or the exact string "${UNIFIED_PAUSED_CAMPAIGN_STATUS}". Activating a paid-media campaign is not supported.`;

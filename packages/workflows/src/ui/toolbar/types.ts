@@ -57,6 +57,11 @@ export interface ToolbarProps {
   showSettings?: boolean;
   /** Whether to show the shortcut help button */
   showShortcutHelp?: boolean;
+  /**
+   * Drop the standalone `h-14 border-b` chrome so the toolbar can sit inside
+   * shared module topbar actions instead of stacking a second bar.
+   */
+  embedded?: boolean;
 }
 
 export interface SaveIndicatorProps {

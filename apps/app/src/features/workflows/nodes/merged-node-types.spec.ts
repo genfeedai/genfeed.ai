@@ -6,6 +6,8 @@ const ACTION_NODE_TYPES = ['genfeedAction'] as const;
 const ENGINE_NATIVE_NODE_TYPES = [
   'commentTrigger',
   'engagementTrigger',
+  'input-image',
+  'input-video',
   'keywordTrigger',
   'reviewGate',
   'workflowInput',

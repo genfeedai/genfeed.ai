@@ -169,30 +169,16 @@ export function ActivityFeedContent({
                 title
               );
 
-              return (
-                <li
-                  className="relative flex gap-2.5 px-3 py-2.5"
-                  data-testid="topbar-activity-row"
-                  key={activity.id}
-                >
+              const row = (
+                <>
                   <ActivityStatusIcon
                     isCredit={creditActivity}
                     status={status}
                   />
                   <div className="min-w-0 flex-1">
-                    {destination ? (
-                      <Link
-                        href={destination}
-                        onClick={onNavigate}
-                        className="block text-sm font-medium text-foreground hover:underline"
-                      >
-                        {titleContent}
-                      </Link>
-                    ) : (
-                      <div className="text-sm font-medium text-foreground">
-                        {titleContent}
-                      </div>
-                    )}
+                    <div className="text-sm font-medium text-foreground">
+                      {titleContent}
+                    </div>
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
                       {detail ? (
                         <>
@@ -217,6 +203,22 @@ export function ActivityFeedContent({
                       data-testid="activity-unread-dot"
                     />
                   ) : null}
+                </>
+              );
+
+              return (
+                <li data-testid="topbar-activity-row" key={activity.id}>
+                  {destination ? (
+                    <Link
+                      href={destination}
+                      onClick={onNavigate}
+                      className="flex w-full gap-2.5 px-3 py-2.5 hover:bg-hover"
+                    >
+                      {row}
+                    </Link>
+                  ) : (
+                    <div className="flex gap-2.5 px-3 py-2.5">{row}</div>
+                  )}
                 </li>
               );
             })}

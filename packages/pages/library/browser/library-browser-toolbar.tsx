@@ -10,14 +10,24 @@ import {
   LIBRARY_CANVAS_FEATURE_FLAG,
   type LibraryViewMode,
 } from '@genfeedai/contracts/constants';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
-import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
-import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  fieldControlClassName,
+  fieldControlTriggerClassName,
+} from '@ui/primitives/field-control';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import {
   SHELL_ICON_BUTTON_CLASS,
   SHELL_ICON_CLASS,
@@ -79,15 +89,12 @@ const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
  */
 export default function LibraryBrowserToolbar({
   categories,
-  search,
-  searchPlaceholder = "Search this brand's assets",
   sort,
   sortOptions,
   viewMode,
   isRefreshing,
   onCategoriesChange,
   onClearCategories,
-  onSearchChange,
   onSortChange,
   onViewModeChange,
   onRefresh,
@@ -106,10 +113,14 @@ export default function LibraryBrowserToolbar({
   );
 
   return (
-    <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1.5">
         <DropdownMultiSelect
-          className="h-8 rounded-md border border-border bg-secondary px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
+          className={cn(
+            fieldControlClassName,
+            fieldControlTriggerClassName,
+            'w-32',
+          )}
           name="categories"
           onChange={(_name, values) => {
             onCategoriesChange(categoriesFromAssetTypeIds(values));
@@ -131,51 +142,41 @@ export default function LibraryBrowserToolbar({
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="w-44 sm:w-56">
-          <FormSearchbar
-            className="w-full"
-            inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
-            onSearch={onSearchChange}
-            placeholder={searchPlaceholder}
-            size={ComponentSize.SM}
-            value={search}
-          />
-        </div>
+      <Select value={sort} onValueChange={onSortChange}>
+        <SelectTrigger aria-label="Sort" className="w-40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {sortOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-        <ButtonDropdown
-          className="h-8 rounded-md border border-border bg-secondary px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
-          name="sort"
-          onChange={(_name, value) => onSortChange(value)}
-          options={sortOptions}
-          value={sort}
+      <ViewToggle
+        activeView={MODE_TO_VIEW_TYPE[viewMode]}
+        onChange={(view) => onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')}
+        options={viewOptions}
+        size={ComponentSize.SM}
+      />
+
+      <div
+        className="flex items-center gap-1"
+        data-testid="library-toolbar-icon-actions"
+      >
+        <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
+        <Button
+          ariaLabel="Upload"
+          className={SHELL_ICON_BUTTON_CLASS}
+          icon={<Upload className={SHELL_ICON_CLASS} />}
+          onClick={onUpload}
+          size={ButtonSize.ICON}
+          tooltip="Upload"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
         />
-
-        <ViewToggle
-          activeView={MODE_TO_VIEW_TYPE[viewMode]}
-          onChange={(view) =>
-            onViewModeChange(VIEW_TYPE_TO_MODE[view] ?? 'grid')
-          }
-          options={viewOptions}
-          size={ComponentSize.SM}
-        />
-
-        <div
-          className="flex items-center gap-1"
-          data-testid="library-toolbar-icon-actions"
-        >
-          <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
-          <Button
-            ariaLabel="Upload"
-            className={SHELL_ICON_BUTTON_CLASS}
-            icon={<Upload className={SHELL_ICON_CLASS} />}
-            onClick={onUpload}
-            size={ButtonSize.ICON}
-            tooltip="Upload"
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </div>
       </div>
     </div>
   );

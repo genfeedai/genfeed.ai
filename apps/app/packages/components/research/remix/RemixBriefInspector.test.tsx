@@ -268,6 +268,7 @@ describe('RemixBriefInspector', () => {
     ).toBeVisible();
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Target platform' }));
+    expect(screen.getByRole('option', { name: 'X' })).toBeVisible();
     fireEvent.click(screen.getByRole('option', { name: 'Instagram' }));
     fireEvent.click(screen.getByRole('combobox', { name: 'Output type' }));
     fireEvent.click(screen.getByRole('option', { name: 'Copy' }));

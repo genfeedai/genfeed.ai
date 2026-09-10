@@ -108,7 +108,12 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    ['/acme/moonrise/automation/templates', 'Automation', 'Templates'],
+    ['/acme/moonrise/automation/templates', 'Automation', 'Workflows'],
+    [
+      '/acme/moonrise/automation/workflows/templates',
+      'Automation',
+      'Workflows',
+    ],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [
       '/acme/moonrise/automation/workflows/workflow-1',
@@ -180,6 +185,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/publishing/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/knowledge', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
@@ -234,10 +240,23 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('registers Brand Knowledge under brand settings, not the asset library', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/settings/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/library/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
+    });
+  });
+
   it('keeps current surfaces and removes deprecated aliases', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'automation' });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/strategies'),
     ).toBeNull();
@@ -342,10 +361,9 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
-    // Autopilot remains first-class; configuration aliases are removed.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
-    ).toMatchObject({ productClass: 'control-plane' });
+    ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automation/strategies'),
     ).toBeNull();

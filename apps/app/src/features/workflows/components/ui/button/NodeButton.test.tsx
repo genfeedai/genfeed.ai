@@ -1,7 +1,17 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { NodeIconButton } from './NodeButton';
+import { NodeButton, NodeIconButton } from './NodeButton';
+
+describe('NodeButton', () => {
+  it('uses the shared secondary button for node actions', () => {
+    render(<NodeButton>Select Media</NodeButton>);
+
+    expect(
+      screen.getByRole('button', { name: 'Select Media' }),
+    ).toBeInTheDocument();
+  });
+});
 
 describe('NodeIconButton', () => {
   it('uses its title as the accessible name for icon-only actions', () => {

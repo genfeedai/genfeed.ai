@@ -2,6 +2,11 @@
 
 import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Container from '@ui/layout/container/Container';
@@ -12,7 +17,12 @@ import ActiveRunsPanel from './ActiveRunsPanel';
 import RunHistoryList from './RunHistoryList';
 import RunStatsStrip from './RunStatsStrip';
 
+const RUNS_PAGE_LIMIT = 50;
+
 export default function MissionControl() {
+  const collectionScope = useCollectionScope();
+  const isReady = isCollectionFetchReady(collectionScope);
+  const brandParams = toBrandListParams(collectionScope);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const pathname = usePathname();
@@ -38,7 +48,10 @@ export default function MissionControl() {
     isRefreshing,
     refresh,
     stats,
-  } = useWorkflowExecutions({ limit: 100, sort: '-createdAt' });
+  } = useWorkflowExecutions(
+    { ...brandParams, limit: RUNS_PAGE_LIMIT, sort: '-createdAt' },
+    { enabled: isReady },
+  );
 
   const filteredExecutions = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -68,18 +81,16 @@ export default function MissionControl() {
     <Container
       label="Workflow Executions"
       titleVisibility="sr-only"
-      right={
-        <>
-          <FormSearchbar
-            className="w-full sm:w-64"
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search workflow executions"
-            size={ComponentSize.SM}
-            value={searchQuery}
-          />
-          <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
-        </>
+      leading={
+        <FormSearchbar
+          className="w-64"
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search workflow executions"
+          size={ComponentSize.SM}
+          value={searchQuery}
+        />
       }
+      right={<ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />}
     >
       <div className="flex flex-col gap-6">
         {isError && executions.length > 0 ? (

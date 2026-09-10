@@ -652,6 +652,8 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain('sendResetPassword');
     expect(source).toContain('revokeSessionsOnPasswordReset');
     expect(source).toContain('accountLinking');
+    expect(source).toContain('onAPIError');
+    expect(source).toContain('skipStateCookieCheck');
     expect(source).toContain('trustedProviders');
     expect(source).toContain('enabled: true');
     expect(source).toContain('rateLimit');

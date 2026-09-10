@@ -21,10 +21,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 
 interface WorkflowEditorSectionTopbarProps {
   estimateLabel?: string | null;
+  graphChrome?: ReactNode;
   isRunning: boolean;
   lifecycle: WorkflowLifecycle;
   onArchive: () => void;
@@ -36,6 +38,7 @@ interface WorkflowEditorSectionTopbarProps {
 
 export function WorkflowEditorSectionTopbar({
   estimateLabel,
+  graphChrome,
   isRunning,
   lifecycle,
   onArchive,
@@ -61,6 +64,7 @@ export function WorkflowEditorSectionTopbar({
   return (
     <SectionTopbar
       className="shrink-0"
+      help={null}
       title={title}
       titleVisibility="sr-only"
       leading={
@@ -83,9 +87,20 @@ export function WorkflowEditorSectionTopbar({
       }
       actions={
         <div
-          className="flex min-w-0 flex-nowrap items-center gap-2"
+          className="flex min-w-0 flex-1 flex-nowrap items-center gap-2"
           data-testid="workflow-editor-section-actions"
         >
+          {graphChrome ? (
+            <div
+              className="flex min-w-0 flex-1 items-center"
+              data-testid="workflow-editor-graph-chrome"
+            >
+              {graphChrome}
+            </div>
+          ) : null}
+          {graphChrome ? (
+            <div className="h-6 w-px shrink-0 bg-border" aria-hidden="true" />
+          ) : null}
           {estimateLabel ? (
             <span className="hidden whitespace-nowrap rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground 2xl:inline-flex">
               {estimateLabel}

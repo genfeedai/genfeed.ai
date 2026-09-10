@@ -10,25 +10,26 @@ import type {
   MetaInsightsParams,
 } from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
-  CreateAdInput,
-  CreateAdSetInput,
-  CreateCampaignInput,
-  IAdsAdapter,
-  UnifiedAd,
-  UnifiedAdAccount,
-  UnifiedAdSet,
-  UnifiedCampaign,
-  UnifiedInsights,
-  UpdateCampaignInput,
+import {
+  type AdsAdapterContext,
+  type AdsInsightsParams,
+  AdsPlatform,
+  type CreateAdInput,
+  type CreateAdSetInput,
+  type CreateCampaignInput,
+  type IAdsAdapter,
+  type UnifiedAd,
+  type UnifiedAdAccount,
+  type UnifiedAdSet,
+  type UnifiedCampaign,
+  type UnifiedInsights,
+  type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class MetaAdsAdapter implements IAdsAdapter {
-  readonly platform = 'meta' as const;
+  readonly platform = AdsPlatform.META;
 
   constructor(private readonly metaAdsService: MetaAdsService) {}
 

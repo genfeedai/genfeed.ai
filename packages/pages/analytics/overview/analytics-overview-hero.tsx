@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -26,7 +27,7 @@ type AnalyticsOverviewHeroProps = {
 };
 
 /**
- * First-run / warming-up status strip only.
+ * Warming-up status strip only. First-run is a page-level EmptyStateCard.
  * Page identity lives in the shell breadcrumb — no in-page H1.
  * Metrics live in KPISection MetricCards.
  */
@@ -64,7 +65,7 @@ export default function AnalyticsOverviewHero({
           {heroContent.primaryAction.label}
         </Link>
         <Link
-          href={orgHref('/settings/api-keys')}
+          href={orgHref(APP_ROUTES.SETTINGS.SOCIAL)}
           className={buttonVariants({
             size: ButtonSize.SM,
             variant: ButtonVariant.SECONDARY,

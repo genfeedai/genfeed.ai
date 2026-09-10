@@ -21,6 +21,17 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/acme/brand${path}` }),
 }));
 
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  toBrandListParams: () => ({ brandId: 'brand-1' }),
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
+}));
+
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),
@@ -34,16 +45,21 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     label,
+    leading,
     right,
     children,
   }: {
     label: string;
+    leading?: ReactNode;
     right: ReactNode;
     children: ReactNode;
   }) => (
     <main>
       <h1>{label}</h1>
-      <header>{right}</header>
+      <header>
+        {leading}
+        {right}
+      </header>
       {children}
     </main>
   ),

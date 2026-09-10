@@ -20,7 +20,7 @@ export default function EmptyWorkflowState() {
       description={translate('emptyDescription')}
       actions={
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href={href(APP_ROUTES.AUTOMATION.TEMPLATES)}>
+          <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)}>
             <Button
               label={translate('emptyActionTemplates')}
               variant={ButtonVariant.SECONDARY}

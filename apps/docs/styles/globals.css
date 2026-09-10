@@ -215,3 +215,23 @@ nav img {
 .dark .swagger-ui .response-col_description {
   color: var(--docs-foreground-dark);
 }
+
+/*
+  The navbar brand mark is the monochrome black CDN logo. apps/docs ships no
+  Tailwind, so the shared `dark:invert` utility other surfaces use generates no
+  rule here and the mark rendered black on the near-black dark navbar. Invert it
+  through the same `.dark` selector the rest of this sheet uses.
+*/
+.docs-navbar-logo-mark {
+  background-image: url(https://cdn.genfeed.ai/assets/branding/logo.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: inline-block;
+  height: 24px;
+  width: 24px;
+}
+
+.dark .docs-navbar-logo-mark {
+  filter: invert(1);
+}

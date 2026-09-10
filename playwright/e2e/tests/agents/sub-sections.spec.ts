@@ -15,7 +15,7 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
  *
  * Covers: /automation/campaigns (Programs), /automation/campaigns/new,
  *         /messages/outreach, /messages/outreach/new, /automation/runs,
- *         /automation/autopilot, /automation/workflows, /automation/workflows/new, /automation/templates
+ *         /automation/workflows, /automation/workflows/new, /automation/workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -91,20 +91,6 @@ test.describe('Agents — Sub-Sections', () => {
     ).toBeVisible();
   });
 
-  test('autopilot page is the strategies desk', async ({
-    authenticatedPage,
-  }) => {
-    await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.AUTOPILOT), {
-      waitUntil: 'domcontentloaded',
-    });
-
-    await expect(authenticatedPage).toHaveURL(/\/automation\/autopilot/);
-    await expect(
-      authenticatedPage.getByText(/autopilot/i).first(),
-    ).toBeVisible();
-  });
-
   test('workflows page shows workflow list', async ({ authenticatedPage }) => {
     await mockWorkflowCrud(authenticatedPage, []);
     await mockWorkflowExecutions(authenticatedPage, []);
@@ -147,11 +133,16 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.TEMPLATES), {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
-    await expect(authenticatedPage).toHaveURL(/automation\/templates/);
+    await expect(authenticatedPage).toHaveURL(
+      /automation\/workflows\/templates/,
+    );
     await expect(
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();

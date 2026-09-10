@@ -2,8 +2,20 @@
 
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
+import { getActivityTypeKind } from '@pages/activities/activities-list.utils';
 import { Button } from '@ui/primitives/button';
-import { Eye, Film, Play } from 'lucide-react';
+import {
+  Coins,
+  Eye,
+  FileText,
+  Image as ImageIcon,
+  Music,
+  Play,
+  Sparkles,
+  Unplug,
+  Video,
+  Workflow,
+} from 'lucide-react';
 import Image from 'next/image';
 
 type Props = {
@@ -167,9 +179,21 @@ export default function ActivityThumbnailCell({
     }
   }
 
+  const TypeIcon = {
+    article: FileText,
+    audio: Music,
+    credits: Coins,
+    image: ImageIcon,
+    other: Sparkles,
+    post: FileText,
+    social: Unplug,
+    video: Video,
+    workflow: Workflow,
+  }[getActivityTypeKind(a)];
+
   return (
-    <div className="size-8 shrink-0 bg-background flex items-center justify-center">
-      <Film className="size-4 text-foreground/40" />
+    <div className="flex size-10 shrink-0 items-center justify-center bg-background-secondary text-foreground/70">
+      <TypeIcon aria-hidden="true" className="size-4" />
     </div>
   );
 }

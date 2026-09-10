@@ -41,7 +41,6 @@ import DeskTableView from '@pages/trends/desk/desk-table-view';
 import { useDeskKeyboard } from '@pages/trends/desk/use-desk-keyboard';
 import { useDiscoveryDeskItems } from '@pages/trends/desk/use-discovery-desk-items';
 import FollowingDeck from '@pages/trends/following/following-deck';
-import CorpusHealthPanel from '@pages/trends/shared/corpus-health-panel';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskSort,
@@ -160,17 +159,8 @@ export default function DiscoveryDesk() {
     }
   }, [platformParam, state.filters.platforms]);
 
-  const {
-    corpusHealth,
-    healthError,
-    error,
-    isLoading,
-    isRefreshing,
-    items,
-    refresh,
-    sources,
-    summary,
-  } = useDiscoveryDeskItems();
+  const { error, isLoading, isRefreshing, items, refresh, sources, summary } =
+    useDiscoveryDeskItems();
 
   const visibleItems = useMemo(
     () => selectVisibleItems(items, state),
@@ -371,18 +361,17 @@ export default function DiscoveryDesk() {
         }
         icon={TrendingUp}
         label={translateDesk('title')}
+        leading={
+          <FormSearchbar
+            className="w-64"
+            onSearch={setSearch}
+            placeholder={translateDesk('searchPlaceholder')}
+            size={ComponentSize.SM}
+            value={search}
+          />
+        }
         right={
           <>
-            <div className="w-44 sm:w-56">
-              <FormSearchbar
-                className="w-full"
-                inputClassName="h-8"
-                onSearch={setSearch}
-                placeholder={translateDesk('searchPlaceholder')}
-                size={ComponentSize.SM}
-                value={search}
-              />
-            </div>
             <Badge variant="ghost">
               {isLoading
                 ? translateDesk('signalsLoading')
@@ -512,15 +501,6 @@ export default function DiscoveryDesk() {
               selection={state.selection}
             />
           )
-        ) : null}
-        {!isFollowingView ? (
-          <div className="mt-6">
-            <CorpusHealthPanel
-              health={corpusHealth}
-              isUnavailable={Boolean(healthError)}
-              selectedPlatforms={Array.from(state.filters.platforms)}
-            />
-          </div>
         ) : null}
       </Container>
 

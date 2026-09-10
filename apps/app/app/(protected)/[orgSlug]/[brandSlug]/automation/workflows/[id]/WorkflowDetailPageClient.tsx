@@ -2,6 +2,7 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -9,16 +10,14 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkflowDetailPageClientProps } from '@props/automation/workflow-detail-page-client.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import {
-  ActionNodeInspector,
-  WorkflowEditorShell,
-} from '@genfeedai/workflows/ui';
+import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -28,6 +27,7 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
@@ -35,12 +35,14 @@ import '@/features/workflows/styles/workflow-scope.css';
 import { useTranslations } from 'next-intl';
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
+import { CloudActionNodeInspector } from '@/features/workflows/components/editor/CloudActionNodeInspector';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
 import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
+import { useWorkflowActionDefaults } from '@/features/workflows/hooks/useWorkflowActionDefaults';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
@@ -70,6 +72,8 @@ export default function WorkflowDetailPageClient({
   initialExecutionId,
 }: WorkflowDetailPageClientProps) {
   const translate = useTranslations('common.automation.workflows');
+  const { href } = useOrgUrl();
+  const { push } = useRouter();
   const [activeExecutionId, setActiveExecutionId] = useState<string | null>(
     null,
   );
@@ -82,6 +86,7 @@ export default function WorkflowDetailPageClient({
   >(null);
   const [workflowRunTracker] = useState(createEditorWorkflowRunTracker);
   const getWorkflowService = useAuthedService(createWorkflowApiService);
+  const actionParameterDefaults = useWorkflowActionDefaults();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeThread = useAgentChatStore((state) =>
     state.threads.find((thread) => thread.id === state.activeThreadId),
@@ -155,6 +160,7 @@ export default function WorkflowDetailPageClient({
 
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
+      actionParameterDefaults,
       applyEditOperations,
       executionApiBaseUrl: EnvironmentService.apiEndpoint,
       executionHeaders: getExecutionProviderHeaders,
@@ -190,7 +196,7 @@ export default function WorkflowDetailPageClient({
         },
       },
     }),
-    [getWorkflowService],
+    [actionParameterDefaults, getWorkflowService],
   );
 
   const handlePublish = useCallback(async () => {
@@ -204,6 +210,21 @@ export default function WorkflowDetailPageClient({
   const handleRename = useCallback(async () => {
     await save();
   }, [save]);
+
+  const handleSaveAsCopy = useCallback(
+    async (newName: string) => {
+      await save();
+      const service = await getWorkflowService();
+      const duplicated = await useCloudWorkflowStore
+        .getState()
+        .duplicateWorkflow(service);
+      await service.update(duplicated.id, {
+        label: newName.trim() || duplicated.label,
+      });
+      push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${duplicated.id}`));
+    },
+    [getWorkflowService, href, push, save],
+  );
 
   const handleTerminalExecution = useCallback(
     (execution: { id: string; status: WorkflowExecutionStatus }) => {
@@ -286,6 +307,14 @@ export default function WorkflowDetailPageClient({
         <div className="workflow-scope workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
           <WorkflowEditorSectionTopbar
             estimateLabel={workflowEstimateLabel}
+            graphChrome={
+              <CloudWorkflowToolbar
+                isSaving={isSaving}
+                middleContent={<CloudCreditsIndicator />}
+                onRename={handleRename}
+                onSaveAsCopy={handleSaveAsCopy}
+              />
+            }
             isRunning={isRunning}
             lifecycle={lifecycle}
             onArchive={handleArchive}
@@ -327,15 +356,8 @@ export default function WorkflowDetailPageClient({
                     runId={visibleExecutionPanelId}
                   />
                 ) : (
-                  <ActionNodeInspector />
+                  <CloudActionNodeInspector />
                 )
-              }
-              toolbar={
-                <CloudWorkflowToolbar
-                  isSaving={isSaving}
-                  middleContent={<CloudCreditsIndicator />}
-                  onRename={handleRename}
-                />
               }
             />
           )}

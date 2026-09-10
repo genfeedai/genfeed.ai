@@ -1,5 +1,5 @@
 import { AgentAutonomyMode } from '@genfeedai/contracts';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import AgentDetailPage from './AgentDetailPage';
 import '@testing-library/jest-dom/vitest';
@@ -15,8 +15,24 @@ vi.mock('./AgentWorkflowBindCard', () => ({
   default: () => <div>Workflow bind card</div>,
 }));
 
+vi.mock('../../autopilot/AgentStrategyDialog', () => ({
+  default: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div>Agent schedule dialog</div> : null,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  isCollectionFetchReady: () => true,
+  toBrandListParams: () => ({ brandId: 'brand-1' }),
+  useCollectionScope: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+    pageScope: 'brand',
+  }),
 }));
 
 vi.mock('@hooks/data/agent-strategies/use-agent-strategy', () => ({
@@ -111,14 +127,17 @@ vi.mock('@ui/layout/container/Container', () => ({
     children,
     description,
     label,
+    right,
   }: {
     children: ReactNode;
     description?: string;
     label: string;
+    right?: ReactNode;
   }) => (
     <section>
       <h1>{label}</h1>
       {description ? <p>{description}</p> : null}
+      {right}
       {children}
     </section>
   ),
@@ -131,6 +150,14 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({ label }: { label: ReactNode }) => (
     <button type="button">{label}</button>
+  ),
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({ label, onClick }: { label?: ReactNode; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {label}
+    </button>
   ),
 }));
 
@@ -155,6 +182,14 @@ describe('AgentDetailPage', () => {
       isLoading: false,
       refetch: vi.fn(),
     });
+  });
+
+  it('opens schedule settings on the agent instead of a separate Autopilot desk', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(screen.queryByText('Agent schedule dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule' }));
+    expect(screen.getByText('Agent schedule dialog')).toBeVisible();
   });
 
   it('shows opportunity context when opened from the publishing inbox', () => {

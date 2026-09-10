@@ -25,7 +25,10 @@ import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
+import {
+  type AdsAdapterContext,
+  AdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
@@ -161,14 +164,14 @@ describe('AdsGatewayController', () => {
 
   describe('credential resolution', () => {
     it.each([
-      ['meta', CredentialPlatform.FACEBOOK],
-      ['google', CredentialPlatform.GOOGLE_ADS],
-      ['tiktok', CredentialPlatform.TIKTOK],
-      ['x', CredentialPlatform.X_ADS],
+      [AdsPlatform.META, CredentialPlatform.FACEBOOK],
+      [AdsPlatform.GOOGLE, CredentialPlatform.GOOGLE_ADS],
+      [AdsPlatform.TIKTOK, CredentialPlatform.TIKTOK],
+      [AdsPlatform.X, CredentialPlatform.X_ADS],
     ] as const)(
       'scopes a %s credential to an active connected provider row',
       async (platform, credentialPlatform) => {
-        if (platform === 'x') {
+        if (platform === AdsPlatform.X) {
           credentialsService.findOne.mockResolvedValue({
             accessToken: 'token-abc',
             accessTokenSecret: 'token-secret-abc',

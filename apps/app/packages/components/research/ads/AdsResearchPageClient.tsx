@@ -8,7 +8,10 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { AdsResearchPlatform } from '@genfeedai/contracts/interfaces';
+import {
+  AdsPlatform,
+  type AdsResearchPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -196,10 +199,10 @@ export default function AdsResearchPageClient() {
               fullWidth: false,
               items: [
                 { id: 'all', label: 'Overview' },
-                { id: 'meta', label: 'Meta' },
-                { id: 'google', label: 'Google + YouTube' },
-                { id: 'tiktok', label: 'TikTok' },
-                { id: 'x', label: 'X' },
+                { id: AdsPlatform.META, label: 'Meta' },
+                { id: AdsPlatform.GOOGLE, label: 'Google + YouTube' },
+                { id: AdsPlatform.TIKTOK, label: 'TikTok' },
+                { id: AdsPlatform.X, label: 'X' },
               ],
               onTabChange: (value) =>
                 setPlatform(value as AdsResearchPlatform | 'all'),
@@ -235,7 +238,7 @@ export default function AdsResearchPageClient() {
         <CardEmpty
           icon={Megaphone}
           label="Connect Meta, Google/YouTube, TikTok, or X Ads"
-          description="Meta uses Facebook OAuth; Google/YouTube Ads, TikTok Ads, and X Ads each need their ad credentials. Public winners can appear without a connection; your campaigns show after you connect and pick an ad account in Filters."
+          description="Meta uses Facebook OAuth. Google Ads covers Search, Display, and YouTube from one connection. TikTok Ads and X Ads need their own credentials. Public winners can appear without a connection; your campaigns load once an ad account is linked."
           actions={
             <Button
               asChild
@@ -355,7 +358,7 @@ export default function AdsResearchPageClient() {
             />
           ) : null}
 
-          {effectivePlatform === 'x' ? <XAdsDsaNotice /> : null}
+          {effectivePlatform === AdsPlatform.X ? <XAdsDsaNotice /> : null}
 
           {showConnectStrip ? (
             <Alert type={AlertCategory.INFO} className="mb-4">

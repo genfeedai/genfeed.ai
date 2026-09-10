@@ -33,11 +33,9 @@ describe('AUTOMATION_MENU_ITEMS', () => {
   });
 
   it.each([
-    ['Autopilot', '/automation/autopilot'],
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
     ['Runs', '/automation/runs'],
-    ['Templates', '/automation/templates'],
     ['Workflows', '/automation/workflows'],
   ])('uses the canonical automation route for %s', (label, canonicalHref) => {
     const item = AUTOMATION_MENU_ITEMS.find(
@@ -74,13 +72,20 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('does not keep a Strategies nav alias', () => {
-    const autopilot = AUTOMATION_MENU_ITEMS.find(
-      (item) => item.label === 'Autopilot',
+  it('does not keep an Autopilot nav row or path alias', () => {
+    const agents = AUTOMATION_MENU_ITEMS.find(
+      (item) => item.label === 'Agents',
     );
 
-    expect(autopilot?.href).toBe('/automation/autopilot');
-    expect(autopilot?.matchPaths).toEqual(['/automation/autopilot']);
+    expect(
+      AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Autopilot'),
+    ).toBe(false);
+    expect(agents?.matchPaths).toEqual(['/automation/agents']);
+    expect(
+      AUTOMATION_MENU_ITEMS.some((item) =>
+        item.matchPaths?.includes('/automation/autopilot'),
+      ),
+    ).toBe(false);
     expect(
       AUTOMATION_MENU_ITEMS.some(
         (item) =>
@@ -116,7 +121,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     '/automation/content-runs',
     '/automation/templates',
     '/automation/workflows/new',
-    '/automation/autopilot',
+    '/automation/workflows/templates',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATION_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),
@@ -125,26 +130,21 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     expect(isCovered).toBe(true);
   });
 
-  it('groups by usage (Workflows / Agents) — no legacy Settings group', () => {
-    const byGroup = new Map<string, string[]>();
-    for (const item of AUTOMATION_MENU_ITEMS) {
-      const group = item.group ?? '';
-      const labels = byGroup.get(group) ?? [];
-      labels.push(item.label);
-      byGroup.set(group, labels);
-    }
-
-    expect(byGroup.get('')).toEqual(['Overview']);
-    expect(byGroup.get('Workflows')).toEqual([
-      'Workflows',
-      'Templates',
-      'Runs',
+  it('sits flat under the Automation app header — no Workflows / Agents subgroups', () => {
+    expect(AUTOMATION_MENU_ITEMS.map((item) => item.group)).toEqual([
+      '',
+      '',
+      '',
+      '',
+      '',
     ]);
-    expect(byGroup.get('Agents')).toEqual(['Agents', 'Autopilot', 'Programs']);
-    expect(byGroup.get('Campaigns')).toBeUndefined();
-    expect(byGroup.get('Settings')).toBeUndefined();
-    expect(byGroup.get('Build')).toBeUndefined();
-    expect(byGroup.get('Insights')).toBeUndefined();
+    expect(AUTOMATION_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Overview',
+      'Workflows',
+      'Runs',
+      'Agents',
+      'Programs',
+    ]);
   });
 
   it('keeps automation configuration in Settings, not the Automation sidebar', () => {

@@ -1,8 +1,9 @@
-import type {
-  AdsResearchItem,
-  AdsResearchLongevity,
-  AdsResearchMetric,
-  AdsResearchPlatform,
+import {
+  AdsPlatform,
+  type AdsResearchItem,
+  type AdsResearchLongevity,
+  type AdsResearchMetric,
+  type AdsResearchPlatform,
 } from '@genfeedai/contracts/interfaces';
 
 export function formatMetric(value?: number): string {
@@ -67,13 +68,13 @@ export function getMetricLabel(metric: AdsResearchMetric): string {
 
 export function getPlatformLabel(platform: AdsResearchPlatform): string {
   switch (platform) {
-    case 'meta':
+    case AdsPlatform.META:
       return 'Meta';
-    case 'tiktok':
+    case AdsPlatform.TIKTOK:
       return 'TikTok';
-    case 'x':
+    case AdsPlatform.X:
       return 'X';
-    default:
+    case AdsPlatform.GOOGLE:
       return 'Google';
   }
 }

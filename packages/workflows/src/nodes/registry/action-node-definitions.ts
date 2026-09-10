@@ -3,7 +3,7 @@ import {
   ALL_ACTIONS,
   type GenfeedActionDefinition,
 } from '@genfeedai/actions';
-import { generateHandlesFromSchema } from '../../ui/lib/schemaHandles';
+import { actionSchemaHandles } from '../../ui/nodes/saas/action-schema';
 import { DEFAULT_GENFEED_ACTION_DATA } from '../definitions';
 import type { ExtendedNodeCategory, SaaSHandleType } from '../types';
 import type { CatalogNodeDefinition } from './catalog-node-definition';
@@ -19,112 +19,17 @@ const WORKFLOW_CATEGORY_TO_NODE_CATEGORY: Record<
   processing: 'processing',
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readObjectSchema(schema: object | undefined): {
-  properties: Record<string, unknown>;
-  required: Set<string>;
-} {
-  if (!isRecord(schema)) {
-    return { properties: {}, required: new Set() };
-  }
-  const alternatives = [
-    ...(Array.isArray(schema.oneOf) ? schema.oneOf : []),
-    ...(Array.isArray(schema.anyOf) ? schema.anyOf : []),
-  ];
-  if (alternatives.length > 0) {
-    const firstObject = alternatives.find(
-      (candidate) =>
-        isRecord(candidate) &&
-        (isRecord(candidate.properties) ||
-          Array.isArray(candidate.oneOf) ||
-          Array.isArray(candidate.anyOf)),
-    );
-    return readObjectSchema(firstObject);
-  }
-  const properties = isRecord(schema.properties) ? schema.properties : {};
-  const required = new Set(
-    Array.isArray(schema.required)
-      ? schema.required.filter((key): key is string => typeof key === 'string')
-      : [],
-  );
-  return { properties, required };
-}
-
-function handleTypeForField(fieldName: string, prop: unknown): SaaSHandleType {
-  const lower = fieldName.toLowerCase();
-  if (fieldName === 'brand' || fieldName === 'brandId') {
-    return 'brand';
-  }
-  if (
-    lower.includes('image') ||
-    lower.endsWith('photo') ||
-    fieldName === 'references'
-  ) {
-    return 'image';
-  }
-  if (lower.includes('video')) {
-    return 'video';
-  }
-  if (lower.includes('audio') || lower.includes('sound')) {
-    return 'audio';
-  }
-  const schemaType = isRecord(prop) ? prop.type : undefined;
-  if (schemaType === 'number' || schemaType === 'integer') {
-    return 'number';
-  }
-  if (schemaType === 'object' || schemaType === 'array') {
-    return 'object';
-  }
-  return 'text';
-}
-
-function labelForField(fieldName: string, prop: unknown): string {
-  if (isRecord(prop) && typeof prop.title === 'string' && prop.title.trim()) {
-    return prop.title;
-  }
-  return fieldName
-    .replace(/_/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/\b\w/g, (character) => character.toUpperCase());
-}
-
 function handlesFromSchema(
   schema: object | undefined,
+  direction: 'input' | 'output',
 ): CatalogNodeDefinition['inputs'] {
-  const { properties, required } = readObjectSchema(schema);
-  const named = generateHandlesFromSchema(
-    isRecord(schema) ? schema : undefined,
-    [],
-  );
-  const seen = new Set(named.map((handle) => handle.id));
-  const extras: CatalogNodeDefinition['inputs'] = [];
-
-  for (const [fieldName, prop] of Object.entries(properties)) {
-    if (seen.has(fieldName)) {
-      continue;
-    }
-    extras.push({
-      id: fieldName,
-      label: labelForField(fieldName, prop),
-      multiple: isRecord(prop) && prop.type === 'array',
-      required: required.has(fieldName),
-      type: handleTypeForField(fieldName, prop),
-    });
-  }
-
-  return [
-    ...named.map((handle) => ({
-      id: handle.id,
-      label: handle.label,
-      multiple: handle.multiple,
-      required: handle.required,
-      type: handle.type as SaaSHandleType,
-    })),
-    ...extras,
-  ];
+  return actionSchemaHandles(schema, direction).map((handle) => ({
+    id: handle.id,
+    label: handle.label,
+    multiple: handle.multiple,
+    required: handle.required ?? false,
+    type: handle.type as SaaSHandleType,
+  }));
 }
 
 function categoryForAction(
@@ -155,9 +60,9 @@ export function buildActionNodeDefinitions(
       },
       description: action.description,
       icon: action.workflowIcon ?? 'Workflow',
-      inputs: handlesFromSchema(action.inputSchema),
+      inputs: handlesFromSchema(action.inputSchema, 'input'),
       label: action.label,
-      outputs: handlesFromSchema(action.outputSchema),
+      outputs: handlesFromSchema(action.outputSchema, 'output'),
       type: action.id,
     };
   }

@@ -10,6 +10,11 @@ import {
   Platform,
   parseActivityKey,
 } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+  createLibraryAssetRoute,
+} from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 
 /**
@@ -224,6 +229,112 @@ export function getActivityDescription(
   }
 
   return 'Activity recorded';
+}
+
+export type ActivityTypeKind =
+  | 'article'
+  | 'audio'
+  | 'credits'
+  | 'image'
+  | 'other'
+  | 'post'
+  | 'social'
+  | 'video'
+  | 'workflow';
+
+const MEDIA_SUBJECTS = new Set([
+  'audio',
+  'avatar',
+  'image',
+  'music',
+  'video',
+  'voice',
+]);
+
+export function getActivityTypeKind(activity: IActivity): ActivityTypeKind {
+  const { subject } = parseActivityKey(activity.key);
+  if (subject === 'image' || subject === 'avatar') return 'image';
+  if (subject === 'video') return 'video';
+  if (subject === 'music' || subject === 'audio' || subject === 'voice') {
+    return 'audio';
+  }
+  if (subject === 'social' || subject === 'integration') return 'social';
+  if (subject === 'workflow') return 'workflow';
+  if (subject === 'article') return 'article';
+  if (subject === 'post') return 'post';
+  if (isCreditActivity(activity.key)) return 'credits';
+  return 'other';
+}
+
+export function getActivityDetailText(activity: IActivity): string | undefined {
+  const value = activity.value?.trim();
+  if (!value) {
+    return undefined;
+  }
+  if (isCreditActivity(activity.key) || value.startsWith('Published to')) {
+    return undefined;
+  }
+  const parsed = parseActivityValue(value);
+  if (parsed) {
+    const error =
+      typeof parsed.error === 'string' ? parsed.error.trim() : undefined;
+    if (error) {
+      return error;
+    }
+    return undefined;
+  }
+  if (value.includes('/images/') || value.includes('/videos/')) {
+    return undefined;
+  }
+  return value;
+}
+
+export function getActivityDestinationPath(
+  activity: IActivity,
+): string | undefined {
+  const value = parseActivityValue(activity.value);
+  if (typeof value?.href === 'string' && value.href.startsWith('/')) {
+    return value.href;
+  }
+
+  const { subject } = parseActivityKey(activity.key);
+  if (subject === 'social' || subject === 'integration') {
+    return APP_ROUTES.SETTINGS.INTEGRATIONS;
+  }
+
+  const entityModel = activity.entityModel?.toLowerCase();
+  const id =
+    activity.entityId ||
+    (typeof value?.resultId === 'string' ? value.resultId : undefined) ||
+    (typeof value?.ingredientId === 'string'
+      ? value.ingredientId
+      : undefined) ||
+    (['article', 'post'].includes(subject) &&
+    /^[a-zA-Z0-9_-]+$/.test(activity.value)
+      ? activity.value
+      : undefined);
+
+  if (id && (entityModel === 'ingredient' || MEDIA_SUBJECTS.has(subject))) {
+    return createLibraryAssetRoute(
+      activity.source === 'avatar-generate' ? 'AVATAR' : subject,
+      id,
+    );
+  }
+  if (id && (entityModel === 'article' || subject === 'article')) {
+    return createArtifactEditorRoute('article', encodeURIComponent(id));
+  }
+  if (id && (entityModel === 'post' || subject === 'post')) {
+    return createArtifactEditorRoute('post', encodeURIComponent(id));
+  }
+  if (id && entityModel === 'workflow') {
+    return `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(id)}`;
+  }
+  if (MEDIA_SUBJECTS.has(subject)) {
+    return createLibraryAssetRoute(
+      activity.source === 'avatar-generate' ? 'AVATAR' : subject,
+    );
+  }
+  return undefined;
 }
 
 export function parsePostActivityValue(

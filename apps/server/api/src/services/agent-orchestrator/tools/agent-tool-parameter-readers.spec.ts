@@ -3,17 +3,28 @@ import {
   readAdsPlatform,
   readAdsSource,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  AdsChannel,
+  AdsPlatform,
+  adsChannelValues,
+  adsPlatformValues,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 /**
  * `readAdsPlatform` is the gate on `list_ads_research` / `get_ad_research_detail`
  * — a platform it rejects is silently dropped from the filters, so the tool
  * answers about the wrong platform instead of erroring. It must accept exactly
- * the `AdsResearchPlatform` union.
+ * the `AdsPlatform` product-channel enum.
  */
 describe('readAdsPlatform', () => {
-  it.each(['meta', 'google', 'tiktok', 'x'])('accepts %s', (platform) => {
+  it.each(adsPlatformValues)('accepts %s', (platform) => {
     expect(readAdsPlatform(platform)).toBe(platform);
+  });
+
+  it('accepts AdsPlatform.GOOGLE, not CredentialPlatform.GOOGLE_ADS', () => {
+    expect(readAdsPlatform(AdsPlatform.GOOGLE)).toBe(AdsPlatform.GOOGLE);
+    expect(readAdsPlatform('google_ads')).toBeUndefined();
   });
 
   it.each([
@@ -41,8 +52,12 @@ describe('readAdsSource', () => {
 });
 
 describe('readAdsChannel', () => {
-  it.each(['all', 'search', 'display', 'youtube'])('accepts %s', (channel) => {
+  it.each(adsChannelValues)('accepts %s', (channel) => {
     expect(readAdsChannel(channel)).toBe(channel);
+  });
+
+  it('accepts AdsChannel.YOUTUBE as youtube inventory, not CredentialPlatform', () => {
+    expect(readAdsChannel(AdsChannel.YOUTUBE)).toBe(AdsChannel.YOUTUBE);
   });
 
   it('rejects an unknown channel', () => {

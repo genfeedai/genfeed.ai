@@ -12,9 +12,7 @@ describe('page help routing', () => {
   });
 
   it('picks the longest matching prefix', () => {
-    expect(resolvePageHelpKey('/acme/brand/automation/autopilot')).toBe(
-      'automationAutopilot',
-    );
+    expect(resolvePageHelpKey('/acme/brand/automation/autopilot')).toBeNull();
     expect(resolvePageHelpKey('/acme/brand/library/trash')).toBe(
       'libraryTrash',
     );
@@ -22,6 +20,9 @@ describe('page help routing', () => {
     expect(resolvePageHelpKey('/acme/brand/automation/workflows/new')).toBe(
       'automationWorkflows',
     );
+    expect(
+      resolvePageHelpKey('/acme/brand/automation/workflows/templates'),
+    ).toBe('automationTemplates');
   });
 
   it('returns null for pages without help copy', () => {

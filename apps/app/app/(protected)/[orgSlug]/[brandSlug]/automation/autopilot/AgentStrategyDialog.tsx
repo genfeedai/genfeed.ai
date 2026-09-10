@@ -19,12 +19,12 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
+import { AGENT_TYPE_OPTIONS } from '../agents/agent-type-display';
 import AgentStrategyBudgetFields from './AgentStrategyBudgetFields';
 import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
 import AgentStrategyScoreFields from './AgentStrategyScoreFields';
 import AgentStrategySourceToggles from './AgentStrategySourceToggles';
 import {
-  AGENT_TYPE_OPTIONS,
   AUTONOMY_MODE_OPTIONS,
   GOAL_PROFILE_OPTIONS,
   PLATFORM_OPTIONS,
@@ -260,7 +260,7 @@ export default function AgentStrategyDialog({
               onClick={() => onOpenChange(false)}
             />
             <Button
-              label="Save Autopilot Changes"
+              label="Save schedule"
               type="submit"
               variant={ButtonVariant.DEFAULT}
               isDisabled={isSubmitting}

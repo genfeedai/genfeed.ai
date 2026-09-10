@@ -2,13 +2,14 @@
 
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  AdPack,
+import {
+  type AdPack,
   AdsChannel,
-  AdsResearchDetail,
-  AdsResearchItem,
-  AdsResearchPlatform,
-  CampaignLaunchPrep,
+  AdsPlatform,
+  type AdsResearchDetail,
+  type AdsResearchItem,
+  type AdsResearchPlatform,
+  type CampaignLaunchPrep,
 } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
@@ -102,11 +103,11 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
             Channel
           </div>
           <p className="text-sm text-foreground/85">
-            {adPack.campaignRecipe.platform === 'meta'
+            {adPack.campaignRecipe.platform === AdsPlatform.META
               ? 'Meta Ads'
-              : adPack.campaignRecipe.platform === 'tiktok'
+              : adPack.campaignRecipe.platform === AdsPlatform.TIKTOK
                 ? 'TikTok Ads'
-                : adPack.campaignRecipe.platform === 'x'
+                : adPack.campaignRecipe.platform === AdsPlatform.X
                   ? 'X Ads'
                   : 'Google Ads'}{' '}
             / {adPack.campaignRecipe.channel}
@@ -311,15 +312,15 @@ export function DetailSidebar({
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="ghost">
-                    {detail.platform === 'meta'
+                    {detail.platform === AdsPlatform.META
                       ? 'Meta Ads'
-                      : detail.platform === 'tiktok'
+                      : detail.platform === AdsPlatform.TIKTOK
                         ? 'TikTok Ads'
-                        : detail.platform === 'x'
+                        : detail.platform === AdsPlatform.X
                           ? 'X Ads'
                           : 'Google Ads'}
                   </Badge>
-                  {detail.channel !== 'all' && (
+                  {detail.channel !== AdsChannel.ALL && (
                     <Badge variant="ghost">{detail.channel}</Badge>
                   )}
                   {detail.status && <Badge status={detail.status} />}

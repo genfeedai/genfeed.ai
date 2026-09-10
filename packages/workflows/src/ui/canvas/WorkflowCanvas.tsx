@@ -44,6 +44,7 @@ import {
 import { resolveWorkflowNodeDefinition } from '../lib/workflowNodeHandles';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
+import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 import { useExecutionStore } from '../stores/execution';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -380,6 +381,7 @@ function useWorkflowCanvasHandlers({
   togglePalette,
   unlockAllNodes,
 }: WorkflowCanvasHandlersOptions) {
+  const { actionParameterDefaults } = useWorkflowUIConfig();
   const selectedNodeIdLookup = useMemo(
     () => createIdLookup(selectedNodeIds),
     [selectedNodeIds],
@@ -541,11 +543,11 @@ function useWorkflowCanvasHandlers({
         useWorkflowStore.getState().updateNodeData(nodeId, {
           actionId: transfer.actionId,
           label: transfer.label,
-          parameters: {},
+          parameters: actionParameterDefaults?.(transfer.actionId) ?? {},
         });
       }
     },
-    [addNode, reactFlow],
+    [actionParameterDefaults, addNode, reactFlow],
   );
 
   const handleDragOver = useCallback((event: React.DragEvent) => {

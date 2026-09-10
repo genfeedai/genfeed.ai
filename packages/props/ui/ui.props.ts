@@ -48,6 +48,7 @@ export interface CardProps {
   description?: string;
   isDisabled?: boolean;
   onClick?: () => void;
+  onDescriptionClick?: () => void;
   'data-testid'?: string;
 }
 
@@ -72,6 +73,8 @@ export interface ContainerProps {
   className?: string;
   fullWidth?: boolean;
   left?: ReactNode;
+  /** Left-aligned module-bar tools such as search. Maps to SectionTopbar `leading`. */
+  leading?: ReactNode;
   right?: ReactNode;
   /** Explicit help popover; `null` hides the route-level help for this page. */
   help?: PageHelpContent | null;

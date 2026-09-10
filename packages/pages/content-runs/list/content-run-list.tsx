@@ -19,7 +19,6 @@ import Badge from '@ui/display/badge/Badge';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
-import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -101,110 +100,106 @@ export default function ContentRunListPage() {
 
   const isInitialFetch = isFetching && data.length === 0;
 
+  const statusFilter = (
+    <Select value={status} onValueChange={setStatus}>
+      <SelectTrigger
+        aria-label={translate('statusFilter')}
+        className="min-w-36"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={ALL_STATUSES}>{translate('allStatuses')}</SelectItem>
+        {STATUS_OPTIONS.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
-    <>
-      <SectionTopbar
-        icon={CirclePlay}
-        title="Content Runs"
-        subtitle="Briefs handed off from Discovery, tracked through remix, publish, and analytics."
-        actions={
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger
-              aria-label={translate('statusFilter')}
-              className="min-w-36"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_STATUSES}>
-                {translate('allStatuses')}
-              </SelectItem>
-              {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
+    <Container
+      label="Content Runs"
+      description="Briefs handed off from Discovery, tracked through remix, publish, and analytics."
+      icon={CirclePlay}
+      leading={statusFilter}
+    >
+      {pageScope === 'org' && !isBrandReady ? (
+        <p className="mt-6 text-sm text-muted-foreground">
+          {translate('selectBrand')}
+        </p>
+      ) : null}
+      {isError ? (
+        <ErrorFallback
+          compact={data.length > 0}
+          title={translate('loadError')}
+          resetErrorBoundary={() => refetch()}
+        />
+      ) : null}
 
-      <Container>
-        {pageScope === 'org' && !isBrandReady ? (
-          <p className="mt-6 text-sm text-muted-foreground">
-            {translate('selectBrand')}
-          </p>
-        ) : null}
-        {isError ? (
-          <ErrorFallback
-            compact={data.length > 0}
-            title={translate('loadError')}
-            resetErrorBoundary={() => refetch()}
-          />
-        ) : null}
+      {isInitialFetch ? (
+        <div className="min-h-64">
+          <LoadingState isFullSize />
+        </div>
+      ) : null}
 
-        {isInitialFetch ? (
-          <div className="min-h-64">
-            <LoadingState isFullSize />
-          </div>
-        ) : null}
-
-        {(!isError || data.length > 0) && !isInitialFetch && isBrandReady ? (
-          <div className="space-y-4">
-            {data.length ? (
-              <Card bodyClassName="p-0">
-                <div className="divide-y divide-border">
-                  {data.map((run) => (
-                    <ContentRunRow
-                      key={getRunId(run)}
-                      detailHref={href(
-                        `${APP_ROUTES.AUTOMATION.CONTENT_RUNS}/${getRunId(run)}`,
-                      )}
-                      run={run}
-                    />
-                  ))}
-                </div>
-              </Card>
-            ) : (
-              <CardEmpty
-                icon={Sparkles}
-                label={
-                  status === ALL_STATUSES
-                    ? translate('emptyTitle')
-                    : translate('emptyFilteredTitle')
-                }
-                description={
-                  status === ALL_STATUSES
-                    ? translate('emptyDescription')
-                    : undefined
-                }
-                action={
-                  status !== ALL_STATUSES
-                    ? {
-                        label: translate('clearFilter'),
-                        onClick: () => setStatus(ALL_STATUSES),
-                      }
-                    : undefined
-                }
-                actions={
-                  status === ALL_STATUSES ? (
-                    <Button
-                      asChild
-                      variant={ButtonVariant.SECONDARY}
-                      withWrapper={false}
-                    >
-                      <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>
-                        {translate('goToDiscovery')}
-                      </Link>
-                    </Button>
-                  ) : undefined
-                }
-              />
-            )}
-          </div>
-        ) : null}
-      </Container>
-    </>
+      {(!isError || data.length > 0) && !isInitialFetch && isBrandReady ? (
+        <div className="space-y-4">
+          {data.length ? (
+            <Card bodyClassName="p-0">
+              <div className="divide-y divide-border">
+                {data.map((run) => (
+                  <ContentRunRow
+                    key={getRunId(run)}
+                    detailHref={href(
+                      `${APP_ROUTES.AUTOMATION.CONTENT_RUNS}/${getRunId(run)}`,
+                    )}
+                    run={run}
+                  />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <CardEmpty
+              icon={Sparkles}
+              label={
+                status === ALL_STATUSES
+                  ? translate('emptyTitle')
+                  : translate('emptyFilteredTitle')
+              }
+              description={
+                status === ALL_STATUSES
+                  ? translate('emptyDescription')
+                  : undefined
+              }
+              action={
+                status !== ALL_STATUSES
+                  ? {
+                      label: translate('clearFilter'),
+                      onClick: () => setStatus(ALL_STATUSES),
+                    }
+                  : undefined
+              }
+              actions={
+                status === ALL_STATUSES ? (
+                  <Button
+                    asChild
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  >
+                    <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>
+                      {translate('goToDiscovery')}
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+            />
+          )}
+        </div>
+      ) : null}
+    </Container>
   );
 }
 

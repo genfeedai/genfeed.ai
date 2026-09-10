@@ -18,7 +18,7 @@ export interface WorkflowEditorShellProps {
   showBottomBar?: boolean;
   showNodePalette?: boolean;
   showSmallGraphViewportGuard?: boolean;
-  toolbar: ReactNode;
+  toolbar?: ReactNode;
 }
 
 export function WorkflowEditorShell({

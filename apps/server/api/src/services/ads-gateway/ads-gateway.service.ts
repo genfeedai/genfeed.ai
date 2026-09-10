@@ -2,13 +2,13 @@ import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
+import {
+  type AdsAdapterContext,
+  type AdsInsightsParams,
   AdsPlatform,
-  CrossPlatformComparison,
-  IAdsAdapter,
-  UnifiedInsights,
+  type CrossPlatformComparison,
+  type IAdsAdapter,
+  type UnifiedInsights,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -25,10 +25,10 @@ export class AdsGatewayService {
     private readonly logger: LoggerService,
   ) {
     this.adapters = new Map<AdsPlatform, IAdsAdapter>([
-      ['meta', metaAdapter],
-      ['google', googleAdapter],
-      ['tiktok', tiktokAdapter],
-      ['x', xAdsAdapter],
+      [AdsPlatform.META, metaAdapter],
+      [AdsPlatform.GOOGLE, googleAdapter],
+      [AdsPlatform.TIKTOK, tiktokAdapter],
+      [AdsPlatform.X, xAdsAdapter],
     ]);
   }
 

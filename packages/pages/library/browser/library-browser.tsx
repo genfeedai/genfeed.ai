@@ -3,12 +3,14 @@
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import {
+  ComponentSize,
   LIBRARY_SHELF_LABELS,
   LibraryPlace,
   PageScope,
 } from '@genfeedai/contracts';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import Container from '@ui/layout/container/Container';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { Library } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
@@ -108,6 +110,19 @@ export default function LibraryBrowser({
           description={description}
           icon={Library}
           label={destination.label}
+          leading={
+            <FormSearchbar
+              className="w-64"
+              onSearch={handleSearchChange}
+              placeholder={
+                scope === PageScope.ORGANIZATION
+                  ? 'Search organization assets'
+                  : "Search this brand's assets"
+              }
+              size={ComponentSize.SM}
+              value={search}
+            />
+          }
           right={
             <LibraryBrowserToolbar
               categories={categories}
@@ -115,16 +130,9 @@ export default function LibraryBrowser({
               onCategoriesChange={handleCategoriesChange}
               onClearCategories={handleClearCategories}
               onRefresh={handleRefresh}
-              onSearchChange={handleSearchChange}
               onSortChange={handleSortChange}
               onUpload={handleUpload}
               onViewModeChange={handleViewModeChange}
-              search={search}
-              searchPlaceholder={
-                scope === PageScope.ORGANIZATION
-                  ? 'Search organization assets'
-                  : "Search this brand's assets"
-              }
               sort={sort}
               sortOptions={[...LIBRARY_SORT_OPTIONS]}
               viewMode={viewMode}

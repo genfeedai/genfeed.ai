@@ -43,6 +43,16 @@ describe('generation activity destinations', () => {
         scope,
       ),
     ).toBe('/acme/coffee/publishing/posts/asset-1');
+    expect(
+      getGenerationActivityHref(
+        fixture({
+          entityId: undefined,
+          entityModel: undefined,
+          key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        }),
+        scope,
+      ),
+    ).toBe('/acme/coffee/settings/integrations');
   });
   it('never sends another organization or inaccessible brand to the selected brand', () => {
     expect(

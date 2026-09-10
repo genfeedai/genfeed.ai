@@ -209,4 +209,11 @@ export interface WorkflowUIConfig {
    * omitted so the package stays device-local standalone.
    */
   settingsSync?: SettingsSyncService;
+  /**
+   * Defaults applied when a catalog action is dropped on the canvas.
+   * Used so org/brand identity is not typed into the inspector.
+   */
+  actionParameterDefaults?: (
+    actionId: string,
+  ) => Record<string, unknown> | undefined;
 }

@@ -4,6 +4,7 @@ import { MetaAdLibraryProvider } from '@api/services/paid-creative-research/prov
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { TikTokCreativeCenterProvider } from '@api/services/paid-creative-research/providers/tiktok-creative-center.provider';
 import { XAdsRepositoryProvider } from '@api/services/paid-creative-research/providers/x-ads-repository.provider';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -82,7 +83,7 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     expect(readiness.every((entry) => entry.available)).toBe(false);
     expect(readiness.every((entry) => entry.blockers.length > 0)).toBe(true);
     expect(
-      readiness.find((entry) => entry.platform === 'meta')?.blockers,
+      readiness.find((entry) => entry.platform === AdsPlatform.META)?.blockers,
     ).toEqual(['paid_creative_apify_token_missing']);
   });
 
@@ -117,11 +118,12 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
       'x',
       'youtube',
     ]);
-    expect(readiness.find((entry) => entry.platform === 'x')?.blockers).toEqual(
-      ['x_ads_repository_contract_fixtures_missing'],
-    );
     expect(
-      readiness.find((entry) => entry.platform === 'google')?.blockers,
+      readiness.find((entry) => entry.platform === AdsPlatform.X)?.blockers,
+    ).toEqual(['x_ads_repository_contract_fixtures_missing']);
+    expect(
+      readiness.find((entry) => entry.platform === AdsPlatform.GOOGLE)
+        ?.blockers,
     ).toEqual(['google_ads_transparency_contract_fixtures_missing']);
   });
 
@@ -134,7 +136,8 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     );
 
     expect(
-      registry.getReadiness().find((entry) => entry.platform === 'x')?.blockers,
+      registry.getReadiness().find((entry) => entry.platform === AdsPlatform.X)
+        ?.blockers,
     ).toEqual([
       'x_ads_repository_entitlement_not_confirmed',
       'x_ads_repository_commercial_use_not_approved',

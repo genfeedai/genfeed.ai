@@ -5,6 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Searchbar from './searchbar';
 
 describe('Searchbar', () => {
+  it('uses one input chrome for every size', () => {
+    render(<Searchbar ariaLabel="Search brands" value="" />);
+    expect(screen.getByRole('textbox', { name: 'Search brands' })).toHaveClass(
+      'rounded-md',
+      'border-border',
+      'bg-card',
+      'h-8',
+    );
+  });
+
   it('clears a named filter and restores focus without a supplied ref', async () => {
     const values: string[] = [];
     const onChange = vi.fn((event: ChangeEvent<HTMLInputElement>) => {

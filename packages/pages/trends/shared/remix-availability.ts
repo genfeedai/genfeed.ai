@@ -1,22 +1,21 @@
+import { Platform } from '@genfeedai/contracts';
+import { brandRemixOrganicPlatformValues } from '@genfeedai/contracts/api-types/contracts';
 import { isSourcePostVariationPlatform } from '@utils/url/desktop-loop-url.util';
 
 /**
- * Platforms with a durable source reference that can open the prefilled
- * Discovery remix surface directly, for both trend-content items and
- * source-post (Following) items — the single source of truth previously
- * duplicated between `TrendContentCard` and `following-page.tsx`.
+ * Platforms that open the Discovery remix brief (brand remix run).
+ * Posts still persist `twitter`; remix's own vocabulary is `x`.
  */
-export const PREFILLED_REMIX_PLATFORMS = new Set([
-  'instagram',
-  'tiktok',
-  'youtube',
+export const PREFILLED_REMIX_PLATFORMS = new Set<string>([
+  ...brandRemixOrganicPlatformValues,
+  Platform.TWITTER,
 ]);
 
 export interface RemixAvailability {
   /** True when the item can open the prefilled Discovery remix surface. */
   opensPrefilledRemix: boolean;
-  /** True when the item falls back to the legacy `/publishing/remix` link. */
-  opensLegacyRemix: boolean;
+  /** True when the item opens Studio generate (no Discovery remix surface). */
+  opensRemixPage: boolean;
   /** True when neither remix path is reachable for this item. */
   isRemixUnavailable: boolean;
 }
@@ -34,7 +33,7 @@ export function getTrendRemixAvailability(
   const isPrefilledRemixPlatform = PREFILLED_REMIX_PLATFORMS.has(platform);
   const opensPrefilledRemix =
     isPrefilledRemixPlatform && hasDurableSourceReference && hasRemixSurface;
-  const opensLegacyRemix =
+  const opensRemixPage =
     hasDurableSourceReference &&
     isSourcePostVariationPlatform(platform) &&
     !opensPrefilledRemix;
@@ -42,15 +41,14 @@ export function getTrendRemixAvailability(
     isPrefilledRemixPlatform &&
     hasDurableSourceReference &&
     !hasRemixSurface &&
-    !opensLegacyRemix;
+    !opensRemixPage;
 
-  return { isRemixUnavailable, opensLegacyRemix, opensPrefilledRemix };
+  return { isRemixUnavailable, opensPrefilledRemix, opensRemixPage };
 }
 
 /**
- * Source-post platforms (Social Sources feed / Following) always carry a
- * durable id, so the only gate is prefilled-platform + an active remix
- * surface; otherwise the caller falls back to `/publishing/remix`.
+ * Following source-posts always carry a durable id. Discovery remix is the
+ * first-class path when the platform is in {@link PREFILLED_REMIX_PLATFORMS}.
  */
 export function getSourcePostRemixAvailability(
   platform: string,

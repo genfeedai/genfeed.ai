@@ -165,7 +165,7 @@ export default function TrendContentCard({
     [href, item.platform, item.sourceReferenceId, item.trendId],
   );
   const hasDurableSourceReference = Boolean(item.sourceReferenceId);
-  const { isRemixUnavailable, opensLegacyRemix, opensPrefilledRemix } =
+  const { isRemixUnavailable, opensPrefilledRemix, opensRemixPage } =
     getTrendRemixAvailability(
       item.platform,
       hasDurableSourceReference,
@@ -330,7 +330,7 @@ export default function TrendContentCard({
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
             />
-          ) : opensLegacyRemix ? (
+          ) : opensRemixPage ? (
             <Button
               asChild
               className="min-w-0 flex-1 sm:flex-none"

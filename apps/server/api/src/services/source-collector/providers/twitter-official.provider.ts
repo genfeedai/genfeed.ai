@@ -177,12 +177,14 @@ function mapOfficialTweet(tweet: {
   authorId?: string;
   authorUsername?: string;
   authorName?: string;
+  authorAvatarUrl?: string;
   authorFollowersCount?: number;
   isRetweet: boolean;
   inReplyToId: string | null;
   metrics?: { likes: number; comments: number; shares: number };
 }): CollectedSourcePost {
   return {
+    authorAvatarUrl: tweet.authorAvatarUrl,
     authorDisplayName: tweet.authorName,
     authorFollowersCount: tweet.authorFollowersCount,
     authorId: tweet.authorId,

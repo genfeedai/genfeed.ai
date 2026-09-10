@@ -111,8 +111,27 @@ export function DiscoveryRemixProvider({
           return;
         }
 
-        setRun(preparedRun);
-        setStatus('ready');
+        if (preparedRun.readiness.state === 'blocked') {
+          setRun(preparedRun);
+          setStatus('ready');
+          return;
+        }
+
+        const startedRun = await service.startBrandRemixRun(preparedRun.id, {
+          expectedRevision: preparedRun.revision,
+        });
+        if (requestVersionRef.current !== requestVersion) {
+          return;
+        }
+
+        setRun(startedRun);
+        setIsOpen(false);
+        setStatus('idle');
+        router.push(
+          activeHref(
+            `${APP_ROUTES.STUDIO.GENERATE}?run=${encodeURIComponent(startedRun.id)}`,
+          ),
+        );
       } catch (caughtError) {
         if (requestVersionRef.current !== requestVersion) {
           return;
@@ -131,7 +150,7 @@ export function DiscoveryRemixProvider({
         }
       }
     },
-    [brandId, getContentRunsService, translate],
+    [activeHref, brandId, getContentRunsService, router, translate],
   );
 
   const retry = useCallback(async () => {

@@ -1,11 +1,11 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 const ADS_CREDENTIAL_PLATFORMS: Record<AdsPlatform, CredentialPlatform> = {
-  google: CredentialPlatform.GOOGLE_ADS,
-  meta: CredentialPlatform.FACEBOOK,
-  tiktok: CredentialPlatform.TIKTOK,
-  x: CredentialPlatform.X_ADS,
+  [AdsPlatform.GOOGLE]: CredentialPlatform.GOOGLE_ADS,
+  [AdsPlatform.META]: CredentialPlatform.FACEBOOK,
+  [AdsPlatform.TIKTOK]: CredentialPlatform.TIKTOK,
+  [AdsPlatform.X]: CredentialPlatform.X_ADS,
 };
 
 /**

@@ -1,7 +1,29 @@
+import type { AdsPlatform } from './ads-gateway.interface';
+
 export type AdsResearchSource = 'public' | 'my_accounts' | 'all';
 /** Connected + public ads research platforms (Discovery → Ads Intelligence). */
-export type AdsResearchPlatform = 'meta' | 'google' | 'tiktok' | 'x';
-export type AdsChannel = 'all' | 'search' | 'display' | 'youtube';
+export type AdsResearchPlatform = AdsPlatform;
+
+export enum AdsChannel {
+  ALL = 'all',
+  SEARCH = 'search',
+  DISPLAY = 'display',
+  YOUTUBE = 'youtube',
+}
+
+export const adsChannelValues = [
+  AdsChannel.ALL,
+  AdsChannel.SEARCH,
+  AdsChannel.DISPLAY,
+  AdsChannel.YOUTUBE,
+] as const;
+
+const ADS_CHANNEL_SET = new Set<string>(adsChannelValues);
+
+export function isAdsChannel(value: string): value is AdsChannel {
+  return ADS_CHANNEL_SET.has(value);
+}
+
 export type AdsResearchMetric =
   | 'performanceScore'
   | 'ctr'

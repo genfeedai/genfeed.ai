@@ -83,6 +83,20 @@ describe('WorkflowEditorSectionTopbar', () => {
     );
   });
 
+  it('renders graph authoring chrome in the same bar as lifecycle actions', () => {
+    renderTopbar({ graphChrome: <div>File menu</div> });
+
+    const topbar = screen.getByTestId('section-topbar');
+    const graphChrome = screen.getByTestId('workflow-editor-graph-chrome');
+
+    expect(topbar).toContainElement(graphChrome);
+    expect(graphChrome).toHaveTextContent('File menu');
+    expect(topbar).toContainElement(
+      screen.getByRole('button', { name: 'Run' }),
+    );
+    expect(screen.queryByTestId('section-topbar-help')).not.toBeInTheDocument();
+  });
+
   it('keeps dense actions on one row and moves Archive into overflow', () => {
     const props = renderTopbar();
 

@@ -103,6 +103,15 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
     required: false,
   })
   readonly trigger?: WorkflowExecutionTrigger;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Restrict to executions whose result metadata strategyId or agentStrategyId matches',
+    required: false,
+  })
+  readonly strategyId?: string;
 }
 
 export class AgentFailureQueryDto {

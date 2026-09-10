@@ -19,19 +19,20 @@ import type {
   XAdsRequestCredentials,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
-  CreateAdInput,
-  CreateAdSetInput,
-  CreateCampaignInput,
-  IAdsAdapter,
-  UnifiedAd,
-  UnifiedAdAccount,
-  UnifiedAdSet,
-  UnifiedCampaign,
-  UnifiedInsights,
-  UpdateCampaignInput,
+import {
+  type AdsAdapterContext,
+  type AdsInsightsParams,
+  AdsPlatform,
+  type CreateAdInput,
+  type CreateAdSetInput,
+  type CreateCampaignInput,
+  type IAdsAdapter,
+  type UnifiedAd,
+  type UnifiedAdAccount,
+  type UnifiedAdSet,
+  type UnifiedCampaign,
+  type UnifiedInsights,
+  type UpdateCampaignInput,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -98,7 +99,7 @@ function resolveXAdsInsightsRanges(dateRange: AdsInsightsDateRange): {
  */
 @Injectable()
 export class XAdsAdapter implements IAdsAdapter {
-  readonly platform = 'x' as const;
+  readonly platform = AdsPlatform.X;
 
   constructor(
     private readonly xAdsService: XAdsService,

@@ -39,7 +39,7 @@ export default function AddAgentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-3xl overflow-y-auto overscroll-contain">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>
@@ -57,11 +57,7 @@ export default function AddAgentDialog({
           onTabChange={(value) => setMode(value as AddAgentMode)}
         >
           {mode === 'library' ? (
-            <ContentTeamHirePage
-              isEmbedded
-              onCancel={() => onOpenChange(false)}
-              onCreated={handleCreated}
-            />
+            <ContentTeamHirePage isEmbedded onCreated={handleCreated} />
           ) : (
             <AgentWizardPage isEmbedded onCreated={handleCreated} />
           )}

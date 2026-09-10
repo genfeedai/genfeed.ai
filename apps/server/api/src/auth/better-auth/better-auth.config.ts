@@ -135,6 +135,51 @@ export function resolveSocialProviderConfig(
   return undefined;
 }
 
+function tryOrigin(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return undefined;
+    }
+    return parsed.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Browser login URL Better Auth must send OAuth failures to.
+ *
+ * Google callbacks hit the API. Better Auth's production `/error` page then
+ * 302s to `/?error=…` on that API origin — the JSON health document. Always
+ * send those failures to the app login page instead.
+ */
+export function resolveAuthErrorUrl(
+  appUrl: string | undefined,
+): string | undefined {
+  const origin = tryOrigin(appUrl);
+  return origin ? `${origin}/login` : undefined;
+}
+
+/**
+ * Database OAuth state is the CSRF token. The extra signed `state` cookie
+ * does not survive app.genfeed.ai → api.genfeed.ai → Google → API callback,
+ * which Better Auth reports as `state_mismatch`. Skip that cookie check only
+ * when the app and API are different origins; same-host self-host keeps it.
+ */
+export function shouldSkipOAuthStateCookieCheck(
+  apiBaseUrl: string,
+  appUrl: string | undefined,
+): boolean {
+  const apiOrigin = tryOrigin(apiBaseUrl);
+  const appOrigin = tryOrigin(appUrl);
+  return Boolean(apiOrigin && appOrigin && apiOrigin !== appOrigin);
+}
+
 /**
  * Resolve Better Auth boot options from ConfigService-backed env values.
  * Fails closed when the signing secret is missing so an enabled deployment
@@ -148,10 +193,14 @@ export function resolveBetterAuthRuntimeConfig(
     throw new Error(BETTER_AUTH_SECRET_REQUIRED_MESSAGE);
   }
 
+  const baseURL = resolveBetterAuthBaseUrl(env.BETTER_AUTH_URL, env.PORT);
+  const errorURL = resolveAuthErrorUrl(env.GENFEEDAI_APP_URL);
+
   return {
     apiKey: env.BETTER_AUTH_API_KEY,
-    baseURL: resolveBetterAuthBaseUrl(env.BETTER_AUTH_URL, env.PORT),
+    baseURL,
     cookieDomain: resolveCookieDomain(env.BETTER_AUTH_COOKIE_DOMAIN),
+    errorURL,
     experimentalJoins: resolveExperimentalJoins(
       env.BETTER_AUTH_EXPERIMENTAL_JOINS,
     ),
@@ -169,6 +218,10 @@ export function resolveBetterAuthRuntimeConfig(
       false,
     ),
     secret,
+    skipStateCookieCheck: shouldSkipOAuthStateCookieCheck(
+      baseURL,
+      env.GENFEEDAI_APP_URL,
+    ),
     trustedOrigins: resolveTrustedOrigins(
       env.BETTER_AUTH_TRUSTED_ORIGINS,
       env.NODE_ENV,

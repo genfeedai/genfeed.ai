@@ -6,6 +6,7 @@ import {
   remixNumericRecord,
   remixPatternFromText,
   remixPublicUrl,
+  remixRecommendedOutputKind,
   remixRecord,
   remixSourcePlatform,
   remixStringArray,
@@ -25,7 +26,10 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
-import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixAdPlatform,
+  type BrandRemixSourceSelector,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
@@ -63,7 +67,7 @@ export class BrandRemixSourceResolverService {
     organizationId: string,
     brandId: string,
     credentialId: string,
-    platform: 'google' | 'meta' | 'tiktok' | 'x',
+    platform: BrandRemixAdPlatform,
   ) {
     const credential = await this.prisma.credential.findFirst({
       select: {
@@ -123,7 +127,7 @@ export class BrandRemixSourceResolverService {
     const mediaUrls = remixMediaUrls(post.mediaUrls);
     const thumbnailUrl = remixMediaUrl(post.thumbnailUrl);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         authorHandle: remixText(post.authorHandle),
         canonicalUrl: remixPublicUrl(post.sourceUrl),
@@ -171,6 +175,7 @@ export class BrandRemixSourceResolverService {
         ingredient.category === IngredientCategory.VIDEO ||
         ingredient.category === IngredientCategory.AVATAR,
     );
+    const platform = remixSourcePlatform(post.platform);
     const readyIngredients = post.ingredients.filter((ingredient) =>
       ['GENERATED', 'UPLOADED', 'VALIDATED'].includes(ingredient.status),
     );
@@ -185,14 +190,14 @@ export class BrandRemixSourceResolverService {
       .filter((ingredient) => ingredient.category === IngredientCategory.IMAGE)
       .map((ingredient) => ingredient.id);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         canonicalUrl: remixPublicUrl(post.url),
         capturedAt: this.runtime.now().toISOString(),
         evidence: [title],
         metrics: {},
         pattern: remixPatternFromText(title, hasVideo ? 'video' : 'image'),
-        platform: remixSourcePlatform(post.platform),
+        platform,
         selector,
         sourceId: post.id,
         title,
@@ -264,8 +269,9 @@ export class BrandRemixSourceResolverService {
       engagementTotal: reference.currentEngagementTotal,
       viralityScore: reference.latestTrendViralityScore,
     };
+    const platform = remixSourcePlatform(reference.platform);
     return {
-      recommendedOutputKind: hasVideo ? 'video' : 'image',
+      recommendedOutputKind: remixRecommendedOutputKind(platform, hasVideo),
       snapshot: {
         authorHandle: remixText(reference.authorHandle),
         canonicalUrl: remixPublicUrl(reference.canonicalUrl),
@@ -278,7 +284,7 @@ export class BrandRemixSourceResolverService {
           sourcePatternText,
           hasVideo ? 'video' : 'image',
         ),
-        platform: remixSourcePlatform(reference.platform),
+        platform,
         selector,
         sourceId: reference.id,
         title,

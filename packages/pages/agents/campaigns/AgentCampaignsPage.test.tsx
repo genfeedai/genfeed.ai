@@ -194,6 +194,9 @@ describe('AgentCampaignsPage', () => {
         'Create your first multi-agent program to coordinate content production.',
       ),
     ).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /new program/i })).toHaveLength(
+      1,
+    );
   });
 
   it('shows loading state', () => {

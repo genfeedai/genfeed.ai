@@ -10,7 +10,6 @@ import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
   type ConversationSidebarFilter,
-  ConversationSidebarFilters,
   ConversationSidebarSearch,
   ConversationSidebarSection,
   conversationSidebarRowClassName,
@@ -42,9 +41,9 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  ListFilter,
   MessageSquare,
   RefreshCw,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import MessageAutomationsMenu from '@/components/messages/MessageAutomationsMenu';
@@ -272,7 +271,6 @@ export function MessagesConversationSidebar({
   brandFilter,
   brandOptions,
   busyAction,
-  connectionState,
   conversations,
   conversationType,
   hasConnectedAccounts,
@@ -358,11 +356,12 @@ export function MessagesConversationSidebar({
         <PopoverTrigger asChild>
           <Button
             ariaLabel="Filter social conversations"
-            className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/42 hover:bg-foreground/[0.07] hover:text-foreground"
-            icon={<SlidersHorizontal className="size-3.5" />}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 hover:bg-foreground/[0.07] hover:text-foreground"
+            icon={<ListFilter className="size-4" />}
             size={ButtonSize.ICON}
+            textTransform="none"
             tooltip="Filter conversations"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
         </PopoverTrigger>
@@ -370,6 +369,28 @@ export function MessagesConversationSidebar({
           <p className="text-xs font-semibold text-foreground/72">
             {translate('sidebar.filters')}
           </p>
+          <div className="space-y-1.5">
+            <p className="text-2xs font-medium text-foreground/54">
+              {translate('sidebar.type')}
+            </p>
+            <Select
+              value={conversationType}
+              onValueChange={(value) => {
+                onConversationTypeChange(value as MessagesSurface);
+              }}
+            >
+              <SelectTrigger aria-label="Filter conversations by type">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                {SURFACE_FILTERS.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1.5">
             <p className="text-2xs font-medium text-foreground/54">
               {translate('sidebar.status')}
@@ -467,12 +488,6 @@ export function MessagesConversationSidebar({
         placeholder="Search messages"
         value={search}
         onChange={onSearchChange}
-      />
-      <ConversationSidebarFilters
-        ariaLabel="Switch inbox surface"
-        filters={SURFACE_FILTERS}
-        value={conversationType}
-        onChange={onConversationTypeChange}
       />
       <div className="min-h-0 flex-1 overflow-y-auto pb-3 scrollbar-thin">
         {isLoading || (isAccountsLoading && conversations.length === 0) ? (
@@ -603,58 +618,34 @@ export function MessagesConversationSidebar({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center border-t border-border px-3 py-2">
-        {pagination.totalPages > 1 ? (
-          <>
-            <Button
-              ariaLabel="Previous conversations page"
-              icon={<ChevronLeft className="size-4" />}
-              isDisabled={!pagination.hasPrevious}
-              onClick={onPreviousPage}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-            <span className="flex-1 text-center text-xs text-foreground/38">
-              {translate('pagination.conversationPage', {
-                page: pagination.page,
-                pages: pagination.totalPages,
-              })}
-            </span>
-            <Button
-              ariaLabel="Next conversations page"
-              icon={<ChevronRight className="size-4" />}
-              isDisabled={!pagination.hasNext}
-              onClick={onNextPage}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </>
-        ) : (
-          <span className="flex-1 text-xs text-foreground/32">
-            {translate('pagination.conversationCount', {
-              count: pagination.total,
+      {pagination.totalPages > 1 ? (
+        <div className="flex shrink-0 items-center border-t border-border px-3 py-2">
+          <Button
+            ariaLabel="Previous conversations page"
+            icon={<ChevronLeft className="size-4" />}
+            isDisabled={!pagination.hasPrevious}
+            onClick={onPreviousPage}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+          <span className="flex-1 text-center text-xs text-foreground/38">
+            {translate('pagination.conversationPage', {
+              page: pagination.page,
+              pages: pagination.totalPages,
             })}
           </span>
-        )}
-        <span
-          aria-live="polite"
-          className="ml-2 flex items-center gap-1.5 text-2xs capitalize text-foreground/30"
-          role="status"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              'size-1.5 rounded-full',
-              connectionState === 'connected'
-                ? 'bg-success'
-                : 'bg-foreground/20',
-            )}
+          <Button
+            ariaLabel="Next conversations page"
+            icon={<ChevronRight className="size-4" />}
+            isDisabled={!pagination.hasNext}
+            onClick={onNextPage}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
           />
-          {connectionState}
-        </span>
-      </div>
+        </div>
+      ) : null}
     </nav>
   );
 }

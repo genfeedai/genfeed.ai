@@ -1,6 +1,7 @@
 import { nodeTypes as coreNodeTypes } from '@genfeedai/workflows/ui/nodes';
 import type { NodeTypes } from '@xyflow/react';
 import { ReviewGateNode } from '@/features/workflows/nodes/automation/ReviewGateNode';
+import { CloudGenfeedActionNode } from '@/features/workflows/nodes/CloudGenfeedActionNode';
 import { CloudImageInputNode } from '@/features/workflows/nodes/input/CloudImageInputNode';
 import { CloudVideoInputNode } from '@/features/workflows/nodes/input/CloudVideoInputNode';
 import { RegisteredWorkflowNode } from '@/features/workflows/nodes/RegisteredWorkflowNode';
@@ -16,7 +17,7 @@ const fallbackNodeType = UnknownWorkflowNode;
 
 export const cloudNodeTypes: NodeTypes = Object.fromEntries(
   Object.entries({
-    genfeedAction: coreNodeTypes.genfeedAction,
+    genfeedAction: CloudGenfeedActionNode,
     commentTrigger: RegisteredWorkflowNode,
     engagementTrigger: RegisteredWorkflowNode,
     'input-image': CloudImageInputNode,

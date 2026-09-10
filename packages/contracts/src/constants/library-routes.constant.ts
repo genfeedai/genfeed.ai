@@ -32,6 +32,7 @@ export interface LibraryBrowserRouteOptions {
   categories?: readonly IngredientCategory[];
   folderId?: string;
   search?: string;
+  view?: LibraryViewMode;
 }
 
 /**
@@ -51,7 +52,7 @@ export function createLibraryShelfRoute(shelf: LibraryShelf): string {
  */
 export function createLibraryBrowserRoute(
   route: string = APP_ROUTES.LIBRARY.ASSETS,
-  { categories, folderId, search }: LibraryBrowserRouteOptions = {},
+  { categories, folderId, search, view }: LibraryBrowserRouteOptions = {},
 ): string {
   const params: string[] = [];
 
@@ -67,6 +68,10 @@ export function createLibraryBrowserRoute(
 
   if (search) {
     params.push(`${LIBRARY_QUERY_KEYS.SEARCH}=${encodeURIComponent(search)}`);
+  }
+
+  if (view) {
+    params.push(`${LIBRARY_QUERY_KEYS.VIEW}=${encodeURIComponent(view)}`);
   }
 
   const queryString = params.join('&');

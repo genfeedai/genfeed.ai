@@ -17,8 +17,8 @@ export default function ActivityStatusCell({ status }: Props) {
   return (
     <Badge
       status={STATUS_ALIASES[status] ?? status}
-      size={ComponentSize.SM}
-      className="w-28 justify-center"
+      size={ComponentSize.MD}
+      className="gap-1.5 px-3 py-1"
     />
   );
 }
