@@ -893,6 +893,10 @@ export class ContentEngineService {
     goalSummaries: string[],
     summary: string,
   ): Promise<void> {
+    if (!campaign.brandId) {
+      return;
+    }
+
     // Scalar FKs: the memory row is owned by the campaign's user/organization, and
     // the aliases would have written the literal string "undefined" into both.
     await this.agentMemoryCaptureService.capture(
@@ -916,7 +920,7 @@ export class ContentEngineService {
           totalPosts: analyticsOverview.totalPosts ?? 0,
           totalViews: analyticsOverview.totalViews ?? 0,
         },
-        scope: 'campaign',
+        scope: 'brand',
         sourceContentId: String(campaign.id),
         sourceType: 'campaign-orchestrator',
         summary: goalSummaries.length

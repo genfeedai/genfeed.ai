@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -38,6 +39,8 @@ describe('AgentMemoriesController', () => {
         {
           provide: AgentMemoriesService,
           useValue: {
+            archiveMemory: vi.fn(),
+            listForOrganization: vi.fn(),
             listForUser: vi.fn(),
             removeMemory: vi.fn(),
           },
@@ -53,7 +56,10 @@ describe('AgentMemoriesController', () => {
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(AgentMemoriesController);
     memoriesService = module.get(AgentMemoriesService);
@@ -87,6 +93,35 @@ describe('AgentMemoriesController', () => {
       const result = await controller.list(mockRequest, mockUser);
       expect(ErrorResponse.handle).toHaveBeenCalled();
       expect(result).toMatchObject({ ctx: 'listMemories' });
+    });
+  });
+
+  describe('listOrganization', () => {
+    it('lists org-visible memories for the current organization', async () => {
+      const mockEntries = [{ id: 'm1', scope: 'brand', user: { id: USER_ID } }];
+      memoriesService.listForOrganization.mockResolvedValue(
+        mockEntries as never,
+      );
+
+      const result = await controller.listOrganization(mockUser);
+
+      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(ORG_ID);
+      expect(result).toEqual(mockEntries);
+    });
+  });
+
+  describe('archive', () => {
+    it('archives an org-visible memory', async () => {
+      const archived = { id: 'mem-1', isDeleted: true };
+      memoriesService.archiveMemory.mockResolvedValue(archived as never);
+
+      const result = await controller.archive('mem-1', mockUser);
+
+      expect(memoriesService.archiveMemory).toHaveBeenCalledWith(
+        'mem-1',
+        ORG_ID,
+      );
+      expect(result).toEqual(archived);
     });
   });
 

@@ -322,9 +322,13 @@ export class AgentMemoryGoalsToolHandler {
   ): AgentMemoryScope | undefined {
     switch (value) {
       case 'brand':
-      case 'campaign':
-      case 'user':
+      case 'org':
+      case 'personal':
         return value;
+      case 'campaign':
+        return 'brand';
+      case 'user':
+        return 'personal';
       default:
         return undefined;
     }

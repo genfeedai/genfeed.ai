@@ -90,19 +90,21 @@ describe('AgentMemoryCaptureService', () => {
       expect(result.memory).toBe(mockMemory);
     });
 
-    it('passes campaignId through when capturing campaign-scoped memory', async () => {
+    it('passes campaignId through when capturing brand-scoped campaign memory', async () => {
       await service.capture(userId, orgId, {
+        brandId,
         campaignId,
         content: 'Campaign insight',
-        scope: 'campaign',
+        scope: 'brand',
       });
 
       expect(agentMemoriesService.createMemory).toHaveBeenCalledWith(
         userId,
         orgId,
         expect.objectContaining({
+          brandId,
           campaignId,
-          scope: 'campaign',
+          scope: 'brand',
         }),
       );
     });

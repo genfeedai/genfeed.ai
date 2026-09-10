@@ -224,8 +224,9 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
           type: 'boolean',
         },
         scope: {
-          description: 'Whether the save is personal or brand-scoped',
-          enum: ['user', 'brand'],
+          description:
+            'Whether the save is personal, brand-scoped, or organization-wide',
+          enum: ['personal', 'brand', 'org'],
           type: 'string',
         },
         sourceContentId: {

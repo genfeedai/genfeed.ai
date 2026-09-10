@@ -30,7 +30,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
           content: 'Write concise newsletters with a strong hook.',
           contentType: 'newsletter',
           kind: 'preference',
-          scope: 'user',
+          scope: 'personal',
           summary: 'Concise newsletter hook preference',
         },
         wroteBrandInsight: false,
@@ -99,7 +99,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
             destinations: ['agent memory', 'content memory'],
             id: 'memory-1',
             kind: 'preference',
-            scope: 'user',
+            scope: 'personal',
           }),
           success: true,
         }),
@@ -115,6 +115,34 @@ describe('AgentMemoryGoalsToolHandler', () => {
         success: false,
       });
       expect(agentMemoryCaptureService.capture).not.toHaveBeenCalled();
+    });
+
+    it('maps legacy user and campaign scopes onto personal and brand', async () => {
+      await handlerWithServices.captureMemory(
+        { content: 'Keep my personal voice.', scope: 'user' },
+        ctx,
+      );
+      await handlerWithServices.captureMemory(
+        {
+          brandId: testId('brand'),
+          content: 'Campaign winner.',
+          scope: 'campaign',
+        },
+        ctx,
+      );
+
+      expect(agentMemoryCaptureService.capture).toHaveBeenNthCalledWith(
+        1,
+        ctx.userId,
+        ctx.organizationId,
+        expect.objectContaining({ scope: 'personal' }),
+      );
+      expect(agentMemoryCaptureService.capture).toHaveBeenNthCalledWith(
+        2,
+        ctx.userId,
+        ctx.organizationId,
+        expect.objectContaining({ scope: 'brand' }),
+      );
     });
 
     it('fails when the memory capture service is unavailable', async () => {
