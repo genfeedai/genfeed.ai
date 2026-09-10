@@ -17,9 +17,15 @@ export interface WorkflowScopedAccount {
   platform: string;
 }
 
+export interface WorkflowScopedBrand {
+  id: string;
+  label: string;
+}
+
 export interface WorkflowActionScope {
   brandId: string;
   brandLabel: string;
+  brands: WorkflowScopedBrand[];
   credentials: WorkflowScopedAccount[];
   strategies: Array<{ id: string; label: string }>;
   timezone: string;
@@ -40,7 +46,7 @@ function actionSchemaProperties(actionId: string): Record<string, unknown> {
 }
 
 export function useWorkflowActionScope(): WorkflowActionScope {
-  const { brandId, credentials, selectedBrand } = useBrand();
+  const { brandId, brands, credentials, selectedBrand } = useBrand();
   const { strategies } = useAgentStrategies({
     brandId: brandId || undefined,
     enabled: Boolean(brandId),
@@ -67,6 +73,12 @@ export function useWorkflowActionScope(): WorkflowActionScope {
   return {
     brandId,
     brandLabel: selectedBrand?.label || 'Current brand',
+    brands: (brands ?? [])
+      .filter((brand) => Boolean(brand.id))
+      .map((brand) => ({
+        id: brand.id,
+        label: brand.label || brand.id,
+      })),
     credentials: connectedAccounts,
     strategies: strategies.map((strategy) => ({
       id: strategy.id,

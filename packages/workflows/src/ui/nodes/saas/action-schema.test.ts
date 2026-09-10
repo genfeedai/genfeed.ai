@@ -122,6 +122,26 @@ describe('action schema visual adapter', () => {
     });
   });
 
+  it('does not expose brandId as a connectable input handle', () => {
+    const definition = createActionVisualDefinition({
+      ...action,
+      inputSchema: {
+        properties: { brandId: { type: 'string' } },
+        required: ['brandId'],
+        type: 'object',
+      },
+      outputSchema: {
+        properties: {
+          brandId: { type: 'string' },
+          label: { type: 'string' },
+        },
+        type: 'object',
+      },
+    });
+
+    expect(definition.inputs).toEqual([]);
+  });
+
   it('picks a compact set of on-node fields and skips identity or media', () => {
     expect(
       Object.keys(

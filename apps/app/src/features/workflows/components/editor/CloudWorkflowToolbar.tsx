@@ -17,12 +17,14 @@ interface CloudWorkflowToolbarProps {
   isSaving: boolean;
   middleContent?: ReactNode;
   onRename?: (newName: string) => Promise<void> | void;
+  onSaveAsCopy?: (newName: string) => Promise<void> | void;
 }
 
 export function CloudWorkflowToolbar({
   isSaving,
   middleContent,
   onRename,
+  onSaveAsCopy,
 }: CloudWorkflowToolbarProps) {
   const isDirty = useWorkflowStore(selectIsDirty);
   const setWorkflowName = useWorkflowStore((state) => state.setWorkflowName);
@@ -79,6 +81,11 @@ export function CloudWorkflowToolbar({
       onSaveAs={async (newName) => {
         const trimmedName = newName.trim();
         const nextName = trimmedName || 'Untitled Workflow';
+
+        if (onSaveAsCopy) {
+          await onSaveAsCopy(nextName);
+          return;
+        }
 
         setWorkflowName(nextName);
         await onRename?.(nextName);

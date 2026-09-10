@@ -109,7 +109,7 @@ function buildMessagesAutomationSeed(
  */
 export default function WorkflowNewPageClient() {
   const searchParams = useSearchParams();
-  const { replace } = useRouter();
+  const { push, replace } = useRouter();
   const { href } = useOrgUrl();
   const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -266,6 +266,21 @@ export default function WorkflowNewPageClient() {
     await save();
   }, [save]);
 
+  const handleSaveAsCopy = useCallback(
+    async (newName: string) => {
+      await save();
+      const service = await getWorkflowService();
+      const duplicated = await useCloudWorkflowStore
+        .getState()
+        .duplicateWorkflow(service);
+      await service.update(duplicated.id, {
+        label: newName.trim() || duplicated.label,
+      });
+      push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${duplicated.id}`));
+    },
+    [getWorkflowService, href, push, save],
+  );
+
   const handleTerminalExecution = useCallback(
     (execution: { id: string; status: WorkflowExecutionStatus }) => {
       workflowRunTracker.trackTerminalExecution(execution);
@@ -346,6 +361,7 @@ export default function WorkflowNewPageClient() {
                 isSaving={isSaving}
                 middleContent={<CloudCreditsIndicator />}
                 onRename={handleRename}
+                onSaveAsCopy={handleSaveAsCopy}
               />
             }
             isRunning={isRunning}

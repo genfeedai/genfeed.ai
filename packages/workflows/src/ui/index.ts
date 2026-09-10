@@ -35,6 +35,11 @@ export {
 // Nodes
 export { BaseNode, nodeTypes } from './nodes';
 export { ActionSchemaFields } from './nodes/saas/ActionSchemaFields';
+export {
+  createActionVisualDefinition,
+  readActionObjectSchema,
+  selectOnNodeProperties,
+} from './nodes/saas/action-schema';
 // Panels
 export {
   ActionNodeInspector,

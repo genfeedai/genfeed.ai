@@ -178,15 +178,38 @@ export function CloudActionNodeInspector() {
         {properties.brandId ? (
           <div className="space-y-1.5">
             <FieldLabel htmlFor="action-field-brandId" label="Brand" />
-            <p
-              className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground"
-              id="action-field-brandId"
-            >
-              {scope.brandLabel}
-            </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Uses the brand you are working in.
-            </p>
+            {scope.brands.length > 0 ? (
+              <Select
+                onValueChange={(value) => handleChange('brandId', value)}
+                value={
+                  (typeof parameters.brandId === 'string' &&
+                    parameters.brandId) ||
+                  scope.brandId ||
+                  undefined
+                }
+              >
+                <SelectTrigger
+                  className="nodrag h-8 w-full"
+                  id="action-field-brandId"
+                >
+                  <SelectValue placeholder="Select a brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {scope.brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id}>
+                      {brand.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <p
+                className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground"
+                id="action-field-brandId"
+              >
+                {scope.brandLabel}
+              </p>
+            )}
           </div>
         ) : null}
 
@@ -342,12 +365,14 @@ export function CloudActionNodeInspector() {
           </div>
         ) : null}
 
-        <ActionSchemaFields
-          hiddenFields={SCOPED_FIELDS}
-          onChange={handleChange}
-          schema={action.inputSchema}
-          values={parameters}
-        />
+        {Object.keys(properties).some((field) => !SCOPED_FIELDS.has(field)) ? (
+          <ActionSchemaFields
+            hiddenFields={SCOPED_FIELDS}
+            onChange={handleChange}
+            schema={action.inputSchema}
+            values={parameters}
+          />
+        ) : null}
       </div>
     </PanelContainer>
   );

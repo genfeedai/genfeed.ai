@@ -2,6 +2,7 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -9,6 +10,7 @@ import {
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { WorkflowDetailPageClientProps } from '@props/automation/workflow-detail-page-client.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -25,6 +27,7 @@ import {
   selectNodes,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
@@ -69,6 +72,8 @@ export default function WorkflowDetailPageClient({
   initialExecutionId,
 }: WorkflowDetailPageClientProps) {
   const translate = useTranslations('common.automation.workflows');
+  const { href } = useOrgUrl();
+  const { push } = useRouter();
   const [activeExecutionId, setActiveExecutionId] = useState<string | null>(
     null,
   );
@@ -206,6 +211,21 @@ export default function WorkflowDetailPageClient({
     await save();
   }, [save]);
 
+  const handleSaveAsCopy = useCallback(
+    async (newName: string) => {
+      await save();
+      const service = await getWorkflowService();
+      const duplicated = await useCloudWorkflowStore
+        .getState()
+        .duplicateWorkflow(service);
+      await service.update(duplicated.id, {
+        label: newName.trim() || duplicated.label,
+      });
+      push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${duplicated.id}`));
+    },
+    [getWorkflowService, href, push, save],
+  );
+
   const handleTerminalExecution = useCallback(
     (execution: { id: string; status: WorkflowExecutionStatus }) => {
       workflowRunTracker.trackTerminalExecution(execution);
@@ -292,6 +312,7 @@ export default function WorkflowDetailPageClient({
                 isSaving={isSaving}
                 middleContent={<CloudCreditsIndicator />}
                 onRename={handleRename}
+                onSaveAsCopy={handleSaveAsCopy}
               />
             }
             isRunning={isRunning}

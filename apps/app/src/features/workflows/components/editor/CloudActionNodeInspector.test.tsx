@@ -41,6 +41,10 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-shipshit',
+    brands: [
+      { id: 'brand-shipshit', label: 'Shipshit' },
+      { id: 'brand-acme', label: 'Acme' },
+    ],
     credentials: [
       {
         externalHandle: 'VincentShipsIt',
@@ -85,9 +89,10 @@ describe('CloudActionNodeInspector', () => {
     mocks.updateNodeData.mockClear();
   });
 
-  it('shows the current brand and account picker instead of id text fields', () => {
+  it('shows a brand dropdown and account picker instead of id text fields', () => {
     render(<CloudActionNodeInspector />);
 
+    expect(screen.getByRole('combobox', { name: 'Brand' })).toBeTruthy();
     expect(screen.getByText('Shipshit')).toBeTruthy();
     expect(
       screen.queryByPlaceholderText('Separate values with commas'),

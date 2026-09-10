@@ -6,6 +6,7 @@ import { useWorkflowActionDefaults } from './useWorkflowActionDefaults';
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-shipshit',
+    brands: [{ id: 'brand-shipshit', label: 'Shipshit' }],
     credentials: [
       {
         externalHandle: 'VincentShipsIt',

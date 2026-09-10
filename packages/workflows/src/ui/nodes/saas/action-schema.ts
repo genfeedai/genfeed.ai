@@ -85,6 +85,17 @@ export function readActionObjectSchema(
 }
 
 const MEDIA_HANDLE_TYPES = new Set(['audio', 'image', 'video']);
+const CONFIG_HANDLE_SKIP = new Set([
+  'agentStrategyId',
+  'brandId',
+  'credentialId',
+  'credentialIds',
+  'minScore',
+  'organizationId',
+  'timezone',
+  'topics',
+]);
+
 const PIPELINE_FIELDS = new Set([
   'avoid',
   'brand',
@@ -196,9 +207,9 @@ function schemaToHandles(
       : [];
   }
 
-  const handles = entries.map(([field, property]) =>
-    toHandle(field, property, direction, required),
-  );
+  const handles = entries
+    .filter(([field]) => !CONFIG_HANDLE_SKIP.has(field))
+    .map(([field, property]) => toHandle(field, property, direction, required));
 
   if (direction === 'input') {
     const preferred = handles.filter(
