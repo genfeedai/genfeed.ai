@@ -21,7 +21,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
@@ -34,6 +33,7 @@ import {
 } from '@ui/primitives/dialog';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, Loader2, Plus, Search, UserPlus } from 'lucide-react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
@@ -578,19 +578,20 @@ export default function FollowSourceModal({
                         <div className="mt-1 size-4 shrink-0" />
                       )}
 
-                      <Avatar className="size-10 shrink-0">
-                        {avatarUrl ? (
-                          <AvatarImage
-                            alt={
-                              candidate.displayName || `@${candidate.handle}`
-                            }
-                            src={avatarUrl}
-                          />
-                        ) : null}
-                        <AvatarFallback className="bg-secondary text-foreground/50">
+                      {avatarUrl ? (
+                        <Image
+                          alt={candidate.displayName || `@${candidate.handle}`}
+                          className="size-10 shrink-0 rounded-full object-cover"
+                          height={40}
+                          src={avatarUrl}
+                          unoptimized
+                          width={40}
+                        />
+                      ) : (
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground/50">
                           {getPlatformIcon(candidate.platform, 'h-4 w-4')}
-                        </AvatarFallback>
-                      </Avatar>
+                        </div>
+                      )}
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">

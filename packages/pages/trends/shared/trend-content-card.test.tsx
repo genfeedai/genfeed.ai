@@ -71,13 +71,17 @@ describe('TrendContentCard', () => {
     mocks.isRemixAvailable = true;
   });
 
-  it('links an imported trend reference to the org- and brand-scoped variation flow', () => {
+  it('opens Discovery remix for an imported X trend reference', () => {
     render(<TrendContentCard item={item} />);
 
-    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-      'href',
-      '/org-1/brand-1/publishing/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(mocks.openRemix).toHaveBeenCalledWith({
+      kind: 'trend_reference',
+      sourceReferenceId: 'reference-1',
+      trendId: 'trend-1',
+    });
+    expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
   });
 
   it('opens the shared prefilled brief for eligible TikTok trend content', () => {
