@@ -323,17 +323,20 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByTestId('operational-home-publishing'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('operational-home-upcoming')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('operational-home-upcoming'),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-credentials'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
 
-    // An empty scheduler window settles into the explicit zero state.
-    expect(
-      await screen.findByText('catalog:home.schedule.empty'),
-    ).toBeInTheDocument();
+    const emptyStates = screen.getAllByTestId('workspace-empty-state');
+    expect(emptyStates).toHaveLength(4);
+    for (const emptyState of emptyStates) {
+      expect(within(emptyState).queryByRole('link')).not.toBeInTheDocument();
+    }
   });
 
   it('resolves overview activity descriptions through the message catalog', () => {
@@ -415,11 +418,10 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     for (const name of [
-      'catalog:home.approvals.viewAll',
-      'catalog:home.publishing.open',
-      'catalog:home.schedule.open',
-      'catalog:home.credentials.manage',
-      'catalog:home.activity.open',
+      'Attention queue',
+      'Publishing',
+      'Accounts',
+      'Recent activity',
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute(
         'href',
@@ -431,6 +433,7 @@ describe('OperationalHomeContent', () => {
   it('wires connection and surface retry actions to their refresh handlers', () => {
     mocks.activityIsError = true;
     mocks.overviewIsError = true;
+    mocks.brandState.credentialsError = new Error('credentials unavailable');
     mocks.connectionState = {
       error: new Error('network unavailable'),
       key: null,
@@ -447,9 +450,6 @@ describe('OperationalHomeContent', () => {
     })) {
       fireEvent.click(button);
     }
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Refresh credential health' }),
-    );
 
     expect(mocks.connectionRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.overviewRefresh).toHaveBeenCalledTimes(2);
@@ -520,7 +520,7 @@ describe('OperationalHomeContent', () => {
       within(credentials).getByTestId('list-rows-skeleton'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('No publishing credentials are connected yet.'),
+      screen.queryByText('catalog:home.credentials.empty'),
     ).not.toBeInTheDocument();
   });
 
@@ -537,7 +537,7 @@ describe('OperationalHomeContent', () => {
     );
     expect(mocks.brandRefresh).toHaveBeenCalledOnce();
     expect(
-      screen.queryByText('No publishing credentials are connected yet.'),
+      screen.queryByText('catalog:home.credentials.empty'),
     ).not.toBeInTheDocument();
   });
 
@@ -615,7 +615,7 @@ describe('OperationalHomeContent', () => {
     ).toHaveLength(5);
     expect(
       within(needsYou).getByRole('link', {
-        name: 'catalog:home.approvals.viewAll',
+        name: 'Attention queue',
       }),
     ).toHaveAttribute('href', '/acme/moonrise/publishing/review');
     expect(needsYou).not.toHaveTextContent('catalog:home.approvals.overflow');
@@ -624,7 +624,6 @@ describe('OperationalHomeContent', () => {
         name: 'catalog:home.approvals.open',
       }),
     ).not.toBeInTheDocument();
-    expect(needsYou).toHaveTextContent('catalog:home.approvals.viewAll');
   });
 
   it('approves a review item and refreshes the overview on success', async () => {

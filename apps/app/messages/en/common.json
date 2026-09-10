@@ -458,6 +458,7 @@
   },
   "home": {
     "activity": {
+      "empty": "No recent activity yet.",
       "open": "View activity"
     },
     "approvals": {
@@ -469,12 +470,13 @@
       "viewAll": "View all"
     },
     "credentials": {
+      "empty": "No accounts are connected yet.",
       "loading": "Loading credential health...",
       "manage": "Manage accounts",
       "reconnect": "Reconnect"
     },
     "publishing": {
-      "empty": "No publishing runs yet. Drafts created through MCP will appear here.",
+      "empty": "Nothing is ready to publish.",
       "open": "Open publishing"
     },
     "schedule": {
