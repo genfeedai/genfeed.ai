@@ -9,15 +9,26 @@ function readPostSource(relativePath: string): string {
 }
 
 describe('posts semantic theme contract', () => {
+  it.each(['list/components/PostsGrid.tsx'])(
+    'uses semantic application chrome in %s',
+    (relativePath) => {
+      const source = readPostSource(relativePath);
+
+      expect(source).toContain('border-border');
+      expect(source).toContain('text-foreground');
+      expect(source).not.toMatch(
+        /(?:bg|border|text|hover:bg|hover:text)-white/,
+      );
+    },
+  );
+
   it.each([
     'list/components/PostsListToolbar.tsx',
     'library/publishing-content-library-toolbar.tsx',
-    'list/components/PostsGrid.tsx',
-  ])('uses semantic application chrome in %s', (relativePath) => {
+  ])('uses shared field controls in %s', (relativePath) => {
     const source = readPostSource(relativePath);
 
-    expect(source).toContain('border-border');
-    expect(source).toContain('text-foreground');
+    expect(source).toContain('FormSearchbar');
     expect(source).not.toMatch(/(?:bg|border|text|hover:bg|hover:text)-white/);
   });
 });

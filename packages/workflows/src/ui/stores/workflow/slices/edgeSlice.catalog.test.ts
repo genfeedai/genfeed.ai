@@ -30,6 +30,7 @@ beforeEach(() => {
       actionNode('render', 'remotion.composition.render'),
       actionNode('status', 'remotion.composition.status'),
       actionNode('retry', 'remotion.composition.retry'),
+      actionNode('prompt', 'promptConstructor'),
       {
         data: { label: 'Keyword Trigger', status: 'idle' },
         id: 'trigger',
@@ -101,11 +102,11 @@ describe('catalog action connections', () => {
   it('allows multiple distinct sources on an array input', () => {
     useWorkflowStore
       .getState()
-      .onConnect(connect('status', 'render', 'id', 'benefits'));
+      .onConnect(connect('status', 'prompt', 'id', 'hooks'));
     expect(
       useWorkflowStore
         .getState()
-        .isValidConnection(connect('retry', 'render', 'id', 'benefits')),
+        .isValidConnection(connect('retry', 'prompt', 'id', 'hooks')),
     ).toBe(true);
   });
 

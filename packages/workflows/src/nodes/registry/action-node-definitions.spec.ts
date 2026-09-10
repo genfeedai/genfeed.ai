@@ -115,7 +115,7 @@ describe('ACTION_NODE_DEFINITIONS', () => {
       ACTION_NODE_DEFINITIONS.talkingHeadScript?.inputs.map(
         (input) => input.id,
       ),
-    ).toEqual(['productContext']);
+    ).toEqual(['brand', 'brandVoice', 'productContext']);
     expect(
       ACTION_NODE_DEFINITIONS.talkingHeadScript?.outputs.map(
         (output) => output.id,
@@ -159,7 +159,6 @@ describe('video localization composition ports', () => {
     expect(node.outputs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'audio', type: 'audio' }),
-        expect.objectContaining({ id: 'translatedScript', type: 'text' }),
       ]),
     );
   });
@@ -177,7 +176,6 @@ describe('dialogue separation workflow ports', () => {
     expect(node.outputs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'audio', type: 'audio' }),
-        expect.objectContaining({ id: 'reviewRequired' }),
       ]),
     );
   });

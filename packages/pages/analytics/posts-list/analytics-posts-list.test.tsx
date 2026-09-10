@@ -61,7 +61,7 @@ describe('AnalyticsPostsList', () => {
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveAttribute('name', 'search');
-    expect(searchInput).toHaveClass('border-input');
+    expect(searchInput).toHaveClass('border-border');
 
     const triggers = screen.getAllByRole('combobox');
     expect(triggers).toHaveLength(2);
