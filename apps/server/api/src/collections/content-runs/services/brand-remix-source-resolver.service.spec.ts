@@ -122,7 +122,7 @@ describe('BrandRemixSourceResolverService', () => {
         'org-1',
         'brand-1',
         'credential-1',
-        'meta',
+        BrandRemixAdPlatform.META,
       ),
     ).rejects.toThrow('Ads credential is unavailable');
     expect(adsResearchService.getAdDetail).not.toHaveBeenCalled();

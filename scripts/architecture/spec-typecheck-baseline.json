@@ -81,22 +81,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
-      "fingerprint": "23320170b51c28fc7d9b",
-      "message": "Type '\"observation\"' is not assignable to type '\"pattern\" | \"reference\" | \"preference\" | \"positive_example\" | \"negative_example\" | \"winner\" | \"instruction\" | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
-      "fingerprint": "23511622b88ad20567ec",
-      "message": "Type '\"global\"' is not assignable to type '\"brand\" | \"user\" | \"campaign\" | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
