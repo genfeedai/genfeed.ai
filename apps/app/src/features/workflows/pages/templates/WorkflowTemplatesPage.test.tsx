@@ -15,6 +15,11 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const POST_HARD_CUT_TEMPLATE = {
   category: 'social',
   changeSummary: 'Uses action-backed workflow nodes.',
