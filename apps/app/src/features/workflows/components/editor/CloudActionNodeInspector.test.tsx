@@ -13,26 +13,30 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock('@genfeedai/actions', () => ({
-  getActionDefinition: (actionId: string) =>
-    actionId === 'daily-publishing.resolve'
-      ? {
-          description: 'Brand settings and connected accounts.',
-          id: actionId,
-          inputSchema: {
-            properties: {
-              autoPublish: { type: 'boolean' },
-              brandId: { type: 'string' },
-              credentialIds: { items: { type: 'string' }, type: 'array' },
-              timezone: { type: 'string' },
+vi.mock('@genfeedai/actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
+  return {
+    ...actual,
+    getActionDefinition: (actionId: string) =>
+      actionId === 'daily-publishing.resolve'
+        ? {
+            description: 'Brand settings and connected accounts.',
+            id: actionId,
+            inputSchema: {
+              properties: {
+                autoPublish: { type: 'boolean' },
+                brandId: { type: 'string' },
+                credentialIds: { items: { type: 'string' }, type: 'array' },
+                timezone: { type: 'string' },
+              },
+              required: ['brandId'],
+              type: 'object',
             },
-            required: ['brandId'],
-            type: 'object',
-          },
-          label: 'Accounts',
-        }
-      : undefined,
-}));
+            label: 'Accounts',
+          }
+        : actual.getActionDefinition(actionId),
+  };
+});
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
