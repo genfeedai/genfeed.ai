@@ -61,6 +61,7 @@ import {
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
+import { planThreadChildDelivery } from '@workers/services/thread-comment-schedule.util';
 
 type PostDeliveryIds = {
   brandId: string | undefined;
@@ -662,11 +663,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const children = (post.children || []) as unknown as PostDocument[];
-    await this.publishThreadChildrenIfSupported(
+    await this.deliverThreadChildren(
       post,
       children,
       prepared,
       result,
+      publishedAt,
       url,
     );
 
@@ -686,6 +688,86 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     );
 
     return result;
+  }
+
+  /**
+   * Send the follow-ups that go out with the parent and park the rest.
+   *
+   * A delayed comment keeps its SCHEDULED state and gains a due date; the
+   * thread-comment sweep publishes it once that time arrives, using the same
+   * publisher against the parent's provider id.
+   */
+  private async deliverThreadChildren(
+    post: PostEntity,
+    children: PostDocument[],
+    prepared: PreparedPostDelivery,
+    result: PublishResult,
+    publishedAt: Date,
+    url: string,
+  ): Promise<void> {
+    if (children.length === 0) {
+      return;
+    }
+
+    const plan = planThreadChildDelivery(
+      children.map((child) => ({
+        child,
+        id: child.id.toString(),
+        order: (child as unknown as { order?: number }).order ?? 0,
+        threadDelayMinutes: (
+          child as unknown as { threadDelayMinutes?: number | null }
+        ).threadDelayMinutes,
+      })),
+      publishedAt,
+    );
+
+    await this.parkDelayedThreadChildren(post, plan.delayed, url);
+
+    await this.publishThreadChildrenIfSupported(
+      post,
+      plan.immediate.map((entry) => entry.child),
+      prepared,
+      result,
+      url,
+    );
+  }
+
+  private async parkDelayedThreadChildren(
+    post: PostEntity,
+    delayed: Array<{
+      child: PostDocument;
+      delayMinutes: number;
+      dueAt: Date;
+    }>,
+    url: string,
+  ): Promise<void> {
+    if (delayed.length === 0) {
+      return;
+    }
+
+    const organizationId = readPostString(post, ['organizationId']);
+    if (!organizationId) {
+      this.logger.error(`${url} cannot park delayed comments without an org`, {
+        postId: post.id.toString(),
+      });
+      return;
+    }
+
+    for (const entry of delayed) {
+      await this.prisma.post.updateMany({
+        data: { scheduledDate: entry.dueAt },
+        where: scopedWhere(organizationId, {
+          id: entry.child.id.toString(),
+          isDeleted: false,
+        }),
+      });
+    }
+
+    this.logger.log(`${url} parked delayed comments`, {
+      delayedCount: delayed.length,
+      nextDueAt: delayed[0]?.dueAt.toISOString(),
+      postId: post.id.toString(),
+    });
   }
 
   private async publishThreadChildrenIfSupported(

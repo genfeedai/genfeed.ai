@@ -13,6 +13,7 @@ import {
 import {
   getChannelCapability,
   getChannelThreadChildCapability,
+  normalizeThreadDelayMinutes,
 } from '@genfeedai/contracts/api-types/contracts';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
@@ -68,8 +69,8 @@ export default function ModalCreateThread({
       globalTitle: '',
       ingredient: ingredient?.id,
       posts: [
-        { description: '', ingredientIds: [] },
-        { description: '', ingredientIds: [] },
+        { description: '', ingredientIds: [], threadDelayMinutes: 0 },
+        { description: '', ingredientIds: [], threadDelayMinutes: 0 },
       ],
       scheduledDate: '',
       targetExecutionState: TargetExecutionState.DRAFT,
@@ -117,6 +118,9 @@ export default function ModalCreateThread({
             ? post.ingredientIds
             : sharedIngredients,
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
+        ...(index > 0 && post.threadDelayMinutes
+          ? { threadDelayMinutes: post.threadDelayMinutes }
+          : {}),
         ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
         targetExecutionState: data.targetExecutionState,
         visibility: data.visibility,
@@ -176,7 +180,7 @@ export default function ModalCreateThread({
   }));
 
   const addPost = () => {
-    append({ description: '', ingredientIds: [] });
+    append({ description: '', ingredientIds: [], threadDelayMinutes: 0 });
   };
 
   const removePost = (index: number) => {
@@ -189,6 +193,14 @@ export default function ModalCreateThread({
     form.setValue(`posts.${index}.ingredientIds`, ingredientIds, {
       shouldDirty: true,
     });
+  };
+
+  const setPostDelay = (index: number, value: string) => {
+    form.setValue(
+      `posts.${index}.threadDelayMinutes`,
+      normalizeThreadDelayMinutes(Number.parseInt(value, 10)),
+      { shouldDirty: true, shouldValidate: true },
+    );
   };
 
   return (
@@ -241,6 +253,7 @@ export default function ModalCreateThread({
               onKeyDown={handleKeyDown}
               onPickMedia={setMediaPickerIndex}
               onClearMedia={(index) => setPostMedia(index, [])}
+              onChangeDelay={setPostDelay}
             />
           </div>
         )}

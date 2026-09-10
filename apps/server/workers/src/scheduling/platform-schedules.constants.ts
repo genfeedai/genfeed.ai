@@ -31,6 +31,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
   PATTERN_EXTRACTION: 'pattern-extraction',
   POSTS_PUBLISH: 'posts-publish',
+  POSTS_THREAD_COMMENTS: 'posts-thread-comments',
   QUEUE_METRICS_PUBLISH: 'queue-metrics-publish',
   RAW_CUT_CLIP_RECONCILE: 'raw-cut-clip-reconcile',
   REFERRAL_REWARD_SETTLEMENT: 'referral-reward-settlement',
@@ -118,6 +119,12 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {
     pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  // A creator can park a comment one minute behind its post, so this sweep
+  // runs far more often than the publish sweep it follows.
+  [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: {
+    pattern: '* * * * *',
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH]: {

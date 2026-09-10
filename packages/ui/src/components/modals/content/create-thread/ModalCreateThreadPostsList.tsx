@@ -1,9 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { MAX_THREAD_DELAY_MINUTES } from '@genfeedai/contracts/api-types/contracts';
 import type { ModalCreateThreadPostsListProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Image as ImageIcon, Plus, Trash2, X } from 'lucide-react';
 
@@ -17,6 +19,7 @@ export default function ModalCreateThreadPostsList({
   onKeyDown,
   onPickMedia,
   onClearMedia,
+  onChangeDelay,
 }: ModalCreateThreadPostsListProps) {
   return (
     <div className="space-y-4">
@@ -119,6 +122,22 @@ export default function ModalCreateThreadPostsList({
                 This channel publishes comments as text only, so a comment here
                 cannot carry media.
               </p>
+            )}
+
+            {isFollowUp && (
+              <FormControl
+                label="Delay"
+                helpText="Minutes after the post goes live. 0 publishes it right behind the post."
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  max={MAX_THREAD_DELAY_MINUTES}
+                  step={1}
+                  value={form.watch(`posts.${index}.threadDelayMinutes`) ?? 0}
+                  onChange={(event) => onChangeDelay(index, event.target.value)}
+                />
+              </FormControl>
             )}
           </div>
         );

@@ -270,6 +270,8 @@ export interface ModalCreateThreadPostsListProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPickMedia: (index: number) => void;
   onClearMedia: (index: number) => void;
+  /** Raw input value; the composer parses and clamps it. */
+  onChangeDelay: (index: number, value: string) => void;
 }
 
 export interface ModalCreateThreadPreviewProps {

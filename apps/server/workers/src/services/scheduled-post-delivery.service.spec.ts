@@ -77,7 +77,10 @@ function createDeliveryMocks() {
     postsService: { patch: vi.fn().mockResolvedValue(undefined) },
     prisma: {
       credential: { findMany: vi.fn() },
-      post: { findFirst: vi.fn() },
+      post: {
+        findFirst: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
     },
     publisherFactory: { getPublisher: vi.fn() },
     publishEventWebhookService: {
@@ -796,6 +799,44 @@ describe('ScheduledPostDeliveryService', () => {
       'tweet-1',
     );
     expect(mocks.postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('parks a delayed comment and publishes only the immediate ones', async () => {
+    const publishThreadChildren = vi.fn().mockResolvedValue(undefined);
+    mocks.publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'tweet-1',
+        platform: CredentialPlatform.TWITTER,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      publishThreadChildren,
+      supportsThreads: true,
+    });
+    const post = createScheduledPost({
+      children: [
+        { id: 'child-1', order: 1 },
+        { id: 'child-2', order: 2, threadDelayMinutes: 15 },
+      ],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(publishThreadChildren).toHaveBeenCalledWith(
+      expect.objectContaining({ postId: 'post-1' }),
+      [{ id: 'child-1', order: 1 }],
+      'tweet-1',
+    );
+    expect(mocks.prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { scheduledDate: expect.any(Date) },
+        where: expect.objectContaining({
+          id: 'child-2',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
   });
 
   it('marks thread children failed when child delivery throws after parent success', async () => {

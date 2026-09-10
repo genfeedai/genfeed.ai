@@ -35,6 +35,7 @@ import {
   type PlatformScheduledTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
+import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 import type { Job } from 'bullmq';
 
 type PlatformTaskHandler = () => Promise<unknown>;
@@ -78,6 +79,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly youtubeStatus: CronYoutubeStatusService,
     private readonly logger: LoggerService,
     private readonly lifecycleEmails: CronLifecycleEmailsService,
+    private readonly threadComments: ThreadCommentDeliveryService,
   ) {
     super();
     this.handlers = {
@@ -113,6 +115,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.patternExtraction.computeDailyPatterns(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>
         this.posts.publishScheduledPosts(),
+      [PLATFORM_SCHEDULED_TASKS.POSTS_THREAD_COMMENTS]: () =>
+        this.threadComments.publishDueThreadComments(),
       [PLATFORM_SCHEDULED_TASKS.QUEUE_METRICS_PUBLISH]: () =>
         this.queueMetrics.publishQueueMetrics(),
       [PLATFORM_SCHEDULED_TASKS.RAW_CUT_CLIP_RECONCILE]: () =>

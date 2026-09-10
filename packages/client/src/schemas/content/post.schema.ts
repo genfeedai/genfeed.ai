@@ -4,6 +4,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { MAX_THREAD_DELAY_MINUTES } from '@genfeedai/contracts/api-types/contracts';
 import { z } from 'zod';
 
 // Reusable post status enum for YouTube-compatible platforms
@@ -125,6 +126,16 @@ export const threadPostSchema = z.object({
    * could carry their own media.
    */
   ingredientIds: z.array(z.string().min(1)).optional(),
+  /**
+   * Minutes after the post goes live before this comment publishes. Ignored on
+   * the first item, which is the post itself.
+   */
+  threadDelayMinutes: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_THREAD_DELAY_MINUTES)
+    .optional(),
 });
 
 export type ThreadPostSchema = z.infer<typeof threadPostSchema>;

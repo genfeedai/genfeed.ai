@@ -563,6 +563,28 @@ export function resolveDefaultTargetExecutionState(input: {
 }
 
 /** Read filter for canonical target execution state. */
+/**
+ * How far behind its post a scheduled comment may sit.
+ *
+ * Seven days covers the longest follow-up creators actually schedule and keeps
+ * a mistyped delay from parking a comment for a year.
+ */
+export const MAX_THREAD_DELAY_MINUTES = 7 * 24 * 60;
+
+/**
+ * Read a stored or submitted comment delay as whole minutes within bounds.
+ * Anything absent, negative or not a number publishes with the parent.
+ */
+export function normalizeThreadDelayMinutes(
+  value: number | null | undefined,
+): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.min(Math.trunc(value), MAX_THREAD_DELAY_MINUTES);
+}
+
 export function postExecutionStateReadFilter(
   states: TargetExecutionState | readonly TargetExecutionState[],
 ): Record<string, unknown> {
