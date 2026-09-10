@@ -200,7 +200,7 @@ export default function WorkflowLibraryPage() {
             return (
               <Card
                 key={workflow.id}
-                className="group h-full hover:-translate-y-0.5"
+                className="group h-full border border-transparent hover:border-border-strong"
                 label={workflow.label}
                 description={
                   workflow.description ??
