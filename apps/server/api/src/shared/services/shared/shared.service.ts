@@ -39,8 +39,8 @@ const normalizeId = (
   return value.trim();
 };
 
-/** Better Auth `users.id` is an opaque string — not a Genfeed entity id. */
-const normalizeOpaqueUserId = (
+/** `users.id` is not a Genfeed entity id — do not run `isEntityId` on it. */
+const normalizeUserId = (
   value: string | null | undefined,
   field: string,
 ): string | undefined => {
@@ -232,11 +232,8 @@ export class SharedService {
         normalizeId(input.organizationId, 'organizationId') ??
         normalizeId(user.organizationId, 'user.organizationId'),
       userId:
-        normalizeOpaqueUserId(input.userId, 'userId') ??
-        normalizeOpaqueUserId(
-          user.userId ?? user.id,
-          '(user.userId ?? user.id)',
-        ),
+        normalizeUserId(input.userId, 'userId') ??
+        normalizeUserId(user.userId ?? user.id, '(user.userId ?? user.id)'),
     });
   }
 
@@ -249,7 +246,7 @@ export class SharedService {
     return this.persistMediaDocuments(input, {
       brandId: normalizeId(input.brandId, 'brandId'),
       organizationId: normalizeId(input.organizationId, 'organizationId'),
-      userId: normalizeOpaqueUserId(input.userId, 'userId'),
+      userId: normalizeUserId(input.userId, 'userId'),
     });
   }
 

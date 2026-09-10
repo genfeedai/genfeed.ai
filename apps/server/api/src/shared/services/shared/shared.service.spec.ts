@@ -203,20 +203,20 @@ describe('SharedService', () => {
       expect(ingredientsService.create).not.toHaveBeenCalled();
     });
 
-    it('accepts an opaque Better Auth user id as media owner', async () => {
-      const legacyUserId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
-      const legacyUser = {
+    it('does not require the media owner userId to be an entity id', async () => {
+      const userId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      const signedInUser = {
         ...mockUser,
-        id: legacyUserId,
-        userId: legacyUserId,
+        id: userId,
+        userId,
       } as unknown as User;
 
-      await service.createMediaDocuments(legacyUser, {
+      await service.createMediaDocuments(signedInUser, {
         category: IngredientCategory.IMAGE,
       });
 
       expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: legacyUserId }),
+        expect.objectContaining({ userId }),
       );
     });
 
