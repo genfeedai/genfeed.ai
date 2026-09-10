@@ -294,9 +294,17 @@ describe('DiscoveryDesk', () => {
       'X',
       'LinkedIn',
     ]);
-    expect(
-      screen.getByRole('button', { name: /Add a column/ }),
-    ).toBeInTheDocument();
+    for (const column of columns) {
+      expect(column).toHaveClass('flex-1');
+      expect(column).toHaveClass('min-w-80');
+      expect(column).not.toHaveClass('w-80');
+    }
+    const addColumn = screen.getByRole('button', { name: /Add a column/ });
+    expect(addColumn).toBeInTheDocument();
+    expect(addColumn).toHaveClass('shrink-0');
+    expect(screen.getByTestId('following-deck').firstElementChild).toHaveClass(
+      'w-full',
+    );
   });
 
   it('shows the follow-creators empty state on the Following deck without sources', () => {
