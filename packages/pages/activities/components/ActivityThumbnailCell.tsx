@@ -39,6 +39,9 @@ type Props = {
   onViewIngredient: (ingredient: unknown) => void;
 };
 
+/** Both inspect controls are icon-only, so the name lives on the button. */
+const INSPECT_LABEL = 'Inspect activity ingredient';
+
 function ActivityTypeIcon({ activity }: { activity: IActivity }) {
   const TypeIcon = {
     article: FileText,
@@ -74,8 +77,11 @@ function ActivityAssetPreview({
   resultType: IngredientCategory | undefined;
   src: string;
 }) {
-  const [hasError, setHasError] = useState(false);
-  if (hasError) {
+  // Rows are keyed by activity id, so this stays mounted across a refetch that
+  // swaps in a new preview URL. Remember which URL failed rather than latching
+  // a boolean that would hide the replacement image too.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (failedSrc === src) {
     return fallback;
   }
 
@@ -91,7 +97,7 @@ function ActivityAssetPreview({
         className="object-cover"
         sizes="48px"
         unoptimized
-        onError={() => setHasError(true)}
+        onError={() => setFailedSrc(src)}
       />
       {isVideo ? (
         <div
@@ -115,6 +121,7 @@ function ActivityAssetPreview({
       ) : null}
       {canInspect && !isVideo ? (
         <Button
+          ariaLabel={INSPECT_LABEL}
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           onClick={(event) => {
@@ -122,7 +129,7 @@ function ActivityAssetPreview({
             onViewIngredient(ingredient);
           }}
           className={
-            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity' /* design-system-allow-content-color */
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */
           }
         >
           <Eye
@@ -134,13 +141,14 @@ function ActivityAssetPreview({
       ) : null}
       {canInspect && isVideo ? (
         <Button
+          ariaLabel={INSPECT_LABEL}
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={(event) => {
             event.stopPropagation();
             onViewIngredient(ingredient);
           }}
-          className="absolute inset-0"
+          className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         />
       ) : null}
     </div>

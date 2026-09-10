@@ -209,9 +209,16 @@ export default function TopbarPublicDesktopDropdown({
     );
   }
 
+  // The panel outlives `openDropdown` by one motion cycle so it can fade out.
+  // The portal has to carry the same closed state as the grouped branch, or an
+  // ungrouped menu stays fully visible and clickable for those 300ms.
   return createPortal(
     <div
-      className="fixed hidden lg:block"
+      aria-hidden={!isExpanded}
+      className={cn(
+        'fixed hidden transition-opacity duration-300 ease-out lg:block',
+        isExpanded ? 'opacity-100' : 'pointer-events-none opacity-0',
+      )}
       style={{
         isolation: 'isolate',
         left: dropdownPosition.left,
@@ -219,6 +226,7 @@ export default function TopbarPublicDesktopDropdown({
         top: dropdownPosition.top - 8,
         zIndex: 50,
       }}
+      {...(!isExpanded ? { inert: true } : {})}
       onMouseEnter={onMouseEnterDropdown}
       onMouseLeave={onMouseLeaveDropdown}
     >

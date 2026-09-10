@@ -96,11 +96,13 @@ export class PublicArticlesController {
     // alias off ArticlesQueryDto (which declares `brandId`), so bind it the
     // same way public videos/images do. Without this, every brand sees the
     // whole public corpus.
+    // `isEntityId` trims before validating, so the raw value can still carry
+    // whitespace that an exact `brandId` match would never find.
     const scopedBrandId =
       brand && isEntityId(brand)
-        ? brand
+        ? brand.trim()
         : brandId && isEntityId(brandId)
-          ? brandId
+          ? brandId.trim()
           : undefined;
     if (scopedBrandId) {
       matchQuery.brandId = scopedBrandId;
