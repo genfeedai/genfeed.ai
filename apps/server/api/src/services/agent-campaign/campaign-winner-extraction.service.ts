@@ -164,7 +164,7 @@ export class CampaignWinnerExtractionService {
           dominantTone: patternSummary.tone,
           sampleSize: topContent.length,
         },
-        scope: 'campaign',
+        scope: 'brand',
         sourceContentId: String(campaign.id),
         sourceType: 'campaign-winner-extraction',
         summary: `Winner pattern extracted from ${topContent.length} top-performing post(s).`,

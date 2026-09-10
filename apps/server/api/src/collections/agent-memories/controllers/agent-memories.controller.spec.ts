@@ -38,6 +38,8 @@ describe('AgentMemoriesController', () => {
         {
           provide: AgentMemoriesService,
           useValue: {
+            archiveMemory: vi.fn(),
+            listForOrganization: vi.fn(),
             listForUser: vi.fn(),
             removeMemory: vi.fn(),
           },
@@ -87,6 +89,35 @@ describe('AgentMemoriesController', () => {
       const result = await controller.list(mockRequest, mockUser);
       expect(ErrorResponse.handle).toHaveBeenCalled();
       expect(result).toMatchObject({ ctx: 'listMemories' });
+    });
+  });
+
+  describe('listOrganization', () => {
+    it('lists org-visible memories for the current organization', async () => {
+      const mockEntries = [{ id: 'm1', scope: 'brand', user: { id: USER_ID } }];
+      memoriesService.listForOrganization.mockResolvedValue(
+        mockEntries as never,
+      );
+
+      const result = await controller.listOrganization(mockUser);
+
+      expect(memoriesService.listForOrganization).toHaveBeenCalledWith(ORG_ID);
+      expect(result).toEqual(mockEntries);
+    });
+  });
+
+  describe('archive', () => {
+    it('archives an org-visible memory', async () => {
+      const archived = { id: 'mem-1', isDeleted: true };
+      memoriesService.archiveMemory.mockResolvedValue(archived as never);
+
+      const result = await controller.archive('mem-1', mockUser);
+
+      expect(memoriesService.archiveMemory).toHaveBeenCalledWith(
+        'mem-1',
+        ORG_ID,
+      );
+      expect(result).toEqual(archived);
     });
   });
 

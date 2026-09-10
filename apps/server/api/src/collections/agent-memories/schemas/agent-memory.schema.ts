@@ -1,3 +1,4 @@
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { AgentMemory } from '@genfeedai/prisma';
 
 export type { AgentMemory } from '@genfeedai/prisma';
@@ -20,7 +21,16 @@ export const AGENT_MEMORY_KINDS = [
   'pattern',
 ] as const;
 
-export const AGENT_MEMORY_SCOPES = ['user', 'brand', 'campaign'] as const;
+export const AGENT_MEMORY_SCOPES = [
+  KnowledgeMemoryScope.PERSONAL,
+  KnowledgeMemoryScope.BRAND,
+  KnowledgeMemoryScope.ORG,
+] as const;
+
+export const AGENT_MEMORY_LEGACY_SCOPE_ALIASES = {
+  campaign: KnowledgeMemoryScope.BRAND,
+  user: KnowledgeMemoryScope.PERSONAL,
+} as const;
 
 export const AGENT_MEMORY_CONTENT_TYPES = [
   'newsletter',

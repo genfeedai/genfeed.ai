@@ -4219,7 +4219,8 @@ model AgentMemory {
   content             String?
   type                String?
   metadata            Json?
-  scope               String?
+  // Shared knowledge/memory scope vocabulary from #4122: personal | brand | org.
+  scope               String         @default("personal")
   kind                String?
   contentType         String?
   platform            String?
@@ -4232,10 +4233,12 @@ model AgentMemory {
   importance          Float?
   confidence          Float?
   performanceSnapshot Json?
+  isDeleted           Boolean        @default(false)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, isDeleted, scope, brandId])
   @@map("agent_memories")
 }
 

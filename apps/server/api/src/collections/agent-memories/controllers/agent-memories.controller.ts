@@ -6,8 +6,11 @@ import type {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -17,6 +20,7 @@ import {
   Param,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -43,6 +47,26 @@ export class AgentMemoriesController {
       return entries;
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listMemories');
+    }
+  }
+
+  @Get('organization')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary: 'List brand and org-wide memory entries for the organization',
+  })
+  async listOrganization(@CurrentUser() user: User) {
+    try {
+      return await this.memoriesService.listForOrganization(
+        user.organizationId,
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'listOrganizationMemories',
+      );
     }
   }
 
@@ -86,6 +110,25 @@ export class AgentMemoriesController {
       };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'createMemory');
+    }
+  }
+
+  @Post(':id/archive')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @ApiOperation({
+    summary:
+      'Archive a brand or org-wide memory entry without hard-deleting it',
+  })
+  async archive(@Param('id') id: string, @CurrentUser() user: User) {
+    try {
+      const memory = await this.memoriesService.archiveMemory(
+        id,
+        user.organizationId,
+      );
+      return memory;
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'archiveMemory');
     }
   }
 

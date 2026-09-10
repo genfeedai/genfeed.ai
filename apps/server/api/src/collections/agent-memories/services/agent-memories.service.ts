@@ -1,6 +1,7 @@
 import {
   AGENT_MEMORY_CONTENT_TYPES,
   AGENT_MEMORY_KINDS,
+  AGENT_MEMORY_LEGACY_SCOPE_ALIASES,
   AGENT_MEMORY_SCOPES,
   type AgentMemoryContentType,
   type AgentMemoryDocument,
@@ -10,9 +11,15 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { hasOrganizationBilling } from '@genfeedai/config';
+import { KnowledgeMemoryScope } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 
 interface CreateAgentMemoryPayload {
   campaignId?: string;
@@ -76,9 +83,43 @@ export class AgentMemoriesService extends BaseService<
     const { limit = 100 } = options;
     return this.delegate.findMany({
       where: {
+        isDeleted: false,
         organizationId,
-        scope: { not: 'campaign' },
         userId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }) as Promise<AgentMemoryDocument[]>;
+  }
+
+  async listForOrganization(
+    organizationId: string,
+    options: { limit?: number } = {},
+  ): Promise<AgentMemoryDocument[]> {
+    if (!hasOrganizationBilling()) {
+      throw new ForbiddenException(
+        'Organization-wide memory listing requires organization billing.',
+      );
+    }
+
+    const { limit = 100 } = options;
+    return this.delegate.findMany({
+      include: {
+        user: {
+          select: {
+            email: true,
+            handle: true,
+            id: true,
+            name: true,
+          },
+        },
+      },
+      where: {
+        isDeleted: false,
+        organizationId,
+        scope: {
+          in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -91,10 +132,10 @@ export class AgentMemoriesService extends BaseService<
     payload: CreateAgentMemoryPayload,
   ): Promise<AgentMemoryDocument> {
     const scope = this.normalizeScope(payload.scope);
-    const campaignId =
-      scope === 'campaign'
-        ? this.requireCampaignId(payload.campaignId)
-        : undefined;
+    this.assertWritableScope(scope, payload.brandId);
+    const campaignId = payload.campaignId
+      ? this.requireCampaignId(payload.campaignId)
+      : undefined;
 
     return this.create({
       brandId: payload.brandId,
@@ -103,6 +144,7 @@ export class AgentMemoriesService extends BaseService<
       content: payload.content,
       contentType: this.normalizeContentType(payload.contentType),
       importance: this.normalizeScore(payload.importance, 0.5),
+      isDeleted: false,
       kind: this.normalizeKind(payload.kind),
       organizationId,
       performanceSnapshot: payload.performanceSnapshot,
@@ -125,10 +167,10 @@ export class AgentMemoriesService extends BaseService<
   ): Promise<AgentMemoryDocument[]> {
     const validatedCampaignId = this.requireCampaignId(campaignId);
 
-    const filter: Record<string, unknown> = {
+    const filter: Prisma.AgentMemoryWhereInput = {
       campaignId: validatedCampaignId,
+      isDeleted: false,
       organizationId,
-      scope: 'campaign',
     };
 
     const normalizedContentType =
@@ -153,7 +195,7 @@ export class AgentMemoriesService extends BaseService<
     return await this.createMemory(userId, organizationId, {
       ...payload,
       campaignId,
-      scope: 'campaign',
+      scope: KnowledgeMemoryScope.BRAND,
     });
   }
 
@@ -174,19 +216,11 @@ export class AgentMemoriesService extends BaseService<
     organizationId: string,
     options: MemoryQueryOptions = {},
   ): Promise<AgentFeedbackMemoryDocument[]> {
-    const [userMemories, campaignMemories] = await Promise.all([
-      this.listForUser(userId, organizationId, {
-        limit: 200,
-      }),
-      options.campaignId
-        ? this.getCampaignMemories(
-            options.campaignId,
-            organizationId,
-            this.normalizeOptionalContentType(options.contentType),
-          )
-        : Promise.resolve([]),
-    ]);
-    const allMemories = [...userMemories, ...campaignMemories];
+    const allMemories = await this.listVisibleForGeneration(
+      userId,
+      organizationId,
+      options,
+    );
     const pinnedMemoryIds = new Set(options.pinnedMemoryIds ?? []);
     const normalizedQuery = options.query?.toLowerCase() ?? '';
     const queryTerms = new Set(
@@ -245,6 +279,7 @@ export class AgentMemoriesService extends BaseService<
       {
         where: {
           id: memoryId,
+          isDeleted: false,
           organizationId,
           userId,
         },
@@ -253,9 +288,42 @@ export class AgentMemoriesService extends BaseService<
       memoryId,
     );
 
-    await this.delegate.delete({
+    await this.delegate.update({
       where: { id: memoryId },
+      data: { isDeleted: true },
     });
+  }
+
+  async archiveMemory(
+    memoryId: string,
+    organizationId: string,
+  ): Promise<AgentMemoryDocument> {
+    if (!hasOrganizationBilling()) {
+      throw new ForbiddenException(
+        'Organization-wide memory archive requires organization billing.',
+      );
+    }
+
+    await findOrThrow(
+      this.delegate,
+      {
+        where: {
+          id: memoryId,
+          isDeleted: false,
+          organizationId,
+          scope: {
+            in: [KnowledgeMemoryScope.BRAND, KnowledgeMemoryScope.ORG],
+          },
+        },
+      },
+      'Memory entry',
+      memoryId,
+    );
+
+    return this.delegate.update({
+      where: { id: memoryId },
+      data: { isDeleted: true },
+    }) as Promise<AgentMemoryDocument>;
   }
 
   private normalizeKind(value?: string): AgentMemoryKind {
@@ -266,12 +334,82 @@ export class AgentMemoriesService extends BaseService<
     return 'instruction';
   }
 
+  private async listVisibleForGeneration(
+    userId: string,
+    organizationId: string,
+    options: MemoryQueryOptions,
+  ): Promise<AgentMemoryDocument[]> {
+    const scopeFilters: Prisma.AgentMemoryWhereInput[] = [
+      {
+        scope: KnowledgeMemoryScope.PERSONAL,
+        userId,
+      },
+    ];
+
+    if (options.brandId) {
+      scopeFilters.push({
+        brandId: options.brandId,
+        scope: KnowledgeMemoryScope.BRAND,
+      });
+    }
+
+    if (hasOrganizationBilling()) {
+      scopeFilters.push({
+        scope: KnowledgeMemoryScope.ORG,
+      });
+    }
+
+    if (options.campaignId) {
+      scopeFilters.push({
+        campaignId: this.requireCampaignId(options.campaignId),
+      });
+    }
+
+    return this.delegate.findMany({
+      where: {
+        isDeleted: false,
+        organizationId,
+        OR: scopeFilters,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    }) as Promise<AgentMemoryDocument[]>;
+  }
+
+  private assertWritableScope(scope: AgentMemoryScope, brandId?: string): void {
+    if (scope === KnowledgeMemoryScope.ORG && !hasOrganizationBilling()) {
+      throw new ForbiddenException(
+        'Organization-wide memory requires organization billing.',
+      );
+    }
+
+    if (scope === KnowledgeMemoryScope.BRAND && !brandId) {
+      throw new BadRequestException(
+        'Brand-scoped memory requires a valid brandId.',
+      );
+    }
+  }
+
   private normalizeScope(value?: string): AgentMemoryScope {
-    if (value && AGENT_MEMORY_SCOPES.includes(value as AgentMemoryScope)) {
+    if (!value) {
+      return KnowledgeMemoryScope.PERSONAL;
+    }
+
+    if (AGENT_MEMORY_SCOPES.includes(value as AgentMemoryScope)) {
       return value as AgentMemoryScope;
     }
 
-    return 'user';
+    const mapped =
+      AGENT_MEMORY_LEGACY_SCOPE_ALIASES[
+        value as keyof typeof AGENT_MEMORY_LEGACY_SCOPE_ALIASES
+      ];
+    if (mapped) {
+      return mapped;
+    }
+
+    throw new BadRequestException(
+      `Memory scope must be one of: ${AGENT_MEMORY_SCOPES.join(', ')}.`,
+    );
   }
 
   private normalizeContentType(value?: string): AgentMemoryContentType {

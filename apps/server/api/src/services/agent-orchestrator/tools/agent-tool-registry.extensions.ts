@@ -182,8 +182,9 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolOutput[] = [
           type: 'boolean',
         },
         scope: {
-          description: 'Whether the save is personal or brand-scoped',
-          enum: ['user', 'brand'],
+          description:
+            'Whether the save is personal, brand-scoped, or organization-wide',
+          enum: ['personal', 'brand', 'org'],
           type: 'string',
         },
         sourceContentId: {

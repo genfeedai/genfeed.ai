@@ -569,7 +569,7 @@ describe('AgentToolExecutorService', () => {
           content: 'Write concise newsletters with a strong hook.',
           contentType: 'newsletter',
           kind: 'preference',
-          scope: 'user',
+          scope: 'personal',
           summary: 'Concise newsletter hook preference',
         },
         wroteBrandInsight: false,
@@ -3064,7 +3064,7 @@ describe('AgentToolExecutorService', () => {
           'content memory',
         ]),
         kind: 'preference',
-        scope: 'user',
+        scope: 'personal',
       }),
     );
   });
