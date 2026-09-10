@@ -1,6 +1,5 @@
 'use client';
 
-import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -13,7 +12,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -33,6 +31,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from 'react';
 import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
 import {
@@ -42,6 +41,7 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
+import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'All categories',
@@ -71,6 +71,7 @@ type CatalogSource = (typeof SOURCE_FILTERS)[number]['id'];
 type CatalogItem = {
   actionLabel: string;
   category: string;
+  changeSummary?: string;
   description: string;
   edges?: Edge[];
   href?: string;
@@ -213,6 +214,7 @@ function buildCatalogItems({
   const catalogItems: CatalogItem[] = systemCatalog.map((entry) => ({
     actionLabel: entry.installed ? 'Open' : 'Install',
     category: entry.category || entry.family || 'system',
+    changeSummary: entry.changeSummary,
     description: entry.description,
     edges: entry.edges,
     href:
@@ -232,6 +234,7 @@ function buildCatalogItems({
   const templateItems: CatalogItem[] = templates.map((template) => ({
     actionLabel: 'Use template',
     category: template.category || 'generation',
+    changeSummary: template.changeSummary,
     description: template.description,
     edges: template.edges,
     href: href(
@@ -279,7 +282,6 @@ function filterCatalogItems(
 
 function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
-  const pageHelp = usePageHelp();
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
     templates,
@@ -298,6 +300,7 @@ function WorkflowTemplatesPageContent() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get('template');
+  const [detailsItem, setDetailsItem] = useState<CatalogItem | null>(null);
 
   const loadTemplates = useCallback(async () => {
     dispatch({ type: 'LOAD_START' });
@@ -486,7 +489,6 @@ function WorkflowTemplatesPageContent() {
   const isContentLoading = isLoading || isBootstrapping;
 
   const catalogChrome = {
-    help: null,
     headerTabs: workflowCollectionHeaderTabs(href),
     label: 'Workflows',
     leading: (
@@ -536,7 +538,6 @@ function WorkflowTemplatesPageContent() {
             ))}
           </SelectContent>
         </Select>
-        {pageHelp ? <HelpPopover help={pageHelp} /> : null}
       </div>
     ),
     titleVisibility: 'sr-only' as const,
@@ -604,6 +605,7 @@ function WorkflowTemplatesPageContent() {
                   className="h-full"
                   label={item.title}
                   description={item.description}
+                  onDescriptionClick={() => setDetailsItem(item)}
                   headerAction={
                     <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-2xs font-medium uppercase tracking-wide text-foreground/60">
                       {sourceBadge(item.source)}
@@ -649,6 +651,42 @@ function WorkflowTemplatesPageContent() {
           </div>
         )}
       </div>
+      <WorkflowTemplateDetailsDialog
+        actionLabel={detailsItem?.actionLabel ?? ''}
+        categoryLabel={detailsItem ? categoryLabel(detailsItem.category) : ''}
+        changeSummary={detailsItem?.changeSummary}
+        description={detailsItem?.description ?? ''}
+        href={detailsItem?.href}
+        isInstalling={
+          detailsItem?.systemEntry?.canonicalId === installingCanonicalId
+        }
+        isOpen={detailsItem !== null}
+        onInstall={
+          detailsItem?.systemEntry && !detailsItem.href
+            ? () => {
+                void handleInstallSystem(detailsItem.systemEntry);
+              }
+            : undefined
+        }
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setDetailsItem(null);
+          }
+        }}
+        preview={
+          detailsItem
+            ? {
+                edges: detailsItem.edges,
+                name: detailsItem.title,
+                nodes: detailsItem.nodes,
+                thumbnail: detailsItem.thumbnail,
+              }
+            : undefined
+        }
+        scheduleLabel={detailsItem ? cadenceLabel(detailsItem.schedule) : null}
+        sourceLabel={detailsItem ? sourceBadge(detailsItem.source) : ''}
+        title={detailsItem?.title ?? ''}
+      />
     </Container>
   );
 }

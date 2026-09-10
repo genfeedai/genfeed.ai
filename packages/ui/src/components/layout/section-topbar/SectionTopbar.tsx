@@ -12,7 +12,7 @@ import HelpPopover from '@ui/layout/help-popover/HelpPopover';
  * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
- * - primary tools followed by tabs and Help at the right edge, inside the same bar
+ * - Help sits immediately left of the action cluster, then tabs at the right edge
  * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
  *   title is chrome-only; tabs + actions share one dense row
  * - when title is visible: title row, then optional tab strip under it
@@ -75,16 +75,26 @@ export default function SectionTopbar({
               {leading}
             </div>
           ) : null}
-          {actions ? (
+          {hasActions ? (
             <div
               data-testid="section-topbar-actions"
               className={cn(
                 'flex items-center gap-2',
                 hasTabs
                   ? 'shrink-0 flex-wrap justify-end'
-                  : 'min-w-0 flex-1 flex-wrap justify-start',
+                  : actions
+                    ? 'min-w-0 flex-1 flex-wrap justify-start'
+                    : 'shrink-0',
               )}
             >
+              {helpTrigger ? (
+                <div
+                  data-testid="section-topbar-help"
+                  className="flex shrink-0 items-center"
+                >
+                  {helpTrigger}
+                </div>
+              ) : null}
               {actions}
             </div>
           ) : null}
@@ -94,14 +104,6 @@ export default function SectionTopbar({
               className="min-w-0 max-w-full overflow-x-auto scrollbar-thin"
             >
               {tabs}
-            </div>
-          ) : null}
-          {helpTrigger ? (
-            <div
-              data-testid="section-topbar-help"
-              className="flex shrink-0 items-center"
-            >
-              {helpTrigger}
             </div>
           ) : null}
         </div>
@@ -151,8 +153,15 @@ export default function SectionTopbar({
             data-testid="section-topbar-actions"
             className="flex max-w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
+            {helpTrigger ? (
+              <div
+                data-testid="section-topbar-help"
+                className="flex shrink-0 items-center"
+              >
+                {helpTrigger}
+              </div>
+            ) : null}
             {actions}
-            {helpTrigger}
           </div>
         ) : null}
       </div>

@@ -28,8 +28,28 @@ describe('Card', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Compact system status')).toBeInTheDocument();
     expect(screen.getByText('Compact system status')).toHaveClass(
-      'line-clamp-3',
+      'line-clamp-2',
+      'min-h-[2lh]',
     );
+  });
+
+  it('opens extra detail from a two-line description', async () => {
+    const user = userEvent.setup();
+    const onDescriptionClick = vi.fn();
+    render(
+      <Card
+        label="Daily Trends Digest"
+        description="Scan the latest social trends daily and email a curated digest."
+        onDescriptionClick={onDescriptionClick}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Scan the latest social trends daily and email a curated digest.',
+      }),
+    );
+    expect(onDescriptionClick).toHaveBeenCalledTimes(1);
   });
 
   it('preserves content and actions slots', () => {

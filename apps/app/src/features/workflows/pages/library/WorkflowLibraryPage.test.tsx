@@ -116,6 +116,9 @@ vi.mock('@ui/layout/container/Container', () => ({
           </a>
         ))}
         {leading}
+        <button type="button" aria-label="Page help">
+          Help
+        </button>
         {right}
       </header>
       {children}

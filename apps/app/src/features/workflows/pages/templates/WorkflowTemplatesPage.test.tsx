@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowTemplate } from '@/features/workflows/services/workflow-api';
@@ -141,19 +142,46 @@ vi.mock('@ui/primitives/select', () => ({
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
+    description,
     headerAction,
     label,
+    onDescriptionClick,
   }: {
     children?: ReactNode;
+    description?: string;
     headerAction?: ReactNode;
     label?: ReactNode;
+    onDescriptionClick?: () => void;
   }) => (
     <article>
       <h3>{label}</h3>
+      {description ? (
+        <button type="button" onClick={onDescriptionClick}>
+          {description}
+        </button>
+      ) : null}
       {headerAction}
       {children}
     </article>
   ),
+}));
+
+vi.mock('@ui/primitives/dialog', () => ({
+  Dialog: ({ children, open }: { children?: ReactNode; open?: boolean }) =>
+    open ? <div role="dialog">{children}</div> : null,
+  DialogContent: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogDescription: ({ children }: { children?: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogTitle: ({ children }: { children?: ReactNode }) => <h2>{children}</h2>,
 }));
 
 vi.mock('next/link', () => ({
@@ -251,6 +279,25 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
+  });
+
+  it('opens a details dialog from the clamped card description', async () => {
+    const user = userEvent.setup();
+    render(<WorkflowTemplatesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Daily digest')).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByRole('button', { name: 'App-owned automation.' }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByRole('heading', { name: 'Daily digest' }),
+    ).toBeVisible();
+    expect(within(dialog).getByText('App-owned automation.')).toBeVisible();
   });
 
   it('title-cases unknown category keys', () => {

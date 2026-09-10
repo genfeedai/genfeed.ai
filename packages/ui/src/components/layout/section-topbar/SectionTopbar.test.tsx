@@ -193,7 +193,7 @@ describe('SectionTopbar', () => {
     expect(topbar.className).not.toMatch(/border-b/);
   });
 
-  it('renders a help trigger after actions that opens a popover with the given title and body', () => {
+  it('renders a help trigger before actions that opens a popover with the given title and body', () => {
     render(
       <SectionTopbar
         title="Trending Content"
@@ -206,7 +206,14 @@ describe('SectionTopbar', () => {
     const helpTrigger = screen.getByRole('button', {
       name: 'About this page',
     });
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+    const helpSlot = screen.getByTestId('section-topbar-help');
     expect(actionsSlot).toContainElement(helpTrigger);
+    expect(actionsSlot.firstElementChild).toBe(helpSlot);
+    expect(
+      helpTrigger.compareDocumentPosition(refresh) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     fireEvent.click(helpTrigger);
 
@@ -224,18 +231,18 @@ describe('SectionTopbar', () => {
     );
 
     const helpSlot = screen.getByTestId('section-topbar-help');
-    expect(helpSlot.parentElement).toHaveClass('justify-end');
+    const actionsSlot = screen.getByTestId('section-topbar-actions');
+    expect(actionsSlot).toContainElement(helpSlot);
+    expect(actionsSlot.firstElementChild).toBe(helpSlot);
+    expect(actionsSlot).toHaveClass('shrink-0');
     expect(helpSlot).toHaveClass('shrink-0');
-    expect(helpSlot.parentElement?.lastElementChild).toBe(helpSlot);
-    expect(
-      screen.queryByTestId('section-topbar-actions'),
-    ).not.toBeInTheDocument();
+    expect(actionsSlot.parentElement).toHaveClass('justify-end');
     expect(helpSlot).toContainElement(
       screen.getByRole('button', { name: 'About this page' }),
     );
   });
 
-  it('keeps Help after both actions and tabs in the breadcrumb toolbar', () => {
+  it('keeps Help immediately left of actions, with tabs after the action cluster', () => {
     navigationState.hasCanonicalBreadcrumb = true;
     render(
       <SectionTopbar
@@ -249,10 +256,10 @@ describe('SectionTopbar', () => {
     const actions = screen.getByTestId('section-topbar-actions');
     const tabs = screen.getByTestId('section-topbar-tabs');
     const helpSlot = screen.getByTestId('section-topbar-help');
+    expect(actions).toContainElement(helpSlot);
+    expect(actions.firstElementChild).toBe(helpSlot);
     expect(actions.nextElementSibling).toBe(tabs);
-    expect(tabs.nextElementSibling).toBe(helpSlot);
-    expect(helpSlot.parentElement?.lastElementChild).toBe(helpSlot);
-    expect(helpSlot.parentElement).toHaveClass('justify-end');
+    expect(helpSlot.parentElement).toHaveClass('flex', 'items-center', 'gap-2');
   });
 
   it('omits the help trigger when the help prop is not provided', () => {

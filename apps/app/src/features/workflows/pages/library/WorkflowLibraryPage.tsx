@@ -1,12 +1,10 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -61,7 +59,6 @@ export default function WorkflowLibraryPage() {
     setPage,
   } = useWorkflowLibraryPage();
   const isDesktopShell = isDesktopClient();
-  const pageHelp = usePageHelp();
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);
@@ -70,7 +67,6 @@ export default function WorkflowLibraryPage() {
   const isEmpty = !isLoading && workflows.length === 0 && !searchInput;
 
   const libraryChrome = {
-    help: null,
     headerTabs: workflowCollectionHeaderTabs(href),
     label: translate('library.title'),
     leading: (
@@ -84,7 +80,6 @@ export default function WorkflowLibraryPage() {
     ),
     right: (
       <div className="flex items-center gap-2">
-        {pageHelp ? <HelpPopover help={pageHelp} /> : null}
         {isEmpty ? null : (
           <Button
             asChild

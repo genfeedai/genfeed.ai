@@ -48,6 +48,7 @@ export interface CardProps {
   description?: string;
   isDisabled?: boolean;
   onClick?: () => void;
+  onDescriptionClick?: () => void;
   'data-testid'?: string;
 }
 
