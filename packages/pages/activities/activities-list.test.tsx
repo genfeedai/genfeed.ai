@@ -3,6 +3,7 @@ import type { IActivity } from '@genfeedai/contracts/interfaces';
 import ActivitiesList from '@pages/activities/activities-list';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { AnchorHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRefresh = vi.fn(() => Promise.resolve());
@@ -50,6 +51,24 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   }),
   useSearchParams: () => new URLSearchParams(''),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/news${path}`,
+  }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 function buildActivity(overrides: Partial<IActivity> = {}): IActivity {
@@ -151,6 +170,31 @@ describe('ActivitiesList', () => {
     expect(
       screen.getByRole('button', { name: /mark all read/i }),
     ).toBeDisabled();
+  });
+
+  it('opens a failed generation from the row and the explicit link', () => {
+    mockActivities = [
+      buildActivity({
+        entityId: 'ing-9',
+        entityModel: 'Ingredient',
+        id: 'failed-image',
+        key: ActivityKey.IMAGE_FAILED,
+        value: JSON.stringify({ error: 'Provider timed out' }),
+      }),
+    ];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('Provider timed out')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open failed to generate/i }),
+    ).toHaveAttribute('href', '/acme/news/library/images?asset=ing-9');
   });
 
   it('shows the empty state when there is no activity', () => {

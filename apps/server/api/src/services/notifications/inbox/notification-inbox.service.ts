@@ -239,36 +239,32 @@ export class NotificationInboxService {
         )
         .map((source) => [source.id, source]),
     );
-    const threadEvents = await Promise.all(
-      page
-        .filter((row) => row.event.sourceType === 'agent_run')
-        .map((row) =>
-          this.prisma.agentThreadEvent.findFirst({
-            where: {
-              organizationId,
-              isDeleted: false,
-              runId: row.event.sourceId,
-              thread: { is: sourceAccessWhere },
-            },
-            select: {
-              runId: true,
-              thread: {
-                select: {
-                  id: true,
-                  title: true,
-                  brand: { select: { slug: true } },
-                },
-              },
-            },
-            orderBy: { sequence: 'desc' },
-          }),
-        ),
-    );
-    const threads = new Map(
-      threadEvents
-        .filter((event) => event !== null)
-        .map((event) => [event.runId, event.thread]),
-    );
+    const runIds = [...new Set(page.map((row) => row.event.sourceId))];
+    const threadEvents = await this.prisma.agentThreadEvent.findMany({
+      where: {
+        organizationId,
+        isDeleted: false,
+        runId: { in: runIds },
+        thread: { is: sourceAccessWhere },
+      },
+      select: {
+        runId: true,
+        thread: {
+          select: {
+            id: true,
+            title: true,
+            brand: { select: { slug: true } },
+          },
+        },
+      },
+      orderBy: { sequence: 'desc' },
+    });
+    const threads = new Map<string, (typeof threadEvents)[number]['thread']>();
+    for (const event of threadEvents) {
+      if (!threads.has(event.runId)) {
+        threads.set(event.runId, event.thread);
+      }
+    }
 
     const docs = page.map((row) => {
       const source = sources.get(row.event.sourceId);
@@ -277,7 +273,7 @@ export class NotificationInboxService {
         ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
         : source
           ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
-          : null;
+          : APP_ROUTES.WORKSPACE.ACTIVITY;
       const brandSlug = thread?.brand?.slug ?? source?.workflow.brand?.slug;
       return {
         id: row.id,

@@ -1,13 +1,12 @@
-import { ActivityKey, parseActivityKey } from '@genfeedai/contracts';
+import { ActivityKey } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
-  createArtifactEditorRoute,
   createBrandAppRoute,
-  createLibraryAssetRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import {
+  getActivityDestinationPath,
   getBackgroundTaskStatus,
   isBackgroundTask,
   parseActivityValue,
@@ -57,39 +56,11 @@ export function getGenerationActivityHref(
       scope.orgSlug,
       APP_ROUTES.WORKSPACE.ACTIVITY,
     );
-  const value = parseActivityValue(activity.value);
-  const subject = parseActivityKey(activity.key).subject;
-  const entityModel = activity.entityModel?.toLowerCase();
-  const id =
-    activity.entityId ||
-    (typeof value?.resultId === 'string' ? value.resultId : undefined) ||
-    (typeof value?.ingredientId === 'string'
-      ? value.ingredientId
-      : undefined) ||
-    (['article', 'post'].includes(subject) &&
-    /^[a-zA-Z0-9_-]+$/.test(activity.value)
-      ? activity.value
-      : undefined);
-  let path: string = APP_ROUTES.WORKSPACE.ACTIVITY;
-  if (
-    id &&
-    (entityModel === 'ingredient' ||
-      ['image', 'video', 'music', 'voice', 'avatar', 'audio'].includes(subject))
-  ) {
-    path = createLibraryAssetRoute(
-      activity.source === 'avatar-generate' ? 'AVATAR' : subject,
-      id,
-    );
-  } else if (id && (entityModel === 'article' || subject === 'article')) {
-    path = createArtifactEditorRoute('article', encodeURIComponent(id));
-  } else if (id && (entityModel === 'post' || subject === 'post')) {
-    path = createArtifactEditorRoute('post', encodeURIComponent(id));
-  } else if (id && entityModel === 'workflow') {
-    path = `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(id)}`;
-  }
+  const path =
+    getActivityDestinationPath(activity) ?? APP_ROUTES.WORKSPACE.ACTIVITY;
   return brand
     ? createBrandAppRoute(scope.orgSlug, brand.slug, path)
-    : createOrganizationAppRoute(scope.orgSlug, APP_ROUTES.WORKSPACE.ACTIVITY);
+    : createOrganizationAppRoute(scope.orgSlug, path);
 }
 
 export function mergeGenerationActivities(

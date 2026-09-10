@@ -31,7 +31,7 @@ async function setup() {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
-    agentThreadEvent: { findFirst: vi.fn().mockResolvedValue(null) },
+    agentThreadEvent: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -108,7 +108,7 @@ describe('NotificationInboxService', () => {
     prisma.notificationInboxItem.findMany.mockResolvedValue([fixture(1)]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
-      sourceHref: null,
+      sourceHref: '/acme/~/workspace/activity',
       sourceLabel: null,
       failure: null,
     });
@@ -136,7 +136,7 @@ describe('NotificationInboxService', () => {
     ]);
     const page = await service.list('org', 'recipient');
     expect(page.docs[0]).toMatchObject({
-      sourceHref: null,
+      sourceHref: '/acme/~/workspace/activity',
       sourceLabel: null,
       failure: {
         title: 'Run failed',
@@ -159,19 +159,21 @@ describe('NotificationInboxService', () => {
         },
       }),
     ]);
-    prisma.agentThreadEvent.findFirst.mockResolvedValue({
-      runId: 'run-1',
-      thread: { id: 'thread-1', title: 'My task', brand: { slug: 'brand' } },
-    });
+    prisma.agentThreadEvent.findMany.mockResolvedValue([
+      {
+        runId: 'run-1',
+        thread: { id: 'thread-1', title: 'My task', brand: { slug: 'brand' } },
+      },
+    ]);
     expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
       '/acme/brand/agent/thread-1',
     );
-    expect(prisma.agentThreadEvent.findFirst).toHaveBeenCalledWith(
+    expect(prisma.agentThreadEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           organizationId: 'org',
           isDeleted: false,
-          runId: 'run-1',
+          runId: { in: ['run-1'] },
           thread: {
             is: expect.objectContaining({
               userId: 'recipient',
@@ -197,9 +199,9 @@ describe('NotificationInboxService', () => {
         },
       },
     ]);
-    expect(
-      (await service.list('org', 'recipient')).docs[0].sourceHref,
-    ).toBeNull();
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      '/acme/~/workspace/activity',
+    );
     prisma.workflowExecution.findMany.mockResolvedValue([
       {
         id: 'run-1',
@@ -207,9 +209,9 @@ describe('NotificationInboxService', () => {
         workflow: { label: 'Brandless', metadata: null, brand: null },
       },
     ]);
-    expect(
-      (await service.list('org', 'recipient')).docs[0].sourceHref,
-    ).toBeNull();
+    expect((await service.list('org', 'recipient')).docs[0].sourceHref).toBe(
+      '/acme/~/workspace/activity',
+    );
   });
 
   it('writes only unread owned rows and propagates failed mutations', async () => {

@@ -347,9 +347,9 @@ describe('Notification inbox rollout and isolation (real Postgres)', () => {
         where: { id: 'alice-alpha' },
         data: { brands: { connect: { id: 'brand-b' } } },
       });
-      expect(
-        (await inbox.list('alpha', 'alice')).docs[0].sourceHref,
-      ).toBeNull();
+      expect((await inbox.list('alpha', 'alice')).docs[0].sourceHref).toBe(
+        '/alpha/~/workspace/activity',
+      );
     } finally {
       await prisma.member.update({
         where: { id: 'alice-alpha' },

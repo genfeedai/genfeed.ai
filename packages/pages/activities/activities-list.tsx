@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ActivitiesListProps } from '@props/content/activities.props';
 import type { TableAction, TableRowLink } from '@props/ui/display/table.props';
 import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
@@ -18,13 +19,16 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { ClipboardList, Mail, MailOpen, X } from 'lucide-react';
+import { ArrowUpRight, ClipboardList, Mail, MailOpen, X } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
   getActivityDescription,
+  getActivityDestinationPath,
+  getActivityDetailText,
   getBackgroundTaskStatus,
   getResultTypeFromActivityKey,
   isBackgroundTask,
@@ -54,6 +58,7 @@ export default function ActivitiesList({
     toggleActivityRead,
   } = useActivities({ limit: 20, page, scope });
 
+  const { href } = useOrgUrl();
   const { openIngredientOverlay } = useIngredientOverlay();
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
@@ -133,6 +138,7 @@ export default function ActivitiesList({
         key: 'label',
         render: (a: IActivity) =>
           getActivityDescription(a, activityMessageFormatter),
+        subtext: (a: IActivity) => getActivityDetailText(a),
       },
       {
         header: 'Status',
@@ -166,14 +172,12 @@ export default function ActivitiesList({
         },
       },
       {
-        className: 'w-20',
+        className: 'w-16',
         header: '',
         key: 'link',
         render: (a: IActivity) => {
-          // Show external link for published posts
           if (a.key === ActivityKey.POST_PUBLISHED && a.value) {
             const postInfo = parsePostActivityValue(a.value);
-
             if (postInfo?.url && postInfo?.platform) {
               return (
                 <ActivityLinkCell
@@ -183,31 +187,32 @@ export default function ActivitiesList({
               );
             }
           }
-          return null;
-        },
-      },
-      {
-        header: 'Details',
-        key: 'value',
-        render: (a: IActivity) => {
-          // Only show value if it's not asset information and not a post link
-          if (
-            a.value &&
-            !isCreditActivity(a.key) &&
-            !a.value.startsWith('{') &&
-            !a.value.includes('/images/') &&
-            !a.value.includes('/videos/') &&
-            !a.value.startsWith('Published to')
-          ) {
-            return (
-              <span className="text-sm text-foreground/70">{a.value}</span>
-            );
+          const path = getActivityDestinationPath(a);
+          if (!path) {
+            return null;
           }
-          return null;
+          const destination = href(path);
+          return (
+            <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
+              <Link
+                href={destination}
+                aria-label={`Open ${getActivityDescription(a, activityMessageFormatter)}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <ArrowUpRight className="size-4" />
+              </Link>
+            </Button>
+          );
         },
       },
     ],
-    [activityMessageFormatter, getPreviewUrl, handleViewIngredient],
+    [
+      activityMessageFormatter,
+      getPreviewUrl,
+      handleViewIngredient,
+      href,
+      translate,
+    ],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(
@@ -255,19 +260,16 @@ export default function ActivitiesList({
 
   const getRowLink = useCallback(
     (activity: IActivity): TableRowLink | undefined => {
-      const parsed = parseActivityValue(activity.value);
-      const href = typeof parsed?.href === 'string' ? parsed.href : undefined;
-
-      // Most activities are log lines with nowhere to go; only the ones
-      // carrying a destination become links.
-      return href
-        ? {
-            href,
-            label: getActivityDescription(activity, activityMessageFormatter),
-          }
-        : undefined;
+      const path = getActivityDestinationPath(activity);
+      if (!path) {
+        return undefined;
+      }
+      return {
+        href: href(path),
+        label: getActivityDescription(activity, activityMessageFormatter),
+      };
     },
-    [activityMessageFormatter],
+    [activityMessageFormatter, href],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);

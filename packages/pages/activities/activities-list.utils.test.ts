@@ -8,7 +8,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getActivityCreditAmount,
   getActivityDescription,
+  getActivityDestinationPath,
+  getActivityDetailText,
   getActivitySourceLabel,
+  getActivityTypeKind,
 } from './activities-list.utils';
 
 describe('getActivityDescription', () => {
@@ -56,6 +59,39 @@ describe('getActivityDescription', () => {
         }),
       }),
     );
+  });
+
+  it('routes failed media and disconnected social accounts to the page you can act on', () => {
+    expect(
+      getActivityDestinationPath({
+        entityId: 'ing-9',
+        entityModel: 'Ingredient',
+        key: ActivityKey.IMAGE_FAILED,
+        value: JSON.stringify({ error: 'Provider timed out' }),
+      } as IActivity),
+    ).toBe('/library/images?asset=ing-9');
+    expect(
+      getActivityDestinationPath({
+        key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+        value: 'Twitter credential requires reconnection',
+      } as IActivity),
+    ).toBe('/settings/integrations');
+    expect(
+      getActivityTypeKind({
+        key: ActivityKey.IMAGE_FAILED,
+      } as IActivity),
+    ).toBe('image');
+    expect(
+      getActivityTypeKind({
+        key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
+      } as IActivity),
+    ).toBe('social');
+    expect(
+      getActivityDetailText({
+        key: ActivityKey.IMAGE_FAILED,
+        value: JSON.stringify({ error: 'Provider timed out' }),
+      } as IActivity),
+    ).toBe('Provider timed out');
   });
 
   it('exposes structured source and credit metadata for compact activity feeds', () => {
