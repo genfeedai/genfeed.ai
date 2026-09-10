@@ -1,6 +1,6 @@
+import HomeAsks from '@web-components/home/_asks';
 import HomeCTA from '@web-components/home/_cta';
 import HomeFooter from '@web-components/home/_footer';
-import HomeFormats from '@web-components/home/_formats';
 import HomeHero from '@web-components/home/_hero';
 import HomeHow from '@web-components/home/_how';
 import HomeProduct from '@web-components/home/_product';
@@ -14,7 +14,7 @@ export default function HomeContent() {
       <HomeProduct />
       <ProofWinners />
       <HomeHow />
-      <HomeFormats />
+      <HomeAsks />
       <HomeCTA />
       <HomeFooter />
     </HomeReveal>

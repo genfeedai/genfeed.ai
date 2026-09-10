@@ -24,10 +24,15 @@ function formatArticleDate(publishedAt: string): string {
 
 export default function ArticlesList({ articles }: ArticlesListProps) {
   return (
+    /*
+      The site shell already says where you are, so the page repeats no title
+      of its own. `label` stays for the accessible name and the breadcrumb;
+      `sr-only` is what drops the visible chrome.
+    */
     <Container
+      className="min-h-screen pt-10"
       label="Articles"
-      description="Read our latest articles"
-      className="min-h-screen pt-24"
+      titleVisibility="sr-only"
     >
       {articles.length === 0 ? (
         <div className="space-y-4">
@@ -56,7 +61,7 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                 <Card className="h-full border border-edge/[0.08] transition-all hover:shadow-lg">
                   <ArticleCover
                     category={article.category}
-                    className="mb-4 h-32 md:h-40"
+                    className="mb-4 aspect-[16/9]"
                     coverImageUrl={article.coverImageUrl}
                     isCompact
                     label={article.label}

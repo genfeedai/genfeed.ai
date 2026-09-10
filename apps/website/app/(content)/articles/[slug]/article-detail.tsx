@@ -223,7 +223,7 @@ export default function ArticleDetail({
 
   return (
     <div
-      className="flex min-h-screen flex-col px-4 pb-8 pt-32"
+      className="flex min-h-screen flex-col px-4 pb-8 pt-12"
       style={{ backgroundColor: brand?.backgroundColor || '#000' }}
     >
       <div className="mx-auto w-full max-w-7xl">

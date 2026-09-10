@@ -87,7 +87,7 @@ describe('HomeHero', () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Start creating', 'Use the Agent']);
+    ).toEqual(['Start for $0', 'See what it does']);
 
     const actions = screen.getByTestId('home-hero-actions');
     const carousel = screen.getByTestId('home-hero-output-carousel');
@@ -158,7 +158,7 @@ describe('HomeHero', () => {
     ).toHaveAttribute('href', '/agent');
   });
 
-  it('tracks Start creating separately from Use the Agent', () => {
+  it('tracks the signup CTA separately from the agent CTA', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);

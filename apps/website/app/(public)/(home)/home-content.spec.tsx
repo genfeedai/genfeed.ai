@@ -16,8 +16,8 @@ vi.mock('@web-components/home/_product', () => ({
   default: () => <section data-testid="home-product">Product</section>,
 }));
 
-vi.mock('@web-components/home/_formats', () => ({
-  default: () => <section data-testid="home-formats">Formats</section>,
+vi.mock('@web-components/home/_asks', () => ({
+  default: () => <section data-testid="home-asks">Asks</section>,
 }));
 
 vi.mock('@web-components/proof/ProofWinners', () => ({
@@ -63,7 +63,7 @@ describe('HomeContent', () => {
 
     expect(sections[2]).toBe(screen.getByTestId('home-winners'));
     expect(sections[3]).toBe(screen.getByTestId('home-distribution-loop'));
-    expect(sections[4]).toBe(screen.getByTestId('home-formats'));
+    expect(sections[4]).toBe(screen.getByTestId('home-asks'));
     expect(sections[5]).toBe(screen.getByTestId('home-cta'));
   });
 

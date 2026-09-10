@@ -52,3 +52,21 @@ export interface HomeOutputCardProps {
   /** The rail preloads only the first card; the rest wait until they scroll in. */
   isPreloaded: boolean;
 }
+
+/**
+ * One "say this, get that" pair.
+ *
+ * The homepage sells what the agent can be asked for, not the formats it
+ * supports: a capability list invites a feature comparison, a request the
+ * reader recognises does not. `href` sends them to the page for that job.
+ */
+export interface AgentPrompt {
+  /** What the reader would type, in their words. */
+  ask: string;
+  /** What comes back, concrete enough to picture. */
+  result: string;
+  /** The audience page that continues this promise. */
+  href: string;
+  /** Short label for the destination link. */
+  hrefLabel: string;
+}
