@@ -31,16 +31,10 @@ export function suppressInternalEmailOutcomeNotification(
   );
 }
 
-function isAgentConversationWorkflow(metadata: unknown): boolean {
-  if (!isHiddenSystemWorkflowMetadata(metadata)) return false;
-  const canonicalId = getSystemWorkflowMetadata(metadata)?.canonicalId ?? '';
-  return AGENT_CONVERSATION_WORKFLOW_IDS.includes(canonicalId);
-}
-
 /**
- * Agent turns run as hidden system workflows. Completions are the
- * conversation itself — they must not fan out "Workflow completed".
- * Failures still notify as agent run errors.
+ * Hidden system workflows (agent turns, knowledge ingest, internal jobs)
+ * must not fan out "Workflow completed". The conversation or the job's own
+ * UI already shows the result. Agent-run failures still notify.
  */
 export function suppressWorkflowOutcomeNotification(
   metadata: unknown,
@@ -49,7 +43,7 @@ export function suppressWorkflowOutcomeNotification(
   if (suppressInternalEmailOutcomeNotification(metadata)) {
     return true;
   }
-  return !isFailed && isAgentConversationWorkflow(metadata);
+  return !isFailed && isHiddenSystemWorkflowMetadata(metadata);
 }
 
 export function buildWorkflowOutcomeInput(

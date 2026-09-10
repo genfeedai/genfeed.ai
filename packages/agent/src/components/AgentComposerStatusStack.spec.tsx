@@ -264,6 +264,90 @@ describe('AgentComposerStatusStack', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps a research turn as Working instead of dumping every tool as a plan', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'get_current_brand',
+            status: AgentWorkEventStatus.COMPLETED,
+            threadId: 'thread-1',
+            toolCallId: 'call-1',
+            toolName: 'get_current_brand',
+          },
+          {
+            createdAt: '2026-07-13T00:00:01.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-2',
+            label: 'capture_knowledge',
+            status: AgentWorkEventStatus.COMPLETED,
+            threadId: 'thread-1',
+            toolCallId: 'call-2',
+            toolName: 'capture_knowledge',
+          },
+          {
+            createdAt: '2026-07-13T00:00:02.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-3',
+            label: 'draft_brand_voice_profile',
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolCallId: 'call-3',
+            toolName: 'draft_brand_voice_profile',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Working')).toBeInTheDocument();
+    expect(screen.queryByText('Creating audio')).not.toBeInTheDocument();
+    expect(screen.getByText('Draft Brand Voice')).toBeInTheDocument();
+    expect(screen.queryByText('Current Brand')).not.toBeInTheDocument();
+    expect(screen.queryByText('Capture Knowledge')).not.toBeInTheDocument();
+  });
+
+  it('shows an approved plan when the run is not a generation pipeline', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        latestProposedPlan={{
+          createdAt: '2026-07-13T00:00:00.000Z',
+          id: 'plan-1',
+          status: 'approved',
+          steps: [
+            { status: 'in_progress', step: 'Gather brand context' },
+            { status: 'pending', step: 'Draft the voice' },
+          ],
+          updatedAt: '2026-07-13T00:00:00.000Z',
+        }}
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'get_current_brand',
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolCallId: 'call-1',
+            toolName: 'get_current_brand',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Gather brand context')).toBeInTheDocument();
+    expect(screen.getByText('Draft the voice')).toBeInTheDocument();
+    expect(screen.queryByText('Current Brand')).not.toBeInTheDocument();
+  });
+
   it('hides successful progress as soon as every step is complete', () => {
     const { container } = render(
       <AgentComposerStatusStack

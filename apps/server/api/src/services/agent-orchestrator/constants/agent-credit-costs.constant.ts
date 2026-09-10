@@ -22,7 +22,12 @@ export const AGENT_CREDIT_COSTS: Record<string, number> = {
   ...EXTRA_AGENT_CREDIT_COSTS,
 };
 
-export const AGENT_MAX_TOOL_ROUNDS = 5;
+/**
+ * LLM request/response pairs inside one chat turn. 5 starved research turns
+ * (brand context, knowledge ingest, onboarding) that need a handful of tools
+ * before they can answer. Billing is still per completed round.
+ */
+export const AGENT_MAX_TOOL_ROUNDS = 25;
 
 /**
  * Per-model LLM round costs and turn estimates live on
