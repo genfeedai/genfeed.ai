@@ -95,7 +95,6 @@ export function AgentChatContainerThreadView({
   isSubmittingInputRequest,
   latestProposedPlan,
   messagesEndRef,
-  onboardingMode,
   onApprovePlan,
   onBrandCreate,
   onCopy,
@@ -136,15 +135,6 @@ export function AgentChatContainerThreadView({
           timeline={timeline}
         />
       ) : null}
-      {pendingInputRequest && shouldShowInputRequestOverlay ? (
-        <AgentInputRequestOverlay
-          key={pendingInputRequest.inputRequestId}
-          isSubmitting={isSubmittingInputRequest}
-          onSubmit={onSubmitInputRequest}
-          request={pendingInputRequest}
-          variant={onboardingMode ? 'inline' : 'overlay'}
-        />
-      ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
           window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
       <div ref={scrollContainerRef} className={AGENT_CONVERSATION_SCROLL_CLASS}>
@@ -156,6 +146,15 @@ export function AgentChatContainerThreadView({
           {/* Thread title lives in the shell topbar — no second title chrome. */}
           {activeThreadTitle ? (
             <h2 className="sr-only">{activeThreadTitle}</h2>
+          ) : null}
+          {pendingInputRequest && shouldShowInputRequestOverlay ? (
+            <AgentInputRequestOverlay
+              key={pendingInputRequest.inputRequestId}
+              isSubmitting={isSubmittingInputRequest}
+              onSubmit={onSubmitInputRequest}
+              request={pendingInputRequest}
+              variant="inline"
+            />
           ) : null}
 
           {latestProposedPlan ? (

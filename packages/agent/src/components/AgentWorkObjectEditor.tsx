@@ -135,7 +135,7 @@ export function AgentWorkObjectEditor({
         <p className="text-sm font-semibold text-foreground">{object.title}</p>
         <Link
           href={libraryHref ?? object.href}
-          className="text-xs text-primary underline"
+          className="text-xs font-medium text-foreground/60 transition-colors hover:text-foreground"
         >
           {translate('openLibrary')}
         </Link>
@@ -254,12 +254,14 @@ export function AgentWorkObjectEditor({
               </Button>
             </>
           )}
-          <p className="text-xs text-muted-foreground">
-            {translate(
-              ready && !dirty ? 'confirmationRequired' : 'generateLocked',
-            )}
-          </p>
         </div>
+      ) : null}
+      {!isReadOnly ? (
+        <p className="text-xs text-muted-foreground">
+          {translate(
+            ready && !dirty ? 'confirmationRequired' : 'generateLocked',
+          )}
+        </p>
       ) : null}
     </div>
   );
