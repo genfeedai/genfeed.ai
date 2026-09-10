@@ -29,6 +29,8 @@ import {
 interface ActionSchemaFieldsProps {
   disabled?: boolean;
   hiddenFields?: ReadonlySet<string>;
+  hideDescriptions?: boolean;
+  idPrefix?: string;
   onChange: (field: string, value: unknown) => void;
   schema: object;
   values: Record<string, unknown>;
@@ -37,6 +39,8 @@ interface ActionSchemaFieldsProps {
 interface ActionFieldProps {
   disabled: boolean;
   field: string;
+  fieldId: string;
+  hideDescriptions?: boolean;
   onChange: (value: unknown) => void;
   property: ActionSchemaProperty;
   required: boolean;
@@ -96,6 +100,8 @@ function JsonField({
 function ActionField({
   disabled,
   field,
+  fieldId,
+  hideDescriptions = false,
   onChange,
   property,
   required,
@@ -104,7 +110,6 @@ function ActionField({
   const translate = useTranslations('pages.workflows.actionSchema');
   const resolved = unwrapActionSchemaProperty(property);
   const label = formatActionFieldLabel(field, property.title);
-  const fieldId = `action-field-${field}`;
   const enumOptions = resolved.enum?.filter(
     (option): option is string => typeof option === 'string',
   );
@@ -230,7 +235,7 @@ function ActionField({
         </Label>
       </div>
       {control}
-      {description ? (
+      {description && !hideDescriptions ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
@@ -242,6 +247,8 @@ function ActionField({
 export function ActionSchemaFields({
   disabled = false,
   hiddenFields,
+  hideDescriptions = false,
+  idPrefix = '',
   onChange,
   schema,
   values,
@@ -261,12 +268,14 @@ export function ActionSchemaFields({
   }
 
   return (
-    <div className="space-y-4">
+    <div className={hideDescriptions ? 'space-y-2.5' : 'space-y-4'}>
       {entries.map(([field, property]) => (
         <ActionField
           key={field}
           disabled={disabled}
           field={field}
+          fieldId={`action-field-${idPrefix}${field}`}
+          hideDescriptions={hideDescriptions}
           onChange={(value) => onChange(field, value)}
           property={property}
           required={required.has(field)}

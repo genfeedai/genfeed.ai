@@ -271,3 +271,68 @@ export function createActionVisualDefinition(
 export function formatActionFieldLabel(field: string, title?: string): string {
   return formatFieldLabel(field, title);
 }
+
+const ON_NODE_SKIP = new Set([
+  'agentStrategyId',
+  'brand',
+  'brandId',
+  'credentialId',
+  'credentialIds',
+  'input',
+  'item',
+  'items',
+  'organizationId',
+  'output',
+  'request',
+  'state',
+]);
+
+const ON_NODE_PRIORITY = [
+  'prompt',
+  'query',
+  'text',
+  'content',
+  'topic',
+  'topics',
+  'username',
+  'platform',
+  'model',
+  'mode',
+];
+
+export const ON_NODE_FIELD_LIMIT = 4;
+
+function isOnNodeField(field: string, property: ActionSchemaProperty): boolean {
+  if (ON_NODE_SKIP.has(field) || MEDIA_FIELD_PATTERN.test(field)) {
+    return false;
+  }
+  const resolved = unwrapActionSchemaProperty(property);
+  if (resolved.type === 'object') {
+    return false;
+  }
+  if (resolved.type === 'array') {
+    return unwrapActionSchemaProperty(resolved.items ?? {}).type === 'string';
+  }
+  return true;
+}
+
+/**
+ * Compact subset of action inputs to render on the node body so operators
+ * can edit without opening the inspector.
+ */
+export function selectOnNodeProperties(
+  schema: ActionJsonSchema | undefined,
+): Record<string, ActionSchemaProperty> {
+  const { properties } = readActionObjectSchema(schema);
+  const ranked = Object.entries(properties)
+    .filter(([field, property]) => isOnNodeField(field, property))
+    .sort(([left], [right]) => {
+      const leftRank = ON_NODE_PRIORITY.indexOf(left);
+      const rightRank = ON_NODE_PRIORITY.indexOf(right);
+      return (
+        (leftRank === -1 ? ON_NODE_PRIORITY.length : leftRank) -
+        (rightRank === -1 ? ON_NODE_PRIORITY.length : rightRank)
+      );
+    });
+  return Object.fromEntries(ranked.slice(0, ON_NODE_FIELD_LIMIT));
+}

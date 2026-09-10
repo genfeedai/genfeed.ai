@@ -198,33 +198,37 @@ interface BaseNodeProps extends NodeProps {
   hideStatusIndicator?: boolean;
   /** Input handle IDs that should appear disabled (reduced opacity) when model doesn't support them */
   disabledInputs?: string[];
+  /** Override the default content minimum width (px). */
+  minWidth?: number;
+  /** Override the default content minimum height (px). */
+  minHeight?: number;
 }
 
 // Hover delay for showing preview tooltip (ms)
 const HOVER_DELAY = 300;
 
 // Node dimension constraints
-const NODE_MIN_WIDTH = 220;
+const NODE_MIN_WIDTH = 280;
 const NODE_RESIZER_MAX_WIDTH = 500;
 const DOWNLOAD_NODE_MIN_WIDTH = 200;
 const DOWNLOAD_NODE_MIN_HEIGHT = 280;
-const NODE_MIN_HEIGHT = 100;
+const NODE_MIN_HEIGHT = 160;
 
 function BaseNodeResizer({
   color,
   minHeight,
+  minWidth,
   state,
-  type,
 }: {
   color: string;
   minHeight: number;
+  minWidth: number;
   state: { isLocked: boolean; isSelected: boolean };
-  type: string;
 }) {
   return (
     <NodeResizer
       isVisible={state.isSelected && !state.isLocked}
-      minWidth={type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH}
+      minWidth={minWidth}
       minHeight={minHeight}
       maxWidth={NODE_RESIZER_MAX_WIDTH}
       lineClassName="!border-transparent"
@@ -455,6 +459,8 @@ function BaseNodeComponent({
   height,
   disabledInputs,
   nodeDefinition,
+  minWidth: minWidthOverride,
+  minHeight: minHeightOverride,
 }: BaseNodeProps) {
   // Check if node has been manually resized (has explicit dimensions)
   const isResized = width !== undefined || height !== undefined;
@@ -641,17 +647,21 @@ function BaseNodeComponent({
 
   const isProcessing = nodeData.status === 'processing';
   const minNodeHeight = Math.max(
-    type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT,
+    minHeightOverride ??
+      (type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT),
     (Math.max(sortedInputs.length, nodeDef.outputs.length) + 1) * 24,
   );
+  const minNodeWidth =
+    minWidthOverride ??
+    (type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH);
 
   return (
     <>
       <BaseNodeResizer
         color={effectiveColor}
         minHeight={minNodeHeight}
+        minWidth={minNodeWidth}
         state={{ isLocked, isSelected }}
-        type={type}
       />
       <div
         ref={nodeRef}
@@ -660,7 +670,7 @@ function BaseNodeComponent({
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',
-          !isResized && type !== 'download' && 'min-w-[280px] max-w-[360px]',
+          !isResized && type !== 'download' && 'max-w-[360px]',
           isSelected && 'ring-1',
           isLocked && 'opacity-60',
           !isHighlighted && !isSelected && 'opacity-40',
@@ -676,6 +686,9 @@ function BaseNodeComponent({
             // Node identity color on the border (custom color takes precedence)
             borderColor: customColor || effectiveColor,
             minHeight: minNodeHeight,
+            ...(!isResized && type !== 'download'
+              ? { minWidth: minNodeWidth }
+              : {}),
             // When resized, use explicit dimensions
             ...(isResized && {
               height: height ? `${height}px` : undefined,
@@ -767,6 +780,8 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
 
   // Check hideStatusIndicator
   if (prev.hideStatusIndicator !== next.hideStatusIndicator) return false;
+  if (prev.minWidth !== next.minWidth) return false;
+  if (prev.minHeight !== next.minHeight) return false;
 
   // Check custom node definition
   if (prev.nodeDefinition !== next.nodeDefinition) return false;

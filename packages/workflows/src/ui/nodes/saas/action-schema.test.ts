@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createActionVisualDefinition,
   readActionObjectSchema,
+  selectOnNodeProperties,
 } from './action-schema';
 
 const action: GenfeedActionDefinition = {
@@ -119,5 +120,24 @@ describe('action schema visual adapter', () => {
     expect(schema.properties.topic).toEqual({
       anyOf: [{ type: 'string' }, { type: 'null' }],
     });
+  });
+
+  it('picks a compact set of on-node fields and skips identity or media', () => {
+    expect(
+      Object.keys(
+        selectOnNodeProperties({
+          properties: {
+            brandId: { type: 'string' },
+            credentialId: { type: 'string' },
+            image: { type: 'string' },
+            limit: { type: 'integer' },
+            platform: { type: 'string' },
+            query: { type: 'string' },
+            username: { type: 'string' },
+          },
+          type: 'object',
+        }),
+      ),
+    ).toEqual(['query', 'username', 'platform', 'limit']);
   });
 });
