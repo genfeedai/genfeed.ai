@@ -294,9 +294,11 @@ export class NotificationInboxService {
     });
     const threads = new Map<string, (typeof threadEvents)[number]['thread']>();
     for (const event of threadEvents) {
-      if (!threads.has(event.runId)) {
-        threads.set(event.runId, event.thread);
+      const runId = event.runId;
+      if (!runId || threads.has(runId)) {
+        continue;
       }
+      threads.set(runId, event.thread);
     }
 
     const docs = page.map((row) => {
