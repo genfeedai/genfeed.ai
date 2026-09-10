@@ -20,6 +20,9 @@ describe('page help routing', () => {
     expect(resolvePageHelpKey('/acme/brand/automation/workflows/new')).toBe(
       'automationWorkflows',
     );
+    expect(
+      resolvePageHelpKey('/acme/brand/automation/workflows/templates'),
+    ).toBe('automationTemplates');
   });
 
   it('returns null for pages without help copy', () => {

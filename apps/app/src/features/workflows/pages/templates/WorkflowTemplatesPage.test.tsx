@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowTemplate } from '@/features/workflows/services/workflow-api';
-import WorkflowTemplatesPage from './WorkflowTemplatesPage';
+import WorkflowTemplatesPage, { categoryLabel } from './WorkflowTemplatesPage';
 
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
@@ -65,15 +65,22 @@ vi.mock('@genfeedai/contexts/ui/page-help-context', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    headerTabs,
     leading,
     right,
   }: {
     children?: ReactNode;
+    headerTabs?: { tabs?: Array<{ href?: string; label: string }> };
     leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
       <header data-testid="section-topbar">
+        {headerTabs?.tabs?.map((tab) => (
+          <a key={tab.label} href={tab.href}>
+            {tab.label}
+          </a>
+        ))}
         {leading}
         {right}
       </header>
@@ -168,17 +175,7 @@ describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listTemplates.mockResolvedValue([POST_HARD_CUT_TEMPLATE]);
-    mocks.list.mockResolvedValue([
-      {
-        createdAt: '2026-09-01T00:00:00.000Z',
-        description: 'Brand-owned pipeline.',
-        id: 'lib-1',
-        label: 'My pipeline',
-        lifecycle: 'draft',
-        nodeCount: 2,
-        updatedAt: '2026-09-01T00:00:00.000Z',
-      },
-    ]);
+    mocks.list.mockResolvedValue([]);
     mocks.listSystemCatalog.mockResolvedValue([
       {
         canonicalId: 'system-1',
@@ -226,18 +223,22 @@ describe('WorkflowTemplatesPage', () => {
     });
   });
 
-  it('renders library, catalog, and templates in one grid without a mid-page heading', async () => {
+  it('renders catalog and templates without mixing in the saved library', async () => {
     render(<WorkflowTemplatesPage />);
 
     await waitFor(() => {
       expect(screen.getByText('Social blast')).toBeInTheDocument();
     });
     expect(screen.getByText('Daily digest')).toBeInTheDocument();
-    expect(screen.getByText('My pipeline')).toBeInTheDocument();
-    expect(screen.queryByText('System workflows')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(/App-owned automations/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('My pipeline')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'href',
+      '/demo/FUDNEWS/automation/workflows',
+    );
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/demo/FUDNEWS/automation/workflows/templates',
+    );
     expect(
       screen.getByRole('img', { name: 'Daily digest workflow diagram' }),
     ).toBeInTheDocument();
@@ -246,13 +247,19 @@ describe('WorkflowTemplatesPage', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Use template' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/templates?template=tpl-1',
-    );
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute(
-      'href',
-      '/demo/FUDNEWS/automation/workflows/lib-1',
+      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
+  });
+
+  it('title-cases unknown category keys', () => {
+    expect(categoryLabel('ads')).toBe('Ads');
+    expect(categoryLabel('agents')).toBe('Agents');
+    expect(categoryLabel('analytics')).toBe('Analytics');
+    expect(categoryLabel('automation')).toBe('Automation');
+    expect(categoryLabel('campaigns')).toBe('Campaigns');
+    expect(categoryLabel('social')).toBe('Social Media');
+    expect(categoryLabel('ad-automation')).toBe('Ads');
   });
 });

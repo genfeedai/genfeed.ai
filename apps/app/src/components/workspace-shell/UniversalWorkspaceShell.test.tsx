@@ -1505,6 +1505,7 @@ describe('UniversalWorkspaceShell', () => {
     ['/acme/moonrise/automation/workflows/workflow-1'],
     ['/acme/moonrise/automation/workflows'],
     ['/acme/moonrise/automation/templates'],
+    ['/acme/moonrise/automation/workflows/templates'],
     ['/acme/moonrise/automation/runs'],
     ['/acme/moonrise/automation/runs/run-1'],
   ])('renders the workflow inspector on %s', (pathname) => {

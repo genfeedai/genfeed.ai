@@ -13,6 +13,10 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'automationOverview', prefix: APP_ROUTES.AUTOMATION.OVERVIEW },
   { key: 'automationWorkflows', prefix: APP_ROUTES.AUTOMATION.WORKFLOWS },
   { key: 'automationTemplates', prefix: APP_ROUTES.AUTOMATION.TEMPLATES },
+  {
+    key: 'automationTemplates',
+    prefix: APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
+  },
   { key: 'automationRuns', prefix: APP_ROUTES.AUTOMATION.RUNS },
   { key: 'automationAgents', prefix: APP_ROUTES.AUTOMATION.AGENTS },
   { key: 'automationPrograms', prefix: APP_ROUTES.AUTOMATION.CAMPAIGNS },

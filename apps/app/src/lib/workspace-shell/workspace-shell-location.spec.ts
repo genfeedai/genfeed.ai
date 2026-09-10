@@ -43,6 +43,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/studio/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automation/templates',
+    '/acme/moonrise/automation/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
   ])('registers the protected product family %s as canvas', (pathname) => {
     expect(

@@ -28,7 +28,7 @@ export function executionsHistoryLocator(page: Page): Locator {
 export class WorkflowPage {
   readonly page: Page;
   readonly basePath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS);
-  readonly templatesPath = brandPath(APP_ROUTES.AUTOMATION.TEMPLATES);
+  readonly templatesPath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES);
   readonly runsPath = brandPath(APP_ROUTES.AUTOMATION.RUNS);
 
   // Layout
@@ -123,7 +123,8 @@ export class WorkflowPage {
       .first();
     this.navTemplates = page
       .locator(
-        'a[href*="/automation/templates"],' + ' [data-testid="nav-templates"]',
+        'a[href*="/automation/workflows/templates"],' +
+          ' [data-testid="nav-templates"]',
       )
       .first();
     this.navExecutions = page

@@ -1,13 +1,14 @@
 'use client';
 
 import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import {
-  toBrandListParams,
-  useCollectionScope,
-} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
@@ -37,10 +38,10 @@ import { describeCadence } from '@/features/workflows/components/schedule/schedu
 import {
   createWorkflowApiService,
   type SystemWorkflowCatalogEntry,
-  type WorkflowSummary,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
 import WorkflowCardPreview from '../library/WorkflowCardPreview';
+import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'All categories',
@@ -61,7 +62,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const SOURCE_FILTERS = [
   { id: 'all', label: 'All sources' },
-  { id: 'library', label: 'Library' },
   { id: 'installed', label: 'Installed' },
   { id: 'available', label: 'Available' },
 ] as const;
@@ -86,7 +86,6 @@ type CatalogItem = {
 type PageState = {
   templates: WorkflowTemplate[];
   systemCatalog: SystemWorkflowCatalogEntry[];
-  library: WorkflowSummary[];
   selectedCategory: string;
   selectedSource: CatalogSource;
   searchQuery: string;
@@ -102,7 +101,6 @@ type PageAction =
       type: 'LOAD_SUCCESS';
       templates: WorkflowTemplate[];
       systemCatalog: SystemWorkflowCatalogEntry[];
-      library: WorkflowSummary[];
     }
   | { type: 'LOAD_ERROR'; error: string }
   | { type: 'SET_CATEGORY'; category: string }
@@ -121,7 +119,6 @@ type PageAction =
 const initialState: PageState = {
   templates: [],
   systemCatalog: [],
-  library: [],
   selectedCategory: 'all',
   selectedSource: 'all',
   searchQuery: '',
@@ -141,7 +138,6 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         isLoading: false,
         templates: action.templates,
         systemCatalog: action.systemCatalog,
-        library: action.library,
       };
     case 'LOAD_ERROR':
       return { ...state, isLoading: false, error: action.error };
@@ -186,8 +182,8 @@ function pageReducer(state: PageState, action: PageAction): PageState {
   }
 }
 
-function categoryLabel(category: string): string {
-  return CATEGORY_LABELS[category] ?? category;
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? formatEnumLabel(category) ?? category;
 }
 
 function cadenceLabel(cron?: string): string | null {
@@ -202,84 +198,45 @@ function sourceBadge(source: CatalogItem['source']): string {
   if (source === 'installed') {
     return 'Installed';
   }
-  if (source === 'library') {
-    return 'Library';
-  }
   return 'Available';
 }
 
 function buildCatalogItems({
-  library,
   systemCatalog,
   templates,
   href,
 }: {
   href: (path: string) => string;
-  library: WorkflowSummary[];
   systemCatalog: SystemWorkflowCatalogEntry[];
   templates: WorkflowTemplate[];
 }): CatalogItem[] {
-  const installedIds = new Set(
-    systemCatalog.flatMap((entry) =>
+  const catalogItems: CatalogItem[] = systemCatalog.map((entry) => ({
+    actionLabel: entry.installed ? 'Open' : 'Install',
+    category: entry.category || entry.family || 'system',
+    description: entry.description,
+    edges: entry.edges,
+    href:
       entry.installed && entry.installedWorkflowId
-        ? [entry.installedWorkflowId]
-        : [],
-    ),
-  );
-  const libraryIds = new Set(library.map((workflow) => workflow.id));
-
-  const libraryItems: CatalogItem[] = library.map((workflow) => ({
-    actionLabel: 'Open',
-    category: 'library',
-    description:
-      workflow.description ?? 'Saved workflow in this brand library.',
-    edges: workflow.edges,
-    href: href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`),
-    id: `library-${workflow.id}`,
-    nodes: workflow.nodes,
-    schedule: workflow.schedule,
-    source: installedIds.has(workflow.id) ? 'installed' : 'library',
-    thumbnail: workflow.thumbnail,
-    title: workflow.label,
+        ? href(
+            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+          )
+        : undefined,
+    id: `system-${entry.canonicalId}`,
+    nodes: entry.nodes,
+    schedule: entry.schedule,
+    source: entry.installed ? 'installed' : 'available',
+    systemEntry: entry,
+    title: entry.label,
   }));
-
-  const catalogItems: CatalogItem[] = systemCatalog.flatMap((entry) => {
-    if (
-      entry.installed &&
-      entry.installedWorkflowId &&
-      libraryIds.has(entry.installedWorkflowId)
-    ) {
-      return [];
-    }
-
-    return [
-      {
-        actionLabel: entry.installed ? 'Open' : 'Install',
-        category: entry.category || entry.family || 'system',
-        description: entry.description,
-        edges: entry.edges,
-        href:
-          entry.installed && entry.installedWorkflowId
-            ? href(
-                `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
-              )
-            : undefined,
-        id: `system-${entry.canonicalId}`,
-        nodes: entry.nodes,
-        schedule: entry.schedule,
-        source: entry.installed ? 'installed' : 'available',
-        systemEntry: entry,
-        title: entry.label,
-      },
-    ];
-  });
 
   const templateItems: CatalogItem[] = templates.map((template) => ({
     actionLabel: 'Use template',
     category: template.category || 'generation',
     description: template.description,
     edges: template.edges,
-    href: href(`${APP_ROUTES.AUTOMATION.TEMPLATES}?template=${template.id}`),
+    href: href(
+      `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+    ),
     id: `template-${template.id}`,
     nodes: template.nodes,
     schedule: template.schedule,
@@ -287,7 +244,7 @@ function buildCatalogItems({
     title: template.name,
   }));
 
-  return [...libraryItems, ...catalogItems, ...templateItems];
+  return [...catalogItems, ...templateItems];
 }
 
 function filterCatalogItems(
@@ -322,13 +279,11 @@ function filterCatalogItems(
 
 function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
-  const { brandId } = useCollectionScope();
   const pageHelp = usePageHelp();
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
     templates,
     systemCatalog,
-    library,
     selectedCategory,
     selectedSource,
     searchQuery,
@@ -353,19 +308,14 @@ function WorkflowTemplatesPageContent() {
       }
 
       const service = await getService();
-      const [data, catalog, libraryPage] = await Promise.all([
+      const [data, catalog] = await Promise.all([
         service.listTemplates(),
         service.listSystemCatalog(),
-        service.list({
-          ...toBrandListParams({ brandId }),
-          limit: 100,
-        }),
       ]);
 
       if (mountedRef.current) {
         dispatch({
           type: 'LOAD_SUCCESS',
-          library: libraryPage,
           systemCatalog: catalog.filter((entry) => entry.installable),
           templates: data,
         });
@@ -380,7 +330,7 @@ function WorkflowTemplatesPageContent() {
         });
       }
     }
-  }, [brandId, getService]);
+  }, [getService]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -509,11 +459,10 @@ function WorkflowTemplatesPageContent() {
     () =>
       buildCatalogItems({
         href,
-        library,
         systemCatalog,
         templates,
       }),
-    [href, library, systemCatalog, templates],
+    [href, systemCatalog, templates],
   );
 
   const visibleItems = useMemo(
@@ -538,7 +487,8 @@ function WorkflowTemplatesPageContent() {
 
   const catalogChrome = {
     help: null,
-    label: 'Templates',
+    headerTabs: workflowCollectionHeaderTabs(href),
+    label: 'Workflows',
     leading: (
       <FormSearchbar
         className="w-64"

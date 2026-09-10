@@ -99,15 +99,22 @@ vi.mock('@ui/card/Card', () => ({
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
+    headerTabs,
     leading,
     right,
   }: {
     children?: ReactNode;
+    headerTabs?: { tabs?: Array<{ href?: string; label: string }> };
     leading?: ReactNode;
     right?: ReactNode;
   }) => (
     <main>
       <header data-testid="section-topbar">
+        {headerTabs?.tabs?.map((tab) => (
+          <a key={tab.label} href={tab.href}>
+            {tab.label}
+          </a>
+        ))}
         {leading}
         {right}
       </header>
@@ -326,6 +333,14 @@ describe('WorkflowLibraryPage card semantics', () => {
     expect(toolbar).toContainElement(search);
     expect(toolbar).toContainElement(help);
     expect(toolbar).toContainElement(newWorkflow);
+    expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows',
+    );
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows/templates',
+    );
     expect(
       search.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -338,7 +353,10 @@ describe('WorkflowLibraryPage card semantics', () => {
   it('keeps card navigation separate from schedule and menu actions', () => {
     render(<WorkflowLibraryPage />);
 
-    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
+      'href',
+      '/acme/brand/automation/workflows/templates',
+    );
     for (const link of screen.getAllByRole('link', {
       name: 'New Workflow',
     })) {
@@ -450,7 +468,9 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(topbar).toContainElement(search);
     expect(createLinks.some((link) => topbar.contains(link))).toBe(true);
-    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
+    expect(topbar).toContainElement(
+      screen.getByRole('link', { name: 'Templates' }),
+    );
     expect(screen.queryByText('Autopilot')).toBeNull();
     expect(screen.getByTestId('library-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('library-content')).not.toBeInTheDocument();

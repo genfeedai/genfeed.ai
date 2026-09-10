@@ -27,6 +27,7 @@ import {
   getLifecycleBadgeClass,
   isNonDefaultWorkflowLifecycle,
 } from '@/features/workflows/utils/status-helpers';
+import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
 import EmptyWorkflowState from './EmptyWorkflowState';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 import WorkflowCardDropdown from './WorkflowCardDropdown';
@@ -70,6 +71,7 @@ export default function WorkflowLibraryPage() {
 
   const libraryChrome = {
     help: null,
+    headerTabs: workflowCollectionHeaderTabs(href),
     label: translate('library.title'),
     leading: (
       <FormSearchbar

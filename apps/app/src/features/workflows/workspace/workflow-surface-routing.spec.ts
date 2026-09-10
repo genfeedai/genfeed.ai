@@ -35,10 +35,10 @@ describe('workflow surface routing', () => {
     });
   });
 
-  it('keeps the canonical templates page in the workflow inspector family', () => {
+  it('keeps the templates tab in the workflow inspector family', () => {
     expect(
       resolveWorkflowSurfaceRoute(
-        '/acme/moonrise/automation/templates',
+        '/acme/moonrise/automation/workflows/templates',
         new URLSearchParams(),
       ),
     ).toEqual({

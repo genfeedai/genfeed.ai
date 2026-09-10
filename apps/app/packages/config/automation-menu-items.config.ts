@@ -1,19 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import {
-  History,
-  LayoutGrid,
-  LayoutTemplate,
-  Megaphone,
-  Users,
-  Workflow,
-} from 'lucide-react';
+import { History, LayoutGrid, Megaphone, Users, Workflow } from 'lucide-react';
 
 /**
  * Automation module nav — grouped by usage (same pattern as Analytics / Settings).
  *
  * - Home: Overview
- * - Workflows: pipelines + templates + run history
+ * - Workflows: library + templates + run history
  * - Agents: roster and programs. Schedule and autonomy live on the agent.
  *
  * Outreach / reply drip / author replies live in Messages.
@@ -36,19 +29,13 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
+      APP_ROUTES.AUTOMATION.TEMPLATES,
       APP_ROUTES.AUTOMATION.WORKFLOWS,
       APP_ROUTES.AUTOMATION.WORKFLOWS_NEW,
+      APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
     ],
     outline: Workflow,
     solid: Workflow,
-  },
-  {
-    group: 'Workflows',
-    href: APP_ROUTES.AUTOMATION.TEMPLATES,
-    label: 'Templates',
-    matchPaths: [APP_ROUTES.AUTOMATION.TEMPLATES],
-    outline: LayoutTemplate,
-    solid: LayoutTemplate,
   },
   {
     group: 'Workflows',

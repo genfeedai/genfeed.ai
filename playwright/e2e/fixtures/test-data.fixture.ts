@@ -1022,7 +1022,7 @@ export const testRoutes = {
     editor: '/automation/workflows/new',
     executions: '/automation/runs',
     library: '/automation/workflows',
-    templates: '/automation/templates',
+    templates: '/automation/workflows/templates',
   },
 };
 

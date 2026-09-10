@@ -128,6 +128,9 @@ describe('routes.constant', () => {
 
   it('nests agent detail under the agents list', () => {
     expect(APP_ROUTES.AUTOMATION.AGENTS).toBe('/automation/agents');
+    expect(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES).toBe(
+      '/automation/workflows/templates',
+    );
   });
 
   it('does not expose retired Lab route constants', () => {

@@ -36,7 +36,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
     ['Runs', '/automation/runs'],
-    ['Templates', '/automation/templates'],
     ['Workflows', '/automation/workflows'],
   ])('uses the canonical automation route for %s', (label, canonicalHref) => {
     const item = AUTOMATION_MENU_ITEMS.find(
@@ -122,6 +121,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     '/automation/content-runs',
     '/automation/templates',
     '/automation/workflows/new',
+    '/automation/workflows/templates',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATION_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),
@@ -140,11 +140,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     }
 
     expect(byGroup.get('')).toEqual(['Overview']);
-    expect(byGroup.get('Workflows')).toEqual([
-      'Workflows',
-      'Templates',
-      'Runs',
-    ]);
+    expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
     expect(byGroup.get('Agents')).toEqual(['Agents', 'Programs']);
     expect(byGroup.get('Campaigns')).toBeUndefined();
     expect(byGroup.get('Settings')).toBeUndefined();

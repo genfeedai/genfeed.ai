@@ -32,6 +32,14 @@ export interface AnalyticsBrandPlatformPageProps {
   params: Promise<{ id: string; platform: string }>;
 }
 
+export interface BrandAppPageProps {
+  params: Promise<{
+    brandSlug: string;
+    orgSlug: string;
+  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
 export interface PostsListPageProps {
   searchParams: Promise<{ platform?: string; status?: string }>;
 }
