@@ -26,6 +26,7 @@ export default function Modal({
   error,
   onClose,
   modalBoxClassName = '',
+  size = 'lg',
 }: ModalProps) {
   const subscribe = useCallback(
     (listener: () => void) => subscribeModal(id, listener),
@@ -63,7 +64,7 @@ export default function Modal({
     <CompoundModal.Root open={isOpen} onOpenChange={handleOpenChange}>
       <CompoundModal.Content
         aria-describedby={undefined}
-        size={isFullScreen ? 'full' : 'lg'}
+        size={isFullScreen ? 'full' : size}
         className={cn(
           'flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden',
           // Error dialogs keep normal shell chrome — no red outer ring/border.

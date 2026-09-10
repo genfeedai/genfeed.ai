@@ -60,7 +60,7 @@ export default function ModalFontFamily({
       id={ModalEnum.FONT_FAMILY}
       title={item ? 'Edit Font Family' : 'Create Font Family'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

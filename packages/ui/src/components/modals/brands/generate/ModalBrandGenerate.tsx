@@ -22,35 +22,48 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
-import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp } from 'lucide-react';
-import { type ChangeEvent, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+
+const GENERATE_COPY = {
+  banner: {
+    category: AssetCategory.BANNER,
+    label: 'Describe the banner',
+    placeholder: 'A wide banner of…',
+    title: 'Generate Banner',
+  },
+  logo: {
+    category: AssetCategory.LOGO,
+    label: 'Describe the profile picture',
+    placeholder: 'A square portrait of…',
+    title: 'Generate Profile Picture',
+  },
+} as const;
 
 export default function ModalBrandGenerate({
   type,
   onConfirm,
-  cost = 5,
   brandId,
 }: ModalBrandGenerateProps) {
+  const copy = GENERATE_COPY[type];
   const getAssetsService = useAuthedService((token) =>
     AssetsService.getInstance(token),
   );
 
-  // Ref for callback to prevent re-renders
   const onConfirmRef = useRef(onConfirm);
   onConfirmRef.current = onConfirm;
 
   const form = useForm<BrandGenerateSchema>({
     defaultValues: {
-      description: '',
       prompt: '',
     },
     resolver: standardSchemaResolver(brandGenerateSchema),
   });
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
+  const hasPrompt = form.watch('prompt').trim().length > 0;
 
   const closeAccountGenerateModal = useCallback(() => {
     closeModal(ModalEnum.BRAND_GENERATE);
@@ -69,15 +82,12 @@ export default function ModalBrandGenerate({
       const service = await getAssetsService();
       const formData = form.getValues();
 
-      // Use description if provided, otherwise use prompt
-      const text = formData.description || formData.prompt;
-
       await service.postGenerate({
-        category: type === 'logo' ? AssetCategory.LOGO : AssetCategory.BANNER,
-        model: '', // Will be set by backend based on brand default
+        category: copy.category,
+        model: '',
         parentId: brandId,
         parentType: AssetParent.BRAND,
-        text: text,
+        text: formData.prompt.trim(),
       });
 
       logger.info(`${url} success`);
@@ -85,49 +95,32 @@ export default function ModalBrandGenerate({
     } catch (error) {
       logger.error(`${url} failed`, error);
     }
-  }, [brandId, getAssetsService, form, type, closeAccountGenerateModal]);
+  }, [
+    brandId,
+    copy.category,
+    getAssetsService,
+    form,
+    closeAccountGenerateModal,
+  ]);
 
   const { isSubmitting, onSubmit } = useFormSubmitWithState(() =>
     submitModalBrandGenerate(),
   );
 
-  const updateModalBrandGenerate = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
-    form.setValue(name as keyof BrandGenerateSchema, value, {
-      shouldValidate: true,
-    });
-  };
-
   return (
-    <Modal
-      id={ModalEnum.BRAND_GENERATE}
-      title={`Generate ${type === 'logo' ? 'Profile Picture' : 'Banner'}`}
-    >
-      <form ref={formRef} onSubmit={onSubmit}>
-        <FormControl label="Prompt">
-          <Input
+    <Modal id={ModalEnum.BRAND_GENERATE} title={copy.title} size="md">
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+        <FormControl label={copy.label}>
+          <Textarea
             name="prompt"
             control={form.control}
-            onChange={updateModalBrandGenerate}
-            placeholder="Enter a prompt"
+            placeholder={copy.placeholder}
             isDisabled={isSubmitting}
+            rows={4}
           />
         </FormControl>
 
-        <FormControl label="Description (optional)">
-          <Textarea
-            name="description"
-            control={form.control}
-            onChange={updateModalBrandGenerate}
-            placeholder="Describe what you want in the banner/logo"
-            isDisabled={isSubmitting}
-            rows={3}
-          />
-        </FormControl>
-
-        <ModalActions>
+        <ModalActions className="mt-0">
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
@@ -139,8 +132,8 @@ export default function ModalBrandGenerate({
             variant={ButtonVariant.DEFAULT}
             icon={<ArrowUp />}
             type="submit"
-            label={type === 'logo' ? 'Profile Picture' : 'Banner'}
-            isDisabled={isSubmitting || !form.formState.isValid}
+            label="Generate"
+            isDisabled={isSubmitting || !hasPrompt}
           />
         </ModalActions>
       </form>

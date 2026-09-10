@@ -78,7 +78,7 @@ export default function ModalBlacklist({
       id={ModalEnum.BLACKLIST}
       title={item ? 'Edit Blacklist' : 'Create Blacklist'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">

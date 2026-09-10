@@ -70,7 +70,7 @@ export default function ModalStyle({
 
   return (
     <Modal id={ModalEnum.STYLE} title={item ? 'Edit Style' : 'Create Style'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">

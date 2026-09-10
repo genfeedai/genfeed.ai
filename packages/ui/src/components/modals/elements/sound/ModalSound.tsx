@@ -65,7 +65,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
 
   return (
     <Modal id={ModalEnum.SOUND} title={sound ? 'Update Sound' : 'Create Sound'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

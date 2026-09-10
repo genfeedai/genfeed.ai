@@ -60,7 +60,7 @@ export default function ModalLighting({
       id={ModalEnum.LIGHTING}
       title={item ? 'Edit Lighting' : 'Create Lighting'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

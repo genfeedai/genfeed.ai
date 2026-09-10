@@ -60,7 +60,7 @@ export default function ModalCameraMovement({
       id={ModalEnum.CAMERA_MOVEMENT}
       title={item ? 'Edit Camera Movement' : 'Create Camera Movement'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

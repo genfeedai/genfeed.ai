@@ -56,7 +56,7 @@ export default function ModalModelFormContent({
   isProviderContractsLoading,
 }: ModalModelFormContentProps) {
   return (
-    <form ref={formRef} onSubmit={onSubmit}>
+    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
       {hasFormErrors(form.formState.errors) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
@@ -125,7 +125,7 @@ export default function ModalModelFormContent({
           ))}
         </SelectField>
       </div>
-      <FormControl label="Cost" className="mt-4">
+      <FormControl label="Cost">
         <Input
           type="number"
           name="cost"
@@ -143,7 +143,7 @@ export default function ModalModelFormContent({
           isLoading={isProviderContractsLoading}
         />
       )}
-      <ModalActions>
+      <ModalActions className="mt-0">
         <Button
           label="Cancel"
           variant={ButtonVariant.SECONDARY}

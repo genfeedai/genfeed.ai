@@ -1,13 +1,16 @@
 import ModalBrandGenerate from '@ui/modals/brands/generate/ModalBrandGenerate';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-// Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) =>
-    React.createElement('div', { 'data-testid': 'modal' }, children),
+  default: ({ children, title }: { children: ReactNode; title?: string }) => (
+    <div data-testid="modal">
+      {title ? <h2>{title}</h2> : null}
+      {children}
+    </div>
+  ),
 }));
 
 describe('ModalBrandGenerate', () => {
@@ -16,8 +19,47 @@ describe('ModalBrandGenerate', () => {
     type: 'logo' as const,
   };
 
-  it('renders brand generate modal', () => {
+  it('renders a single profile-picture prompt', () => {
     render(<ModalBrandGenerate {...defaultProps} />);
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', { name: 'Generate Profile Picture' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Describe the profile picture'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('A square portrait of…'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Description (optional)'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enter a prompt')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(
+        'Describe what you want in the banner/logo',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders a single banner prompt', () => {
+    render(<ModalBrandGenerate {...defaultProps} type="banner" />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Generate Banner' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Describe the banner')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('A wide banner of…'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Description (optional)'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generate' }),
+    ).toBeInTheDocument();
   });
 });

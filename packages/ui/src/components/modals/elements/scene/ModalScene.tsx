@@ -60,7 +60,7 @@ export default function ModalScene({
 
   return (
     <Modal id={ModalEnum.SCENE} title={item ? 'Edit Scene' : 'Create Scene'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"
