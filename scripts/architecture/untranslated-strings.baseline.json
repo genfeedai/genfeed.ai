@@ -797,7 +797,6 @@
     "packages/ui/src/components/sections/header/SectionHeader.tsx": 8,
     "packages/ui/src/components/settings/TrendNotificationSettings.tsx": 24,
     "packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx": 17,
-    "packages/ui/src/components/shell/topbars/WebsiteTopbar.tsx": 21,
     "packages/ui/src/components/storyboard/EaseCurveSelector.tsx": 10,
     "packages/ui/src/components/storyboard/merge-progress-bars/MergeProgressBars.tsx": 1,
     "packages/ui/src/components/storyboard/TransitionSelector.tsx": 22,
