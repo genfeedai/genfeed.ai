@@ -245,7 +245,8 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      lifecycle: entry.lifecycle,
+      // `lifecycle` stays operator territory on routine updates — see the
+      // self-heal below when we reassert a category default.
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
       ...(entry.isLegacy
         ? { isActive: false, isDefault: false, isPublic: false }
