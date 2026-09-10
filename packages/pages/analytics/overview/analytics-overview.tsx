@@ -17,9 +17,11 @@ import type {
   IOrgLeaderboardItem,
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
+import { EmptyStateCard } from '@ui/feedback';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
@@ -67,10 +69,12 @@ export default function AnalyticsOverview({
   timeseriesData: initialTimeseriesData = [],
   topPosts: initialTopPosts = [],
 }: AnalyticsOverviewProps) {
+  const router = useRouter();
   const {
     agentBlocks,
     brandsLeaderboard,
     cachedLabel,
+    connectAccountsHref,
     currentUser,
     dashboardState,
     hasAnalyticsError,
@@ -111,6 +115,32 @@ export default function AnalyticsOverview({
     timeseriesData: initialTimeseriesData,
     topPosts: initialTopPosts,
   });
+
+  const isEmptyOverview =
+    scope !== PageScope.SUPERADMIN && dashboardState === 'empty';
+
+  if (isEmptyOverview) {
+    if (isLoading) {
+      return (
+        <div
+          className="h-48 w-full animate-pulse rounded-lg bg-muted/60"
+          data-testid="analytics-overview-loading"
+        />
+      );
+    }
+
+    return (
+      <EmptyStateCard
+        icon={ChartColumn}
+        title="Connect accounts to see analytics"
+        description="Winners, trends, and rankings appear after a connected social account publishes and analytics syncs back."
+        action={{
+          label: 'Connect accounts',
+          onClick: () => router.push(connectAccountsHref),
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -203,7 +233,7 @@ export default function AnalyticsOverview({
               variant: ButtonVariant.DEFAULT,
             }}
             secondaryAction={{
-              href: orgHref('/settings/api-keys'),
+              href: connectAccountsHref,
               label: 'Check connections',
               variant: ButtonVariant.SECONDARY,
             }}

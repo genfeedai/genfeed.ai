@@ -259,7 +259,24 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    children,
+    onClick,
+    ariaLabel,
+  }: {
+    children?: ReactNode;
+    onClick?: () => void;
+    ariaLabel?: string;
+  }) => (
+    <button type="button" onClick={onClick} aria-label={ariaLabel}>
+      {children}
+    </button>
+  ),
   buttonVariants: () => '',
 }));
 
@@ -301,37 +318,41 @@ describe('AnalyticsOverview', () => {
     mockUseAgentDashboardPersistence.mockClear();
   });
 
-  it('renders first-run guidance when no analytics data exists', () => {
+  it('blocks the overview with connect-account onboarding when no analytics data exists', () => {
     const markup = renderOverview();
 
-    expect(markup).toContain('First run');
+    expect(markup).toContain('Connect accounts to see analytics');
     expect(markup).toContain('Connect accounts');
-    expect(markup).toContain('/acme/~/settings/api-keys');
-    expect(markup).toContain(
+    expect(markup).toContain('card-empty');
+    expect(markup).not.toContain('First run');
+    expect(markup).not.toContain(
       'Trend lines will appear here once performance data lands',
     );
-    // Breadcrumb owns page identity — no in-page H1 / section marketing titles.
+    expect(markup).not.toContain('Top posts will surface here');
+    expect(markup).not.toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
+    expect(markup).not.toContain('top-accounts-section');
+    expect(markup).not.toContain('performance-dataset-section');
     expect(markup).not.toContain('Your analytics home is ready');
     expect(markup).not.toContain('Coverage so far');
     expect(markup).not.toContain('Setup progress');
     expect(markup).not.toContain('font-serif');
   });
 
-  it('renders the page shell while analytics data is loading', () => {
+  it('does not flash empty dashboard chrome while analytics data is loading', () => {
     mockAnalyticsReturn.isLoading = true;
 
     const markup = renderOverview();
 
-    // The hero status strip depends on the loaded dashboard state, so it
-    // stays suppressed rather than flashing incorrect "First run" copy.
+    expect(markup).toContain('analytics-overview-loading');
     expect(markup).not.toContain('First run');
-    // Chrome that is independent of the primary analytics fetch renders
-    // immediately, driven by its own loading flags.
-    expect(markup).toContain(
+    expect(markup).not.toContain('Connect accounts to see analytics');
+    expect(markup).not.toContain(
       'Trend lines will appear here once performance data lands',
     );
-    expect(markup).toContain('Top posts will surface here');
-    expect(markup).toContain(
+    expect(markup).not.toContain('Top posts will surface here');
+    expect(markup).not.toContain(
       'Brand rankings will unlock after the first measurable wins',
     );
   });
@@ -371,6 +392,8 @@ describe('AnalyticsOverview', () => {
 
     expect(markup).toContain('Warming up');
     expect(markup).toContain('/publishing');
+    expect(markup).toContain('/acme/~/settings/integrations');
+    expect(markup).not.toContain('/settings/api-keys');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');
     expect(markup).not.toContain('Setup progress');

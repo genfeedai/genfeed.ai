@@ -331,42 +331,28 @@ export function useAnalyticsOverview({
     hasViews,
   ]);
 
+  const connectAccountsHref = orgHref(APP_ROUTES.SETTINGS.SOCIAL);
+
   const heroContent = useMemo<DashboardHeroContent | null>(() => {
     // Active dashboards need no status strip — metrics and charts carry the page.
-    // Empty / warming_up keep a compact badge + next-action row (no in-page H1;
+    // Empty is a page-level blocker (EmptyStateCard), not a banner over zeros.
+    // Warming_up keeps a compact badge + next-action row (no in-page H1;
     // the shell breadcrumb owns page identity).
-    if (scope === PageScope.SUPERADMIN) {
+    if (scope === PageScope.SUPERADMIN || dashboardState !== 'warming_up') {
       return null;
     }
 
-    if (dashboardState === 'empty') {
-      return {
-        badge: 'First run',
-        description:
-          'Connect a social account and publish into this date range to surface winners, trends, and rankings.',
-        primaryAction: {
-          href: orgHref('/settings/api-keys'),
-          label: 'Connect accounts',
-          variant: ButtonVariant.DEFAULT,
-        },
-      };
-    }
-
-    if (dashboardState === 'warming_up') {
-      return {
-        badge: 'Warming up',
-        description:
-          'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
-        primaryAction: {
-          href: APP_ROUTES.PUBLISHING.OVERVIEW,
-          label: 'Create content',
-          variant: ButtonVariant.DEFAULT,
-        },
-      };
-    }
-
-    return null;
-  }, [dashboardState, orgHref, scope]);
+    return {
+      badge: 'Warming up',
+      description:
+        'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
+      primaryAction: {
+        href: APP_ROUTES.PUBLISHING.OVERVIEW,
+        label: 'Create content',
+        variant: ButtonVariant.DEFAULT,
+      },
+    };
+  }, [dashboardState, scope]);
 
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {
@@ -427,6 +413,7 @@ export function useAnalyticsOverview({
     analytics,
     brandsLeaderboard,
     cachedLabel,
+    connectAccountsHref,
     currentUser: userContext?.currentUser ?? null,
     dashboardState,
     hasAnalyticsError,
