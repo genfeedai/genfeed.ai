@@ -133,7 +133,7 @@ describe('TrendContentCard', () => {
     },
   );
 
-  it('falls back to /publishing/remix when the Discovery surface is missing on TikTok', () => {
+  it('falls back to Studio generate when the Discovery surface is missing on TikTok', () => {
     mocks.isRemixAvailable = false;
     render(
       <TrendContentCard
@@ -149,7 +149,7 @@ describe('TrendContentCard', () => {
 
     expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
       'href',
-      '/org-1/brand-1/publishing/remix?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
+      '/org-1/brand-1/studio/generate?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
     );
     expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
   });
@@ -199,7 +199,7 @@ describe('TrendContentCard', () => {
   });
 
   it.each(['instagram', 'youtube'] as const)(
-    'does not fall back to /publishing/remix for %s content without a durable source reference',
+    'does not fall back to Studio generate for %s content without a durable source reference',
     (platform) => {
       render(
         <TrendContentCard

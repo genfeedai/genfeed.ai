@@ -1582,7 +1582,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/publishing/remix?sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/studio/generate?sourceArtifact=ingredient%3Aingredient-1',
     );
   });
 

@@ -37,7 +37,7 @@ describe('getTrendRemixAvailability', () => {
     expect(result.opensPrefilledRemix).toBe(true);
   });
 
-  it('falls back to /publishing/remix when the Discovery surface is missing but the platform still supports variations', () => {
+  it('falls back to Studio generate when the Discovery surface is missing but the platform still supports remix', () => {
     const result = getTrendRemixAvailability('linkedin', true, false);
 
     expect(result).toEqual({

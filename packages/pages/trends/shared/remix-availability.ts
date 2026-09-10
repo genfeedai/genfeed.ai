@@ -14,7 +14,7 @@ export const PREFILLED_REMIX_PLATFORMS = new Set<string>([
 export interface RemixAvailability {
   /** True when the item can open the prefilled Discovery remix surface. */
   opensPrefilledRemix: boolean;
-  /** True when the item opens `/publishing/remix` (no Discovery surface). */
+  /** True when the item opens Studio generate (no Discovery remix surface). */
   opensRemixPage: boolean;
   /** True when neither remix path is reachable for this item. */
   isRemixUnavailable: boolean;
