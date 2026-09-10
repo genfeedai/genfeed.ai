@@ -29,6 +29,7 @@ import {
   useStudioLooks,
 } from '@pages/studio/generate/hooks/useStudioLooks';
 import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
+import { getDefaultStudioResolution } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
   getStudioGenerateTypeConfig,
   listStudioGenerateTypeConfigs,
@@ -155,8 +156,10 @@ export default function StudioGenerateComposer({
     const modelKey = values[0] ?? AUTO_MODEL_OPTION_VALUE;
     onSettingsChange({
       modelKey,
-      ...(type === 'video' && modelKey !== AUTO_MODEL_OPTION_VALUE
-        ? { resolution: getDefaultVideoResolution(modelKey) ?? '' }
+      ...(modelKey !== AUTO_MODEL_OPTION_VALUE
+        ? {
+            resolution: getDefaultStudioResolution(type, modelKey),
+          }
         : {}),
     });
   };

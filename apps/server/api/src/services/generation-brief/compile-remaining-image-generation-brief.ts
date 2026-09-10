@@ -22,6 +22,7 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { remainingImageDispatchSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import type { RemainingImageCapabilityProfile } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile-remaining.contract';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 
 export interface CompileRemainingImageGenerationBriefInput {
   brief: ImageGenerationBrief;
@@ -151,6 +152,24 @@ export function compileRemainingImageGenerationBrief(
     spec,
     included.map((reference) => reference.assetId),
   );
+
+  const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
+  const qualityOptions =
+    capability && 'qualityOptions' in capability
+      ? capability.qualityOptions
+      : undefined;
+  const defaultQuality =
+    capability && 'defaultQuality' in capability
+      ? capability.defaultQuality
+      : undefined;
+  const requestedQuality = brief.output.quality;
+  const resolvedQuality =
+    requestedQuality && qualityOptions?.includes(requestedQuality)
+      ? requestedQuality
+      : defaultQuality;
+  if (resolvedQuality) {
+    dispatchPayload.quality = resolvedQuality;
+  }
 
   const dispatch = remainingImageDispatchSchema.parse(dispatchPayload);
   const appliedFields = buildImageGenerationBriefAppliedFields({

@@ -27,6 +27,7 @@ import type {
 import {
   detectImageReferenceFields,
   getArrayImageLimit,
+  getSchemaDefault,
   isArrayImageField,
   resolveModelSchema,
   schemaHasField,
@@ -251,6 +252,15 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
       if (!schema || schemaHasField(schema, 'resolution')) {
         input.resolution = params.resolution;
       }
+    }
+
+    if (schema && schemaHasField(schema, 'quality')) {
+      const schemaQuality = getSchemaDefault(schema, 'quality');
+      const quality =
+        params.quality ??
+        (typeof schemaQuality === 'string' ? schemaQuality : undefined) ??
+        'max';
+      (input as Record<string, unknown>).quality = quality;
     }
 
     // safety_filter_level: only include when schema explicitly has it

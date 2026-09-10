@@ -41,6 +41,7 @@ export interface VideoGenerationPayload extends BaseGenerationPayload {
 
 export interface ImageGenerationPayload extends BaseGenerationPayload {
   format: IngredientFormat;
+  quality?: string;
 }
 
 export interface MusicGenerationPayload {

@@ -31,6 +31,7 @@ export interface RunImageGenerationBriefInput {
   lighting?: string;
   model: string;
   objective: string;
+  quality?: string;
   referenceIds?: string[];
   references?: readonly ImageGenerationBriefReference[];
   scene?: string;
@@ -111,6 +112,7 @@ export function runImageGenerationBrief(
     height: input.height,
     lighting: input.lighting,
     objective: input.objective,
+    quality: input.quality,
     referenceIds: input.referenceIds,
     references: input.references,
     scene: input.scene,

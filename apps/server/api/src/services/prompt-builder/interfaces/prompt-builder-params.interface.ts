@@ -37,6 +37,7 @@ export interface PromptBuilderParams {
   duration?: number;
   seed?: number;
   outputs?: number;
+  quality?: string;
   resolution?: string;
 
   // References

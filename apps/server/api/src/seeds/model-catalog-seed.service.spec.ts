@@ -124,6 +124,30 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.create).toMatchObject({ cost: 0, isActive: true });
   });
 
+  it('activates a previously unpriced catalog row on first curation', async () => {
+    const newlyCurated = UNIFIED_MODEL_CATALOG.find(
+      (entry) =>
+        entry.isActive && entry.cost > 0 && !entry.isDefault && !entry.isLegacy,
+    );
+    expect(newlyCurated).toBeDefined();
+    if (!newlyCurated) {
+      return;
+    }
+
+    prisma.model.findUnique.mockResolvedValueOnce({
+      cost: 0,
+      id: 'existing-id',
+    });
+
+    await service.reconcileCatalog([newlyCurated]);
+
+    const call = callForKey(newlyCurated?.key ?? '');
+    expect(call?.update).toMatchObject({
+      isActive: true,
+      isPublic: true,
+    });
+  });
+
   it('leaves operator activation alone for non-default entries', async () => {
     const nonDefault = UNIFIED_MODEL_CATALOG.find((entry) => !entry.isDefault);
     expect(nonDefault).toBeDefined();

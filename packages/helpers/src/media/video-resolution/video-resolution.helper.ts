@@ -160,9 +160,10 @@ export const videoModelResolutions: VideoModelResolution[] = [
   {
     default: 'high',
     model: MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
+    // `standard` is 1280×720. `high` is 1792×1024, not 1920×1080.
     resolutions: [
       { label: '720p', value: 'standard' },
-      { label: '1080p', value: 'high' },
+      { label: 'High', value: 'high' },
     ],
   },
   {

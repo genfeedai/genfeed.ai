@@ -245,6 +245,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
+      lifecycle: entry.lifecycle,
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
       ...(entry.isLegacy
         ? { isActive: false, isDefault: false, isPublic: false }
@@ -253,7 +254,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
     const existingRow = await this.prisma.model.findUnique({
-      select: { id: true },
+      select: { cost: true, id: true },
       where: { key: entry.key },
     });
 
@@ -277,6 +278,19 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           updateData.isPublic = true;
         }
         updateData.isDefault = targetIsDefault;
+      }
+
+      // Previously uncurated (cost 0) rows stay inactive until the catalog
+      // prices them. First curation must turn them on — including LEGACY
+      // models, which stay selectable via the Legacy pill.
+      if (
+        existingRow.cost === 0 &&
+        entry.cost > 0 &&
+        entry.isActive &&
+        !entry.isLegacy
+      ) {
+        updateData.isActive = true;
+        updateData.isPublic = true;
       }
     }
 

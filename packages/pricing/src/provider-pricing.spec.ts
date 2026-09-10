@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   ASPECT_RATIOS,
   DEFAULT_VIDEO_DURATION,
+  getImageGenerationQualityCreditMultiplier,
   getVideoGenerationResolutionCreditMultiplier,
   IMAGE_NODE_TYPES,
   LUMA_ASPECT_RATIOS,
   LUMA_NODE_TYPES,
   OUTPUT_FORMATS,
   PRICING,
+  quoteImageGenerationQualityCredits,
   quoteTopazVideoUpscaleCredits,
   quoteVideoExtensionCredits,
   quoteVideoGenerationCredits,
@@ -81,6 +83,32 @@ describe('PRICING constants', () => {
         resolution: '4k',
       }),
     ).toBe(200);
+  });
+
+  it('bills missing or auto GPT Image 2.5 quality at the max catalog band', () => {
+    expect(
+      getImageGenerationQualityCreditMultiplier('openai/gpt-image-2.5-flare'),
+    ).toBe(1);
+    expect(
+      getImageGenerationQualityCreditMultiplier(
+        'openai/gpt-image-2.5-sunburst',
+        'auto',
+      ),
+    ).toBe(1);
+    expect(
+      quoteImageGenerationQualityCredits(
+        70,
+        'openai/gpt-image-2.5-flare',
+        'low',
+      ),
+    ).toBeLessThan(70);
+    expect(
+      quoteImageGenerationQualityCredits(
+        70,
+        'openai/gpt-image-2.5-flare',
+        'max',
+      ),
+    ).toBe(70);
   });
 
   it('quotes MiniMax 768P below its published 2K band', () => {

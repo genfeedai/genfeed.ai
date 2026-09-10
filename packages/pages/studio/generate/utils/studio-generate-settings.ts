@@ -1,6 +1,10 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import {
+  getDefaultImageQuality,
+  getImageQualityOptionsByModel,
+} from '@genfeedai/helpers/media/image-quality/image-quality.helper';
+import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
@@ -134,12 +138,49 @@ export function getStudioResolutions(
     return modelKey ? getVideoResolutionsByModel(modelKey) : [];
   }
 
-  return getStudioGenerateTypeConfig(type).capabilities.hasAspectRatio
-    ? STUDIO_IMAGE_RESOLUTIONS.map((resolution) => ({
-        label: resolution,
-        value: resolution,
-      }))
-    : [];
+  if (!getStudioGenerateTypeConfig(type).capabilities.hasAspectRatio) {
+    return [];
+  }
+
+  if (modelKey) {
+    const qualityOptions = getImageQualityOptionsByModel(modelKey);
+    if (qualityOptions.length > 0) {
+      return qualityOptions;
+    }
+  }
+
+  return STUDIO_IMAGE_RESOLUTIONS.map((resolution) => ({
+    label: resolution,
+    value: resolution,
+  }));
+}
+
+const DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
+  Record<StudioGenerateType, string>
+> = {
+  image: '1:1',
+  video: '16:9',
+};
+
+const DEFAULT_RESOLUTION_BY_TYPE: Partial<Record<StudioGenerateType, string>> =
+  {
+    image: '1K',
+    video: '720p',
+  };
+
+export function getDefaultStudioResolution(
+  type: StudioGenerateType,
+  modelKey?: string,
+): string {
+  if (type === 'video') {
+    return (modelKey && getDefaultVideoResolution(modelKey)) || '720p';
+  }
+
+  if (type === 'image' && modelKey) {
+    return getDefaultImageQuality(modelKey) ?? '1K';
+  }
+
+  return DEFAULT_RESOLUTION_BY_TYPE[type] ?? '1K';
 }
 
 export function getStudioDurations(
@@ -155,19 +196,6 @@ export function getStudioDurations(
 
   return [];
 }
-
-const DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
-  Record<StudioGenerateType, string>
-> = {
-  image: '1:1',
-  video: '16:9',
-};
-
-const DEFAULT_RESOLUTION_BY_TYPE: Partial<Record<StudioGenerateType, string>> =
-  {
-    image: '1K',
-    video: '720p',
-  };
 
 const DEFAULT_DURATION_BY_TYPE: Partial<Record<StudioGenerateType, number>> = {
   music: STUDIO_MUSIC_DURATIONS[0],

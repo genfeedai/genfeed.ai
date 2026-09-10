@@ -25,7 +25,10 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import type { ByokProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
-import { buildPricingAuditStamp } from '@genfeedai/pricing';
+import {
+  buildPricingAuditStamp,
+  quoteImageGenerationQualityCredits,
+} from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -152,7 +155,11 @@ export class ImageGenerationCreditsService {
       MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
 
     const requiredCredits = scaleCreditsForFanOut(
-      baseCost,
+      quoteImageGenerationQualityCredits(
+        baseCost,
+        model,
+        createImageDto.quality,
+      ),
       requestedOutputCount(createImageDto.outputs),
       doesImageProviderFanOutPerOutput(
         this.providerRegistry.providerFor(model) ?? undefined,

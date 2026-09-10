@@ -100,6 +100,8 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
   output_format: ['jpg', 'png', 'webp'],
   // Refine options
   refine: ['no_refiner', 'expert_ensemble_refiner', 'base_image_refiner'],
+  // GPT Image OpenAPI quality
+  quality: ['low', 'medium', 'high', 'xhigh', 'max', 'auto'],
   // Resolution options
   resolution: ['1K', '2K', '4K', '720p', '1080p'],
   // Safety filter level
