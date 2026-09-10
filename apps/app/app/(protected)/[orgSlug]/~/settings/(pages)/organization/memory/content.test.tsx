@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { MemberRole } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsOrganizationMemoryPage from './content';
 
@@ -57,6 +58,29 @@ vi.mock('@services/automation/agent-memories.service', () => ({
       reject: mocks.reject,
     }),
   },
+}));
+
+vi.mock('@helpers/formatting/date/date.helper', () => ({
+  formatDate: () => 'Jan 1, 2026',
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
+
+vi.mock('lucide-react', () => ({
+  Archive: () => null,
+  Lock: () => null,
+  Sparkles: () => null,
+  X: () => null,
+}));
+
+vi.mock('@ui/primitives/badge', () => ({
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));
 
 vi.mock('@ui/card/empty/CardEmpty', () => ({
