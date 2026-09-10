@@ -20,7 +20,7 @@ import {
   resolveChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
-import type { Post } from '@genfeedai/prisma';
+import { type Post, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -303,10 +303,8 @@ export class ThreadCommentDeliveryService {
     for (const child of children) {
       await this.prisma.post.updateMany({
         data: {
-          targetError: createChannelTargetError(
-            'thread_comment_failed',
-            reason,
-            false,
+          targetError: toPrismaJson(
+            createChannelTargetError('thread_comment_failed', reason, false),
           ),
           targetExecutionState: TargetExecutionState.FAILED,
         },

@@ -61,7 +61,10 @@ import {
   type SchedulerPublishTargetUpdate,
   type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
-import { planThreadChildDelivery } from '@workers/services/thread-comment-schedule.util';
+import {
+  type DelayedThreadChild,
+  planThreadChildDelivery,
+} from '@workers/services/thread-comment-schedule.util';
 
 type PostDeliveryIds = {
   brandId: string | undefined;
@@ -84,6 +87,14 @@ type DeliveryLoad<T> =
 type ChannelValidationMedia = NonNullable<
   ValidateChannelTargetSettingsInput['media']
 >;
+
+/** A thread child paired with the scheduling fields the planner reads. */
+type PlannedThreadChild = {
+  child: PostDocument;
+  id: string;
+  order: number;
+  threadDelayMinutes?: number | null;
+};
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -734,11 +745,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   private async parkDelayedThreadChildren(
     post: PostEntity,
-    delayed: Array<{
-      child: PostDocument;
-      delayMinutes: number;
-      dueAt: Date;
-    }>,
+    delayed: Array<DelayedThreadChild<PlannedThreadChild>>,
     url: string,
   ): Promise<void> {
     if (delayed.length === 0) {
@@ -757,7 +764,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       await this.prisma.post.updateMany({
         data: { scheduledDate: entry.dueAt },
         where: scopedWhere(organizationId, {
-          id: entry.child.id.toString(),
+          id: entry.child.id,
           isDeleted: false,
         }),
       });
