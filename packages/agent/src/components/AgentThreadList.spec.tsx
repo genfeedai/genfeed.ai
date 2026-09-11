@@ -1,6 +1,6 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import type { AgentThreadMode } from '@genfeedai/contracts';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,

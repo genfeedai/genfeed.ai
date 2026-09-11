@@ -1186,7 +1186,7 @@ describe('AgentChatContainer', () => {
     expect(storeState.prependOlderMessages).not.toHaveBeenCalled();
   });
 
-  it('renders contextual suggested actions through the shared prompt bar suggestions UI without plan mode shortcuts', () => {
+  it('renders contextual suggested actions through the shared prompt bar suggestions UI, including a plan-mode shortcut (#4672 — Plan is reachable via the mode dropdown)', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1214,8 +1214,8 @@ describe('AgentChatContainer', () => {
       screen.getByRole('button', { name: 'Create a plan' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Use plan mode' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Use plan mode' }),
+    ).toBeInTheDocument();
   });
 
   it('notifies the shell when a prompt is sent so a collapsed transcript can open', () => {
@@ -1719,7 +1719,7 @@ describe('AgentChatContainer', () => {
     });
   });
 
-  it('filters the plan mode suggestion shortcut without sending a prompt', async () => {
+  it('sends the plan-mode suggestion shortcut like any other suggested prompt (#4672 — Plan is reachable via the mode dropdown, not a filtered shortcut)', () => {
     const apiService = createApiService({
       updateThread: vi.fn().mockResolvedValue({}),
     });
@@ -1741,11 +1741,15 @@ describe('AgentChatContainer', () => {
       />,
     );
 
-    expect(
-      screen.queryByRole('button', { name: 'Use plan mode' }),
-    ).not.toBeInTheDocument();
-    expect(apiService.updateThread).not.toHaveBeenCalled();
-    expect(sendNonStreaming).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
+
+    expect(sendNonStreaming).toHaveBeenCalledWith(
+      'Use plan mode in this thread',
+      {
+        attachments: undefined,
+        agentMode: AgentThreadMode.MANUAL,
+      },
+    );
   });
 
   it('renders the composer alongside a non-empty conversation when suggested actions are provided', () => {
