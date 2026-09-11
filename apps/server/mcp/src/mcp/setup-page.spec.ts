@@ -290,13 +290,20 @@ describe('MCP setup page', () => {
     );
 
     const html = renderSetupPage();
+    const baseMcpUrlStart = html.indexOf('var baseMcpUrl = ');
+    const baseMcpUrlEnd = html.indexOf(';', baseMcpUrlStart);
+    const baseMcpUrlStatement = html.slice(baseMcpUrlStart, baseMcpUrlEnd);
 
-    // Both characters must be escaped wherever the endpoint is embedded as a
-    // JS string literal for the picker script — a raw one left in the
-    // `<script>` source is a line terminator to some tooling/older engines.
-    expect(html).toContain('\\u2028');
-    expect(html).toContain('\\u2029');
-    expect(html).not.toContain('mcp?x=  ');
+    // Both characters must be escaped specifically where the endpoint is
+    // embedded as a JS string literal for the picker script -- a raw one
+    // left in that script source is a line terminator to some tooling or
+    // older engines. Elsewhere on the page (the visible Endpoint text, the
+    // agent prompt) the raw characters are harmless HTML text content and
+    // are expected to still appear, so the assertion is scoped to the JS
+    // string literal statement rather than the whole page.
+    expect(baseMcpUrlStatement).toContain('\\u2028');
+    expect(baseMcpUrlStatement).toContain('\\u2029');
+    expect(baseMcpUrlStatement).not.toContain('mcp?x=  ');
   });
 
   describe('toolset picker', () => {
