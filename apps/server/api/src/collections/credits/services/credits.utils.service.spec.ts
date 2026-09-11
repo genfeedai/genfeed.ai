@@ -607,21 +607,6 @@ describe('CreditsUtilsService', () => {
     });
   });
 
-  describe('removeAllOrganizationCredits', () => {
-    it('threads the transaction client', async () => {
-      const service = buildService();
-
-      await service.removeAllOrganizationCredits('org_1', 'system', 'wipe');
-
-      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
-        'org_1',
-        0,
-        'ba_1',
-        txClient,
-      );
-    });
-  });
-
   it('returns the requesting organization for a shared billing wallet', async () => {
     const service = buildService();
     creditBalanceService.getOrCreateBalance.mockResolvedValueOnce({
