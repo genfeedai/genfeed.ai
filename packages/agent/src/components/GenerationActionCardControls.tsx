@@ -388,7 +388,7 @@ export function GenerationActionCardControls({
                 </span>
               ) : null}
               <span>
-                {isEstimateAvailable && estimatedCredits !== null
+                {isEstimateAvailable && typeof estimatedCredits === 'number'
                   ? translate('estimatedCredits', {
                       credits: estimatedCredits,
                     })
