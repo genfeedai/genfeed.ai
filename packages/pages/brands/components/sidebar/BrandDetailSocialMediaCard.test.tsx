@@ -209,12 +209,23 @@ Object.defineProperty(window, 'open', {
   writable: true,
 });
 
+// The page variant's Connect account modal is a cmdk Command, which measures
+// its list with ResizeObserver — unimplemented in jsdom.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
 describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
     );
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it.each(['unknown', 'unavailable'] as const)(

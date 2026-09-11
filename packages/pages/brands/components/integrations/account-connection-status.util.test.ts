@@ -92,7 +92,9 @@ describe('getConnectionInitials', () => {
     ).toBe('AS');
   });
 
-  it('falls back to the platform when the label has no letters', () => {
+  it('takes a single initial from a one-word label, such as the platform fallback', () => {
+    // No name/label/handle — getConnectionLabel falls back to the platform
+    // itself ("twitter"), a single word, so only its first letter is used.
     expect(
       getConnectionInitials(
         buildConnection({
@@ -101,6 +103,6 @@ describe('getConnectionInitials', () => {
           name: undefined,
         }),
       ),
-    ).toBe('TW');
+    ).toBe('T');
   });
 });

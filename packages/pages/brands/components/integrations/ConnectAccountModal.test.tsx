@@ -5,11 +5,24 @@ import type {
   OAuthConnectPlatformGroup,
   ResolvedOAuthConnectPlatform,
 } from '@ui/constants/oauth-connect-platforms';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
+});
+
+// cmdk measures its list with ResizeObserver, which jsdom does not implement.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
+beforeEach(() => {
+  globalThis.ResizeObserver =
+    MockResizeObserver as unknown as typeof ResizeObserver;
+  Element.prototype.scrollIntoView = vi.fn();
 });
 
 function Icon() {
