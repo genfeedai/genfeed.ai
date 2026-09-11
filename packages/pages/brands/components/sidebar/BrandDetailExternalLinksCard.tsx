@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { getAccountConnectionStatus } from '@pages/brands/components/integrations/account-connection-status.util';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -49,13 +50,15 @@ export default function BrandDetailExternalLinksCard({
     [links],
   );
   const hasManualLinks = manualLinks.length > 0;
-  // `socialConnections` can now include a disconnected-but-not-deleted
-  // credential (it stays visible so the accounts table can offer "Needs
-  // reconnect") — this read-only profile list only ever means live accounts.
+  // `socialConnections` can now include a disconnected-but-not-deleted or
+  // identity-less credential (it stays visible so the accounts table can
+  // offer "Needs reconnect") — this read-only profile list only ever means
+  // genuinely connected accounts, so it filters on the same status helper
+  // the table uses rather than a raw `isConnected` check.
   const connectedSocialConnections = useMemo(
     () =>
       socialConnections.filter(
-        (connection) => connection.isConnected !== false,
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
       ),
     [socialConnections],
   );

@@ -305,6 +305,7 @@
       },
       "connection": {
         "cta": "Manage connection",
+        "ctaReconnect": "Reconnect account",
         "descriptionAttention": "{account} needs attention. Reconnect or review Social settings.",
         "descriptionConnected": "{account} is connected. Open Social settings to manage or reconnect.",
         "descriptionHealthy": "{account} is healthy. Reconnect from Social settings if publishing stalls.",

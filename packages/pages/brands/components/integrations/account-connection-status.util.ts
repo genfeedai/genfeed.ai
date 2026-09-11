@@ -1,7 +1,21 @@
 import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
-import type { AccountConnectionStatus } from '@genfeedai/props/pages/brand-integrations.props';
+import {
+  type AccountConnectionStatusInput,
+  getAccountConnectionStatus,
+  isAccessTokenExpired,
+} from '@ui/modals/brands/brand/ModalBrand.types';
+
+export type { AccountConnectionStatusInput };
+// Re-exported from ModalBrand.types.ts, where the derivation actually
+// lives: `packages/hooks` needs the same status logic as this pages-layer
+// package (for use-brand-detail.ts's connectedPlatformsCount) and must not
+// depend on `packages/pages`, so the pure functions live in `packages/ui`
+// instead — which both packages/hooks and packages/pages already depend
+// on. Every existing pages-layer import of this file keeps working
+// unchanged.
+export { getAccountConnectionStatus, isAccessTokenExpired };
 
 /** Maps every `AccountHealthSummary['state']` to its translation key — the
  * `satisfies` check keeps this exhaustive if the union ever grows. */
@@ -40,68 +54,4 @@ export function getConnectionInitials(
     .join('');
 
   return initials || connection.platform.slice(0, 2).toUpperCase();
-}
-
-/**
- * `accessTokenExpiry` is unset for platforms that never rotate a token.
- * An unparseable value (`NaN` from `Date`) is treated as expired rather
- * than valid — a malformed timestamp is not proof of a good token.
- */
-export function isAccessTokenExpired(
-  accessTokenExpiry?: string | null,
-): boolean {
-  if (!accessTokenExpiry) {
-    return false;
-  }
-
-  const expiry = new Date(accessTokenExpiry).getTime();
-  if (!Number.isFinite(expiry)) {
-    return true;
-  }
-
-  return expiry <= Date.now();
-}
-
-/**
- * The subset of a connection `getAccountConnectionStatus` actually reads.
- * Keeping this narrow (rather than the full `BrandDetailSocialConnection`)
- * lets callers that only have a partial record — e.g. the platform-home
- * page's own connection shape — call it without first assembling a whole
- * connection object.
- */
-export type AccountConnectionStatusInput = Pick<
-  BrandDetailSocialConnection,
-  'accessTokenExpiry' | 'externalId' | 'isConnected'
->;
-
-/**
- * A row needs reconnecting when it never captured a platform identity
- * (`externalId`) — including a still-`isConnected` row whose OAuth flow
- * finished without one, e.g. a legacy broken connection — when it has an
- * identity but is no longer connected (a lapsed connection), or when its
- * access token has expired. `isConnected` defaults to connected when
- * omitted so legacy callers that only ever built connected rows keep
- * behaving the same way.
- *
- * A row with neither an identity nor a connection (pending or abandoned
- * OAuth — the credential exists only because the flow never finished) does
- * not reach this function at all: `buildSocialConnections` hides it before
- * status is ever derived. See `isVisibleCredentialRow`.
- */
-export function getAccountConnectionStatus(
-  connection: AccountConnectionStatusInput,
-): AccountConnectionStatus {
-  if (!connection.externalId) {
-    return 'needsReconnect';
-  }
-
-  if (connection.isConnected === false) {
-    return 'needsReconnect';
-  }
-
-  if (isAccessTokenExpired(connection.accessTokenExpiry)) {
-    return 'needsReconnect';
-  }
-
-  return 'connected';
 }

@@ -9,9 +9,24 @@ import {
   getConnectionLabel,
 } from './account-connection-status.util';
 
+// Sized to match the two call sites this replaces: the compact sidebar
+// card's own inline avatar (size="md") and the accounts table row's
+// IntegrationAccountRow avatar (size="sm", the default). Background and
+// fallback text size differed between them too — kept per-size rather than
+// unified so switching either call site to AccountAvatar changed nothing.
 const AVATAR_SIZE_CLASSNAME = {
   md: 'size-10',
   sm: 'size-8',
+} as const;
+
+const AVATAR_BG_CLASSNAME = {
+  md: 'bg-background',
+  sm: 'bg-background-secondary',
+} as const;
+
+const FALLBACK_TEXT_CLASSNAME = {
+  md: 'text-xs',
+  sm: 'text-2xs',
 } as const;
 
 const BADGE_SIZE_CLASSNAME = {
@@ -36,7 +51,7 @@ export default function AccountAvatar({
   return (
     <span className="relative shrink-0">
       <Avatar
-        className={`${AVATAR_SIZE_CLASSNAME[size]} bg-background-secondary shadow-border`}
+        className={`${AVATAR_SIZE_CLASSNAME[size]} ${AVATAR_BG_CLASSNAME[size]} shadow-border`}
       >
         {connection.avatarUrl ? (
           <AvatarImage
@@ -45,7 +60,9 @@ export default function AccountAvatar({
             className="object-cover"
           />
         ) : null}
-        <AvatarFallback className="text-2xs font-semibold text-foreground/70">
+        <AvatarFallback
+          className={`${FALLBACK_TEXT_CLASSNAME[size]} font-semibold text-foreground/70`}
+        >
           {getConnectionInitials(connection)}
         </AvatarFallback>
       </Avatar>

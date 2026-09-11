@@ -240,6 +240,13 @@ export default function BrandDetailSocialMediaCard({
       ).length,
     [connectedConnections],
   );
+  // Distinct from `hasVisibleConnections`: a lapsed-only brand has a
+  // visible row (so the "Manage" dialog can still show and let the user
+  // disconnect or reconnect it) but zero connected accounts — the
+  // at-a-glance button label and the card's own empty state must agree
+  // with the "N connected accounts" description below, not with whether
+  // any row happens to be visible.
+  const hasConnectedAccounts = compactConnectedCount > 0;
   const connectionHealth = useMemo(
     () =>
       connections
@@ -763,11 +770,11 @@ export default function BrandDetailSocialMediaCard({
             className="h-8 shrink-0 px-2.5 text-xs"
             onClick={() => setIsDialogOpen(true)}
           >
-            {hasVisibleConnections ? translate('manage') : translate('connect')}
+            {hasConnectedAccounts ? translate('manage') : translate('connect')}
           </Button>
         }
       >
-        {hasVisibleConnections ? (
+        {hasConnectedAccounts ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {connectedConnections.map((connection) => (
               <ConnectedAccount

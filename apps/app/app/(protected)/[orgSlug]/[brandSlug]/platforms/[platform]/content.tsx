@@ -163,10 +163,19 @@ export default function PlatformHomePage({
               account: primaryAccount,
             });
 
+  // A lapsed-but-identified credential still routes to Settings > Social
+  // (where Reconnect actually lives, keyed by credentialId) rather than
+  // dead-ending — but the CTA itself should say so, not the generic
+  // "Manage connection" that a healthy card shows.
+  const connectionCta =
+    primaryHealth === 'needsReconnect'
+      ? translate('connection.ctaReconnect')
+      : translate('connection.cta');
+
   const cards: OverviewCard[] = [
     {
       color: 'bg-emerald-500/12 text-emerald-300',
-      cta: translate('connection.cta'),
+      cta: connectionCta,
       description: connectionDescription,
       href: href(destinations.settingsSocial),
       icon: Plug,

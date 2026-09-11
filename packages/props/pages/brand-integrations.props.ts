@@ -63,6 +63,16 @@ export type ConnectPlatformReadiness = 'available' | 'unavailable' | 'unknown';
 /**
  * Structural counterpart of `ResolvedOAuthConnectPlatform` — see
  * `ConnectPlatformReadiness` for why this isn't imported directly.
+ *
+ * `category` is widened from `OAuthConnectPlatformCategoryId` to `string`
+ * for the same reason: that type lives in `@ui/constants/oauth-connect-platforms`,
+ * and importing it here would form the same `packages/props` -> `packages/ui`
+ * cycle. The real catalog only ever produces its known category ids, so a
+ * mistyped literal at a call site still fails structurally against
+ * `ResolvedOAuthConnectPlatform` — just not as a type error at *this*
+ * boundary. Moving the category-id union into `packages/contracts` would
+ * close that gap but wasn't done here to avoid touching an unclaimed
+ * package during this change.
  */
 export interface ConnectAccountPlatform {
   category: string;
@@ -76,7 +86,10 @@ export interface ConnectAccountPlatform {
   servicePath?: string;
 }
 
-/** Structural counterpart of `OAuthConnectPlatformGroup<ResolvedOAuthConnectPlatform>`. */
+/**
+ * Structural counterpart of `OAuthConnectPlatformGroup<ResolvedOAuthConnectPlatform>`.
+ * `id` has the same `string`-widening trade-off as `category` above.
+ */
 export interface ConnectAccountPlatformGroup {
   description: string;
   id: string;
