@@ -125,6 +125,12 @@ export interface StudioGenerateCapabilities {
   hasOutputs: boolean;
   hasReferences: boolean;
   hasSpeech: boolean;
+  /**
+   * Genre/style descriptor text (music only). Unlike lyrics/instrumental,
+   * every music provider honors it the same way — folded into the prompt
+   * text server-side — so it needs no per-model narrowing.
+   */
+  hasStyle: boolean;
 }
 
 export interface StudioGenerateTypeConfig {

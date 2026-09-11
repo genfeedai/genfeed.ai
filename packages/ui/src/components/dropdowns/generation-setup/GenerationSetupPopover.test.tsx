@@ -283,6 +283,7 @@ const capabilities: StudioGenerateCapabilities = {
   hasOutputs: true,
   hasReferences: false,
   hasSpeech: false,
+  hasStyle: false,
 };
 
 const typeOptions: GenerationSetupTypeOption[] = [

@@ -55,6 +55,8 @@ export interface MusicGenerationPayload {
   lyrics?: string;
   label: string;
   folder?: string;
+  /** Genre/style descriptors folded into the prompt server-side. */
+  style?: string;
 }
 
 export interface AvatarGenerationPayload {

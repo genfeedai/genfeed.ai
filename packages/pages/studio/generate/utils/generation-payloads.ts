@@ -3,8 +3,10 @@ import {
   ContentTemplateKey,
   IngredientCategory,
   IngredientFormat,
+  ModelCategory,
   RouterPriority,
 } from '@genfeedai/contracts';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import type {
   AvatarGenerationPayload,
@@ -118,20 +120,39 @@ export function buildMusicPayload(
 ): MusicGenerationPayload {
   const effectiveText = promptData.text?.trim() || '';
   const isAutoSelectModel = promptData.autoSelectModel === true;
-  const instrumental = promptData.instrumental === true;
+  // The resolved model's own registry capability is the source of truth for
+  // whether instrumental/lyrics are meaningful — not just whichever control
+  // the UI happened to render last. Auto-select mode has no single model to
+  // check, so it keeps whatever the operator set.
+  const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
+  const musicCapability =
+    capability?.category === ModelCategory.MUSIC ? capability : undefined;
+  const supportsVocals = isAutoSelectModel
+    ? true
+    : (musicCapability?.supportsVocals ?? true);
+  const supportsLyrics = isAutoSelectModel
+    ? true
+    : (musicCapability?.supportsLyrics ?? true);
+  const instrumental = supportsVocals && promptData.instrumental === true;
 
   return {
     autoSelectModel: isAutoSelectModel,
     duration,
     folder: promptData.folder || undefined,
     // An instrumental request has no lyrics to send, even if the field still
-    // holds stale text from before the toggle was flipped.
+    // holds stale text from before the toggle was flipped. Likewise, drop
+    // lyrics the resolved model can't honor (e.g. MusicGen) even if a prior
+    // model selection left text in the field.
     instrumental,
     label: `music-${Date.now()}`,
-    lyrics: instrumental ? undefined : promptData.lyrics?.trim() || undefined,
+    lyrics:
+      instrumental || !supportsLyrics
+        ? undefined
+        : promptData.lyrics?.trim() || undefined,
     model: isAutoSelectModel ? undefined : modelKey,
     outputs: promptData.outputs || 1,
     prioritize: promptData.prioritize ?? RouterPriority.BALANCED,
+    style: promptData.style?.trim() || undefined,
     text: effectiveText,
   };
 }

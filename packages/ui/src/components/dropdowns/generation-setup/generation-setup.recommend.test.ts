@@ -19,6 +19,7 @@ const FULL_CAPABILITIES: StudioGenerateCapabilities = {
   hasOutputs: true,
   hasReferences: true,
   hasSpeech: true,
+  hasStyle: true,
 };
 
 function buildInput(

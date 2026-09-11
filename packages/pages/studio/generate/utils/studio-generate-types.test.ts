@@ -1,9 +1,11 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import type { StudioGenerateType } from '../types';
 import {
   getStudioGenerateTypeConfig,
   listStudioGenerateTypeConfigs,
+  resolveStudioGenerateCapabilities,
   resolveStudioGenerateType,
   STUDIO_GENERATE_TYPES,
 } from './studio-generate-types';
@@ -29,14 +31,72 @@ describe('STUDIO_GENERATE_TYPES', () => {
   });
 });
 
-describe('lyrics/instrumental capabilities', () => {
+describe('lyrics/instrumental/style capabilities', () => {
   it('are only offered for music', () => {
     for (const type of STUDIO_GENERATE_TYPES) {
-      const { hasInstrumentalToggle, hasLyrics } =
+      const { hasInstrumentalToggle, hasLyrics, hasStyle } =
         getStudioGenerateTypeConfig(type).capabilities;
       expect(hasInstrumentalToggle).toBe(type === 'music');
       expect(hasLyrics).toBe(type === 'music');
+      expect(hasStyle).toBe(type === 'music');
     }
+  });
+});
+
+describe('resolveStudioGenerateCapabilities', () => {
+  it('keeps the static per-type capabilities for non-music types regardless of modelKey', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'video',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+    expect(capabilities).toEqual(
+      getStudioGenerateTypeConfig('video').capabilities,
+    );
+  });
+
+  it('keeps the static per-type capabilities when no model is resolved yet', () => {
+    const capabilities = resolveStudioGenerateCapabilities('music', undefined);
+    expect(capabilities).toEqual(
+      getStudioGenerateTypeConfig('music').capabilities,
+    );
+  });
+
+  it('keeps the static per-type capabilities in auto-select mode', () => {
+    const capabilities = resolveStudioGenerateCapabilities('music', 'auto');
+    expect(capabilities.hasInstrumentalToggle).toBe(true);
+    expect(capabilities.hasLyrics).toBe(true);
+  });
+
+  it('hides both instrumental and lyrics controls for MusicGen (no vocal support)', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'music',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+    expect(capabilities.hasInstrumentalToggle).toBe(false);
+    expect(capabilities.hasLyrics).toBe(false);
+  });
+
+  it('offers both controls for a model that supports vocals and lyrics (Eleven Music)', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'music',
+      MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    );
+    expect(capabilities.hasInstrumentalToggle).toBe(true);
+    expect(capabilities.hasLyrics).toBe(true);
+  });
+
+  it('leaves every other capability flag untouched', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'music',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+    const staticCapabilities =
+      getStudioGenerateTypeConfig('music').capabilities;
+    expect(capabilities.hasDuration).toBe(staticCapabilities.hasDuration);
+    expect(capabilities.hasModelSelection).toBe(
+      staticCapabilities.hasModelSelection,
+    );
+    expect(capabilities.hasOutputs).toBe(staticCapabilities.hasOutputs);
   });
 });
 

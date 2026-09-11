@@ -622,6 +622,11 @@ export function useStudioGeneration({
               ...promptData,
               instrumental: settings.instrumental,
               lyrics: settings.lyrics,
+              // `buildStudioPromptData` only fills `style` for `hasLook`
+              // types (image/video) — music carries its own genre/style
+              // control (`hasStyle`), so read it straight off settings the
+              // same way instrumental/lyrics do.
+              style: settings.style,
             };
             const payload = buildMusicPayload(
               musicPromptData,

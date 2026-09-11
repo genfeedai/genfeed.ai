@@ -168,4 +168,14 @@ export class CreateMusicDto extends CreateIngredientDto {
     required: false,
   })
   readonly lyrics?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @ApiProperty({
+    description:
+      'Genre/style descriptors (e.g. "synthwave, upbeat, 80s retro"). Folded into the generation prompt — every music provider responds to genre language in plain text, unlike lyrics/instrumental which need a provider-aware field.',
+    required: false,
+  })
+  readonly style?: string;
 }
