@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -254,6 +255,7 @@ function isDesktopCallbackTargetValid(value: string | null): boolean {
 
 function CliAuthPageContent() {
   const searchParams = useSearchParams();
+  const translate = useTranslations('common.oauth.cli');
   const { isSignedIn, isLoaded, getToken } = useAuthIdentity();
   const { user } = useAuthUser();
   const [flowState, setFlowState] = useState<FlowState>({
@@ -600,12 +602,10 @@ function CliAuthPageContent() {
             <Terminal className="size-5 text-muted-foreground" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1.5 text-balance">
-            {isDesktopMode ? 'Desktop Authentication' : 'CLI Authentication'}
+            {translate(isDesktopMode ? 'title.desktop' : 'title.cli')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isDesktopMode
-              ? 'Authorize the Genfeed desktop app to access your account'
-              : 'Authorize the Genfeed CLI to access your account'}
+            {translate(isDesktopMode ? 'subtitle.desktop' : 'subtitle.cli')}
           </p>
         </div>
 
@@ -614,8 +614,8 @@ function CliAuthPageContent() {
             {(!isLoaded || flowState.step === 'validating') && (
               <StepDisplay
                 icon={<Spinner size={ComponentSize.LG} />}
-                title="Initializing"
-                description="Setting up authentication..."
+                title={translate('initializing.title')}
+                description={translate('initializing.description')}
               />
             )}
 
@@ -623,22 +623,12 @@ function CliAuthPageContent() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Terminal className="size-8 text-muted-foreground" />}
-                  title={
-                    authIntent === 'signup'
-                      ? 'Create an account'
-                      : 'Sign in required'
-                  }
-                  description={
-                    authIntent === 'signup'
-                      ? 'Create an account to authorize this device.'
-                      : 'Sign in to authorize this device.'
-                  }
+                  title={translate(`signIn.title.${authIntent}`)}
+                  description={translate(`signIn.description.${authIntent}`)}
                 />
                 <Button asChild className="w-full" withWrapper={false}>
                   <Link href={authHref}>
-                    {authIntent === 'signup'
-                      ? 'Create account to continue'
-                      : 'Sign in to continue'}
+                    {translate(`signIn.action.${authIntent}`)}
                   </Link>
                 </Button>
               </div>
@@ -648,17 +638,19 @@ function CliAuthPageContent() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Spinner size={ComponentSize.LG} />}
-                  title="Generating API key"
-                  description={
+                  title={translate('requesting.title')}
+                  description={translate(
                     isDesktopMode
-                      ? 'Creating a secure API key for the desktop app...'
-                      : 'Creating a secure API key for the CLI...'
-                  }
+                      ? 'requesting.description.desktop'
+                      : 'requesting.description.cli',
+                  )}
                 />
                 {user?.primaryEmailAddress?.emailAddress && (
                   <div className="text-center">
                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background-tertiary border border-border text-xs text-muted-foreground">
-                      Signed in as {user.primaryEmailAddress.emailAddress}
+                      {translate('requesting.signedInAs', {
+                        email: user.primaryEmailAddress.emailAddress,
+                      })}
                     </span>
                   </div>
                 )}
@@ -669,16 +661,16 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<Spinner size={ComponentSize.LG} />}
-                  title={
+                  title={translate(
                     isDesktopMode
-                      ? 'Redirecting to Desktop'
-                      : 'Redirecting to CLI'
-                  }
-                  description={
+                      ? 'redirecting.title.desktop'
+                      : 'redirecting.title.cli',
+                  )}
+                  description={translate(
                     isDesktopMode
-                      ? 'Sending credentials back to the desktop app. You can close this tab shortly.'
-                      : 'Sending credentials back to the CLI. You can close this tab shortly.'
-                  }
+                      ? 'redirecting.description.desktop'
+                      : 'redirecting.description.cli',
+                  )}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -696,8 +688,8 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<AppWindow className="size-8 text-muted-foreground" />}
-                  title="Check the desktop app"
-                  description="Genfeed Desktop should be open and finishing sign-in. If it did not open, copy the code below and paste it in the app."
+                  title={translate('awaiting.title')}
+                  description={translate('awaiting.description')}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -714,7 +706,7 @@ function CliAuthPageContent() {
                     size={ButtonSize.DEFAULT}
                     onClick={handleRetry}
                   >
-                    Try again
+                    {translate('actions.tryAgain')}
                   </Button>
                 </div>
               </div>
@@ -724,12 +716,12 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<CircleCheck className="size-8 text-success" />}
-                  title="Authentication complete"
-                  description={
+                  title={translate('success.title')}
+                  description={translate(
                     isDesktopMode
-                      ? 'You can close this browser tab and return to the desktop app.'
-                      : 'You can close this browser tab and return to the CLI.'
-                  }
+                      ? 'success.description.desktop'
+                      : 'success.description.cli',
+                  )}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -747,8 +739,8 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<CircleX className="size-8 text-destructive" />}
-                  title="Authentication failed"
-                  description={flowState.error || 'An unknown error occurred.'}
+                  title={translate('error.title')}
+                  description={flowState.error || translate('error.unknown')}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -766,7 +758,7 @@ function CliAuthPageContent() {
                       size={ButtonSize.DEFAULT}
                       onClick={handleRetry}
                     >
-                      Try again
+                      {translate('actions.tryAgain')}
                     </Button>
                   </div>
                 )}
@@ -776,13 +768,11 @@ function CliAuthPageContent() {
         </Card>
 
         <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
-          {isDesktopMode
-            ? 'Installed desktop builds open automatically. Source checkouts cannot — copy the code and paste it in the app.'
-            : 'This page redirects credentials to 127.0.0.1 (localhost) only.'}
+          {translate(isDesktopMode ? 'footer.desktop' : 'footer.cli')}
           {!isDesktopMode && (
             <>
               <br />
-              No data is sent to external servers.
+              {translate('footer.noExternal')}
             </>
           )}
         </p>
@@ -804,16 +794,18 @@ function CopyKeyFallback({
   isDesktopMode: boolean;
   onCopy: () => void;
 }) {
+  const translate = useTranslations('common.oauth.cli');
+
   return (
     <div className="border-t border-border pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
-        {isDesktopMode
-          ? 'Copy this code and paste it in the desktop app:'
-          : 'If the CLI does not receive it automatically, copy and paste the code:'}
+        {translate(
+          isDesktopMode ? 'fallback.hint.desktop' : 'fallback.hint.cli',
+        )}
       </p>
       <div className="flex items-center gap-2">
         <Input
-          aria-label="Sign-in code"
+          aria-label={translate('fallback.codeLabel')}
           className="flex-1 font-mono text-muted-foreground"
           isReadOnly
           value={copyError ? apiKey : previewAuthCode(apiKey)}
@@ -829,7 +821,7 @@ function CopyKeyFallback({
           ) : (
             <Clipboard className="size-4" />
           )}
-          {copied ? 'Copied' : 'Copy'}
+          {translate(copied ? 'actions.copied' : 'actions.copy')}
         </Button>
       </div>
       {copyError && (

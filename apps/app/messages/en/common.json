@@ -107,6 +107,84 @@
         "description": "Redirecting you back\u2026",
         "title": "{platform} Connected"
       }
+    },
+    "cli": {
+      "actions": {
+        "copied": "Copied",
+        "copy": "Copy",
+        "tryAgain": "Try again"
+      },
+      "awaiting": {
+        "description": "Genfeed Desktop should be open and finishing sign-in. If it did not open, copy the code below and paste it in the app.",
+        "title": "Check the desktop app"
+      },
+      "error": {
+        "title": "Authentication failed",
+        "unknown": "An unknown error occurred."
+      },
+      "fallback": {
+        "codeLabel": "Sign-in code",
+        "hint": {
+          "cli": "If the CLI does not receive it automatically, copy and paste the code:",
+          "desktop": "Copy this code and paste it in the desktop app:"
+        }
+      },
+      "footer": {
+        "cli": "This page redirects credentials to 127.0.0.1 (localhost) only.",
+        "desktop": "Installed desktop builds open automatically. Source checkouts cannot \u2014 copy the code and paste it in the app.",
+        "noExternal": "No data is sent to external servers."
+      },
+      "initializing": {
+        "description": "Setting up authentication...",
+        "title": "Initializing"
+      },
+      "redirecting": {
+        "description": {
+          "cli": "Sending credentials back to the CLI. You can close this tab shortly.",
+          "desktop": "Sending credentials back to the desktop app. You can close this tab shortly."
+        },
+        "title": {
+          "cli": "Redirecting to CLI",
+          "desktop": "Redirecting to Desktop"
+        }
+      },
+      "requesting": {
+        "description": {
+          "cli": "Creating a secure API key for the CLI...",
+          "desktop": "Creating a secure API key for the desktop app..."
+        },
+        "signedInAs": "Signed in as {email}",
+        "title": "Generating API key"
+      },
+      "signIn": {
+        "action": {
+          "login": "Sign in to continue",
+          "signup": "Create account to continue"
+        },
+        "description": {
+          "login": "Sign in to authorize this device.",
+          "signup": "Create an account to authorize this device."
+        },
+        "title": {
+          "login": "Sign in required",
+          "signup": "Create an account"
+        }
+      },
+      "subtitle": {
+        "cli": "Authorize the Genfeed CLI to access your account",
+        "desktop": "Authorize the Genfeed desktop app to access your account"
+      },
+      "success": {
+        "description": {
+          "cli": "You can close this browser tab and return to the CLI.",
+          "desktop": "You can close this browser tab and return to the desktop app."
+        },
+        "title": "Authentication complete"
+      },
+      "title": {
+        "cli": "CLI Authentication",
+        "desktop": "Desktop Authentication"
+      }
     }
   },
   "agentCampaign": {

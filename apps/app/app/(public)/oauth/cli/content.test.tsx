@@ -26,6 +26,11 @@ vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => useUserMock(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
