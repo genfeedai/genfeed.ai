@@ -27,7 +27,7 @@ export default function ModalPostBatchFormAlerts({
   return (
     <>
       {hasFormErrors(formErrors) && (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
             {parseFormErrors(formErrors).map((error) => (
               <div key={error}>{error}</div>
@@ -37,7 +37,7 @@ export default function ModalPostBatchFormAlerts({
       )}
 
       {invalidCredentialConfigs.length > 0 && (
-        <Alert type={AlertCategory.WARNING} className="mb-4">
+        <Alert type={AlertCategory.WARNING}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="font-medium">

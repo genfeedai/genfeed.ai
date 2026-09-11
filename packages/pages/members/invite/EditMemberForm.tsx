@@ -10,6 +10,7 @@ import {
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Form } from '@ui/primitives/form';
 import { Check, X } from 'lucide-react';
 import type {
   FormState,
@@ -49,9 +50,9 @@ export default function EditMemberForm({
           Assign accounts to <strong>{member.userFullName}</strong>
         </p>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <Form onSubmit={onSubmit}>
           {hasFormErrors(formState.errors) && (
-            <Alert type={AlertCategory.ERROR} className="mb-4">
+            <Alert type={AlertCategory.ERROR}>
               <div className="space-y-1">
                 {parseFormErrors(formState.errors).map((error) => (
                   <div key={error}>{error}</div>
@@ -60,7 +61,7 @@ export default function EditMemberForm({
             </Alert>
           )}
 
-          <div className="w-full mb-5">
+          <div className="w-full">
             <div>
               <span className="text-sm capitalize font-semibold">Brands</span>
             </div>
@@ -125,7 +126,7 @@ export default function EditMemberForm({
               isDisabled={isSubmitting}
             />
           </div>
-        </form>
+        </Form>
       </div>
     </>
   );

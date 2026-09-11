@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
@@ -321,7 +322,7 @@ export default function AgentCampaignNewPage() {
       icon={LayoutDashboard}
       label="New Program"
     >
-      <form className="max-w-3xl space-y-6" onSubmit={handleSubmit}>
+      <Form spacing="section" className="max-w-3xl" onSubmit={handleSubmit}>
         <ProgramTemplatePicker
           selectedTemplateId={selectedTemplateId}
           onSelect={handleTemplateSelect}
@@ -475,7 +476,7 @@ export default function AgentCampaignNewPage() {
             onClick={() => router.push(href(APP_ROUTES.AUTOMATION.CAMPAIGNS))}
           />
         </div>
-      </form>
+      </Form>
     </Container>
   );
 }

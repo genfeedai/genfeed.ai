@@ -90,8 +90,8 @@ export default function ModalMusic({
 
   return (
     <Modal id={ModalEnum.MUSIC} title="Select Background Music">
-      <div className="max-w-5xl">
-        <div className="flex items-center justify-between mb-4">
+      <div className="flex max-w-5xl flex-col gap-4">
+        <div className="flex items-center justify-between">
           <Button
             ariaLabel="Close"
             label={<X className="text-lg" />}
@@ -133,7 +133,7 @@ export default function ModalMusic({
             </div>
 
             {/* No Music Option */}
-            <div className="mt-3 pt-3 border-t border-white/[0.08]">
+            <div className="pt-3 border-t border-white/[0.08]">
               <Button
                 className={`p-3 transition-[box-shadow,background-color] cursor-pointer ${
                   !selectedMusic
@@ -161,7 +161,7 @@ export default function ModalMusic({
           </>
         )}
 
-        <ModalActions className="mt-6">
+        <ModalActions>
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}

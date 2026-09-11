@@ -5,6 +5,7 @@ import ModalPostContent from '@ui/modals/content/post/ModalPostContent';
 import ModalPostFooter from '@ui/modals/content/post/ModalPostFooter';
 import ModalPostHeader from '@ui/modals/content/post/ModalPostHeader';
 import Modal from '@ui/modals/modal/Modal';
+import { Form } from '@ui/primitives/form';
 import { useRouter } from 'next/navigation';
 import ModalPostBatchEmptyState from './ModalPostBatchEmptyState';
 import ModalPostBatchFormAlerts from './ModalPostBatchFormAlerts';
@@ -90,11 +91,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
                   onClose={closeModalPost}
                 />
               ) : (
-                <form
-                  ref={formRef}
-                  onSubmit={onSubmit}
-                  className="h-full flex flex-col"
-                >
+                <Form className="h-full" ref={formRef} onSubmit={onSubmit}>
                   <ModalPostBatchFormAlerts
                     formErrors={form.formState.errors}
                     invalidCredentialConfigs={invalidCredentialConfigs}
@@ -142,7 +139,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
                     onClose={closeModalPost}
                     isFormValid={isFormValid}
                   />
-                </form>
+                </Form>
               )}
             </div>
           </div>

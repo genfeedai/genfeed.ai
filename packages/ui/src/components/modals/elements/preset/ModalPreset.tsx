@@ -24,6 +24,7 @@ import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import {
   type ChangeEvent,
   useCallback,
@@ -246,7 +247,7 @@ export default function ModalPreset({
       error={error}
       onClose={() => setError(null)}
     >
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <ModalPresetFields
           control={form.control}
           watchedDescription={watchedDescription}
@@ -276,7 +277,7 @@ export default function ModalPreset({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

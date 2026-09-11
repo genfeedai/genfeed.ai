@@ -31,6 +31,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import type { FitAddon } from '@xterm/addon-fit';
 import type { SearchAddon } from '@xterm/addon-search';
@@ -784,7 +785,8 @@ export function AgentCliTerminalControls({
         )}
       </div>
 
-      <form
+      <Form
+        spacing="none"
         className="hidden min-w-[10rem] max-w-[18rem] shrink items-center gap-1 md:flex"
         onSubmit={handleSubmit}
       >
@@ -804,7 +806,7 @@ export function AgentCliTerminalControls({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         />
-      </form>
+      </Form>
 
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>

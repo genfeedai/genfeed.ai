@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { useSearchParams } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useState } from 'react';
@@ -81,7 +82,7 @@ export default function ForgotPasswordContent() {
       title="Reset your password"
     >
       <div className="w-full space-y-6">
-        <form onSubmit={handlePasswordResetRequest} className="space-y-4">
+        <Form onSubmit={handlePasswordResetRequest}>
           <Field label="Email" isRequired>
             <Input
               type="email"
@@ -113,7 +114,7 @@ export default function ForgotPasswordContent() {
               Send link
             </Button>
           </AuthFormActions>
-        </form>
+        </Form>
       </div>
     </AuthFormLayout>
   );

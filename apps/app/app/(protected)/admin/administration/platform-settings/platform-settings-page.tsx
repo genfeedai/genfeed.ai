@@ -13,6 +13,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import type { FormEvent } from 'react';
@@ -122,7 +123,12 @@ export default function PlatformSettingsPage() {
       {isLoading ? (
         <SkeletonCard showImage={false} />
       ) : (
-        <form onSubmit={handleSubmit} noValidate className="max-w-xl space-y-6">
+        <Form
+          spacing="section"
+          className="max-w-xl"
+          onSubmit={handleSubmit}
+          noValidate
+        >
           <Field
             label="Model-cost margin multiplier"
             htmlFor="platform-margin-multiplier"
@@ -152,7 +158,7 @@ export default function PlatformSettingsPage() {
             )}
             {isSaving ? 'Saving' : 'Save settings'}
           </Button>
-        </form>
+        </Form>
       )}
     </Container>
   );

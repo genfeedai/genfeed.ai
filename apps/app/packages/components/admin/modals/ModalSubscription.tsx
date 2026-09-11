@@ -22,6 +22,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { type ChangeEvent, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
@@ -91,9 +92,9 @@ export default function ModalSubscription({
 
   return (
     <Modal id={ModalEnum.SUBSCRIPTION} title="Edit Amount">
-      <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -132,7 +133,7 @@ export default function ModalSubscription({
             Save
           </Button>
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

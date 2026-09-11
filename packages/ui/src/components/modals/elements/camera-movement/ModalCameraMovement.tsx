@@ -11,6 +11,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import type { ChangeEvent } from 'react';
 
@@ -60,7 +61,7 @@ export default function ModalCameraMovement({
       id={ModalEnum.CAMERA_MOVEMENT}
       title={item ? 'Edit Camera Movement' : 'Create Camera Movement'}
     >
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
             type="text"
@@ -114,7 +115,7 @@ export default function ModalCameraMovement({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

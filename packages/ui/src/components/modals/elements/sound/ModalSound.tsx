@@ -15,6 +15,7 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Trash2 } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
 
   return (
     <Modal id={ModalEnum.SOUND} title={sound ? 'Update Sound' : 'Create Sound'}>
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
             type="text"
@@ -100,7 +101,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           </p>
         </FormControl>
 
-        <FormControl label="Type">
+        <FormControl label="Type" helpText="Model type this sound applies to">
           <SelectField
             name="type"
             control={form.control}
@@ -114,9 +115,6 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             <option value={ModelCategory.TEXT}>Text/Voice</option>
             <option value={ModelCategory.MUSIC}>Music</option>
           </SelectField>
-          <p className="text-xs text-foreground/70 mt-1">
-            Model type this sound applies to
-          </p>
         </FormControl>
 
         <FormControl label="Description">
@@ -129,15 +127,17 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           />
         </FormControl>
 
-        <Checkbox
-          name="isActive"
-          control={form.control}
-          label="Automatically select this sound"
-          isDisabled={isSubmitting}
-        />
-        <p className="text-xs text-foreground/70 mt-1">
-          When enabled, this sound will be pre-selected in the prompt bar
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isActive"
+            control={form.control}
+            label="Automatically select this sound"
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70">
+            When enabled, this sound will be pre-selected in the prompt bar
+          </p>
+        </div>
 
         <ModalActions>
           <Button
@@ -164,7 +164,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

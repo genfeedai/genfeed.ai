@@ -25,11 +25,7 @@ export default function IllustrationPromptSection({
 }: Props) {
   return (
     <>
-      <FormControl
-        label="Describe your illustration"
-        description={formatLabel}
-        className="mb-0"
-      >
+      <FormControl label="Describe your illustration" description={formatLabel}>
         <Textarea
           name="illustration-prompt"
           value={prompt}

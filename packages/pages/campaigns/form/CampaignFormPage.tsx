@@ -22,6 +22,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import {
@@ -169,8 +170,8 @@ export default function CampaignFormPage({
       label={isEdit ? translate('editTitle') : translate('newCampaign')}
       titleVisibility="sr-only"
     >
-      <form
-        className="mx-auto flex max-w-xl flex-col gap-4 py-6"
+      <Form
+        className="mx-auto max-w-xl py-6"
         onSubmit={(event) => {
           event.preventDefault();
           void handleSubmit();
@@ -282,7 +283,7 @@ export default function CampaignFormPage({
             </Link>
           </Button>
         </div>
-      </form>
+      </Form>
     </Container>
   );
 }

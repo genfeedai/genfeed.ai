@@ -711,7 +711,7 @@
     "packages/ui/src/components/modals/elements/preset/ModalPreset.tsx": 1,
     "packages/ui/src/components/modals/elements/preset/ModalPresetFields.tsx": 8,
     "packages/ui/src/components/modals/elements/scene/ModalScene.tsx": 9,
-    "packages/ui/src/components/modals/elements/sound/ModalSound.tsx": 18,
+    "packages/ui/src/components/modals/elements/sound/ModalSound.tsx": 17,
     "packages/ui/src/components/modals/elements/style/ModalStyle.tsx": 12,
     "packages/ui/src/components/modals/elements/tag/ModalTag.tsx": 17,
     "packages/ui/src/components/modals/elements/workflow/ModalWorkflow.tsx": 29,

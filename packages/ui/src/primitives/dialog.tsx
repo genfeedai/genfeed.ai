@@ -54,7 +54,9 @@ function DialogContent({
         ref={ref}
         aria-describedby={props['aria-describedby'] ?? undefined}
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-elevated p-6 text-foreground shadow-dialog outline-none',
+          // The content stacks its header, body blocks, and footer with one gap,
+          // so neither DialogHeader nor DialogFooter carries a margin.
+          'fixed top-1/2 left-1/2 z-50 flex w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-xl bg-elevated p-6 text-foreground shadow-dialog outline-none',
           'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
           className,
         )}
@@ -79,10 +81,7 @@ const DialogHeader = ({
   ...props
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn(
-      'mb-4 flex flex-col gap-1.5 text-center sm:text-left',
-      className,
-    )}
+    className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)}
     {...props}
   />
 );
@@ -94,7 +93,7 @@ const DialogFooter = ({
 }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+      'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
       className,
     )}
     {...props}

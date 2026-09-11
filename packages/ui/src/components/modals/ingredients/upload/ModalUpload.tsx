@@ -14,6 +14,7 @@ import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import UploadFileList from './UploadFileList';
 import UploadRequirements from './UploadRequirements';
@@ -95,7 +96,7 @@ export default function ModalUpload({
       error={error}
       onClose={() => setError(null)}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <Form ref={formRef} onSubmit={onSubmit}>
         {isVoiceLike ? (
           <UploadVoiceCloneSection
             voiceCloneName={voiceCloneName}
@@ -145,13 +146,11 @@ export default function ModalUpload({
           category !== AssetCategory.BANNER &&
           category !== AssetCategory.REFERENCE &&
           !isVoiceLike && (
-            <div className="mt-4">
-              <ScopeSelector
-                value={scope}
-                onChange={setScope}
-                isDisabled={isSubmitting}
-              />
-            </div>
+            <ScopeSelector
+              value={scope}
+              onChange={setScope}
+              isDisabled={isSubmitting}
+            />
           )}
 
         <ModalActions>
@@ -178,7 +177,7 @@ export default function ModalUpload({
             isLoading={isSubmitting}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

@@ -7,6 +7,7 @@ import type { SignUpBetterAuthProps } from '@props/auth/sign-up-better-auth.prop
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -168,7 +169,7 @@ export default function SignUpBetterAuth({
         title="Sign up with a magic link"
       >
         <div className="w-full space-y-6">
-          <form onSubmit={handleMagicLink} className="space-y-4">
+          <Form onSubmit={handleMagicLink}>
             <Field label="Email" isRequired>
               <Input
                 type="email"
@@ -201,7 +202,7 @@ export default function SignUpBetterAuth({
                 Send link
               </Button>
             </AuthFormActions>
-          </form>
+          </Form>
         </div>
       </AuthFormLayout>
     );

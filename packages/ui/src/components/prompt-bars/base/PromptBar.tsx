@@ -4,6 +4,7 @@ import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-inte
 import { IngredientCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
+import { Form } from '@ui/primitives/form';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
@@ -132,9 +133,10 @@ function PromptBar({
   return (
     <PromptBarInternalContext.Provider value={internalContextValue}>
       <div className="relative flex size-full min-h-0 flex-col">
-        <form
-          onSubmit={handleSubmitForm}
+        <Form
+          spacing="none"
           className="flex min-h-0 flex-1 flex-col"
+          onSubmit={handleSubmitForm}
         >
           <div
             ref={promptBarRef}
@@ -206,7 +208,7 @@ function PromptBar({
               )}
             </PromptBarComposer>
           </div>
-        </form>
+        </Form>
       </div>
     </PromptBarInternalContext.Provider>
   );

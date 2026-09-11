@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -51,7 +52,7 @@ export default function AgentStrategyDialog({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <label
@@ -266,7 +267,7 @@ export default function AgentStrategyDialog({
               isDisabled={isSubmitting}
             />
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

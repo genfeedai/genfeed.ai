@@ -259,17 +259,13 @@ function ModalOnboardingContent({
       title="Welcome to Genfeed"
       onClose={handleSkip}
     >
-      <div className="flex flex-col min-h-form">
-        {error && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
-            {error}
-          </Alert>
-        )}
+      <div className="flex min-h-form flex-col gap-6">
+        {error && <Alert type={AlertCategory.ERROR}>{error}</Alert>}
 
         <div className="flex-1">{stepContent}</div>
 
         {/* Step indicator */}
-        <div className="flex flex-col items-center gap-2 my-4">
+        <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-0">
             {[1, 2, 3, 4].map((num) => {
               const currentStep = getStepNumber();
@@ -305,7 +301,7 @@ function ModalOnboardingContent({
           </p>
         </div>
 
-        <ModalActions className="border-t border-white/[0.05] pt-6 mt-8 justify-between items-center">
+        <ModalActions className="border-t border-white/[0.05] pt-6 justify-between items-center">
           {showSkip ? (
             <Button
               label="Skip for now"

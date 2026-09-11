@@ -15,6 +15,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { ArrowUp } from 'lucide-react';
 
 import TrainingFileList from './TrainingFileList';
@@ -51,9 +52,9 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
       onClose={clearError}
       modalBoxClassName="w-[80vw] max-w-[80vw]"
     >
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col">
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((err) => (
                 <div key={err}>{err}</div>
@@ -117,7 +118,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
             }
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

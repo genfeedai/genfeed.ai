@@ -14,6 +14,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
@@ -54,9 +55,9 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
       title={role ? 'Edit Role' : 'Create Role'}
       onClose={() => closeModal(false)}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -139,7 +140,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
             {role ? 'Update' : 'Create'}
           </Button>
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

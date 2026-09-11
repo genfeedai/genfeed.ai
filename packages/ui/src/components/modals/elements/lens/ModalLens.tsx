@@ -11,6 +11,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import type { ChangeEvent } from 'react';
 
@@ -57,7 +58,7 @@ export default function ModalLens({
 
   return (
     <Modal id={ModalEnum.LENS} title={item ? 'Edit Lens' : 'Create Lens'}>
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
             type="text"
@@ -111,7 +112,7 @@ export default function ModalLens({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

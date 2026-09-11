@@ -18,6 +18,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
@@ -56,9 +57,9 @@ export default function ModalModelFormContent({
   isProviderContractsLoading,
 }: ModalModelFormContentProps) {
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+    <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(form.formState.errors) && (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
             {parseFormErrors(form.formState.errors).map((error) => (
               <div key={error}>{error}</div>
@@ -143,7 +144,7 @@ export default function ModalModelFormContent({
           isLoading={isProviderContractsLoading}
         />
       )}
-      <ModalActions className="mt-0">
+      <ModalActions>
         <Button
           label="Cancel"
           variant={ButtonVariant.SECONDARY}
@@ -161,6 +162,6 @@ export default function ModalModelFormContent({
           isDisabled={isSubmitting || !form.formState.isValid}
         />
       </ModalActions>
-    </form>
+    </Form>
   );
 }

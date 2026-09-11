@@ -24,6 +24,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import {
@@ -479,7 +480,7 @@ export default function WarmupAccountsPage({
       }}
     >
       {activeTab === 'create' && (
-        <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+        <Form spacing="section" className="max-w-3xl" onSubmit={handleSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
             <Field
               label={translate('leadEmail')}
@@ -602,7 +603,7 @@ export default function WarmupAccountsPage({
             )}
             {isSubmitting ? translate('provisioning') : translate('provision')}
           </Button>
-        </form>
+        </Form>
       )}
 
       {activeTab === 'accounts' && state.loadError && (

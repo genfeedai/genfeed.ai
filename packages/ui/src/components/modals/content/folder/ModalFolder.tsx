@@ -20,6 +20,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -121,7 +122,7 @@ export default function ModalFolder({
       title={item ? 'Edit Folder' : 'Create Folder'}
       onClose={handleModalClose}
     >
-      <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
@@ -188,7 +189,7 @@ export default function ModalFolder({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

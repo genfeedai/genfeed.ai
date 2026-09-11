@@ -23,6 +23,7 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import type { ChangeEvent } from 'react';
@@ -78,9 +79,9 @@ export default function ModalBlacklist({
       id={ModalEnum.BLACKLIST}
       title={item ? 'Edit Blacklist' : 'Create Blacklist'}
     >
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -153,21 +154,23 @@ export default function ModalBlacklist({
           />
         </FormControl>
 
-        <Checkbox
-          name="isDefault"
-          label="Automatically select this blacklist item"
-          isChecked={form.watch('isDefault')}
-          onChange={(e) => {
-            form.setValue('isDefault', e.target.checked, {
-              shouldValidate: true,
-            });
-          }}
-          isDisabled={isSubmitting}
-        />
-        <p className="text-xs text-foreground/70 mt-1">
-          When enabled, this blacklist item will be pre-selected in the prompt
-          bar
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isDefault"
+            label="Automatically select this blacklist item"
+            isChecked={form.watch('isDefault')}
+            onChange={(e) => {
+              form.setValue('isDefault', e.target.checked, {
+                shouldValidate: true,
+              });
+            }}
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70">
+            When enabled, this blacklist item will be pre-selected in the prompt
+            bar
+          </p>
+        </div>
 
         <ModalActions>
           <Button
@@ -185,7 +188,7 @@ export default function ModalBlacklist({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

@@ -23,6 +23,7 @@ import { Modal } from '@ui/modals/compound/modal.compound';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Globe, Loader2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
@@ -288,7 +289,8 @@ export default function BrandOverlay({
             </Modal.Description>
           </Modal.Header>
 
-          <form
+          <Form
+            spacing="none"
             onSubmit={(event) => {
               if (!canSubmitCreateBrand || isSubmitting) {
                 event.preventDefault();
@@ -401,7 +403,7 @@ export default function BrandOverlay({
                 {isSubmitting ? 'Creating…' : 'Create brand'}
               </Button>
             </Modal.Footer>
-          </form>
+          </Form>
         </Modal.Content>
       </Modal.Root>
     );

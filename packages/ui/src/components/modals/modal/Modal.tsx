@@ -103,7 +103,9 @@ export default function Modal({
 
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col',
+            // The body stacks its blocks — content, then the ModalActions footer —
+            // with the same rhythm a Form uses between fields.
+            'flex min-h-0 flex-1 flex-col gap-4',
             !isFullScreen && 'overflow-y-auto',
           )}
           data-modal-scroll-region=""

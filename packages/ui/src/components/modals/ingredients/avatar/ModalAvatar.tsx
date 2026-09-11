@@ -22,6 +22,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp } from 'lucide-react';
 import Image from 'next/image';
@@ -103,7 +104,7 @@ export default function ModalAvatar({
 
   return (
     <Modal id={ModalEnum.AVATAR} title="Generate Video">
-      <form ref={formRef} onSubmit={onSubmit}>
+      <Form ref={formRef} onSubmit={onSubmit}>
         <div className="w-full md:col-span-2 flex flex-col md:flex-row gap-4">
           <div className="relative aspect-[9/16] w-full md:w-1/2 h-auto">
             <Image
@@ -152,7 +153,7 @@ export default function ModalAvatar({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

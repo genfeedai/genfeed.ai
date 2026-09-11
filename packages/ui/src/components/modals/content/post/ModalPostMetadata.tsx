@@ -29,6 +29,7 @@ import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -176,7 +177,7 @@ export default function PostMetadataOverlay({
         </div>
       }
     >
-      <form id={formId} ref={formRef} onSubmit={onSubmit} className="space-y-6">
+      <Form spacing="section" id={formId} ref={formRef} onSubmit={onSubmit}>
         <div className="space-y-4">
           <p className="text-foreground/70 text-sm">
             Update the details for this scheduled post
@@ -257,7 +258,7 @@ export default function PostMetadataOverlay({
             </FormControl>
           )}
         </div>
-      </form>
+      </Form>
     </EntityOverlayShell>
   );
 }

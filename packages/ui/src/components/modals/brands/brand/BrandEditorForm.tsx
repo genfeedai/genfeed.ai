@@ -13,6 +13,7 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import FormColorPicker from '@ui/primitives/color-picker';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -92,7 +93,7 @@ export default function BrandEditorForm({
   videoModels,
 }: BrandEditorFormProps) {
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+    <Form spacing="section" onSubmit={onSubmit}>
       {error ? (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">{error}</div>
@@ -383,6 +384,6 @@ export default function BrandEditorForm({
           isDisabled={isSubmitting || isGenerating || !form.formState.isValid}
         />
       </div>
-    </form>
+    </Form>
   );
 }

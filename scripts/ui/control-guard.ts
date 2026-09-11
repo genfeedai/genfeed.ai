@@ -39,6 +39,7 @@ const logger = {
 export type ControlGuardCategory =
   | 'raw-media'
   | 'raw-html'
+  | 'form-spacing'
   | 'banned-import'
   | 'legacy-import'
   | 'raw-input'
@@ -237,7 +238,7 @@ const LEGACY_IMPORT_PATTERNS = [/@ui\/inputs\//g];
 const RAW_INPUT_PATTERN = /<input\b[\s\S]*?>/g;
 const RAW_SELECT_PATTERN = /<select\b[\s\S]*?>/g;
 const RAW_HTML_ELEMENT_PATTERN =
-  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr)\b/g;
+  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr|form)\b/g;
 const BANNED_IMPORT_PATTERNS = [
   /@\/components\/ui\/input/g,
   /@\/components\/ui\/textarea/g,
@@ -299,6 +300,172 @@ function isCommentedMatch(content: string, index: number): boolean {
     token = scanner.scan();
   }
   return false;
+}
+
+// ─── Form spacing ────────────────────────────────────────────────────────────
+// One owner per level: Field spaces label → control → error, Form spaces the
+// fields, and the modal and dialog bodies space their blocks and footers. A
+// stack class on Form, a vertical margin on a header, footer, or field-level
+// element, or a vertical margin on a direct child of a stack owner re-owns that
+// space.
+
+/** Elements whose own spacing comes from the stack that renders them. */
+const MARGIN_FREE_TAGS = new Set([
+  'ModalActions',
+  'Modal.Header',
+  'Modal.Footer',
+  'DialogFooter',
+  'DialogHeader',
+  'FormControl',
+  'Field',
+  'Label',
+]);
+/** Elements that space their direct children with a gap. */
+const STACK_OWNER_TAGS = new Set([
+  'Form',
+  'Modal',
+  'Modal.Content',
+  'DialogContent',
+]);
+const FORM_SPACING_TAG_PATTERN =
+  /<(Form|Modal|DialogContent|ModalActions|DialogFooter|DialogHeader|FormControl|Field|Label)\b/;
+// Variant prefixes may be arbitrary (`data-[state=open]:`, `[&>*]:`).
+const STACK_CLASS_PATTERN =
+  /(?:^|\s)(?:[^\s:]+:)*(?:space-y|gap-y|gap(?!-x))-\S+/;
+const VERTICAL_MARGIN_PATTERN = /(?:^|\s)(?:[^\s:]+:)*-?(?:m|mt|mb|my)-\S+/;
+
+/** Every string a className initializer can produce, joined for matching. */
+function classNameText(initializer: ts.Node): string {
+  const parts: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      parts.push(node.text);
+      return;
+    }
+    if (ts.isTemplateExpression(node)) {
+      parts.push(node.head.text);
+      for (const span of node.templateSpans) {
+        visit(span.expression);
+        parts.push(span.literal.text);
+      }
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(initializer);
+  return parts.join(' ');
+}
+
+function readJsxAttributes(
+  element: ts.JsxOpeningLikeElement,
+  source: ts.SourceFile,
+): { className: string; spacing?: string } {
+  let className = '';
+  let spacing: string | undefined;
+  for (const property of element.attributes.properties) {
+    if (!ts.isJsxAttribute(property) || !property.initializer) {
+      continue;
+    }
+    const name = property.name.getText(source);
+    if (name === 'className') {
+      className = classNameText(property.initializer);
+    } else if (name === 'spacing') {
+      // `spacing="none"` and `spacing={'none'}` are the same declaration.
+      const value = ts.isJsxExpression(property.initializer)
+        ? property.initializer.expression
+        : property.initializer;
+      if (value && ts.isStringLiteralLike(value)) {
+        spacing = value.text;
+      }
+    }
+  }
+  return { className, spacing };
+}
+
+/**
+ * JSX elements a stack lays out directly: its element children, including
+ * those rendered through fragments, `cond && <X />`, and `cond ? <X /> : <Y />`.
+ */
+function directJsxChildren(
+  element: ts.JsxElement | ts.JsxFragment,
+): ts.JsxOpeningLikeElement[] {
+  const children: ts.JsxOpeningLikeElement[] = [];
+  const collect = (node: ts.Node): void => {
+    if (ts.isJsxElement(node)) {
+      children.push(node.openingElement);
+    } else if (ts.isJsxSelfClosingElement(node)) {
+      children.push(node);
+    } else if (ts.isJsxFragment(node)) {
+      node.children.forEach(collect);
+    } else if (ts.isJsxExpression(node) && node.expression) {
+      collect(node.expression);
+    } else if (ts.isParenthesizedExpression(node)) {
+      collect(node.expression);
+    } else if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+    ) {
+      collect(node.right);
+    } else if (ts.isConditionalExpression(node)) {
+      collect(node.whenTrue);
+      collect(node.whenFalse);
+    }
+  };
+  element.children.forEach(collect);
+  return children;
+}
+
+function detectFormSpacing(rel: string, content: string): number[] {
+  if (!FORM_SPACING_TAG_PATTERN.test(content)) {
+    return [];
+  }
+  const source = parseSourceFile(rel, content, true, scriptKindFor(rel));
+  const lines = new Set<number>();
+  const flag = (node: ts.Node): void => {
+    lines.add(
+      source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+    );
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(source);
+      const { className, spacing } = readJsxAttributes(node, source);
+      if (
+        tag === 'Form' &&
+        spacing !== 'none' &&
+        STACK_CLASS_PATTERN.test(className)
+      ) {
+        flag(node);
+      }
+      if (
+        MARGIN_FREE_TAGS.has(tag) &&
+        VERTICAL_MARGIN_PATTERN.test(className)
+      ) {
+        flag(node);
+      }
+    }
+    if (ts.isJsxElement(node)) {
+      const tag = node.openingElement.tagName.getText(source);
+      const { spacing } = readJsxAttributes(node.openingElement, source);
+      if (
+        STACK_OWNER_TAGS.has(tag) &&
+        !(tag === 'Form' && spacing === 'none')
+      ) {
+        for (const child of directJsxChildren(node)) {
+          if (
+            VERTICAL_MARGIN_PATTERN.test(
+              readJsxAttributes(child, source).className,
+            )
+          ) {
+            flag(child);
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return [...lines].sort((a, b) => a - b);
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -437,6 +604,17 @@ const RULES: readonly Rule[] = [
     },
   },
   {
+    category: 'form-spacing',
+    severity: 'required',
+    // Only the primitives define spacing; every other surface consumes it.
+    scope: {
+      prefixes: [''],
+      exts: ['.tsx'],
+      excludeSegments: ['/primitives/'],
+    },
+    detect: detectFormSpacing,
+  },
+  {
     category: 'tabs-bypass',
     severity: 'required',
     scope: { prefixes: PRODUCT_UI_PREFIXES, exts: JSX_EXTS },
@@ -543,7 +721,9 @@ const BOUNDED_GLOB_IGNORE = [
 // regexes re-narrow. Over-inclusion only adds candidates the detector clears.
 function repoWideGitGrepFilter(): string {
   const elements =
-    'input|button|textarea|select|dialog|table|details|summary|progress|hr';
+    'input|button|textarea|select|dialog|table|details|summary|progress|hr|form';
+  const formSpacingTags =
+    'Form|Modal|DialogContent|ModalActions|DialogFooter|DialogHeader|FormControl|Field|Label';
   const imports = [
     '@/components/ui/input',
     '@/components/ui/textarea',
@@ -556,7 +736,7 @@ function repoWideGitGrepFilter(): string {
     '@radix-ui/react-tabs',
     'role=',
   ].join('|');
-  return `<(${elements})|${imports}`;
+  return `<(${elements})|<(${formSpacingTags})|${imports}`;
 }
 
 function tryGitGrepCandidates(rootDir: string): string[] | null {
@@ -613,6 +793,7 @@ export function runControlGuard(options: RunOptions = {}): {
 const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
   'raw-media',
   'raw-html',
+  'form-spacing',
   'banned-import',
   'legacy-import',
   'raw-input',
@@ -625,6 +806,8 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
 const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'raw-media': 'Use shared media components instead of raw media elements.',
   'raw-html': 'Use @ui/primitives/* instead of raw HTML elements.',
+  'form-spacing':
+    'Form and the modal body own the rhythm between their children (Form spacing="default" | "section"); their direct children, ModalActions, DialogHeader, DialogFooter, FormControl, Field, and Label carry no vertical margin.',
   'banned-import':
     'Import primitives from @ui/primitives/*, not dead wrappers.',
   'legacy-import': 'Replace @ui/inputs/* legacy imports with @ui/primitives/*.',

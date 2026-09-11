@@ -11,6 +11,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { UserPlus } from 'lucide-react';
@@ -41,9 +42,9 @@ export default function InviteForm({
   onCancel,
 }: InviteFormProps) {
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="space-y-4">
+    <Form ref={formRef} onSubmit={onSubmit}>
       {hasFormErrors(formState.errors) && (
-        <Alert type={AlertCategory.ERROR} className="mb-4">
+        <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
             {parseFormErrors(formState.errors).map((error) => (
               <div key={error}>{error}</div>
@@ -105,6 +106,6 @@ export default function InviteForm({
           isDisabled={!formState.isValid || isLoadingRoles}
         />
       </ModalActions>
-    </form>
+    </Form>
   );
 }

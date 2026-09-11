@@ -22,6 +22,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -99,7 +100,7 @@ export default function ModalBrandGenerate({
       title={translate(`${type}.title`)}
       size="md"
     >
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label={translate(`${type}.label`)}>
           <Textarea
             name="prompt"
@@ -110,7 +111,7 @@ export default function ModalBrandGenerate({
           />
         </FormControl>
 
-        <ModalActions className="mt-0">
+        <ModalActions>
           <Button
             label={translate('cancel')}
             variant={ButtonVariant.SECONDARY}
@@ -126,7 +127,7 @@ export default function ModalBrandGenerate({
             isDisabled={isSubmitting || !hasPrompt}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }
