@@ -9,13 +9,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a post draft from text, or prepare and confirm direct publishing for an existing content item or ingredient by returning a publish confirmation card first.',
+      'Create a post draft, or confirm direct publishing for an existing item via a confirmation card.',
     name: 'create_post',
     parameters: {
       properties: {
         caption: {
-          description:
-            'Optional caption override to publish with the selected content item.',
+          description: 'Caption override for the content item.',
           type: 'string',
         },
         confirmed: {
@@ -24,28 +23,24 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'boolean',
         },
         content: {
-          description:
-            'Draft post text content when creating a standalone draft post.',
+          description: 'Draft text for a standalone post.',
           type: 'string',
         },
         contentId: {
-          description:
-            'Existing content or ingredient ID to publish directly from chat.',
+          description: 'Content or ingredient ID to publish directly.',
           type: 'string',
         },
         ingredientId: {
-          description: 'Existing ingredient ID to publish directly from chat.',
+          description: 'Ingredient ID to publish directly.',
           type: 'string',
         },
         mediaUrls: {
-          description:
-            'Optional media URLs to attach when creating a standalone draft post.',
+          description: 'Media URLs for a standalone draft post.',
           items: { type: 'string' },
           type: 'array',
         },
         platform: {
-          description:
-            'Legacy single-platform hint when creating a standalone draft post.',
+          description: 'Legacy single-platform hint.',
           enum: [
             'instagram',
             'twitter',
@@ -57,8 +52,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         platforms: {
-          description:
-            'Platforms to publish the selected content item to after confirmation.',
+          description: 'Platforms to publish the content item to.',
           items: {
             enum: [
               'instagram',
@@ -74,17 +68,15 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         scheduledAt: {
           description:
-            'Optional ISO datetime for scheduling the direct publish instead of publishing immediately.',
+            'ISO datetime to schedule instead of publishing immediately.',
           type: 'string',
         },
         textContent: {
-          description:
-            'Optional text content or caption to reuse for the publish confirmation card.',
+          description: 'Text or caption for the confirmation card.',
           type: 'string',
         },
         visibility: {
-          description:
-            'Audience visibility, independent from draft, schedule, or publish lifecycle.',
+          description: 'Audience visibility, independent of publish lifecycle.',
           enum: ['public', 'private', 'unlisted'],
           type: 'string',
         },
@@ -96,115 +88,97 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a workflow for the current organization and brand. Supports direct graph persistence, recurring automation scaffolds, and natural-language workflow generation so the result can be edited in the Workflows app.',
+      'Create a workflow: direct graph, a recurring scaffold, or natural-language generation. Editable in the Workflows app.',
     name: 'create_workflow',
     parameters: {
       properties: {
         aspectRatio: {
-          description:
-            'Optional visual aspect ratio for generated recurring assets.',
+          description: 'Aspect ratio for recurring assets.',
           enum: ['1:1', '4:5', '9:16', '16:9'],
           type: 'string',
         },
         brandId: {
-          description:
-            'Optional explicit brand ID to attach to the workflow; otherwise uses the current selected brand when available.',
+          description: 'Brand ID; defaults to the selected brand.',
           type: 'string',
         },
         contentType: {
-          description:
-            'Optional recurring content type when scaffolding a workflow from a brief.',
+          description: 'Content type for the recurring scaffold.',
           enum: ['image', 'video', 'post', 'newsletter'],
           type: 'string',
         },
         count: {
-          description:
-            'Optional number of assets to generate per scheduled run for recurring workflows.',
+          description: 'Assets to generate per scheduled run.',
           type: 'number',
         },
         description: {
-          description:
-            'Optional natural-language description of the workflow to generate or save.',
+          description: 'Natural-language description.',
           type: 'string',
         },
         diversityMode: {
-          description:
-            'Optional variation level for recurring generated assets in the same run.',
+          description: 'Variation level for recurring assets.',
           enum: ['low', 'medium', 'high'],
           type: 'string',
         },
         edges: {
-          description: 'Optional workflow graph edges',
           items: { type: 'object' },
           type: 'array',
         },
         inputVariables: {
-          description: 'Optional workflow input variable definitions',
+          description: 'Input variable definitions.',
           items: { type: 'object' },
           type: 'array',
         },
         isScheduleEnabled: {
-          description: 'Whether the workflow schedule should be enabled',
           type: 'boolean',
         },
         label: {
-          description: 'Workflow label shown in the Workflows app',
+          description: 'Label shown in the Workflows app.',
           type: 'string',
         },
         metadata: {
-          description: 'Optional workflow metadata',
           type: 'object',
         },
         model: {
-          description:
-            'Optional generation model override for recurring flows.',
+          description: 'Model override for recurring flows.',
           type: 'string',
         },
         negativePrompt: {
-          description:
-            'Optional constraints for what recurring generations should avoid.',
+          description: 'What recurring generations should avoid.',
           type: 'string',
         },
         nodes: {
-          description: 'Optional workflow graph nodes',
           items: { type: 'object' },
           type: 'array',
         },
         prompt: {
-          description:
-            'Optional recurring generation brief. When paired with schedule, this scaffolds a recurring workflow.',
+          description: 'Recurring generation brief (with schedule).',
           type: 'string',
         },
         schedule: {
-          description: 'Optional cron expression for workflow recurrence',
+          description: 'Cron expression for recurrence.',
           type: 'string',
         },
         sourceAssetId: {
-          description:
-            'Optional source asset ID to attach to a recurring workflow brief.',
+          description: 'Source asset ID for the brief.',
           type: 'string',
         },
         styleNotes: {
-          description:
-            'Optional creative direction or brand guardrails for recurring workflows.',
+          description: 'Creative direction or brand guardrails.',
           type: 'string',
         },
         targetPlatforms: {
-          description:
-            'Optional platform hints used during natural-language workflow generation.',
+          description: 'Platform hints for generation.',
           items: { type: 'string' },
           type: 'array',
         },
         templateId: {
-          description: 'Optional workflow template ID',
           type: 'string',
         },
         timezone: {
-          description: 'Optional timezone for the schedule',
+          description: 'Schedule timezone.',
           type: 'string',
         },
         trigger: {
-          description: 'Optional trigger mode for the workflow',
           type: 'string',
         },
       },
@@ -216,13 +190,13 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Execute an existing workflow immediately. For an installed workflow, select nodeIds to rerun edited steps while reusing locked source outputs. Pass required workflow variables for full or partial execution. Locked outputs for unselected dependencies are always reused; respectLocks only controls whether selected locked nodes are reused (true, default) or rerun (false).',
+      'Execute an existing workflow immediately. Select nodeIds to rerun edited steps while reusing locked outputs; pass required variables for full or partial execution.',
     name: 'execute_workflow',
     parameters: {
       properties: {
         nodeIds: {
           description:
-            'Optional nonempty list of selected node IDs to rerun on an installed workflow. Include affected downstream steps; unavailable dependencies fail explicitly.',
+            'Nonempty list of node IDs to rerun. Include affected downstream steps; unavailable dependencies fail explicitly.',
           items: { minLength: 1, type: 'string' },
           minItems: 1,
           uniqueItems: true,
@@ -231,12 +205,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         respectLocks: {
           default: true,
           description:
-            'Reuse locked outputs by default. Set false only when intentionally regenerating selected locked nodes.',
+            'Reuse locked outputs by default; set false to regenerate selected locked nodes.',
           type: 'boolean',
         },
         variables: {
           description:
-            'Optional variables to pass to the workflow (e.g., topic, style, platforms)',
+            'Variables to pass to the workflow (e.g., topic, style, platforms)',
           type: 'object',
         },
         workflowId: {
@@ -254,7 +228,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // is billed dynamically by the generation endpoint (issue #482).
     creditCost: 50,
     description:
-      'Generate AI images with custom prompts, styles, and dimensions. Perfect for social media, blogs, and marketing materials.',
+      'Generate AI images with a custom prompt, style, and dimensions.',
     name: 'generate_image',
     parameters: {
       properties: {
@@ -264,7 +238,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         characterHandles: {
           description:
-            'Optional brand character handles to resolve server-side into canonical reference images. Max 4. Unresolvable handles fail the whole call.',
+            'Brand character handles resolved into reference images. Max 4; unresolvable handles fail the call.',
           items: { type: 'string' },
           maxItems: 4,
           type: 'array',
@@ -281,7 +255,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         references: {
           description:
-            'Optional asset/ingredient ids or URLs used as visual references (not the prompt). Max 8, further capped by the model.',
+            'Asset/ingredient ids or URLs used as visual references, not the prompt. Max 8.',
           items: { type: 'string' },
           maxItems: 8,
           type: 'array',
@@ -381,7 +355,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // dynamically by the generation endpoint per duration (issue #482).
     creditCost: 300,
     description:
-      'Generate a video using AI. Provide a detailed prompt describing the desired video. For talking avatar videos, provide imageUrl (portrait image) and audioUrl (audio file) — the model will lip-sync the portrait to the audio. Returns the video URL.',
+      'Generate a video from a prompt. Add imageUrl+audioUrl for talking-avatar lip-sync. Returns the video URL.',
     name: 'generate_video',
     parameters: {
       properties: {
@@ -392,50 +366,47 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         audioUrl: {
           description:
-            'Audio file URL for avatar/talking-head generation. When provided with imageUrl, uses Kling Avatar V2 for lip-synced portrait animation.',
+            'Audio URL for avatar generation; with imageUrl, lip-syncs via Kling Avatar V2.',
           type: 'string',
         },
         duration: {
           description:
-            'Duration in seconds. The selected model clamps or rejects values outside its published range.',
+            'Duration in seconds; model clamps or rejects out-of-range values.',
           type: 'number',
         },
         characterHandles: {
           description:
-            'Optional brand character handles to resolve server-side into canonical reference images. Max 4. Distinct from imageUrl, which is the start frame. Unresolvable handles fail the whole call.',
+            'Character handles resolved to reference images. Max 4; distinct from imageUrl.',
           items: { type: 'string' },
           maxItems: 4,
           type: 'array',
         },
         imageUrl: {
           description:
-            'Start-frame image URL for image-to-video or avatar generation. This is the first frame, not a character reference. Use references/characterHandles for identity references.',
+            'Start-frame image URL for image-to-video or avatar generation.',
           type: 'string',
         },
         model: {
-          description:
-            'Video generation model key. When omitted, the organization router selects a compatible model.',
+          description: 'Model key; omit for auto router selection.',
           type: 'string',
         },
         endFrame: {
-          description:
-            'Optional tenant-readable image ingredient id used as the final interpolation frame. Keep distinct from references and videoReferences.',
+          description: 'Image ingredient id for the final frame.',
           type: 'string',
         },
         prompt: {
-          description: 'Detailed text description of the video to generate',
+          description: 'Description of the video to generate',
           type: 'string',
         },
         references: {
           description:
-            'Optional asset/ingredient ids or URLs used as character/style references (not the start frame). Max 8, further capped by the model. Use imageUrl for the start frame.',
+            'Asset/ingredient ids or URLs as character/style references, not the start frame. Max 8.',
           items: { type: 'string' },
           maxItems: 8,
           type: 'array',
         },
         resolution: {
-          description:
-            'Model-native output resolution. Unsupported values are rejected rather than coerced.',
+          description: 'Model-native resolution; unsupported values rejected.',
           enum: [
             '360p',
             '480p',
@@ -452,7 +423,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         videoReferences: {
           description:
-            'Optional tenant-readable video ingredient ids for models with native video-reference support. Distinct from start/end stills.',
+            'Video ingredient ids for models supporting video references.',
           items: { type: 'string' },
           maxItems: 10,
           type: 'array',

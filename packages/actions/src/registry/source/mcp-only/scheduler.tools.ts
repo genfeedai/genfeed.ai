@@ -33,14 +33,13 @@ const credentialPlatforms = [
 
 const attachmentSchema = {
   properties: {
-    body: { description: 'Attachment content', type: 'string' },
+    body: { type: 'string' },
     kind: {
-      description: 'Supplemental content kind',
       enum: ['comment', 'thread', 'signature'],
       type: 'string',
     },
     order: { minimum: 0, type: 'number' },
-    platform: { description: 'Optional platform scope', type: 'string' },
+    platform: { type: 'string' },
   },
   required: ['body', 'kind'],
   type: 'object',
@@ -48,8 +47,8 @@ const attachmentSchema = {
 
 const mediaSchema = {
   properties: {
-    assetId: { description: 'Media asset ID', type: 'string' },
-    kind: { description: 'Optional media kind', type: 'string' },
+    assetId: { type: 'string' },
+    kind: { type: 'string' },
     order: { minimum: 0, type: 'number' },
   },
   required: ['assetId'],
@@ -58,10 +57,7 @@ const mediaSchema = {
 
 const recurrenceSchema = {
   properties: {
-    endDate: {
-      description: 'ISO 8601 recurrence end date',
-      type: 'string',
-    },
+    endDate: { description: 'ISO 8601', type: 'string' },
     frequency: {
       enum: ['daily', 'weekly', 'monthly', 'yearly', 'never'],
       type: 'string',
@@ -69,7 +65,7 @@ const recurrenceSchema = {
     interval: { minimum: 1, type: 'number' },
     maxRepeats: { minimum: 0, type: 'number' },
     weekdays: {
-      description: 'Weekday numbers used by weekly recurrence',
+      description: 'Weekdays',
       items: { type: 'number' },
       type: 'array',
     },
@@ -81,29 +77,15 @@ const recurrenceSchema = {
 const targetSchema = {
   properties: {
     attachments: { items: attachmentSchema, type: 'array' },
-    credentialId: {
-      description: 'Connected credential ID for this destination',
-      type: 'string',
-    },
+    credentialId: { type: 'string' },
     order: { minimum: 0, type: 'number' },
     platform: {
-      description:
-        'Credential platform (for example linkedin, instagram, or youtube)',
       enum: credentialPlatforms,
       type: 'string',
     },
-    scheduledDate: {
-      description: 'Optional target-specific ISO 8601 scheduled date',
-      type: 'string',
-    },
-    settings: {
-      description: 'Platform-specific publishing settings',
-      type: 'object',
-    },
-    timezone: {
-      description: 'Optional target-specific IANA timezone',
-      type: 'string',
-    },
+    scheduledDate: { description: 'ISO 8601', type: 'string' },
+    settings: { type: 'object' },
+    timezone: { description: 'IANA', type: 'string' },
   },
   required: ['credentialId', 'platform'],
   type: 'object',
@@ -111,30 +93,22 @@ const targetSchema = {
 
 const releaseCreateProperties = {
   attachments: { items: attachmentSchema, type: 'array' },
-  baseContent: {
-    description: 'Shared content published to every target',
-    type: 'string',
-  },
-  brandId: { description: 'Optional brand ID', type: 'string' },
+  baseContent: { type: 'string' },
+  brandId: { type: 'string' },
   media: { items: mediaSchema, type: 'array' },
   recurrence: recurrenceSchema,
-  scheduledDate: {
-    description: 'ISO 8601 scheduled date with timezone offset',
-    type: 'string',
-  },
+  scheduledDate: { description: 'ISO 8601, with offset', type: 'string' },
   status: {
-    description: 'Create as a draft or immediately schedule it',
     enum: ['draft', 'scheduled'],
     type: 'string',
   },
   targets: {
-    description: 'One or more channel destinations',
     items: targetSchema,
     minItems: 1,
     type: 'array',
   },
-  timezone: { description: 'IANA timezone', type: 'string' },
-  title: { description: 'Release title', type: 'string' },
+  timezone: { description: 'IANA', type: 'string' },
+  title: { type: 'string' },
 };
 
 const releaseUpdateProperties = {
@@ -166,15 +140,11 @@ const updateProperties = {
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
-    description:
-      'Create a multi-channel scheduled release through the canonical scheduler API. This is a mutating action and requires approval. Provide an idempotency key when retrying a request.',
+    description: 'Create a multi-channel scheduled release.',
     name: 'create_scheduled_release',
     parameters: {
       properties: {
-        idempotencyKey: {
-          description: 'Optional idempotency key for safe retries',
-          type: 'string',
-        },
+        idempotencyKey: { type: 'string' },
         release: {
           properties: releaseCreateProperties,
           required: ['title', 'baseContent', 'timezone', 'targets'],
@@ -189,11 +159,11 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get one scheduled release by ID, including its channel targets, validation and execution states, attachments, recurrence, and transition history.',
+      'Get one scheduled release by ID: channel targets, validation/execution state, attachments, recurrence, and transition history.',
     name: 'get_scheduled_release',
     parameters: {
       properties: {
-        releaseId: { description: 'Scheduled release ID', type: 'string' },
+        releaseId: { type: 'string' },
       },
       required: ['releaseId'],
       type: 'object',
@@ -202,25 +172,21 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description:
-      'Update either a scheduled release or one of its channel targets through the canonical scheduler API. Set scope explicitly; target scope also requires targetId. This mutating action requires approval.',
+    description: 'Update a release or a target.',
     name: 'update_scheduled_release',
     parameters: {
       properties: {
         changes: {
-          description:
-            'Editable release or target fields. Lifecycle and worker-owned execution fields are intentionally excluded; use control_scheduled_release for lifecycle changes.',
           properties: updateProperties,
           type: 'object',
         },
-        releaseId: { description: 'Scheduled release ID', type: 'string' },
+        releaseId: { type: 'string' },
         scope: {
-          description: 'Whether changes apply to the release or one target',
           enum: ['release', 'target'],
           type: 'string',
         },
         targetId: {
-          description: 'Required only when scope is target',
+          description: 'Required if scope=target',
           type: 'string',
         },
       },
@@ -232,7 +198,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Control a scheduled release lifecycle: cancel, pause, resume, or publish immediately. The API enforces valid state transitions. This mutating action requires approval.',
+      'Control a scheduled release lifecycle: cancel, pause, resume, or publish now.',
     name: 'control_scheduled_release',
     parameters: {
       properties: {
@@ -240,7 +206,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           enum: ['cancel', 'pause', 'resume', 'publish-now'],
           type: 'string',
         },
-        releaseId: { description: 'Scheduled release ID', type: 'string' },
+        releaseId: { type: 'string' },
       },
       required: ['releaseId', 'action'],
       type: 'object',
@@ -250,7 +216,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List every connected publishing channel for a brand with its credential ID, provider, schedulability, health state, required action, and safe diagnostics. Read-only; use this before scheduling to avoid blocked or degraded targets.',
+      'List a brand connected publishing channels with credential ID, schedulability, health, and diagnostics. Read-only; check before scheduling.',
     name: 'list_brand_publishing_readiness',
     parameters: {
       properties: {
@@ -267,7 +233,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List scheduler channel capabilities: supported platforms, caption limits, media rules, publish modes, required settings, and helper lookups. Read-only; does not mutate state. Use includeHidden or includePlanned to include channels that are not yet schedulable.',
+      'List scheduler channel capabilities: platforms, caption limits, media rules, publish modes, required settings. Read-only.',
     name: 'list_scheduler_capabilities',
     parameters: {
       properties: {
@@ -288,13 +254,11 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get one scheduler channel capability by platform. Returns the canonical platform contract: caption limits, media rules, publish modes, required settings, helpers, and status. Read-only; does not mutate state.',
+      'Get one scheduler channel capability by platform: caption limits, media rules, publish modes, required settings, status. Read-only.',
     name: 'get_scheduler_capability',
     parameters: {
       properties: {
         platform: {
-          description:
-            'Credential platform (for example linkedin, instagram, or youtube)',
           enum: credentialPlatforms,
           type: 'string',
         },
@@ -307,7 +271,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Validate a proposed scheduler target against the canonical channel-capability contract. Returns errors, warnings, and validationState without creating or updating a release. Read-only; does not mutate state.',
+      'Validate a proposed target against the channel-capability contract; returns errors/warnings/validationState. Read-only.',
     name: 'validate_scheduler_target',
     parameters: {
       properties: {
@@ -315,22 +279,17 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           description: 'Caption or shared base content to validate',
           type: 'string',
         },
-        credentialId: {
-          description: 'Optional connected credential ID for this destination',
-          type: 'string',
-        },
+        credentialId: { type: 'string' },
         media: {
-          description: 'Media items proposed for this target',
+          description: 'Media items for this target',
           items: {
             properties: {
-              id: { description: 'Optional media asset ID', type: 'string' },
+              id: { type: 'string' },
               isAnimated: {
-                description:
-                  'Whether the source media is animated (GIF and friends)',
+                description: 'Whether the source media is animated (GIF)',
                 type: 'boolean',
               },
               kind: {
-                description: 'Media kind',
                 enum: ['image', 'video', 'short_video', 'carousel', 'link'],
                 type: 'string',
               },
@@ -341,22 +300,19 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
           type: 'array',
         },
         platform: {
-          description:
-            'Credential platform (for example linkedin, instagram, or youtube)',
           enum: credentialPlatforms,
           type: 'string',
         },
         publishMode: {
-          description: 'How the target would be published',
           enum: ['draft', 'publish_now', 'scheduled'],
           type: 'string',
         },
         settings: {
-          description: 'Platform-specific publishing settings',
+          description: 'Publishing settings',
           type: 'object',
         },
         visibility: {
-          description: 'Audience visibility of the published target',
+          description: 'Audience visibility',
           enum: ['public', 'private', 'unlisted'],
           type: 'string',
         },

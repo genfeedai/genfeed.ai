@@ -167,30 +167,27 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'List the highest-performing public and connected ads for the selected brand niche, platform, source, metric, and timeframe.',
+      'List top-performing public and connected ads by niche, platform, source, metric, and timeframe.',
     name: 'list_ads_research',
     parameters: {
       properties: {
         adAccountId: {
-          description: 'Optional connected ad account ID.',
+          description: 'Connected ad account ID.',
           type: 'string',
         },
         brandId: {
           description:
-            'Optional organization-owned brand ID. Otherwise the selected brand is used.',
+            'Organization-owned brand ID; defaults to the selected brand.',
           type: 'string',
         },
         channel: {
-          description: 'Optional Google inventory filter.',
+          description: 'Google inventory filter.',
           enum: ['all', 'search', 'display', 'youtube'],
           type: 'string',
         },
-        credentialId: {
-          description: 'Optional connected credential ID.',
-          type: 'string',
-        },
+        credentialId: { type: 'string' },
         industry: {
-          description: 'Optional niche or industry override.',
+          description: 'Niche or industry override.',
           type: 'string',
         },
         limit: {
@@ -200,7 +197,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
           type: 'number',
         },
         loginCustomerId: {
-          description: 'Optional Google manager login customer ID.',
+          description: 'Google manager login customer ID.',
           type: 'string',
         },
         metric: {
@@ -215,7 +212,6 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
           type: 'string',
         },
         platform: {
-          description: 'Ads platform filter.',
           enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
@@ -225,7 +221,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
           type: 'string',
         },
         timeframe: {
-          description: 'Performance timeframe.',
+          description: 'Timeframe.',
           enum: ['last_7_days', 'last_30_days', 'last_90_days', 'all_time'],
           type: 'string',
         },
