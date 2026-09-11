@@ -364,11 +364,16 @@ describe('BrandDetailSocialMediaCard', () => {
         brandId="brand-1"
         connections={[
           {
-            credentialId: 'credential-1',
+            // THREADS has no warm-up blueprint, so this connection can't
+            // become the card's default `selectedConnection` and pull its
+            // name into the (unrelated) warm-up program panel — that panel
+            // is independent of hasConnectedAccounts and would otherwise
+            // make the "not rendered" assertion below a false negative.
+            credentialId: 'credential-lapsed',
             externalId: 'ext-1',
             isConnected: false,
             name: 'Lapsed Account',
-            platform: CredentialPlatform.TWITTER,
+            platform: CredentialPlatform.THREADS,
           },
         ]}
         connectedPlatformsCount={0}
@@ -553,6 +558,7 @@ describe('BrandDetailSocialMediaCard', () => {
           {
             avatarUrl: 'https://cdn.example.com/genfeed.jpg',
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             name: 'Genfeed',
             platform: CredentialPlatform.TWITTER,
@@ -583,6 +589,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             name: 'Acme Studio',
             platform: CredentialPlatform.THREADS,
           },
@@ -603,6 +610,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             name: 'Genfeed',
             platform: CredentialPlatform.TWITTER,
@@ -610,6 +618,7 @@ describe('BrandDetailSocialMediaCard', () => {
           },
           {
             credentialId: 'credential-2',
+            externalId: 'ext-2',
             handle: 'genfeedlabs',
             name: 'Genfeed Labs',
             platform: CredentialPlatform.TWITTER,
@@ -696,6 +705,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
