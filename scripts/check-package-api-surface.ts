@@ -28,6 +28,10 @@ const IGNORED_PATH_SEGMENTS = new Set([
 
 const FALLBACK_IGNORED_FILE_PATTERNS = [
   /\.config\.[cm]?[jt]sx?$/u,
+  // Not API even though no runner remains: the audit also reads base refs that
+  // still contain story files, and deleting one must not count as a removed export.
+  /\.stories\.[jt]sx?$/u,
+  /\.story\.[jt]sx?$/u,
   /\.spec\.[jt]sx?$/u,
   /\.test\.[jt]sx?$/u,
   /^package\.json$/u,
