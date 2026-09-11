@@ -11,6 +11,13 @@ import type {
 export type GenerationSetupSource = 'agent' | 'preset' | 'user';
 
 /**
+ * Types the shared setup can hold. Studio produces assets, so its registry is
+ * {@link StudioGenerateType}; the agent composer also offers `text`, which is a
+ * conversation turn rather than an asset and has no Studio configuration.
+ */
+export type GenerationSetupType = StudioGenerateType | 'text';
+
+/**
  * The complete generation configuration one submit runs with, shared by the
  * agent composer and Studio. Field vocabulary matches
  * {@link StudioGenerateSettings} so payload builders stay untouched.
@@ -33,7 +40,7 @@ export interface GenerationSetupValues {
   resolution?: string;
   scene?: string;
   style?: string;
-  type: StudioGenerateType;
+  type: GenerationSetupType;
 }
 
 export type GenerationSetupFieldKey = keyof GenerationSetupValues;
@@ -62,7 +69,7 @@ export interface GenerationSetupRecommendationInput {
   capabilities: StudioGenerateCapabilities;
   hasZeroCredits?: boolean;
   /** Surfaces that let the agent pick image vs video leave this unset. */
-  lockedType?: StudioGenerateType;
+  lockedType?: GenerationSetupType;
   prompt: string;
-  type: StudioGenerateType;
+  type: GenerationSetupType;
 }

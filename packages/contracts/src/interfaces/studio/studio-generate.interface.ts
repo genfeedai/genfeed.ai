@@ -100,8 +100,7 @@ export type StudioGenerateType =
   | 'video'
   | 'music'
   | 'avatar'
-  | 'voice'
-  | 'text';
+  | 'voice';
 
 /**
  * Which controls the settings popover and composer expose for a given type.

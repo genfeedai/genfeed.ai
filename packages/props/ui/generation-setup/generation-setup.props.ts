@@ -3,12 +3,12 @@ import type {
   IModel,
   IStudioLook,
   StudioGenerateCapabilities,
-  StudioGenerateType,
 } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
   GenerationSetupSource,
+  GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { ReactNode, RefObject } from 'react';
@@ -35,7 +35,7 @@ export type GenerationSetupLookOptions = Partial<
 /** One entry in the Type switcher — Studio offers several, the agent offers two. */
 export interface GenerationSetupTypeOption {
   label: string;
-  value: StudioGenerateType;
+  value: GenerationSetupType;
 }
 
 /** Setter every field control calls. Always marks the field source `user`. */
@@ -64,7 +64,7 @@ export interface GenerationSetupPopoverProps {
   onResetField: (key: GenerationSetupFieldKey) => void;
   onResetAll: () => void;
   onClearPreset: () => void;
-  onTypeChange?: (type: StudioGenerateType) => void;
+  onTypeChange?: (type: GenerationSetupType) => void;
   /** Null/undefined disables the credit lock on model rows. */
   creditsAvailable?: number | null;
   /** e.g. "~4 credits per output" shown under the Model tab. */
@@ -157,7 +157,7 @@ export interface GenerationSetupCustomizePanelProps {
   onResetField: (key: GenerationSetupFieldKey) => void;
   onSavePreset: (label: string) => void;
   onSetField: GenerationSetupFieldSetter;
-  onTypeChange?: (type: StudioGenerateType) => void;
+  onTypeChange?: (type: GenerationSetupType) => void;
   reasons: Partial<Record<GenerationSetupFieldKey, string>>;
   setup: GenerationSetup;
   typeOptions: readonly GenerationSetupTypeOption[];

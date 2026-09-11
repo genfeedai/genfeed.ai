@@ -225,7 +225,6 @@ describe('StudioGenerateComposer', () => {
 
     expect(generationSetupPopoverMocks.props).toEqual(
       expect.objectContaining({
-        onTypeChange,
         scopeKey: 'studio:image',
         typeOptions: [
           { label: 'Image', value: 'image' },
@@ -236,6 +235,16 @@ describe('StudioGenerateComposer', () => {
         ],
       }),
     );
+
+    // The shared popover emits GenerationSetupType. Studio forwards only its own
+    // registry, so an agent-only `text` pick never reaches the Studio handler.
+    const emitTypeChange = generationSetupPopoverMocks.props.onTypeChange as (
+      type: string,
+    ) => void;
+    emitTypeChange('video');
+    emitTypeChange('text');
+    expect(onTypeChange).toHaveBeenCalledOnce();
+    expect(onTypeChange).toHaveBeenCalledWith('video');
     expect(
       (
         generationSetupPopoverMocks.props.capabilities as {

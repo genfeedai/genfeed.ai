@@ -31,8 +31,10 @@ import {
   ModelCategory,
 } from '@genfeedai/contracts';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
-import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type {
+  GenerationSetupFieldKey,
+  GenerationSetupType,
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type {
   GenerationSetupFieldSetter,
   GenerationSetupLookOptions,
@@ -372,7 +374,7 @@ function AgentChatInputToolbarInner({
   );
 
   const handleTypeChange = useCallback(
-    (nextType: StudioGenerateType) => {
+    (nextType: GenerationSetupType) => {
       if (
         !isAgentGenerationType(nextType) ||
         nextType === activeGenerationType

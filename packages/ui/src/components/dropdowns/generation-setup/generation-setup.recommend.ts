@@ -16,13 +16,13 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupRecommendation,
   GenerationSetupRecommendationInput,
+  GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 
 /** Default aspect ratio per type when the prompt gives no framing hint. */
 export const GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<
-  Record<StudioGenerateType, string>
+  Record<GenerationSetupType, string>
 > = {
   image: '1:1',
   video: '16:9',
@@ -83,7 +83,7 @@ function resolveType(
   prompt: string,
 ): {
   recommendation?: FieldRecommendation<'type'>;
-  resolvedType: StudioGenerateType;
+  resolvedType: GenerationSetupType;
 } {
   if (input.lockedType) {
     // The surface fixes the type via its own switcher — the agent never
@@ -108,7 +108,7 @@ function resolveType(
 function resolveAspectRatio(
   input: GenerationSetupRecommendationInput,
   prompt: string,
-  resolvedType: StudioGenerateType,
+  resolvedType: GenerationSetupType,
 ): FieldRecommendation<'aspectRatio'> | undefined {
   if (!input.capabilities.hasAspectRatio) {
     return undefined;
@@ -148,7 +148,7 @@ function resolveAspectRatio(
 function resolveDuration(
   input: GenerationSetupRecommendationInput,
   prompt: string,
-  resolvedType: StudioGenerateType,
+  resolvedType: GenerationSetupType,
 ): FieldRecommendation<'duration'> | undefined {
   if (resolvedType !== 'video' || !input.capabilities.hasDuration) {
     return undefined;

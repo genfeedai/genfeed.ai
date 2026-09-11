@@ -8,17 +8,15 @@ import { RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
+  GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type {
-  StudioGenerateCapabilities,
-  StudioGenerateType,
-} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 
 /** Conversation, stills, or motion — the operator can lock any of the three. */
 export type AgentGenerationType = Extract<
-  StudioGenerateType,
+  GenerationSetupType,
   'image' | 'text' | 'video'
 >;
 
@@ -78,7 +76,7 @@ export const AGENT_GENERATION_SETUP_TYPE_OPTIONS: readonly GenerationSetupTypeOp
   ];
 
 export function isAgentGenerationType(
-  type: StudioGenerateType | null | undefined,
+  type: GenerationSetupType | null | undefined,
 ): type is AgentGenerationType {
   return type === 'text' || type === 'image' || type === 'video';
 }
