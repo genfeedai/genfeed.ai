@@ -63,9 +63,10 @@ bun run test --filter=@genfeedai/[name]              # Test one package
   `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button`
   inside `Button` — restructure as siblings.
 - **Form spacing has one owner per level.** `Field` spaces label → control → error; `Form`
-  (`@ui/primitives/form`, `spacing="default" | "section" | "none"`) spaces the fields; the modal
-  body spaces content and `ModalActions`. Never put a vertical margin on `ModalActions`,
-  `FormControl`, `Field`, or `Label` — `control-guard.ts` fails on it.
+  (`@ui/primitives/form`, `spacing="default" | "section" | "none"`) spaces the fields; the `Modal`
+  body and `DialogContent` space their blocks and footers. Never put a vertical margin on a direct
+  child of those stacks, or on `ModalActions`, `DialogHeader`, `DialogFooter`, `FormControl`,
+  `Field`, or `Label` — `control-guard.ts` fails on it.
 - AbortController in every `useEffect` with async calls
 - Soft delete is `isDeleted: boolean` — there is no `deletedAt` field
 - Components use `function` declarations (not arrow), default export

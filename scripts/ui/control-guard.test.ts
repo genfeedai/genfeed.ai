@@ -469,6 +469,72 @@ describe('control-guard form spacing', () => {
     expect(categoriesFor(file)).toEqual(['form-spacing']);
   });
 
+  it('accepts spacing="none" written as an expression', () => {
+    const file = write(
+      'packages/pages/ExpressionSpacing.tsx',
+      'export function ExpressionSpacing(){return <Form spacing={\'none\'} className="flex gap-1"><span /></Form>;}',
+    );
+    expect(categoriesFor(file)).toEqual([]);
+  });
+
+  it('flags margins behind arbitrary variant prefixes', () => {
+    const file = write(
+      'packages/pages/VariantMargin.tsx',
+      'export function VariantMargin(){return <DialogFooter className="data-[state=open]:mt-2" />;}',
+    );
+    expect(categoriesFor(file)).toEqual(['form-spacing']);
+  });
+
+  it('flags a margin on a direct child of a stack owner, through conditionals', () => {
+    const file = write(
+      'packages/pages/ChildMargin.tsx',
+      [
+        'export function ChildMargin({ error }: { error?: string }){',
+        '  return <Form>',
+        '    {error && <Alert className="mb-4">{error}</Alert>}',
+        '    <div className="w-full">ok</div>',
+        '  </Form>;',
+        '}',
+      ].join('\n'),
+    );
+    expect(detectViolations([file], rootDir)).toEqual([
+      expect.objectContaining({ category: 'form-spacing', line: 3 }),
+    ]);
+  });
+
+  it('treats DialogContent as a stack owner and DialogHeader as margin-free', () => {
+    const file = write(
+      'packages/pages/DialogMargins.tsx',
+      [
+        'export function DialogMargins(){',
+        '  return <DialogContent>',
+        '    <DialogHeader className="mb-4" />',
+        '    <p className="mt-2">body</p>',
+        '  </DialogContent>;',
+        '}',
+      ].join('\n'),
+    );
+    expect(
+      detectViolations([file], rootDir).map((violation) => violation.line),
+    ).toEqual([3, 4]);
+  });
+
+  it('covers the compound Modal footer', () => {
+    const file = write(
+      'packages/pages/CompoundFooter.tsx',
+      'export function CompoundFooter(){return <Modal.Content><Modal.Footer className="mt-2" /></Modal.Content>;}',
+    );
+    expect(categoriesFor(file)).toEqual(['form-spacing']);
+  });
+
+  it('leaves margins inside a nested container alone', () => {
+    const file = write(
+      'packages/pages/NestedMargin.tsx',
+      'export function NestedMargin(){return <Modal><div className="flex flex-col"><p className="mt-1">hint</p></div></Modal>;}',
+    );
+    expect(categoriesFor(file)).toEqual([]);
+  });
+
   it('allows padding and alignment on ModalActions', () => {
     const file = write(
       'packages/pages/PaddedActions.tsx',

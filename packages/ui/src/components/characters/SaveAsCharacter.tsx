@@ -19,6 +19,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
@@ -224,28 +225,30 @@ export default function SaveAsCharacter({
               {error}
             </p>
           ) : null}
-          {loadError ? (
+          <DialogFooter>
+            {loadError ? (
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => void refetch()}
+              >
+                {translate('saveExisting.retry')}
+              </Button>
+            ) : null}
             <Button
-              variant={ButtonVariant.SECONDARY}
-              onClick={() => void refetch()}
+              isDisabled={
+                saving ||
+                Boolean(loadError) ||
+                isLoading ||
+                isChecking ||
+                notCharacter ||
+                Boolean(existing)
+              }
+              isLoading={saving}
+              onClick={() => void save()}
             >
-              {translate('saveExisting.retry')}
+              {translate('actions.save')}
             </Button>
-          ) : null}
-          <Button
-            isDisabled={
-              saving ||
-              Boolean(loadError) ||
-              isLoading ||
-              isChecking ||
-              notCharacter ||
-              Boolean(existing)
-            }
-            isLoading={saving}
-            onClick={() => void save()}
-          >
-            {translate('actions.save')}
-          </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

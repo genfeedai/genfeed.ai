@@ -101,7 +101,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           </p>
         </FormControl>
 
-        <FormControl label="Type">
+        <FormControl label="Type" helpText="Model type this sound applies to">
           <SelectField
             name="type"
             control={form.control}
@@ -115,9 +115,6 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             <option value={ModelCategory.TEXT}>Text/Voice</option>
             <option value={ModelCategory.MUSIC}>Music</option>
           </SelectField>
-          <p className="text-xs text-foreground/70 mt-1">
-            Model type this sound applies to
-          </p>
         </FormControl>
 
         <FormControl label="Description">
@@ -130,15 +127,17 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           />
         </FormControl>
 
-        <Checkbox
-          name="isActive"
-          control={form.control}
-          label="Automatically select this sound"
-          isDisabled={isSubmitting}
-        />
-        <p className="text-xs text-foreground/70 mt-1">
-          When enabled, this sound will be pre-selected in the prompt bar
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isActive"
+            control={form.control}
+            label="Automatically select this sound"
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70">
+            When enabled, this sound will be pre-selected in the prompt bar
+          </p>
+        </div>
 
         <ModalActions>
           <Button

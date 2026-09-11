@@ -61,7 +61,7 @@ export default function EditMemberForm({
             </Alert>
           )}
 
-          <div className="w-full mb-5">
+          <div className="w-full">
             <div>
               <span className="text-sm capitalize font-semibold">Brands</span>
             </div>

@@ -42,7 +42,7 @@ export default function ModalTwitterThread({
     >
       <Modal.Content size="lg" className="w-full max-w-2xl">
         <Modal.Header>
-          <Modal.Title className="font-bold text-lg mb-0">
+          <Modal.Title className="font-bold text-lg">
             Twitter Thread Preview{' '}
             <Badge variant="outline" size={ComponentSize.SM}>
               {thread.totalTweets} tweets
@@ -68,7 +68,7 @@ export default function ModalTwitterThread({
           </div>
         </Modal.Body>
 
-        <Modal.Footer className="mt-2">
+        <Modal.Footer>
           <Button
             label="Close"
             variant={ButtonVariant.GHOST}

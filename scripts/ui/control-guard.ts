@@ -304,21 +304,35 @@ function isCommentedMatch(content: string, index: number): boolean {
 
 // ─── Form spacing ────────────────────────────────────────────────────────────
 // One owner per level: Field spaces label → control → error, Form spaces the
-// fields, and the modal body spaces content and ModalActions. A stack class on
-// Form or a vertical margin on a field-level element re-owns that space.
+// fields, and the modal and dialog bodies space their blocks and footers. A
+// stack class on Form, a vertical margin on a header, footer, or field-level
+// element, or a vertical margin on a direct child of a stack owner re-owns that
+// space.
 
-const FORM_SPACING_TAGS = new Set([
-  'Form',
+/** Elements whose own spacing comes from the stack that renders them. */
+const MARGIN_FREE_TAGS = new Set([
   'ModalActions',
+  'Modal.Header',
+  'Modal.Footer',
+  'DialogFooter',
+  'DialogHeader',
   'FormControl',
   'Field',
   'Label',
 ]);
+/** Elements that space their direct children with a gap. */
+const STACK_OWNER_TAGS = new Set([
+  'Form',
+  'Modal',
+  'Modal.Content',
+  'DialogContent',
+]);
 const FORM_SPACING_TAG_PATTERN =
-  /<(Form|ModalActions|FormControl|Field|Label)\b/;
+  /<(Form|Modal|DialogContent|ModalActions|DialogFooter|DialogHeader|FormControl|Field|Label)\b/;
+// Variant prefixes may be arbitrary (`data-[state=open]:`, `[&>*]:`).
 const STACK_CLASS_PATTERN =
-  /(?:^|\s)(?:[\w-]+:)*(?:space-y|gap-y|gap(?!-x))-\S+/;
-const VERTICAL_MARGIN_PATTERN = /(?:^|\s)(?:[\w-]+:)*-?(?:m|mt|mb|my)-\S+/;
+  /(?:^|\s)(?:[^\s:]+:)*(?:space-y|gap-y|gap(?!-x))-\S+/;
+const VERTICAL_MARGIN_PATTERN = /(?:^|\s)(?:[^\s:]+:)*-?(?:m|mt|mb|my)-\S+/;
 
 /** Every string a className initializer can produce, joined for matching. */
 function classNameText(initializer: ts.Node): string {
@@ -342,48 +356,116 @@ function classNameText(initializer: ts.Node): string {
   return parts.join(' ');
 }
 
+function readJsxAttributes(
+  element: ts.JsxOpeningLikeElement,
+  source: ts.SourceFile,
+): { className: string; spacing?: string } {
+  let className = '';
+  let spacing: string | undefined;
+  for (const property of element.attributes.properties) {
+    if (!ts.isJsxAttribute(property) || !property.initializer) {
+      continue;
+    }
+    const name = property.name.getText(source);
+    if (name === 'className') {
+      className = classNameText(property.initializer);
+    } else if (name === 'spacing') {
+      // `spacing="none"` and `spacing={'none'}` are the same declaration.
+      const value = ts.isJsxExpression(property.initializer)
+        ? property.initializer.expression
+        : property.initializer;
+      if (value && ts.isStringLiteralLike(value)) {
+        spacing = value.text;
+      }
+    }
+  }
+  return { className, spacing };
+}
+
+/**
+ * JSX elements a stack lays out directly: its element children, including
+ * those rendered through fragments, `cond && <X />`, and `cond ? <X /> : <Y />`.
+ */
+function directJsxChildren(
+  element: ts.JsxElement | ts.JsxFragment,
+): ts.JsxOpeningLikeElement[] {
+  const children: ts.JsxOpeningLikeElement[] = [];
+  const collect = (node: ts.Node): void => {
+    if (ts.isJsxElement(node)) {
+      children.push(node.openingElement);
+    } else if (ts.isJsxSelfClosingElement(node)) {
+      children.push(node);
+    } else if (ts.isJsxFragment(node)) {
+      node.children.forEach(collect);
+    } else if (ts.isJsxExpression(node) && node.expression) {
+      collect(node.expression);
+    } else if (ts.isParenthesizedExpression(node)) {
+      collect(node.expression);
+    } else if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+    ) {
+      collect(node.right);
+    } else if (ts.isConditionalExpression(node)) {
+      collect(node.whenTrue);
+      collect(node.whenFalse);
+    }
+  };
+  element.children.forEach(collect);
+  return children;
+}
+
 function detectFormSpacing(rel: string, content: string): number[] {
   if (!FORM_SPACING_TAG_PATTERN.test(content)) {
     return [];
   }
   const source = parseSourceFile(rel, content, true, scriptKindFor(rel));
-  const lines: number[] = [];
+  const lines = new Set<number>();
+  const flag = (node: ts.Node): void => {
+    lines.add(
+      source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+    );
+  };
   const visit = (node: ts.Node): void => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const tag = node.tagName.getText(source);
-      if (FORM_SPACING_TAGS.has(tag)) {
-        let className = '';
-        let spacing: string | undefined;
-        for (const property of node.attributes.properties) {
-          if (!ts.isJsxAttribute(property) || !property.initializer) {
-            continue;
-          }
-          const name = property.name.getText(source);
-          if (name === 'className') {
-            className = classNameText(property.initializer);
-          } else if (
-            name === 'spacing' &&
-            ts.isStringLiteral(property.initializer)
+      const { className, spacing } = readJsxAttributes(node, source);
+      if (
+        tag === 'Form' &&
+        spacing !== 'none' &&
+        STACK_CLASS_PATTERN.test(className)
+      ) {
+        flag(node);
+      }
+      if (
+        MARGIN_FREE_TAGS.has(tag) &&
+        VERTICAL_MARGIN_PATTERN.test(className)
+      ) {
+        flag(node);
+      }
+    }
+    if (ts.isJsxElement(node)) {
+      const tag = node.openingElement.tagName.getText(source);
+      const { spacing } = readJsxAttributes(node.openingElement, source);
+      if (
+        STACK_OWNER_TAGS.has(tag) &&
+        !(tag === 'Form' && spacing === 'none')
+      ) {
+        for (const child of directJsxChildren(node)) {
+          if (
+            VERTICAL_MARGIN_PATTERN.test(
+              readJsxAttributes(child, source).className,
+            )
           ) {
-            spacing = property.initializer.text;
+            flag(child);
           }
-        }
-        const isViolation =
-          tag === 'Form'
-            ? spacing !== 'none' && STACK_CLASS_PATTERN.test(className)
-            : VERTICAL_MARGIN_PATTERN.test(className);
-        if (isViolation) {
-          lines.push(
-            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
-              1,
-          );
         }
       }
     }
     ts.forEachChild(node, visit);
   };
   visit(source);
-  return lines;
+  return [...lines].sort((a, b) => a - b);
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -524,10 +606,11 @@ const RULES: readonly Rule[] = [
   {
     category: 'form-spacing',
     severity: 'required',
+    // Only the primitives define spacing; every other surface consumes it.
     scope: {
       prefixes: [''],
       exts: ['.tsx'],
-      excludeSegments: ALLOWLIST.primitiveWrapperSegments,
+      excludeSegments: ['/primitives/'],
     },
     detect: detectFormSpacing,
   },
@@ -639,7 +722,8 @@ const BOUNDED_GLOB_IGNORE = [
 function repoWideGitGrepFilter(): string {
   const elements =
     'input|button|textarea|select|dialog|table|details|summary|progress|hr|form';
-  const formSpacingTags = 'Form|ModalActions|FormControl|Field|Label';
+  const formSpacingTags =
+    'Form|Modal|DialogContent|ModalActions|DialogFooter|DialogHeader|FormControl|Field|Label';
   const imports = [
     '@/components/ui/input',
     '@/components/ui/textarea',
@@ -723,7 +807,7 @@ const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'raw-media': 'Use shared media components instead of raw media elements.',
   'raw-html': 'Use @ui/primitives/* instead of raw HTML elements.',
   'form-spacing':
-    'Form owns the rhythm between fields (spacing="default" | "section"); ModalActions, FormControl, Field, and Label carry no vertical margin.',
+    'Form and the modal body own the rhythm between their children (Form spacing="default" | "section"); their direct children, ModalActions, DialogHeader, DialogFooter, FormControl, Field, and Label carry no vertical margin.',
   'banned-import':
     'Import primitives from @ui/primitives/*, not dead wrappers.',
   'legacy-import': 'Replace @ui/inputs/* legacy imports with @ui/primitives/*.',

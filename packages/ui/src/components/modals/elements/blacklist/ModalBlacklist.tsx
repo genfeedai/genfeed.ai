@@ -154,21 +154,23 @@ export default function ModalBlacklist({
           />
         </FormControl>
 
-        <Checkbox
-          name="isDefault"
-          label="Automatically select this blacklist item"
-          isChecked={form.watch('isDefault')}
-          onChange={(e) => {
-            form.setValue('isDefault', e.target.checked, {
-              shouldValidate: true,
-            });
-          }}
-          isDisabled={isSubmitting}
-        />
-        <p className="text-xs text-foreground/70 mt-1">
-          When enabled, this blacklist item will be pre-selected in the prompt
-          bar
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            name="isDefault"
+            label="Automatically select this blacklist item"
+            isChecked={form.watch('isDefault')}
+            onChange={(e) => {
+              form.setValue('isDefault', e.target.checked, {
+                shouldValidate: true,
+              });
+            }}
+            isDisabled={isSubmitting}
+          />
+          <p className="text-xs text-foreground/70">
+            When enabled, this blacklist item will be pre-selected in the prompt
+            bar
+          </p>
+        </div>
 
         <ModalActions>
           <Button

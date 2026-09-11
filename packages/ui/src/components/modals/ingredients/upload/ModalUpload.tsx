@@ -146,13 +146,11 @@ export default function ModalUpload({
           category !== AssetCategory.BANNER &&
           category !== AssetCategory.REFERENCE &&
           !isVoiceLike && (
-            <div className="mt-4">
-              <ScopeSelector
-                value={scope}
-                onChange={setScope}
-                isDisabled={isSubmitting}
-              />
-            </div>
+            <ScopeSelector
+              value={scope}
+              onChange={setScope}
+              isDisabled={isSubmitting}
+            />
           )}
 
         <ModalActions>
