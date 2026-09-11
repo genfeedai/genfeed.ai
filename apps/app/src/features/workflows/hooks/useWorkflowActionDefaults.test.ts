@@ -63,7 +63,7 @@ describe('useWorkflowActionScope', () => {
   it('falls back through externalHandle, externalName, then label for connected accounts', () => {
     const { result } = renderHook(() => useWorkflowActionScope());
 
-    expect(result.current.connectedAccounts).toEqual([
+    expect(result.current.credentials).toEqual([
       {
         id: 'cred-x',
         label: 'VincentShipsIt',
