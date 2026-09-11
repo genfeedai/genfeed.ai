@@ -28,6 +28,7 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
@@ -39,7 +40,7 @@ import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import { Eye, Film, ImageIcon, RefreshCw } from 'lucide-react';
+import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -54,11 +55,23 @@ const LibraryCanvas = dynamic(
   },
 );
 
+/**
+ * Audio rendering is a property of the asset itself, not of the page it
+ * happens to be listed on — a mixed "all assets" view carries music and voice
+ * rows alongside images and video, and each row still has to know how to
+ * play itself.
+ */
+function isAudioIngredient(ingredient: IIngredient): boolean {
+  const assetTypeId = getLibraryAssetType(ingredient.category)?.id;
+  return assetTypeId === 'audio' || assetTypeId === 'voice';
+}
+
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const previewUrl = getIngredientPreviewUrl(ingredient);
   const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
   const isVideo = isVideoIngredient(ingredient);
   const assetType = getLibraryAssetType(ingredient.category);
+  const isAudio = isAudioIngredient(ingredient);
 
   if (!previewUrl) {
     return (
@@ -70,6 +83,8 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
       >
         {isVideo || assetType?.id === 'video' ? (
           <Film className="size-4" />
+        ) : isAudio ? (
+          <Music className="size-4" />
         ) : (
           <ImageIcon className="size-4" />
         )}
@@ -117,27 +132,40 @@ function IngredientLedgerAssetCell({
   const label = getIngredientDisplayLabel(ingredient);
   const failureReason = getIngredientFailureReason(ingredient);
   const promptText = ingredient.promptText?.trim();
+  const isAudio = isAudioIngredient(ingredient);
 
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="truncate text-sm font-medium" title={label || undefined}>
-        {label || 'Untitled asset'}
-      </span>
-      {failureReason ? (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
-          className="truncate text-xs text-destructive"
-          data-testid={`ingredient-failure-reason-${ingredient.id}`}
-          title={failureReason}
+          className="truncate text-sm font-medium"
+          title={label || undefined}
         >
-          {failureReason}
+          {label || 'Untitled asset'}
         </span>
-      ) : promptText ? (
-        <span
-          className="truncate text-xs text-foreground/45"
-          title={promptText}
-        >
-          {promptText}
-        </span>
+        {failureReason ? (
+          <span
+            className="truncate text-xs text-destructive"
+            data-testid={`ingredient-failure-reason-${ingredient.id}`}
+            title={failureReason}
+          >
+            {failureReason}
+          </span>
+        ) : promptText ? (
+          <span
+            className="truncate text-xs text-foreground/45"
+            title={promptText}
+          >
+            {promptText}
+          </span>
+        ) : null}
+      </div>
+      {isAudio ? (
+        <AudioPreviewPlayer
+          audioUrl={ingredient.ingredientUrl}
+          label={label || 'Untitled asset'}
+          stopOnUnmount
+        />
       ) : null}
     </div>
   );
@@ -182,9 +210,16 @@ export default function IngredientsListContent({
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
   const translateRetry = useTranslations('common.libraryRetry');
+  // Audio rendering is decided from the filtered assets themselves — a
+  // unified Library view can carry music/voice alongside every other
+  // category, so "this page is an audio page" is never a safe signal. An
+  // empty result set has no data to inspect, so it falls back to the route's
+  // singular type only to pick the right empty-state noun.
   const isAudioCategory =
-    singularType === IngredientCategory.MUSIC ||
-    singularType === IngredientCategory.VOICE;
+    filteredIngredients.length > 0
+      ? filteredIngredients.every(isAudioIngredient)
+      : singularType === IngredientCategory.MUSIC ||
+        singularType === IngredientCategory.VOICE;
 
   const isMediaCategory =
     singularType === IngredientCategory.IMAGE ||

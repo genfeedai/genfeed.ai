@@ -314,6 +314,55 @@ describe('IngredientsListContent', () => {
     expect(screen.getByText('Opening Theme')).toBeInTheDocument();
     expect(screen.queryByText('No music yet')).toBeNull();
   });
+
+  it('plays a music row from the Library list, regardless of page type', () => {
+    // The unified Library list is `singularType: INGREDIENT` on every route —
+    // audio rendering has to key off the row's own category, not the page.
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Play preview for A red apple on a table',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('plays a music row inside the grid view’s mixed "other assets" table', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    expect(screen.getByTestId('media-grid-item')).toHaveTextContent(
+      'A red apple on a table',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('disables the music row control while the asset is still processing', () => {
+    renderContent({
+      filteredIngredients: [{ ...musicIngredient, ingredientUrl: undefined }],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeDisabled();
+  });
 });
 
 describe('IngredientsListContent inspector handoff', () => {

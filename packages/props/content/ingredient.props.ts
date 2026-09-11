@@ -4,7 +4,6 @@ import type {
   IngredientFormat,
 } from '@genfeedai/contracts';
 import type {
-  IAudio,
   ICredential,
   IImage,
   IIngredient,
@@ -268,12 +267,6 @@ export interface IngredientDetailVideoProps {
   isTrimming?: boolean;
   isGeneratingCaptions?: boolean;
   isAddingTextOverlay?: boolean;
-}
-
-export interface IngredientDetailAudioProps {
-  ingredient: IAudio;
-  className?: string;
-  showWaveform?: boolean;
 }
 
 /**
