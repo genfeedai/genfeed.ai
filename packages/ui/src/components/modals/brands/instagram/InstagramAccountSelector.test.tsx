@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/auth-client/react');
 vi.mock('@genfeedai/services/organization/credentials.service');
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 describe('InstagramAccountSelector', () => {
   const mockGetToken = vi.fn();
