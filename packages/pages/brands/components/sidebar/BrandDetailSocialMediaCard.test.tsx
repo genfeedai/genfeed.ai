@@ -447,6 +447,35 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.queryAllByText('Connected')).toHaveLength(0);
   });
 
+  it('still fetches account health when the only connection is connected but needs reconnecting', async () => {
+    // Regression: the health fetch used to gate on `connectedPlatformsCount
+    // === 0`, and that count is status-derived — so a connected credential
+    // with an expired token (or an identity-less legacy row) reads 0
+    // connected even though it is a visible row. That is exactly the case
+    // where fetched health would explain the breakage, so the fetch must
+    // key off there being any visible connection, not the connected count.
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            accessTokenExpiry: '2020-01-01T00:00:00.000Z',
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(listBrandAccountHealth).toHaveBeenCalledWith('brand-1');
+    });
+  });
+
   it('sends the credentialId in the connect body when reconnecting an account', async () => {
     render(
       <BrandDetailSocialMediaCard

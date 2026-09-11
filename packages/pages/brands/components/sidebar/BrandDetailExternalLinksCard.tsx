@@ -82,6 +82,18 @@ export default function BrandDetailExternalLinksCard({
                 const rowClassName =
                   'flex min-w-0 items-center gap-2 rounded-md bg-background-secondary px-3 py-2 text-xs shadow-border';
 
+                const rowContent = (
+                  <>
+                    {icon}
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {label}
+                    </span>
+                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
+                      {connection.platform}
+                    </span>
+                  </>
+                );
+
                 if (connection.url) {
                   return (
                     <Link
@@ -91,28 +103,28 @@ export default function BrandDetailExternalLinksCard({
                       rel="noopener noreferrer"
                       className={`${rowClassName} transition-colors hover:bg-background`}
                     >
-                      {icon}
-                      <span className="min-w-0 flex-1 truncate font-medium">
-                        {label}
-                      </span>
-                      <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                        {connection.platform}
-                      </span>
+                      {rowContent}
                     </Link>
                   );
                 }
 
-                return (
-                  <div key={connection.credentialId} className={rowClassName}>
-                    {icon}
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {label}
-                    </span>
-                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                      {connection.platform}
-                    </span>
-                  </div>
-                );
+                // A connected account without a derivable profile URL (e.g. no
+                // handle captured) is still worth surfacing, but a bare `<div>`
+                // here was a dead end — route it to Social settings instead of
+                // rendering a non-interactive row.
+                if (manageSocialHref) {
+                  return (
+                    <Link
+                      key={connection.credentialId}
+                      href={manageSocialHref}
+                      className={`${rowClassName} transition-colors hover:bg-background`}
+                    >
+                      {rowContent}
+                    </Link>
+                  );
+                }
+
+                return null;
               })}
             </div>
           </div>

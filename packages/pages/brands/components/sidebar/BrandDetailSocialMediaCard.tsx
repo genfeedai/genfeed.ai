@@ -168,7 +168,6 @@ function getHealthToneClass(summary: AccountHealthSummary): string {
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
-  connectedPlatformsCount,
   onRefresh,
   variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
@@ -330,7 +329,11 @@ export default function BrandDetailSocialMediaCard({
 
   const loadAccountHealth = useCallback(
     async (signal?: AbortSignal) => {
-      if (!brandId || connectedPlatformsCount === 0) {
+      // Gate on any visible row, not the connected count: a connected
+      // credential with an expired token or a legacy identity-less row is
+      // exactly the case where fetched health would explain the breakage,
+      // and both read as 0 connected while still being a visible account.
+      if (!brandId || connections.length === 0) {
         setAccountHealth([]);
         return;
       }
@@ -356,7 +359,7 @@ export default function BrandDetailSocialMediaCard({
         }
       }
     },
-    [brandId, connectedPlatformsCount, getToken],
+    [brandId, connections.length, getToken],
   );
 
   useEffect(() => {

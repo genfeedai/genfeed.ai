@@ -10,10 +10,10 @@ import {
 export type { AccountConnectionStatusInput };
 // Re-exported from ModalBrand.types.ts, where the derivation actually
 // lives: `packages/hooks` needs the same status logic as this pages-layer
-// package (for use-brand-detail.ts's connectedPlatformsCount) and must not
-// depend on `packages/pages`, so the pure functions live in `packages/ui`
-// instead — which both packages/hooks and packages/pages already depend
-// on. Every existing pages-layer import of this file keeps working
+// package (for use-brand-detail.ts's connectedPlatformsCount), and reaches
+// `packages/ui` via the same alias it already used for
+// `buildSocialConnections` — so the pure functions live there instead of
+// here. Every existing pages-layer import of this file keeps working
 // unchanged.
 export { getAccountConnectionStatus, isAccessTokenExpired };
 

@@ -927,9 +927,10 @@ export function useModalBrand(
     submitModalBrand(),
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: buildSocialConnections only reads activeBrand.credentials — depending on the whole activeBrand object would give this a new identity on every refresh that leaves credentials untouched, matching the same fix in use-brand-detail.ts.
   const socialConnections = useMemo(
     () => buildSocialConnections(activeBrand),
-    [activeBrand],
+    [activeBrand?.credentials],
   );
 
   // Counts rows that are actually connected — not a raw `isConnected`

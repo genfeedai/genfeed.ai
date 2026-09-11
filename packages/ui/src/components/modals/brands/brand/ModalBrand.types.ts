@@ -104,10 +104,10 @@ export type AccountConnectionStatusInput = Pick<
  *
  * Lives alongside `isVisibleCredentialRow` (rather than in the
  * pages-layer `account-connection-status.util.ts` that re-exports it) so
- * that `packages/hooks` — which sits below `packages/pages` and must not
- * depend on it — can still derive status without a package-layering
- * violation; `packages/hooks` already depends on `packages/ui` for
- * `buildSocialConnections`.
+ * `packages/hooks` can derive status via the same `packages/hooks` ->
+ * `packages/ui` alias it already uses for `buildSocialConnections` —
+ * that edge predates this change, rather than routing it through
+ * `packages/pages`, which `packages/hooks` doesn't otherwise reach into.
  */
 export function getAccountConnectionStatus(
   connection: AccountConnectionStatusInput,
