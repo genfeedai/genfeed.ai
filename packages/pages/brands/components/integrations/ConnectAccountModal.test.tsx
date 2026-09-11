@@ -106,9 +106,9 @@ describe('ConnectAccountModal', () => {
     );
 
     expect(screen.getByText('2 connected')).toBeInTheDocument();
-    // Threads and YouTube have no entry in `platformConnectedCounts` — both
-    // fall back to zero.
-    expect(screen.getAllByText('0 connected')).toHaveLength(2);
+    // YouTube has no entry in `platformConnectedCounts` and falls back to
+    // zero. Threads shows its unavailable reason instead of a count.
+    expect(screen.getByText('0 connected')).toBeInTheDocument();
   });
 
   it('disables an unavailable platform with a reason and blocks the connect call', () => {
