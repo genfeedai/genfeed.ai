@@ -376,6 +376,60 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
+  it('defers the brand-scoped lookup until brandId resolves to the route brand (FR5)', async () => {
+    navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'second-brand' };
+    storeState.activeThreadId = null;
+    // Brand scope has resolved (brands loaded) but the context brandId has
+    // not yet caught up to this route's brand — the lookup must wait rather
+    // than treat the brand as unauthorized.
+    brandState.brandId = '';
+    brandState.isBrandScopeResolved = true;
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getThreads).not.toHaveBeenCalled();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it('never resumes another brand thread under an unknown or mismatched brand slug (FR7)', async () => {
+    navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'bogus' };
+    storeState.activeThreadId = null;
+    // The brand provider falls back to the last-selected brand for a URL slug
+    // that matches no authorized brand — brandId is non-empty but does not
+    // name a real "bogus" brand. The lookup must not trust it.
+    brandState.brandId = 'brand-1';
+    getThreads.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'brand-1-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith('/acme-org/bogus/agent/new');
+    });
+    expect(getThreads).not.toHaveBeenCalled();
+  });
+
   it('falls back by replacement to a new org conversation when none is authorized', async () => {
     navigationState.pathname = '/agent';
     navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
@@ -562,6 +616,58 @@ describe('AgentWorkspaceLayoutClient', () => {
       await Promise.resolve();
     });
 
+    expect(getThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not stall or duplicate the org-scoped resume across an unrelated re-render mid-flight', async () => {
+    navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
+    storeState.activeThreadId = null;
+
+    let resolveGetThreads: (threads: unknown[]) => void = () => undefined;
+    getThreads.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveGetThreads = resolve;
+        }),
+    );
+
+    const view = render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(1);
+    });
+
+    // Re-render before the lookup settles, mirroring a sibling state update
+    // (e.g. brand context settling) landing while the request is in flight.
+    // A dependency that isn't referentially stable across such a re-render
+    // (`useOrgUrl`'s callbacks previously weren't) would abort the request
+    // here and, with the one-shot guard already consumed, never retry.
+    view.rerender(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    resolveGetThreads([
+      {
+        brandId: 'brand-1',
+        id: 'latest-authorized-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/latest-authorized-thread',
+      );
+    });
     expect(getThreads).toHaveBeenCalledTimes(1);
   });
 

@@ -15,7 +15,10 @@ import {
   useAgentChatStream,
 } from '@genfeedai/agent';
 import { AgentThreadStatus } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { AgentWorkspaceLayoutClientProps } from '@genfeedai/props/agent/agent-workspace-layout-client.props';
@@ -324,8 +327,25 @@ function AgentWorkspaceLayoutClientContent({
   // unavailable, redirect to /agent/new, and never retry once brands arrive.
   // For a brand-scoped URL, also wait for `brandId` to resolve to the route's
   // brand before running so the lookup never fires against a stale brand.
+  //
+  // FR7: a brand-scoped entry must never resume a conversation belonging to a
+  // brand other than the one in the URL. `brandId` from context can briefly
+  // (or, for an unknown/mistyped brand slug, permanently) reflect a
+  // *different* brand than the route names — it falls back to the operator's
+  // last-selected brand when the URL slug doesn't match any authorized brand.
+  // Require an authorized brand whose slug AND id both match before treating
+  // `brandId` as authoritative for this route; otherwise go straight to that
+  // brand slug's own new conversation rather than trust a mismatched id.
   useEffect(() => {
     const isBrandScopedRoute = Boolean(routeBrandSlug);
+    const routeBrand = isBrandScopedRoute
+      ? brands.find(
+          (brand) =>
+            brand.slug === routeBrandSlug &&
+            getBrandEntityId(brand) === brandId &&
+            getBrandOrganizationId(brand) === organizationId,
+        )
+      : undefined;
 
     if (
       !effectiveIsLoaded ||
@@ -343,9 +363,19 @@ function AgentWorkspaceLayoutClientContent({
 
     hasAttemptedReturningBootstrapRef.current = true;
     const controller = new AbortController();
+    // Built directly from the route's own brand slug, never from `activeHref`
+    // (which falls back to the session-selected brand and, being derived from
+    // `useOrgUrl`, is not guaranteed stable across every unrelated re-render).
     const fallbackHref = isBrandScopedRoute
-      ? activeHref(APP_ROUTES.AGENT.NEW)
+      ? createBrandAppRoute(orgSlug, routeBrandSlug, APP_ROUTES.AGENT.NEW)
       : buildOrganizationNewThreadHref(orgSlug);
+
+    if (isBrandScopedRoute && !routeBrand) {
+      replace(fallbackHref);
+      return;
+    }
+
+    let hasSettled = false;
 
     void agentApiService
       .getThreads(
@@ -356,6 +386,7 @@ function AgentWorkspaceLayoutClientContent({
         controller.signal,
       )
       .then((threads) => {
+        hasSettled = true;
         if (controller.signal.aborted) {
           return;
         }
@@ -404,14 +435,24 @@ function AgentWorkspaceLayoutClientContent({
         );
       })
       .catch(() => {
+        hasSettled = true;
         if (!controller.signal.aborted) {
           replace(fallbackHref);
         }
       });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      // This effect only ever needs to run once per qualifying route entry.
+      // But if it gets torn down before the lookup settles — an unrelated
+      // re-render changed one of these deps while `getThreads` was still in
+      // flight — the aborted request never calls `replace`, so release the
+      // guard rather than strand the operator on a bare bootstrap route.
+      if (!hasSettled) {
+        hasAttemptedReturningBootstrapRef.current = false;
+      }
+    };
   }, [
-    activeHref,
     activeThreadId,
     agentApiService,
     brandId,
