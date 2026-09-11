@@ -382,9 +382,11 @@ describe('BrandDetailSocialMediaCard', () => {
 
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
     // for credential-1 — the accounts table must show that live health
-    // instead of falling back to a bare "Connected" badge.
-    expect(await screen.findByText('Warming')).toBeInTheDocument();
-    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+    // instead of falling back to a bare "Connected" badge. Both the
+    // desktop and mobile layouts render at once in jsdom, so each query
+    // matches twice.
+    expect((await screen.findAllByText('Warming')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Connected')).toHaveLength(0);
   });
 
   it('sends the credentialId in the connect body when reconnecting an account', async () => {

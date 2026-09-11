@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 
 /** Unavailable platforms stay visible (disabled) rather than disappearing, so
@@ -55,8 +56,11 @@ export default function ConnectAccountModal({
         </DialogHeader>
 
         <Command className="bg-transparent">
+          <Label htmlFor="connect-account-search" className="sr-only">
+            {translate('searchPlatforms')}
+          </Label>
           <CommandInput
-            aria-label={translate('searchPlatforms')}
+            id="connect-account-search"
             placeholder={translate('searchPlatforms')}
           />
           <CommandList className="max-h-[22rem] px-1 pb-2">

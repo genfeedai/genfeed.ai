@@ -319,9 +319,11 @@ describe('AccountsTable', () => {
     });
     fireEvent.pointerDown(menuTrigger);
     fireEvent.click(menuTrigger);
-    expect(
-      desktop().getByRole('menuitem', { name: 'Reconnect' }),
-    ).toHaveAttribute('data-disabled');
+    // Radix portals the menu content to `document.body`, outside the
+    // desktop-layout container — query it globally, not scoped.
+    expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
+      'data-disabled',
+    );
   });
 
   it('leaves Reconnect enabled for a different platform while one connect is in flight', () => {
@@ -349,7 +351,7 @@ describe('AccountsTable', () => {
     fireEvent.pointerDown(menuTrigger);
     fireEvent.click(menuTrigger);
     expect(
-      desktop().getByRole('menuitem', { name: 'Reconnect' }),
+      screen.getByRole('menuitem', { name: 'Reconnect' }),
     ).not.toHaveAttribute('data-disabled');
   });
 });
