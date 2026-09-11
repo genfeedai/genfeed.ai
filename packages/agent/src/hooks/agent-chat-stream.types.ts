@@ -3,6 +3,7 @@ import type {
   ConversationComposerGenerationSettings,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentThreadMode } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   KnowledgeSelection,
@@ -28,7 +29,8 @@ export interface SendStreamMessageOptions {
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
   knowledgeSelection?: KnowledgeSelection;
-  planModeEnabled?: boolean;
+  /** Only meaningful when this turn creates a new thread (#4672). */
+  agentMode?: AgentThreadMode;
 }
 
 export interface UseAgentChatStreamReturn {

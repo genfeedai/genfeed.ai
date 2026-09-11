@@ -1,5 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  AgentThreadMode,
   GenerationPriority,
   TrendNotificationFrequency,
 } from '@genfeedai/contracts';
@@ -230,4 +231,16 @@ export class CreateSettingDto {
     type: Object,
   })
   readonly dashboardPreferences?: Record<string, unknown>;
+
+  @IsEnum(AgentThreadMode)
+  @IsOptional()
+  @ApiProperty({
+    default: AgentThreadMode.MANUAL,
+    description:
+      'Saved default agent mode (#4672) applied to new agent threads',
+    enum: AgentThreadMode,
+    enumName: 'AgentThreadMode',
+    required: false,
+  })
+  readonly agentMode?: AgentThreadMode;
 }

@@ -1,4 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import { ModelRecommendation } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
@@ -19,6 +24,7 @@ export class RouterController {
   constructor(
     private readonly routerService: RouterService,
     private readonly logger: LoggerService,
+    private readonly estimateService: AgentGenerationEstimateService,
   ) {}
 
   @Post('select-model')
@@ -115,5 +121,62 @@ export class RouterController {
     });
 
     return recommendation;
+  }
+
+  @Post('estimate-generation-credits')
+  @ApiOperation({
+    description:
+      '#4672 Manual-mode review card estimate: resolves the concrete, ' +
+      "organization-enabled model the Agent's request would use and prices " +
+      'it with duration/resolution/output multipliers. Never 4xx/5xx on a ' +
+      'pricing miss — the response instead carries `isAvailable: false` so ' +
+      'the review card can still show with the estimate marked unavailable.',
+    summary: 'Estimate the credit cost of an Agent generation before review',
+  })
+  @ApiResponse({
+    description: 'Estimate computed (or reported unavailable)',
+    status: 200,
+  })
+  @ApiResponse({
+    description: 'Unauthorized - Invalid or missing JWT token',
+    status: 401,
+  })
+  async estimateGenerationCredits(
+    @Body() body: EstimateGenerationCreditsDto,
+    @CurrentUser() user: User,
+  ): Promise<{
+    credits: number | null;
+    isAvailable: boolean;
+    modelKey: string | null;
+  }> {
+    const url = `${RouterController.name} estimateGenerationCredits`;
+    // organizationId is never trusted from the request body — a caller must
+    // not be able to price (or discover) another organization's enabled
+    // models.
+    const { organizationId } = extractRequestContext(user);
+
+    this.logger.debug(`${url} started`, {
+      category: body.category,
+      organizationId,
+    });
+
+    const estimate = await this.estimateService.estimate({
+      category: body.category,
+      duration: body.duration,
+      organizationId,
+      outputs: body.outputs,
+      prioritize: body.prioritize,
+      prompt: body.prompt,
+      quality: body.quality,
+      resolution: body.resolution,
+    });
+
+    this.logger.log(`${url} completed`, {
+      isAvailable: estimate.isAvailable,
+      modelKey: estimate.modelKey,
+      organizationId,
+    });
+
+    return estimate;
   }
 }

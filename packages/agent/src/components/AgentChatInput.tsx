@@ -5,11 +5,10 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type {
   ConversationComposerGenerationMode,
-  ConversationComposerGenerationSettings,
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { AgentGenerationMode } from '@genfeedai/contracts';
+import { AgentGenerationMode, AgentThreadMode } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
@@ -46,6 +45,8 @@ export type ExtractedMention =
   | { type: 'character'; id: string; handle: string; label: string };
 
 interface AgentChatInputProps {
+  agentMode?: AgentThreadMode;
+  onAgentModeChange?: (mode: AgentThreadMode) => void;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -70,7 +71,7 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'inspector';
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
-  /** Credits lock shown on the generation-setup popover's model rows. */
+  /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
   /** Knowledge selection sent with every turn from this composer. */
@@ -93,6 +94,8 @@ function mapAttachmentToTrayAsset(
 }
 
 export function AgentChatInput({
+  agentMode = AgentThreadMode.MANUAL,
+  onAgentModeChange = () => {},
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -111,7 +114,6 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   isTopAttached = false,
-  creditsAvailable = null,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgePicker,
@@ -120,11 +122,6 @@ export function AgentChatInput({
   const isInspector = density === 'inspector';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>(AgentGenerationMode.AUTO);
-  const [generationSettings, setGenerationSettings] =
-    useState<ConversationComposerGenerationSettings>({
-      aspectRatio: '1:1',
-      outputs: 1,
-    });
   const {
     actionFeedback,
     canSendMessage,
@@ -133,7 +130,6 @@ export function AgentChatInput({
     handlePasteImages,
     handleRemoveAttachment,
     handleRemoveReference,
-    fillPrompt,
     handleInsertReference,
     handleSelectAction,
     handleSelectContentReference,
@@ -162,7 +158,6 @@ export function AgentChatInput({
     dragState,
     getCompletedAttachments,
     generationMode,
-    generationSettings,
     hasQueuedFollowUps,
     knowledgeSelection,
     isUploading,
@@ -241,9 +236,8 @@ export function AgentChatInput({
         />
 
         <AgentChatInputToolbar
-          apiService={apiService}
+          agentMode={agentMode}
           canSendMessage={canSendMessage}
-          creditsAvailable={creditsAvailable}
           disabled={disabled}
           hasEditor={Boolean(editor)}
           isListening={isListening}
@@ -252,10 +246,9 @@ export function AgentChatInput({
           generationMode={generationMode}
           promptText={promptText}
           onAddFiles={addFiles}
+          onAgentModeChange={onAgentModeChange}
           onInsertReference={handleInsertReference}
-          onFillPrompt={fillPrompt}
           onGenerationModeChange={setGenerationMode}
-          onGenerationSettingsChange={setGenerationSettings}
           onSelectAction={handleSelectAction}
           onSend={handleToolbarSend}
           onStartListening={startListening}

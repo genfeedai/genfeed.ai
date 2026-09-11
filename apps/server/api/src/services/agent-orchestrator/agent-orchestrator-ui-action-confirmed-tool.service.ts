@@ -295,6 +295,13 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           request.toolName,
           request.toolPayload,
           {
+            // #4672: generate_image/generate_video are gated (approval-
+            // required) in Manual mode so an unconfirmed agent tool call
+            // docks the review card instead of spending credits. This
+            // explicit "Generate" click IS that confirmation — without
+            // `confirmationOrigin` it would re-enter the same gate and dock
+            // another card instead of running the generation.
+            confirmationOrigin: 'thread-ui-action',
             generationModelOverride: request.model,
             generationPriority: request.priority,
             sourceActionId: request.sourceActionId,

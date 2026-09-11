@@ -4,7 +4,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HandleUiActionDeps } from './agent-chat-container.ui-actions';
 import { handleAgentUiAction } from './agent-chat-container.ui-actions';
@@ -59,7 +59,7 @@ function makeDeps(
     apiService: {
       respondToUiAction: vi.fn().mockResolvedValue(makeResponse()),
     } as unknown as AgentApiService,
-    draftPlanModeEnabled: false,
+    draftAgentMode: AgentThreadMode.MANUAL,
     followLatestTurn: vi.fn(),
     isBusy: false,
     isReadOnly: false,

@@ -1,3 +1,4 @@
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
@@ -52,12 +53,17 @@ import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { buildMutationApprovalCard } from '@api/services/agent-orchestrator/tools/mutation-approval-card';
-import type { CuratedActionName } from '@genfeedai/actions';
+import type {
+  AgentThreadModeValue,
+  CuratedActionName,
+} from '@genfeedai/actions';
 import {
   buildLogicalWriteKey,
   evaluateMutationPolicy,
   getToolByName,
   getToolsForSurface,
+  resolveEffectiveMutationPolicy,
+  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from '@genfeedai/actions';
 import {
   ActionOrigin,
@@ -87,6 +93,13 @@ export interface ToolExecutionContext {
   userId: string;
   organizationId: string;
   threadId?: string;
+  /**
+   * #4672 per-thread agent mode ('auto' | 'manual' | 'plan'). When omitted,
+   * `applyMutationPolicy` resolves it from the thread record; a threadless
+   * execution (CLI, recurring task, batch) falls back to Manual — the
+   * fail-safe, always-confirming default.
+   */
+  agentMode?: AgentThreadModeValue;
   /** Router request vocabulary — map the persisted setting with `toRouterPriority`. */
   generationPriority?: RouterPriority;
   generationMode?: AgentGenerationMode;
@@ -213,6 +226,8 @@ export class AgentToolExecutorService implements OnModuleInit {
     private readonly systemWorkflowRunner?: SystemWorkflowRunnerService,
     @Optional()
     private readonly mcpApprovalsService?: McpApprovalsService,
+    @Optional()
+    private readonly agentThreadsService?: AgentThreadsService,
   ) {}
 
   onModuleInit(): void {
@@ -397,6 +412,41 @@ export class AgentToolExecutorService implements OnModuleInit {
     return toPlainJson(executionResult);
   }
 
+  /**
+   * Resolves the thread's #4672 agent mode, or `undefined` when this call has
+   * no thread at all — MCP, CLI, a recurring task, a system-triggered batch.
+   * Those keep today's declared policy untouched
+   * (`resolveEffectiveMutationPolicy` treats `undefined` that way); #4672
+   * modes are a per-*thread* concept and do not apply outside one.
+   *
+   * `context.agentMode` wins when a caller already knows it (thread UI
+   * actions, tests). A call that DOES have a thread but could not resolve its
+   * mode (storage unavailable, corrupt value) fails safe to Manual rather
+   * than returning `undefined` — only "no thread" skips the matrix, never "a
+   * thread whose mode we failed to read."
+   */
+  private async resolveAgentModeForContext(
+    context: ToolExecutionContext,
+  ): Promise<AgentThreadModeValue | undefined> {
+    if (context.agentMode) {
+      return context.agentMode;
+    }
+    if (!context.threadId) {
+      return undefined;
+    }
+    if (this.agentThreadsService) {
+      const thread = await this.agentThreadsService.findOne({
+        id: context.threadId,
+        organizationId: context.organizationId,
+      });
+      const mode = (thread as { mode?: unknown } | null)?.mode;
+      if (mode === 'auto' || mode === 'manual' || mode === 'plan') {
+        return mode;
+      }
+    }
+    return 'manual';
+  }
+
   private async applyMutationPolicy(
     toolName: CuratedActionName,
     parameters: Record<string, unknown>,
@@ -406,16 +456,26 @@ export class AgentToolExecutorService implements OnModuleInit {
     const isAvailableOnSurface = Boolean(
       definition?.surfaces.agent || definition?.surfaces.mcp,
     );
+    const agentMode = await this.resolveAgentModeForContext(context);
+    const effectivePolicy = resolveEffectiveMutationPolicy(
+      toolName,
+      agentMode,
+      definition?.mutationPolicy,
+    );
     if (
       isAvailableOnSurface &&
       !context.approvedApprovalId &&
-      definition?.mutationPolicy !== 'approval-required'
+      effectivePolicy !== 'approval-required'
     ) {
       return { kind: 'execute' };
     }
 
     if (isAvailableOnSurface && !context.approvedApprovalId) {
-      const specialized = specializedConfirmationTool(toolName, parameters);
+      const isVisualGenerationReview =
+        VISUAL_GENERATION_REVIEW_TOOL_NAMES.has(toolName);
+      const specialized =
+        isVisualGenerationReview ||
+        specializedConfirmationTool(toolName, parameters);
       if (specialized && context.confirmationOrigin === 'thread-ui-action') {
         return { kind: 'execute' };
       }
@@ -425,8 +485,16 @@ export class AgentToolExecutorService implements OnModuleInit {
           confirmationOrigin: undefined,
           approvedApprovalId: undefined,
         };
-        const result =
-          toolName === 'create_post'
+        const result = isVisualGenerationReview
+          ? await this.prepareHandler.prepareGeneration(
+              {
+                ...parameters,
+                generationType:
+                  toolName === 'generate_image' ? 'image' : 'video',
+              },
+              previewContext,
+            )
+          : toolName === 'create_post'
             ? await this.publishHandler.preparePost(parameters, previewContext)
             : await this.dispatch(
                 toolName,
@@ -479,11 +547,11 @@ export class AgentToolExecutorService implements OnModuleInit {
       hasTrustedApproval,
       hostSupportsApproval: context.hostSupportsApproval,
       isAvailableOnSurface,
-      policy: definition?.mutationPolicy,
+      policy: effectivePolicy,
     });
 
     if (decision.kind === 'execute') {
-      if (definition?.mutationPolicy !== 'approval-required') {
+      if (effectivePolicy !== 'approval-required') {
         return { kind: 'execute' };
       }
       return this.claimApprovedMutation(
@@ -520,7 +588,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         result: {
           creditsUsed: 0,
           error: decision.error,
-          mutationPolicy: definition?.mutationPolicy,
+          mutationPolicy: effectivePolicy,
           success: false,
         },
       };

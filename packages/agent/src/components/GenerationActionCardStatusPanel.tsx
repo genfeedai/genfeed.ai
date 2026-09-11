@@ -89,6 +89,14 @@ export function GenerationActionCardStatusPanel({
     );
   }
 
+  if (status === 'declined') {
+    return (
+      <p className="text-sm text-muted-foreground" role="status">
+        {translate('declined')}
+      </p>
+    );
+  }
+
   if (status === 'pilot_review') {
     return (
       <div className="space-y-2">

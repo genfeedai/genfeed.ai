@@ -1,5 +1,6 @@
 import {
   ActivityKey,
+  AgentThreadMode,
   IngredientCategory,
   PostStatus,
 } from '@genfeedai/contracts';
@@ -1746,7 +1747,7 @@ export async function mockWorkspaceTasks(
           buildJsonApiDocument('thread', thread.id, {
             createdAt: thread.createdAt,
             id: thread.id,
-            planModeEnabled: true,
+            mode: AgentThreadMode.PLAN,
             source: thread.source,
             status: 'active',
             title: thread.title,
@@ -1768,7 +1769,7 @@ export async function mockWorkspaceTasks(
               attributes: {
                 createdAt: thread.createdAt,
                 id: thread.id,
-                planModeEnabled: true,
+                mode: AgentThreadMode.PLAN,
                 source: thread.source,
                 status: 'active',
                 title: thread.title,

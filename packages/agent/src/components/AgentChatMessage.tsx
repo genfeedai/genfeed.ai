@@ -138,13 +138,9 @@ function AgentChatMessageInner({
       return [];
     }
 
-    const filtered = collapseOAuthConnectCards(
-      uiActions.filter((action) => {
-        // Generation configuration follows the single conversation composer.
-        // The completed content_preview_card remains in the transcript.
-        return action.type !== 'generation_action_card';
-      }),
-    );
+    // generation_action_card (#4672 Manual-mode review) stays in the
+    // transcript once resolved, same as mutation_approval_card.
+    const filtered = collapseOAuthConnectCards(uiActions);
 
     // Drop noise Done cards when a sibling result card already owns the turn
     // (T3/Codex density — one surface per outcome, not stacked chrome).

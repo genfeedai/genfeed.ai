@@ -1,6 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const settingAttributes = createEntityAttributes([
+  'agentMode',
   'theme',
   'locale',
   'isVerified',

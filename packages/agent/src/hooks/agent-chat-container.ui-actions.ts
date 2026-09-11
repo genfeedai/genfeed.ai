@@ -12,13 +12,14 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
+import type { AgentThreadMode } from '@genfeedai/contracts';
 
 export type HandleUiActionDeps = {
   activeThreadId: string | null;
   activeUiAction: string | null;
   addMessage: (message: AgentChatMessage) => void;
   apiService: AgentApiService;
-  draftPlanModeEnabled: boolean;
+  draftAgentMode: AgentThreadMode;
   followLatestTurn: (behavior?: ScrollBehavior) => void;
   isBusy: boolean;
   isReadOnly: boolean;
@@ -245,8 +246,7 @@ export async function handleAgentUiAction(
       brandId: response.brandId,
       contextVersion: response.contextVersion,
       createdAt: existingThread?.createdAt,
-      planModeEnabled:
-        existingThread?.planModeEnabled ?? deps.draftPlanModeEnabled,
+      mode: existingThread?.mode ?? deps.draftAgentMode,
       setActiveThread: deps.setActiveThread,
       threadId: response.threadId,
       title: existingThread?.title ?? 'Agent thread',

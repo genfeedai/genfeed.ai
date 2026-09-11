@@ -1,5 +1,6 @@
 import type {
   AgentGenerationMode,
+  AgentThreadMode,
   RouterPriority,
   UploadStatus,
 } from '@genfeedai/contracts';
@@ -79,7 +80,8 @@ export interface ConversationComposerSendOptions {
   generationSettings?: ConversationComposerGenerationSettings;
   /** Knowledge sources, spaces or purposes chosen in the composer. */
   knowledgeSelection?: KnowledgeSelection;
-  planModeEnabled?: boolean;
+  /** Only meaningful when this turn creates a new thread (#4672). */
+  agentMode?: AgentThreadMode;
 }
 
 export interface UnknownConversationComposerCommand {

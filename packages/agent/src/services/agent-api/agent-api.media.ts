@@ -1,6 +1,8 @@
 import type {
   AgentClonedVoice,
   AgentGeneratedAsset,
+  EstimateGenerationCreditsParams,
+  EstimateGenerationCreditsResult,
   GenerateIngredientResult,
   GenerationModel,
   GetGenerationModelsParams,
@@ -35,6 +37,25 @@ export async function getModels(
     { signal },
     'Failed to fetch models',
     'Failed to deserialize models',
+  );
+}
+
+/**
+ * #4672 Manual-mode review card: resolves the concrete, org-scoped model the
+ * Agent's request would use and its credit cost, for both image and video.
+ * Never throws on a pricing miss server-side — a network/decode failure here
+ * is the caller's job to treat as "estimate unavailable", never as a reason
+ * to block or hide Generate.
+ */
+export async function estimateGenerationCredits(
+  api: AgentBaseApiService,
+  params: EstimateGenerationCreditsParams,
+  signal?: AbortSignal,
+): Promise<EstimateGenerationCreditsResult> {
+  return api.fetchJson<EstimateGenerationCreditsResult>(
+    `${api.config.baseUrl}/router/estimate-generation-credits`,
+    { body: JSON.stringify(params), method: 'POST', signal },
+    'Failed to estimate generation credits',
   );
 }
 

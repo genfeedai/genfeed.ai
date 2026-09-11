@@ -1,6 +1,7 @@
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type {
   AgentGenerationMode,
+  AgentThreadMode,
   AgentType,
   RouterPriority,
 } from '@genfeedai/contracts';
@@ -64,7 +65,9 @@ export interface AgentChatRequest {
   /** Explicit Knowledge selection for content generated in this turn. */
   knowledgeSelection?: KnowledgeSelection;
   pageContext?: AgentPageContext;
-  planModeEnabled?: boolean;
+  /** #4672 per-thread agent mode. Only meaningful when creating a thread —
+   * an existing thread keeps its own persisted mode regardless. */
+  agentMode?: AgentThreadMode;
   threadId?: string;
   /** Trusted internal provenance for a user-confirmed cross-thread handoff. */
   transferId?: string;

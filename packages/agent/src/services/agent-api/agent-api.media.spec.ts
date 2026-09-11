@@ -8,6 +8,7 @@ import {
 import {
   cloneVoice,
   createPrompt,
+  estimateGenerationCredits,
   generateIngredient,
   getClonedVoices,
   getGeneratedAsset,
@@ -53,6 +54,44 @@ describe('agent-api.media', () => {
     expect(lastRequest().url).toContain(
       'http://api.test/models?isActive=true&limit=100&category=image&organizationId=org-1',
     );
+  });
+
+  it('estimateGenerationCredits posts the prompt and category, never organizationId', async () => {
+    mockOk({ credits: 4, isAvailable: true, modelKey: 'provider/model-x' });
+
+    const result = await estimateGenerationCredits(makeApi(), {
+      category: 'image',
+      prompt: 'A futuristic city at sunset',
+    });
+
+    expect(result).toEqual({
+      credits: 4,
+      isAvailable: true,
+      modelKey: 'provider/model-x',
+    });
+    const { body, url } = lastRequest();
+    expect(url).toBe('http://api.test/router/estimate-generation-credits');
+    expect(JSON.parse(body ?? '{}')).toEqual({
+      category: 'image',
+      prompt: 'A futuristic city at sunset',
+    });
+    expect(JSON.parse(body ?? '{}')).not.toHaveProperty('organizationId');
+  });
+
+  it('estimateGenerationCredits surfaces isAvailable:false without throwing', async () => {
+    mockOk({ credits: null, isAvailable: false, modelKey: null });
+
+    const result = await estimateGenerationCredits(makeApi(), {
+      category: 'video',
+      duration: 5,
+      prompt: 'A drone shot over the ocean',
+    });
+
+    expect(result).toEqual({
+      credits: null,
+      isAvailable: false,
+      modelKey: null,
+    });
   });
 
   it('mergeVideos posts merge defaults', async () => {

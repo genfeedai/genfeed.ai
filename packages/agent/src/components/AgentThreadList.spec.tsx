@@ -1,5 +1,6 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -102,7 +103,7 @@ interface AgentChatStoreState {
     nonce: number;
     threadId: string | null;
   } | null;
-  draftPlanModeEnabled: boolean;
+  draftAgentMode: AgentThreadMode;
   isConversationCacheFresh: ReturnType<typeof vi.fn>;
   latestProposedPlan: Record<string, unknown> | null;
   messages: Array<Record<string, unknown>>;
@@ -141,7 +142,7 @@ const storeState: AgentChatStoreState = {
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
   composerSeed: null,
-  draftPlanModeEnabled: false,
+  draftAgentMode: AgentThreadMode.MANUAL,
   isConversationCacheFresh: vi.fn(() => false),
   latestProposedPlan: null,
   messages: [],
@@ -151,7 +152,7 @@ const storeState: AgentChatStoreState = {
     storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';
     storeState.composerSeed = null;
-    storeState.draftPlanModeEnabled = false;
+    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
@@ -261,7 +262,7 @@ describe('AgentThreadList', () => {
     storeState.activeRunStatus = 'idle';
     storeState.activeThreadId = null;
     storeState.composerSeed = null;
-    storeState.draftPlanModeEnabled = false;
+    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.latestProposedPlan = null;
     storeState.messages = [];
     storeState.pendingInputRequest = null;
@@ -1124,7 +1125,7 @@ describe('AgentThreadList', () => {
       nonce: 1,
       threadId: 'conv-a',
     };
-    storeState.draftPlanModeEnabled = true;
+    storeState.draftAgentMode = AgentThreadMode.PLAN;
     storeState.latestProposedPlan = { id: 'plan-a' };
     storeState.messages = [{ id: 'message-a' }];
     storeState.pendingInputRequest = { id: 'input-a' };
@@ -1167,7 +1168,7 @@ describe('AgentThreadList', () => {
     expect(storeState.activeRunId).toBeNull();
     expect(storeState.activeRunStatus).toBe('idle');
     expect(storeState.composerSeed).toBeNull();
-    expect(storeState.draftPlanModeEnabled).toBe(false);
+    expect(storeState.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(storeState.latestProposedPlan).toBeNull();
     expect(storeState.messages).toEqual([]);
     expect(storeState.pendingInputRequest).toBeNull();

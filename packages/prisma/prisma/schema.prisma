@@ -1490,6 +1490,9 @@ model Setting {
   favoriteModelKeys                String[]                   @default([])
   isAgentAssetsPanelOpen           Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
+  // #4672 saved default agent mode ('auto' | 'manual' | 'plan') applied to
+  // new agent threads; see `AgentThreadMode` in @genfeedai/contracts.
+  agentMode                        String                     @default("manual")
   dashboardPreferences             Json                       @default("{\"scopes\":{}}")
   isDeleted                        Boolean                    @default(false)
   createdAt                        DateTime                   @default(now())
@@ -3772,7 +3775,11 @@ model AgentThread {
   config                         Json         @default("{}")
   contextVersion                 Int          @default(1)
   isPinned                       Boolean      @default(false)
-  planModeEnabled                Boolean      @default(false)
+  // Per-thread agent mode (#4672): 'auto' | 'manual' | 'plan' — see
+  // `AgentThreadMode` in @genfeedai/contracts. Replaces the old
+  // `planModeEnabled` boolean; a new thread starts from the user's saved
+  // `Setting.agentMode` preference.
+  mode                           String       @default("manual")
   requestedModel                 String?
   runtimeKey                     String?
   source                         String?

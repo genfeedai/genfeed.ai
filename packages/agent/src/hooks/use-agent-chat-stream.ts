@@ -25,6 +25,7 @@ import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-con
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { hasLiveReconnectStream } from '@genfeedai/agent/utils/has-live-reconnect-stream';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
+import type { AgentThreadMode } from '@genfeedai/contracts';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -268,7 +269,7 @@ export function useAgentChatStream(
       content: string,
       existingThreadTitle?: string,
       createdAt?: string,
-      planModeEnabled?: boolean,
+      mode?: AgentThreadMode,
       contextVersion?: number,
       brandId?: string | null,
     ) => {
@@ -277,7 +278,7 @@ export function useAgentChatStream(
         brandId,
         contextVersion,
         createdAt,
-        planModeEnabled,
+        mode,
         setActiveThread,
         threadId,
         title: existingThreadTitle || content.slice(0, 60),
@@ -581,7 +582,7 @@ export function useAgentChatStream(
               knowledgeSelection: sendOptions?.knowledgeSelection,
               model: resolvedModel,
               pageContext: requestPageContext,
-              planModeEnabled: sendOptions?.planModeEnabled,
+              agentMode: sendOptions?.agentMode,
               source: sendOptions?.source,
               threadId: currentActiveThreadId ?? undefined,
             },
@@ -615,7 +616,7 @@ export function useAgentChatStream(
           content,
           existingThread?.title,
           existingThread?.createdAt,
-          existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
+          existingThread?.mode ?? sendOptions?.agentMode,
           response.contextVersion,
           response.brandId,
         );

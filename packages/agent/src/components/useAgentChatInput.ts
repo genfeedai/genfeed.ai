@@ -682,7 +682,6 @@ export function useAgentChatInput({
         ...(hasKnowledgeSelection(knowledgeSelection)
           ? { knowledgeSelection }
           : {}),
-        planModeEnabled: false,
       },
     );
     if (accepted === false) {

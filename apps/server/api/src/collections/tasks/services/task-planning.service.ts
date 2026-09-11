@@ -10,6 +10,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { scopedWhere } from '@api/index';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -75,7 +76,7 @@ export class TaskPlanningService {
         existingThreadId,
         organizationId,
         {
-          planModeEnabled: true,
+          mode: AgentThreadMode.PLAN,
           systemPrompt,
           title: this.buildPlanningThreadTitle(task.title),
         },
@@ -91,7 +92,7 @@ export class TaskPlanningService {
     } else {
       const thread = await this.agentThreadsService.create({
         organizationId,
-        planModeEnabled: true,
+        mode: AgentThreadMode.PLAN,
         source: this.buildPlanningThreadSource(id),
         systemPrompt,
         title: this.buildPlanningThreadTitle(task.title),
@@ -214,7 +215,7 @@ export class TaskPlanningService {
     await this.agentOrchestratorService.chat(
       {
         content: prompt,
-        planModeEnabled: true,
+        agentMode: AgentThreadMode.PLAN,
         source: 'agent',
         threadId: planThread.threadId,
       },

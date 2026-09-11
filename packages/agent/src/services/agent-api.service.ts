@@ -11,6 +11,8 @@ export type {
   AgentGeneratedAsset,
   AgentInstallReadiness,
   CredentialMentionItem,
+  EstimateGenerationCreditsParams,
+  EstimateGenerationCreditsResult,
   GenerateIngredientResult,
   GenerationModel,
   GetGenerationModelsParams,
@@ -84,6 +86,10 @@ export class AgentApiService extends AgentBaseApiService {
 
   // Media / generation
   getModels = mediaApi.getModels.bind(null, this);
+  estimateGenerationCredits = mediaApi.estimateGenerationCredits.bind(
+    null,
+    this,
+  );
   getGeneratedAsset = mediaApi.getGeneratedAsset.bind(null, this);
   mergeVideos = mediaApi.mergeVideos.bind(null, this);
   reframeVideo = mediaApi.reframeVideo.bind(null, this);

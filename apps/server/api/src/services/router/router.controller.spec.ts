@@ -1,5 +1,7 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import type {
   ModelRecommendation,
@@ -16,6 +18,7 @@ describe('RouterController', () => {
   let controller: RouterController;
   let routerService: vi.Mocked<RouterService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let estimateService: { estimate: ReturnType<typeof vi.fn> };
 
   const createMockAnalysis = (
     overrides: Partial<PromptAnalysis> = {},
@@ -65,6 +68,7 @@ describe('RouterController', () => {
       getDefaultModel: vi.fn(),
       selectModel: vi.fn(),
     };
+    const mockEstimateService = { estimate: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RouterController],
@@ -77,6 +81,10 @@ describe('RouterController', () => {
           provide: LoggerService,
           useValue: mockLoggerService,
         },
+        {
+          provide: AgentGenerationEstimateService,
+          useValue: mockEstimateService,
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -86,6 +94,7 @@ describe('RouterController', () => {
     controller = module.get<RouterController>(RouterController);
     routerService = module.get(RouterService);
     loggerService = module.get(LoggerService);
+    estimateService = module.get(AgentGenerationEstimateService);
   });
 
   afterEach(() => {
@@ -754,6 +763,64 @@ describe('RouterController', () => {
           speech: 'Narration text',
         });
         expect(result).toBeDefined();
+      });
+    });
+  });
+
+  describe('estimateGenerationCredits', () => {
+    const authenticatedUser = {
+      brandId: 'brand-1',
+      id: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    it('scopes the estimate to the authenticated user organization, never the request body', async () => {
+      const dto: EstimateGenerationCreditsDto = {
+        category: ModelCategory.IMAGE,
+        prompt: 'a red car',
+      } as EstimateGenerationCreditsDto;
+      estimateService.estimate.mockResolvedValue({
+        credits: 12,
+        isAvailable: true,
+        modelKey: 'openai/gpt-image-2',
+      });
+
+      const result = await controller.estimateGenerationCredits(
+        dto,
+        authenticatedUser,
+      );
+
+      expect(estimateService.estimate).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: 'org-1' }),
+      );
+      expect(result).toEqual({
+        credits: 12,
+        isAvailable: true,
+        modelKey: 'openai/gpt-image-2',
+      });
+    });
+
+    it('returns the estimate-unavailable shape as-is rather than throwing', async () => {
+      const dto: EstimateGenerationCreditsDto = {
+        category: ModelCategory.VIDEO,
+        prompt: 'a drone shot',
+      } as EstimateGenerationCreditsDto;
+      estimateService.estimate.mockResolvedValue({
+        credits: null,
+        isAvailable: false,
+        modelKey: null,
+      });
+
+      const result = await controller.estimateGenerationCredits(
+        dto,
+        authenticatedUser,
+      );
+
+      expect(result).toEqual({
+        credits: null,
+        isAvailable: false,
+        modelKey: null,
       });
     });
   });

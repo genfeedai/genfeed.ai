@@ -20,7 +20,11 @@ import {
   THREAD_SWITCH_DEBOUNCE_MS,
 } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import { AgentThreadStatus, type MemberRole } from '@genfeedai/contracts';
+import {
+  AgentThreadStatus,
+  DEFAULT_AGENT_THREAD_MODE,
+  type MemberRole,
+} from '@genfeedai/contracts';
 import {
   Briefcase,
   Calendar,
@@ -187,9 +191,7 @@ export function useAgentFullPage({
   const setOnboardingChecklist = useAgentChatStore(
     (s) => s.setOnboardingChecklist,
   );
-  const setDraftPlanModeEnabled = useAgentChatStore(
-    (s) => s.setDraftPlanModeEnabled,
-  );
+  const setDraftAgentMode = useAgentChatStore((s) => s.setDraftAgentMode);
   const setLatestProposedPlan = useAgentChatStore(
     (s) => s.setLatestProposedPlan,
   );
@@ -371,7 +373,7 @@ export function useAgentFullPage({
       setActiveThreadStatus(null);
       setWorkspacePlanningTaskId(null);
       setActiveThread(null);
-      setDraftPlanModeEnabled(false);
+      setDraftAgentMode(DEFAULT_AGENT_THREAD_MODE);
       setLatestProposedPlan(null);
       resetActiveConversationState();
       return;
@@ -386,7 +388,7 @@ export function useAgentFullPage({
     threadId,
     resetActiveConversationState,
     setActiveThread,
-    setDraftPlanModeEnabled,
+    setDraftAgentMode,
     setLatestProposedPlan,
   ]);
 
@@ -465,11 +467,11 @@ export function useAgentFullPage({
     // cached conversation, `storeThreadStatus`, `useAgentThreadList`'s prompt
     // write). These two do not: `workspacePlanningTaskId` is local state whose
     // only populating writer is the skipped handler below, and
-    // `restoreCachedConversation` forces `draftPlanModeEnabled` to false. Left
+    // `restoreCachedConversation` forces `draftAgentMode` back to Manual. Left
     // unset, a warm open hides the follow-up-tasks affordance and shows the
-    // composer's plan-mode toggle off. A thread can only be cache-fresh if it
+    // composer's mode dropdown wrong. A thread can only be cache-fresh if it
     // was prefetched or opened from the list, so its row is in the store — and
-    // the list serializes both `source` and `planModeEnabled`. Read at effect
+    // the list serializes both `source` and `mode`. Read at effect
     // time rather than through a selector so this never re-runs the switch.
     if (isThreadDataFresh) {
       const listedThread = useAgentChatStore
@@ -478,7 +480,7 @@ export function useAgentFullPage({
       setWorkspacePlanningTaskId(
         parseWorkspacePlanningTaskId(listedThread?.source),
       );
-      setDraftPlanModeEnabled(listedThread?.planModeEnabled ?? false);
+      setDraftAgentMode(listedThread?.mode ?? DEFAULT_AGENT_THREAD_MODE);
     }
 
     const switchStartedAt = Date.now();
@@ -601,7 +603,7 @@ export function useAgentFullPage({
               contextVersion: thread.contextVersion,
               id: threadId,
               organizationId: thread.organizationId,
-              planModeEnabled: thread.planModeEnabled,
+              mode: thread.mode,
               source: thread.source,
               status: thread.status,
               title:
@@ -615,7 +617,7 @@ export function useAgentFullPage({
                 now,
               }),
             });
-            setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+            setDraftAgentMode(thread.mode ?? DEFAULT_AGENT_THREAD_MODE);
           })
           .catch(reportLoadFailure);
       } else if (threadRequest) {
@@ -629,7 +631,7 @@ export function useAgentFullPage({
               parseWorkspacePlanningTaskId(thread.source),
             );
             setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
-            setDraftPlanModeEnabled(thread.planModeEnabled ?? false);
+            setDraftAgentMode(thread.mode ?? DEFAULT_AGENT_THREAD_MODE);
           })
           .catch(reportLoadFailure);
       }
@@ -662,7 +664,7 @@ export function useAgentFullPage({
     setError,
     setMessagesPage,
     setLatestProposedPlan,
-    setDraftPlanModeEnabled,
+    setDraftAgentMode,
     setPendingInputRequest,
     setRunStartedAt,
     setThreadPrompt,

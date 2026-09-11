@@ -110,6 +110,12 @@ export function AgentChatContainer({
       }),
     [container.isBusy, container.workEvents],
   );
+  // A generation review card (Manual mode, #4672) owns the failure/retry
+  // chrome for its turn — the generic AgentRunFailureCard must not stack
+  // beneath it.
+  const hasDockedGenerationCard = container.streamState.pendingUiActions.some(
+    (action) => action.type === 'generation_action_card',
+  );
 
   const sendConversationMessage = useCallback(
     (
@@ -135,12 +141,13 @@ export function AgentChatContainer({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
-        planModeEnabled: false,
+        agentMode: container.draftAgentMode,
       });
     },
     [
       composerShell?.artifactReferences,
       composerShell?.brandId,
+      container.draftAgentMode,
       sendConversationMessage,
     ],
   );
@@ -214,6 +221,8 @@ export function AgentChatContainer({
         ) : container.isEmpty ? (
           <AgentChatEmptyState
             addFiles={container.addFiles}
+            agentMode={container.draftAgentMode}
+            onAgentModeChange={container.setAgentMode}
             apiService={apiService}
             knowledgeSelection={knowledgeSelection}
             knowledgePicker={knowledgePicker}
@@ -290,7 +299,7 @@ export function AgentChatContainer({
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
-            hasDockedGenerationCard={false}
+            hasDockedGenerationCard={hasDockedGenerationCard}
             scrollContainerRef={container.scrollContainerRef}
             scrollToBottom={container.scrollToBottom}
             shouldShowInputRequestOverlay={
@@ -320,6 +329,8 @@ export function AgentChatContainer({
               activeWorkEvent={activeWorkEvent}
               workEvents={container.workEvents}
               addFiles={container.addFiles}
+              agentMode={container.draftAgentMode}
+              onAgentModeChange={container.setAgentMode}
               apiService={apiService}
               knowledgeSelection={knowledgeSelection}
               knowledgePicker={knowledgePicker}

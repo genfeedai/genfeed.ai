@@ -5,6 +5,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -293,7 +294,7 @@ type StoreState = {
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
   clearStaleActiveRun: ReturnType<typeof vi.fn>;
-  draftPlanModeEnabled: boolean;
+  draftAgentMode: AgentThreadMode;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   latestProposedPlan: null | {
@@ -330,7 +331,7 @@ type StoreState = {
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
   setCreditsRemaining: ReturnType<typeof vi.fn>;
-  setDraftPlanModeEnabled: ReturnType<typeof vi.fn>;
+  setDraftAgentMode: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
@@ -360,7 +361,7 @@ const storeState: StoreState = {
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
-  draftPlanModeEnabled: false,
+  draftAgentMode: AgentThreadMode.MANUAL,
   error: null,
   hasMoreMessages: false,
   isLoadingOlderMessages: false,
@@ -396,8 +397,8 @@ const storeState: StoreState = {
   setActiveRunStatus: vi.fn(),
   setActiveThread: vi.fn(),
   setCreditsRemaining: vi.fn(),
-  setDraftPlanModeEnabled: vi.fn((enabled: boolean) => {
-    storeState.draftPlanModeEnabled = enabled;
+  setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
+    storeState.draftAgentMode = mode;
   }),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
@@ -481,7 +482,7 @@ describe('AgentChatContainer', () => {
     storeState.setActiveRun.mockReset();
     storeState.setActiveRunStatus.mockReset();
     storeState.setCreditsRemaining.mockReset();
-    storeState.setDraftPlanModeEnabled.mockReset();
+    storeState.setDraftAgentMode.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
@@ -489,7 +490,7 @@ describe('AgentChatContainer', () => {
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
-    storeState.draftPlanModeEnabled = false;
+    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.error = null;
     storeState.hasMoreMessages = false;
     storeState.isLoadingOlderMessages = false;
@@ -1269,7 +1270,7 @@ describe('AgentChatContainer', () => {
 
     expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch', {
       attachments: undefined,
-      planModeEnabled: false,
+      agentMode: AgentThreadMode.MANUAL,
     });
   });
 
@@ -1710,7 +1711,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() => {
       expect(sendNonStreaming).toHaveBeenCalledWith(
         'Original prompt',
-        expect.objectContaining({ planModeEnabled: false }),
+        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
       );
     });
     await waitFor(() => {

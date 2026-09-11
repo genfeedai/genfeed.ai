@@ -17,7 +17,7 @@ import {
   CONVERSATION_CACHE_LIMIT,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(
@@ -223,7 +223,7 @@ describe('agent-chat.store messages and plans', () => {
     const store = useAgentChatStore.getState();
     store.addMessage(makeMessage('m-1'));
     store.setActiveRun('run-1', { startedAt: '2026-03-26T10:00:00.000Z' });
-    store.setDraftPlanModeEnabled(true);
+    store.setDraftAgentMode(AgentThreadMode.PLAN);
     store.setError('Previous conversation failed');
     store.setIsGenerating(true);
     store.setThreadUiBusy('thread-1', true);
@@ -236,7 +236,7 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.activeRunId).toBeNull();
     expect(state.activeRunStatus).toBe('idle');
     expect(state.runStartedAt).toBeNull();
-    expect(state.draftPlanModeEnabled).toBe(false);
+    expect(state.draftAgentMode).toBe(AgentThreadMode.MANUAL);
     expect(state.error).toBeNull();
     expect(state.isGenerating).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
@@ -476,7 +476,7 @@ describe('agent-chat.store simple setters', () => {
     store.setThreadPrompt('thread-9', 'draft prompt');
     store.setSocketConnectionState('connected');
     store.setPageContext({ pathname: '/library' } as never);
-    store.setDraftPlanModeEnabled(true);
+    store.setDraftAgentMode(AgentThreadMode.PLAN);
     store.setLatestProposedPlan(makePlan('plan-z'));
     store.setWorkEvents([]);
 
@@ -488,7 +488,7 @@ describe('agent-chat.store simple setters', () => {
     expect(state.threadPrompts['thread-9']).toBe('draft prompt');
     expect(state.socketConnectionState).toBe('connected');
     expect(state.pageContext).toEqual({ pathname: '/library' });
-    expect(state.draftPlanModeEnabled).toBe(true);
+    expect(state.draftAgentMode).toBe(AgentThreadMode.PLAN);
     expect(state.latestProposedPlan?.summary).toBe('Plan plan-z');
     expect(state.workEvents).toEqual([]);
   });

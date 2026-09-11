@@ -168,7 +168,7 @@ export class AgentThreadsService extends BaseService<
     organizationId: string,
     payload: Partial<{
       isPinned: boolean;
-      planModeEnabled: boolean;
+      mode: string;
       requestedModel: string;
       runtimeKey: string;
       title: string;

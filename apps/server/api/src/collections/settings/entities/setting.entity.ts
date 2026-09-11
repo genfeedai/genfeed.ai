@@ -25,4 +25,5 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly isAgentAssetsPanelOpen: Setting['isAgentAssetsPanelOpen'];
   declare readonly generationPriority: Setting['generationPriority'];
   declare readonly dashboardPreferences: Setting['dashboardPreferences'];
+  declare readonly agentMode: Setting['agentMode'];
 }

@@ -9,24 +9,19 @@ interface AgentChatSuggestionsBarProps {
   onSend: (prompt: string) => void;
 }
 
-function isPlanModeSuggestion(action: SuggestedAction): boolean {
-  return (
-    action.prompt.trim().toLowerCase() === 'use plan mode in this thread' ||
-    action.label.trim().toLowerCase() === 'use plan mode'
-  );
-}
-
 export function AgentChatSuggestionsBar({
   suggestedActions,
   isReadOnly,
   layout = 'compact',
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
+  // Plan is a reachable mode via the composer's mode dropdown (#4672) — a
+  // "use Plan mode" suggestion is no longer blanket-suppressed.
   const normalized = useMemo(() => {
     const next: Array<SuggestedAction & { id: string }> = [];
     for (let index = 0; index < suggestedActions.length; index += 1) {
       const action = suggestedActions[index];
-      if (!action || isPlanModeSuggestion(action)) {
+      if (!action) {
         continue;
       }
       next.push({

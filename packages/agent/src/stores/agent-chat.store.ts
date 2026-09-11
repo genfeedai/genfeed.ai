@@ -12,6 +12,10 @@ import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agen
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
+import {
+  type AgentThreadMode,
+  DEFAULT_AGENT_THREAD_MODE,
+} from '@genfeedai/contracts';
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
@@ -253,7 +257,7 @@ export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 
 interface AgentChatState {
   activeRunId: string | null;
-  draftPlanModeEnabled: boolean;
+  draftAgentMode: AgentThreadMode;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
   hasMoreMessages: boolean;
@@ -389,7 +393,7 @@ interface AgentChatActions {
   clearThreadAttention: (threadId: string) => void;
   seedComposer: (content: string, threadId?: string | null) => void;
   clearComposerSeed: () => void;
-  setDraftPlanModeEnabled: (enabled: boolean) => void;
+  setDraftAgentMode: (mode: AgentThreadMode) => void;
   setLatestProposedPlan: (plan: AgentProposedPlan | null) => void;
   setThreadUiBusy: (threadId: string, busy: boolean) => void;
   // ---------------------------------------------------------------------------
@@ -734,7 +738,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftPlanModeEnabled: false,
+      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
       error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
@@ -801,7 +805,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   composerSeed: null,
   conversationCacheByThread: {},
   creditsRemaining: null,
-  draftPlanModeEnabled: false,
+  draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
   endOverlaySession: (overlayId) =>
     set((state) => {
       if (!state.overlayActiveIds.includes(overlayId)) {
@@ -955,7 +959,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftPlanModeEnabled: false,
+      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
       error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
@@ -993,7 +997,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftPlanModeEnabled: false,
+      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
       error: cached.error,
       latestProposedPlan: cached.latestProposedPlan,
       hasMoreMessages: cached.hasMoreMessages,
@@ -1055,7 +1059,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     }),
   setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
-  setDraftPlanModeEnabled: (enabled) => set({ draftPlanModeEnabled: enabled }),
+  setDraftAgentMode: (mode) => set({ draftAgentMode: mode }),
   setError: (error) =>
     set((state) => ({
       error,

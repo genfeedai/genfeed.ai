@@ -1,4 +1,4 @@
-import type { ModelCategory } from '@genfeedai/contracts';
+import type { ModelCategory, RouterPriority } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 
 export interface CredentialMentionItem {
@@ -51,6 +51,28 @@ export interface GetGenerationModelsParams {
 export interface GenerateIngredientResult {
   id: string;
   url?: string;
+}
+
+/**
+ * `POST /router/estimate-generation-credits` request (#4672 Manual-mode
+ * review card). `organizationId` is never sent — the server derives it from
+ * the authenticated user.
+ */
+export interface EstimateGenerationCreditsParams {
+  category: 'image' | 'video';
+  duration?: number;
+  outputs?: number;
+  prioritize?: RouterPriority;
+  prompt: string;
+  quality?: string;
+  resolution?: string;
+}
+
+export interface EstimateGenerationCreditsResult {
+  /** `null` when the estimate is unavailable — never blocks the review. */
+  credits: number | null;
+  isAvailable: boolean;
+  modelKey: string | null;
 }
 
 export interface AgentGeneratedAsset {

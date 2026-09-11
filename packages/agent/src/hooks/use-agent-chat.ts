@@ -5,6 +5,7 @@ import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-con
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
+import type { AgentThreadMode } from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
@@ -21,7 +22,8 @@ interface SendMessageOptions {
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
   brandId?: string;
-  planModeEnabled?: boolean;
+  /** Only meaningful when this turn creates a new thread (#4672). */
+  agentMode?: AgentThreadMode;
 }
 
 interface UseAgentChatReturn {
@@ -94,7 +96,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
             expectedContextVersion: currentThread?.contextVersion,
             model: resolvedModel,
             pageContext: requestPageContext,
-            planModeEnabled: sendOptions?.planModeEnabled,
+            agentMode: sendOptions?.agentMode,
             source: sendOptions?.source,
             threadId: activeThreadId ?? undefined,
           },
@@ -109,8 +111,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
           brandId: response.brandId,
           contextVersion: response.contextVersion,
           createdAt: existingThread?.createdAt,
-          planModeEnabled:
-            existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
+          mode: existingThread?.mode ?? sendOptions?.agentMode,
           setActiveThread,
           threadId: response.threadId,
           title: existingThread?.title || content.slice(0, 60),

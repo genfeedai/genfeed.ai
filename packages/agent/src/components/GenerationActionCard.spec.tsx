@@ -37,13 +37,20 @@ vi.mock('next-intl', () => ({
           acceptFullRun: 'Accept full run',
           acceptFullRunAria:
             'Accept the pilot and generate the full-length video',
+          decline: 'Decline',
+          declineAria: 'Decline this generation',
+          declined: 'Declined — no credits were charged.',
           durationSeconds: '{seconds}s',
+          estimateUnavailable: 'Estimate unavailable',
+          estimatedCredits: '~{credits} credits',
           generateAria: 'Generate image',
           generateTooltip: 'Generate',
           generateVideoAria: 'Generate video',
           loadingModels: 'Loading Genfeed models…',
           noModelsEnabled: 'No models enabled',
           noModelsEnabledTitle: 'No models enabled for this workspace',
+          openInStudio: 'Open in Studio',
+          openInStudioAria: 'Open this generation in Studio',
           pilotCeilingReached:
             'Stopped after {count} rejected paid candidates. No further video generation will run for this clip.',
           pilotReady: 'Pilot ready',
@@ -54,6 +61,7 @@ vi.mock('next-intl', () => ({
           previewTitle: 'Prompt',
           promptLabel: 'Prompt',
           readFull: 'Read & edit',
+          resolvedModel: 'Model: {model}',
           readFullAria: 'Read and edit the full prompt',
           rejectPilot: 'Reject',
           rejectPilotAria: 'Reject this pilot',
@@ -340,6 +348,7 @@ function createModel(
 
 function createApiServiceMock(options?: {
   createPrompt?: ReturnType<typeof vi.fn>;
+  estimateGenerationCredits?: ReturnType<typeof vi.fn>;
   generateIngredient?: ReturnType<typeof vi.fn>;
   models?: IModel[];
 }) {
@@ -351,11 +360,19 @@ function createApiServiceMock(options?: {
       id: 'image-1',
       url: 'https://cdn.test/image.png',
     });
+  const estimateGenerationCredits =
+    options?.estimateGenerationCredits ??
+    vi
+      .fn()
+      .mockResolvedValue({ credits: null, isAvailable: true, modelKey: null });
   const models = options?.models ?? [];
 
   return {
     baseUrl: 'http://genfeed.localhost:3010',
     createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
+    estimateGenerationCredits: vi.fn((...args: unknown[]) =>
+      estimateGenerationCredits(...args),
+    ),
     generateIngredient: vi.fn((...args: unknown[]) =>
       generateIngredient(...args),
     ),
@@ -1573,5 +1590,219 @@ describe('GenerationActionCard', () => {
     expect(
       screen.queryByRole('button', { name: /generate video/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the resolved model and credit estimate for an image review', async () => {
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-estimate-image',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({ estimateGenerationCredits })}
+      />,
+    );
+
+    await waitFor(
+      () => {
+        expect(estimateGenerationCredits).toHaveBeenCalledWith(
+          expect.objectContaining({
+            category: 'image',
+            prompt: 'A portrait at golden hour.',
+          }),
+          expect.any(AbortSignal),
+        );
+      },
+      { timeout: 2000 },
+    );
+
+    expect(
+      await screen.findByText('Model: provider/nano-banana', undefined, {
+        timeout: 2000,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('~3 credits')).toBeInTheDocument();
+  });
+
+  it('shows the resolved model and credit estimate for a video review', async () => {
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 12,
+      isAvailable: true,
+      modelKey: 'provider/kling',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            duration: 10,
+            prompt: 'A presenter walking through neon rain.',
+          },
+          generationType: 'video',
+          id: 'action-estimate-video',
+          title: 'Generate Video',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          estimateGenerationCredits,
+          models: [
+            createModel({
+              category: ModelCategory.VIDEO,
+              durations: [5, 10],
+              key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+              label: 'Kling 2.6',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Model: provider/kling', undefined, {
+        timeout: 2000,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('~12 credits')).toBeInTheDocument();
+  });
+
+  it('shows "estimate unavailable" without blocking Generate', async () => {
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: null,
+      isAvailable: false,
+      modelKey: null,
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-estimate-unavailable',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({ estimateGenerationCredits })}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Estimate unavailable', undefined, {
+        timeout: 2000,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /generate image/i }),
+    ).toBeEnabled();
+  });
+
+  it('treats a failed estimate request the same as isAvailable:false', async () => {
+    const estimateGenerationCredits = vi
+      .fn()
+      .mockRejectedValue(new Error('network error'));
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-estimate-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({ estimateGenerationCredits })}
+      />,
+    );
+
+    expect(
+      await screen.findByText('Estimate unavailable', undefined, {
+        timeout: 2000,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('declines a review without calling the server, ending it without charge', async () => {
+    const generateIngredient = vi.fn();
+    const onUiAction = vi.fn();
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-decline',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({ generateIngredient })}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Decline this generation' }),
+    );
+
+    expect(
+      await screen.findByText('Declined — no credits were charged.'),
+    ).toBeInTheDocument();
+    expect(generateIngredient).not.toHaveBeenCalled();
+    expect(onUiAction).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: /generate image/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render an Open in Studio control unless a handler is passed', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-no-studio-slot',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(
+      screen.queryByRole('button', { name: /open this generation in studio/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders Open in Studio only when the #4670 extension slot is wired', async () => {
+    const onOpenInStudio = vi.fn();
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-slot',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+    expect(onOpenInStudio).toHaveBeenCalledTimes(1);
   });
 });

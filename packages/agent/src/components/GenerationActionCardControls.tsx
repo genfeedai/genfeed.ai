@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { ArrowUp, Expand, RefreshCw, Square } from 'lucide-react';
+import { ArrowUp, Expand, ExternalLink, RefreshCw, Square } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type RefObject, useState } from 'react';
 
@@ -65,6 +65,10 @@ type GenerationActionCardControlsProps = {
   duration: number;
   durationOptions: number[];
   estimatedCredits?: number | null;
+  /** `false` when the server could not price this generation (#4672). */
+  isEstimateAvailable?: boolean;
+  /** Concrete model the estimate (and Generate) would resolve to. */
+  resolvedModelKey?: string | null;
   onDurationChange: (value: number) => void;
   resolution?: string;
   resolutionOptions: readonly { label: string; value: string }[];
@@ -72,9 +76,14 @@ type GenerationActionCardControlsProps = {
   isImage: boolean;
   isPromptEmpty: boolean;
   showGenerate: boolean;
+  /** A review not yet generated can still be declined (#4672). */
+  showDecline?: boolean;
   showStop?: boolean;
   onGenerate: () => void;
+  onDecline?: () => void;
   onStop?: () => void;
+  /** Inert extension slot for #4670 — renders only when provided. */
+  onOpenInStudio?: () => void;
 };
 
 export function GenerationActionCardControls({
@@ -103,6 +112,8 @@ export function GenerationActionCardControls({
   duration,
   durationOptions,
   estimatedCredits,
+  isEstimateAvailable = true,
+  resolvedModelKey,
   onDurationChange,
   resolution,
   resolutionOptions,
@@ -110,9 +121,12 @@ export function GenerationActionCardControls({
   isImage,
   isPromptEmpty,
   showGenerate,
+  showDecline = false,
   showStop = false,
   onGenerate,
+  onDecline,
   onStop,
+  onOpenInStudio,
 }: GenerationActionCardControlsProps): ReactElement {
   const translate = useTranslations('agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
@@ -361,13 +375,55 @@ export function GenerationActionCardControls({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          {estimatedCredits !== null && estimatedCredits !== undefined ? (
+          {resolvedModelKey ||
+          estimatedCredits !== null ||
+          !isEstimateAvailable ? (
             <span
               aria-live="polite"
-              className="mr-1 text-xs font-medium text-muted-foreground"
+              className="mr-1 flex flex-col items-end text-xs font-medium text-muted-foreground"
             >
-              {translate('estimatedCredits', { credits: estimatedCredits })}
+              {resolvedModelKey ? (
+                <span className="max-w-[8rem] truncate">
+                  {translate('resolvedModel', { model: resolvedModelKey })}
+                </span>
+              ) : null}
+              <span>
+                {isEstimateAvailable && estimatedCredits !== null
+                  ? translate('estimatedCredits', {
+                      credits: estimatedCredits,
+                    })
+                  : translate('estimateUnavailable')}
+              </span>
             </span>
+          ) : null}
+          {onOpenInStudio ? (
+            <Button
+              ariaLabel={translate('openInStudioAria')}
+              className={cn(
+                'shrink-0 px-2 text-xs',
+                SHELL_CONTROL_HEIGHT_CLASS,
+              )}
+              icon={<ExternalLink className="size-3.5" />}
+              label={translate('openInStudio')}
+              onClick={onOpenInStudio}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
+          {showDecline ? (
+            <Button
+              ariaLabel={translate('declineAria')}
+              className={cn(
+                'shrink-0 px-2 text-xs',
+                SHELL_CONTROL_HEIGHT_CLASS,
+              )}
+              label={translate('decline')}
+              onClick={onDecline}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            />
           ) : null}
           {showStop ? (
             <Button
