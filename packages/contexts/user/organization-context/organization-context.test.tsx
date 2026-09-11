@@ -23,6 +23,7 @@ const cancelAndClearServicesMock = vi.hoisted(() => vi.fn());
 const setRequestOrganizationIdMock = vi.hoisted(() => vi.fn());
 const loggerWarnMock = vi.hoisted(() => vi.fn());
 const replaceMock = vi.hoisted(() => vi.fn());
+const isDesktopClientMock = vi.hoisted(() => vi.fn(() => false));
 let pathname = '/alpha/~/workspace/overview';
 
 vi.mock('next/navigation', () => ({
@@ -35,7 +36,7 @@ vi.mock('@genfeedai/auth-client', () => ({
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
-  isDesktopClient: () => false,
+  isDesktopClient: isDesktopClientMock,
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -146,6 +147,21 @@ describe('RoutedOrganizationProvider', () => {
     setRequestOrganizationIdMock.mockReset();
     loggerWarnMock.mockReset();
     replaceMock.mockReset();
+    isDesktopClientMock.mockReturnValue(false);
+  });
+
+  it('reconciles the routed organization on the desktop shell like on the web', async () => {
+    isDesktopClientMock.mockReturnValue(true);
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+
+    renderProvider();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(getMyOrganizationsMock).toHaveBeenCalled();
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
   });
 
   it('confirms an already-matched route before exposing its organization id', async () => {
