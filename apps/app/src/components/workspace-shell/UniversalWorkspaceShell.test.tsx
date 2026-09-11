@@ -281,6 +281,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
+    brands: [
+      { id: 'brand-1', label: 'Brand One', organization: { id: 'org-1' } },
+      {
+        id: 'brand-analytics-route',
+        label: 'Analytics Brand',
+        organization: { id: 'org-1' },
+      },
+    ],
     organizationId: 'org-1',
   }),
 }));
@@ -1320,6 +1328,23 @@ describe('UniversalWorkspaceShell', () => {
         expect.any(AbortSignal),
       ),
     );
+  });
+
+  it('never binds or syncs an analytics route brand that is not authorized', async () => {
+    navigation.pathname = '/acme/~/analytics/brands/brand-unauthorized';
+    navigation.searchParams = new URLSearchParams();
+    agentState.threads[0].brandId = 'brand-previous';
+    agentState.threads[0].contextVersion = 3;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <AnalyticsBrandRouteAdapterFixture brandId="brand-unauthorized" />
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Brand analytics canvas')).toBeInTheDocument();
+    expect(updateThreadContext).not.toHaveBeenCalled();
+    expect(agentState.threads[0].brandId).toBe('brand-previous');
   });
 
   it('mounts the brand overview registration in the harness inspector', async () => {

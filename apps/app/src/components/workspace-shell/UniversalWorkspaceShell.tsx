@@ -3,6 +3,10 @@
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
+import {
   type AgentApiService,
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
@@ -181,7 +185,7 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const { brandId, organizationId, selectedBrand } = useBrand();
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
   const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
@@ -414,7 +418,21 @@ function UniversalWorkspaceShellContent({
   //    an adapter. Without this, chat runs brandless and the model asks "which
   //    brand?" even though the brand switcher already has a selection.
   const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
-  const analyticsRouteBrandId = effectiveSurfaceAdapter?.brandId ?? null;
+  const rawAnalyticsRouteBrandId = effectiveSurfaceAdapter?.brandId ?? null;
+  // Unlike (1) and (2), which come from already-authorized product state, the
+  // analytics adapter's brand is parsed straight from the URL — a stale link,
+  // a deleted brand, or another org's id must never bind or sync. Falling
+  // through (rather than blocking the chain) lets the topbar brand still
+  // apply when the route names one we can't authorize.
+  const analyticsRouteBrandId =
+    rawAnalyticsRouteBrandId &&
+    brands.some(
+      (brand) =>
+        getBrandEntityId(brand) === rawAnalyticsRouteBrandId &&
+        getBrandOrganizationId(brand) === organizationId,
+    )
+      ? rawAnalyticsRouteBrandId
+      : null;
   const topbarBrandId = brandId || null;
   const bindingBrandId =
     surfaceBrandId ??
