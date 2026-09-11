@@ -1,5 +1,5 @@
 import type { CuratedActionName } from '../registry/curated-action-catalog';
-import type { ToolsetName } from '../registry/toolsets';
+import type { ToolsetName } from '../registry/toolset-names';
 
 export type ToolUiActionType =
   | 'ai_text_action_card'

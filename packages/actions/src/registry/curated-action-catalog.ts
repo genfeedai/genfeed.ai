@@ -1,4 +1,4 @@
-import type { ToolsetName } from './toolsets';
+import type { ToolsetName } from './toolset-names';
 
 export type CuratedActionSurface = 'agent' | 'mcp';
 

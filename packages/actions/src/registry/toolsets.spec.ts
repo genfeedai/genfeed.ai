@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ALL_TOOLS } from './tool-assembly';
 import {
   CORE_TOOLSET_NAME,
+  getToolsetNames,
   getToolsets,
   getToolsForToolsets,
   isToolsetName,
@@ -59,6 +60,52 @@ describe('parseToolsetSelection', () => {
       toolsets: [],
       unknown: ['bogus'],
     });
+  });
+
+  it('without a surface, accepts any declared toolset name regardless of tool presence', () => {
+    // "onboarding" is a real toolset name but has zero MCP-surfaced tools;
+    // surface-less parsing only checks `isToolsetName`, not tool presence.
+    expect(parseToolsetSelection('onboarding')).toEqual({
+      toolsets: ['onboarding'],
+      unknown: [],
+    });
+  });
+
+  it('with surface "mcp", rejects a toolset name that has no tools on that surface', () => {
+    expect(parseToolsetSelection('onboarding', 'mcp')).toEqual({
+      toolsets: [],
+      unknown: ['onboarding'],
+    });
+  });
+
+  it('with surface "mcp", still accepts a toolset name that has tools on that surface', () => {
+    expect(parseToolsetSelection('content', 'mcp')).toEqual({
+      toolsets: ['content'],
+      unknown: [],
+    });
+  });
+
+  it('with a surface, mixes known-on-surface and unknown-on-surface names correctly', () => {
+    expect(parseToolsetSelection('content,onboarding,bogus', 'mcp')).toEqual({
+      toolsets: ['content'],
+      unknown: ['onboarding', 'bogus'],
+    });
+  });
+});
+
+describe('getToolsetNames', () => {
+  it('matches the names from getToolsets for each surface', () => {
+    for (const surface of ['agent', 'mcp'] as const) {
+      expect(getToolsetNames(surface)).toEqual(
+        getToolsets(surface).map((summary) => summary.name),
+      );
+    }
+  });
+
+  it('always includes core', () => {
+    for (const surface of ['agent', 'mcp'] as const) {
+      expect(getToolsetNames(surface)).toContain(CORE_TOOLSET_NAME);
+    }
   });
 });
 
