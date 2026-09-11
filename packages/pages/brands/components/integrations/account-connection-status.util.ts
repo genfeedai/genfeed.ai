@@ -55,25 +55,31 @@ export function isAccessTokenExpired(
 }
 
 /**
- * A row needs reconnecting when the credential is disconnected (not
- * deleted — deleted credentials never reach this list, see
- * `buildSocialConnections`), its access token has expired, or it was never
- * assigned a platform identity (`externalId`). `isConnected` defaults to
- * connected when omitted so legacy callers that only ever built connected
- * rows keep behaving the same way.
+ * A row needs reconnecting when it never captured a platform identity
+ * (`externalId`) — including a still-`isConnected` row whose OAuth flow
+ * finished without one, e.g. a legacy broken connection — when it has an
+ * identity but is no longer connected (a lapsed connection), or when its
+ * access token has expired. `isConnected` defaults to connected when
+ * omitted so legacy callers that only ever built connected rows keep
+ * behaving the same way.
+ *
+ * A row with neither an identity nor a connection (pending or abandoned
+ * OAuth — the credential exists only because the flow never finished) does
+ * not reach this function at all: `buildSocialConnections` hides it before
+ * status is ever derived. See `isVisibleCredentialRow`.
  */
 export function getAccountConnectionStatus(
   connection: BrandDetailSocialConnection,
 ): AccountConnectionStatus {
+  if (!connection.externalId) {
+    return 'needsReconnect';
+  }
+
   if (connection.isConnected === false) {
     return 'needsReconnect';
   }
 
   if (isAccessTokenExpired(connection.accessTokenExpiry)) {
-    return 'needsReconnect';
-  }
-
-  if (!connection.externalId) {
     return 'needsReconnect';
   }
 

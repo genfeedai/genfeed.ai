@@ -21,7 +21,6 @@ import type {
   ILink,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
-import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -35,6 +34,7 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
@@ -518,33 +518,14 @@ export function useBrandDetail(): UseBrandDetailReturn {
     };
   }, [brandId, findOneBrand, notificationsService, pendingAssetId, subscribe]);
 
-  const socialConnections = useMemo(() => {
-    const connectedCredentials =
-      state.brand?.credentials?.filter(
-        (cred: ICredential) => cred.isConnected === true,
-      ) ?? [];
-
-    return connectedCredentials.map((credential) => {
-      return {
-        accessTokenExpiry: credential.accessTokenExpiry,
-        accountHealth: credential.accountHealth,
-        avatarUrl: credential.externalAvatar,
-        credentialId: credential.id,
-        externalId: credential.externalId,
-        handle: credential.externalHandle,
-        isConnected: credential.isConnected,
-        label: credential.label,
-        name: credential.externalName,
-        platform: credential.platform,
-        postingTimes: credential.postingTimes,
-        url: SocialUrlHelper.buildProfileUrl(
-          credential.platform,
-          credential.externalHandle,
-          credential.externalId,
-        ),
-      };
-    });
-  }, [state.brand?.credentials]);
+  // Delegates to the same helper the settings/integrations accounts table
+  // and ModalBrand use, so a disconnected-but-not-deleted or identity-less
+  // credential shows "Needs reconnect" consistently everywhere instead of
+  // silently disappearing from just this hook's consumers.
+  const socialConnections = useMemo(
+    () => buildSocialConnections(state.brand),
+    [state.brand],
+  );
 
   const connectedPlatformsCount = useMemo(
     () =>
