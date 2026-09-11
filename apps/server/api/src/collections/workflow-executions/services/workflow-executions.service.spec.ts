@@ -811,7 +811,7 @@ describe('WorkflowExecutionsService', () => {
     ).toHaveBeenCalledWith('delivery-1');
   });
 
-  it('targets the tenant actor for a hidden system workflow outcome', async () => {
+  it('targets the tenant actor for a hidden system workflow failure', async () => {
     const { prisma, service, workflowNotificationOutboxService } =
       makeService();
     prisma.workflowExecution.findUnique.mockResolvedValueOnce({
@@ -842,7 +842,10 @@ describe('WorkflowExecutionsService', () => {
       workflowId: 'workflow-1',
     });
 
-    await service.completeExecution('execution-1');
+    await service.completeExecution(
+      'execution-1',
+      'HTTP 429 too many requests',
+    );
 
     expect(
       workflowNotificationOutboxService.recordWorkflowOutcome,
@@ -928,6 +931,43 @@ describe('WorkflowExecutionsService', () => {
           workflowOwnerUserId: 'actor-user-1',
         }),
       );
+    },
+  );
+
+  it.each([
+    'agent.turn.execute',
+    'agent.thread.ui-action',
+    'agent.thread.input-response',
+    'knowledge.source.ingest',
+    'knowledge.source.backfill',
+  ])(
+    'does not notify Workflow completed when %s succeeds',
+    async (canonicalId) => {
+      const { service, prisma, workflowNotificationOutboxService } =
+        makeService();
+      prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+        organizationId: 'org-1',
+        startedAt: null,
+        estimatedDurationMs: null,
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflowId: 'workflow-1',
+        workflow: {
+          label: 'Agent',
+          userId: 'genfeed-public-tools',
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            systemWorkflow: buildHiddenSystemWorkflowMetadata({ canonicalId }),
+          },
+        },
+      });
+      await service.completeExecution('execution-1');
+      expect(
+        workflowNotificationOutboxService.recordWorkflowOutcome,
+      ).not.toHaveBeenCalled();
+      expect(
+        workflowNotificationOutboxService.enqueueAfterCommit,
+      ).not.toHaveBeenCalled();
     },
   );
 

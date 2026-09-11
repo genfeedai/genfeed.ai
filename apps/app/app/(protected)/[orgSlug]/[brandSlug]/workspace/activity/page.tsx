@@ -7,16 +7,17 @@ import LocalizedActivitiesList from '@/components/activity/LocalizedActivitiesLi
 export const generateMetadata = createPageMetadata('Workspace Activity');
 
 /**
- * Workspace Activity shows the org/brand activity log (IActivity), not the
- * task queue. Task history stays on Inbox / Overview; this route matches the
- * "What changed" card and /overview/activities data.
+ * Workspace Activity is the current brand's IActivity log, not the task
+ * queue. Task history stays on Inbox / Overview. The org-wide
+ * `~/workspace/activity` route reuses this page; useActivities falls back to
+ * organization activities when the URL has no brand.
  */
 export default function WorkspaceActivityPage() {
   return (
     <ErrorBoundary>
       <Suspense fallback={null}>
         <LocalizedActivitiesList
-          scope={PageScope.ORGANIZATION}
+          scope={PageScope.BRAND}
           isStatsEnabled
           isFiltersEnabled
         />

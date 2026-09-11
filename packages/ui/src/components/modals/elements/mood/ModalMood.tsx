@@ -60,7 +60,7 @@ export default function ModalMood({
 
   return (
     <Modal id={ModalEnum.MOOD} title={item ? 'Edit Mood' : 'Create Mood'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

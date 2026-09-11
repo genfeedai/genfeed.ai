@@ -185,7 +185,7 @@ export default function Container({
               right ? (
                 <div
                   data-testid="container-header-actions"
-                  className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5"
+                  className="flex min-w-0 flex-wrap items-center justify-end gap-2.5"
                 >
                   {right}
                 </div>

@@ -1092,7 +1092,7 @@ viewers leave at 0:20. Let the two numbers tell you which problem you
 have.</p>
 `;
 
-export const RETIRED_OSS_LAUNCH_PLAYBOOK = `
+const OSS_LAUNCH_PLAYBOOK = `
 <p>Launching an open-source product is not one launch. It is two, staged a week
 or two apart, aimed at audiences that want opposite things: Hacker News wants
 the architecture and the honest caveats, Product Hunt wants the outcome and the
@@ -1307,9 +1307,7 @@ one day traffic actually arrives — far more often than on positioning.</p>
 
 const ORIGINAL_LAUNCH_BATCH_PUBLISHED_AT = '2026-08-13T01:38:45.528Z';
 
-export const RETIRED_ARTICLE_SLUGS = [
-  'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
-] as const;
+export const RETIRED_ARTICLE_SLUGS = [] as const;
 
 export const LAUNCH_ARTICLES: readonly SeedArticle[] = [
   {
@@ -1389,6 +1387,18 @@ export const LAUNCH_ARTICLES: readonly SeedArticle[] = [
     slug: 'how-to-grow-on-youtube-with-ai-generated-content',
     summary:
       'YouTube is a search engine with a recommendation layer. Titles, thumbnails, retention, Shorts — and how to read CTR against view duration.',
+  },
+  {
+    category: ArticleCategory.GUIDE,
+    content: OSS_LAUNCH_PLAYBOOK,
+    coverImageUrl: articleArtwork(
+      'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+    ),
+    label: 'How to launch an open-source product on Show HN and Product Hunt',
+    publishedAt: '2026-08-11T15:00:00.000Z',
+    slug: 'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+    summary:
+      'Two launches a week apart, for audiences that want opposite things. Readiness gates, timing, first-comment structure, and the week calendar.',
   },
 ];
 

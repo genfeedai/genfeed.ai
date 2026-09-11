@@ -16,7 +16,10 @@ import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.pro
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
-import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
+import {
+  QUICK_ACTION_TRIGGER_CLASS,
+  QUICK_ACTION_TRIGGER_SIZE_CLASS,
+} from '@ui/quick-actions/quick-actions.constants';
 import { useCallback, useMemo, useState } from 'react';
 import IngredientContextActions from './IngredientContextActions';
 import IngredientDownloadButton from './IngredientDownloadButton';
@@ -303,6 +306,7 @@ function IngredientQuickActionsContent(
   // controls.
   const dropdownButtonClassName = cn(
     QUICK_ACTION_TRIGGER_CLASS,
+    QUICK_ACTION_TRIGGER_SIZE_CLASS,
     'text-muted-foreground hover:bg-hover hover:text-foreground',
   );
 
@@ -359,7 +363,7 @@ function IngredientQuickActionsContent(
             }}
             size={size}
             onActionClick={handleActionClick}
-            triggerClassName="size-7 rounded-md"
+            triggerClassName="size-7 p-0"
           />
         </div>
       </div>

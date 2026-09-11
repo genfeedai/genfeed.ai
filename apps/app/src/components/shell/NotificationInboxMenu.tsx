@@ -191,16 +191,8 @@ export default function NotificationInboxMenu() {
                       )}
                     </span>
                     <span className="min-w-0 flex-1 space-y-1">
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 text-xs font-medium leading-5 text-foreground">
-                          {title}
-                        </span>
-                        <ClientFormattedDate
-                          value={item.occurredAt}
-                          format="relative"
-                          fallback=""
-                          className="shrink-0 text-xs text-muted-foreground"
-                        />
+                      <span className="block min-w-0 text-xs font-medium leading-5 text-foreground">
+                        {title}
                       </span>
                       {item.failure ? (
                         <span className="block space-y-1 text-xs text-muted-foreground">
@@ -219,40 +211,52 @@ export default function NotificationInboxMenu() {
                   </>
                 );
                 return (
-                  <li
-                    key={item.id}
-                    className="flex items-start gap-1 px-2 py-1"
-                  >
-                    {item.sourceHref ? (
-                      <Link
-                        href={item.sourceHref}
-                        onClick={() => setOpen(false)}
-                        className="group flex min-w-0 flex-1 items-start gap-2.5 rounded-md px-1 py-1.5 hover:bg-hover"
-                      >
-                        {body}
-                      </Link>
-                    ) : (
-                      <div className="flex min-w-0 flex-1 items-start gap-2.5 px-1 py-1.5">
-                        {body}
-                      </div>
-                    )}
-                    {!item.readAt ? (
-                      <div className="flex shrink-0 items-center gap-1 pt-1.5">
-                        <span className="size-1.5 rounded-full bg-info">
-                          <span className="sr-only">{translate('unread')}</span>
-                        </span>
-                        <Button
-                          variant={ButtonVariant.GHOST}
-                          size={ButtonSize.ICON}
-                          className="size-6"
-                          ariaLabel={translate('markRead')}
-                          disabled={read.isPending}
-                          onClick={() => read.mutate([item.id])}
+                  <li key={item.id} className="px-2 py-1">
+                    <div
+                      data-testid="notification-inbox-row"
+                      className="flex items-start gap-1 rounded-md px-1 py-1.5 hover:bg-hover"
+                    >
+                      {item.sourceHref ? (
+                        <Link
+                          href={item.sourceHref}
+                          onClick={() => setOpen(false)}
+                          className="group flex min-w-0 flex-1 items-start gap-2.5"
                         >
-                          <Check aria-hidden="true" className="size-3.5" />
-                        </Button>
+                          {body}
+                        </Link>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                          {body}
+                        </div>
+                      )}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <ClientFormattedDate
+                          value={item.occurredAt}
+                          format="relative"
+                          fallback=""
+                          className="shrink-0 text-xs text-muted-foreground"
+                        />
+                        {!item.readAt ? (
+                          <>
+                            <span className="size-1.5 rounded-full bg-info">
+                              <span className="sr-only">
+                                {translate('unread')}
+                              </span>
+                            </span>
+                            <Button
+                              variant={ButtonVariant.GHOST}
+                              size={ButtonSize.ICON}
+                              className="size-6"
+                              ariaLabel={translate('markRead')}
+                              disabled={read.isPending}
+                              onClick={() => read.mutate([item.id])}
+                            >
+                              <Check aria-hidden="true" className="size-3.5" />
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
-                    ) : null}
+                    </div>
                   </li>
                 );
               })}

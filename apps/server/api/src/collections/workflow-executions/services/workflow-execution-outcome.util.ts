@@ -31,6 +31,21 @@ export function suppressInternalEmailOutcomeNotification(
   );
 }
 
+/**
+ * Hidden system workflows (agent turns, knowledge ingest, internal jobs)
+ * must not fan out "Workflow completed". The conversation or the job's own
+ * UI already shows the result. Agent-run failures still notify.
+ */
+export function suppressWorkflowOutcomeNotification(
+  metadata: unknown,
+  isFailed: boolean,
+): boolean {
+  if (suppressInternalEmailOutcomeNotification(metadata)) {
+    return true;
+  }
+  return !isFailed && isHiddenSystemWorkflowMetadata(metadata);
+}
+
 export function buildWorkflowOutcomeInput(
   execution: WorkflowExecutionCompletionRow,
   executionId: string,

@@ -24,8 +24,7 @@ export const brandSchema = z.object({
 export type BrandSchema = z.infer<typeof brandSchema>;
 
 export const brandGenerateSchema = z.object({
-  description: z.string().optional(),
-  prompt: z.string().min(1, 'Prompt is required'),
+  prompt: z.string().trim().min(1, 'Prompt is required'),
 });
 
 export type BrandGenerateSchema = z.infer<typeof brandGenerateSchema>;

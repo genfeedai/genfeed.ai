@@ -203,6 +203,23 @@ describe('SharedService', () => {
       expect(ingredientsService.create).not.toHaveBeenCalled();
     });
 
+    it('does not require the media owner userId to be an entity id', async () => {
+      const userId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      const signedInUser = {
+        ...mockUser,
+        id: userId,
+        userId,
+      } as unknown as User;
+
+      await service.createMediaDocuments(signedInUser, {
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId }),
+      );
+    });
+
     it('soft-deletes metadata when ingredient persistence fails', async () => {
       vi.mocked(ingredientsService.create).mockRejectedValue(
         new Error('Ingredient create failed'),

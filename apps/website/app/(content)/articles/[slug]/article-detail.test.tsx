@@ -1,7 +1,22 @@
 import type { Article } from '@models/content/article.model';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import { ArticleAbout, formatArticlePublishedAt } from './article-detail';
+import { describe, expect, it, vi } from 'vitest';
+import ArticleDetail, {
+  ArticleAbout,
+  formatArticlePublishedAt,
+} from './article-detail';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('./article-content', () => ({
+  default: () => <div>article body</div>,
+}));
+
+vi.mock('@website/(content)/articles/article-cover', () => ({
+  default: () => <div>cover</div>,
+}));
 
 describe('formatArticlePublishedAt', () => {
   it('formats publishedAt in UTC so SSR matches the client', () => {
@@ -54,5 +69,23 @@ describe('ArticleAbout', () => {
       'href',
       'https://x.com/lunar',
     );
+  });
+});
+
+describe('ArticleDetail sticky aside', () => {
+  it('parks the about card below the public topbar', () => {
+    const article = {
+      id: 'article-1',
+      label: 'Show HN',
+      slug: 'how-to-launch-an-open-source-product-on-show-hn-and-product-hunt',
+    } as Article;
+
+    const { container } = render(
+      <ArticleDetail article={article} isPreview={false} />,
+    );
+
+    const sticky = container.querySelector('.lg\\:sticky');
+    expect(sticky).toHaveClass('lg:top-24');
+    expect(sticky).not.toHaveClass('lg:top-4');
   });
 });

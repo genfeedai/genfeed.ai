@@ -319,6 +319,7 @@ describe('AgentThreadList', () => {
     render(<AgentThreadList apiService={apiService as never} />);
 
     expect(await screen.findByText('No threads')).toBeInTheDocument();
+    expect(screen.getByText('Recent')).toBeInTheDocument();
     expect(screen.queryByText('Failed to load threads')).toBeNull();
   });
 

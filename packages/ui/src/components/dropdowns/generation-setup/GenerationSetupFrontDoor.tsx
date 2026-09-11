@@ -8,6 +8,7 @@ import type {
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
+import GenerationSetupSavePresetRow from '@ui/dropdowns/generation-setup/GenerationSetupSavePresetRow';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
@@ -27,6 +28,7 @@ export default function GenerationSetupFrontDoor({
   onApplyPreset,
   onCustomize,
   onDeletePreset,
+  onSavePreset,
   onSearch,
   presets,
   reasons,
@@ -34,9 +36,18 @@ export default function GenerationSetupFrontDoor({
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
   const translate = useTranslations('agent.generationSetup');
-  const typeLabel =
-    typeOptions.find((option) => option.value === setup.values.type)?.label ??
-    setup.values.type;
+  const isTypeAgentOwned =
+    !setup.presetId &&
+    setup.sources.type !== 'user' &&
+    setup.sources.type !== 'preset';
+  const isTextType = setup.values.type === 'text';
+  // The panel header already reads "Agent pick". An agent-owned type row says
+  // Auto, the same word the model row uses for "the system decides", instead of
+  // repeating that header two lines below itself.
+  const typeLabel = isTypeAgentOwned
+    ? translate('auto')
+    : (typeOptions.find((option) => option.value === setup.values.type)
+        ?.label ?? setup.values.type);
 
   const modelLabel = isAutoGenerationModelKey(setup.values.modelKey)
     ? translate('auto')
@@ -55,37 +66,41 @@ export default function GenerationSetupFrontDoor({
       section: 'model',
       value: typeLabel,
     },
-    {
+  ];
+
+  const showMediaFields = !isTypeAgentOwned && !isTextType;
+
+  if (showMediaFields) {
+    summaryRows.push({
       key: 'modelKey',
       label: translate('model'),
       section: 'model',
       value: modelLabel,
-    },
-  ];
-
-  if (capabilities.hasAspectRatio) {
-    summaryRows.push({
-      key: 'aspectRatio',
-      label: translate('aspectRatio'),
-      section: 'output',
-      value: setup.values.aspectRatio,
     });
-  }
-  if (capabilities.hasDuration && setup.values.duration) {
-    summaryRows.push({
-      key: 'duration',
-      label: translate('duration'),
-      section: 'output',
-      value: `${setup.values.duration}s`,
-    });
-  }
-  if (capabilities.hasOutputs) {
-    summaryRows.push({
-      key: 'outputs',
-      label: translate('outputs'),
-      section: 'output',
-      value: String(setup.values.outputs),
-    });
+    if (capabilities.hasAspectRatio) {
+      summaryRows.push({
+        key: 'aspectRatio',
+        label: translate('aspectRatio'),
+        section: 'output',
+        value: setup.values.aspectRatio,
+      });
+    }
+    if (capabilities.hasDuration && setup.values.duration) {
+      summaryRows.push({
+        key: 'duration',
+        label: translate('duration'),
+        section: 'output',
+        value: `${setup.values.duration}s`,
+      });
+    }
+    if (capabilities.hasOutputs) {
+      summaryRows.push({
+        key: 'outputs',
+        label: translate('outputs'),
+        section: 'output',
+        value: String(setup.values.outputs),
+      });
+    }
   }
   summaryRows.push({
     key: 'brandingMode',
@@ -195,6 +210,11 @@ export default function GenerationSetupFrontDoor({
             {translate('noPresets')}
           </span>
         ) : null}
+
+        <GenerationSetupSavePresetRow
+          isDisabled={isDisabled}
+          onSavePreset={onSavePreset}
+        />
 
         {presets.map((preset) => (
           <div

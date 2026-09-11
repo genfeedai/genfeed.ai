@@ -1,27 +1,23 @@
 /**
  * Agent-composer constants and helpers for the shared Unified Generation
  * Setup store (`@genfeedai/ui` `generation-setup.store.ts`). The agent
- * surface only ever offers image/video generation — capabilities, defaults,
- * and type options are hand-written here rather than imported from Studio's
- * settings util, keeping the shared store package-agnostic.
+ * surface offers conversation (text) plus image/video generation.
  */
 import type { ConversationComposerGenerationSettings } from '@genfeedai/agent/models/conversation-composer.model';
-import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
+import { RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
+  GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
-import type {
-  StudioGenerateCapabilities,
-  StudioGenerateType,
-} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
+import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 
-/** The agent composer only ever offers these two generation types. */
+/** Conversation, stills, or motion — the operator can lock any of the three. */
 export type AgentGenerationType = Extract<
-  StudioGenerateType,
-  'image' | 'video'
+  GenerationSetupType,
+  'image' | 'text' | 'video'
 >;
 
 const AGENT_GENERATION_DEFAULT_ASPECT_RATIO: Record<
@@ -29,6 +25,7 @@ const AGENT_GENERATION_DEFAULT_ASPECT_RATIO: Record<
   string
 > = {
   image: '1:1',
+  text: '1:1',
   video: '16:9',
 };
 
@@ -36,6 +33,17 @@ const AGENT_GENERATION_SETUP_CAPABILITIES: Record<
   AgentGenerationType,
   StudioGenerateCapabilities
 > = {
+  text: {
+    hasAspectRatio: false,
+    hasBrandEnrichment: true,
+    hasDuration: false,
+    hasIdentity: false,
+    hasLook: false,
+    hasModelSelection: false,
+    hasOutputs: false,
+    hasReferences: false,
+    hasSpeech: false,
+  },
   image: {
     hasAspectRatio: true,
     hasBrandEnrichment: true,
@@ -62,16 +70,23 @@ const AGENT_GENERATION_SETUP_CAPABILITIES: Record<
 
 export const AGENT_GENERATION_SETUP_TYPE_OPTIONS: readonly GenerationSetupTypeOption[] =
   [
+    { label: 'Text', value: 'text' },
     { label: 'Image', value: 'image' },
     { label: 'Video', value: 'video' },
   ];
 
 export function isAgentGenerationType(
-  type: StudioGenerateType | null | undefined,
+  type: GenerationSetupType | null | undefined,
 ): type is AgentGenerationType {
-  return (
-    type === AgentGenerationMode.IMAGE || type === AgentGenerationMode.VIDEO
-  );
+  return type === 'text' || type === 'image' || type === 'video';
+}
+
+export function isAgentOwnedGenerationType(setup: GenerationSetup): boolean {
+  if (setup.presetId) {
+    return false;
+  }
+  const typeSource = setup.sources.type;
+  return typeSource !== 'user' && typeSource !== 'preset';
 }
 
 export function getAgentGenerationSetupCapabilities(

@@ -262,7 +262,7 @@ export default function AppProtectedLayoutSidebar({
         {...sidebarStateProps}
         currentApp={surface.currentApp}
         items={surface.items}
-        sectionLabel={navPanel?.sectionLabel ?? surface.sectionLabel}
+        sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}

@@ -110,7 +110,7 @@ export default function ModalWorkflow({
       id={ModalEnum.WORKFLOW}
       title={item ? 'Edit Workflow' : 'Create Workflow'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">

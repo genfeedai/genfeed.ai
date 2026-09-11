@@ -255,7 +255,7 @@ export default function TopbarPublic({
                         {dropdown.label}
                         <ChevronDown
                           className={cn(
-                            'size-4 transition-transform duration-200',
+                            'size-4 transition-transform duration-300 ease-out',
                             isOpen && 'rotate-180',
                           )}
                         />
@@ -310,20 +310,19 @@ export default function TopbarPublic({
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Desktop Dropdown Portal - isolated stacking context to appear above backdrop-blur header */}
-      <TopbarPublicDesktopDropdown
-        mounted={mounted}
-        openDropdown={openDropdown}
-        currentDropdown={currentDropdown}
-        dropdownPosition={dropdownPosition}
-        megaMenuFooter={currentDropdown?.footer}
-        pathname={pathname}
-        onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
-        onMouseLeaveDropdown={handleDropdownClose}
-        onItemClick={handleDropdownCloseNow}
-      />
+        <TopbarPublicDesktopDropdown
+          mounted={mounted}
+          openDropdown={openDropdown}
+          currentDropdown={currentDropdown}
+          dropdownPosition={dropdownPosition}
+          megaMenuFooter={currentDropdown?.footer}
+          pathname={pathname}
+          onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
+          onMouseLeaveDropdown={handleDropdownClose}
+          onItemClick={handleDropdownCloseNow}
+        />
+      </header>
 
       {/* Mobile Menu Portal */}
       <TopbarPublicMobileMenu

@@ -39,6 +39,23 @@ const normalizeId = (
   return value.trim();
 };
 
+/** `users.id` is not a Genfeed entity id — do not run `isEntityId` on it. */
+const normalizeUserId = (
+  value: string | null | undefined,
+  field: string,
+): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const userId = value.trim();
+  if (userId.length === 0) {
+    throw new BadRequestException(`${field} must be a non-empty user ID`);
+  }
+
+  return userId;
+};
+
 const normalizeIds = (values: string[] | undefined, field: string): string[] =>
   Array.from(
     new Set(
@@ -215,8 +232,8 @@ export class SharedService {
         normalizeId(input.organizationId, 'organizationId') ??
         normalizeId(user.organizationId, 'user.organizationId'),
       userId:
-        normalizeId(input.userId, 'userId') ??
-        normalizeId(user.userId ?? user.id, '(user.userId ?? user.id)'),
+        normalizeUserId(input.userId, 'userId') ??
+        normalizeUserId(user.userId ?? user.id, '(user.userId ?? user.id)'),
     });
   }
 
@@ -229,7 +246,7 @@ export class SharedService {
     return this.persistMediaDocuments(input, {
       brandId: normalizeId(input.brandId, 'brandId'),
       organizationId: normalizeId(input.organizationId, 'organizationId'),
-      userId: normalizeId(input.userId, 'userId'),
+      userId: normalizeUserId(input.userId, 'userId'),
     });
   }
 

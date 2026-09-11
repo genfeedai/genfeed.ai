@@ -246,7 +246,7 @@ export default function ModalPreset({
       error={error}
       onClose={() => setError(null)}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <ModalPresetFields
           control={form.control}
           watchedDescription={watchedDescription}

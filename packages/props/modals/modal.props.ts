@@ -177,6 +177,7 @@ export interface ModalProps {
   error?: string | null;
   onClose?: () => void;
   modalBoxClassName?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export interface ModalStoryboardUploadProps {

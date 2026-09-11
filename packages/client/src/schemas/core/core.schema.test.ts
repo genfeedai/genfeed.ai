@@ -61,6 +61,12 @@ describe('core schemas', () => {
     it('rejects empty prompt', () => {
       expect(brandGenerateSchema.safeParse({ prompt: '' }).success).toBe(false);
     });
+
+    it('rejects whitespace-only prompt', () => {
+      expect(brandGenerateSchema.safeParse({ prompt: '   ' }).success).toBe(
+        false,
+      );
+    });
   });
 
   describe('credentialSchema', () => {

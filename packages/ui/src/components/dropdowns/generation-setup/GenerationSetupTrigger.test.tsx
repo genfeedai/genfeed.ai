@@ -56,7 +56,7 @@ const typeOptions: GenerationSetupTypeOption[] = [
 ];
 
 describe('GenerationSetupTrigger', () => {
-  it('renders the type · Auto · ratio summary when fully agent-owned', () => {
+  it('renders Agent when the type is still agent-owned', () => {
     render(
       <GenerationSetupTrigger
         isOpen={false}
@@ -67,7 +67,8 @@ describe('GenerationSetupTrigger', () => {
     );
 
     const button = screen.getByRole('button');
-    expect(within(button).getByText('Image · Auto · 1:1')).toBeInTheDocument();
+    expect(within(button).getByText('Agent')).toBeInTheDocument();
+    expect(screen.queryByText(/1:1/)).toBeNull();
     expect(button).toHaveClass('border-primary/30', 'bg-primary/5');
   });
 
@@ -77,6 +78,7 @@ describe('GenerationSetupTrigger', () => {
         isOpen={false}
         models={[]}
         setup={createSetup({
+          sources: { type: 'user' },
           values: {
             aspectRatio: '1:1',
             brandingMode: 'off',
@@ -104,6 +106,9 @@ describe('GenerationSetupTrigger', () => {
         isOpen={false}
         models={[]}
         setup={createSetup({
+          // The media summary only appears once the type is the user's own
+          // pick; an agent-owned type collapses the whole trigger to "Agent".
+          sources: { type: 'user' },
           values: {
             aspectRatio: '1:1',
             brandingMode: 'off',
@@ -125,7 +130,7 @@ describe('GenerationSetupTrigger', () => {
   });
 
   it('shows the selected model label and drops the accent once a field is user-owned', () => {
-    const sources: GenerationSetupSources = { modelKey: 'user' };
+    const sources: GenerationSetupSources = { modelKey: 'user', type: 'user' };
     render(
       <GenerationSetupTrigger
         isOpen={false}

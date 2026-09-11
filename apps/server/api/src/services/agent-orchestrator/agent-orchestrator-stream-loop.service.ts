@@ -206,7 +206,7 @@ export class AgentOrchestratorStreamLoopService {
         total_tokens: 0,
       };
       // Credits accrue per completed round, not per turn: a turn that burns
-      // five tool rounds costs five rounds of inference and has to bill like it.
+      // N tool rounds costs N rounds of inference and has to bill like it.
 
       // Real token streaming is skipped for title-seeding turns (seedTitle set,
       // first message of a new thread) because the model returns a JSON

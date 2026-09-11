@@ -57,7 +57,7 @@ export default function ModalLens({
 
   return (
     <Modal id={ModalEnum.LENS} title={item ? 'Edit Lens' : 'Create Lens'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
         <FormControl label="Label">
           <Input
             type="text"

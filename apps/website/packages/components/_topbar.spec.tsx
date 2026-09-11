@@ -148,6 +148,17 @@ describe('WebsiteTopbar', () => {
     }
   });
 
+  it('opens the product menu inside the topbar instead of as a second bar', () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
+
+    const header = document.querySelector('header');
+    const studio = screen.getByRole('link', { name: /studio/i });
+
+    expect(header).toContainElement(studio);
+  });
+
   it('does not expose a marketing-site appearance control', () => {
     render(<WebsiteTopbar />);
 

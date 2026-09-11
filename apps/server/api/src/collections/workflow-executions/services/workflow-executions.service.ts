@@ -11,7 +11,7 @@ import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-ex
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
 import {
   buildWorkflowOutcomeInput,
-  suppressInternalEmailOutcomeNotification,
+  suppressWorkflowOutcomeNotification,
   type WorkflowExecutionCompletionRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
 import {
@@ -492,8 +492,9 @@ export class WorkflowExecutionsService extends BaseService<
           );
         }
 
-        const durableDeliveryId = suppressInternalEmailOutcomeNotification(
+        const durableDeliveryId = suppressWorkflowOutcomeNotification(
           execution.workflow.metadata,
+          Boolean(error),
         )
           ? null
           : await this.workflowNotificationOutboxService.recordWorkflowOutcome(

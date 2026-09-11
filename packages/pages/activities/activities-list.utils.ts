@@ -15,7 +15,11 @@ import {
   createArtifactEditorRoute,
   createLibraryAssetRoute,
 } from '@genfeedai/contracts/constants';
-import type { IActivity } from '@genfeedai/contracts/interfaces';
+import type {
+  IActivity,
+  IActivityPopulated,
+} from '@genfeedai/contracts/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
 
 /**
  * Background / media-ish tasks that show progress UI.
@@ -149,12 +153,94 @@ export function getResultTypeFromActivityKey(
     case 'video':
       return IngredientCategory.VIDEO;
     case 'image':
+    case 'avatar':
       return IngredientCategory.IMAGE;
     case 'music':
       return IngredientCategory.MUSIC;
     default:
       return undefined;
   }
+}
+
+export function getActivityAssetId(
+  activity: IActivity,
+  parsed: Record<string, unknown> | null = parseActivityValue(activity.value),
+): string | undefined {
+  if (typeof parsed?.resultId === 'string' && parsed.resultId) {
+    return parsed.resultId;
+  }
+  if (typeof parsed?.ingredientId === 'string' && parsed.ingredientId) {
+    return parsed.ingredientId;
+  }
+  return activity.entityId || undefined;
+}
+
+/**
+ * Preview URL for an activity thumbnail. Populated ingredients and explicit
+ * media URLs win; otherwise a CDN path is derived from the ingredient id so
+ * completed (and already-written processing) generations show the asset.
+ */
+export function getActivityMediaPreviewUrl(
+  activity: IActivity,
+  options: {
+    getPreviewUrl?: (
+      ingredient: Record<string, unknown>,
+      category: IngredientCategory,
+    ) => string | undefined;
+    parsedMediaUrl?: string;
+    resultId?: string;
+    resultType?: IngredientCategory;
+    status?: 'processing' | 'completed' | 'failed' | 'pending';
+  } = {},
+): string | undefined {
+  const resultType =
+    options.resultType ?? getResultTypeFromActivityKey(activity.key);
+  const populated = (activity as IActivityPopulated).ingredient;
+  if (populated && resultType && options.getPreviewUrl) {
+    const fromIngredient = options.getPreviewUrl(
+      populated as unknown as Record<string, unknown>,
+      resultType,
+    );
+    if (fromIngredient) {
+      return fromIngredient;
+    }
+  }
+
+  if (options.parsedMediaUrl) {
+    return options.parsedMediaUrl;
+  }
+
+  const parsed = parseActivityValue(activity.value);
+  if (typeof parsed?.url === 'string' && parsed.url) {
+    return parsed.url;
+  }
+  if (
+    activity.value &&
+    (activity.value.includes('/images/') || activity.value.includes('/videos/'))
+  ) {
+    return activity.value;
+  }
+
+  const status = options.status ?? getBackgroundTaskStatus(activity.key);
+  if (status === 'failed') {
+    return undefined;
+  }
+
+  const assetId = options.resultId || getActivityAssetId(activity, parsed);
+  if (!assetId || !resultType) {
+    return undefined;
+  }
+
+  if (
+    resultType === IngredientCategory.IMAGE ||
+    resultType === IngredientCategory.AVATAR
+  ) {
+    return `${EnvironmentService.ingredientsEndpoint}/images/${assetId}`;
+  }
+  if (resultType === IngredientCategory.VIDEO) {
+    return `${EnvironmentService.cdnUrl}/ingredients/thumbnails/${assetId}`;
+  }
+  return undefined;
 }
 
 function parseCreditAmount(value: string | undefined): number | null {

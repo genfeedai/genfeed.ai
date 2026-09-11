@@ -71,6 +71,19 @@ const GENERIC_TOOL_LABELS = new Set([
   'tool running',
 ]);
 
+const GENERATION_TOOL_NAMES = new Set([
+  'generate_content',
+  'generate_content_batch',
+  'generate_image',
+  'generate_video',
+  'generate_voice',
+  'ingest_source_media',
+  'prepare_generation',
+  'reframe_image',
+  'suggest_ingredient_alternatives',
+  'upscale_image',
+]);
+
 function getAssetType(event: AgentWorkEvent): ComposerTask['assetType'] {
   const generationType = event.parameters?.generationType;
   if (
@@ -80,11 +93,14 @@ function getAssetType(event: AgentWorkEvent): ComposerTask['assetType'] {
   ) {
     return generationType;
   }
-
-  if (event.toolName?.includes('image')) return 'image';
-  if (event.toolName?.includes('video')) return 'video';
-  if (event.toolName?.includes('voice')) return 'audio';
   return undefined;
+}
+
+function isGenerationWorkEvent(event: AgentWorkEvent): boolean {
+  if (getAssetType(event)) {
+    return true;
+  }
+  return Boolean(event.toolName && GENERATION_TOOL_NAMES.has(event.toolName));
 }
 
 function getWorkTaskLabel(event: AgentWorkEvent): string | null {
@@ -194,7 +210,7 @@ function buildPlanTasks(
   plan: AgentProposedPlan | null,
   isRunActive: boolean,
 ): ComposerTask[] {
-  if (!isRunActive || plan?.status !== 'approved') {
+  if (!isRunActive || !plan || plan.status === 'superseded') {
     return [];
   }
 
@@ -215,8 +231,12 @@ function buildPlanTasks(
 
   // Approved plans may arrive with every step still marked pending. While the
   // run is active, identify the next pending step as current without claiming
-  // that any unreported step has completed.
-  if (!tasks.some((task) => task.status === 'active')) {
+  // that any unreported step has completed. A plan still awaiting approval is
+  // not executing, so every step stays pending until the user approves it.
+  if (
+    plan.status === 'approved' &&
+    !tasks.some((task) => task.status === 'active')
+  ) {
     const nextPending = tasks.find((task) => task.status === 'pending');
     if (nextPending) {
       nextPending.status = 'active';
@@ -252,6 +272,34 @@ function buildWorkTasks(workEvents: readonly AgentWorkEvent[]): ComposerTask[] {
   return [...tasks.values()];
 }
 
+function compactGenericWorkTasks(tasks: ComposerTask[]): ComposerTask[] {
+  const active = tasks.filter((task) => task.status === 'active');
+  if (active.length > 0) {
+    return active;
+  }
+  return tasks.filter((task) => task.status === 'failed');
+}
+
+function buildComposerTasks(
+  workEvents: readonly AgentWorkEvent[],
+  plan: AgentProposedPlan | null,
+  isRunActive: boolean,
+): ComposerTask[] {
+  const generationTasks = buildWorkTasks(
+    workEvents.filter(isGenerationWorkEvent),
+  );
+  if (generationTasks.length > 0) {
+    return generationTasks;
+  }
+
+  const planTasks = buildPlanTasks(plan, isRunActive);
+  if (planTasks.length > 0) {
+    return planTasks;
+  }
+
+  return compactGenericWorkTasks(buildWorkTasks(workEvents));
+}
+
 export function hasRenderableComposerTasks({
   isRunActive,
   latestProposedPlan,
@@ -265,9 +313,7 @@ export function hasRenderableComposerTasks({
     return false;
   }
 
-  const workTasks = buildWorkTasks(workEvents);
-  const tasks =
-    workTasks.length > 0 ? workTasks : buildPlanTasks(latestProposedPlan, true);
+  const tasks = buildComposerTasks(workEvents, latestProposedPlan, true);
 
   return tasks.some(
     (task) => task.status !== 'completed' && task.status !== 'cancelled',
@@ -344,11 +390,10 @@ export function AgentComposerStatusStack({
   const progressEventLabel = meaningfulWorkEvent
     ? getWorkTaskLabel(meaningfulWorkEvent)
     : null;
-  const tasks = useMemo(() => {
-    const workTasks = buildWorkTasks(workEvents);
-    const planTasks = buildPlanTasks(latestProposedPlan, isRunActive);
-    return workTasks.length > 0 ? workTasks : planTasks;
-  }, [isRunActive, latestProposedPlan, workEvents]);
+  const tasks = useMemo(
+    () => buildComposerTasks(workEvents, latestProposedPlan, isRunActive),
+    [isRunActive, latestProposedPlan, workEvents],
+  );
   const previousTaskIds = useRef<string[]>([]);
   const addedTasks =
     previousTaskIds.current.length > 0

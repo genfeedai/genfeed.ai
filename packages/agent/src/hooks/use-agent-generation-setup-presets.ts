@@ -57,6 +57,9 @@ export function useAgentGenerationSetupPresets(
   }, []);
 
   const loadPresets = useCallback(() => {
+    if (type === 'text') {
+      return;
+    }
     if (!apiService || !scopeKey || loadedScopeRef.current === scopeKey) {
       return;
     }
@@ -95,7 +98,7 @@ export function useAgentGenerationSetupPresets(
 
   const savePreset = useCallback(
     async (label: string, values: GenerationSetupValues) => {
-      if (!apiService || !label.trim()) {
+      if (!apiService || !label.trim() || type === 'text') {
         return false;
       }
 

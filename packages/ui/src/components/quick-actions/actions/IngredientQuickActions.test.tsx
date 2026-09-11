@@ -165,6 +165,10 @@ describe('IngredientQuickActions', () => {
     expect(screen.getByTestId('masonry-compact-actions')).toHaveClass(
       'bg-background/90',
     );
+    const more = screen.getByRole('button', { name: 'More' });
+    expect(more).toHaveClass('size-7');
+    expect(more.className).not.toContain('ring-ring');
+    expect(more.className.split(/\s+/)).not.toContain('h-8');
   });
 
   it('uses reprompt as the compact masonry use-prompt action', () => {

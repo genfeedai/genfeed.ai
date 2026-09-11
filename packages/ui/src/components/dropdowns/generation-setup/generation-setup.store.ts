@@ -19,6 +19,7 @@ import type {
   GenerationSetup,
   GenerationSetupFieldKey,
   GenerationSetupRecommendation,
+  GenerationSetupType,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
@@ -41,7 +42,7 @@ const NEW_AGENT_THREAD_SCOPE = '__new__';
  */
 export function buildAgentGenerationSetupScope(
   threadId: string | null | undefined,
-  generationType: StudioGenerateType,
+  generationType: GenerationSetupType,
 ): string {
   const thread = threadId?.trim() || NEW_AGENT_THREAD_SCOPE;
   return `agent:${thread}:${generationType}`;

@@ -1,8 +1,14 @@
 'use client';
 
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
-import type { IActivity } from '@genfeedai/contracts/interfaces';
-import { getActivityTypeKind } from '@pages/activities/activities-list.utils';
+import type {
+  IActivity,
+  IActivityPopulated,
+} from '@genfeedai/contracts/interfaces';
+import {
+  getActivityMediaPreviewUrl,
+  getActivityTypeKind,
+} from '@pages/activities/activities-list.utils';
 import { Button } from '@ui/primitives/button';
 import {
   Coins,
@@ -17,6 +23,7 @@ import {
   Workflow,
 } from 'lucide-react';
 import Image from 'next/image';
+import { type ReactNode, useState } from 'react';
 
 type Props = {
   activity: IActivity;
@@ -32,153 +39,10 @@ type Props = {
   onViewIngredient: (ingredient: unknown) => void;
 };
 
-export default function ActivityThumbnailCell({
-  activity,
-  isBackgroundTask,
-  status,
-  resultType,
-  parsedMediaUrl,
-  resultId,
-  getPreviewUrl,
-  onViewIngredient,
-}: Props) {
-  const a = activity;
+/** Both inspect controls are icon-only, so the name lives on the button. */
+const INSPECT_LABEL = 'Inspect activity ingredient';
 
-  if (isBackgroundTask) {
-    if (resultId && status === 'completed') {
-      const ingredient = (a as unknown as Record<string, unknown>).ingredient;
-      if (ingredient && resultType) {
-        const previewUrl = getPreviewUrl(
-          ingredient as Record<string, unknown>,
-          resultType,
-        );
-        if (previewUrl) {
-          return (
-            <div className="group relative size-10 shrink-0 overflow-hidden bg-background">
-              <Image
-                src={previewUrl}
-                alt={a.label || 'Activity asset'}
-                fill
-                className="object-cover"
-                sizes="48px"
-                unoptimized
-              />
-              {resultType === IngredientCategory.VIDEO && (
-                <div
-                  className={
-                    'absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors' /* design-system-allow-content-color */
-                  }
-                >
-                  <Play
-                    className={
-                      'size-4 text-white group-hover:hidden' /* design-system-allow-content-color */
-                    }
-                  />
-                  <Eye
-                    className={
-                      'size-5 text-white hidden group-hover:block' /* design-system-allow-content-color */
-                    }
-                  />
-                </div>
-              )}
-              {resultType !== IngredientCategory.VIDEO && (
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewIngredient(ingredient);
-                  }}
-                  className={
-                    'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity' /* design-system-allow-content-color */
-                  }
-                >
-                  <Eye
-                    className={
-                      'size-5 text-white' /* design-system-allow-content-color */
-                    }
-                  />
-                </Button>
-              )}
-              {resultType === IngredientCategory.VIDEO && (
-                <Button
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewIngredient(ingredient);
-                  }}
-                  className="absolute inset-0"
-                />
-              )}
-            </div>
-          );
-        }
-      }
-    }
-
-    if (parsedMediaUrl && status === 'completed') {
-      return (
-        <div className="relative size-10 shrink-0 overflow-hidden bg-background">
-          <Image
-            src={parsedMediaUrl}
-            alt={a.label || 'Activity asset'}
-            fill
-            className="object-cover"
-            sizes="48px"
-            unoptimized
-          />
-        </div>
-      );
-    }
-  } else {
-    let assetInfo: { type?: string; url?: string } | null = null;
-    try {
-      if (a.value?.startsWith('{')) {
-        assetInfo = JSON.parse(a.value);
-      }
-    } catch {
-      if (
-        a.value &&
-        (a.value.includes('/images/') || a.value.includes('/videos/'))
-      ) {
-        const isVideo = a.value.includes('/videos/');
-        assetInfo = {
-          type: isVideo ? 'video' : 'image',
-          url: a.value,
-        };
-      }
-    }
-
-    if (assetInfo?.url) {
-      return (
-        <div className="relative size-10 shrink-0 overflow-hidden bg-background">
-          <Image
-            src={assetInfo.url}
-            alt="Generated asset"
-            fill
-            className="object-cover"
-            sizes="48px"
-            unoptimized
-          />
-          {assetInfo.type === 'video' && (
-            <div
-              className={
-                'absolute inset-0 flex items-center justify-center bg-black/20' /* design-system-allow-content-color */
-              }
-            >
-              <Play
-                className={
-                  'size-4 text-white' /* design-system-allow-content-color */
-                }
-              />
-            </div>
-          )}
-        </div>
-      );
-    }
-  }
-
+function ActivityTypeIcon({ activity }: { activity: IActivity }) {
   const TypeIcon = {
     article: FileText,
     audio: Music,
@@ -189,11 +53,139 @@ export default function ActivityThumbnailCell({
     social: Unplug,
     video: Video,
     workflow: Workflow,
-  }[getActivityTypeKind(a)];
+  }[getActivityTypeKind(activity)];
 
   return (
     <div className="flex size-10 shrink-0 items-center justify-center bg-background-secondary text-foreground/70">
       <TypeIcon aria-hidden="true" className="size-4" />
     </div>
+  );
+}
+
+function ActivityAssetPreview({
+  activity,
+  fallback,
+  ingredient,
+  onViewIngredient,
+  resultType,
+  src,
+}: {
+  activity: IActivity;
+  fallback: ReactNode;
+  ingredient: unknown;
+  onViewIngredient: (ingredient: unknown) => void;
+  resultType: IngredientCategory | undefined;
+  src: string;
+}) {
+  // Rows are keyed by activity id, so this stays mounted across a refetch that
+  // swaps in a new preview URL. Remember which URL failed rather than latching
+  // a boolean that would hide the replacement image too.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (failedSrc === src) {
+    return fallback;
+  }
+
+  const canInspect = Boolean(ingredient);
+  const isVideo = resultType === IngredientCategory.VIDEO;
+
+  return (
+    <div className="group relative size-10 shrink-0 overflow-hidden bg-background">
+      <Image
+        src={src}
+        alt={activity.label || 'Activity asset'}
+        fill
+        className="object-cover"
+        sizes="48px"
+        unoptimized
+        onError={() => setFailedSrc(src)}
+      />
+      {isVideo ? (
+        <div
+          className={
+            'absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors' /* design-system-allow-content-color */
+          }
+        >
+          <Play
+            className={
+              'size-4 text-white group-hover:hidden' /* design-system-allow-content-color */
+            }
+          />
+          {canInspect ? (
+            <Eye
+              className={
+                'size-5 text-white hidden group-hover:block' /* design-system-allow-content-color */
+              }
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {canInspect && !isVideo ? (
+        <Button
+          ariaLabel={INSPECT_LABEL}
+          withWrapper={false}
+          variant={ButtonVariant.UNSTYLED}
+          onClick={(event) => {
+            event.stopPropagation();
+            onViewIngredient(ingredient);
+          }}
+          className={
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary' /* design-system-allow-content-color */
+          }
+        >
+          <Eye
+            className={
+              'size-5 text-white' /* design-system-allow-content-color */
+            }
+          />
+        </Button>
+      ) : null}
+      {canInspect && isVideo ? (
+        <Button
+          ariaLabel={INSPECT_LABEL}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          onClick={(event) => {
+            event.stopPropagation();
+            onViewIngredient(ingredient);
+          }}
+          className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export default function ActivityThumbnailCell({
+  activity,
+  status,
+  resultType,
+  parsedMediaUrl,
+  resultId,
+  getPreviewUrl,
+  onViewIngredient,
+}: Props) {
+  const previewUrl = getActivityMediaPreviewUrl(activity, {
+    getPreviewUrl,
+    parsedMediaUrl,
+    resultId,
+    resultType,
+    status,
+  });
+  const ingredient = (activity as IActivityPopulated).ingredient;
+  const fallback = <ActivityTypeIcon activity={activity} />;
+
+  if (!previewUrl) {
+    return fallback;
+  }
+
+  return (
+    <ActivityAssetPreview
+      activity={activity}
+      fallback={fallback}
+      ingredient={ingredient}
+      onViewIngredient={onViewIngredient}
+      resultType={resultType}
+      src={previewUrl}
+    />
   );
 }

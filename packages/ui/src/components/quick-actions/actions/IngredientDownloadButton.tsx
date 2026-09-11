@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { downloadUrl } from '@genfeedai/helpers/media/download/download.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IngredientDownloadButtonProps } from '@genfeedai/props/content/quick-actions.props';
@@ -13,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
 import { ChevronDown, Download } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
@@ -57,9 +59,12 @@ export default function IngredientDownloadButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-            className="size-7 rounded-md"
+            className={cn(
+              QUICK_ACTION_TRIGGER_CLASS,
+              'size-7 p-0 text-muted-foreground hover:bg-hover hover:text-foreground',
+            )}
             ariaLabel={translate('options')}
             tooltip={translate('options')}
             tooltipPosition="top"

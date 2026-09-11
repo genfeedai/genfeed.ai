@@ -32,6 +32,7 @@ import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunSco
 import { getDefaultStudioResolution } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
   getStudioGenerateTypeConfig,
+  isStudioGenerateType,
   listStudioGenerateTypeConfigs,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
@@ -365,7 +366,13 @@ export default function StudioGenerateComposer({
               onResetField={handleResetField}
               onSavePreset={handleSavePreset}
               onSetField={handleSetField}
-              onTypeChange={onTypeChange}
+              onTypeChange={(nextType) => {
+                // The shared popover speaks GenerationSetupType; Studio only
+                // offers its own registry, so anything else is not a Studio pick.
+                if (isStudioGenerateType(nextType)) {
+                  onTypeChange(nextType);
+                }
+              }}
               presets={presets}
               reasons={reasons}
               scopeKey={scope}

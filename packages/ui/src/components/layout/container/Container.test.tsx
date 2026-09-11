@@ -11,6 +11,13 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => navigationState,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('Container', () => {
   beforeEach(() => {
     navigationState.hasCanonicalBreadcrumb = false;
@@ -107,6 +114,34 @@ describe('Container', () => {
       search.compareDocumentPosition(refresh) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).not.toBe(0);
+  });
+
+  it('keeps Help immediately left of chrome-only refresh actions', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <Container
+        label="Activities"
+        titleVisibility="sr-only"
+        help={{ title: 'About Activities', body: 'Recent actions.' }}
+        right={<button type="button">Refresh</button>}
+      >
+        content
+      </Container>,
+    );
+
+    const actions = screen.getByTestId('section-topbar-actions');
+    const help = screen.getByTestId('section-topbar-help');
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+    const headerActions = screen.getByTestId('container-header-actions');
+
+    expect(actions).toHaveClass('justify-end');
+    expect(actions.firstElementChild).toBe(help);
+    expect(headerActions).toContainElement(refresh);
+    expect(headerActions.className).not.toMatch(/\bflex-1\b/);
+    expect(
+      help.compareDocumentPosition(refresh) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('pins breadcrumb-only actions to the right via SectionTopbar module chrome', () => {

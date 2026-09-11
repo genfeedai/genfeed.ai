@@ -101,6 +101,17 @@ describe('NotificationInboxMenu', () => {
       screen.getByRole('button', { name: 'Mark all read' }),
     ).toBeInTheDocument();
   });
+  it('washes the full notification row on hover, including time and mark-read', async () => {
+    await open();
+    const row = screen.getByTestId('notification-inbox-row');
+    expect(row).toHaveClass('hover:bg-hover');
+    expect(row).toContainElement(screen.getByRole('link', { name: /My task/ }));
+    expect(row).toContainElement(
+      screen.getByRole('button', { name: 'Mark read' }),
+    );
+    expect(row).toHaveTextContent(/ago/);
+  });
+
   it('exposes unread state, source link, read actions, and older pages', async () => {
     const user = await open();
     expect(screen.getByText('Unread')).toBeInTheDocument();

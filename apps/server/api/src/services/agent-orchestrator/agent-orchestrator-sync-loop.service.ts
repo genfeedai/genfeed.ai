@@ -181,7 +181,7 @@ export class AgentOrchestratorSyncLoopService {
         total_tokens: 0,
       };
       // Credits accrue per completed round, not per turn: a turn that burns
-      // five tool rounds costs five rounds of inference and has to bill like it.
+      // N tool rounds costs N rounds of inference and has to bill like it.
 
       while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
         round++;

@@ -1,10 +1,17 @@
 import { ActivityKey, PageScope } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import ActivitiesList from '@pages/activities/activities-list';
+import { EnvironmentService } from '@services/core/environment.service';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AnchorHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('next/image', () => ({
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
+    <img {...props} alt={props.alt || ''} />
+  ),
+}));
 
 const mockRefresh = vi.fn(() => Promise.resolve());
 const mockMarkActivitiesAsRead = vi.fn(() => Promise.resolve());
@@ -170,6 +177,33 @@ describe('ActivitiesList', () => {
     expect(
       screen.getByRole('button', { name: /mark all read/i }),
     ).toBeDisabled();
+  });
+
+  it('shows the generated asset from the ingredient id', () => {
+    mockActivities = [
+      buildActivity({
+        entityId: 'ing-42',
+        entityModel: 'Ingredient',
+        id: 'generating-image',
+        key: ActivityKey.IMAGE_PROCESSING,
+        value: JSON.stringify({ ingredientId: 'ing-42', type: 'generation' }),
+      }),
+    ];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole('img', { name: /activity asset/i }),
+    ).toHaveAttribute(
+      'src',
+      `${EnvironmentService.ingredientsEndpoint}/images/ing-42`,
+    );
   });
 
   it('opens a failed generation from the row and the explicit link', () => {

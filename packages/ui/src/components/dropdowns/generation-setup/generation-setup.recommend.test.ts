@@ -80,13 +80,13 @@ describe('recommendGenerationSetup', () => {
       },
     );
 
-    it('defaults to image with a reason when no motion keyword is present', () => {
+    it('does not force image when the prompt is not a motion request', () => {
       const { reasons, values } = recommendGenerationSetup(
-        buildInput({ prompt: 'a still shot of a mountain' }),
+        buildInput({ prompt: 'build the brand context for this company' }),
       );
 
-      expect(values.type).toBe('image');
-      expect(reasons.type).toBeTruthy();
+      expect(values.type).toBeUndefined();
+      expect(reasons.type).toBeUndefined();
     });
   });
 
