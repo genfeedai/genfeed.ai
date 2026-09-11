@@ -314,7 +314,6 @@ export interface IEnvConfig {
 
   // === Webhooks ===
   VERCEL_WEBHOOK_SECRET?: string;
-  CHROMATIC_WEBHOOK_SECRET?: string;
 
   // === Chrome Extension ===
   CHROME_EXTENSION_ID?: string;

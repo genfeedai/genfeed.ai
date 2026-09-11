@@ -205,12 +205,6 @@ export class NotificationHandlerService implements OnModuleInit {
         }
         break;
 
-      case 'chromatic_notification':
-        if ('embed' in payload) {
-          await this.discordService.sendChromaticNotification(payload.embed);
-        }
-        break;
-
       case 'user_notification':
         if ('id' in payload) {
           await this.discordService.sendUserCreatedNotification(payload);

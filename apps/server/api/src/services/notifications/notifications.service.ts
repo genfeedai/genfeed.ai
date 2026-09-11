@@ -466,14 +466,6 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  sendChromaticNotification(data: { embed: IDiscordEmbed }): Promise<void> {
-    return this.sendNotification({
-      action: 'chromatic_notification',
-      payload: data,
-      type: 'discord',
-    });
-  }
-
   sendUserCreatedNotification(user: IUserCreatedPayload): Promise<void> {
     return this.sendNotification({
       action: 'user_notification',

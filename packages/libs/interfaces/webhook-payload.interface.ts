@@ -158,33 +158,3 @@ export interface VercelWebhookPayload extends WebhookPayload {
   type?: string;
   deployment?: unknown;
 }
-
-/**
- * Chromatic webhook event payload
- * @see https://www.chromatic.com/docs/custom-webhooks
- */
-export interface ChromaticWebhookPayload extends WebhookPayload {
-  event?: string;
-  build?: {
-    id?: string;
-    number?: number;
-    status?: string;
-    url?: string;
-    webUrl?: string;
-    changeCount?: number;
-    errorCount?: number;
-    testCount?: number;
-    storybookUrl?: string;
-  };
-  project?: {
-    id?: string;
-    name?: string;
-  };
-  commit?: {
-    sha?: string;
-    message?: string;
-    author?: string;
-  };
-  branch?: string;
-  timestamp?: string;
-}

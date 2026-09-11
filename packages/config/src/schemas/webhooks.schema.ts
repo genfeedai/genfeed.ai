@@ -4,7 +4,6 @@ import Joi from 'joi';
  * Webhook secrets for external services
  */
 export const webhooksSchema = {
-  CHROMATIC_WEBHOOK_SECRET: Joi.string().optional().allow(''),
   CHROME_EXTENSION_ID: Joi.string()
     .length(32)
     .optional()
