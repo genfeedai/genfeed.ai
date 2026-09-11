@@ -654,27 +654,72 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('hides the org switcher on the flat personal settings route (#4659)', () => {
-    mockPathname.value = '/settings/personal';
+  it('hides the org switcher on every flat personal settings page (#4659)', () => {
     mockRouteParams.brandSlug = undefined;
     mockRouteParams.orgSlug = undefined;
 
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
+    for (const pathname of [
+      '/settings',
+      '/settings/personal',
+      '/settings/notifications',
+      '/settings/progress',
+      '/settings/help',
+      '/settings/about',
+    ]) {
+      mockPathname.value = pathname;
+      appSidebarSpy.mockClear();
 
-    expect(
-      screen.queryByTestId('organization-switcher'),
-    ).not.toBeInTheDocument();
-    expect(appSidebarSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ orgSwitcherSlot: undefined }),
-    );
+      const { unmount } = render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(
+        screen.queryByTestId('organization-switcher'),
+      ).not.toBeInTheDocument();
+      expect(appSidebarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgSwitcherSlot: undefined }),
+      );
+      unmount();
+    }
   });
 
-  it('keeps the org switcher on the org-scoped personal settings route (#4659)', () => {
-    mockPathname.value = '/acme/~/settings/personal';
+  it('hides the org switcher on every org-scoped copy of a personal settings page (#4659 review)', () => {
+    // Before the fix, scope was derived from route params alone, so any
+    // org-scoped page (including these personal-account copies) counted as
+    // ORGANIZATION and kept the org switcher — the PRD and ADR both say
+    // neither switcher renders on a personal-account page, org-scoped or not.
+    mockRouteParams.brandSlug = undefined;
+    mockRouteParams.orgSlug = 'acme';
+
+    for (const pathname of [
+      '/acme/~/settings/personal',
+      '/acme/~/settings/notifications',
+      '/acme/~/settings/progress',
+      '/acme/~/settings/help',
+    ]) {
+      mockPathname.value = pathname;
+      appSidebarSpy.mockClear();
+
+      const { unmount } = render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(
+        screen.queryByTestId('organization-switcher'),
+      ).not.toBeInTheDocument();
+      expect(appSidebarSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ orgSwitcherSlot: undefined }),
+      );
+      unmount();
+    }
+  });
+
+  it('keeps the org switcher on actual organization settings pages (#4659)', () => {
+    mockPathname.value = '/acme/~/settings/general';
     mockRouteParams.brandSlug = undefined;
     mockRouteParams.orgSlug = 'acme';
 

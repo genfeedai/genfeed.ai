@@ -1,6 +1,6 @@
 'use client';
 
-import { resolveSettingsScope } from '@app-components/app-protected-layout.settings-scope';
+import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -8,11 +8,7 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import {
-  ButtonSize,
-  ButtonVariant,
-  SettingsSurface,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_DISPLAY_LABELS,
   createOrganizationAppRoute,
@@ -27,12 +23,7 @@ import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
@@ -128,12 +119,12 @@ function AppProtectedTopbarContent({
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
-  // Route params (never the session-backfilled useOrgUrl slugs below) decide
-  // whether this is a personal-scope settings route, so the brand switcher
-  // stays hidden on flat /settings/* pages even when a brand is selected in
-  // session (#4659) — matches the sidebar's org-switcher gating.
-  const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
-  const settingsScope = resolveSettingsScope(routeParams);
+  // The page itself (never the session-backfilled useOrgUrl slugs below)
+  // decides whether this is a personal-account settings page, flat or as an
+  // org-scoped copy, so the brand switcher stays hidden there even when a
+  // brand is selected in session (#4659) — matches the sidebar's
+  // org-switcher gating.
+  const isOnPersonalSettingsPage = isPersonalSettingsPage(pathname);
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
@@ -276,7 +267,7 @@ function AppProtectedTopbarContent({
           {!isAdminChrome &&
           brands.length > 0 &&
           !isOrganizationSettingsRoute &&
-          settingsScope !== SettingsSurface.PERSONAL ? (
+          !isOnPersonalSettingsPage ? (
             <div className="w-40 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"

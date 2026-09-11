@@ -14,12 +14,6 @@ const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
   value: '/acme/brand/workspace',
 }));
-// Matches the default '/acme/brand/workspace' pathname above — route params
-// (never the useOrgUrl mock below) drive settingsScope in the component.
-const mockRouteParams = vi.hoisted(() => ({
-  brandSlug: 'brand' as string | undefined,
-  orgSlug: 'acme' as string | undefined,
-}));
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
@@ -240,7 +234,6 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useParams: () => mockRouteParams,
   usePathname: () => mockPathname.value,
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
@@ -254,8 +247,6 @@ describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
-    mockRouteParams.brandSlug = 'brand';
-    mockRouteParams.orgSlug = 'acme';
     mockAccessState.isSuperAdmin = false;
     workspaceInspectorState.value = null;
     appSwitcherSpy.mockClear();
@@ -350,28 +341,58 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
-  it('hides the brand switcher on the flat personal settings route even with a brand selected in session', () => {
-    // Flat /settings/* routes carry no orgSlug/brandSlug route param — the
+  it('hides the brand switcher on every flat personal settings page even with a brand selected in session', () => {
+    // Flat /settings/* pages carry no orgSlug/brandSlug route param — the
     // mocked useOrgUrl above still backfills brandSlug: 'brand' from the
     // session's last-selected brand, which is exactly the bug (#4659): the
-    // switcher must key off route params, not that backfill.
-    mockPathname.value = '/settings/personal';
-    mockRouteParams.orgSlug = undefined;
-    mockRouteParams.brandSlug = undefined;
+    // switcher must key off the page itself, not that backfill.
+    for (const pathname of [
+      '/settings',
+      '/settings/personal',
+      '/settings/notifications',
+      '/settings/progress',
+      '/settings/help',
+      '/settings/about',
+    ]) {
+      mockPathname.value = pathname;
 
-    render(<AppProtectedTopbar currentApp="workspace" />);
+      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
 
-    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
-  it('hides the brand switcher on the org-scoped personal settings route', () => {
-    mockPathname.value = '/acme/~/settings/personal';
-    mockRouteParams.orgSlug = 'acme';
-    mockRouteParams.brandSlug = undefined;
+  it('hides the brand switcher on every org-scoped copy of a personal settings page', () => {
+    for (const pathname of [
+      '/acme/~/settings/personal',
+      '/acme/~/settings/notifications',
+      '/acme/~/settings/progress',
+      '/acme/~/settings/help',
+    ]) {
+      mockPathname.value = pathname;
 
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+      const { unmount } = render(
+        <AppProtectedTopbar orgSlug="acme" currentApp="workspace" />,
+      );
 
-    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('does not hide the brand switcher on non-settings routes with no org/brand route param (#4659 review)', () => {
+    // Before the fix, a route-param-derived "settings scope" evaluated
+    // PERSONAL for ANY route with no orgSlug/brandSlug param — including `/`
+    // and `/connect` — and wrongly hid the brand switcher there too.
+    for (const pathname of ['/', '/connect']) {
+      mockPathname.value = pathname;
+
+      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
+
+      expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('passes an explicit brand route through to the app switcher', () => {

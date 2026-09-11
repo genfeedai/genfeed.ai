@@ -50,7 +50,10 @@ import {
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 
-import { resolveSettingsScope } from './app-protected-layout.settings-scope';
+import {
+  isPersonalSettingsPage as computeIsPersonalSettingsPage,
+  resolveSettingsScope,
+} from './app-protected-layout.settings-scope';
 
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
   'executions',
@@ -378,6 +381,11 @@ export function useAppProtectedLayout(
   // route → org pages, otherwise personal pages. Scope is derived from the route
   // params (brandSlug/orgSlug), not selected-brand context.
   const settingsScope: SettingsScope = resolveSettingsScope(routeParams);
+  // Personal-account settings PAGE (Personal/Notifications/Progress/Help/
+  // About), flat or as an org-scoped copy — distinct from `settingsScope`
+  // above, which stays ORGANIZATION for the org-scoped copy on purpose (it
+  // drives the sidebar menu, not switcher visibility). See the helper's doc.
+  const isPersonalSettingsPage = computeIsPersonalSettingsPage(rawPathname);
 
   const settingsMenuItems = useMemo(
     () =>
@@ -436,6 +444,7 @@ export function useAppProtectedLayout(
     orgSlug,
     brandSlug,
     settingsScope,
+    isPersonalSettingsPage,
     // agent
     agentApiService,
     threads,
