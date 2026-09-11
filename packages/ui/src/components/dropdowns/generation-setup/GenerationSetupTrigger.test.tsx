@@ -72,6 +72,40 @@ describe('GenerationSetupTrigger', () => {
     expect(button).toHaveClass('border-primary/30', 'bg-primary/5');
   });
 
+  it('names the type once the surface has committed to it, even without a type pick', () => {
+    render(
+      <GenerationSetupTrigger
+        isOpen={false}
+        isTypeCommitted
+        models={[
+          createModel({
+            key: 'google/nano-banana-pro',
+            label: 'Nano Banana Pro',
+          }),
+        ]}
+        setup={createSetup({
+          sources: { modelKey: 'user' },
+          values: {
+            aspectRatio: '1:1',
+            brandingMode: 'off',
+            isPromptEnhanceEnabled: false,
+            modelKey: 'google/nano-banana-pro',
+            outputs: 1,
+            prioritize: RouterPriority.BALANCED,
+            type: 'image',
+          },
+        })}
+        typeOptions={typeOptions}
+      />,
+    );
+
+    const button = screen.getByRole('button');
+    expect(
+      within(button).getByText('Image · Nano Banana Pro · 1:1'),
+    ).toBeInTheDocument();
+    expect(within(button).queryByText('Agent')).toBeNull();
+  });
+
   it('labels the Studio Auto sentinel as Auto instead of the raw token', () => {
     render(
       <GenerationSetupTrigger

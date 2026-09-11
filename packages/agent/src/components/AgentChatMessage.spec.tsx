@@ -331,6 +331,18 @@ describe('AgentChatMessage', () => {
     expect(surface?.parentElement).toHaveClass('justify-start');
   });
 
+  it('keeps the user timestamp in document flow instead of pinning it with the prompt', () => {
+    const { container } = render(
+      <AgentChatMessage message={buildMessage('user', 'Pinned prompt')} />,
+    );
+
+    const sticky = container.querySelector('.sticky');
+    const time = container.querySelector('time');
+    expect(sticky).toBeTruthy();
+    expect(time).toBeTruthy();
+    expect(sticky?.contains(time)).toBe(false);
+  });
+
   it('keeps user prompt actions below the card and reveals them on hover or focus', () => {
     const { container } = render(
       <AgentChatMessage

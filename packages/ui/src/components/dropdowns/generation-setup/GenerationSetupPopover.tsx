@@ -41,6 +41,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   favoriteModelKeys,
   isDisabled = false,
   isPresetsLoading,
+  isTypeCommitted,
   lookOptions,
   models,
   onApplyPreset,
@@ -97,6 +98,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
           hasAspectRatio={capabilities.hasAspectRatio}
           isDisabled={isDisabled}
           isOpen={isOpen}
+          isTypeCommitted={isTypeCommitted}
           models={models}
           ref={buttonRef}
           setup={setup}

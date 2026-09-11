@@ -94,7 +94,8 @@ export function AgentChatMessageFooter({
     <div
       className={cn(
         'flex items-center justify-between gap-2 text-2xs',
-        isUser ? 'mt-1' : 'mt-2.5',
+        // User footer sits after the sticky prompt's own bottom padding.
+        !isUser && 'mt-2.5',
       )}
     >
       {isUser ? (
