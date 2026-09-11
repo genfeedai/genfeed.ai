@@ -212,6 +212,12 @@ describe('VideoGenerationService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as unknown as LoggerService;
+    // None of these fixtures turn Brand voice on, so the brief-path brand
+    // resolver is never invoked; the stub exists only to satisfy DI.
+    const templatesService = {
+      getPromptByKey: vi.fn().mockResolvedValue(null),
+      renderPrompt: vi.fn(),
+    };
 
     const preparationService = new VideoGenerationPreparationService(
       assetsService as never,
@@ -226,6 +232,7 @@ describe('VideoGenerationService', () => {
       promptsService as never,
       routerService as never,
       sharedService as never,
+      templatesService as never,
     );
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,

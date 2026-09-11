@@ -69,6 +69,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -512,6 +513,13 @@ describe('ImagesOperationsController', () => {
           useValue: {
             create: vi.fn().mockResolvedValue(mockTag),
             findOne: vi.fn().mockResolvedValue(mockTag),
+          },
+        },
+        {
+          provide: TemplatesService,
+          useValue: {
+            getPromptByKey: vi.fn().mockResolvedValue(null),
+            renderPrompt: vi.fn(),
           },
         },
         {
