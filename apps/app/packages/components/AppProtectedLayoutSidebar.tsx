@@ -1,6 +1,5 @@
 'use client';
 
-import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { SettingsSurface } from '@genfeedai/contracts';
@@ -268,11 +267,9 @@ export default function AppProtectedLayoutSidebar({
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
         renderTopSlot={
-          isSettingsRoute
-            ? () => <SettingsSearch scope={settingsScope} />
-            : isConversationRoute
-              ? renderConversationQuickActions
-              : renderQuickActions
+          isConversationRoute
+            ? renderConversationQuickActions
+            : renderQuickActions
         }
       />
     );

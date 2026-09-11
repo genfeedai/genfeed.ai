@@ -159,12 +159,6 @@
     "workspace": "Workspace"
   },
   "settings": {
-    "search": {
-      "empty": "No settings found",
-      "hint": "\u2318K",
-      "label": "Search settings",
-      "placeholder": "Search settings\u2026"
-    },
     "characters": {
       "actions": {
         "approve": "Approve",

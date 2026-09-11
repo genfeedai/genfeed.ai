@@ -54,6 +54,7 @@ import {
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
 import ImpersonationBanner from './impersonation-banner';
+import { useSettingsCommandsRegistration } from './settings-search/use-settings-commands-registration';
 import { usePageHelp } from './use-page-help';
 import {
   isProtectedEditorCanvasRoute,
@@ -113,6 +114,12 @@ function AgentThreadCommandsBridge({
     onNavigate,
     threads,
   });
+
+  return null;
+}
+
+function SettingsCommandsBridge() {
+  useSettingsCommandsRegistration();
 
   return null;
 }
@@ -559,6 +566,9 @@ function AppLayoutWithDynamicMenu({
           />
         )}
         <CommandPaletteInitializer />
+        {isFocusedOnboardingRoute || isAdminRoute ? null : (
+          <SettingsCommandsBridge />
+        )}
         {guardedMainLayout}
         <LazyCommandPalette />
       </CommandPaletteProvider>

@@ -314,12 +314,12 @@ export function createContentCommands(
 }
 
 /**
- * Settings Commands (consolidated in app.genfeed.ai)
+ * Personal Settings Command
+ *
+ * Needs no org/brand context — always registered (see `createDefaultCommands`).
  */
-export function createSettingsCommands(orgSlug: string): ICommand[] {
+export function createPersonalSettingsCommands(): ICommand[] {
   const appBase = EnvironmentService.apps.app;
-  const orgPath = `${appBase}/${orgSlug}/~`;
-  const isBillingEnabled = hasOrganizationBillingHint();
 
   return [
     {
@@ -334,6 +334,20 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
       label: 'Personal Settings',
       priority: 6,
     },
+  ];
+}
+
+/**
+ * Organization Settings Commands (consolidated in app.genfeed.ai)
+ *
+ * Only needs an org slug — registered whenever one is known, brand or not.
+ */
+export function createOrgSettingsCommands(orgSlug: string): ICommand[] {
+  const appBase = EnvironmentService.apps.app;
+  const orgPath = `${appBase}/${orgSlug}/~`;
+  const isBillingEnabled = hasOrganizationBillingHint();
+
+  return [
     {
       action: () => {
         navigate(`${orgPath}/settings`);
@@ -382,12 +396,11 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
 }
 
 /**
- * Help Commands
+ * General Help Commands
+ *
+ * Needs no org/brand context — always registered (see `createDefaultCommands`).
  */
-export function createHelpCommands(orgSlug: string): ICommand[] {
-  const appBase = EnvironmentService.apps.app;
-  const orgPath = `${appBase}/${orgSlug}/~`;
-
+export function createGeneralHelpCommands(): ICommand[] {
   return [
     {
       action: () => {
@@ -419,6 +432,19 @@ export function createHelpCommands(orgSlug: string): ICommand[] {
       label: 'Contact Support',
       priority: 5,
     },
+  ];
+}
+
+/**
+ * Organization-scoped Help Commands
+ *
+ * Only needs an org slug — registered whenever one is known, brand or not.
+ */
+export function createOrgHelpCommands(orgSlug: string): ICommand[] {
+  const appBase = EnvironmentService.apps.app;
+  const orgPath = `${appBase}/${orgSlug}/~`;
+
+  return [
     {
       action: () => {
         navigate(`${orgPath}/settings/help`);
@@ -466,33 +492,47 @@ export const quickActionCommands: ICommand[] = [
 ];
 
 /**
- * Build all default commands for a given org/brand context.
+ * Build the default commands for the current session, tiered by how much
+ * context is actually known — never gated on both an org AND a brand slug
+ * being present simultaneously (that hid every command, including the
+ * context-free ones, on any route missing a brand segment — #4660):
+ * - always: quick actions, general help, personal settings
+ * - org known: organization settings, org-scoped help
+ * - org + brand known: navigation, generation, content
+ *
+ * `orgSlug`/`brandSlug` are '' when not yet known — both tiers below simply
+ * don't register rather than requiring the caller to omit them.
  */
-export function createDefaultCommands(
-  orgSlug: string,
-  brandSlug: string,
-): ICommand[] {
+export function createDefaultCommands({
+  orgSlug,
+  brandSlug,
+}: CommandsOrgContext): ICommand[] {
   return [
-    ...createNavigationCommands(orgSlug, brandSlug),
-    ...createGenerationCommands(orgSlug, brandSlug),
-    ...createContentCommands(orgSlug, brandSlug),
-    ...createSettingsCommands(orgSlug),
-    ...createHelpCommands(orgSlug),
     ...quickActionCommands,
+    ...createGeneralHelpCommands(),
+    ...createPersonalSettingsCommands(),
+    ...(orgSlug
+      ? [
+          ...createOrgSettingsCommands(orgSlug),
+          ...createOrgHelpCommands(orgSlug),
+        ]
+      : []),
+    ...(orgSlug && brandSlug
+      ? [
+          ...createNavigationCommands(orgSlug, brandSlug),
+          ...createGenerationCommands(orgSlug, brandSlug),
+          ...createContentCommands(orgSlug, brandSlug),
+        ]
+      : []),
   ];
 }
 
 /**
- * Register all default commands for a given org/brand context.
+ * Register the default commands for the current session context.
  *
  * Returns the ids that were actually registered so callers can
  * unregister them on unmount (see useDefaultCommandsRegistration).
  */
-export function registerDefaultCommands(
-  orgSlug: string,
-  brandSlug: string,
-): string[] {
-  return CommandPaletteService.registerCommands(
-    createDefaultCommands(orgSlug, brandSlug),
-  );
+export function registerDefaultCommands(context: CommandsOrgContext): string[] {
+  return CommandPaletteService.registerCommands(createDefaultCommands(context));
 }
