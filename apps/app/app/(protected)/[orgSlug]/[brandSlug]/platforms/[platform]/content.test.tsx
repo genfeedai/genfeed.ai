@@ -289,11 +289,11 @@ describe('PlatformHomePage', () => {
     render(<PlatformHomePage platform={Platform.INSTAGRAM} />);
 
     // The primary card must read from the genuinely connected credential
-    // (Moonrise) even though the lapsed one ("Broken Account") is listed
-    // first in the array.
+    // (@moonrise — primaryAccount prefers handle over name) even though the
+    // lapsed one ("Broken Account") is listed first in the array.
     expect(
       screen.getByText(
-        'Moonrise is healthy. Reconnect from Social settings if publishing stalls.',
+        '@moonrise is healthy. Reconnect from Social settings if publishing stalls.',
       ),
     ).toBeInTheDocument();
   });
