@@ -8,9 +8,11 @@ const mockSelectEdge = vi.fn();
 const mockToggleEdgePause = vi.fn();
 const mockRemoveEdge = vi.fn();
 
+const uiState: { selectedEdgeId: string | null } = { selectedEdgeId: null };
+
 vi.mock('../stores/uiStore', () => ({
   useUIStore: (selector: (state: unknown) => unknown) =>
-    selector({ selectEdge: mockSelectEdge }),
+    selector({ selectEdge: mockSelectEdge, ...uiState }),
 }));
 
 vi.mock('../stores/workflow', () => ({
@@ -19,6 +21,18 @@ vi.mock('../stores/workflow', () => ({
       removeEdge: mockRemoveEdge,
       toggleEdgePause: mockToggleEdgePause,
     }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      deleteEdge: 'Delete edge',
+      pauseEdge: 'Pause edge',
+      resumeEdge: 'Resume edge',
+    };
+
+    return messages[key] ?? key;
+  },
 }));
 
 vi.mock('@genfeedai/ui/primitives/button', () => ({
@@ -55,11 +69,27 @@ vi.mock('@xyflow/react', async (importOriginal) => {
         style={props.style}
       />
     ),
-    // EdgeLabelRenderer is a portal into React Flow's own DOM node in the
-    // real library; render children in place so we can assert against them.
-    EdgeLabelRenderer: ({ children }: { children: ReactNode }) => (
-      <>{children}</>
-    ),
+    // The real EdgeToolbar needs a live ReactFlow store (useStore/useStoreApi)
+    // to resolve the edge and current zoom, which this unit test doesn't
+    // stand up. Mirror its own `isVisible` gate — including returning null
+    // when hidden — so EditableEdge's own visibility logic is what's
+    // actually exercised, not the library's internals.
+    EdgeToolbar: ({
+      children,
+      isVisible,
+      className,
+      onClick,
+    }: {
+      children: ReactNode;
+      isVisible?: boolean;
+      className?: string;
+      onClick?: (e: React.MouseEvent) => void;
+    }) =>
+      isVisible ? (
+        <div data-testid="edge-toolbar" className={className} onClick={onClick}>
+          {children}
+        </div>
+      ) : null,
   };
 });
 
@@ -84,6 +114,7 @@ const baseProps = {
 describe('EditableEdge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    uiState.selectedEdgeId = null;
   });
 
   it('gives BaseEdge a real interaction width for mid-edge hit testing', () => {
@@ -102,14 +133,27 @@ describe('EditableEdge', () => {
     expect(screen.queryByTitle('Pause edge')).not.toBeInTheDocument();
   });
 
-  it('renders a delete/pause toolbar at the edge midpoint when selected', () => {
+  it('does not render a toolbar for a box-selected edge that is not the single selected edge', () => {
+    // xyflow marks every edge between box-selected nodes `selected`, but the
+    // user only explicitly clicked a different edge (or none at all).
+    uiState.selectedEdgeId = 'some-other-edge';
     render(<EditableEdge {...baseProps} selected={true} />);
 
+    expect(screen.queryByTestId('edge-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Delete edge')).not.toBeInTheDocument();
+  });
+
+  it('renders a delete/pause toolbar at the edge midpoint when singly selected', () => {
+    uiState.selectedEdgeId = 'edge-1';
+    render(<EditableEdge {...baseProps} selected={true} />);
+
+    expect(screen.getByTestId('edge-toolbar')).toBeInTheDocument();
     expect(screen.getByTitle('Delete edge')).toBeInTheDocument();
     expect(screen.getByTitle('Pause edge')).toBeInTheDocument();
   });
 
   it('deletes the edge and clears selection without opening node config', () => {
+    uiState.selectedEdgeId = 'edge-1';
     render(<EditableEdge {...baseProps} selected={true} />);
 
     fireEvent.click(screen.getByTitle('Delete edge'));
@@ -119,6 +163,7 @@ describe('EditableEdge', () => {
   });
 
   it('toggles pause on the selected edge', () => {
+    uiState.selectedEdgeId = 'edge-1';
     render(<EditableEdge {...baseProps} selected={true} />);
 
     fireEvent.click(screen.getByTitle('Pause edge'));
@@ -127,6 +172,7 @@ describe('EditableEdge', () => {
   });
 
   it('shows a resume affordance once the edge is paused', () => {
+    uiState.selectedEdgeId = 'edge-1';
     render(
       <EditableEdge {...baseProps} data={{ hasPause: true }} selected={true} />,
     );

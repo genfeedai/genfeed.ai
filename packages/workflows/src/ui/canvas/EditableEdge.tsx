@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { HandleType } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import type { EdgeProps } from '@xyflow/react';
-import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
+import { BaseEdge, EdgeToolbar, getBezierPath } from '@xyflow/react';
 import { Pause, Play, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
@@ -24,7 +24,7 @@ const EMPTY_EDGE_STYLE: NonNullable<EdgeProps['style']> = {};
 
 /** Hit-test width (px) around the visible edge path, handled by BaseEdge itself. */
 const EDGE_INTERACTION_WIDTH = 20;
-/** Gap (px) between the edge midpoint and the bottom of the toolbar above it. */
+/** Gap (px, in flow coordinates) between the edge midpoint and the toolbar above it. */
 const TOOLBAR_GAP = 12;
 
 interface EdgeMidpointToolbarProps {
@@ -41,6 +41,13 @@ function EdgeMidpointToolbar({
   labelY,
 }: EdgeMidpointToolbarProps) {
   const translate = useTranslations('pages.workflows.edgeToolbar');
+  // A box-selection can mark many edges `selected` at once (xyflow's own
+  // per-edge flag); only the edge the user explicitly clicked shows a
+  // toolbar, so selecting a cluster of nodes doesn't scatter toolbars
+  // across the canvas.
+  const isSingleSelected = useUIStore(
+    (state) => state.selectedEdgeId === edgeId,
+  );
   const selectEdge = useUIStore((state) => state.selectEdge);
   const toggleEdgePause = useWorkflowStore((state) => state.toggleEdgePause);
   const removeEdge = useWorkflowStore((state) => state.removeEdge);
@@ -63,41 +70,40 @@ function EdgeMidpointToolbar({
   );
 
   return (
-    <EdgeLabelRenderer>
-      <div
-        className="nodrag nopan absolute z-30 flex items-center gap-1 bg-background shadow-dropdown px-1.5 py-1"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          pointerEvents: 'all',
-          transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - TOOLBAR_GAP}px)`,
-        }}
+    <EdgeToolbar
+      edgeId={edgeId}
+      x={labelX}
+      y={labelY - TOOLBAR_GAP}
+      isVisible={isSingleSelected}
+      alignY="bottom"
+      className="nodrag nopan z-30 flex items-center gap-1 bg-background shadow-dropdown px-1.5 py-1"
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+    >
+      <Button
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
+        onClick={handleTogglePause}
+        title={hasPause ? translate('resumeEdge') : translate('pauseEdge')}
       >
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={handleTogglePause}
-          title={hasPause ? translate('resumeEdge') : translate('pauseEdge')}
-        >
-          {hasPause ? (
-            <Play className="size-3.5" />
-          ) : (
-            <Pause className="size-3.5" />
-          )}
-        </Button>
-        <div className="h-4 w-px bg-border" />
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          onClick={handleDelete}
-          title={translate('deleteEdge')}
-          className="hover:bg-destructive/10 hover:text-destructive"
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
-      </div>
-    </EdgeLabelRenderer>
+        {hasPause ? (
+          <Play className="size-3.5" />
+        ) : (
+          <Pause className="size-3.5" />
+        )}
+      </Button>
+      <div className="h-4 w-px bg-border" />
+      <Button
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
+        onClick={handleDelete}
+        title={translate('deleteEdge')}
+        className="hover:bg-destructive/10 hover:text-destructive"
+      >
+        <Trash2 className="size-3.5" />
+      </Button>
+    </EdgeToolbar>
   );
 }
 
@@ -188,8 +194,12 @@ function EditableEdgeComponent({
         </foreignObject>
       )}
 
-      {/* Delete/disconnect toolbar, rendered via the edge label renderer so it
-          tracks this edge's own midpoint under pan/zoom. */}
+      {/* Delete/disconnect toolbar. Mounted whenever xyflow marks this edge
+          `selected` (including box-selection), but EdgeMidpointToolbar only
+          actually shows it for the single edge the user explicitly clicked
+          (see isSingleSelected). Uses xyflow's own EdgeToolbar, which tracks
+          the edge's midpoint under pan/zoom and counter-scales its content
+          so it stays a fixed size regardless of zoom level. */}
       {selected && (
         <EdgeMidpointToolbar
           edgeId={id}
