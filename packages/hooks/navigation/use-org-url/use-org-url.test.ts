@@ -142,4 +142,26 @@ describe('useOrgUrl', () => {
       '/demo/FUDNEWS/agent/new',
     );
   });
+
+  it('keeps stable href/activeHref/orgHref identities across an unrelated re-render', () => {
+    const { rerender, result } = renderHook(() => useOrgUrl());
+
+    const first = {
+      activeHref: result.current.activeHref,
+      href: result.current.href,
+      orgHref: result.current.orgHref,
+    };
+
+    // Same inputs, new render — mirrors a sibling state update (e.g. brand
+    // context settling) that re-renders this component without changing
+    // orgSlug/brandSlug. A consumer that depends on these callbacks in a
+    // useEffect deps array must not see a new identity here, or it aborts
+    // any in-flight request tied to that effect (see AgentWorkspaceLayoutClient's
+    // returning-bootstrap effect).
+    rerender();
+
+    expect(result.current.activeHref).toBe(first.activeHref);
+    expect(result.current.href).toBe(first.href);
+    expect(result.current.orgHref).toBe(first.orgHref);
+  });
 });
