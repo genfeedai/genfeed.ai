@@ -44,8 +44,10 @@ describe('buildImageGenerationBriefPrompt brandContext (#4676)', () => {
       supportsNegativePrompt: false,
     });
 
+    // `joinGenerationBriefPromptParts` strips each part's trailing period
+    // before rejoining with '. ' — expected, existing behavior.
     expect(result.prompt).toBe(
-      'a sunset over the ocean. Warm, confident, editorial voice.',
+      'a sunset over the ocean. Warm, confident, editorial voice',
     );
   });
 

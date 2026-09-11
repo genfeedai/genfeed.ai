@@ -56,8 +56,10 @@ describe('compileRemainingVideoGenerationBrief', () => {
       modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
     });
 
+    // `joinGenerationBriefPromptParts` strips each part's trailing period
+    // before rejoining with '. ' — expected, existing behavior.
     expect(result.dispatch.prompt).toBe(
-      'waves hitting a cliff at dusk. Warm, confident, editorial voice.',
+      'waves hitting a cliff at dusk. Warm, confident, editorial voice',
     );
     expect(result.evidence.appliedFields).toContain('intent.brandContext');
   });

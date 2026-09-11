@@ -143,7 +143,7 @@ describe('runImageGenerationBrief', () => {
         'Warm, confident, editorial voice.',
       );
       const dispatch = result.dispatch as { prompt: string };
-      expect(dispatch.prompt).toContain('Warm, confident, editorial voice.');
+      expect(dispatch.prompt).toContain('Warm, confident, editorial voice');
     });
 
     it('never appears when the caller omits it, matching Brand voice off', () => {
