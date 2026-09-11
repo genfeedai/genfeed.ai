@@ -526,10 +526,13 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
     return connectedCredentials.map((credential) => {
       return {
+        accessTokenExpiry: credential.accessTokenExpiry,
         accountHealth: credential.accountHealth,
         avatarUrl: credential.externalAvatar,
         credentialId: credential.id,
+        externalId: credential.externalId,
         handle: credential.externalHandle,
+        isConnected: credential.isConnected,
         label: credential.label,
         name: credential.externalName,
         platform: credential.platform,

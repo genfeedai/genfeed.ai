@@ -46,16 +46,28 @@ export interface BrandDetailLatestArticlesProps {
   articles: IArticle[];
 }
 
+/**
+ * A connection is not necessarily live: `isConnected: false` means the
+ * credential is disconnected but not deleted, and a connected credential can
+ * still be missing `externalId` (identity never captured) or hold an expired
+ * `accessTokenExpiry`. All three states resolve to "Needs reconnect" — see
+ * `getAccountConnectionStatus` in
+ * `packages/pages/brands/components/integrations/account-connection-status.util.ts`.
+ */
 export interface BrandDetailSocialConnection {
+  accessTokenExpiry?: string | null;
   accountHealth?: AccountHealthSummary;
   avatarUrl?: string | null;
   credentialId: string;
+  externalId?: string | null;
+  handle?: string | null;
+  /** Defaults to connected when omitted — legacy callers only ever built connected rows. */
+  isConnected?: boolean;
   label?: string | null;
   name?: string | null;
   platform: CredentialPlatform;
   postingTimes?: IClockTime[];
   url?: string | null;
-  handle?: string | null;
 }
 
 export interface BrandDetailSidebarProps {
@@ -94,15 +106,6 @@ export interface BrandDetailConnectedAccountProps {
   onSelect?: (credentialId: string) => void;
 }
 
-export interface BrandDetailIntegrationAccountRowProps {
-  connection: BrandDetailSocialConnection;
-  isPostingTimesDisabled: boolean;
-  isReconnectDisabled: boolean;
-  onDisconnect: (connection: BrandDetailSocialConnection) => void;
-  onPostingTimes: (connection: BrandDetailSocialConnection) => void;
-  onReconnect: (connection: BrandDetailSocialConnection) => void;
-}
-
 export interface BrandDetailSocialMediaCardProps {
   brandId: string;
   connections: BrandDetailSocialConnection[];
@@ -115,7 +118,7 @@ export interface BrandDetailSocialMediaCardProps {
   onRefresh?: () => Promise<void> | void;
   /**
    * `compact` — summary card + connect modal (sidebar / embed).
-   * `page` — full categorized integration card list (settings/social).
+   * `page` — full accounts table + Connect account modal (settings/integrations).
    */
   variant?: 'compact' | 'page';
 }

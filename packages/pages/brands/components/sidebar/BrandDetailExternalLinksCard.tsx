@@ -49,7 +49,17 @@ export default function BrandDetailExternalLinksCard({
     [links],
   );
   const hasManualLinks = manualLinks.length > 0;
-  const hasSocialConnections = socialConnections.length > 0;
+  // `socialConnections` can now include a disconnected-but-not-deleted
+  // credential (it stays visible so the accounts table can offer "Needs
+  // reconnect") — this read-only profile list only ever means live accounts.
+  const connectedSocialConnections = useMemo(
+    () =>
+      socialConnections.filter(
+        (connection) => connection.isConnected !== false,
+      ),
+    [socialConnections],
+  );
+  const hasSocialConnections = connectedSocialConnections.length > 0;
 
   return (
     <Card
@@ -63,7 +73,7 @@ export default function BrandDetailExternalLinksCard({
               Connected social
             </p>
             <div className="flex flex-col gap-1.5">
-              {socialConnections.map((connection) => {
+              {connectedSocialConnections.map((connection) => {
                 const label = connectionLabel(connection);
                 const icon = getPlatformIcon(connection.platform, 'size-3.5');
                 const rowClassName =

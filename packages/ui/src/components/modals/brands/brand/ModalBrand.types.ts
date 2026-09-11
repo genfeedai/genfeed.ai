@@ -15,23 +15,35 @@ export type BrandOverlayRecord = Brand &
     links?: ILink[];
   };
 
+/**
+ * A credential stays in this list once it is disconnected (not deleted) —
+ * consumers need that row to be able to show "Needs reconnect" instead of the
+ * account silently disappearing. `isConnected`, `externalId`, and
+ * `accessTokenExpiry` carry through so callers can derive that status; see
+ * `getAccountConnectionStatus` in
+ * `packages/pages/brands/components/integrations/account-connection-status.util.ts`.
+ */
 export function buildSocialConnections(
-  brand: BrandOverlayRecord | null,
+  brand: Pick<BrandOverlayRecord, 'credentials'> | null,
 ): BrandDetailSocialConnection[] {
   if (!brand) {
     return [];
   }
 
   return (brand.credentials ?? [])
-    .filter((credential) => credential.isConnected === true)
+    .filter((credential) => credential.isDeleted !== true)
     .map((credential) => ({
+      accessTokenExpiry: credential.accessTokenExpiry,
       accountHealth: credential.accountHealth,
       avatarUrl: credential.externalAvatar,
       credentialId: credential.id,
+      externalId: credential.externalId,
       handle: credential.externalHandle,
+      isConnected: credential.isConnected,
       label: credential.label,
       name: credential.externalName,
       platform: credential.platform,
+      postingTimes: credential.postingTimes,
       url: SocialUrlHelper.buildProfileUrl(
         credential.platform,
         credential.externalHandle,

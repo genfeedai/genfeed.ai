@@ -301,7 +301,7 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('renders full integration cards on the page variant without a modal gate', () => {
+  it('renders the accounts table on the page variant with a Connect account action', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -317,24 +317,84 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Social networks')).toBeInTheDocument();
-    expect(screen.getByText('Video')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Connect Twitter' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Connect YouTube' }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Connect account' }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText('No accounts connected yet')).toBeInTheDocument();
   });
 
-  it('marks a platform as linked on the page variant when it has a connection', () => {
+  it('derives account status on the page variant: Needs reconnect vs Connected', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
+            isConnected: true,
+            name: 'Genfeed',
+            platform: CredentialPlatform.INSTAGRAM,
+          },
+          {
+            credentialId: 'credential-2',
+            isConnected: false,
+            name: 'Broken TikTok',
+            platform: CredentialPlatform.TIKTOK,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
+  });
+
+  it('sends the credentialId in the connect body when reconnecting an account', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            isConnected: false,
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    const moreActionsTrigger = screen.getAllByRole('button', {
+      name: 'More actions for Genfeed',
+    })[0];
+    fireEvent.pointerDown(moreActionsTrigger);
+    fireEvent.click(moreActionsTrigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reconnect' }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('twitter');
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      });
+    });
+  });
+
+  it('opens the posting times editor for an account from the accounts table', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            handle: 'genfeed',
+            isConnected: true,
             name: 'Genfeed',
             platform: CredentialPlatform.INSTAGRAM,
           },
@@ -344,37 +404,19 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    // Connections arrive with the lowercase domain platform id; tiles key off
-    // the same vocabulary, so a linked account must not read "Not connected".
-    expect(screen.getByText('Linked')).toBeInTheDocument();
-    expect(screen.getByText('1 connected')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Add another Instagram account' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/one instagram account per brand/i),
-    ).not.toBeInTheDocument();
-
-    // Reconnect, posting times, and disconnect sit behind the row's actions menu.
-    const moreActionsTrigger = screen.getByRole('button', {
+    const moreActionsTrigger = screen.getAllByRole('button', {
       name: 'More actions for Genfeed',
-    });
+    })[0];
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
-    expect(
-      screen.getByRole('menuitem', { name: 'Reconnect' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: 'Disconnect' }),
-    ).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole('menuitem', { name: 'Posting times' }));
+
     expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
       'credential-1',
     );
   });
 
-  it('offers Fanvue under Creator and omits unavailable X Ads', () => {
+  it('opens the Connect account modal and starts oauth for a chosen platform', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -384,13 +426,33 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+    fireEvent.click(screen.getByText('Instagram'));
+
+    await waitFor(() => {
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+    });
+  });
+
+  it('offers Fanvue under Creator in the connect modal and omits unavailable X Ads', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+
     expect(screen.getByText('Creator')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Connect Fanvue' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Connect X Ads' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Fanvue')).toBeInTheDocument();
+    expect(screen.queryByText('X Ads')).not.toBeInTheDocument();
   });
 
   it('renders connected social links', () => {
@@ -624,9 +686,9 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getByRole('button', {
+    const moreActionsTrigger = screen.getAllByRole('button', {
       name: 'More actions for Genfeed Labs',
-    });
+    })[0];
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Disconnect' }));
