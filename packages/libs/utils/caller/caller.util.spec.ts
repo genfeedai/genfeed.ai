@@ -100,6 +100,46 @@ describe('CallerUtil', () => {
       ).toBe('topLevelFn');
     });
 
+    it('ignores dots in the location of a frame without a class', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at handleVercel (/home/runner/work/genfeed.ai/genfeed.ai/webhooks.vercel.controller.ts:30:52)',
+        ),
+      ).toBe('handleVercel');
+    });
+
+    it('parses async ClassName.methodName frames', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at async VercelWebhookController.handleVercel (/app/dist/main.js:1:2)',
+        ),
+      ).toBe('handleVercel');
+    });
+
+    it('ignores V8 method aliases', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at Object.findMe [as handler] (/app/dist/main.js:1:2)',
+        ),
+      ).toBe('findMe');
+    });
+
+    it('returns unknown for anonymous frames with a dotted location', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at /home/runner/work/genfeed.ai/genfeed.ai/app.spec.ts:8:45',
+        ),
+      ).toBe('unknown');
+    });
+
+    it('returns unknown for Object.<anonymous> frames', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at Object.<anonymous> (/app/dist/main.js:1:2)',
+        ),
+      ).toBe('unknown');
+    });
+
     it('returns unknown when no pattern matches', () => {
       expect(
         withStack('Error\n    at getCallerName (util)\n    at <anonymous>'),
