@@ -150,7 +150,6 @@ function isTestLike(rel: string): boolean {
   return (
     rel.includes('.test.') ||
     rel.includes('.spec.') ||
-    rel.includes('.stories.') ||
     rel.endsWith('.mdx') ||
     rel.endsWith('.md')
   );
@@ -708,7 +707,6 @@ const BOUNDED_GLOBS = [
 const BOUNDED_GLOB_IGNORE = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.mdx',
   '**/*.md',
   '**/node_modules/**',

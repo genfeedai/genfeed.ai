@@ -51,7 +51,7 @@ describe('findInlineTypes', () => {
     ]);
   });
 
-  it('scans production route hooks and pages while excluding test, story, fixture and declaration files', () => {
+  it('scans production route hooks and pages while excluding test, fixture and declaration files', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'inline-route-types-'));
     try {
       const files = [
@@ -59,7 +59,6 @@ describe('findInlineTypes', () => {
         'apps/app/app/(protected)/home/use-home.ts',
         'apps/app/app/(protected)/home/home.test.ts',
         'apps/app/app/(protected)/home/home.spec.tsx',
-        'apps/app/app/(protected)/home/home.stories.tsx',
         'apps/app/app/(protected)/home/global.d.ts',
         'apps/app/app/(protected)/home/__fixtures__/home.ts',
         'apps/app/app/(protected)/home/__tests__/home.tsx',

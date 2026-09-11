@@ -10,7 +10,6 @@ const logger = {
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.md',
   '**/*.mdx',
   '**/node_modules/**',

@@ -89,7 +89,6 @@ locals {
   ])
   public_backend_secret_allowlist = {
     mcp = toset([
-      "CHROMATIC_WEBHOOK_SECRET",
       "CHROME_EXTENSION_ID",
       "GENFEEDAI_API_KEY",
       "POSTHOG_HOST",
@@ -104,7 +103,6 @@ locals {
     # Do not add it here: ECS forbids the same name in environment and secrets.
     notifications = toset([
       "API_SECRET_KEY",
-      "CHROMATIC_WEBHOOK_SECRET",
       "CHROME_EXTENSION_ID",
       "DISCORD_BOT_AVATAR_URL",
       "DISCORD_BOT_TOKEN",

@@ -18,7 +18,6 @@ const INCLUDE_GLOBS = [
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.md',
   '**/*.mdx',
   '**/dist/**',

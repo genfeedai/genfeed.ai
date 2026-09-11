@@ -6,6 +6,12 @@ import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+vi.mock('@libs/utils/caller/caller.util', () => ({
+  CallerUtil: {
+    getCallerName: vi.fn().mockReturnValue('vercel callback'),
+  },
+}));
+
 describe('VercelWebhookController', () => {
   let controller: VercelWebhookController;
   let vercelWebhookService: vi.Mocked<VercelWebhookService>;
@@ -63,7 +69,7 @@ describe('VercelWebhookController', () => {
       const result = await controller.handleVercel(mockRequest);
 
       expect(loggerService.log).toHaveBeenCalledWith(
-        'VercelWebhookController handleVercel received',
+        'VercelWebhookController vercel callback received',
         payload,
       );
       expect(vercelWebhookService.validateSignature).toHaveBeenCalledWith(
@@ -118,11 +124,11 @@ describe('VercelWebhookController', () => {
       await expect(controller.handleVercel(mockRequest)).rejects.toThrow(error);
 
       expect(loggerService.log).toHaveBeenCalledWith(
-        'VercelWebhookController handleVercel received',
+        'VercelWebhookController vercel callback received',
         payload,
       );
       expect(loggerService.error).toHaveBeenCalledWith(
-        'VercelWebhookController handleVercel failed',
+        'VercelWebhookController vercel callback failed',
         error,
       );
     });

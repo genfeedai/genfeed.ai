@@ -13,11 +13,10 @@ import { ALLOW_UNKNOWN_PROPERTIES } from '@api/helpers/pipes/validation.pipe';
  * `.agents/memory/rules/nestjs_value_imports_for_di.md`).
  *
  * `ALLOW_UNKNOWN_PROPERTIES` turns off the pipe's whitelist stripping for this
- * family. Webhook bodies are not first-party request payloads: Chromatic
- * re-serializes the body to compare an HMAC, Heygen and Opus Pro forward it
- * verbatim to the microservices bus, and Replicate and KlingAI read vendor keys
- * (`model`, `input`, `task_result`, …) through the index signature. Stripping
- * undecorated keys would corrupt all three. Declared fields are still validated;
+ * family. Webhook bodies are not first-party request payloads: Heygen and
+ * Opus Pro forward the body verbatim to the microservices bus, and Replicate and
+ * KlingAI read vendor keys (`model`, `input`, `task_result`, …) through the index
+ * signature. Stripping undecorated keys would corrupt both. Declared fields are still validated;
  * unknown keys pass through untouched, so legitimate vendor payload drift never
  * turns into a 400 and a retry storm.
  *

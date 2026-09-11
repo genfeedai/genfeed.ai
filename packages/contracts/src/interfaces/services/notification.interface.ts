@@ -25,7 +25,6 @@ export type INotificationPayloadTypes =
   | IPostNotificationPayload
   | IArticleNotificationPayload
   | IVercelNotificationPayload
-  | IChromaticNotificationPayload
   | IUserCreatedPayload
   | IIngredientNotificationPayload
   | IModelDiscoveryNotificationPayload
@@ -156,10 +155,6 @@ export interface IArticleNotificationPayload {
 }
 
 export interface IVercelNotificationPayload {
-  embed: IDiscordEmbed;
-}
-
-export interface IChromaticNotificationPayload {
   embed: IDiscordEmbed;
 }
 

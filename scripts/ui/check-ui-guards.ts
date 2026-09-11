@@ -23,6 +23,11 @@ const checks = [
     required: true,
   },
   {
+    command: ['bun', 'run', 'scripts/check-no-story-files.ts'],
+    name: 'No Storybook story files (Storybook is not installed)',
+    required: true,
+  },
+  {
     command: ['bun', 'run', 'scripts/check-no-nested-cards.ts'],
     name: 'Nested card composition',
     required: true,

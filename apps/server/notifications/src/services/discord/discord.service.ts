@@ -279,10 +279,6 @@ export class DiscordService {
     );
   }
 
-  async sendChromaticNotification(_embed: unknown): Promise<void> {
-    // Chromatic Discord webhook removed — notifications disabled
-  }
-
   async sendStreakNotification(input: {
     title: string;
     description: string;

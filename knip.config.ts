@@ -36,10 +36,6 @@ const config: KnipConfig = {
     'turbo',
     'husky',
     'lint-staged',
-    // Storybook addons
-    '@storybook/*',
-    'storybook',
-    'chromatic',
     // Playwright
     '@playwright/test',
     'playwright',
@@ -55,7 +51,6 @@ const config: KnipConfig = {
         'dist/**',
         '.agents/**',
         '.claude/**',
-        '.storybook/**',
         'playwright/e2e/**',
         'playwright/artifacts/**',
         'docker/**',

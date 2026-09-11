@@ -412,16 +412,6 @@ describe('DiscordService', () => {
     });
   });
 
-  describe('sendChromaticNotification', () => {
-    it('should be a no-op', async () => {
-      const { service } = await createService();
-
-      await service.sendChromaticNotification({ title: 'Chromatic' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-  });
-
   describe('sendStreakNotification', () => {
     it('should skip when webhook is unavailable', async () => {
       mockDiscordBotService.getPostsWebhook.mockResolvedValue(null);

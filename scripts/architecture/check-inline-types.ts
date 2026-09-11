@@ -26,7 +26,6 @@ const IGNORE_GLOBS = [
   '**/.next/**',
   '**/*.spec.{ts,tsx}',
   '**/*.test.{ts,tsx}',
-  '**/*.stories.{ts,tsx}',
   '**/*.d.ts',
   '**/__tests__/**',
   '**/__fixtures__/**',

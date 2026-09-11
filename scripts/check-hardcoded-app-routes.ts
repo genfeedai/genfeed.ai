@@ -48,7 +48,6 @@ const PLAYWRIGHT_INCLUDE_GLOBS = ['playwright/e2e/**/*.{ts,tsx}'];
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.mdx',
   '**/*.md',
   '**/node_modules/**',

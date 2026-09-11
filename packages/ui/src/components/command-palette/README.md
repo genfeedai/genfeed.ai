@@ -10,14 +10,13 @@ packages/components/command-palette/
 │   ├── CommandPalette.tsx            # Stateful wrapper that consumes context
 │   ├── CommandPaletteView.tsx        # Presentational UI
 │   ├── use-command-palette-dialog.ts # DOM helpers for dialog lifecycle
-│   ├── CommandPalette.stories.tsx
 │   └── *.test.tsx files
-├── command-palette-item/             # Individual row component with tests/stories
+├── command-palette-item/             # Individual row component with tests
 ├── command-palette-initializer/      # Default/admin command registration hooks
 └── brand-commands-provider/          # Registers per-brand shortcuts
 ```
 
-All exported surfaces now have colocated specs and Storybook stories, mirroring the button architecture for easier maintenance.
+All exported surfaces have colocated specs, mirroring the button architecture for easier maintenance.
 
 ## Features
 

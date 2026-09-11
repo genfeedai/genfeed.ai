@@ -12,7 +12,7 @@ const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
 // Generated clients (Prisma, OpenAPI types) have intentional internal cycles.
-const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
+const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
 // Type-only interface barrels produce noisy Madge cycles with no runtime edge.
 // The tree sits inside the scanned contracts workspace, so it is matched per

@@ -141,14 +141,7 @@
       "@utils/*": ["../../packages/utils/*"]
     }
   },
-  "exclude": [
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/*.stories.ts",
-    "**/*.stories.tsx",
-    "**/*.test.ts",
-    "**/*.test.tsx"
-  ],
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
   "extends": "../../packages/tsconfig/nextjs.json",
   "include": [
     "next-env.d.ts",

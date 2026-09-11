@@ -172,9 +172,7 @@ function isExcludedSourceFile(relativePath: string): boolean {
     relativePath.endsWith('.test.ts') ||
     relativePath.endsWith('.test.tsx') ||
     relativePath.endsWith('.spec.ts') ||
-    relativePath.endsWith('.spec.tsx') ||
-    relativePath.endsWith('.stories.ts') ||
-    relativePath.endsWith('.stories.tsx')
+    relativePath.endsWith('.spec.tsx')
   );
 }
 

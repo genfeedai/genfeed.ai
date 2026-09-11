@@ -1,5 +1,4 @@
 import { ArgilWebhookController } from '@api/endpoints/webhooks/argil/webhooks.argil.controller';
-import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
 import { FleetWebhookController } from '@api/endpoints/webhooks/fleet/webhooks.fleet.controller';
 import { GitHubWebhookController } from '@api/endpoints/webhooks/github/webhooks.github.controller';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
@@ -15,7 +14,6 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [
     ArgilWebhookController,
-    ChromaticWebhookController,
     FleetWebhookController,
     GitHubWebhookController,
     HeygenWebhookController,

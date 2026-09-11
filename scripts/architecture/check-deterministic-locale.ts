@@ -34,7 +34,6 @@ const DEFAULT_INCLUDE_GLOBS = [
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.*',
   '**/*.test.*',
-  '**/*.stories.*',
   '**/dist/**',
   '**/node_modules/**',
   '**/.next/**',

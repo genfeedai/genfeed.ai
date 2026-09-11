@@ -47,24 +47,26 @@ export class CallerUtil {
           return 'unknown';
         }
 
-        // Try to match: "at ClassName.methodName" or "ClassName.methodName"
-        // Handles both regular and webpack stack formats
-        const match = callerLine.match(/(?:at\s+)?(\w+)\.(\w+)/);
-        if (match?.[2]) {
-          return match[2];
+        // Only the text before " (location)" names the function. The location
+        // is a file path whose dots ("genfeed.ai", "main.js") must never be
+        // read as "ClassName.methodName". Frames without a location are
+        // anonymous ("at /path/file.ts:1:2").
+        // V8:  "at async UsersController.findMe (file:line:column)"
+        // Bun: "at findMe (file:line:column)"
+        const frame = callerLine.replace(/^at\s+(?:async\s+)?/, '');
+        const locationStart = frame.indexOf(' (');
+        if (locationStart === -1) {
+          return 'unknown';
         }
 
-        // Fallback: try to match just method name if format is different
-        // Matches patterns like ".methodName (" or ".methodName (webpack://"
-        const methodMatch = callerLine.match(/\.(\w+)\s*\(/);
-        if (methodMatch?.[1]) {
-          return methodMatch[1];
-        }
+        const functionName = frame
+          .slice(0, locationStart)
+          .replace(/\s+\[as [^\]]+\]$/, '');
 
-        // Additional fallback: match method name before parentheses
-        const methodBeforeParen = callerLine.match(/(\w+)\s*\(/);
-        if (methodBeforeParen?.[1]) {
-          return methodBeforeParen[1];
+        // Last identifier of "ClassName.methodName", ".methodName" or "methodName"
+        const match = functionName.match(/(?:^|[.\s])([A-Za-z_$][\w$]*)$/);
+        if (match?.[1]) {
+          return match[1];
         }
       }
     } catch (_error) {
