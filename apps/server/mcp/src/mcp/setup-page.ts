@@ -1133,17 +1133,23 @@ ${postHogSnippet}
     // by shell rules) and inside the Claude Code / Codex shell commands it
     // quotes for. Rewriting it must match: the shell-command occurrences need
     // the shell-quoted URL, exactly like the dedicated command snippets get,
-    // while every other occurrence stays plain. The anchored replacements run
-    // first so they consume the whole quoted-or-not segment before the
-    // trailing plain replacement touches what is left.
+    // while every other occurrence stays plain. nextUrl is always baseMcpUrl
+    // plus an appended query string, so it has currentUrl as a literal
+    // prefix — swapping the shell-quoted occurrences in first and THEN doing
+    // the plain replace would let the plain pass re-match (and re-append to)
+    // the currentUrl prefix it just inserted. A placeholder shields the
+    // already-rewritten shell occurrences from that second pass; it is
+    // substituted back for the real shell-quoted URL last.
     function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
+      var placeholder = ' TOOLSET_URL ';
       var next = replaceAll(
         text,
         '--scope user ' + currentShellUrl,
-        '--scope user ' + nextShellUrl,
+        '--scope user ' + placeholder,
       );
-      next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + nextShellUrl);
+      next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + placeholder);
       next = replaceAll(next, currentUrl, nextUrl);
+      next = replaceAll(next, placeholder, nextShellUrl);
       return next;
     }
 
