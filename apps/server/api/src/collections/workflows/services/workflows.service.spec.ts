@@ -572,6 +572,7 @@ describe('WorkflowsService system workflow guardrails', () => {
       'user-1',
       'org-1',
       'body-brand',
+      'session-brand',
     );
   });
 
@@ -598,6 +599,7 @@ describe('WorkflowsService system workflow guardrails', () => {
       'user-1',
       'org-1',
       undefined,
+      'session-brand',
     );
   });
 
@@ -666,6 +668,69 @@ describe('WorkflowsService system workflow guardrails', () => {
         organizationId: 'org-1',
       },
     });
+    expect(service.create).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the caller brand when the source workflow brand is soft-deleted or out of org (#4664)', async () => {
+    vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
+      brandId: 'gone-brand',
+      edges: [],
+      id: 'workflow-1',
+      inputVariables: [],
+      label: 'Launch Workflow',
+      lockedNodeIds: [],
+      metadata: {},
+      nodes: [],
+      organizationId: 'org-1',
+      userId: 'owner-user',
+    } as never);
+    vi.spyOn(service, 'create').mockResolvedValue({
+      id: 'copy-workflow-1',
+      label: 'Launch Workflow (Copy)',
+      metadata: {},
+      nodes: [],
+    } as never);
+    brandFindFirst.mockImplementation(
+      async ({ where }: { where: { id: string } }) =>
+        where.id === 'gone-brand' ? null : { id: where.id },
+    );
+
+    await service.cloneWorkflow(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      undefined,
+      'fallback-brand',
+    );
+
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
+      brandId?: string;
+    };
+    expect(createInput.brandId).toBe('fallback-brand');
+  });
+
+  it('still rejects an explicit invalid target brand even when a fallback brand is available', async () => {
+    vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
+      brandId: 'source-brand',
+      edges: [],
+      id: 'workflow-1',
+      inputVariables: [],
+      label: 'Launch Workflow',
+      nodes: [],
+    } as never);
+    vi.spyOn(service, 'create').mockResolvedValue({} as never);
+    brandFindFirst.mockResolvedValue(null);
+
+    await expect(
+      service.cloneWorkflow(
+        'workflow-1',
+        'user-1',
+        'org-1',
+        'foreign-brand',
+        'fallback-brand',
+      ),
+    ).rejects.toThrow('Brand is not available in this organization');
+
     expect(service.create).not.toHaveBeenCalled();
   });
 });

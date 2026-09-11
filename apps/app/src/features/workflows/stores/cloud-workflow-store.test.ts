@@ -1,6 +1,6 @@
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   CloudWorkflowData,
   WorkflowApiService,
@@ -164,5 +164,87 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
     expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(false);
     expect(useCloudWorkflowStore.getState().cloudError).toBe('network error');
     expect(useWorkflowStore.getState().isDirty).toBe(true);
+  });
+
+  it('does not report an edit made during the request as saved, and persists it via a trailing save', async () => {
+    useWorkflowStore.setState({ nodes: oneNode as never, workflowId: 'wf-1' });
+    useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
+    const { service, update } = createService();
+
+    const deferredFirst = createDeferred<CloudWorkflowData>();
+    update.mockImplementationOnce(() => deferredFirst.promise);
+    update.mockResolvedValueOnce({
+      id: 'wf-1',
+      inputVariables: [],
+      label: 'Sfsfsd',
+    });
+
+    const firstSave = useCloudWorkflowStore.getState().saveToCloud(service);
+
+    // An edit lands while the first request is still in flight — a new
+    // array reference, exactly like a real node mutation would produce.
+    const editedNodes = [
+      ...oneNode,
+      { data: {}, id: 'n2', position: { x: 100, y: 0 }, type: 'prompt' },
+    ];
+    useWorkflowStore.setState({ nodes: editedNodes as never });
+
+    deferredFirst.resolve({ id: 'wf-1', inputVariables: [], label: 'Sfsfsd' });
+    await firstSave;
+
+    // The first request's payload predates the edit, so the canvas must
+    // not be reported as saved — a trailing save with the new nodes runs
+    // automatically instead of silently dropping the edit.
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenLastCalledWith(
+      'wf-1',
+      expect.objectContaining({
+        nodes: expect.arrayContaining([expect.objectContaining({ id: 'n2' })]),
+      }),
+    );
+    expect(useWorkflowStore.getState().isDirty).toBe(false);
+    expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(false);
+  });
+});
+
+describe('useCloudWorkflowStore.scheduleAutoSave', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useWorkflowStore.setState({
+      edgeStyle: 'default',
+      edges: [],
+      groups: [],
+      isDirty: true,
+      isSaving: false,
+      nodes: oneNode as never,
+      workflowId: 'wf-1',
+      workflowName: 'Sfsfsd',
+    });
+    useCloudWorkflowStore.setState({
+      autoSaveTimeoutId: null,
+      cloudError: null,
+      hasQueuedSave: false,
+      inputVariables: [],
+      lifecycle: WorkflowLifecycle.DRAFT,
+      pendingBrandId: 'brand-shipshit',
+      pendingCreateMetadata: null,
+      pendingTemplateId: null,
+      workflowId: 'wf-1',
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('queues a trailing save instead of dropping a request while a save is already in flight', () => {
+    useWorkflowStore.setState({ isSaving: true });
+    const { service } = createService();
+
+    useCloudWorkflowStore.getState().scheduleAutoSave(service);
+
+    expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(true);
+    // No debounce timer should be scheduled while a save is already running.
+    expect(useCloudWorkflowStore.getState().autoSaveTimeoutId).toBeNull();
   });
 });

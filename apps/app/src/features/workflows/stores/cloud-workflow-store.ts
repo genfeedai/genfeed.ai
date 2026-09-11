@@ -316,17 +316,28 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       useWorkflowStore.setState({ isSaving: true });
       set({ hasQueuedSave: false });
 
+      // Snapshot exactly what this request will persist. Every node/edge/
+      // group mutation replaces these with new array references (never
+      // mutates in place), so a reference change after the request settles
+      // means an edit landed while the save was in flight.
+      const snapshot = {
+        edges: workflowStore.edges,
+        groups: workflowStore.groups,
+        nodes: workflowStore.nodes,
+        workflowName: workflowStore.workflowName,
+      };
+
       try {
         const restoredNodes = restoreWorkflowNodeTypes(
-          workflowStore.nodes,
+          snapshot.nodes,
         ) as CloudWorkflowData['nodes'];
 
         const payload = {
           edgeStyle: workflowStore.edgeStyle,
-          edges: workflowStore.edges,
-          groups: workflowStore.groups,
+          edges: snapshot.edges,
+          groups: snapshot.groups,
           inputVariables,
-          label: workflowStore.workflowName,
+          label: snapshot.workflowName,
           nodes: restoredNodes,
         };
 
@@ -361,9 +372,23 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           useWorkflowStore.setState({ workflowId: savedData.id });
         }
 
-        useWorkflowStore.setState({ isDirty: false, isSaving: false });
+        // A concurrent edit during the request means this save's payload is
+        // already stale — keep the canvas dirty and queue a trailing save
+        // instead of reporting edits as saved that never actually went out.
+        const settledState = useWorkflowStore.getState();
+        const hasConcurrentEdit =
+          settledState.edges !== snapshot.edges ||
+          settledState.groups !== snapshot.groups ||
+          settledState.nodes !== snapshot.nodes ||
+          settledState.workflowName !== snapshot.workflowName;
+
+        useWorkflowStore.setState({
+          isDirty: hasConcurrentEdit,
+          isSaving: false,
+        });
         set({
           cloudError: null,
+          hasQueuedSave: get().hasQueuedSave || hasConcurrentEdit,
           inputVariables: savedData.inputVariables ?? inputVariables,
         });
 
@@ -385,7 +410,15 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       const { autoSaveTimeoutId } = get();
       const workflowStore = useWorkflowStore.getState();
 
-      if (workflowStore.isSaving || !workflowStore.isDirty) {
+      if (!workflowStore.isDirty) {
+        return;
+      }
+
+      // A save is already in flight (e.g. triggered by Run/Publish or a
+      // manual save): queue this one as a trailing save instead of
+      // dropping it, matching saveToCloud's own in-flight guard.
+      if (workflowStore.isSaving) {
+        set({ hasQueuedSave: true });
         return;
       }
 

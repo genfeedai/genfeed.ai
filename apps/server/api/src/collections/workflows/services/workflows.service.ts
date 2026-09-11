@@ -287,6 +287,17 @@ export class WorkflowsService extends BaseService<
     return this.normalizeDocument(updated);
   }
 
+  private async isBrandAccessible(
+    brandId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    return brand !== null;
+  }
+
   private async assertWorkflowBrandAccess(
     brandId: string | undefined,
     organizationId: string,
@@ -295,11 +306,7 @@ export class WorkflowsService extends BaseService<
       return;
     }
 
-    const brand = await this.prisma.brand.findFirst({
-      select: { id: true },
-      where: scopedWhere(organizationId, { id: brandId }),
-    });
-    if (!brand) {
+    if (!(await this.isBrandAccessible(brandId, organizationId))) {
       throw new BadRequestException(
         'Brand is not available in this organization',
       );
@@ -352,12 +359,16 @@ export class WorkflowsService extends BaseService<
     // collapse "no explicit brandId" into the session brand before
     // `cloneWorkflow` ever sees it, silently moving every clone off its
     // source brand and hiding it from that brand's library (#4664).
+    // `defaultBrandId` is still passed through as a fallback for the rare
+    // case where the source brand itself is no longer accessible (soft-
+    // deleted or moved to another organization).
     if (workflowData.sourceWorkflowId) {
       return this.cloneWorkflow(
         workflowData.sourceWorkflowId,
         userId,
         organizationId,
         resolveWorkflowBrandId((workflowData as WorkflowCreateExtras).brandId),
+        defaultBrandId,
       );
     }
 
@@ -563,6 +574,7 @@ export class WorkflowsService extends BaseService<
     userId: string,
     organizationId: string,
     targetBrandId?: string,
+    fallbackBrandId?: string,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findVisibleOrThrow(workflowId, {
       organizationId,
@@ -574,8 +586,25 @@ export class WorkflowsService extends BaseService<
     const sourceWorkflowId = workflowDoc.id;
     const sourceLabel = workflowDoc.label ?? 'Workflow';
 
+    // An explicit target brand must be valid — fail loudly rather than
+    // silently substituting a brand the caller didn't ask for.
+    if (targetBrandId) {
+      await this.assertWorkflowBrandAccess(targetBrandId, organizationId);
+    }
+
+    // The source workflow's own brand may have been soft-deleted or moved
+    // out of this organization since the workflow was created. Rather than
+    // blocking every future duplicate of that workflow, fall back to the
+    // caller's current brand — assertWorkflowBrandAccess below still
+    // validates whichever brand is finally chosen.
+    const sourceBrandId = resolveWorkflowBrandId(workflowDoc.brandId);
+    const isSourceBrandAccessible =
+      !!sourceBrandId &&
+      (await this.isBrandAccessible(sourceBrandId, organizationId));
+
     const brandId =
-      targetBrandId ?? resolveWorkflowBrandId(workflowDoc.brandId);
+      targetBrandId ??
+      (isSourceBrandAccessible ? sourceBrandId : fallbackBrandId);
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const clonedWorkflow = await this.create(
