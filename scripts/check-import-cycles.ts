@@ -183,7 +183,14 @@ function expandWorkspacePattern(pattern: string): string[] {
 }
 
 function discoverWorkspaceRoots(): string[] {
+  const excludedPath = new RegExp(EXCLUDE_REGEX);
+
+  // Workspace globs also match build output such as apps/app/.next and
+  // apps/server/dist once a build or typecheck has run.
   return WORKSPACE_GLOBS.flatMap((pattern) => expandWorkspacePattern(pattern))
+    .filter(
+      (workspaceRoot) => !excludedPath.test(toRepoRelative(workspaceRoot)),
+    )
     .filter((workspaceRoot) => hasCodeTree(workspaceRoot))
     .sort((left, right) => left.localeCompare(right));
 }
