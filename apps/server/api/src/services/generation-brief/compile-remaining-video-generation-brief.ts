@@ -218,6 +218,10 @@ export function compileRemainingVideoGenerationBrief(
   if (brief.intent.audioDirection) {
     parts.push(`Audio: ${brief.intent.audioDirection}`);
   }
+  // Independent of fidelity policy — brand voice follows Brand voice only.
+  if (brief.intent.brandContext) {
+    parts.push(brief.intent.brandContext);
+  }
 
   const negativeParts: string[] = [];
   if (policy.applyConstraints) {
@@ -348,6 +352,7 @@ export function compileRemainingVideoGenerationBrief(
       ...(brief.intent.motion ? ['intent.motion'] : []),
       ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
       ...(brief.intent.audioDirection ? ['intent.audioDirection'] : []),
+      ...(brief.intent.brandContext ? ['intent.brandContext'] : []),
       ...(firstFrameAssetId ? ['references.first_frame'] : []),
       ...(lastFrameAssetId ? ['references.last_frame'] : []),
       ...(resolution ? ['output.resolution'] : []),

@@ -75,18 +75,22 @@ export default function GenerationSetupCustomizePanel({
     ) {
       sections.push('output');
     }
-    sections.push('brand');
+    // Brand voice cannot affect music, avatar, or voice generations — hide
+    // the tab entirely rather than show a switch that does nothing (#4676).
+    if (capabilities.hasBrandEnrichment) {
+      sections.push('brand');
+    }
     return sections;
   }, [capabilities, hasLookFields]);
 
-  const [activeSection, setActiveSection] =
-    useState<GenerationSetupCustomizeSectionId>(
-      initialSection ?? availableSections[0] ?? 'brand',
-    );
+  const [activeSection, setActiveSection] = useState<
+    GenerationSetupCustomizeSectionId | undefined
+  >(initialSection);
 
-  const resolvedSection = availableSections.includes(activeSection)
-    ? activeSection
-    : (availableSections[0] ?? 'brand');
+  const resolvedSection =
+    activeSection && availableSections.includes(activeSection)
+      ? activeSection
+      : availableSections[0];
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -129,7 +133,7 @@ export default function GenerationSetupCustomizePanel({
         ) : null}
 
         <Tabs
-          activeTab={resolvedSection}
+          activeTab={resolvedSection ?? ''}
           ariaLabel="Generation settings section"
           className="ml-auto"
           fullWidth={false}

@@ -126,32 +126,25 @@ export default function GenerationSetupSearch({
       }
     }
 
-    index.push(
-      {
-        fieldKey: 'brandingMode',
-        group: 'Brand voice',
-        label: 'Brand voice on',
-        value: 'brand',
-      },
-      {
-        fieldKey: 'brandingMode',
-        group: 'Brand voice',
-        label: 'Brand voice off',
-        value: 'off',
-      },
-      {
-        fieldKey: 'isPromptEnhanceEnabled',
-        group: 'Prompt enhance',
-        label: 'Prompt enhance on',
-        value: true,
-      },
-      {
-        fieldKey: 'isPromptEnhanceEnabled',
-        group: 'Prompt enhance',
-        label: 'Prompt enhance off',
-        value: false,
-      },
-    );
+    // Brand voice cannot affect music, avatar, or voice generations — hide it
+    // from search entirely rather than offer a setting that does nothing
+    // (#4676). The Prompt enhance switch was removed the same way.
+    if (capabilities.hasBrandEnrichment) {
+      index.push(
+        {
+          fieldKey: 'brandingMode',
+          group: 'Brand voice',
+          label: 'Brand voice on',
+          value: 'brand',
+        },
+        {
+          fieldKey: 'brandingMode',
+          group: 'Brand voice',
+          label: 'Brand voice off',
+          value: 'off',
+        },
+      );
+    }
 
     return index;
   }, [capabilities, lookOptions, models, typeOptions]);

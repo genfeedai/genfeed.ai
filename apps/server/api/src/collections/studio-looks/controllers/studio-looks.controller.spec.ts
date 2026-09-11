@@ -72,7 +72,6 @@ describe('StudioLooksController', () => {
       assetType: 'image' as const,
       brandingMode: 'brand' as const,
       camera: '',
-      isPromptEnhanceEnabled: true,
       label: 'Editorial',
       lens: '',
       lighting: '',

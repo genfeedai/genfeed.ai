@@ -22,7 +22,6 @@ export class StudioLookEntity implements StudioLook {
   duration!: number | null;
   resolution!: string | null;
   brandingMode!: string | null;
-  isPromptEnhanceEnabled!: boolean;
   isDeleted!: boolean;
   createdAt!: Date;
   updatedAt!: Date;

@@ -21,7 +21,6 @@ export interface StudioLookPayload {
   /** Present only for video Looks. Image Looks always persist this as null. */
   cameraMovement?: string | null;
   duration?: number | null;
-  isPromptEnhanceEnabled?: boolean;
   lens: string;
   lighting: string;
   modelKey?: string | null;

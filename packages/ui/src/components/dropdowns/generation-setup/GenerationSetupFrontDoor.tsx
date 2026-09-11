@@ -102,23 +102,20 @@ export default function GenerationSetupFrontDoor({
       });
     }
   }
-  summaryRows.push({
-    key: 'brandingMode',
-    label: translate('brandVoice'),
-    section: 'brand',
-    value:
-      setup.values.brandingMode === 'brand'
-        ? translate('on')
-        : translate('off'),
-  });
-  summaryRows.push({
-    key: 'isPromptEnhanceEnabled',
-    label: translate('promptEnhance'),
-    section: 'brand',
-    value: setup.values.isPromptEnhanceEnabled
-      ? translate('on')
-      : translate('off'),
-  });
+  // Brand voice cannot affect music, avatar, or voice generations — hide the
+  // summary row entirely rather than show a setting that does nothing
+  // (#4676). The Prompt enhance summary row was removed with the switch.
+  if (capabilities.hasBrandEnrichment) {
+    summaryRows.push({
+      key: 'brandingMode',
+      label: translate('brandVoice'),
+      section: 'brand',
+      value:
+        setup.values.brandingMode === 'brand'
+          ? translate('on')
+          : translate('off'),
+    });
+  }
 
   return (
     <div className="flex min-h-0 flex-col gap-3 p-3">

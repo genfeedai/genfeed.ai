@@ -4,7 +4,14 @@ import type { GenerationSetupBrandSectionProps } from '@genfeedai/props/ui/gener
 import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSetupFieldRow';
 import { Switch } from '@ui/primitives/switch';
 
-/** Brand tab: brand-voice enrichment on/off and prompt-enhance on/off. */
+/**
+ * Brand tab: brand-voice enrichment on/off. Only rendered for output types
+ * whose capabilities carry `hasBrandEnrichment` — see
+ * `GenerationSetupCustomizePanel`. The Prompt enhance switch that used to
+ * live here was removed in #4676: it never enhanced anything, and toggling
+ * it off silently suppressed branding via `studio-generation-setup-bridge`.
+ * Studio's Enhance prompt action (an explicit, one-shot rewrite) replaces it.
+ */
 export default function GenerationSetupBrandSection({
   onResetField,
   onSetField,
@@ -25,23 +32,6 @@ export default function GenerationSetupBrandSection({
             isChecked={setup.values.brandingMode === 'brand'}
             onCheckedChange={(checked) =>
               onSetField('brandingMode', checked ? 'brand' : 'off')
-            }
-          />
-        </div>
-      </GenerationSetupFieldRow>
-
-      <GenerationSetupFieldRow
-        fieldKey="isPromptEnhanceEnabled"
-        label="Prompt enhance"
-        onReset={onResetField}
-        reason={reasons.isPromptEnhanceEnabled}
-        source={setup.sources.isPromptEnhanceEnabled ?? 'agent'}
-      >
-        <div className="flex w-full justify-end">
-          <Switch
-            isChecked={setup.values.isPromptEnhanceEnabled}
-            onCheckedChange={(checked) =>
-              onSetField('isPromptEnhanceEnabled', checked)
             }
           />
         </div>

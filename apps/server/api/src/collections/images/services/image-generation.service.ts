@@ -18,6 +18,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
@@ -29,6 +30,8 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   GenerationBriefCompileError,
+  resolveGenerationBriefBrandContext,
+  resolveIsGenerationBriefBrandVoiceOn,
   runImageGenerationBrief,
   toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
@@ -93,6 +96,7 @@ export class ImageGenerationService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly cancellationService: IngredientGenerationCancellationService,
+    private readonly templatesService: TemplatesService,
   ) {}
 
   async generateImage(
@@ -161,7 +165,23 @@ export class ImageGenerationService {
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
+    // Brand voice must reach every model, including brief-compiled ones — see
+    // `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
+    // setting, never on the fidelity mode `avoid` terms can also force.
+    const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
+      brandingMode: createImageDto.brandingMode,
+      isBrandingEnabled: createImageDto.isBrandingEnabled,
+    })
+      ? await resolveGenerationBriefBrandContext({
+          brand: promptBuilderBrand,
+          branding: brandPromptBranding,
+          organizationId: user.organizationId,
+          templatesService: this.templatesService,
+        })
+      : undefined;
+
     const compiledBrief = this.compileImageGenerationBrief({
+      briefBrandContext,
       createImageDto,
       height,
       model,
@@ -383,6 +403,7 @@ export class ImageGenerationService {
    * that has not been onboarded to model-aware compilation.
    */
   private compileImageGenerationBrief(params: {
+    briefBrandContext?: string;
     createImageDto: CreateImageDto;
     height: number;
     model: string;
@@ -413,6 +434,7 @@ export class ImageGenerationService {
     try {
       return runImageGenerationBrief({
         avoid,
+        brandContext: params.briefBrandContext,
         brandingMode: params.createImageDto.brandingMode,
         composition,
         fidelityMode: params.createImageDto.fidelityMode,

@@ -65,4 +65,40 @@ describe('runVideoGenerationBrief', () => {
     });
     expect(result.brief?.output.durationSeconds).toBe(8);
   });
+
+  describe('brandContext (#4676)', () => {
+    it('reaches the compiled prompt when passed, independent of avoid-forced fidelity', () => {
+      const result = runVideoGenerationBrief({
+        avoid: ['logo overlay'],
+        brandContext: 'Warm, confident, editorial voice.',
+        durationSeconds: 5,
+        height: 1080,
+        model: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+        objective: 'a product spinning on a table',
+        surface: 'studio',
+        width: 1920,
+      });
+
+      expect(result.brief?.intent.brandContext).toBe(
+        'Warm, confident, editorial voice.',
+      );
+      const dispatch = result.dispatch as { prompt: string };
+      expect(dispatch.prompt).toContain('Warm, confident, editorial voice.');
+    });
+
+    it('never appears when the caller omits it, matching Brand voice off', () => {
+      const result = runVideoGenerationBrief({
+        durationSeconds: 5,
+        height: 1080,
+        model: MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
+        objective: 'a product spinning on a table',
+        surface: 'studio',
+        width: 1920,
+      });
+
+      expect(result.brief?.intent.brandContext).toBeUndefined();
+      const dispatch = result.dispatch as { prompt: string };
+      expect(dispatch.prompt).not.toContain('Warm, confident');
+    });
+  });
 });

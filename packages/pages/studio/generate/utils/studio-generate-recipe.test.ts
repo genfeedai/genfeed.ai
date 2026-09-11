@@ -79,6 +79,26 @@ describe('recipeFromPromptData', () => {
       type: 'image',
     });
   });
+
+  it('never records brand enrichment on for music, avatar, or voice (#4676)', () => {
+    const settings = getDefaultStudioGenerateSettings('music');
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'An upbeat jingle',
+      settings,
+      type: 'music',
+    });
+
+    // The raw `brandingMode` field defaults to 'brand' regardless of type —
+    // reading it directly (the old bug) would record "Brand enrichment: on"
+    // for a type that never applied it. `isBrandingEnabled` is the truthful,
+    // capability-gated flag `buildStudioPromptData` computes.
+    expect(promptData.brandingMode).toBe('brand');
+    expect(promptData.isBrandingEnabled).toBe(false);
+    expect(
+      recipeFromPromptData(promptData, 'music', settings).brandingMode,
+    ).toBe('off');
+  });
 });
 
 describe('formatStudioRecipePrompt', () => {

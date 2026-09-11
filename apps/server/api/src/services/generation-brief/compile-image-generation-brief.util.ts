@@ -110,6 +110,12 @@ export function buildImageGenerationBriefPrompt(
   if (brief.intent.visualDirection) {
     parts.push(brief.intent.visualDirection);
   }
+  // Independent of `policy.applyConstraints` — brand voice is decided solely
+  // by the Brand voice setting, never by fidelity mode (which `avoid` terms
+  // can force to `guided` on their own).
+  if (brief.intent.brandContext) {
+    parts.push(brief.intent.brandContext);
+  }
   if (brief.intent.requestedText.length > 0) {
     parts.push(`Visible text: ${brief.intent.requestedText.join(', ')}`);
   }
@@ -260,6 +266,7 @@ export function buildImageGenerationBriefAppliedFields(input: {
     ...(brief.intent.composition ? ['intent.composition'] : []),
     ...(brief.intent.lighting ? ['intent.lighting'] : []),
     ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
+    ...(brief.intent.brandContext ? ['intent.brandContext'] : []),
     ...(brief.intent.requestedText.length > 0 ? ['intent.requestedText'] : []),
     ...appliedConstraintFields,
     ...(hasSeed ? ['seed'] : []),

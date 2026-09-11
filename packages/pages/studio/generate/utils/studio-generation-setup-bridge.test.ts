@@ -92,24 +92,27 @@ describe('studioSettingsFieldsToGenerationSetupPatch', () => {
 describe('generationSetupValuesToStudioSettingsPatch', () => {
   const values = getDefaultGenerationSetupValues('video');
 
-  it('keeps the raw brandingMode preference when enhancement is enabled', () => {
-    const patch = generationSetupValuesToStudioSettingsPatch({
+  it('maps brandingMode straight through regardless of isPromptEnhanceEnabled (#4676 FR3)', () => {
+    const enabledPatch = generationSetupValuesToStudioSettingsPatch({
       ...values,
       brandingMode: 'brand',
       isPromptEnhanceEnabled: true,
     });
+    expect(enabledPatch.brandingMode).toBe('brand');
 
-    expect(patch.brandingMode).toBe('brand');
-  });
-
-  it("collapses brandingMode to 'off' when enhancement is disabled, without mutating the raw preference", () => {
-    const patch = generationSetupValuesToStudioSettingsPatch({
+    const disabledPatch = generationSetupValuesToStudioSettingsPatch({
       ...values,
       brandingMode: 'brand',
       isPromptEnhanceEnabled: false,
     });
+    expect(disabledPatch.brandingMode).toBe('brand');
 
-    expect(patch.brandingMode).toBe('off');
+    const offPatch = generationSetupValuesToStudioSettingsPatch({
+      ...values,
+      brandingMode: 'off',
+      isPromptEnhanceEnabled: true,
+    });
+    expect(offPatch.brandingMode).toBe('off');
   });
 
   it('omits fields the setup left undefined', () => {

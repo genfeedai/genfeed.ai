@@ -7,6 +7,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type {
   PromptInput,
@@ -41,6 +42,8 @@ import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abo
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   GenerationBriefCompileError,
+  resolveGenerationBriefBrandContext,
+  resolveIsGenerationBriefBrandVoiceOn,
   runVideoGenerationBrief,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
@@ -114,6 +117,7 @@ export class VideoGenerationPreparationService {
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
+    private readonly templatesService: TemplatesService,
   ) {}
 
   async resolve(
@@ -225,12 +229,32 @@ export class VideoGenerationPreparationService {
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
 
+    // Brand voice must reach every model, including brief-compiled ones — see
+    // `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
+    // setting, never on the fidelity mode `avoid` terms can also force.
+    const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
+      brandingMode: createVideoDto.brandingMode,
+      isBrandingEnabled: createVideoDto.isBrandingEnabled,
+    })
+      ? await resolveGenerationBriefBrandContext({
+          brand: {
+            description: optionalBrandString(brand.description),
+            label: brandPromptLabel(brand.label),
+            text: optionalBrandString(brand.text),
+          },
+          branding: buildPromptBrandingFromBrand(brand),
+          organizationId: user.organizationId,
+          templatesService: this.templatesService,
+        })
+      : undefined;
+
     const {
       brief: generationBrief,
       dispatch: rawCompiledDispatch,
       evidence: briefEvidence,
       generationSource,
     } = this.compileVideoGenerationBrief({
+      briefBrandContext,
       createVideoDto,
       height,
       model,
@@ -418,6 +442,7 @@ export class VideoGenerationPreparationService {
   }
 
   private compileVideoGenerationBrief(params: {
+    briefBrandContext?: string;
     createVideoDto: CreateVideoDto;
     height: number;
     model: string;
@@ -448,6 +473,7 @@ export class VideoGenerationPreparationService {
       return runVideoGenerationBrief({
         audioDirection: params.createVideoDto.speech,
         avoid,
+        brandContext: params.briefBrandContext,
         brandingMode: params.createVideoDto.brandingMode,
         composition,
         durationSeconds: params.createVideoDto.duration,

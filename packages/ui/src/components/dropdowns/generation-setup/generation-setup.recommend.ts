@@ -257,13 +257,6 @@ function resolveBrandingMode(
   };
 }
 
-function resolvePromptEnhance(): FieldRecommendation<'isPromptEnhanceEnabled'> {
-  return {
-    reason: 'Agent expands your prompt with brand + look context',
-    value: true,
-  };
-}
-
 /**
  * Recommends a partial {@link GenerationSetupValues} plus a matching reason
  * per recommended key. Every returned key carries a reason — the caller
@@ -299,7 +292,6 @@ export function recommendGenerationSetup(
   apply('prioritize', resolvePriority(input, prompt));
   apply('outputs', resolveOutputs(input, prompt));
   apply('brandingMode', resolveBrandingMode(input));
-  apply('isPromptEnhanceEnabled', resolvePromptEnhance());
 
   return { reasons, values };
 }

@@ -37,6 +37,31 @@ describe('compileRemainingVideoGenerationBrief', () => {
     expect(result.dispatch.duration).toBe(8);
   });
 
+  it('appends brandContext to the prompt and evidence when present (#4676)', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: {
+        brandContext: 'Warm, confident, editorial voice.',
+        objective: 'waves hitting a cliff at dusk',
+      },
+      mediaKind: 'video',
+      output: { aspectRatio: '16:9', durationSeconds: 8 },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST),
+      modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+    });
+
+    expect(result.dispatch.prompt).toBe(
+      'waves hitting a cliff at dusk. Warm, confident, editorial voice.',
+    );
+    expect(result.evidence.appliedFields).toContain('intent.brandContext');
+  });
+
   it('preserves creative direction in the provider prompt and evidence', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

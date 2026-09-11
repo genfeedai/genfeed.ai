@@ -10,6 +10,8 @@ import { calculateAspectRatio } from '@genfeedai/helpers';
 
 export interface AssembleImageGenerationBriefInput {
   avoid?: string[];
+  /** Resolved brand-voice text; only ever passed when Brand voice is on. */
+  brandContext?: string;
   composition?: string;
   fidelityMode: GenerationFidelityMode;
   height?: number;
@@ -47,6 +49,7 @@ export function assembleImageGenerationBrief(
   const provenance: GenerationBriefProvenance[] = [
     { field: 'intent.objective', source: 'user' },
   ];
+  const brandContext = optionalText(input.brandContext);
   const scene = optionalText(input.scene);
   const lighting = optionalText(input.lighting);
   const composition = optionalText(input.composition);
@@ -61,6 +64,9 @@ export function assembleImageGenerationBrief(
     }),
   );
 
+  if (brandContext) {
+    provenance.push({ field: 'intent.brandContext', source: 'brand' });
+  }
   if (scene) {
     provenance.push({ field: 'intent.scene', source: 'user' });
   }
@@ -99,6 +105,7 @@ export function assembleImageGenerationBrief(
     constraints,
     fidelityMode: input.fidelityMode,
     intent: {
+      ...(brandContext ? { brandContext } : {}),
       ...(composition ? { composition } : {}),
       ...(lighting ? { lighting } : {}),
       objective: input.objective.trim(),

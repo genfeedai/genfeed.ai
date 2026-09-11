@@ -64,6 +64,10 @@ function buildPrompt(
   if (brief.intent.visualDirection) {
     parts.push(brief.intent.visualDirection);
   }
+  // Independent of fidelity policy — brand voice follows Brand voice only.
+  if (brief.intent.brandContext) {
+    parts.push(brief.intent.brandContext);
+  }
   if (brief.intent.requestedText.length > 0) {
     parts.push(`Visible text: ${brief.intent.requestedText.join(', ')}`);
   }
@@ -159,6 +163,7 @@ export function compileFluxSchnellGenerationBrief(
     ...(input.brief.intent.composition ? ['intent.composition'] : []),
     ...(input.brief.intent.lighting ? ['intent.lighting'] : []),
     ...(input.brief.intent.visualDirection ? ['intent.visualDirection'] : []),
+    ...(input.brief.intent.brandContext ? ['intent.brandContext'] : []),
     ...(input.brief.intent.requestedText.length > 0
       ? ['intent.requestedText']
       : []),

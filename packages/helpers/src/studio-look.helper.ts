@@ -24,7 +24,6 @@ export function buildStudioLookPayload(
     camera: values.camera ?? '',
     cameraMovement: isVideo ? (values.cameraMovement ?? '') : null,
     duration: isVideo ? (values.duration ?? null) : null,
-    isPromptEnhanceEnabled: values.isPromptEnhanceEnabled,
     label: label.trim(),
     lens: values.lens ?? '',
     lighting: values.lighting ?? '',
@@ -70,9 +69,6 @@ export function presetToGenerationSetupValues(
   }
   if (preset.brandingMode) {
     patch.brandingMode = preset.brandingMode;
-  }
-  if (preset.isPromptEnhanceEnabled != null) {
-    patch.isPromptEnhanceEnabled = preset.isPromptEnhanceEnabled;
   }
   if (preset.modelKey) {
     patch.modelKey = preset.modelKey;

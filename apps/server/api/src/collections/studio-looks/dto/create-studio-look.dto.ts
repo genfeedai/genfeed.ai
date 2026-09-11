@@ -3,7 +3,6 @@ import type { StudioLookAssetType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
-  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -152,14 +151,4 @@ export class CreateStudioLookDto {
   @IsOptional()
   @IsIn(STUDIO_LOOK_BRANDING_MODES)
   brandingMode?: 'brand' | 'off' | null;
-
-  @ApiProperty({
-    default: true,
-    description:
-      'Whether the agent expands the prompt with brand + look context',
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  isPromptEnhanceEnabled?: boolean;
 }

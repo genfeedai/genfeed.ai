@@ -59,7 +59,7 @@ import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarCompose
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect } from 'react';
@@ -80,6 +80,7 @@ export default function StudioGenerateComposer({
   attachedAssets,
   extraExtensions,
   isDragActive = false,
+  isEnhancingPrompt = false,
   isGenerating,
   isListening,
   isLoadingModels,
@@ -87,6 +88,7 @@ export default function StudioGenerateComposer({
   isUploading,
   models,
   onAddFiles,
+  onEnhancePrompt,
   onOpenLibrary,
   onPromptChange,
   onPromptDocumentChange,
@@ -466,6 +468,19 @@ export default function StudioGenerateComposer({
             >
               {translate('estimatedCredits', { credits: estimatedCredits })}
             </span>
+          ) : null}
+          {onEnhancePrompt ? (
+            <Button
+              ariaLabel="Enhance prompt"
+              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+              icon={<WandSparkles className="size-4" />}
+              isDisabled={isGenerating || isEnhancingPrompt || isPromptEmpty}
+              isLoading={isEnhancingPrompt}
+              onClick={onEnhancePrompt}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
           ) : null}
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl

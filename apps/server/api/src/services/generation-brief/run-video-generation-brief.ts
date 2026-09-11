@@ -25,6 +25,13 @@ export interface RunVideoGenerationBriefInput {
   audioDirection?: string;
   avoid?: string[];
   brandingMode?: 'off' | 'brand';
+  /**
+   * Resolved brand-voice text. Callers gate this solely on Brand voice
+   * (`resolveIsGenerationBriefBrandVoiceOn`) — it must never depend on
+   * `fidelityMode`, which `avoid` terms can force to `guided` independently
+   * of branding.
+   */
+  brandContext?: string;
   cameraMovement?: string;
   fidelityMode?: GenerationFidelityMode;
   composition?: string;
@@ -111,6 +118,7 @@ export function runVideoGenerationBrief(
   const brief = assembleVideoGenerationBrief({
     audioDirection: input.audioDirection,
     avoid: input.avoid,
+    brandContext: input.brandContext,
     composition: input.composition,
     durationSeconds: input.durationSeconds,
     endFrameId: input.endFrameId,

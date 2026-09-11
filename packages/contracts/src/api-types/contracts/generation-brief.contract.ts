@@ -157,6 +157,12 @@ export const imageGenerationBriefReferenceSchema = z
 
 export const generationBriefIntentSchema = z
   .object({
+    /**
+     * Brand-voice text, present only when Brand voice is on — independent of
+     * fidelity mode so it survives even when `avoid` terms force `guided`
+     * with branding off. See `resolveGenerationBriefBrandContext`.
+     */
+    brandContext: generationBriefShortTextSchema.optional(),
     composition: generationBriefShortTextSchema.optional(),
     lighting: generationBriefShortTextSchema.optional(),
     objective: generationBriefTextSchema,

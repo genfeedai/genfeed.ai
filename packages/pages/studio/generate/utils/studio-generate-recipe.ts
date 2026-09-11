@@ -10,6 +10,7 @@ import type {
 } from '@pages/studio/generate/types';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { STUDIO_ASPECT_RATIOS } from './studio-generate-settings';
+import { getStudioGenerateTypeConfig } from './studio-generate-types';
 
 const RECIPE_FIELD_LABELS = [
   ['brandingMode', 'Brand enrichment'],
@@ -97,6 +98,24 @@ export function isStudioGenerateJobPending(status: IngredientStatus): boolean {
   );
 }
 
+/**
+ * Brand voice cannot apply to music, avatar, or voice — record `'off'`
+ * regardless of what the source data says, so a recipe never claims brand
+ * enrichment for an output type it can't reach (#4676 FR8). For types that
+ * do support it, the recipe records the state actually applied, not a raw
+ * `brandingMode` field that may be absent (and therefore falsy-truthy) on
+ * payloads that never carry one.
+ */
+function resolveRecipeBrandingMode(
+  type: StudioGenerateType,
+  isBrandingApplied: boolean | undefined,
+): 'brand' | 'off' {
+  if (!getStudioGenerateTypeConfig(type).capabilities.hasBrandEnrichment) {
+    return 'off';
+  }
+  return isBrandingApplied ? 'brand' : 'off';
+}
+
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -118,7 +137,7 @@ export function recipeFromPromptData(
   return {
     aspectRatio: settings.aspectRatio,
     blacklist: promptData.blacklist ?? [],
-    brandingMode: promptData.brandingMode === 'off' ? 'off' : 'brand',
+    brandingMode: resolveRecipeBrandingMode(type, promptData.isBrandingEnabled),
     camera: optionalText(promptData.camera),
     cameraMovement: optionalText(promptData.cameraMovement),
     duration: promptData.duration,
@@ -153,7 +172,7 @@ export function recipeFromRepromptData(
       promptData.height,
     ),
     blacklist: promptData.blacklist ?? [],
-    brandingMode: promptData.brandingMode === 'off' ? 'off' : 'brand',
+    brandingMode: resolveRecipeBrandingMode(type, promptData.isBrandingEnabled),
     camera: optionalText(promptData.camera),
     cameraMovement: optionalText(promptData.cameraMovement),
     duration: promptData.duration,
@@ -194,7 +213,10 @@ export function recipeFromIngredient(
   return {
     aspectRatio: resolveAspectRatioFromDimensions(width, height),
     blacklist: stringList(metadata.blacklist),
-    brandingMode: metadata.brandingMode === 'off' ? 'off' : 'brand',
+    brandingMode: resolveRecipeBrandingMode(
+      type,
+      metadata.brandingMode === 'brand',
+    ),
     camera: optional('camera'),
     cameraMovement: optional('cameraMovement'),
     duration:
