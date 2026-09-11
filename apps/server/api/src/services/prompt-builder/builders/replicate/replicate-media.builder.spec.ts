@@ -101,6 +101,45 @@ describe('ReplicateMediaBuilder', () => {
 
       expect(result).toHaveProperty('seed', -1);
     });
+
+    it('should pass through supported sampling params from the request', () => {
+      const params = {
+        ...baseParams,
+        classifierFreeGuidance: 5,
+        modelVersion: 'melody',
+        temperature: 0.7,
+        topK: 100,
+        topP: 0.9,
+      };
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
+        params,
+        'music',
+      );
+
+      expect(result).toMatchObject({
+        classifier_free_guidance: 5,
+        model_version: 'melody',
+        temperature: 0.7,
+        top_k: 100,
+        top_p: 0.9,
+      });
+    });
+
+    it('should ignore unsupported params and keep provider defaults', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
+        baseParams,
+        'music',
+      );
+
+      expect(result).toMatchObject({
+        classifier_free_guidance: 3,
+        model_version: 'stereo-large',
+        top_k: 250,
+        top_p: 0,
+      });
+    });
   });
 
   describe('buildPrompt - Topaz Image Upscale', () => {

@@ -53,18 +53,18 @@ export class ReplicateMediaBuilder extends BaseReplicateBuilder {
     promptText: string,
   ): MusicGenInput {
     return {
-      classifier_free_guidance: 3,
+      classifier_free_guidance: params.classifierFreeGuidance ?? 3,
       continuation: false,
       continuation_start: 0,
       duration: params.duration ?? 8,
-      model_version: 'stereo-large',
+      model_version: params.modelVersion ?? 'stereo-large',
       normalization_strategy: 'loudness',
       output_format: 'mp3',
       prompt: promptText,
       seed: params.seed ?? -1,
-      temperature: 1,
-      top_k: 250,
-      top_p: 0,
+      temperature: params.temperature ?? 1,
+      top_k: params.topK ?? 250,
+      top_p: params.topP ?? 0,
     };
   }
 

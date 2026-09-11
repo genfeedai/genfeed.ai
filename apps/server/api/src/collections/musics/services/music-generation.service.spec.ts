@@ -12,6 +12,7 @@ import {
   ActivityKey,
   IngredientStatus,
   ModelCategory,
+  ModelProvider,
   PromptCategory,
   RouterPriority,
 } from '@genfeedai/contracts';
@@ -30,6 +31,14 @@ describe('MusicGenerationService', () => {
     originalUrl: '/api/musics',
     selectedModel: { category: ModelCategory.MUSIC },
   } as unknown as Request;
+
+  const activeMusicModel = {
+    category: ModelCategory.MUSIC,
+    cost: 7,
+    endpoint: 'meta/musicgen',
+    isActive: true,
+    provider: ModelProvider.REPLICATE,
+  };
 
   const buildDto = (overrides: Partial<CreateMusicDto> = {}): CreateMusicDto =>
     Object.assign(new CreateMusicDto(), {
@@ -73,8 +82,19 @@ describe('MusicGenerationService', () => {
     const metadataService = {
       patch: vi.fn().mockResolvedValue(undefined),
     };
-    const modelsService = {
+    const creditsModelsService = {
       findOne: vi.fn().mockResolvedValue({ cost: 7 }),
+    };
+    const modelsService = {
+      findOne: vi.fn().mockResolvedValue(activeMusicModel),
+    };
+    const musicProviderRegistry = {
+      generate: vi.fn().mockImplementation(() => {
+        generationCount += 1;
+        return Promise.resolve({ externalId: `generation-${generationCount}` });
+      }),
+      providerFor: vi.fn().mockReturnValue('replicate'),
+      supports: vi.fn().mockReturnValue(true),
     };
     const musicsService = {
       patch: vi.fn().mockResolvedValue(undefined),
@@ -84,11 +104,6 @@ describe('MusicGenerationService', () => {
         .fn()
         .mockResolvedValue({ defaultMusicModel: 'organization-model' }),
     };
-    const promptBuilderService = {
-      buildPrompt: vi.fn().mockResolvedValue({
-        input: { prompt: 'provider-ready prompt' },
-      }),
-    };
     const promptsService = {
       create: vi.fn().mockImplementation((prompt) =>
         Promise.resolve({
@@ -96,12 +111,6 @@ describe('MusicGenerationService', () => {
           id: 'prompt-1',
         }),
       ),
-    };
-    const replicateService = {
-      runModel: vi.fn().mockImplementation(() => {
-        generationCount += 1;
-        return Promise.resolve(`generation-${generationCount}`);
-      }),
     };
     const routerService = {
       getDefaultModel: vi.fn().mockResolvedValue('system-model'),
@@ -129,7 +138,7 @@ describe('MusicGenerationService', () => {
     const creditsService = new MusicGenerationCreditsService(
       creditsUtilsService as never,
       loggerService as never,
-      modelsService as never,
+      creditsModelsService as never,
     );
     const service = new MusicGenerationService(
       activitiesService as never,
@@ -139,11 +148,11 @@ describe('MusicGenerationService', () => {
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
+      modelsService as never,
+      musicProviderRegistry as never,
       organizationSettingsService as never,
       musicsService as never,
       promptsService as never,
-      promptBuilderService as never,
-      replicateService as never,
       routerService as never,
       sharedService as never,
       websocketService as never,
@@ -158,11 +167,10 @@ describe('MusicGenerationService', () => {
       loggerService,
       metadataService,
       modelsService,
+      musicProviderRegistry,
       musicsService,
       organizationSettingsService,
-      promptBuilderService,
       promptsService,
-      replicateService,
       routerService,
       service,
       sharedService,
@@ -179,6 +187,10 @@ describe('MusicGenerationService', () => {
       request,
     );
 
+    expect(created.modelsService.findOne).toHaveBeenCalledWith({
+      key: 'explicit-model',
+      organizationId: 'org-1',
+    });
     expect(created.promptsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         category: PromptCategory.MODELS_PROMPT_MUSIC,
@@ -206,21 +218,20 @@ describe('MusicGenerationService', () => {
         taskId: 'music-1',
       }),
     );
-    expect(created.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-      'explicit-model',
-      {
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
         duration: 10,
+        model: 'explicit-model',
         modelCategory: ModelCategory.MUSIC,
+        modelEndpoint: 'meta/musicgen',
+        modelProvider: ModelProvider.REPLICATE,
         prompt: 'Generate happy background music',
         seed: 42,
-      },
-    );
-    expect(created.replicateService.runModel).toHaveBeenCalledWith(
-      'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
-      { prompt: 'provider-ready prompt' },
+      }),
     );
     expect(created.metadataService.patch).toHaveBeenCalledWith('metadata-1', {
       externalId: 'generation-1',
+      externalProvider: 'replicate',
     });
     expect(serializeSingle).toHaveBeenCalledWith(
       request,
@@ -253,6 +264,61 @@ describe('MusicGenerationService', () => {
       });
     }
     expect(promptsService.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects before creating any job when no eligible music model exists', async () => {
+    const created = createService();
+    created.modelsService.findOne.mockResolvedValue(null as never);
+
+    try {
+      await created.service.generateMusic(user, buildDto(), request);
+      expect.fail('Expected the missing-model rejection to throw');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect((error as HttpException).getResponse()).toEqual(
+        expect.objectContaining({ title: 'Music model unavailable' }),
+      );
+    }
+    expect(created.promptsService.create).not.toHaveBeenCalled();
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();
+  });
+
+  it('rejects an inactive registry row even when explicitly requested', async () => {
+    const created = createService();
+    created.modelsService.findOne.mockResolvedValue({
+      ...activeMusicModel,
+      isActive: false,
+    } as never);
+
+    await expect(
+      created.service.generateMusic(user, buildDto(), request),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-music category row even when explicitly requested', async () => {
+    const created = createService();
+    created.modelsService.findOne.mockResolvedValue({
+      ...activeMusicModel,
+      category: ModelCategory.IMAGE,
+    } as never);
+
+    await expect(
+      created.service.generateMusic(user, buildDto(), request),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+  });
+
+  it('rejects when no provider adapter supports the resolved model', async () => {
+    const created = createService();
+    created.musicProviderRegistry.supports.mockReturnValue(false);
+
+    await expect(
+      created.service.generateMusic(user, buildDto(), request),
+    ).rejects.toBeInstanceOf(HttpException);
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
   });
 
   it('uses auto-routing ahead of every configured default', async () => {
@@ -332,11 +398,11 @@ describe('MusicGenerationService', () => {
 
   it('clamps outputs to four and continues after a partial provider failure', async () => {
     const created = createService();
-    created.replicateService.runModel
-      .mockResolvedValueOnce('generation-1')
+    created.musicProviderRegistry.generate
+      .mockResolvedValueOnce({ externalId: 'generation-1' })
       .mockRejectedValueOnce(new Error('second output failed'))
-      .mockResolvedValueOnce('generation-3')
-      .mockResolvedValueOnce('generation-4');
+      .mockResolvedValueOnce({ externalId: 'generation-3' })
+      .mockResolvedValueOnce({ externalId: 'generation-4' });
 
     const response = await created.service.generateMusic(
       user,
@@ -345,12 +411,12 @@ describe('MusicGenerationService', () => {
     );
 
     expect(created.sharedService.createMediaDocuments).toHaveBeenCalledTimes(4);
-    expect(created.replicateService.runModel).toHaveBeenCalledTimes(4);
-    expect(created.promptBuilderService.buildPrompt.mock.calls).toEqual([
-      ['explicit-model', expect.objectContaining({ seed: 100 })],
-      ['explicit-model', expect.objectContaining({ seed: 101 })],
-      ['explicit-model', expect.objectContaining({ seed: 102 })],
-      ['explicit-model', expect.objectContaining({ seed: 103 })],
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledTimes(4);
+    expect(created.musicProviderRegistry.generate.mock.calls).toEqual([
+      [expect.objectContaining({ model: 'explicit-model', seed: 100 })],
+      [expect.objectContaining({ model: 'explicit-model', seed: 101 })],
+      [expect.objectContaining({ model: 'explicit-model', seed: 102 })],
+      [expect.objectContaining({ model: 'explicit-model', seed: 103 })],
     ]);
     expect(
       created.failedGenerationService.handleFailedMusicGeneration,
@@ -382,9 +448,8 @@ describe('MusicGenerationService', () => {
     );
 
     expect(created.sharedService.createMediaDocuments).toHaveBeenCalledOnce();
-    expect(created.promptBuilderService.buildPrompt).toHaveBeenCalledOnce();
-    expect(created.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-      'explicit-model',
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledOnce();
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
       expect.objectContaining({ seed: -1 }),
     );
   });
@@ -420,13 +485,15 @@ describe('MusicGenerationService', () => {
       created.creditsUtilsService.deductCreditsFromOrganization.mock
         .invocationCallOrder[0],
     ).toBeLessThan(
-      created.replicateService.runModel.mock.invocationCallOrder[1],
+      created.musicProviderRegistry.generate.mock.invocationCallOrder[1],
     );
   });
 
   it('does not deduct credits when the primary generation cannot start', async () => {
     const created = createService();
-    created.replicateService.runModel.mockResolvedValue(null as never);
+    created.musicProviderRegistry.generate.mockResolvedValue({
+      externalId: '',
+    } as never);
 
     await created.service.generateMusic(
       user,

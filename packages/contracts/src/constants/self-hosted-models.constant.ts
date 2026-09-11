@@ -315,4 +315,27 @@ export const SELF_HOSTED_MODELS = [
     providerConfig: { name: 'video-upscaler', owner: 'bytedance' },
     providerCostUsd: 0.05,
   },
+  /**
+   * Only music model until #4680 adds Eleven Music, Lyria 3 Pro, and Mureka
+   * V9. Curated (cost > 0, isActive/isDefault) so the MUSIC category always
+   * has a usable registry row — an uncurated row seeds inactive and free,
+   * which left the router with nothing to select (#4679).
+   * Unpinned `endpoint` (defaults to `key`) so Replicate always runs the
+   * model's current default version instead of a version hash frozen in
+   * application code.
+   */
+  {
+    category: ModelCategory.MUSIC,
+    cost: 17,
+    costTier: CostTier.LOW,
+    description:
+      'Meta MusicGen — text-to-music generation, 5-30 second instrumental clips.',
+    isDefault: true,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    label: 'MusicGen',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'musicgen', owner: 'meta' },
+    providerCostUsd: 0.05,
+  },
 ] as const;
