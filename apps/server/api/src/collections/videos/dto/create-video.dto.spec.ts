@@ -122,7 +122,7 @@ describe('CreateVideoDto', () => {
         model: 'google/veo-3',
         outputs: 1,
         references: [],
-        tags: ['product'],
+        tags: [entityId(3)],
         text: 'a product ad',
         useTemplate: true,
         width: 1080,
@@ -134,7 +134,7 @@ describe('CreateVideoDto', () => {
         blacklist: ['logo'],
         duration: 8,
         model: 'google/veo-3',
-        tags: ['product'],
+        tags: [entityId(3)],
         text: 'a product ad',
         width: 1080,
       });
