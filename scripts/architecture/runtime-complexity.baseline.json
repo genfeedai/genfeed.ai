@@ -108,18 +108,6 @@
     "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
   },
   {
-    "actual": 17,
-    "file": "apps/server/api/src/collections/videos/services/video-music-orchestration.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "VideoMusicOrchestrationService.constructor"
-  },
-  {
-    "actual": 198,
-    "file": "apps/server/api/src/collections/videos/services/video-music-orchestration.service.ts",
-    "metric": "method-lines",
-    "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
-  },
-  {
     "actual": 1189,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
