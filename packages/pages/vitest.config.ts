@@ -73,6 +73,14 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './tests/$1'),
       },
       {
+        // Pages render hooks that reach `@genfeedai/auth-client` (e.g. via
+        // `useAuthedService`). The real Better Auth session atom schedules a
+        // delayed nanostores cleanup that touches `window` after jsdom
+        // teardown, so resolve it to the same timer-free stub as apps/app.
+        find: /^better-auth\/react$/,
+        replacement: path.resolve(appRoot, './tests/better-auth-react.stub.ts'),
+      },
+      {
         find: 'server-only',
         replacement: path.resolve(appRoot, './tests/server-only.stub.ts'),
       },
