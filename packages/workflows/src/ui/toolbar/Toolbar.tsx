@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   Redo2,
   Save,
-  SaveAll,
   Settings,
   Undo2,
   X,
@@ -30,7 +29,6 @@ import { getWorkflowLogger } from '../stores/executionLogger';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
-import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';
 import { ToolbarDropdown } from './ToolbarDropdown';
 import type { DropdownItem, ToolbarProps } from './types';
@@ -104,8 +102,6 @@ interface FileMenuOptions {
   fileMenuItemsPrepend?: DropdownItem[];
   handleExport: () => void;
   handleImport: () => void;
-  onSaveAs?: ToolbarProps['onSaveAs'];
-  openSaveAsDialog: () => void;
 }
 
 function useFileMenuItems({
@@ -113,8 +109,6 @@ function useFileMenuItems({
   fileMenuItemsPrepend,
   handleExport,
   handleImport,
-  onSaveAs,
-  openSaveAsDialog,
 }: FileMenuOptions): DropdownItem[] {
   return useMemo(() => {
     const items: DropdownItem[] = [];
@@ -122,16 +116,6 @@ function useFileMenuItems({
     if (fileMenuItemsPrepend?.length) {
       items.push(...fileMenuItemsPrepend);
       items.push({ id: 'separator-prepend', separator: true });
-    }
-
-    if (onSaveAs) {
-      items.push({
-        icon: <SaveAll className="size-4" />,
-        id: 'saveAs',
-        label: 'Save As...',
-        onClick: openSaveAsDialog,
-      });
-      items.push({ id: 'separator-saveas', separator: true });
     }
 
     items.push(
@@ -155,14 +139,7 @@ function useFileMenuItems({
     }
 
     return items;
-  }, [
-    handleExport,
-    handleImport,
-    onSaveAs,
-    openSaveAsDialog,
-    fileMenuItemsPrepend,
-    fileMenuItemsAppend,
-  ]);
+  }, [handleExport, handleImport, fileMenuItemsPrepend, fileMenuItemsAppend]);
 }
 
 function ValidationErrorsToast({
@@ -212,7 +189,6 @@ function ValidationErrorsToast({
 
 export function Toolbar({
   onAutoLayout,
-  onSaveAs,
   fileMenuItemsPrepend,
   fileMenuItemsAppend,
   additionalMenus,
@@ -227,13 +203,12 @@ export function Toolbar({
   embedded = false,
   rightContent,
 }: ToolbarProps) {
-  const { exportWorkflow, workflowName } = useWorkflowStore();
+  const { exportWorkflow } = useWorkflowStore();
   const { undo, redo } = useWorkflowStore.temporal.getState();
   const [historyState, setHistoryState] = useState({
     canRedo: false,
     canUndo: false,
   });
-  const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
   const { canRedo, canUndo } = historyState;
   const validationErrors = useExecutionStore((state) => state.validationErrors);
   const clearValidationErrors = useExecutionStore(
@@ -311,27 +286,11 @@ export function Toolbar({
     input.click();
   }, []);
 
-  const handleSaveAs = useCallback(
-    (newName: string) => {
-      if (onSaveAs) {
-        onSaveAs(newName);
-      }
-      setShowSaveAsDialog(false);
-    },
-    [onSaveAs],
-  );
-
-  const openSaveAsDialog = useCallback(() => {
-    setShowSaveAsDialog(true);
-  }, []);
-
   const fileMenuItems = useFileMenuItems({
     fileMenuItemsAppend,
     fileMenuItemsPrepend,
     handleExport,
     handleImport,
-    onSaveAs,
-    openSaveAsDialog,
   });
 
   return (
@@ -461,14 +420,6 @@ export function Toolbar({
       <ValidationErrorsToast
         messages={uniqueErrorMessages}
         onClear={clearValidationErrors}
-      />
-
-      {/* Save As Dialog */}
-      <SaveAsDialog
-        isOpen={showSaveAsDialog}
-        currentName={workflowName}
-        onSave={handleSaveAs}
-        onClose={() => setShowSaveAsDialog(false)}
       />
     </div>
   );

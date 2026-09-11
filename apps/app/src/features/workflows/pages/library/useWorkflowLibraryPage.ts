@@ -122,9 +122,12 @@ export function useWorkflowLibraryPage() {
           error: err,
           workflowId: id,
         });
+        notificationsService.error(
+          err instanceof Error ? err.message : 'Could not duplicate workflow',
+        );
       }
     },
-    [getService, push, href],
+    [getService, notificationsService, push, href],
   );
 
   const handleDelete = useCallback(

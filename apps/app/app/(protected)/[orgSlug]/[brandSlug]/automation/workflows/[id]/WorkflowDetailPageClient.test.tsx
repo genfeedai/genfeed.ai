@@ -44,6 +44,16 @@ describe(relativePath, () => {
     expect(source).not.toContain('min-h-screen items-center justify-center');
   });
 
+  it('never auto-creates a workflow: Save As is gone and Run/Publish disable while unsaved and empty (#4664)', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).not.toContain('handleSaveAsCopy');
+    expect(source).not.toContain('onSaveAsCopy');
+    expect(source).toContain('isUnsavedEmpty');
+    expect(source).toContain('!currentWorkflowId && nodes.length === 0');
+    expect(source).toContain('isUnsavedEmpty={isUnsavedEmpty}');
+  });
+
   it('tracks bounded workflow start and terminal outcomes', () => {
     const capture = vi.fn();
     const tracker = createEditorWorkflowRunTracker(capture);

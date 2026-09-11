@@ -39,6 +39,8 @@ interface CloudWorkflowState {
   cloudError: string | null;
   /** Auto-save timer reference */
   autoSaveTimeoutId: ReturnType<typeof setTimeout> | null;
+  /** A save was requested while one was already in flight; run it once the in-flight save settles */
+  hasQueuedSave: boolean;
   /** Available brands for BrandNode */
   brands: BrandSummary[];
   /** Whether brands are being loaded */
@@ -59,10 +61,6 @@ interface CloudWorkflowActions {
   publishWorkflow: (service: WorkflowApiService) => Promise<void>;
   /** Archive the current workflow */
   archiveWorkflow: (service: WorkflowApiService) => Promise<void>;
-  /** Duplicate the current workflow */
-  duplicateWorkflow: (
-    service: WorkflowApiService,
-  ) => Promise<CloudWorkflowData>;
   /** Load brands for BrandNode */
   loadBrands: (service: WorkflowApiService) => Promise<void>;
   /** Persist current run values as the default values used by scheduled runs */
@@ -148,27 +146,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       }
     },
     cloudError: null,
-
-    duplicateWorkflow: async (service) => {
-      const { workflowId } = get();
-      if (!workflowId) {
-        throw new Error('Cannot duplicate: workflow has not been saved');
-      }
-
-      try {
-        const data = await service.duplicate(workflowId);
-        set({ cloudError: null });
-        return data;
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Failed to duplicate workflow';
-        logger.error('Cloud workflow duplicate failed', { error, workflowId });
-        set({ cloudError: message });
-        throw error;
-      }
-    },
+    hasQueuedSave: false,
     isBrandsLoading: false,
     isCloudLoading: false,
     isHydrated: false,
@@ -296,6 +274,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       set({
         autoSaveTimeoutId: null,
         cloudError: null,
+        hasQueuedSave: false,
         isCloudLoading: false,
         isHydrated: false,
         inputVariables: [],
@@ -318,12 +297,24 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       } = get();
       const workflowStore = useWorkflowStore.getState();
 
-      // Prevent concurrent saves
+      // Never auto-create a workflow with no nodes: one that has never been
+      // saved and currently has no nodes stays unsaved until a node is
+      // added. An already-saved workflow (has a workflowId) emptied of
+      // nodes still saves normally — existing empty rows are left alone.
+      if (!workflowId && workflowStore.nodes.length === 0) {
+        return;
+      }
+
+      // A save is already in flight: queue this one as a trailing save
+      // instead of dropping it, so the latest edits persist once the
+      // current save settles.
       if (workflowStore.isSaving) {
+        set({ hasQueuedSave: true });
         return;
       }
 
       useWorkflowStore.setState({ isSaving: true });
+      set({ hasQueuedSave: false });
 
       try {
         const restoredNodes = restoreWorkflowNodeTypes(
@@ -375,12 +366,17 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           cloudError: null,
           inputVariables: savedData.inputVariables ?? inputVariables,
         });
+
+        if (get().hasQueuedSave) {
+          set({ hasQueuedSave: false });
+          await get().saveToCloud(service);
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to save workflow';
         logger.error('Cloud workflow save failed', { error, workflowId });
         useWorkflowStore.setState({ isSaving: false });
-        set({ cloudError: message });
+        set({ cloudError: message, hasQueuedSave: false });
         throw error;
       }
     },

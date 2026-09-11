@@ -345,18 +345,19 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
-    // Clone via create body (`sourceWorkflowId`). An explicit body brandId wins
-    // over the session brand — the retired POST /:id/clone had the same
-    // precedence (`dto.brandId ?? sessionBrand`).
+    // Clone via create body (`sourceWorkflowId`). An explicit body brandId
+    // wins; otherwise the clone stays on the SOURCE workflow's brand, which
+    // `cloneWorkflow`'s own fallback resolves. `defaultBrandId` (the
+    // caller's session brand) must NOT be applied here — doing so would
+    // collapse "no explicit brandId" into the session brand before
+    // `cloneWorkflow` ever sees it, silently moving every clone off its
+    // source brand and hiding it from that brand's library (#4664).
     if (workflowData.sourceWorkflowId) {
       return this.cloneWorkflow(
         workflowData.sourceWorkflowId,
         userId,
         organizationId,
-        resolveWorkflowBrandId(
-          (workflowData as WorkflowCreateExtras).brandId,
-          defaultBrandId,
-        ),
+        resolveWorkflowBrandId((workflowData as WorkflowCreateExtras).brandId),
       );
     }
 

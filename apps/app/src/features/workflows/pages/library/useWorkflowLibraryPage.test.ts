@@ -393,6 +393,21 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     );
   });
 
+  it('surfaces a duplicate failure to the user instead of failing silently', async () => {
+    mocks.serviceDuplicate.mockRejectedValueOnce(
+      new Error('brand unavailable'),
+    );
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleDuplicate('wf-1');
+    });
+
+    expect(mocks.notificationsError).toHaveBeenCalledWith('brand unavailable');
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
   it('does not delete canonical system workflows from the library', async () => {
     mocks.serviceList.mockResolvedValueOnce([
       makeWorkflow({

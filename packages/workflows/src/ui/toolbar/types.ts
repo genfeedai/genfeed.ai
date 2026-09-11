@@ -31,8 +31,6 @@ export interface ToolbarMenu {
 export interface ToolbarProps {
   /** Optional callback for auto-layout functionality */
   onAutoLayout?: (direction: 'LR' | 'TB') => void;
-  /** Optional callback for "Save As" action */
-  onSaveAs?: (newName: string) => void;
   /** Additional file menu items to prepend */
   fileMenuItemsPrepend?: DropdownItem[];
   /** Additional file menu items to append */

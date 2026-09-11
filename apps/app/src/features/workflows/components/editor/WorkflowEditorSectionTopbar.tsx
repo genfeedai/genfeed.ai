@@ -28,6 +28,8 @@ interface WorkflowEditorSectionTopbarProps {
   estimateLabel?: string | null;
   graphChrome?: ReactNode;
   isRunning: boolean;
+  /** A new, never-saved workflow with no nodes yet — Run/Publish stay disabled until it has one. */
+  isUnsavedEmpty?: boolean;
   lifecycle: WorkflowLifecycle;
   onArchive: () => void;
   onPublish: () => void;
@@ -40,6 +42,7 @@ export function WorkflowEditorSectionTopbar({
   estimateLabel,
   graphChrome,
   isRunning,
+  isUnsavedEmpty = false,
   lifecycle,
   onArchive,
   onPublish,
@@ -53,9 +56,13 @@ export function WorkflowEditorSectionTopbar({
   );
   const { href } = useOrgUrl();
   const canArchive = lifecycle !== 'archived';
-  const canPublish = lifecycle === 'draft';
-  const publishUnavailableMessage =
-    lifecycle === 'published'
+  const canPublish = lifecycle === 'draft' && !isUnsavedEmpty;
+  const runUnavailableMessage = isUnsavedEmpty
+    ? translate('runRequiresNodes')
+    : null;
+  const publishUnavailableMessage = isUnsavedEmpty
+    ? translate('publishRequiresNodes')
+    : lifecycle === 'published'
       ? translate('publishAlreadyPublished')
       : lifecycle === 'archived'
         ? translate('publishArchived')
@@ -129,16 +136,27 @@ export function WorkflowEditorSectionTopbar({
           ) : null}
 
           <Button
+            aria-describedby={
+              runUnavailableMessage
+                ? 'workflow-run-unavailable-description'
+                : undefined
+            }
             className="shrink-0"
-            disabled={isRunning}
+            disabled={isRunning || isUnsavedEmpty}
             icon={<Play className="size-4" />}
             onClick={onRun}
             size={ButtonSize.SM}
+            tooltip={runUnavailableMessage ?? undefined}
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           >
             {isRunning ? translate('running') : translate('run')}
           </Button>
+          {runUnavailableMessage ? (
+            <span className="sr-only" id="workflow-run-unavailable-description">
+              {runUnavailableMessage}
+            </span>
+          ) : null}
 
           <Button
             aria-describedby={

@@ -575,7 +575,11 @@ describe('WorkflowsService system workflow guardrails', () => {
     );
   });
 
-  it('falls back to the session brand when cloning via create without a body brandId', async () => {
+  it('does not fall back to the session brand when cloning via create without a body brandId (#4664)', async () => {
+    // The session brand must never be applied at this call site: doing so
+    // would collapse "no explicit brandId" into the session brand before
+    // cloneWorkflow's own source-brand fallback ever runs, silently moving
+    // every duplicate off its source brand.
     vi.spyOn(service, 'cloneWorkflow').mockResolvedValue({} as never);
 
     await service.createWorkflow(
@@ -593,8 +597,49 @@ describe('WorkflowsService system workflow guardrails', () => {
       'workflow-1',
       'user-1',
       'org-1',
+      undefined,
+    );
+  });
+
+  it('lands a create-with-sourceWorkflowId clone on the source brand, not the session brand (#4664)', async () => {
+    vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
+      brandId: 'source-brand',
+      edges: [],
+      id: 'workflow-1',
+      inputVariables: [],
+      label: 'Launch Workflow',
+      lockedNodeIds: [],
+      metadata: {},
+      nodes: [],
+      organizationId: 'org-1',
+      userId: 'owner-user',
+    } as never);
+    vi.spyOn(service, 'create').mockResolvedValue({
+      id: 'copy-workflow-1',
+      label: 'Launch Workflow (Copy)',
+      metadata: {},
+      nodes: [],
+    } as never);
+
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        edges: [],
+        nodes: [],
+        sourceWorkflowId: 'workflow-1',
+      } as never,
       'session-brand',
     );
+
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
+      brandId?: string;
+    };
+    expect(createInput.brandId).toBe('source-brand');
+    expect(brandFindFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: expect.objectContaining({ id: 'source-brand' }),
+    });
   });
 
   it('rejects clone target brands outside the authenticated organization', async () => {
