@@ -269,142 +269,123 @@ function AgentChatMessageInner({
   );
 
   return (
-    <div
-      id={messageAnchorId}
-      className={cn(
-        'group mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
-        isUser
-          ? cn(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS, 'flex-col')
-          : 'justify-start',
-      )}
-      style={entranceAnimationStyle}
-    >
+    <>
       <div
-        data-message-role={message.role}
-        data-message-surface={isUser ? 'prompt' : 'inline'}
+        id={messageAnchorId}
         className={cn(
-          'relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
-          isHighlighted && !isUser && SCROLL_FOCUS_SURFACE_CLASS,
+          'group flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
           isUser
-            ? AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS
-            : // Free-text assistant: no card chrome — document flow like T3/chat
-              'w-full max-w-full border-0 bg-transparent py-1 text-md leading-7 text-foreground shadow-none',
+            ? cn(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS, 'flex-col')
+            : 'mb-2 justify-start',
         )}
+        style={entranceAnimationStyle}
       >
-        <UserPromptCard isUser={isUser}>
-          <h3 className="sr-only">
-            {isUser ? 'Your message' : 'Assistant message'}
-          </h3>
+        <div
+          data-message-role={message.role}
+          data-message-surface={isUser ? 'prompt' : 'inline'}
+          className={cn(
+            'relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
+            isHighlighted && !isUser && SCROLL_FOCUS_SURFACE_CLASS,
+            isUser
+              ? AGENT_CONVERSATION_USER_PROMPT_LAYOUT_CLASS
+              : // Free-text assistant: no card chrome — document flow like T3/chat
+                'w-full max-w-full border-0 bg-transparent py-1 text-md leading-7 text-foreground shadow-none',
+          )}
+        >
+          <UserPromptCard isUser={isUser}>
+            <h3 className="sr-only">
+              {isUser ? 'Your message' : 'Assistant message'}
+            </h3>
 
-          {shouldRenderMessageContent && (
-            <div
-              className={cn(
-                'relative overflow-hidden',
-                !isExpanded &&
-                  shouldTruncateContent &&
-                  USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS,
-              )}
-            >
-              <SafeMarkdown
-                content={visibleMessageContent}
-                enhanceStructure={!isUser}
+            {shouldRenderMessageContent && (
+              <div
                 className={cn(
-                  // min-w-0 + anywhere: long tokens / inline code must wrap inside
-                  // the track instead of expanding the conversation column.
-                  'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
-                  isUser
-                    ? 'text-md leading-6 text-foreground [&_p]:my-1'
-                    : AGENT_ASSISTANT_PROSE_CLASS,
+                  'relative overflow-hidden',
+                  !isExpanded &&
+                    shouldTruncateContent &&
+                    USER_MESSAGE_COLLAPSE_MAX_HEIGHT_CLASS,
                 )}
+              >
+                <SafeMarkdown
+                  content={visibleMessageContent}
+                  enhanceStructure={!isUser}
+                  className={cn(
+                    // min-w-0 + anywhere: long tokens / inline code must wrap inside
+                    // the track instead of expanding the conversation column.
+                    'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
+                    isUser
+                      ? 'text-md leading-6 text-foreground [&_p]:my-1'
+                      : AGENT_ASSISTANT_PROSE_CLASS,
+                  )}
+                />
+                {isMessageAnimating && !shouldTruncateContent ? (
+                  <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
+                ) : null}
+                {!isExpanded && shouldTruncateContent && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+                )}
+              </div>
+            )}
+            {shouldSuppressFallbackMessage && !completionSummaryAction ? (
+              <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
+                Results are ready below.
+              </div>
+            ) : null}
+            {shouldRenderMessageContent && shouldTruncateContent && (
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+                className="mt-2 text-2xs font-semibold text-primary hover:text-primary/80"
+                onClick={() => setIsExpanded((prev) => !prev)}
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </Button>
+            )}
+
+            {isUser && userAttachments && userAttachments.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {userAttachments.map((attachment) => (
+                  <div
+                    key={attachment.ingredientId}
+                    className="size-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
+                  >
+                    <Image
+                      width={40}
+                      height={40}
+                      unoptimized
+                      src={attachment.url}
+                      alt={attachment.name ?? 'Attached image'}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {shouldRenderGeneratedTextCard && (
+              <AgentGeneratedTextCard
+                title={generatedContentTitle}
+                content={generatedContent ?? ''}
+                onCopy={onCopy}
+                onInsert={
+                  !isReadOnly && onUiAction
+                    ? handleInsertGeneratedContent
+                    : undefined
+                }
+                onRegenerate={
+                  !isReadOnly && onRegenerate
+                    ? () => onRegenerate(message)
+                    : undefined
+                }
+                isBusy={isBusy}
               />
-              {isMessageAnimating && !shouldTruncateContent ? (
-                <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
-              ) : null}
-              {!isExpanded && shouldTruncateContent && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
-              )}
-            </div>
-          )}
-          {shouldSuppressFallbackMessage && !completionSummaryAction ? (
-            <div className="rounded-md border border-border/65 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-              Results are ready below.
-            </div>
-          ) : null}
-          {shouldRenderMessageContent && shouldTruncateContent && (
-            <Button
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-              className="mt-2 text-2xs font-semibold text-primary hover:text-primary/80"
-              onClick={() => setIsExpanded((prev) => !prev)}
-            >
-              {isExpanded ? 'Show less' : 'Show more'}
-            </Button>
-          )}
+            )}
 
-          {isUser && userAttachments && userAttachments.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {userAttachments.map((attachment) => (
-                <div
-                  key={attachment.ingredientId}
-                  className="size-10 shrink-0 overflow-hidden rounded-lg border border-border/60"
-                >
-                  <Image
-                    width={40}
-                    height={40}
-                    unoptimized
-                    src={attachment.url}
-                    alt={attachment.name ?? 'Attached image'}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {shouldRenderGeneratedTextCard && (
-            <AgentGeneratedTextCard
-              title={generatedContentTitle}
-              content={generatedContent ?? ''}
-              onCopy={onCopy}
-              onInsert={
-                !isReadOnly && onUiAction
-                  ? handleInsertGeneratedContent
-                  : undefined
-              }
-              onRegenerate={
-                !isReadOnly && onRegenerate
-                  ? () => onRegenerate(message)
-                  : undefined
-              }
-              isBusy={isBusy}
-            />
-          )}
-
-          {/* UI action cards from tool results */}
-          {completionSummaryAction ? (
-            <UiActionRenderer
-              key={`ui-action-${completionSummaryAction.id}`}
-              action={completionSummaryAction}
-              apiService={apiService}
-              isDisabled={isBusy}
-              isReadOnly={isReadOnly}
-              onCopy={onCopy}
-              onOAuthConnect={onOAuthConnect}
-              onBrandCreate={onBrandCreate}
-              onRetry={
-                !isReadOnly && onRetry ? () => onRetry(message) : undefined
-              }
-              onSelectCreditPack={onSelectCreditPack}
-              onSelectIngredient={onSelectIngredient}
-              onUiAction={onUiAction}
-            />
-          ) : null}
-
-          {supplementalUiActions.length > 0 &&
-            supplementalUiActions.map((action) => (
+            {/* UI action cards from tool results */}
+            {completionSummaryAction ? (
               <UiActionRenderer
-                key={`ui-action-${action.id}`}
-                action={action}
+                key={`ui-action-${completionSummaryAction.id}`}
+                action={completionSummaryAction}
                 apiService={apiService}
                 isDisabled={isBusy}
                 isReadOnly={isReadOnly}
@@ -418,37 +399,65 @@ function AgentChatMessageInner({
                 onSelectIngredient={onSelectIngredient}
                 onUiAction={onUiAction}
               />
-            ))}
-        </UserPromptCard>
+            ) : null}
 
-        {isUser ? null : (
+            {supplementalUiActions.length > 0 &&
+              supplementalUiActions.map((action) => (
+                <UiActionRenderer
+                  key={`ui-action-${action.id}`}
+                  action={action}
+                  apiService={apiService}
+                  isDisabled={isBusy}
+                  isReadOnly={isReadOnly}
+                  onCopy={onCopy}
+                  onOAuthConnect={onOAuthConnect}
+                  onBrandCreate={onBrandCreate}
+                  onRetry={
+                    !isReadOnly && onRetry ? () => onRetry(message) : undefined
+                  }
+                  onSelectCreditPack={onSelectCreditPack}
+                  onSelectIngredient={onSelectIngredient}
+                  onUiAction={onUiAction}
+                />
+              ))}
+          </UserPromptCard>
+
+          {isUser ? null : (
+            <AgentChatMessageFooter
+              isUser={isUser}
+              metaItems={metaItems}
+              shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
+              isBusy={isBusy || isReadOnly}
+              copyContent={copyContent}
+              message={message}
+              onCopy={onCopy}
+              onRetry={undefined}
+              onRemember={isReadOnly ? undefined : onRemember}
+            />
+          )}
+        </div>
+      </div>
+      {isUser ? (
+        // Only the prompt card pins while the turn scrolls; the wall-clock and
+        // prompt actions stay in document flow and scroll away under it.
+        <div
+          className="group mb-4 motion-reduce:animate-none animate-in fade-in duration-200 ease-out"
+          style={entranceAnimationStyle}
+        >
           <AgentChatMessageFooter
-            isUser={isUser}
+            isUser
             metaItems={metaItems}
-            shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
+            shouldShowAssistantActions={false}
             isBusy={isBusy || isReadOnly}
             copyContent={copyContent}
             message={message}
             onCopy={onCopy}
-            onRetry={undefined}
-            onRemember={isReadOnly ? undefined : onRemember}
+            onRetry={!isReadOnly && isRetryableUserPrompt ? onRetry : undefined}
+            onRemember={undefined}
           />
-        )}
-      </div>
-      {isUser ? (
-        <AgentChatMessageFooter
-          isUser
-          metaItems={metaItems}
-          shouldShowAssistantActions={false}
-          isBusy={isBusy || isReadOnly}
-          copyContent={copyContent}
-          message={message}
-          onCopy={onCopy}
-          onRetry={!isReadOnly && isRetryableUserPrompt ? onRetry : undefined}
-          onRemember={undefined}
-        />
+        </div>
       ) : null}
-    </div>
+    </>
   );
 }
 
