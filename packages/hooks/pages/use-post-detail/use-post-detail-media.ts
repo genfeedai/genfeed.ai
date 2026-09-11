@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  type GallerySelectItem,
   useGalleryModal,
   useGenerateIllustrationModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
@@ -11,6 +10,7 @@ import {
   type Platform,
 } from '@genfeedai/contracts';
 import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
