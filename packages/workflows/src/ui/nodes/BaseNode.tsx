@@ -464,7 +464,6 @@ function BaseNodeComponent({
 }: BaseNodeProps) {
   // Check if node has been manually resized (has explicit dimensions)
   const isResized = width !== undefined || height !== undefined;
-  const selectNode = useUIStore((state) => state.selectNode);
   const selectedNodeId = useUIStore((state) => state.selectedNodeId);
   const highlightedNodeIds = useUIStore((state) => state.highlightedNodeIds);
   const toggleNodeLock = useWorkflowStore((state) => state.toggleNodeLock);
@@ -696,7 +695,6 @@ function BaseNodeComponent({
             }),
           } as React.CSSProperties
         }
-        onPointerDown={() => selectNode(id)}
         onPointerEnter={handleMouseEnter}
         onPointerLeave={handleMouseLeave}
       >

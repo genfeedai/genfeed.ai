@@ -1,10 +1,14 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { HandleType } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { EdgeProps } from '@xyflow/react';
-import { BaseEdge, getBezierPath } from '@xyflow/react';
-import { Pause } from 'lucide-react';
-import { memo } from 'react';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
+import { Pause, Play, Trash2 } from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { useUIStore } from '../stores/uiStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 const DATA_TYPE_COLORS: Record<HandleType, [string, string]> = {
   audio: ['#f97316', '#fb923c'], // orange
@@ -16,6 +20,84 @@ const DATA_TYPE_COLORS: Record<HandleType, [string, string]> = {
 
 const DEFAULT_COLORS: [string, string] = ['#6b7280', '#9ca3af'];
 const EMPTY_EDGE_STYLE: NonNullable<EdgeProps['style']> = {};
+
+/** Hit-test width (px) around the visible edge path, handled by BaseEdge itself. */
+const EDGE_INTERACTION_WIDTH = 20;
+/** Gap (px) between the edge midpoint and the bottom of the toolbar above it. */
+const TOOLBAR_GAP = 12;
+
+interface EdgeMidpointToolbarProps {
+  edgeId: string;
+  hasPause: boolean;
+  labelX: number;
+  labelY: number;
+}
+
+function EdgeMidpointToolbar({
+  edgeId,
+  hasPause,
+  labelX,
+  labelY,
+}: EdgeMidpointToolbarProps) {
+  const selectEdge = useUIStore((state) => state.selectEdge);
+  const toggleEdgePause = useWorkflowStore((state) => state.toggleEdgePause);
+  const removeEdge = useWorkflowStore((state) => state.removeEdge);
+
+  const handleTogglePause = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      toggleEdgePause(edgeId);
+    },
+    [edgeId, toggleEdgePause],
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      removeEdge(edgeId);
+      selectEdge(null);
+    },
+    [edgeId, removeEdge, selectEdge],
+  );
+
+  return (
+    <EdgeLabelRenderer>
+      <div
+        className="nodrag nopan absolute z-30 flex items-center gap-1 bg-background shadow-dropdown px-1.5 py-1"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          pointerEvents: 'all',
+          transform: `translate(-50%, -100%) translate(${labelX}px, ${labelY - TOOLBAR_GAP}px)`,
+        }}
+      >
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          onClick={handleTogglePause}
+          title={hasPause ? 'Resume edge' : 'Pause edge'}
+        >
+          {hasPause ? (
+            <Play className="size-3.5" />
+          ) : (
+            <Pause className="size-3.5" />
+          )}
+        </Button>
+        <div className="h-4 w-px bg-border" />
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          onClick={handleDelete}
+          title="Delete edge"
+          className="hover:bg-destructive/10 hover:text-destructive"
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </EdgeLabelRenderer>
+  );
+}
 
 function EditableEdgeComponent({
   id,
@@ -57,19 +139,12 @@ function EditableEdgeComponent({
         </linearGradient>
       </defs>
 
-      {/* Transparent hit area for easier clicking */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={20}
-        className="react-flow__edge-interaction"
-      />
-
-      {/* Visible edge */}
+      {/* Visible edge; BaseEdge renders its own transparent interaction path
+          at `interactionWidth`, so mid-edge clicks reliably hit this edge. */}
       <BaseEdge
         path={edgePath}
         markerEnd={markerEnd}
+        interactionWidth={EDGE_INTERACTION_WIDTH}
         style={{
           ...style,
           stroke: `url(#${gradientId})`,
@@ -109,6 +184,17 @@ function EditableEdgeComponent({
             style={{ backgroundColor: colorStart }}
           />
         </foreignObject>
+      )}
+
+      {/* Delete/disconnect toolbar, rendered via the edge label renderer so it
+          tracks this edge's own midpoint under pan/zoom. */}
+      {selected && (
+        <EdgeMidpointToolbar
+          edgeId={id}
+          hasPause={hasPause}
+          labelX={labelX}
+          labelY={labelY}
+        />
       )}
     </>
   );

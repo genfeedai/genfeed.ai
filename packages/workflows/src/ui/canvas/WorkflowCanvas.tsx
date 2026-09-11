@@ -36,7 +36,11 @@ import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
 import { NotificationToast } from '../components/NotificationToast';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
-import { createIdLookup, filterItemsByIdLookup } from '../lib';
+import {
+  createIdLookup,
+  filterItemsByIdLookup,
+  isEventFromHandle,
+} from '../lib';
 import {
   decodeWorkflowNodeTransfer,
   WORKFLOW_NODE_TRANSFER_TYPE,
@@ -51,7 +55,6 @@ import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
 import { getHandleType } from '../stores/workflow/helpers/nodeHelpers';
 import { ConnectionDropMenu } from './ConnectionDropMenu';
-import { EdgeToolbar } from './EdgeToolbar';
 import { EditableEdge } from './EditableEdge';
 import { GroupOverlay } from './GroupOverlay';
 import { HelperLines } from './HelperLines';
@@ -428,7 +431,12 @@ function useWorkflowCanvasHandlers({
   });
 
   const handleNodeClick = useCallback(
-    (_event: React.MouseEvent, node: WorkflowNode) => {
+    (event: React.MouseEvent, node: WorkflowNode) => {
+      // A connection drag/click that starts or ends on a handle must never
+      // select (and thereby open config for) the node underneath it.
+      if (isEventFromHandle(event.target)) {
+        return;
+      }
       selectNode(node.id);
     },
     [selectNode],
@@ -850,6 +858,7 @@ export function WorkflowCanvas({
         minZoom={0.1}
         maxZoom={4}
         nodeDragThreshold={5}
+        nodeClickDistance={5}
         connectionMode={ConnectionMode.Loose}
         selectionMode={SelectionMode.Partial}
         selectionOnDrag
@@ -896,7 +905,6 @@ export function WorkflowCanvas({
           onClose={closeContextMenu}
         />
       )}
-      <EdgeToolbar />
       <MultiSelectToolbar onDownloadAsZip={onDownloadAsZip} />
       <NodeDetailModal />
       <ShortcutHelpModal />

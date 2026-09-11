@@ -655,7 +655,7 @@ describe('BaseNode', () => {
   });
 
   describe('selection', () => {
-    it('should call selectNode when clicked', () => {
+    it('does not select the node on pointer-down (selection is click/drag-threshold gated by React Flow, not the node body)', () => {
       render(<BaseNode {...defaultProps} />);
 
       const nodeElement = screen.getByText('Test Node').closest('div');
@@ -663,7 +663,10 @@ describe('BaseNode', () => {
 
       fireEvent.pointerDown(nodeElement as Element);
 
-      expect(mockSelectNode).toHaveBeenCalledWith('node-1');
+      // Regression guard for #4665: a pointer-down handler here previously
+      // selected the node before any click-vs-drag distinction happened,
+      // which opened node config while dragging or completing a connection.
+      expect(mockSelectNode).not.toHaveBeenCalled();
     });
 
     it('should apply ring style when selected', () => {
