@@ -77,12 +77,12 @@ describe('TrendDetail', () => {
   it('renders the trend metrics once loaded', async () => {
     render(<TrendDetail trendId="trend-1" />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Trend Metrics')).toBeInTheDocument();
-    });
+    // The shell chrome ('Trend Metrics', 'Mentions') renders before the
+    // request resolves, so wait on the loaded value rather than the labels.
+    expect(await screen.findByText('88/100')).toBeInTheDocument();
+    expect(screen.getByText('Trend Metrics')).toBeInTheDocument();
     expect(screen.getByText('Mentions')).toBeInTheDocument();
     expect(screen.getByText('Virality Score')).toBeInTheDocument();
-    expect(screen.getByText('88/100')).toBeInTheDocument();
   });
 
   it('prefixes a positive growth rate', async () => {
